@@ -30,6 +30,12 @@ requirements engineering and traceability.
 
    traceability/index
 
+.. toctree::
+   :maxdepth: 1
+   :caption: Guides
+
+   namingconventions
+
 
 Indices
 -------
