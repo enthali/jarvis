@@ -20,7 +20,7 @@ Explorer User Stories
 
 .. story:: Manual Extension Testing
    :id: US_EXP_MANUALTEST
-   :status: approved
+   :status: implemented
    :priority: mandatory
 
    **As a** developer,

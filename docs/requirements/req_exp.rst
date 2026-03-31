@@ -58,7 +58,7 @@ Explorer Requirements
 
 .. req:: VS Code Launch Configuration
    :id: REQ_EXP_LAUNCHCONFIG
-   :status: approved
+   :status: implemented
    :priority: mandatory
    :links: US_EXP_MANUALTEST
 
@@ -75,7 +75,7 @@ Explorer Requirements
 
 .. req:: User-Facing Test Summary
    :id: REQ_EXP_TESTSUMMARY
-   :status: approved
+   :status: implemented
    :priority: mandatory
    :links: US_EXP_MANUALTEST
 
@@ -95,7 +95,7 @@ Explorer Requirements
 
 .. req:: Test Result Persistence
    :id: REQ_EXP_TESTPROTOCOL
-   :status: approved
+   :status: implemented
    :priority: mandatory
    :links: US_EXP_MANUALTEST
 

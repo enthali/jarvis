@@ -76,7 +76,7 @@ Explorer Design Specifications
 
 .. spec:: Launch Configuration File
    :id: SPEC_EXP_LAUNCHCONFIG
-   :status: approved
+   :status: implemented
    :links: REQ_EXP_LAUNCHCONFIG
 
    **Description:**
@@ -103,7 +103,7 @@ Explorer Design Specifications
 
 .. spec:: Implement Agent Manual Test Step
    :id: SPEC_EXP_IMPLTEST
-   :status: approved
+   :status: implemented
    :links: REQ_EXP_TESTSUMMARY
 
    **Description:**
@@ -140,7 +140,7 @@ Explorer Design Specifications
 
 .. spec:: Test Protocol Format
    :id: SPEC_EXP_TESTPROTOCOL
-   :status: approved
+   :status: implemented
    :links: REQ_EXP_TESTPROTOCOL
 
    **Description:**
@@ -176,7 +176,7 @@ Explorer Design Specifications
 
 .. spec:: Verify Agent Protocol Check
    :id: SPEC_EXP_VERIFYPROTOCOL
-   :status: approved
+   :status: implemented
    :links: REQ_EXP_TESTPROTOCOL
 
    **Description:**
