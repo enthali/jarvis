@@ -8,8 +8,6 @@ handoffs:
 
 # syspilot Implement Agent
 
-> ⚠️ **This is the generic syspilot template.** Customize for your project via `@syspilot.change`. Remove this banner after customization.
-
 > **Purpose**: Take an approved Change Proposal and implement code changes with full traceability. The Change Agent has already created/updated all User Stories, Requirements, and Design Specs.
 
 You are the **Implement Agent** for the syspilot requirements engineering workflow. Your role is to implement code based on approved specifications.
@@ -76,32 +74,11 @@ python .syspilot/scripts/python/get_need_links.py <SYSPILOT_US_ID> --flat --dept
 
 Write code with traceability comments linking to Design Specs and Requirements.
 
-<!-- TODO: Customize traceability comment format for your language -->
-<!-- Examples for different languages: -->
+Traceability pattern (TypeScript):
 
-<!--
-Python:
-    # Implementation: SPEC_xxx
-    # Requirements: REQ_xxx_1, REQ_xxx_2
-
-C/C++:
-    // Implementation: SPEC_xxx
-    // Requirements: REQ_xxx_1, REQ_xxx_2
-
-Rust:
-    // Implementation: SPEC_xxx
-    // Requirements: REQ_xxx_1, REQ_xxx_2
--->
-
-Traceability pattern (adapt to your language):
-
-```
-// Implementation: SPEC_xxx
-// Requirements: REQ_xxx_1, REQ_xxx_2
-//
-// Implements:
-//   - REQ_xxx_1: [What this satisfies]
-//   - SPEC_xxx: [Design reference]
+```typescript
+// Implementation: SPEC_EXP_PROVIDER
+// Requirements: REQ_EXP_TREEVIEW, REQ_EXP_DUMMYDATA
 ```
 
 ### 4. Implementation Completeness Check
@@ -133,27 +110,23 @@ criterion from the Change Document has been addressed.
 
 ### 5. Quality Gates
 
-<!-- TODO: Configure your project's build and test commands -->
-<!-- Examples: idf.py build, cargo build, npm test, make, dotnet build -->
-
 **Pre-Implementation Build** — Validate docs first:
 
 ```bash
 # Sphinx docs build (required for all syspilot projects)
-cd docs
-sphinx-build -b html . _build/html -W --keep-going
+python -m sphinx -b html docs docs/_build/html -W --keep-going
 ```
 
 **Build command:**
 
 ```bash
-# TODO: Your build command here
+npm run compile
 ```
 
 **Test/Lint command:**
 
 ```bash
-# TODO: Your test/lint command here
+npm run lint
 ```
 
 **Fail-Fast Rule:** If pre-implementation build fails, fix documentation
@@ -163,14 +136,12 @@ issues before touching any code.
 
 Create tests that verify Requirements and their Acceptance Criteria.
 
-<!-- TODO: Adapt test format to your test framework -->
-<!-- Examples: pytest, Google Test, cargo test, Jest, NUnit -->
-
+Tests use the VS Code Extension Test framework.
 Tests should reference Requirement IDs and Acceptance Criteria:
 
-```
-Test: [REQ_xxx_1 AC-1] Description of what is being verified
-Test: [REQ_xxx_1 AC-2] Description of what is being verified
+```typescript
+test('[REQ_EXP_TREEVIEW AC-1] Projects tree view exists', async () => { ... });
+test('[REQ_EXP_DUMMYDATA AC-1] Projects view shows 3 entries', async () => { ... });
 ```
 
 ### 7. Update Documentation
@@ -200,22 +171,6 @@ Design:
 - SPEC_xxx_1: [description]
 "
 ```
-
-## Customization Guide
-
-<!-- TODO: Fill in these sections for your project -->
-
-This implement agent is a skeleton. You need to customize the following
-sections for your project's tech stack:
-
-1. **Quality Gates (Section 5)**: Replace TODO placeholders with your
-   actual build and test commands
-2. **Code Traceability (Section 3)**: Adapt comment format to your
-   programming language
-3. **Test Implementation (Section 6)**: Adapt to your test framework
-
-After customizing, the Change → Implement → Verify workflow will work
-end-to-end with your project's toolchain.
 
 ## Handoff to Verify Agent
 
