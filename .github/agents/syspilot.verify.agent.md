@@ -74,7 +74,40 @@ For implementation files:
 | Completeness | Are all design items implemented? |
 | Quality | Does it follow project conventions? |
 
-### 4. Test Verification
+### 4. Test Protocol Verification
+
+<!-- Implementation: SPEC_EXP_VERIFYPROTOCOL -->
+<!-- Requirements: REQ_EXP_TESTPROTOCOL -->
+
+Check for a test protocol at `docs/changes/tst-<change-name>.md`:
+
+1. **File exists?**
+   - ✅ Found → read and continue
+   - ⚠️ Missing → note in report, ask user to clarify before proceeding
+
+2. **Overall result is PASSED?**
+   - Check for `**Result**: PASSED` in the file header
+   - ✅ PASSED → proceed
+   - ❌ FAILED → stop, do not mark as implemented, hand off to implement agent
+
+3. **No individual FAIL rows?**
+   - Scan the Test Results table for any `FAIL` entries
+   - ❌ Any FAIL found → report as issue
+
+4. **Include in verification report:**
+
+```markdown
+## Test Protocol
+
+**File**: docs/changes/tst-<change-name>.md  
+**Result**: ✅ PASSED | ⚠️ MISSING | ❌ FAILED
+
+| # | REQ ID | AC | Description | Result |
+|---|--------|-----|-------------|--------|
+| (rows from tst file) |
+```
+
+### 5. Test Verification
 
 | Check | Question |
 |-------|----------|
@@ -82,7 +115,7 @@ For implementation files:
 | References | Do tests reference REQ IDs? |
 | Passing | Do all tests pass? |
 
-### 5. Traceability Verification
+### 6. Traceability Verification
 
 Check bidirectional links:
 

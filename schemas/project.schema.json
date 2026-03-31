@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ProjectManager Project",
+  "description": "Schema for ProjectManager project.yaml files",
+  "type": "object",
+  "required": ["name", "summary"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Project name including prefix, e.g. 'Project: Auto Strategy'",
+      "pattern": "^Project: .+$"
+    },
+    "summary": {
+      "type": "string",
+      "description": "Brief project description"
+    },
+    "stakeholders": {
+      "type": "array",
+      "description": "People involved in this project. Source of truth for project↔person mapping (used by triage).",
+      "items": {
+        "type": "object",
+        "required": ["name", "email"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Full name, e.g. 'Frank Kaleck'"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "Primary email address (used for sender lookup)"
+          },
+          "role": {
+            "type": "string",
+            "enum": ["lead", "contributor", "external", "stakeholder"],
+            "description": "Role in this project: lead (owns workstream), contributor (active), external (partner/customer), stakeholder (informed)"
+          }
+        }
+      }
+    },
+    "externalStatus": {
+      "type": "string",
+      "description": "External status update (safe to share with customers/partners)"
+    },
+    "internalStatus": {
+      "type": "string",
+      "description": "Internal-only status with confidential information (not shared externally)"
+    },
+    "lastUpdated": {
+      "type": "string",
+      "format": "date",
+      "description": "Date when the project was last updated (YYYY-MM-DD)"
+    }
+  }
+}
