@@ -169,6 +169,35 @@ Confirm all items pass?
 4. If user confirms → proceed to commit
 5. If user rejects → go back and fix issues before continuing
 
+6. **Save test protocol** (`docs/changes/tst-<change-name>.md`):
+
+<!-- Implementation: SPEC_EXP_TESTPROTOCOL -->
+<!-- Requirements: REQ_EXP_TESTPROTOCOL -->
+
+After the user confirms or rejects, persist the results as a test protocol
+file at `docs/changes/tst-<change-name>.md` with this format:
+
+```markdown
+# Test Protocol: <change-name>
+
+**Date**: YYYY-MM-DD
+**Change Document**: docs/changes/<change-name>.md
+**Result**: PASSED | FAILED
+
+## Test Results
+
+| # | REQ ID | AC | Description | Result |
+|---|--------|-----|-------------|--------|
+| 1 | REQ_xxx | AC-1 | ... | PASS |
+| 2 | REQ_xxx | AC-2 | ... | PASS |
+
+## Notes
+
+{Optional user notes}
+```
+
+The Verify Agent will check this protocol exists and all items passed.
+
 ### 7. Test Implementation
 
 Create tests that verify Requirements and their Acceptance Criteria.
