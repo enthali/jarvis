@@ -1,0 +1,21 @@
+node_modules/
+out/
+dist/
+*.vsix
+.vscode-test/
+__pycache__/
+*.pyc
+.env
+.venv/
+_build/
+
+# syspilot build artifacts
+docs/_build/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Test data
+test-projects/
+test-events/
