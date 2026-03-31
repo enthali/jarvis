@@ -16,3 +16,20 @@ Explorer User Stories
    * AC-2: Clicking the icon opens a sidebar panel
    * AC-3: The sidebar contains two collapsible sections: "Projects" and "Events"
    * AC-4: Each section displays a list of items with their names
+
+
+.. story:: Manual Extension Testing
+   :id: US_EXP_MANUALTEST
+   :status: approved
+   :priority: mandatory
+
+   **As a** developer,
+   **I want** to quickly launch and test my extension changes in a real VS Code window,
+   **so that** I can verify the extension works as expected before committing.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A VS Code launch configuration exists for "Run Extension" (F5)
+   * AC-2: The Implement Agent compiles and launches the Extension Development Host after implementation
+   * AC-3: The agent presents a user-facing test summary listing what to verify
+   * AC-4: The user can confirm or reject the test before the agent proceeds to commit

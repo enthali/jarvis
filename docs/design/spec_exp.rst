@@ -72,3 +72,67 @@ Explorer Design Specifications
 
    * "Event: embedded world"
    * "Event: CES 2027"
+
+
+.. spec:: Launch Configuration File
+   :id: SPEC_EXP_LAUNCHCONFIG
+   :status: approved
+   :links: REQ_EXP_LAUNCHCONFIG
+
+   **Description:**
+   Create ``.vscode/launch.json`` with:
+
+   .. code-block:: json
+
+      {
+        "version": "0.2.0",
+        "configurations": [
+          {
+            "name": "Run Extension",
+            "type": "extensionHost",
+            "request": "launch",
+            "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
+            "outFiles": ["${workspaceFolder}/out/**/*.js"],
+            "preLaunchTask": "npm: compile"
+          }
+        ]
+      }
+
+   Also create ``.vscode/tasks.json`` with the compile task if not present.
+
+
+.. spec:: Implement Agent Manual Test Step
+   :id: SPEC_EXP_IMPLTEST
+   :status: approved
+   :links: REQ_EXP_TESTSUMMARY
+
+   **Description:**
+   Add a new step to ``syspilot.implement.agent.md`` between "Quality Gates" and
+   "Update Documentation":
+
+   **Step: Manual User Acceptance Test**
+
+   1. Compile the extension: ``npm run compile``
+   2. Launch the Extension Development Host:
+      ``code --extensionDevelopmentPath="${workspaceFolder}"``
+   3. Present the user with a test checklist using ``ask_questions``:
+
+      * Derive items from the Change Document's REQ acceptance criteria
+      * Format as a confirmation prompt with pass/fail
+
+   4. If user confirms: proceed to commit
+   5. If user rejects: go back to fix issues
+
+   The test summary format:
+
+   .. code-block:: text
+
+      ## Manual Test — {Change Name}
+
+      Extension Development Host launched. Please verify:
+
+      - [ ] {AC from REQ_1}
+      - [ ] {AC from REQ_2}
+      - ...
+
+      Confirm all items pass?
