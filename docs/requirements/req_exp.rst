@@ -91,3 +91,25 @@ Explorer Requirements
    * AC-2: The step compiles the extension and launches the Extension Development Host
    * AC-3: A checklist of items to verify is shown to the user (derived from REQ ACs)
    * AC-4: The user can confirm (proceed to commit) or reject (go back to fix)
+
+
+.. req:: Test Result Persistence
+   :id: REQ_EXP_TESTPROTOCOL
+   :status: approved
+   :priority: mandatory
+   :links: US_EXP_MANUALTEST
+
+   **Description:**
+   After the user confirms or rejects the manual test, the Implement Agent SHALL
+   persist the test protocol as ``docs/changes/tst-<change-name>.md``.
+   The protocol SHALL include: change name, date, each test item with its
+   REQ ID, AC reference, and pass/fail result.
+
+   The Verify Agent SHALL check that a test protocol exists and that all
+   items passed before marking specs as implemented.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A test protocol file is created at ``docs/changes/tst-<change-name>.md``
+   * AC-2: The protocol lists each tested REQ with AC reference and pass/fail
+   * AC-3: The Verify Agent checks the protocol exists and all items passed

@@ -136,3 +136,39 @@ Explorer Design Specifications
       - ...
 
       Confirm all items pass?
+
+
+.. spec:: Test Protocol Format
+   :id: SPEC_EXP_TESTPROTOCOL
+   :status: approved
+   :links: REQ_EXP_TESTPROTOCOL
+
+   **Description:**
+   After the manual test ``ask_questions`` step, the Implement Agent creates
+   ``docs/changes/tst-<change-name>.md`` with the following format:
+
+   .. code-block:: markdown
+
+      # Test Protocol: <change-name>
+
+      **Date**: YYYY-MM-DD
+      **Change Document**: docs/changes/<change-name>.md
+      **Result**: PASSED | FAILED
+
+      ## Test Results
+
+      | # | REQ ID | AC | Description | Result |
+      |---|--------|-----|-------------|--------|
+      | 1 | REQ_xxx | AC-1 | ... | PASS |
+      | 2 | REQ_xxx | AC-2 | ... | FAIL |
+
+      ## Notes
+
+      {Optional user freeform notes from ask_questions}
+
+   **Verify Agent integration:**
+   The Verify Agent SHALL read ``docs/changes/tst-<change-name>.md`` and:
+
+   * Check that the file exists
+   * Check that the overall result is PASSED
+   * Include test protocol status in the verification report
