@@ -72,8 +72,9 @@ Added acceptance criterion:
 
 ### New Design Elements
 - SPEC_EXP_LAUNCHCONFIG: Launch Configuration File (implemented)
-- SPEC_EXP_IMPLTEST: Implement Agent Manual Test Step (implemented — **needs update**)
-- **SPEC_EXP_TESTPROTOCOL**: Test Protocol Format (**new**)
+- SPEC_EXP_IMPLTEST: Implement Agent Manual Test Step (implemented)
+- SPEC_EXP_TESTPROTOCOL: Test Protocol Format (implemented)
+- **SPEC_EXP_VERIFYPROTOCOL**: Verify Agent Protocol Check (**new — gap identified**)
 
 #### SPEC_EXP_TESTPROTOCOL: Test Protocol Format
 
@@ -121,6 +122,30 @@ after the user confirms/rejects:
 
    6. Save test results to ``docs/changes/tst-<change-name>.md``
 
+#### SPEC_EXP_VERIFYPROTOCOL: Verify Agent Protocol Check
+
+```rst
+.. spec:: Verify Agent Protocol Check
+   :id: SPEC_EXP_VERIFYPROTOCOL
+   :status: approved
+   :links: REQ_EXP_TESTPROTOCOL
+
+   **Description:**
+   Update ``syspilot.verify.agent.md`` to include a test protocol check step.
+   Before marking specs as implemented, the Verify Agent SHALL:
+
+   1. Check if ``docs/changes/tst-<change-name>.md`` exists
+   2. Read the file and verify the overall ``**Result**`` is ``PASSED``
+   3. Check that no row in the test results table contains ``FAIL``
+   4. Include a "Test Protocol" section in the verification report:
+
+      * ✅ Protocol found, result: PASSED → proceed
+      * ⚠️ Protocol missing → note in report, ask user to clarify
+      * ❌ Protocol found, result: FAILED → stop, do not mark as implemented
+
+   The check is placed after code verification and before updating statuses.
+```
+
 ### Key Decisions
 1. Agent uses `code --extensionDevelopmentPath=` (CLI); launch.json is for interactive F5
 2. Manual test step placed after quality gates, before documentation/commit
@@ -140,11 +165,12 @@ after the user confirms/rejects:
 |------------|--------------|--------|-----------|
 | US_EXP_MANUALTEST (AC-1) | REQ_EXP_LAUNCHCONFIG | SPEC_EXP_LAUNCHCONFIG | ✅ impl |
 | US_EXP_MANUALTEST (AC-2, AC-3, AC-4) | REQ_EXP_TESTSUMMARY | SPEC_EXP_IMPLTEST | ✅ impl |
-| US_EXP_MANUALTEST (AC-5) | REQ_EXP_TESTPROTOCOL | SPEC_EXP_TESTPROTOCOL | ✅ approved |
+| US_EXP_MANUALTEST (AC-5) | REQ_EXP_TESTPROTOCOL | SPEC_EXP_TESTPROTOCOL | ✅ impl |
+| US_EXP_MANUALTEST (AC-5) | REQ_EXP_TESTPROTOCOL (AC-3) | SPEC_EXP_VERIFYPROTOCOL | ✅ approved |
 
 ### Sign-off
 - [x] All levels completed
-- [x] All conflicts resolved
+- [x] Gap identified and closed: SPEC_EXP_VERIFYPROTOCOL added
 - [x] Traceability verified
 - [x] User approved
 - [x] RST files written with status: approved

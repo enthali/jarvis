@@ -172,3 +172,24 @@ Explorer Design Specifications
    * Check that the file exists
    * Check that the overall result is PASSED
    * Include test protocol status in the verification report
+
+
+.. spec:: Verify Agent Protocol Check
+   :id: SPEC_EXP_VERIFYPROTOCOL
+   :status: approved
+   :links: REQ_EXP_TESTPROTOCOL
+
+   **Description:**
+   Update ``syspilot.verify.agent.md`` to include a test protocol check step.
+   Before marking specs as implemented, the Verify Agent SHALL:
+
+   1. Check if ``docs/changes/tst-<change-name>.md`` exists
+   2. Read the file and verify the overall ``**Result**`` is ``PASSED``
+   3. Check that no row in the test results table contains ``FAIL``
+   4. Include a "Test Protocol" section in the verification report:
+
+      * ✅ Protocol found, result: PASSED → proceed
+      * ⚠️ Protocol missing → note in report, ask user to clarify
+      * ❌ Protocol found, result: FAILED → stop, do not mark as implemented
+
+   The check is placed after code verification and before updating statuses.
