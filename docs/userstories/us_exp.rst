@@ -3,7 +3,7 @@ Explorer User Stories
 
 .. story:: Project & Event Explorer
    :id: US_EXP_SIDEBAR
-   :status: approved
+   :status: implemented
    :priority: mandatory
 
    **As a** project manager,

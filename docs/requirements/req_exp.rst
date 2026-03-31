@@ -3,7 +3,7 @@ Explorer Requirements
 
 .. req:: Activity Bar Registration
    :id: REQ_EXP_ACTIVITYBAR
-   :status: approved
+   :status: implemented
    :priority: mandatory
    :links: US_EXP_SIDEBAR
 
@@ -19,7 +19,7 @@ Explorer Requirements
 
 .. req:: Project and Event Tree Views
    :id: REQ_EXP_TREEVIEW
-   :status: approved
+   :status: implemented
    :priority: mandatory
    :links: US_EXP_SIDEBAR
 
@@ -38,7 +38,7 @@ Explorer Requirements
 
 .. req:: Static Dummy Data
    :id: REQ_EXP_DUMMYDATA
-   :status: approved
+   :status: implemented
    :priority: mandatory
    :links: US_EXP_SIDEBAR
 

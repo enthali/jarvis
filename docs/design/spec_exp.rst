@@ -3,7 +3,7 @@ Explorer Design Specifications
 
 .. spec:: Extension Manifest & Activation
    :id: SPEC_EXP_EXTENSION
-   :status: approved
+   :status: implemented
    :links: REQ_EXP_ACTIVITYBAR
 
    **Description:**
@@ -39,7 +39,7 @@ Explorer Design Specifications
 
 .. spec:: Tree Data Providers
    :id: SPEC_EXP_PROVIDER
-   :status: approved
+   :status: implemented
    :links: REQ_EXP_TREEVIEW, REQ_EXP_DUMMYDATA
 
    **Description:**
