@@ -132,7 +132,44 @@ npm run lint
 **Fail-Fast Rule:** If pre-implementation build fails, fix documentation
 issues before touching any code.
 
-### 6. Test Implementation
+### 6. Manual User Acceptance Test
+
+<!-- Implementation: SPEC_EXP_IMPLTEST -->
+<!-- Requirements: REQ_EXP_TESTSUMMARY -->
+
+After quality gates pass, launch the extension for manual verification:
+
+1. Compile the extension: `npm run compile`
+2. Launch the Extension Development Host:
+
+```bash
+code --extensionDevelopmentPath="${workspaceFolder}"
+```
+
+3. Present the user with a test checklist derived from the Change Document's
+   REQ acceptance criteria. Use the `ask_questions` tool:
+
+   - List each REQ with its ACs as checklist items
+   - Ask the user to confirm all items pass
+
+Example format:
+
+```
+Manual Test — {Change Name}
+
+Extension Development Host launched. Please verify:
+
+- [ ] REQ_xxx AC-1: {description}
+- [ ] REQ_xxx AC-2: {description}
+- ...
+
+Confirm all items pass?
+```
+
+4. If user confirms → proceed to commit
+5. If user rejects → go back and fix issues before continuing
+
+### 7. Test Implementation
 
 Create tests that verify Requirements and their Acceptance Criteria.
 
@@ -144,7 +181,7 @@ test('[REQ_EXP_TREEVIEW AC-1] Projects tree view exists', async () => { ... });
 test('[REQ_EXP_DUMMYDATA AC-1] Projects view shows 3 entries', async () => { ... });
 ```
 
-### 7. Update Documentation
+### 8. Update Documentation
 
 Update all user-facing documentation to reflect the changes:
 
@@ -153,7 +190,7 @@ Update all user-facing documentation to reflect the changes:
 - **Agent files** (.github/agents/*.agent.md) - Update if agent behavior changed
 - **copilot-instructions.md** - Update project memory if needed (or hand off to Memory Agent)
 
-### 8. Commit with Traceability
+### 9. Commit with Traceability
 
 Commit with a message that references the Change Document:
 
