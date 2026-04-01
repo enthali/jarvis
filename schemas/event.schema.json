@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ProjectManager Event",
+  "description": "Schema for ProjectManager event.yaml files",
+  "type": "object",
+  "required": ["name", "location", "status", "dates"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Event name including prefix, e.g. 'Event: embedded world'",
+      "pattern": "^Event: .+$"
+    },
+    "location": {
+      "type": "string",
+      "description": "Venue, City, Country"
+    },
+    "url": {
+      "type": "string",
+      "format": "uri",
+      "description": "Event website"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["intended", "registered", "booked", "attended", "cancelled"],
+      "description": "Participation status"
+    },
+    "summary": {
+      "type": "string",
+      "description": "Brief description of the event"
+    },
+    "lastUpdated": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of last update (YYYY-MM-DD)"
+    },
+    "dates": {
+      "type": "object",
+      "required": ["start", "end"],
+      "properties": {
+        "start": {
+          "type": "string",
+          "format": "date",
+          "description": "First day (YYYY-MM-DD)"
+        },
+        "end": {
+          "type": "string",
+          "format": "date",
+          "description": "Last day (YYYY-MM-DD)"
+        }
+      }
+    },
+    "role": {
+      "type": "string",
+      "enum": ["visitor", "exhibitor", "speaker", "sponsor"],
+      "description": "Our role at the event"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Topic tags for filtering"
+    }
+  }
+}

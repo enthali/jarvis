@@ -4,32 +4,51 @@ A VS Code extension for personal project and event management.
 
 ## Overview
 
-Jarvis provides a project overview in the VS Code Explorer sidebar, displaying your active projects and their status at a glance. It connects to an MCP server for live data from Outlook (tasks, emails, contacts) and project YAML files.
+Jarvis provides a dedicated sidebar in VS Code with two tree views:
+
+- **Projects** — Lists your active projects
+- **Events** — Lists your upcoming events
+
+Currently displays hardcoded dummy data. Future versions will load real data from YAML files in configurable folders.
+
+## Installation
+
+**Via GitHub Releases** (recommended):
+1. Go to [Releases](https://github.com/enthali/Jarvis/releases)
+2. Download `jarvis-<version>.vsix`
+3. In VS Code: `Extensions` → `...` → `Install from VSIX...`
+
+**From source**:
+```bash
+npm install
+npm run package
+# Then install the generated jarvis-*.vsix via VS Code
+```
 
 ## Status
 
-**Early Development** — Starting with the Explorer tree view for project overview.
-
-## Architecture
-
-```
-VS Code Extension (Jarvis)
-    └── MCP Server (existing, port 8191)
-            └── Outlook COM / Project YAML / Events
-```
+**v0.0.1** — Hello World Explorer with dummy data.
 
 ## Development
 
 ```bash
-# Install dependencies
-npm install
-
-# Compile
-npm run compile
-
-# Package
-npx vsce package
+npm install        # Install dependencies
+npm run compile    # TypeScript build
+npm run watch      # Watch mode
+npm run package    # Build .vsix
 ```
+
+Press **F5** in VS Code to launch the Extension Development Host.
+
+## Documentation
+
+This project uses [syspilot](https://github.com/enthali/syspilot) for requirements engineering.
+Published at: https://enthali.github.io/Jarvis
+
+- User Stories: `docs/userstories/`
+- Requirements: `docs/requirements/`
+- Design Specs: `docs/design/`
+- Change Documents: `docs/changes/`
 
 ## License
 
