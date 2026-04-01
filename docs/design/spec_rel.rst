@@ -106,3 +106,76 @@ Release Design Specifications
               with:
                 files: '*.vsix'
                 generate_release_notes: true
+
+
+.. spec:: Branch Naming in copilot-instructions
+   :id: SPEC_REL_BRANCHNAMING
+   :status: implemented
+   :links: REQ_REL_BRANCHNAMING
+
+   **Description:**
+   Add a `## Git Workflow` section to `.github/copilot-instructions.md` that documents
+   the `feature/<change-name>` naming convention, squash merge requirement, no-push rule,
+   and no-direct-commits policy.
+
+
+.. spec:: Release Agent Merge Policy Documentation
+   :id: SPEC_REL_AGENTPOLICY
+   :status: implemented
+   :links: REQ_REL_AGENTPOLICY
+
+   **Description:**
+   The Release Agent SHALL contain:
+
+   1. A `Decisions` table entry: `merge=squash`
+   2. A `## Merge to main` section with the squash merge command and a note that
+      feature branches must NOT be pushed to origin after merging.
+
+   <!-- Implementation: SPEC_REL_AGENTPOLICY -->
+   <!-- Requirements: REQ_REL_AGENTPOLICY -->
+
+
+.. spec:: No-Push Constraint in Release Agent
+   :id: SPEC_REL_BRANCHRETENTION
+   :status: implemented
+   :links: REQ_REL_BRANCHRETENTION
+
+   **Description:**
+   The Release Agent `Constraints` block SHALL include the instruction:
+   "Do NOT push feature branches to origin after merging."
+
+   <!-- Implementation: SPEC_REL_BRANCHRETENTION -->
+   <!-- Requirements: REQ_REL_BRANCHRETENTION -->
+
+
+.. spec:: No Direct Commits Policy in copilot-instructions
+   :id: SPEC_REL_NOHOTFIX
+   :status: implemented
+   :links: REQ_REL_NOHOTFIX
+
+   **Description:**
+   The `## Git Workflow` section in `.github/copilot-instructions.md` SHALL explicitly
+   state that all changes including hotfixes go through the Change process — no direct
+   commits to `main`.
+
+
+.. spec:: Sphinx Configuration Migration to needs_fields + requirements.txt
+   :id: SPEC_REL_SPHINXCOMPAT
+   :status: implemented
+   :links: REQ_REL_SPHINXCOMPAT
+
+   **Description:**
+   Three changes to fix CI docs deploy and synchronise local/CI environments:
+
+   1. Create `docs/requirements.txt` pinning: `sphinx==9.1.0`, `sphinx-needs==8.0.0`,
+      `furo==2025.12.19`, `myst-parser==5.0.0`.
+
+   2. Update `.github/workflows/docs.yml`: replace inline pip install with
+      `pip install -r docs/requirements.txt`.
+
+   3. Update `docs/conf.py`: remove `needs_extra_options`, `needs_statuses`,
+      `html_static_path`; add `needs_fields` dict with `priority`, `rationale`,
+      `acceptance_criteria` (plain string fields) and `status` with enum constraint.
+
+   <!-- Implementation: SPEC_REL_SPHINXCOMPAT -->
+   <!-- Requirements: REQ_REL_SPHINXCOMPAT -->

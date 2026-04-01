@@ -25,6 +25,7 @@ docs/
   design/               — Design Specs (HOW)
   traceability/         — Cross-level tracing
   changes/              — Change Docs, Test Protocols (tst-*), Verify Reports (val-*)
+  requirements.txt      — Pinned Sphinx/docs dependencies (install before building docs)
 .github/
   agents/               — syspilot agent .md files (customized for Jarvis)
   skills/               — syspilot skills
@@ -65,6 +66,15 @@ Each change produces three artifacts in `docs/changes/`:
 - `<name>.md` — Change Document (approved by Change Agent)
 - `tst-<name>.md` — Test Protocol (created by Implement Agent after manual UAT)
 - `val-<name>.md` — Verification Report (created by Verify Agent)
+
+## Git Workflow
+
+Each change lives on `feature/<change-name>` (name matches Change Document).
+Merge to `main` via squash merge — one clean commit per feature.
+Keep branches locally; do not push to origin after merge.
+All changes including hotfixes go through the Change process — no direct commits to `main`.
+
+Full conventions: `docs/namingconventions.rst`
 
 ## Key Schemas
 

@@ -86,3 +86,24 @@ File Naming
    * - ``docs/changes/``
      - Change Documents
      - ``<short-name>.md``
+
+Git Workflow
+------------
+
+.. Implementation: SPEC_DEV_CONVENTIONS
+.. Requirements: REQ_DEV_CONVENTIONS
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Convention
+     - Rule
+   * - **Branch naming**
+     - ``feature/<change-name>`` — must match Change Document filename (without ``.md``)
+   * - **Merge strategy**
+     - Squash merge into ``main``: ``git merge --squash feature/<name>`` followed by one clean commit
+   * - **Branch retention**
+     - Keep branches locally after merge; do **not** push to origin after squash merge
+   * - **No direct commits**
+     - All changes including hotfixes go through the Change process — no commits directly on ``main``

@@ -58,3 +58,20 @@ Developer Tooling Requirements
    * AC-1: A test protocol file is created at ``docs/changes/tst-<change-name>.md``
    * AC-2: The protocol lists each tested REQ with AC reference and pass/fail
    * AC-3: The Verify Agent checks the protocol exists and all items passed
+
+
+.. req:: Developer Conventions Documentation
+   :id: REQ_DEV_CONVENTIONS
+   :status: implemented
+   :priority: mandatory
+   :links: US_DEV_CONVENTIONS
+
+   **Description:**
+   All project conventions SHALL be documented in `docs/namingconventions.rst`
+   as single source of truth.
+
+   **Acceptance Criteria:**
+
+   * AC-1: `docs/namingconventions.rst` contains a "Git Workflow" section
+   * AC-2: Section covers branch naming, squash merge, retention, no direct commits
+   * AC-3: `copilot-instructions.md` and Release Agent reference `namingconventions.rst`

@@ -17,3 +17,19 @@ Developer Tooling User Stories
    * AC-3: The agent presents a user-facing test summary listing what to verify
    * AC-4: The user can confirm or reject the test before the agent proceeds to commit
    * AC-5: Test questions and results are persisted as a document for traceability
+
+
+.. story:: Developer Conventions Documentation
+   :id: US_DEV_CONVENTIONS
+   :status: implemented
+   :priority: mandatory
+
+   **As a** Jarvis developer,
+   **I want** all project conventions (naming, Git workflow) documented in one place,
+   **so that** I can quickly look up the rules without searching across multiple files.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``docs/namingconventions.rst`` contains a Git Workflow section
+   * AC-2: The Git Workflow section covers branch naming, merge strategy, retention, and no-hotfix rule
+   * AC-3: The Release Agent and copilot-instructions reference ``namingconventions.rst`` as the single source of truth

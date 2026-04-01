@@ -49,3 +49,22 @@ Release User Stories
 
    * AC-1: ``package.json`` version follows ``MAJOR.MINOR.PATCH`` format
    * AC-2: The syspilot Release Agent knows how to bump the version before tagging
+
+
+.. story:: Git Branch & Merge Workflow
+   :id: US_REL_GITWORKFLOW
+   :status: implemented
+   :priority: mandatory
+
+   **As a** Jarvis developer,
+   **I want** a defined Git workflow for feature branches and merging to main,
+   **so that** the main branch stays clean with one commit per feature and the
+   release process is reproducible.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Feature branches follow the naming convention `feature/<change-name>`
+   * AC-2: Feature branches are merged into `main` via squash merge (one commit per feature)
+   * AC-3: Feature branches are kept locally after merge but NOT pushed to origin
+   * AC-4: All changes including hotfixes go through the syspilot Change process — no direct commits to `main`
+   * AC-5: The Release Agent documents and follows the merge strategy

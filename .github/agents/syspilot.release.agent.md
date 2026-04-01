@@ -28,6 +28,18 @@ handoffs:
 - Do NOT delete change documents — archive them per change doc policy
 - Do NOT skip validation — all checks must pass before tagging
 - Do NOT modify User Stories, Requirements, or Design Specs — that's the Change Agent's job
+- Do NOT push feature branches to origin after merging — keep locally only
+
+## Merge to main
+
+<!-- Implementation: SPEC_REL_AGENTPOLICY, SPEC_REL_BRANCHRETENTION -->
+<!-- Requirements: REQ_REL_AGENTPOLICY, REQ_REL_BRANCHRETENTION -->
+
+```bash
+git merge --squash feature/<change-name>
+git commit -m "feat: <change-name> — <one-line summary>"
+# Do NOT: git push origin feature/<change-name>
+```
 
 ## Bootstrapping
 

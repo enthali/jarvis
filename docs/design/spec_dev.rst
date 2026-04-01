@@ -120,3 +120,36 @@ Developer Tooling Design Specifications
       * ❌ Protocol found, result: FAILED → stop, do not mark as implemented
 
    The check is placed after code verification and before updating statuses.
+
+
+.. spec:: Git Workflow Section in namingconventions.rst
+   :id: SPEC_DEV_CONVENTIONS
+   :status: implemented
+   :links: REQ_DEV_CONVENTIONS
+
+   **Description:**
+   Add a "Git Workflow" section to `docs/namingconventions.rst` covering the four
+   conventions: branch naming, squash merge strategy, branch retention, and no direct
+   commits to `main`.
+
+   The section is already documented as a list-table in `namingconventions.rst`.
+
+   .. code-block:: rst
+
+     .. list-table:: Git Workflow
+        :header-rows: 1
+        :widths: 30 70
+
+        * - Convention
+          - Rule
+        * - Branch naming
+          - `feature/<change-name>` where name matches the Change Document filename
+        * - Merge strategy
+          - Squash merge into `main` — one clean commit per feature
+        * - Branch retention
+          - Keep locally after merge; do NOT push to origin
+        * - No direct commits
+          - All changes including hotfixes go through the syspilot Change process
+
+   <!-- Implementation: SPEC_DEV_CONVENTIONS -->
+   <!-- Requirements: REQ_DEV_CONVENTIONS -->

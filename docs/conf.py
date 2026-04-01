@@ -39,7 +39,6 @@ exclude_patterns = [
 # -- Options for HTML output -------------------------------------------------
 
 html_theme = 'furo'
-html_static_path = ['_static']
 html_title = 'Jarvis'
 
 # -- Sphinx-Needs Configuration ----------------------------------------------
@@ -88,30 +87,22 @@ needs_types = [
     ),
 ]
 
-# Extra options for needs
-needs_extra_options = [
-    "priority",
-    "rationale",
-    "acceptance_criteria",
-]
-
-# Status options
-needs_statuses = [
-    dict(name="draft", description="Draft - Work in progress"),
-    dict(name="open", description="Open - Identified but not yet started"),
-    dict(name="approved", description="Approved - Ready for implementation"),
-    dict(name="implemented", description="Implemented - Code exists"),
-    dict(name="verified", description="Verified - Tested and validated"),
-    dict(name="deprecated", description="Deprecated - No longer used"),
-]
-
-# Priority options
-needs_priority = [
-    dict(name="mandatory", description="Must have - Critical requirement"),
-    dict(name="high", description="Should have - Important requirement"),
-    dict(name="medium", description="Could have - Nice to have"),
-    dict(name="low", description="Won't have this time - Future consideration"),
-]
+# Fields (sphinx-needs 7.0.0+ API)
+# Implementation: SPEC_REL_SPHINXCOMPAT
+# Requirements: REQ_REL_SPHINXCOMPAT
+needs_fields = {
+    "priority": {"nullable": True},
+    "rationale": {"nullable": True},
+    "acceptance_criteria": {"nullable": True},
+    "status": {
+        "schema": {
+            "enum": [
+                "draft", "open", "approved",
+                "implemented", "verified", "deprecated",
+            ],
+        },
+    },
+}
 
 # Require explicit IDs
 needs_id_required = True
