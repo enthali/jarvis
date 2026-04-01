@@ -11,29 +11,39 @@ Jarvis provides a dedicated sidebar in VS Code with two tree views:
 
 Currently displays hardcoded dummy data. Future versions will load real data from YAML files in configurable folders.
 
+## Installation
+
+**Via GitHub Releases** (recommended):
+1. Go to [Releases](https://github.com/enthali/Jarvis/releases)
+2. Download `jarvis-<version>.vsix`
+3. In VS Code: `Extensions` → `...` → `Install from VSIX...`
+
+**From source**:
+```bash
+npm install
+npm run package
+# Then install the generated jarvis-*.vsix via VS Code
+```
+
 ## Status
 
-**v0.0.1** — Hello World Explorer with dummy data (US_EXP_SIDEBAR).
+**v0.0.1** — Hello World Explorer with dummy data.
 
 ## Development
 
 ```bash
-# Install dependencies
-npm install
-
-# Compile
-npm run compile
-
-# Watch mode
-npm run watch
-
-# Build documentation
-python -m sphinx -b html docs docs/_build/html
+npm install        # Install dependencies
+npm run compile    # TypeScript build
+npm run watch      # Watch mode
+npm run package    # Build .vsix
 ```
+
+Press **F5** in VS Code to launch the Extension Development Host.
 
 ## Documentation
 
 This project uses [syspilot](https://github.com/enthali/syspilot) for requirements engineering.
+Published at: https://enthali.github.io/Jarvis
 
 - User Stories: `docs/userstories/`
 - Requirements: `docs/requirements/`

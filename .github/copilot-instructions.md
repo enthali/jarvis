@@ -39,8 +39,8 @@ This is a single-project repo — **no family prefix**.
 Format: `<TYPE>_<THEME>_<SHORT_SLUG>`
 
 - `US_` = User Story, `REQ_` = Requirement, `SPEC_` = Design Spec
-- Themes: `EXP` (Explorer UI), `CFG` (Config), `PRJ` (Projects), `EVT` (Events), `REL` (Release)
-- Example: `US_EXP_SIDEBAR`, `REQ_EXP_TREEVIEW`, `SPEC_EXP_PROVIDER`
+- Themes: `EXP` (Explorer UI), `DEV` (Developer Tooling), `CFG` (Config), `PRJ` (Projects), `EVT` (Events), `REL` (Release)
+- Example: `US_EXP_SIDEBAR`, `REQ_DEV_LAUNCHCONFIG`, `SPEC_REL_RELEASEACTION`
 
 Full conventions: `docs/namingconventions.rst`
 
@@ -49,6 +49,7 @@ Full conventions: `docs/namingconventions.rst`
 ```bash
 npm run compile          # TypeScript build
 npm run lint             # ESLint
+npm run package          # Build .vsix (jarvis-x.y.z.vsix)
 python -m sphinx -b html docs docs/_build/html -W --keep-going   # Docs build
 ```
 
