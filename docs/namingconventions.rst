@@ -37,6 +37,9 @@ Theme Abbreviations
    * - ``EXP``
      - Explorer / Sidebar UI
      - ``US_EXP_SIDEBAR``, ``REQ_EXP_TREEVIEW``
+   * - ``DEV``
+     - Developer Tooling (testing, agents, CI config)
+     - ``US_DEV_MANUALTEST``, ``REQ_DEV_LAUNCHCONFIG``
    * - ``CFG``
      - Configuration / Settings
      - ``US_CFG_FOLDERS``, ``REQ_CFG_PATHS``

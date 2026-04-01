@@ -76,8 +76,8 @@ For implementation files:
 
 ### 4. Test Protocol Verification
 
-<!-- Implementation: SPEC_EXP_VERIFYPROTOCOL -->
-<!-- Requirements: REQ_EXP_TESTPROTOCOL -->
+<!-- Implementation: SPEC_DEV_VERIFYPROTOCOL -->
+<!-- Requirements: REQ_DEV_TESTPROTOCOL -->
 
 Check for a test protocol at `docs/changes/tst-<change-name>.md`:
 

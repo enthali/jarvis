@@ -134,8 +134,8 @@ issues before touching any code.
 
 ### 6. Manual User Acceptance Test
 
-<!-- Implementation: SPEC_EXP_IMPLTEST -->
-<!-- Requirements: REQ_EXP_TESTSUMMARY -->
+<!-- Implementation: SPEC_DEV_IMPLTEST -->
+<!-- Requirements: REQ_DEV_TESTSUMMARY -->
 
 After quality gates pass, launch the extension for manual verification:
 
@@ -171,8 +171,8 @@ Confirm all items pass?
 
 6. **Save test protocol** (`docs/changes/tst-<change-name>.md`):
 
-<!-- Implementation: SPEC_EXP_TESTPROTOCOL -->
-<!-- Requirements: REQ_EXP_TESTPROTOCOL -->
+<!-- Implementation: SPEC_DEV_TESTPROTOCOL -->
+<!-- Requirements: REQ_DEV_TESTPROTOCOL -->
 
 After the user confirms or rejects, persist the results as a test protocol
 file at `docs/changes/tst-<change-name>.md` with this format:

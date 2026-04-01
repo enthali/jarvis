@@ -1,5 +1,5 @@
-// Implementation: SPEC_EXP_LAUNCHCONFIG
-// Requirements: REQ_EXP_LAUNCHCONFIG
+// Implementation: SPEC_DEV_LAUNCHCONFIG
+// Requirements: REQ_DEV_LAUNCHCONFIG
 {
     "version": "2.0.0",
     "tasks": [
