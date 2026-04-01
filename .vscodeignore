@@ -1,0 +1,12 @@
+.vscode/**
+.github/**
+.syspilot/**
+docs/**
+src/**
+node_modules/**
+schemas/**
+*.vsix
+*.md
+.gitignore
+tsconfig.json
+.eslintrc.json
