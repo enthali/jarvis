@@ -3,7 +3,7 @@ Release Requirements
 
 .. req:: Semantic Versioning
    :id: REQ_REL_SEMVER
-   :status: approved
+   :status: implemented
    :priority: mandatory
    :links: US_REL_VERSION
 
@@ -19,7 +19,7 @@ Release Requirements
 
 .. req:: Docs CI/CD Workflow
    :id: REQ_REL_DOCSWORKFLOW
-   :status: approved
+   :status: implemented
    :priority: mandatory
    :links: US_REL_DOCS
 
@@ -37,7 +37,7 @@ Release Requirements
 
 .. req:: Release GitHub Action
    :id: REQ_REL_RELEASEACTION
-   :status: approved
+   :status: implemented
    :priority: mandatory
    :links: US_REL_RELEASE
 
@@ -55,7 +55,7 @@ Release Requirements
 
 .. req:: Extension Packaging
    :id: REQ_REL_VSCEPKG
-   :status: approved
+   :status: implemented
    :priority: mandatory
    :links: US_REL_RELEASE
 

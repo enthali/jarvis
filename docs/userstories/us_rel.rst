@@ -3,7 +3,7 @@ Release User Stories
 
 .. story:: Documentation Publishing
    :id: US_REL_DOCS
-   :status: approved
+   :status: implemented
    :priority: mandatory
 
    **As a** Jarvis developer,
@@ -20,7 +20,7 @@ Release User Stories
 
 .. story:: Extension Release
    :id: US_REL_RELEASE
-   :status: approved
+   :status: implemented
    :priority: mandatory
 
    **As a** Jarvis user,
@@ -37,7 +37,7 @@ Release User Stories
 
 .. story:: Semantic Versioning
    :id: US_REL_VERSION
-   :status: approved
+   :status: implemented
    :priority: mandatory
 
    **As a** Jarvis developer,

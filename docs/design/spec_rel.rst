@@ -3,7 +3,7 @@ Release Design Specifications
 
 .. spec:: Version in package.json
    :id: SPEC_REL_SEMVER
-   :status: approved
+   :status: implemented
    :links: REQ_REL_SEMVER
 
    **Description:**
@@ -14,7 +14,7 @@ Release Design Specifications
 
 .. spec:: Extension Packaging Setup
    :id: SPEC_REL_VSCEPKG
-   :status: approved
+   :status: implemented
    :links: REQ_REL_VSCEPKG
 
    **Description:**
@@ -30,7 +30,7 @@ Release Design Specifications
 
 .. spec:: Docs GitHub Actions Workflow
    :id: SPEC_REL_DOCSWORKFLOW
-   :status: approved
+   :status: implemented
    :links: REQ_REL_DOCSWORKFLOW
 
    **Description:**
@@ -73,7 +73,7 @@ Release Design Specifications
 
 .. spec:: Release GitHub Actions Workflow
    :id: SPEC_REL_RELEASEACTION
-   :status: approved
+   :status: implemented
    :links: REQ_REL_RELEASEACTION
 
    **Description:**
