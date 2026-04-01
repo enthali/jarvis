@@ -10,6 +10,7 @@ User Stories describe **why** functionality is needed from the stakeholder's per
    :hidden:
 
    us_exp
+   us_rel
 
 All User Stories
 ----------------

@@ -10,6 +10,7 @@ Design Specifications describe **how** requirements are fulfilled technically.
    :hidden:
 
    spec_exp
+   spec_rel
 
 All Specifications
 ------------------

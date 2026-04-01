@@ -10,6 +10,7 @@ Requirements describe **what** the system must do.
    :hidden:
 
    req_exp
+   req_rel
 
 All Requirements
 ----------------
