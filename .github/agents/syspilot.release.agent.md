@@ -18,6 +18,7 @@ handoffs:
 | **Tag format** | `vX.Y.Z` (e.g. `v0.0.1`) |
 | **Release notes** | GitHub-generated (`generate_release_notes: true` in release.yml) |
 | **Change doc policy** | Keep in `docs/changes/` — no archiving |
+| **Merge strategy** | Squash merge feature branches into `main` (`git merge --squash`) |
 | **Validation commands** | `npm run compile`, `npm run package`, `python -m sphinx -b html docs docs/_build/html -W --keep-going` |
 | **Version bump strategy** | SemVer: MAJOR=breaking API change, MINOR=new user feature, PATCH=bugfix/docs |
 
