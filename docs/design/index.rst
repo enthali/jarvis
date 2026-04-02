@@ -12,6 +12,7 @@ Design Specifications describe **how** requirements are fulfilled technically.
    spec_exp
    spec_dev
    spec_rel
+   spec_cfg
 
 All Specifications
 ------------------

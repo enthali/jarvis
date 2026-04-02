@@ -1,17 +1,22 @@
 // Implementation: SPEC_EXP_PROVIDER
-// Requirements: REQ_EXP_TREEVIEW, REQ_EXP_DUMMYDATA
+// Requirements: REQ_EXP_TREEVIEW, REQ_EXP_YAMLDATA, REQ_EXP_REACTIVECACHE
 
 import * as vscode from 'vscode';
+import { YamlScanner } from './yamlScanner';
 
 export class EventTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
 
-    private events: vscode.TreeItem[];
+    private _onDidChangeTreeData = new vscode.EventEmitter<void>();
+    readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
-    constructor() {
-        this.events = [
-            this.createItem('Event: embedded world'),
-            this.createItem('Event: CES 2027'),
-        ];
+    private _scanner: YamlScanner;
+
+    constructor(scanner: YamlScanner) {
+        this._scanner = scanner;
+    }
+
+    refresh(): void {
+        this._onDidChangeTreeData.fire();
     }
 
     getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
@@ -22,10 +27,10 @@ export class EventTreeProvider implements vscode.TreeDataProvider<vscode.TreeIte
         if (element) {
             return Promise.resolve([]);
         }
-        return Promise.resolve(this.events);
+        return Promise.resolve(this._scanner.getEvents().map(name => this._createItem(name)));
     }
 
-    private createItem(name: string): vscode.TreeItem {
+    private _createItem(name: string): vscode.TreeItem {
         const item = new vscode.TreeItem(name, vscode.TreeItemCollapsibleState.None);
         item.contextValue = 'event';
         return item;

@@ -1,18 +1,22 @@
 // Implementation: SPEC_EXP_PROVIDER
-// Requirements: REQ_EXP_TREEVIEW, REQ_EXP_DUMMYDATA
+// Requirements: REQ_EXP_TREEVIEW, REQ_EXP_YAMLDATA, REQ_EXP_REACTIVECACHE
 
 import * as vscode from 'vscode';
+import { YamlScanner } from './yamlScanner';
 
 export class ProjectTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
 
-    private projects: vscode.TreeItem[];
+    private _onDidChangeTreeData = new vscode.EventEmitter<void>();
+    readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
-    constructor() {
-        this.projects = [
-            this.createItem('Project: Auto Strategy'),
-            this.createItem('Project: Cloud Migration'),
-            this.createItem('Project: Partner Portal'),
-        ];
+    private _scanner: YamlScanner;
+
+    constructor(scanner: YamlScanner) {
+        this._scanner = scanner;
+    }
+
+    refresh(): void {
+        this._onDidChangeTreeData.fire();
     }
 
     getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
@@ -23,10 +27,10 @@ export class ProjectTreeProvider implements vscode.TreeDataProvider<vscode.TreeI
         if (element) {
             return Promise.resolve([]);
         }
-        return Promise.resolve(this.projects);
+        return Promise.resolve(this._scanner.getProjects().map(name => this._createItem(name)));
     }
 
-    private createItem(name: string): vscode.TreeItem {
+    private _createItem(name: string): vscode.TreeItem {
         const item = new vscode.TreeItem(name, vscode.TreeItemCollapsibleState.None);
         item.contextValue = 'project';
         return item;

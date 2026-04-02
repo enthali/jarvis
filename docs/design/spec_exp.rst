@@ -4,7 +4,7 @@ Explorer Design Specifications
 .. spec:: Extension Manifest & Activation
    :id: SPEC_EXP_EXTENSION
    :status: implemented
-   :links: REQ_EXP_ACTIVITYBAR
+   :links: REQ_EXP_ACTIVITYBAR, REQ_CFG_FOLDERPATHS, REQ_CFG_SCANINTERVAL
 
    **Description:**
    The extension is scaffolded as a standard VS Code TypeScript extension.
@@ -40,7 +40,7 @@ Explorer Design Specifications
 .. spec:: Tree Data Providers
    :id: SPEC_EXP_PROVIDER
    :status: implemented
-   :links: REQ_EXP_TREEVIEW, REQ_EXP_DUMMYDATA
+   :links: REQ_EXP_TREEVIEW, REQ_EXP_YAMLDATA, REQ_EXP_REACTIVECACHE
 
    **Description:**
    Two classes implement ``vscode.TreeDataProvider<TreeItem>``:
@@ -72,3 +72,32 @@ Explorer Design Specifications
 
    * "Event: embedded world"
    * "Event: CES 2027"
+
+
+.. spec:: YAML Scanner Service
+   :id: SPEC_EXP_SCANNER
+   :status: implemented
+   :links: REQ_EXP_YAMLDATA, REQ_EXP_REACTIVECACHE
+
+   **Description:**
+   New file `src/yamlScanner.ts` — a self-contained background scanner service.
+
+   `YamlScanner` holds two string-array caches (project names, event names) and
+   a `NodeJS.Timeout` timer. Its public interface:
+
+   * `constructor(onCacheChanged: () => void)`
+   * `start(projectsFolder: string, eventsFolder: string, intervalSec: number): void`
+     — clears any existing timer, starts `setInterval` at `max(20, intervalSec) * 1000 ms`,
+     and immediately invokes `_scan()` for the first run.
+   * `stop(): void` — clears the timer.
+   * `getProjects(): string[]` / `getEvents(): string[]` — return cached names.
+
+   `_scan()` is `async`: reads all `.yaml`/`.yml` files from both folders via
+   `fs.promises`, parses each with `js-yaml`, extracts the `name` field,
+   skips files that fail to parse or lack `name`. Compares result to current cache —
+   fires `onCacheChanged()` only when the content differs.
+
+   Dependency: `js-yaml` added to `package.json` dependencies.
+
+   <!-- Implementation: SPEC_EXP_SCANNER -->
+   <!-- Requirements: REQ_EXP_YAMLDATA, REQ_EXP_REACTIVECACHE -->

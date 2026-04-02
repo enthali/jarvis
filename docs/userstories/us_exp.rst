@@ -15,4 +15,4 @@ Explorer User Stories
    * AC-1: A "Jarvis" icon appears in the VS Code Activity Bar
    * AC-2: Clicking the icon opens a sidebar panel
    * AC-3: The sidebar contains two collapsible sections: "Projects" and "Events"
-   * AC-4: Each section displays a list of items with their names
+   * AC-4: Each section displays the actual projects and events from my project and event locations
