@@ -68,6 +68,8 @@ Release Requirements
    * AC-1: ``@vscode/vsce`` is listed as a devDependency
    * AC-2: ``npm run package`` produces a ``.vsix`` file without errors
    * AC-3: ``publisher`` in ``package.json`` is ``enthali``
+   * AC-4: Runtime dependencies (``node_modules/``) SHALL be included in the
+     ``.vsix`` package — ``.vscodeignore`` SHALL NOT exclude ``node_modules/**``
 
 
 .. req:: Feature Branch Naming

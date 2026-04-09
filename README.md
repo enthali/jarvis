@@ -2,14 +2,45 @@
 
 A VS Code extension for personal project and event management.
 
-## Overview
+## Features
 
-Jarvis provides a dedicated sidebar in VS Code with two tree views:
+### Explorer Sidebar
 
-- **Projects** — Lists your active projects
-- **Events** — Lists your upcoming events
+Jarvis adds a dedicated sidebar with three tree views:
 
-Currently displays hardcoded dummy data. Future versions will load real data from YAML files in configurable folders.
+- **Projects** — Displays projects from YAML files in a configurable folder, with subfolder hierarchy and folder filter
+- **Events** — Displays events from YAML files, with a future-only toggle (end date ≥ today)
+- **Messages** — Queued messages grouped by destination session, with manual delivery to chat sessions
+
+Each project and event item has two inline action buttons:
+- `$(go-to-file)` — Open the YAML file in the editor
+- `$(comment-discussion)` — Open the agent chat session for that item
+
+### Heartbeat Scheduler
+
+Cron-based job scheduling configured via YAML:
+- **Script steps**: Python, PowerShell
+- **Command steps**: Any VS Code command
+- **Agent steps**: Single-shot LLM calls via `vscode.lm` API
+- **Manual trigger**: `Jarvis: Run Heartbeat Job` from the Command Palette
+
+### Message Queue & Session Tools
+
+- Messages from heartbeat jobs (or any source) are queued and displayed in the Messages tree
+- **Send to Chat**: Deliver messages to named VS Code chat sessions
+- **Open Session**: Browse and open named sessions via QuickPick (`Jarvis: Open Chat Session`)
+- **LM Tools**: `#listSessions` for session discovery, `#sendToSession` for inter-session messaging
+
+## Configuration
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| `jarvis.projectsFolder` | Absolute path to projects YAML folder | — |
+| `jarvis.eventsFolder` | Absolute path to events YAML folder | — |
+| `jarvis.scanInterval` | Background scan interval in seconds | 120 |
+| `jarvis.heartbeatConfigFile` | Absolute path to `heartbeat.yaml` | workspace storage |
+| `jarvis.heartbeatInterval` | Scheduler tick interval in seconds | 60 |
+| `jarvis.messagesFile` | Absolute path to `messages.json` | extension storage |
 
 ## Installation
 
@@ -24,10 +55,6 @@ npm install
 npm run package
 # Then install the generated jarvis-*.vsix via VS Code
 ```
-
-## Status
-
-**v0.0.1** — Hello World Explorer with dummy data.
 
 ## Development
 

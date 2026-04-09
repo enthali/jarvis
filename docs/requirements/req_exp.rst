@@ -226,3 +226,5 @@ Explorer Requirements
      entity name, instructing the agent to work in the context of that
      project/event and asking the user to rename the session to match
    * AC-4: Folder nodes SHALL NOT display the button
+   * AC-5: The command SHALL NOT appear in the Command Palette (it requires a
+     tree element argument and would fail without one)

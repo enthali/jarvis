@@ -1,12 +1,13 @@
 .vscode/**
 .github/**
 .syspilot/**
+.jarvis/**
 docs/**
 src/**
-node_modules/**
 schemas/**
+testdata/**
 *.vsix
-*.md
+CHANGELOG.md
 .gitignore
 tsconfig.json
 .eslintrc.json

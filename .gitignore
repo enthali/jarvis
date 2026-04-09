@@ -19,3 +19,4 @@ Thumbs.db
 # Test data
 test-projects/
 test-events/
+.jarvis/

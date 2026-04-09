@@ -329,6 +329,18 @@ Explorer Design Specifications
           }
         ]
 
+   * ``contributes.menus.commandPalette``: hide from Command Palette
+     (the command requires a ``LeafNode`` argument and would fail without one):
+
+     .. code-block:: json
+
+        [
+          {
+            "command": "jarvis.openAgentSession",
+            "when": "false"
+          }
+        ]
+
    **Design notes:**
 
    * No changes to ``contextValue`` — the button appears on all ``project`` and

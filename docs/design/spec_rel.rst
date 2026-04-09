@@ -25,7 +25,15 @@ Release Design Specifications
    * Add script: ``"package": "vsce package"``
 
    Run ``npm install`` to update ``package-lock.json``.
-   Verify with ``npm run package`` — produces ``jarvis-0.0.1.vsix``.
+   Verify with ``npm run package`` — produces ``jarvis-<version>.vsix``.
+
+   **``.vscodeignore`` constraints:**
+
+   The ``.vscodeignore`` file controls which files are excluded from the
+   ``.vsix`` package.  Because Jarvis does **not** use a bundler (no webpack,
+   no esbuild), runtime dependencies in ``node_modules/`` must be shipped
+   inside the package.  Therefore ``node_modules/**`` SHALL NOT appear in
+   ``.vscodeignore``.
 
 
 .. spec:: Docs GitHub Actions Workflow

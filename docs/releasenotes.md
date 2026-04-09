@@ -1,5 +1,19 @@
 # Release Notes
 
+## v0.1.1
+
+*2026-04-09*
+
+Hotfix for v0.1.0 — extension failed to activate due to missing runtime dependencies.
+
+- **Fix**: Include `node_modules/` in `.vsix` package (no bundler configured)
+- **Fix**: Hide `jarvis.openAgentSession` from Command Palette (tree-item-only command)
+- **Fix**: Exclude `testdata/` and `.jarvis/` from `.vsix` package
+- **Fix**: Add `repository` field to `package.json`
+- **Updated**: README.md rewritten to reflect v0.1.0 feature set
+- **Specs**: `SPEC_REL_VSCEPKG` (`.vscodeignore` constraints), `SPEC_EXP_AGENTSESSION` (`commandPalette` hide)
+- **Reqs**: `REQ_REL_VSCEPKG` AC-4, `REQ_EXP_AGENTSESSION` AC-5
+
 ## v0.1.0
 
 *2026-04-09*
