@@ -5,14 +5,16 @@
   "version": "0.0.1",
   "publisher": "enthali",
   "engines": {
-    "vscode": "^1.85.0"
+    "vscode": "^1.95.0"
   },
   "categories": [
     "Other"
   ],
   "activationEvents": [
+    "onStartupFinished",
     "onView:jarvisProjects",
-    "onView:jarvisEvents"
+    "onView:jarvisEvents",
+    "onView:jarvisMessages"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -34,6 +36,116 @@
         {
           "id": "jarvisEvents",
           "name": "Events"
+        },
+        {
+          "id": "jarvisMessages",
+          "name": "Messages"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "jarvis.filterProjectFolders",
+        "title": "Filter Project Folders",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "jarvis.filterProjectFoldersActive",
+        "title": "Filter Project Folders",
+        "icon": "$(filter-filled)"
+      },
+      {
+        "command": "jarvis.filterFutureEvents",
+        "title": "Show Future Events Only",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "jarvis.filterFutureEventsActive",
+        "title": "Show Future Events Only",
+        "icon": "$(filter-filled)"
+      },
+      {
+        "command": "jarvis.openYamlFile",
+        "title": "Open YAML File",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "jarvis.runHeartbeatJob",
+        "title": "Jarvis: Run Heartbeat Job"
+      },
+      {
+        "command": "jarvis.sendMessages",
+        "title": "Jarvis: Send Messages to Chat Session",
+        "icon": "$(debug-start)"
+      },
+      {
+        "command": "jarvis.deleteMessage",
+        "title": "Jarvis: Delete Queued Message",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "jarvis.openSession",
+        "title": "Jarvis: Open Chat Session"
+      },
+      {
+        "command": "jarvis.openAgentSession",
+        "title": "Jarvis: Open Agent Session",
+        "icon": "$(comment-discussion)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "jarvis.filterProjectFolders",
+          "when": "view == jarvisProjects && !jarvis.projectFilterActive",
+          "group": "navigation"
+        },
+        {
+          "command": "jarvis.filterProjectFoldersActive",
+          "when": "view == jarvisProjects && jarvis.projectFilterActive",
+          "group": "navigation"
+        },
+        {
+          "command": "jarvis.filterFutureEvents",
+          "when": "view == jarvisEvents && !jarvis.eventFilterActive",
+          "group": "navigation"
+        },
+        {
+          "command": "jarvis.filterFutureEventsActive",
+          "when": "view == jarvisEvents && jarvis.eventFilterActive",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "jarvis.openYamlFile",
+          "when": "viewItem == project",
+          "group": "inline"
+        },
+        {
+          "command": "jarvis.openYamlFile",
+          "when": "viewItem == event",
+          "group": "inline"
+        },
+        {
+          "command": "jarvis.sendMessages",
+          "when": "viewItem == messageSession",
+          "group": "inline"
+        },
+        {
+          "command": "jarvis.deleteMessage",
+          "when": "viewItem == messageItem",
+          "group": "inline"
+        },
+        {
+          "command": "jarvis.openAgentSession",
+          "when": "viewItem == project",
+          "group": "inline"
+        },
+        {
+          "command": "jarvis.openAgentSession",
+          "when": "viewItem == event",
+          "group": "inline"
         }
       ]
     },
@@ -55,9 +167,65 @@
           "default": 120,
           "minimum": 20,
           "description": "Background scan interval in seconds (minimum 20)."
+        },
+        "jarvis.heartbeatConfigFile": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to heartbeat.yaml. Defaults to workspace storage if empty."
+        },
+        "jarvis.heartbeatInterval": {
+          "type": "number",
+          "default": 60,
+          "minimum": 10,
+          "description": "Heartbeat scheduler tick interval in seconds (minimum 10)."
+        },
+        "jarvis.messagesFile": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to messages.json queue file. Defaults to extension storage if empty."
         }
       }
-    }
+    },
+    "languageModelTools": [
+      {
+        "name": "jarvis_sendToSession",
+        "displayName": "Send Message to Chat Session",
+        "modelDescription": "Queues a message for delivery to another VS Code chat session identified by name. The message appears in the Jarvis Messages explorer and can be delivered to the target session. Always set senderSession to your own session name so the receiver knows who sent the message.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "sendToSession",
+        "icon": "$(comment-discussion)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "session": {
+              "type": "string",
+              "description": "The exact name/title of the destination chat session"
+            },
+            "senderSession": {
+              "type": "string",
+              "description": "Your own session/tab name so the receiver knows who sent this message"
+            },
+            "text": {
+              "type": "string",
+              "description": "The message text to send to the target session"
+            }
+          },
+          "required": ["session", "text"]
+        }
+      },
+      {
+        "name": "jarvis_listSessions",
+        "displayName": "List Chat Sessions",
+        "modelDescription": "Returns the list of named chat session titles in the current workspace. Use this to discover valid session names before sending messages via sendToSession.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "listSessions",
+        "icon": "$(list-unordered)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
@@ -77,6 +245,7 @@
     "typescript": "^5.5.0"
   },
   "dependencies": {
-    "js-yaml": "^4.1.1"
+    "js-yaml": "^4.1.1",
+    "sql.js": "^1.14.1"
   }
 }

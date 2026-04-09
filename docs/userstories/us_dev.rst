@@ -6,7 +6,7 @@ Developer Tooling User Stories
    :status: implemented
    :priority: mandatory
 
-   **As a** developer,
+   **As a** Jarvis Developer,
    **I want** to quickly launch and test my extension changes in a real VS Code window,
    **so that** I can verify the extension works as expected before committing.
 
@@ -24,7 +24,7 @@ Developer Tooling User Stories
    :status: implemented
    :priority: mandatory
 
-   **As a** Jarvis developer,
+   **As a** Jarvis Developer,
    **I want** all project conventions (naming, Git workflow) documented in one place,
    **so that** I can quickly look up the rules without searching across multiple files.
 

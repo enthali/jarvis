@@ -52,6 +52,9 @@ Theme Abbreviations
    * - ``REL``
      - Release & CI/CD
      - ``US_REL_PUBLISH``, ``REQ_REL_VSIX``
+   * - ``UAT``
+     - User Acceptance Tests
+     - ``US_UAT_SAMPLEDATA``, ``REQ_UAT_VALID_SAMPLES``
 
 New themes can be added as the project grows. Keep them short (2–5 chars) and consistent.
 
@@ -86,6 +89,22 @@ File Naming
    * - ``docs/changes/``
      - Change Documents
      - ``<short-name>.md``
+
+Personas
+--------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Persona
+     - Description
+   * - **Jarvis User**
+     - End user of the Jarvis extension — manages projects and events in VS Code
+   * - **Jarvis Developer**
+     - Maintainer of the Jarvis extension — builds, tests, releases, and documents the extension
+   * - **Jarvis Test Engineer**
+     - Tests and validates Jarvis extension features using defined test datasets
 
 Git Workflow
 ------------

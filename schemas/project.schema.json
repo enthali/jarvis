@@ -7,8 +7,7 @@
   "properties": {
     "name": {
       "type": "string",
-      "description": "Project name including prefix, e.g. 'Project: Auto Strategy'",
-      "pattern": "^Project: .+$"
+      "description": "Project name, e.g. 'Alpha Initiative' or 'Project: Auto Strategy'"
     },
     "summary": {
       "type": "string",

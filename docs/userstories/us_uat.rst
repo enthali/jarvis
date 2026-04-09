@@ -1,0 +1,23 @@
+User Acceptance Tests
+=====================
+
+Overview
+--------
+
+User Acceptance Test stories describe **manual end-to-end test scenarios**
+for each feature. Each file corresponds to one feature or change.
+
+.. toctree::
+   :hidden:
+
+   us_uat_explorer
+   us_uat_heartbeat
+   us_uat_msgqueue
+   us_uat_sessiontools
+
+All UAT User Stories
+--------------------
+
+.. needlist::
+   :types: story
+   :filter: id.startswith("US_UAT_")

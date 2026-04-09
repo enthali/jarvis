@@ -1,0 +1,10 @@
+# Implementation: SPEC_UAT_TESTDATA_FILES
+# Requirements: REQ_UAT_VALID_SAMPLES (AC-5: subfolder test coverage)
+name: "Event: IoT Summit"
+location: "Munich Trade Fair Centre, Munich, Germany"
+status: "intended"
+role: "visitor"
+summary: "IoT industry summit stored in a 'conferences' subfolder for subfolder-display testing."
+dates:
+  start: "2026-09-15"
+  end: "2026-09-17"

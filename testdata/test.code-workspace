@@ -1,0 +1,15 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"jarvis.eventsFolder": "C:\\workspace\\Jarvis\\testdata\\events",
+		"jarvis.heartbeatConfigFile": "C:\\workspace\\Jarvis\\testdata\\heartbeat\\heartbeat.yaml",
+		"jarvis.heartbeatInterval": 45,
+		"jarvis.projectsFolder": "C:\\workspace\\Jarvis\\testdata\\projects",
+		"jarvis.messagesFile": "C:\\workspace\\Jarvis\\testdata\\msg\\messages.json",
+		"jarvis.scanInterval": 20
+	}
+}

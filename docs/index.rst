@@ -35,6 +35,7 @@ requirements engineering and traceability.
    :caption: Guides
 
    namingconventions
+   releasenotes
 
 
 Indices

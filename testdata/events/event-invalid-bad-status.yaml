@@ -1,0 +1,9 @@
+# Implementation: SPEC_UAT_TESTDATA_FILES
+# Requirements: REQ_UAT_INVALID_SAMPLES
+# INVALID: status value not in enum [intended, registered, booked, attended, cancelled]
+name: "Event: Invalid Status Conference"
+location: "Berlin, Germany"
+status: "does-not-exist"
+dates:
+  start: "2026-06-01"
+  end: "2026-06-02"

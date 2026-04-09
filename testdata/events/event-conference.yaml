@@ -1,0 +1,16 @@
+# Implementation: SPEC_UAT_TESTDATA_FILES
+# Requirements: REQ_UAT_VALID_SAMPLES
+name: "Event: EmbeddedWorld Conference"
+location: "Nuremberg Exhibition Centre, Nuremberg, Germany"
+url: "https://www.embedded-world.de"
+status: "registered"
+role: "speaker"
+summary: "Major European embedded systems conference — presenting our tooling solutions."
+lastUpdated: "2026-03-01"
+dates:
+  start: "2026-05-12"
+  end: "2026-05-14"
+tags:
+  - embedded
+  - hardware
+  - tooling

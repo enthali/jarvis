@@ -9,15 +9,26 @@ Projects and events are stored as YAML files in configurable folders.
 
 - **Language**: TypeScript
 - **Platform**: VS Code Extension API
-- **Documentation**: Sphinx + sphinx-needs (syspilot v0.2.3)
+- **Documentation**: Sphinx + sphinx-needs (syspilot v0.4.0)
 - **Build**: Node.js / npm
 
 ## Project Structure
 
 ```
 src/                    — Extension source (TypeScript)
+  extension.ts          — Activation, commands, LM tools (sendToSession, listSessions)
+  yamlScanner.ts        — Two-layer cache: EntityEntry store + TreeNode[] tree
+  projectTreeProvider.ts — Tree UI for projects (owns _hiddenFolders filter)
+  eventTreeProvider.ts  — Tree UI for events (owns _futureOnly filter toggle)
+  messageTreeProvider.ts — Tree UI for messages (grouped by destination session)
+  messageQueue.ts       — JSON message queue: append, delete, read
+  sessionLookup.ts      — Session UUID resolver via state.vscdb (sql.js)
+  heartbeat.ts          — Heartbeat scheduler (cron dispatch, step executor, status bar)
 resources/              — Static assets (SVG icons)
 schemas/                — JSON Schemas for project/event YAML files
+testdata/               — Sample YAML files for manual testing
+  projects/, events/    — Project/event test data
+  heartbeat/            — heartbeat.yaml + scripts/ + prompts/ for UAT (T-1..T-7)
 .vscode/                — launch.json (F5 = Run Extension), tasks.json
 docs/
   userstories/          — User Stories (WHY)
@@ -40,8 +51,8 @@ This is a single-project repo — **no family prefix**.
 Format: `<TYPE>_<THEME>_<SHORT_SLUG>`
 
 - `US_` = User Story, `REQ_` = Requirement, `SPEC_` = Design Spec
-- Themes: `EXP` (Explorer UI), `DEV` (Developer Tooling), `CFG` (Config), `PRJ` (Projects), `EVT` (Events), `REL` (Release)
-- Example: `US_EXP_SIDEBAR`, `REQ_DEV_LAUNCHCONFIG`, `SPEC_REL_RELEASEACTION`
+- Themes: `EXP` (Explorer UI), `DEV` (Developer Tooling), `CFG` (Config), `PRJ` (Projects), `EVT` (Events), `MSG` (Message Queue / Chat Sessions), `REL` (Release), `UAT` (User Acceptance Tests), `AUT` (Automation/Scheduling)
+- Example: `US_EXP_SIDEBAR`, `REQ_DEV_LAUNCHCONFIG`, `SPEC_REL_RELEASEACTION`, `US_AUT_HEARTBEAT`
 
 Full conventions: `docs/namingconventions.rst`
 
@@ -59,26 +70,27 @@ Press **F5** in VS Code to launch the Extension Development Host.
 ## Development Workflow
 
 ```
-syspilot.change → syspilot.implement → syspilot.verify → syspilot.memory
+syspilot.change (→ syspilot.uat) → syspilot.implement → syspilot.verify → syspilot.memory
 ```
+
+The Change Agent calls `syspilot.uat` as a subagent after MECE analysis to generate UAT artifacts (US_UAT_\*, REQ_UAT_\*, SPEC_UAT_\*) before handing off to implementation.
 
 Each change produces three artifacts in `docs/changes/`:
 - `<name>.md` — Change Document (approved by Change Agent)
 - `tst-<name>.md` — Test Protocol (created by Implement Agent after manual UAT)
 - `val-<name>.md` — Verification Report (created by Verify Agent)
 
+Feature branches accumulate changes until a release. **Merge to `main` only at release time** via `syspilot.release`.
+
 ## Git Workflow
 
 Each change lives on `feature/<change-name>` (name matches Change Document).
-Merge to `main` via squash merge — one clean commit per feature.
-Keep branches locally; do not push to origin after merge.
-All changes including hotfixes go through the Change process — no direct commits to `main`.
-
-Full conventions: `docs/namingconventions.rst`
+Feature branches stay open until a release — **do not merge individual changes to `main`**.
+At release: squash-merge all pending feature branches into `main`, then tag.
 
 ## Key Schemas
 
-- **Projects**: `name` ("Project: XYZ"), `summary`, `stakeholders`, `externalStatus`, `internalStatus`
-- **Events**: `name` ("Event: XYZ"), `location`, `dates.start/end`, `status`, `role`, `summary`
+- **Projects**: `name` (free-form string), `summary`, `stakeholders`, `externalStatus`, `internalStatus`
+- **Events**: `name` (free-form string), `location`, `dates.start/end`, `status`, `role`, `summary`
 
 JSON Schemas: `schemas/project.schema.json`, `schemas/event.schema.json`

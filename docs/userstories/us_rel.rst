@@ -6,7 +6,7 @@ Release User Stories
    :status: implemented
    :priority: mandatory
 
-   **As a** Jarvis developer,
+   **As a** Jarvis Developer,
    **I want** the Sphinx documentation to be automatically published to GitHub Pages,
    **so that** users and contributors can browse requirements, design specs, and change
    history online.
@@ -23,9 +23,9 @@ Release User Stories
    :status: implemented
    :priority: mandatory
 
-   **As a** Jarvis user,
-   **I want** to install the Jarvis extension from a GitHub Release,
-   **so that** I can use a stable, versioned build without cloning the source.
+   **As a** Jarvis Developer,
+   **I want** to release the Jarvis extension as a GitHub Release,
+   **so that** users can install a stable, versioned build without cloning the source.
 
    **Acceptance Criteria:**
 
@@ -40,7 +40,7 @@ Release User Stories
    :status: implemented
    :priority: mandatory
 
-   **As a** Jarvis developer,
+   **As a** Jarvis Developer,
    **I want** version numbers to follow Semantic Versioning (MAJOR.MINOR.PATCH),
    **so that** users can understand the impact of updates and the release process
    is predictable.
@@ -56,7 +56,7 @@ Release User Stories
    :status: implemented
    :priority: mandatory
 
-   **As a** Jarvis developer,
+   **As a** Jarvis Developer,
    **I want** a defined Git workflow for feature branches and merging to main,
    **so that** the main branch stays clean with one commit per feature and the
    release process is reproducible.

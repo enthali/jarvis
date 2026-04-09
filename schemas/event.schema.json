@@ -7,8 +7,7 @@
   "properties": {
     "name": {
       "type": "string",
-      "description": "Event name including prefix, e.g. 'Event: embedded world'",
-      "pattern": "^Event: .+$"
+      "description": "Event name, e.g. 'EmbeddedWorld 2026' or 'Event: embedded world'"
     },
     "location": {
       "type": "string",

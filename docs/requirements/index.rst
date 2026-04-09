@@ -13,6 +13,9 @@ Requirements describe **what** the system must do.
    req_dev
    req_rel
    req_cfg
+   req_aut
+   req_msg
+   req_uat
 
 All Requirements
 ----------------

@@ -1,0 +1,5 @@
+# Implementation: SPEC_UAT_TESTDATA_FILES
+# Requirements: REQ_UAT_INVALID_SAMPLES
+# INVALID: name is a number (wrong type — must be string)
+name: 12345
+summary: "This project file has a name with the wrong type (integer instead of string)."

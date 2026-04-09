@@ -74,40 +74,7 @@ For implementation files:
 | Completeness | Are all design items implemented? |
 | Quality | Does it follow project conventions? |
 
-### 4. Test Protocol Verification
-
-<!-- Implementation: SPEC_DEV_VERIFYPROTOCOL -->
-<!-- Requirements: REQ_DEV_TESTPROTOCOL -->
-
-Check for a test protocol at `docs/changes/tst-<change-name>.md`:
-
-1. **File exists?**
-   - ✅ Found → read and continue
-   - ⚠️ Missing → note in report, ask user to clarify before proceeding
-
-2. **Overall result is PASSED?**
-   - Check for `**Result**: PASSED` in the file header
-   - ✅ PASSED → proceed
-   - ❌ FAILED → stop, do not mark as implemented, hand off to implement agent
-
-3. **No individual FAIL rows?**
-   - Scan the Test Results table for any `FAIL` entries
-   - ❌ Any FAIL found → report as issue
-
-4. **Include in verification report:**
-
-```markdown
-## Test Protocol
-
-**File**: docs/changes/tst-<change-name>.md  
-**Result**: ✅ PASSED | ⚠️ MISSING | ❌ FAILED
-
-| # | REQ ID | AC | Description | Result |
-|---|--------|-----|-------------|--------|
-| (rows from tst file) |
-```
-
-### 5. Test Verification
+### 4. Test Verification
 
 | Check | Question |
 |-------|----------|
@@ -115,7 +82,40 @@ Check for a test protocol at `docs/changes/tst-<change-name>.md`:
 | References | Do tests reference REQ IDs? |
 | Passing | Do all tests pass? |
 
-### 6. Traceability Verification
+#### Test Protocol Check
+
+<!-- Implementation: SPEC_DEV_VERIFYPROTOCOL -->
+<!-- Requirements: REQ_DEV_TESTPROTOCOL -->
+
+Check for a test protocol at `docs/changes/tst-<change-name>.md`:
+
+1. **File exists?**
+   - Found → read and continue
+   - Missing → note in report, ask user to clarify before proceeding
+
+2. **Overall result is PASSED?**
+   - Check for `**Result**: PASSED` in the file header
+   - PASSED → proceed
+   - FAILED → stop, do not mark as implemented, hand off to implement agent
+
+3. **No individual FAIL rows?**
+   - Scan the Test Results table for any `FAIL` entries
+   - Any FAIL found → report as issue
+
+4. **Include in verification report:**
+
+```markdown
+## Test Protocol
+
+**File**: docs/changes/tst-<change-name>.md
+**Result**: PASSED | MISSING | FAILED
+
+| # | REQ ID | AC | Description | Result |
+|---|--------|-----|-------------|--------|
+| (rows from tst file) |
+```
+
+### 5. Traceability Verification
 
 Check bidirectional links:
 

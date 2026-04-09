@@ -1,0 +1,5 @@
+# Implementation: SPEC_UAT_TESTDATA_FILES
+# Requirements: REQ_UAT_INVALID_SAMPLES
+# INVALID: missing required "name" field
+summary: "This project file is missing the required name field."
+externalStatus: "Unknown"

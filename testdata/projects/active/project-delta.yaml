@@ -1,0 +1,4 @@
+# Implementation: SPEC_UAT_TESTDATA_FILES
+# Requirements: REQ_UAT_VALID_SAMPLES (AC-5: subfolder test coverage)
+name: "Project: Delta Operations"
+summary: "Operations project stored in an 'active' subfolder for subfolder-display testing."

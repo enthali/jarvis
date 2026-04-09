@@ -1,13 +1,32 @@
 // Implementation: SPEC_EXP_SCANNER
-// Requirements: REQ_EXP_YAMLDATA, REQ_EXP_REACTIVECACHE
+// Requirements: REQ_EXP_YAMLDATA, REQ_EXP_REACTIVECACHE, REQ_EXP_EVENTFILTER
 
 import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
 
+export interface EntityEntry {
+    name: string;
+    datesEnd?: string;  // event end date YYYY-MM-DD; undefined for projects or if absent
+}
+
+export interface FolderNode {
+    kind: 'folder';
+    name: string;
+    children: TreeNode[];
+}
+
+export interface LeafNode {
+    kind: 'leaf';
+    id: string;
+}
+
+export type TreeNode = FolderNode | LeafNode;
+
 export class YamlScanner {
-    private _projects: string[] = [];
-    private _events: string[] = [];
+    private _projectTree: TreeNode[] = [];
+    private _eventTree: TreeNode[] = [];
+    private _entities: Map<string, EntityEntry> = new Map();
     private _timer: NodeJS.Timeout | undefined;
     private _onCacheChanged: () => void;
 
@@ -29,68 +48,94 @@ export class YamlScanner {
         }
     }
 
-    getProjects(): string[] {
-        return this._projects;
+    getProjectTree(): TreeNode[] {
+        return this._projectTree;
     }
 
-    getEvents(): string[] {
-        return this._events;
+    getEventTree(): TreeNode[] {
+        return this._eventTree;
+    }
+
+    getEntity(id: string): EntityEntry | undefined {
+        return this._entities.get(id);
     }
 
     private async _scan(projectsFolder: string, eventsFolder: string): Promise<void> {
-        const newProjects = await this._readNames(projectsFolder);
-        const newEvents = await this._readNames(eventsFolder);
+        const newEntities = new Map<string, EntityEntry>();
+        const newProjectTree = await this._buildTree(projectsFolder, newEntities);
+        const newEventTree = await this._buildTree(eventsFolder, newEntities);
 
         const changed =
-            !this._arraysEqual(newProjects, this._projects) ||
-            !this._arraysEqual(newEvents, this._events);
+            !this._treesEqual(newProjectTree, this._projectTree) ||
+            !this._treesEqual(newEventTree, this._eventTree);
 
         if (changed) {
-            this._projects = newProjects;
-            this._events = newEvents;
+            this._projectTree = newProjectTree;
+            this._eventTree = newEventTree;
+            this._entities = newEntities;
             this._onCacheChanged();
         }
     }
 
-    private async _readNames(folder: string): Promise<string[]> {
+    private async _buildTree(folder: string, entities: Map<string, EntityEntry>): Promise<TreeNode[]> {
         if (!folder) {
             return [];
         }
-        const names: string[] = [];
-        await this._collectNames(folder, names);
-        return names;
-    }
 
-    private async _collectNames(folder: string, names: string[]): Promise<void> {
         let entries: fs.Dirent[];
         try {
             entries = await fs.promises.readdir(folder, { withFileTypes: true });
         } catch {
-            return;
+            return [];
         }
+
+        const nodes: TreeNode[] = [];
 
         for (const entry of entries) {
             const fullPath = path.join(folder, entry.name);
             if (entry.isDirectory()) {
-                await this._collectNames(fullPath, names);
+                const children = await this._buildTree(fullPath, entities);
+                if (children.length > 0) {
+                    nodes.push({ kind: 'folder', name: entry.name, children });
+                }
             } else if (entry.isFile() && (entry.name.endsWith('.yaml') || entry.name.endsWith('.yml'))) {
                 try {
                     const content = await fs.promises.readFile(fullPath, 'utf8');
                     const doc = yaml.load(content) as Record<string, unknown>;
                     if (doc && typeof doc['name'] === 'string') {
-                        names.push(doc['name']);
+                        const datesEnd = (doc['dates'] as Record<string, unknown>)?.['end'];
+                        entities.set(fullPath, {
+                            name: doc['name'],
+                            ...(typeof datesEnd === 'string' ? { datesEnd } : {})
+                        });
+                        nodes.push({ kind: 'leaf', id: fullPath });
                     }
                 } catch {
                     // skip unparseable files
                 }
             }
         }
+
+        return nodes;
     }
 
-    private _arraysEqual(a: string[], b: string[]): boolean {
+    private _treesEqual(a: TreeNode[], b: TreeNode[]): boolean {
         if (a.length !== b.length) {
             return false;
         }
-        return a.every((v, i) => v === b[i]);
+        return a.every((nodeA, i) => this._nodeEqual(nodeA, b[i]));
+    }
+
+    private _nodeEqual(a: TreeNode, b: TreeNode): boolean {
+        if (a.kind !== b.kind) {
+            return false;
+        }
+        if (a.kind === 'leaf' && b.kind === 'leaf') {
+            return a.id === b.id;
+        }
+        if (a.kind === 'folder' && b.kind === 'folder') {
+            return a.name === b.name && this._treesEqual(a.children, b.children);
+        }
+        return false;
     }
 }

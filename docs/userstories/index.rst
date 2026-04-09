@@ -13,6 +13,9 @@ User Stories describe **why** functionality is needed from the stakeholder's per
    us_dev
    us_rel
    us_cfg
+   us_aut
+   us_msg
+   us_uat
 
 All User Stories
 ----------------

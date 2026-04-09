@@ -1,0 +1,14 @@
+# Implementation: SPEC_UAT_TESTDATA_FILES
+# Requirements: REQ_UAT_VALID_SAMPLES
+name: "Project: Alpha Initiative"
+summary: "Strategic initiative for expanding platform capabilities in Q2."
+externalStatus: "On track — Phase 1 completed, Phase 2 in progress."
+internalStatus: "Budget review pending approval from steering committee."
+lastUpdated: "2026-03-15"
+stakeholders:
+  - name: "Alice Müller"
+    email: "alice.mueller@example.com"
+    role: "lead"
+  - name: "Bob Smith"
+    email: "bob.smith@example.com"
+    role: "contributor"
