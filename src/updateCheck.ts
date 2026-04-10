@@ -78,12 +78,15 @@ function downloadFile(url: string, dest: string): Promise<void> {
 
 export async function checkForUpdates(
     context: vscode.ExtensionContext,
-    silent: boolean
+    silent: boolean,
+    log?: vscode.LogOutputChannel
 ): Promise<void> {
+    log?.info('[Update] checking for updates...');
     let release: GitHubRelease;
     try {
         release = await fetchLatestRelease();
-    } catch {
+    } catch (e) {
+        log?.error(`[Update] failed: ${e}`);
         if (!silent) {
             vscode.window.showErrorMessage('Jarvis: Unable to check for updates.');
         }
@@ -93,7 +96,10 @@ export async function checkForUpdates(
     const currentVersion: string = context.extension.packageJSON.version;
     const newVersion = release.tag_name.replace(/^v/, '');
 
+    log?.info(`[Update] latest: v${newVersion}, current: v${currentVersion}`);
+
     if (!isNewer(release.tag_name, currentVersion)) {
+        log?.info('[Update] up to date');
         if (!silent) {
             vscode.window.showInformationMessage(
                 `Jarvis is up to date (v${currentVersion}).`
@@ -101,6 +107,8 @@ export async function checkForUpdates(
         }
         return;
     }
+
+    log?.info(`[Update] new version available: v${newVersion}`);
 
     // Show notification with action buttons
     const action = await vscode.window.showInformationMessage(

@@ -4,7 +4,7 @@ Message Queue Design Specifications
 .. spec:: Message Queue File Store
    :id: SPEC_MSG_QUEUESTORE
    :status: implemented
-   :links: REQ_MSG_QUEUE; REQ_CFG_MSGPATH
+   :links: REQ_MSG_QUEUE; REQ_MSG_READ; REQ_CFG_MSGPATH
 
    **Description:**
    Module ``src/messageQueue.ts`` provides synchronous file-backed read/write/delete
@@ -64,6 +64,19 @@ Message Queue Design Specifications
       ): void {
         const queue = readQueue(filePath).filter(m => m.destination !== destination);
         fs.writeFileSync(filePath, JSON.stringify(queue, null, 2));
+      }
+
+      function popMessage(
+        filePath: string,
+        destination: string
+      ): { message: QueuedMessage | null; remaining: number } {
+        const queue = readQueue(filePath);
+        const idx = queue.findIndex(m => m.destination === destination);
+        if (idx === -1) { return { message: null, remaining: 0 }; }
+        const [message] = queue.splice(idx, 1);
+        const remaining = queue.filter(m => m.destination === destination).length;
+        fs.writeFileSync(filePath, JSON.stringify(queue, null, 2));
+        return { message, remaining };
       }
 
 
@@ -136,23 +149,24 @@ Message Queue Design Specifications
 .. spec:: Send Messages Command
    :id: SPEC_MSG_SENDCOMMAND
    :status: implemented
-   :links: REQ_MSG_SEND; REQ_MSG_DELETE; REQ_MSG_SESSIONLOOKUP; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_QUEUESTORE
+   :links: REQ_MSG_SEND; REQ_MSG_SESSIONLOOKUP; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_QUEUESTORE
 
    **Description:**
    Register ``jarvis.sendMessages`` in ``extension.ts``. Invoked from the session
-   group node's inline action. Focuses the chat session tab, submits each message
-   with a routing preamble, then clears the destination's queue entries.
+   group node's inline action. Focuses the chat session tab, submits a single
+   notification stub informing the session about pending messages, then refreshes
+   the tree. Messages remain in the queue — the session consumes them via
+   ``jarvis_readMessage``.
 
    When invoked from the Command Palette (without a node argument), a warning is
    shown and the command returns early.
 
-   **Preamble format:**
+   **Stub format:**
 
-   Each message is prefixed with::
+   The notification stub is sent as a single ``workbench.action.chat.open`` query::
 
-      [Jarvis Message Service — from: <sender>, to: <destination>]
-
-   followed by the original message text.
+      [Jarvis Message Service] Du hast {N} neue Nachrichten in deiner Inbox.
+      Lies sie mit dem Tool jarvis_readMessage (destination: "{sessionName}") bis remaining = 0.
 
    .. code-block:: typescript
 
@@ -184,21 +198,17 @@ Message Queue Design Specifications
             await new Promise(resolve => setTimeout(resolve, 800));
           }
 
-          // 3. Submit each message with preamble
-          for (const child of node.children) {
-            const preamble =
-              `[Jarvis Message Service — from: ${child.sender}, to: ${node.destination}]\n\n`;
-            await vscode.commands.executeCommand(
-              'workbench.action.chat.open',
-              { query: preamble + child.text }
-            );
-            await new Promise(resolve => setTimeout(resolve, 500));
-          }
+          // 3. Send single notification stub
+          const count = node.children.length;
+          const stub =
+            `[Jarvis Message Service] Du hast ${count} neue Nachrichten in deiner Inbox.\n` +
+            `Lies sie mit dem Tool jarvis_readMessage (destination: "${node.destination}") bis remaining = 0.`;
+          await vscode.commands.executeCommand(
+            'workbench.action.chat.open',
+            { query: stub }
+          );
 
-          // 4. Remove delivered messages from queue
-          deleteByDestination(resolveMessagesPath(), node.destination);
-
-          // 5. Refresh tree
+          // 4. Refresh tree (messages stay in queue)
           messageProvider.reload();
         }
       );
@@ -206,6 +216,68 @@ Message Queue Design Specifications
    Also registers ``jarvis.deleteMessage`` for single message deletion.
    The ``jarvis.openSession`` command is specified separately in
    ``SPEC_MSG_OPENSESSION``.
+
+
+.. spec:: Read Message LM Tool
+   :id: SPEC_MSG_READMESSAGE
+   :status: implemented
+   :links: REQ_MSG_READ; SPEC_MSG_QUEUESTORE; SPEC_MSG_SESSIONLOOKUP
+
+   **Description:**
+   Register ``jarvis_readMessage`` as a Language Model Tool in ``extension.ts``.
+   Pops the oldest queued message for a given destination session and returns it
+   along with the remaining count, enabling pull-based inbox consumption by LLM
+   agents.
+
+   **Handler:**
+
+   .. code-block:: typescript
+
+      vscode.lm.registerTool('jarvis_readMessage', {
+        async invoke(
+          options: vscode.LanguageModelToolInvocationOptions<{ destination: string }>,
+          _token: vscode.CancellationToken
+        ) {
+          const { destination } = options.input;
+          const result = popMessage(resolveMessagesPath(), destination);
+          messageProvider.reload();
+          return new vscode.LanguageModelToolResult([
+            new vscode.LanguageModelTextPart(JSON.stringify(result))
+          ]);
+        }
+      });
+
+   **Registration in package.json:**
+
+   .. code-block:: json
+
+      {
+        "name": "jarvis_readMessage",
+        "displayName": "Read Message from Inbox",
+        "modelDescription": "Reads and removes the oldest message from the Jarvis inbox for the given destination session. Returns { message: { sender, text, timestamp } | null, remaining: number }. Call repeatedly until remaining === 0.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "readMessage",
+        "icon": "$(mail-read)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "destination": {
+              "type": "string",
+              "description": "The exact name/title of the chat session whose inbox to read"
+            }
+          },
+          "required": ["destination"]
+        }
+      }
+
+   **Design notes:**
+
+   * Pop-oldest semantics: ``findIndex`` returns the first match (FIFO order)
+   * The queue file is rewritten after each pop — acceptable performance for
+     typical queue sizes (single-digit to low tens of messages)
+   * ``messageProvider.reload()`` is called after each pop to keep the Messages
+     tree in sync
+   * Disposable pushed to ``context.subscriptions``
 
 
 .. spec:: Session UUID Resolver
@@ -450,3 +522,251 @@ Message Queue Design Specifications
      not ``'New Chat'``
    * Returns JSON array of title strings
    * Disposable pushed to ``context.subscriptions``
+
+
+.. spec:: MCP Server Module
+   :id: SPEC_MSG_MCPSERVER
+   :status: implemented
+   :links: REQ_MSG_MCPSERVER
+
+   **Description:**
+   New module ``src/mcpServer.ts`` provides an embedded MCP server using
+   ``@modelcontextprotocol/sdk`` with ``StreamableHTTPServerTransport``.
+   The server binds to ``127.0.0.1`` on the configured port and exposes
+   registered tools via the MCP protocol over HTTP/SSE.
+
+   **Dependencies (package.json):**
+
+   .. code-block:: json
+
+      {
+        "dependencies": {
+          "@modelcontextprotocol/sdk": "^1.12.1"
+        }
+      }
+
+   **Public API:**
+
+   .. code-block:: typescript
+
+      import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+      import { StreamableHTTPServerTransport } from
+        '@modelcontextprotocol/sdk/server/streamableHttp.js';
+      import * as http from 'http';
+      import { z } from 'zod';
+      import type * as vscode from 'vscode';
+
+      let mcpServer: McpServer | undefined;
+      let httpServer: http.Server | undefined;
+
+      export function registerMcpTool(
+        name: string,
+        description: string,
+        inputSchema: Record<string, z.ZodTypeAny>,
+        handler: (args: Record<string, unknown>) => Promise<object>
+      ): void {
+        // Stores tool registration; applied when server starts
+      }
+
+      export async function startMcpServer(
+        port: number,
+        log: vscode.LogOutputChannel
+      ): Promise<void> {
+        mcpServer = new McpServer({
+          name: 'jarvis',
+          version: '<from package.json>'
+        });
+
+        // Register all accumulated tools on the McpServer instance
+        for (const [name, { description, schema, handler }] of toolRegistry) {
+          mcpServer.tool(name, description, schema, async (args) => {
+            const result = await handler(args);
+            return {
+              content: [{ type: 'text', text: JSON.stringify(result) }]
+            };
+          });
+        }
+
+        // Stateless mode — new transport per request
+        httpServer = http.createServer(async (req, res) => {
+          if (req.method !== 'POST') {
+            res.writeHead(405).end();
+            return;
+          }
+          const reqTransport = new StreamableHTTPServerTransport({
+            sessionIdGenerator: undefined
+          });
+          res.on('close', () => { reqTransport.close(); });
+          await mcpServer!.connect(reqTransport);
+          await reqTransport.handleRequest(req, res);
+        });
+
+        httpServer.listen(port, '127.0.0.1');
+      }
+
+      export async function stopMcpServer(): Promise<void> {
+        if (httpServer) {
+          httpServer.close();
+          httpServer = undefined;
+        }
+        if (mcpServer) {
+          await mcpServer.close();
+          mcpServer = undefined;
+        }
+      }
+
+   **Security:**
+
+   * Server binds exclusively to ``127.0.0.1`` — no external access
+   * No authentication required for localhost-only access
+
+   **Design notes:**
+
+   * Tool registrations are collected before ``startMcpServer()`` is called,
+     so that ``registerMcpTool()`` can be called during tool setup in
+     ``extension.ts`` before the server starts
+   * **Stateless mode**: ``sessionIdGenerator: undefined`` means each POST
+     request creates a fresh ``StreamableHTTPServerTransport``. The transport
+     is connected to the ``McpServer``, handles the single request, and is
+     closed when the response ends.
+   * ``startMcpServer()`` accepts a ``LogOutputChannel`` for structured
+     ``[MCP]`` log output
+   * Only POST is accepted; other methods receive 405
+   * ``stopMcpServer()`` is called from ``deactivate()`` in ``extension.ts``
+
+
+.. spec:: Dual-Registration Wrapper
+   :id: SPEC_MSG_DUALREGISTRATION
+   :status: implemented
+   :links: REQ_MSG_MCPSERVER; REQ_CFG_MCPPORT
+
+   **Description:**
+   A ``registerDualTool()`` helper function in ``extension.ts`` registers each
+   tool with both ``vscode.lm.registerTool()`` and ``registerMcpTool()``
+   simultaneously. Existing tool registrations (``jarvis_sendToSession``,
+   ``jarvis_listSessions``, ``jarvis_readMessage``) are refactored to use
+   this wrapper. Handler logic stays identical; only return types differ.
+
+   **Wrapper function:**
+
+   .. code-block:: typescript
+
+      function registerDualTool(
+        name: string,
+        lmHandler: (
+          options: vscode.LanguageModelToolInvocationOptions<any>,
+          token: vscode.CancellationToken
+        ) => Promise<vscode.LanguageModelToolResult>,
+        mcpDescription: string,
+        mcpInputSchema: Record<string, z.ZodTypeAny>,
+        mcpHandler: (args: Record<string, unknown>) => Promise<object>
+      ): vscode.Disposable {
+        const lmTool = vscode.lm.registerTool(name, { invoke: lmHandler });
+        registerMcpTool(name, mcpDescription, mcpInputSchema, mcpHandler);
+        return lmTool;
+      }
+
+   **Refactored tool registrations (in activate()):**
+
+   Each existing tool gets both an LM handler (returning
+   ``LanguageModelToolResult``) and an MCP handler (returning a plain object).
+   The core logic (queue operations, session lookups) is shared.
+   ``mcpDescription`` provides a human-readable tool description for the MCP
+   protocol (independent of the ``modelDescription`` in ``package.json``).
+   ``mcpInputSchema`` uses Zod types (``z.string()``, ``z.string().optional()``)
+   as required by the MCP SDK.
+
+   Example for ``jarvis_sendToSession``:
+
+   .. code-block:: typescript
+
+      const sendToSessionTool = registerDualTool(
+        'jarvis_sendToSession',
+        // LM handler
+        async (options, _token) => {
+          const { session, text } = options.input;
+          const activeTab = vscode.window.tabGroups.activeTabGroup.activeTab;
+          const sender = activeTab?.label || options.input.senderSession || 'unknown';
+          appendMessage(resolveMessagesPath(), session, sender, text);
+          messageProvider.reload();
+          return new vscode.LanguageModelToolResult([
+            new vscode.LanguageModelTextPart(
+              `Message queued for destination "${session}" from "${sender}"`
+            )
+          ]);
+        },
+        // MCP description
+        'Queues a message for delivery to another VS Code chat session identified by name.',
+        // MCP input schema (Zod types)
+        { session: z.string(), senderSession: z.string().optional(), text: z.string() },
+        // MCP handler
+        async (args) => {
+          const session = args.session as string;
+          const text = args.text as string;
+          const sender = (args.senderSession as string) || 'mcp-client';
+          appendMessage(resolveMessagesPath(), session, sender, text);
+          messageProvider.reload();
+          return { status: 'queued', destination: session, sender };
+        }
+      );
+
+   **Lifecycle in activate():**
+
+   .. code-block:: typescript
+
+      // After all registerDualTool() calls:
+      const config = vscode.workspace.getConfiguration('jarvis');
+      const mcpEnabled = config.get<boolean>('mcpEnabled', true);
+      const mcpPort = config.get<number>('mcpPort', 31415);
+
+      if (mcpEnabled) {
+        startMcpServer(mcpPort, log).then(() => {
+          mcpStatusBar.show();
+        });
+      }
+
+   **Status bar item:**
+
+   .. code-block:: typescript
+
+      const mcpStatusBar = vscode.window.createStatusBarItem(
+        vscode.StatusBarAlignment.Right, 100
+      );
+      mcpStatusBar.text = `$(plug) Jarvis MCP: ${mcpPort}`;
+      mcpStatusBar.tooltip = 'Jarvis MCP Server';
+      context.subscriptions.push(mcpStatusBar);
+
+   **Deactivation:**
+
+   .. code-block:: typescript
+
+      export async function deactivate() {
+        await stopMcpServer();
+      }
+
+   **Settings in package.json:**
+
+   .. code-block:: json
+
+      {
+        "jarvis.mcpPort": {
+          "type": "number",
+          "default": 31415,
+          "description": "Port for MCP server (localhost only)."
+        },
+        "jarvis.mcpEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the embedded MCP server."
+        }
+      }
+
+   **Design notes:**
+
+   * ``registerDualTool()`` returns the LM tool ``Disposable`` — MCP tools are
+     cleaned up when the server stops
+   * MCP handlers receive raw ``Record<string, unknown>`` and return plain
+     objects — the MCP SDK serializes them to JSON
+   * LM handlers continue to return ``LanguageModelToolResult`` as before
+   * The status bar item is only shown when ``mcpEnabled`` is true
+   * Port changes require extension reload (no hot-reconfiguration)

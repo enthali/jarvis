@@ -35,7 +35,7 @@ Automation Design Specifications
 
    .. code-block:: typescript
 
-      function loadJobs(
+      export function loadJobs(
         filePath: string,
         outputChannel: vscode.OutputChannel
       ): HeartbeatJob[] {
@@ -116,6 +116,13 @@ Automation Design Specifications
 
    Timer restart on configuration change is handled by ``SPEC_CFG_HEARTBEATSETTINGS``.
 
+   **Job registration** (see ``SPEC_AUT_JOBREG``):
+
+   ``registerJob()`` and ``unregisterJob()`` are public methods on this class
+   that read–modify–write the heartbeat YAML file and call ``reload()`` +
+   tree refresh. They enable extension modules to contribute periodic jobs
+   without managing their own timers.
+
 
 .. spec:: Job Step Executor
    :id: SPEC_AUT_EXECUTOR
@@ -134,7 +141,7 @@ Automation Design Specifications
         error?: string;
       }
 
-      async function executeJob(
+      export async function executeJob(
         job: HeartbeatJob,
         outputChannel: vscode.OutputChannel
       ): Promise<ExecResult> {
@@ -259,25 +266,32 @@ Automation Design Specifications
 .. spec:: Output Channel and Failure Notification
    :id: SPEC_AUT_OUTPUTCHANNEL
    :status: implemented
-   :links: REQ_AUT_OUTPUT; SPEC_AUT_EXECUTOR
+   :links: REQ_AUT_OUTPUT; SPEC_AUT_EXECUTOR; SPEC_DEV_LOGCHANNEL
 
    **Description:**
-   The Output Channel is created once at activation and passed through to all
-   execution functions. Failure notification is centralised in ``notifyFailure``.
+   The shared ``LogOutputChannel`` is created in ``activate()``
+   (see ``SPEC_DEV_LOGCHANNEL``) and passed into ``activateHeartbeat()`` as a
+   parameter. ``activateHeartbeat`` no longer creates its own channel.
+   Failure notification uses ``channel.error()``.
 
    .. code-block:: typescript
 
-      // Created once in activateHeartbeat():
-      const outputChannel = vscode.window.createOutputChannel('Jarvis Heartbeat');
-      context.subscriptions.push(outputChannel);
+      // activateHeartbeat() receives the shared channel:
+      export function activateHeartbeat(
+        context: vscode.ExtensionContext,
+        messageTreeProvider: MessageTreeProvider,
+        resolveMessagesPath: () => string,
+        outputChannel: vscode.LogOutputChannel   // ← new parameter
+      ): HeartbeatScheduler { ... }
 
-      function notifyFailure(job: HeartbeatJob, result: ExecResult): void {
-        vscode.window.showErrorMessage(
-          `Jarvis: job "${job.name}" failed — ${result.stepType} ${result.error}`
-        );
-        outputChannel.appendLine(
-          `[Heartbeat] ERROR job "${job.name}" failed — ${result.stepType} ${result.error}`
-        );
+      function notifyFailure(
+        job: HeartbeatJob,
+        result: ExecResult,
+        outputChannel: vscode.LogOutputChannel
+      ): void {
+        const msg = `Jarvis: job "${job.name}" failed — ${result.stepType} ${result.error}`;
+        vscode.window.showErrorMessage(msg);
+        outputChannel.error(`[Heartbeat] ${msg}`);
       }
 
 
@@ -381,3 +395,217 @@ Automation Design Specifications
       if (step.type === 'queue') {
         return executeQueueStep(step, outputChannel, queuePath, messageTreeProvider);
       }
+
+
+.. spec:: Heartbeat Tree Provider
+   :id: SPEC_AUT_HEARTBEATPROVIDER
+   :status: implemented
+   :links: REQ_AUT_HEARTBEATVIEW; SPEC_AUT_JOBSCHEMA; SPEC_AUT_SCHEDULERLOOP
+
+   **Description:**
+   New file ``src/heartbeatTreeProvider.ts`` implementing a ``TreeDataProvider``
+   that renders heartbeat jobs as a two-level tree: job nodes (Level 1) and step
+   nodes (Level 2).
+
+   **Exports:**
+
+   .. code-block:: typescript
+
+      export type HeartbeatTreeNode = JobNode | StepNode;
+
+      export interface JobNode {
+          kind: 'job';
+          job: HeartbeatJob;
+      }
+
+      export interface StepNode {
+          kind: 'step';
+          step: HeartbeatStep;
+      }
+
+      export class HeartbeatTreeProvider
+          implements vscode.TreeDataProvider<HeartbeatTreeNode> {
+
+          private _onDidChangeTreeData = new vscode.EventEmitter<void>();
+          readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
+          private _jobs: HeartbeatJob[] = [];
+
+          setJobs(jobs: HeartbeatJob[]): void {
+              this._jobs = jobs;
+              this._onDidChangeTreeData.fire();
+          }
+
+          getTreeItem(element: HeartbeatTreeNode): vscode.TreeItem { ... }
+          getChildren(element?: HeartbeatTreeNode): HeartbeatTreeNode[] { ... }
+      }
+
+   **getTreeItem behaviour:**
+
+   - **JobNode**: label = ``job.name``, collapsible. Description = next cron
+     fire time formatted as short weekday + time (e.g. ``Mo 08:00``,
+     ``13.04. 08:00``) using ``cron-parser``'s ``parseExpression(schedule).next().toDate()``.
+     For ``schedule === 'manual'``: description = ``manuell``.
+     ``contextValue = 'heartbeatJob'``.
+   - **StepNode**: label = ``<type>: <run>`` or ``agent → <prompt>``.
+     ``TreeItemCollapsibleState.None``. No context value.
+
+   **Next-time formatting:**
+
+   .. code-block:: typescript
+
+      import { parseExpression } from 'cron-parser';
+
+      function formatNextRun(schedule: string): string {
+          if (schedule === 'manual') { return 'manuell'; }
+          try {
+              const next = parseExpression(schedule).next().toDate();
+              const now = new Date();
+              const days = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+              const hhmm = next.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+              // Same week: show weekday; otherwise show date
+              const diffDays = Math.floor((next.getTime() - now.getTime()) / 86400000);
+              if (diffDays < 7) {
+                  return `${days[next.getDay()]} ${hhmm}`;
+              }
+              const dd = String(next.getDate()).padStart(2, '0');
+              const mm = String(next.getMonth() + 1).padStart(2, '0');
+              return `${dd}.${mm}. ${hhmm}`;
+          } catch {
+              return '?';
+          }
+      }
+
+   **Dependency:** ``cron-parser`` (npm package) for reliable cron next-time computation.
+
+   **getChildren behaviour:**
+
+   - No element → return ``JobNode[]`` for all ``_jobs``
+   - ``JobNode`` → return ``StepNode[]`` for ``job.steps``
+   - ``StepNode`` → return ``[]``
+
+
+.. spec:: Run Job and Run-All Commands
+   :id: SPEC_AUT_RUNJOBCOMMAND
+   :status: implemented
+   :links: REQ_AUT_RUNJOB; REQ_AUT_HEARTBEATVIEW; SPEC_AUT_EXECUTOR
+
+   **Description:**
+   Two new VS Code commands registered in ``extension.ts`` via
+   ``activateHeartbeat()`` in ``src/heartbeat.ts``. The tree view also refreshes
+   automatically on each scheduler tick via ``HeartbeatScheduler.setTreeProvider()``.
+
+   **Commands:**
+
+   1. ``jarvis.runJob`` — run a single job from the tree view (inline ``$(play)``
+      on job nodes). Receives a ``JobNode`` as argument from the tree view context.
+
+      .. code-block:: typescript
+
+         context.subscriptions.push(
+             vscode.commands.registerCommand('jarvis.runJob', (node: JobNode) => {
+                 executeJob(node.job, outputChannel, configDir, queuePath, messageTreeProvider)
+                     .then(result => {
+                         if (!result.success) { notifyFailure(node.job, result, outputChannel); }
+                     });
+             })
+         );
+
+   2. ``jarvis.refreshHeartbeat`` — reload config and refresh tree (view-title
+      ``$(refresh)``).
+
+      .. code-block:: typescript
+
+         context.subscriptions.push(
+             vscode.commands.registerCommand('jarvis.refreshHeartbeat', () => {
+                 scheduler.reload();
+                 heartbeatTreeProvider.setJobs(scheduler.currentJobs);
+             })
+         );
+
+   **Cyclic tree refresh:**
+
+   The ``HeartbeatScheduler`` holds a reference to the tree provider via
+   ``setTreeProvider()``. At the end of each ``tick()``, after reloading jobs and
+   updating the status bar, the scheduler calls
+   ``heartbeatTreeProvider.setJobs(this.jobs)`` to refresh next-run times
+   automatically.
+
+   **Refactoring in heartbeat.ts:**
+
+   - ``loadJobs()`` → add ``export`` keyword (currently private)
+   - ``executeJob()`` → add ``export`` keyword (currently private)
+   - Both ``HeartbeatJob`` and ``HeartbeatStep`` interfaces → add ``export``
+   - ``HeartbeatScheduler.setTreeProvider()`` — new method to register the provider
+
+   **package.json contributions:**
+
+   - View: ``jarvisHeartbeat`` in ``jarvis-explorer`` container, name "Heartbeat"
+   - Commands: ``jarvis.runJob`` (icon ``$(play)``),
+     ``jarvis.refreshHeartbeat`` (icon ``$(refresh)``)
+   - Menus:
+
+     - ``view/title``: ``jarvis.refreshHeartbeat`` when ``view == jarvisHeartbeat``
+     - ``view/item/context``: ``jarvis.runJob`` inline when ``viewItem == heartbeatJob``
+   - Activation event: ``onView:jarvisHeartbeat``
+
+
+.. spec:: Job Registration and Unregistration
+   :id: SPEC_AUT_JOBREG
+   :status: implemented
+   :links: REQ_AUT_JOBREG; SPEC_AUT_SCHEDULERLOOP; SPEC_AUT_JOBSCHEMA
+
+   **Description:**
+   Two public methods on ``HeartbeatScheduler`` in ``src/heartbeat.ts``.
+   Both operate on the YAML file resolved via ``resolveConfigPath()``.
+
+   .. code-block:: typescript
+
+      async registerJob(job: HeartbeatJob): Promise<void> {
+          const configPath = resolveConfigPath(this.context!);
+          let data: { jobs: HeartbeatJob[] } = { jobs: [] };
+          try {
+              const raw = fs.readFileSync(configPath, 'utf8');
+              data = (yaml.load(raw) as { jobs: HeartbeatJob[] }) ?? { jobs: [] };
+              if (!data.jobs) { data.jobs = []; }
+          } catch { /* file missing or unparseable — start fresh */ }
+
+          const idx = data.jobs.findIndex(j => j.name === job.name);
+          if (idx >= 0) { data.jobs[idx] = job; } else { data.jobs.push(job); }
+
+          fs.mkdirSync(path.dirname(configPath), { recursive: true });
+          fs.writeFileSync(configPath, yaml.dump(data), 'utf8');
+          this.reload();
+          this.heartbeatTreeProvider?.setJobs(this.jobs);
+      }
+
+      async unregisterJob(name: string): Promise<void> {
+          const configPath = resolveConfigPath(this.context!);
+          let data: { jobs: HeartbeatJob[] };
+          try {
+              const raw = fs.readFileSync(configPath, 'utf8');
+              data = (yaml.load(raw) as { jobs: HeartbeatJob[] }) ?? { jobs: [] };
+              if (!data.jobs) { return; }
+          } catch { return; }
+
+          const idx = data.jobs.findIndex(j => j.name === name);
+          if (idx < 0) { return; }
+          data.jobs.splice(idx, 1);
+
+          fs.writeFileSync(configPath, yaml.dump(data), 'utf8');
+          this.reload();
+          this.heartbeatTreeProvider?.setJobs(this.jobs);
+      }
+
+   **YAML serialisation**: ``js-yaml.dump()`` (already a dependency).
+
+   ``mkdirSync({ recursive: true })`` in ``registerJob`` ensures the storage
+   directory exists before writing (covers first-run when workspace storage
+   hasn't been created yet).
+
+   **Upsert semantics**: ``registerJob`` matches by ``job.name``. If a job with
+   the same name exists, it is replaced (schedule and steps may have changed).
+   If not, the new job is appended. This allows callers to re-register
+   unconditionally on configuration change without checking existence first.
+
+   **No-op semantics**: ``unregisterJob`` returns silently if the name is not
+   found or the file cannot be read (safe to call unconditionally).

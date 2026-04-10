@@ -1,9 +1,9 @@
 {
     "livePreview.defaultPreviewPath": "/docs/_build/html/index.html",
-    "jarvis.eventsFolder": "C:\\workspace\\Jarvis\\testdata\\events",
-    "jarvis.heartbeatConfigFile": "C:\\workspace\\Jarvis\\testdata\\heartbeat\\heartbeat.yaml",
-    "jarvis.messagesFile": "C:\\workspace\\Jarvis\\testdata\\msg\\messages.json",
-    "jarvis.projectsFolder": "C:\\workspace\\Jarvis\\testdata\\projects",
+    "jarvis.eventsFolder": "C:\\workspace\\Jarvis\\events",
+    "jarvis.heartbeatConfigFile": "C:\\workspace\\Jarvis\\.jarvis\\heartbeat.yaml",
+    "jarvis.messagesFile": "C:\\workspace\\Jarvis\\.jarvis\\messages.json",
+    "jarvis.projectsFolder": "C:\\workspace\\Jarvis\\projects",
     "jarvis.scanInterval": 20,
     "jarvis.heartbeatInterval": 300
 }

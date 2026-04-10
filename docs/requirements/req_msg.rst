@@ -48,18 +48,20 @@ Message Queue Requirements
    :links: US_MSG_CHATQUEUE; REQ_MSG_SESSIONLOOKUP; REQ_MSG_QUEUE
 
    **Description:**
-   The extension SHALL provide a command to send all queued messages for a given
-   session to the corresponding VS Code Chat tab.
+   The extension SHALL provide a command to notify a VS Code Chat session about
+   pending messages in its inbox.
 
    **Acceptance Criteria:**
 
    * AC-1: A send action SHALL be available on each session group node in the
      Messages tree view
    * AC-2: The extension SHALL focus the target chat tab before submitting
-   * AC-3: Each message SHALL be submitted via
-     ``workbench.action.chat.open({ query })``
-   * AC-4: After successful submission, delivered messages SHALL be removed from
-     the queue file
+   * AC-3: The extension SHALL submit a single notification stub via
+     ``workbench.action.chat.open({ query })`` informing the session about the
+     number of pending messages and instructing it to read them via the
+     ``jarvis_readMessage`` tool
+   * AC-4: Messages SHALL remain in the queue after notification — the session
+     is responsible for consuming them via ``REQ_MSG_READ``
    * AC-5: The Messages tree view SHALL refresh after send completes
    * AC-6: The extension SHALL focus the target session via
      ``vscode.commands.executeCommand('vscode.open',
@@ -175,3 +177,58 @@ Message Queue Requirements
      current workspace's ``state.vscdb``
    * AC-3: The returned list SHALL be filtered by ``REQ_MSG_SESSIONFILTER``
    * AC-4: If no named sessions exist, the tool SHALL return an empty list
+
+
+.. req:: Read Message LM Tool
+   :id: REQ_MSG_READ
+   :status: implemented
+   :priority: mandatory
+   :links: US_MSG_CHATQUEUE; REQ_MSG_QUEUE
+
+   **Description:**
+   The extension SHALL register a Language Model Tool that pops the oldest queued
+   message for a given destination session, enabling pull-based inbox consumption.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A Language Model Tool named ``jarvis_readMessage`` SHALL be registered
+     via ``vscode.lm.registerTool`` with ``canBeReferencedInPrompt: true``
+   * AC-2: The tool SHALL accept a ``destination`` parameter (string) identifying
+     the target session name
+   * AC-3: The tool SHALL return a JSON object with ``message`` (containing
+     ``sender``, ``text``, ``timestamp``, or ``null`` if no messages) and
+     ``remaining`` (number of messages still queued for that destination)
+   * AC-4: The tool SHALL remove the returned message from the queue file
+     (pop-oldest semantics)
+   * AC-5: If no messages exist for the destination, the tool SHALL return
+     ``{ message: null, remaining: 0 }``
+   * AC-6: The Messages tree view SHALL refresh after each read
+
+
+.. req:: Embedded MCP Server
+   :id: REQ_MSG_MCPSERVER
+   :status: implemented
+   :priority: mandatory
+   :links: US_MSG_MCPSERVER
+
+   **Description:**
+   The extension SHALL embed an MCP (Model Context Protocol) server that exposes
+   all registered LM Tools as MCP Tools via HTTP/SSE on localhost.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The extension SHALL start an HTTP/SSE MCP server on ``127.0.0.1``
+     during activation when ``jarvis.mcpEnabled`` is ``true``
+   * AC-2: The MCP server SHALL use the ``@modelcontextprotocol/sdk`` package
+     with ``StreamableHTTPServerTransport``
+   * AC-3: Each LM Tool SHALL be simultaneously registered as an MCP Tool with
+     the same name, input schema, and equivalent handler logic
+   * AC-4: MCP tool handlers SHALL return JSON objects (not
+     ``LanguageModelToolResult``)
+   * AC-5: The MCP server SHALL stop cleanly during extension deactivation
+   * AC-6: The MCP server SHALL only bind to ``127.0.0.1`` — not ``0.0.0.0``
+     or any external interface
+   * AC-7: A status bar item SHALL display ``Jarvis MCP: <port>`` when the
+     server is running; the item SHALL be hidden when MCP is disabled
+   * AC-8: If ``jarvis.mcpEnabled`` is ``false``, the MCP server SHALL not
+     start and the status bar item SHALL not be shown

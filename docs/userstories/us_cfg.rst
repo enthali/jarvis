@@ -3,7 +3,7 @@ Configuration User Stories
 
 .. story:: Configurable Project and Event Folder Paths
    :id: US_CFG_PROJECTPATH
-   :status: implemented
+   :status: approved
    :priority: mandatory
 
    **As a** Jarvis User,
@@ -14,7 +14,8 @@ Configuration User Stories
 
    * AC-1: A VS Code setting ``jarvis.projectsFolder`` accepts an absolute folder path for projects
    * AC-2: A VS Code setting ``jarvis.eventsFolder`` accepts an absolute folder path for events
-   * AC-3: A VS Code setting ``jarvis.scanInterval`` controls background refresh interval (default: 120s)
+   * AC-3: A VS Code setting ``jarvis.scanInterval`` controls background refresh interval
+     in minutes (default: 2, value 0 disables automatic scanning)
    * AC-4: Changing a folder setting immediately triggers a rescan
 
 .. story:: Heartbeat Config File Location

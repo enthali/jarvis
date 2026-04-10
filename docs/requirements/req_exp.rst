@@ -113,6 +113,9 @@ Explorer Requirements
      completes the cache is populated and the event is fired
    * AC-6: The scanner SHALL expose a public method to trigger an immediate rescan
      outside the timer cycle
+   * AC-7: The change comparison SHALL include entity data (name, datesEnd), not only
+     tree structure — editing a YAML field without adding or removing folders SHALL
+     trigger a cache update
 
 
 .. req:: Project Folder Filter
@@ -299,3 +302,42 @@ Explorer Requirements
    * AC-10: The command SHALL NOT appear in the Command Palette
    * AC-11: If a folder with the derived name already exists, the command SHALL
      show an error notification and abort without modifying the file system
+
+
+.. req:: Rescan Button in Title Bar
+   :id: REQ_EXP_RESCAN_BTN
+   :status: implemented
+   :priority: mandatory
+   :links: US_EXP_SCANREFRESH; REQ_EXP_REACTIVECACHE
+
+   **Description:**
+   Both the Projects and Events tree views SHALL provide a refresh icon in the
+   title bar that triggers an immediate rescan of the YAML scanner.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A ``$(refresh)`` icon is displayed in the Projects view title bar
+   * AC-2: A ``$(refresh)`` icon is displayed in the Events view title bar
+   * AC-3: Clicking either icon triggers the scanner's ``rescan()`` method
+   * AC-4: A single command ``jarvis.rescan`` is shared by both views
+   * AC-5: The command SHALL NOT appear in the Command Palette
+
+
+.. req:: Sort Tree by Entity Name
+   :id: REQ_EXP_NAMESORT
+   :status: implemented
+   :priority: optional
+   :links: US_EXP_NAMESORT
+
+   **Description:**
+   The scanner SHALL sort tree nodes alphabetically by entity name (for leaf
+   nodes) or folder name (for grouping nodes), so that the explorer displays
+   items in a predictable, user-friendly order.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Leaf nodes at each level are sorted by their YAML ``name`` field
+     (case-insensitive)
+   * AC-2: Folder nodes at each level are sorted by folder name (case-insensitive)
+   * AC-3: Folders and leaves are interleaved in a single alphabetical list at
+     each level (not grouped separately)

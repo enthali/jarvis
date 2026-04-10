@@ -17,6 +17,9 @@ end-to-end verification of each feature.
    req_uat_projfolders
    req_uat_sessiontools
    req_uat_selfupdate
+   req_uat_scanrefresh
+   req_uat_logging
+   req_uat_mcpserver
 
 All UAT Requirements
 --------------------

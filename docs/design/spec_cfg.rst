@@ -24,9 +24,9 @@ Configuration Design Specifications
         },
         "jarvis.scanInterval": {
           "type": "number",
-          "default": 120,
-          "minimum": 20,
-          "description": "Background scan interval in seconds (minimum 20)."
+          "default": 2,
+          "minimum": 0,
+          "description": "Background scan interval in minutes (0 = disabled)."
         }
       }
 

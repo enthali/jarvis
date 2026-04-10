@@ -17,6 +17,9 @@ outcome tables** for each feature's acceptance tests.
    spec_uat_projfolders
    spec_uat_sessiontools
    spec_uat_selfupdate
+   spec_uat_scanrefresh
+   spec_uat_logging
+   spec_uat_mcpserver
 
 All UAT Specifications
 ----------------------

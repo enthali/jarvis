@@ -1,5 +1,5 @@
 // Implementation: SPEC_EXP_SCANNER
-// Requirements: REQ_EXP_YAMLDATA, REQ_EXP_REACTIVECACHE, REQ_EXP_EVENTFILTER
+// Requirements: REQ_EXP_YAMLDATA, REQ_EXP_REACTIVECACHE, REQ_EXP_EVENTFILTER, REQ_EXP_NAMESORT
 
 import * as fs from 'fs';
 import * as path from 'path';
@@ -27,7 +27,6 @@ export class YamlScanner {
     private _projectTree: TreeNode[] = [];
     private _eventTree: TreeNode[] = [];
     private _entities: Map<string, EntityEntry> = new Map();
-    private _timer: NodeJS.Timeout | undefined;
     private _onCacheChanged: () => void;
     private _projectsFolder = '';
     private _eventsFolder = '';
@@ -36,13 +35,11 @@ export class YamlScanner {
         this._onCacheChanged = onCacheChanged;
     }
 
-    start(projectsFolder: string, eventsFolder: string, intervalSec: number): void {
+    start(projectsFolder: string, eventsFolder: string): void {
         this.stop();
         this._projectsFolder = projectsFolder;
         this._eventsFolder = eventsFolder;
-        const effectiveInterval = Math.max(20, intervalSec) * 1000;
         this._scan(projectsFolder, eventsFolder);
-        this._timer = setInterval(() => this._scan(projectsFolder, eventsFolder), effectiveInterval);
     }
 
     async rescan(): Promise<void> {
@@ -51,10 +48,7 @@ export class YamlScanner {
     }
 
     stop(): void {
-        if (this._timer !== undefined) {
-            clearInterval(this._timer);
-            this._timer = undefined;
-        }
+        // No-op — timer logic removed; periodic rescans managed via heartbeat
     }
 
     getProjectTree(): TreeNode[] {
@@ -74,9 +68,12 @@ export class YamlScanner {
         const newProjectTree = await this._buildTree(projectsFolder, newEntities, 'project.yaml');
         const newEventTree = await this._buildTree(eventsFolder, newEntities, 'event.yaml');
 
+        // Entity-map comparison (scanner-refresh change): detect YAML content changes
+        // even when tree structure is unchanged
         const changed =
             !this._treesEqual(newProjectTree, this._projectTree) ||
-            !this._treesEqual(newEventTree, this._eventTree);
+            !this._treesEqual(newEventTree, this._eventTree) ||
+            !this._entitiesEqual(newEntities, this._entities);
 
         if (changed) {
             this._projectTree = newProjectTree;
@@ -143,7 +140,25 @@ export class YamlScanner {
             // Non-directory entries (files) are ignored — only convention files inside folders matter
         }
 
+        // Sort nodes alphabetically: leaves by entity name, folders by folder name
+        nodes.sort((a, b) => {
+            const keyA = a.kind === 'leaf'
+                ? (entities.get(a.id)?.name?.toLowerCase() ?? path.basename(path.dirname(a.id)).toLowerCase())
+                : a.name.toLowerCase();
+            const keyB = b.kind === 'leaf'
+                ? (entities.get(b.id)?.name?.toLowerCase() ?? path.basename(path.dirname(b.id)).toLowerCase())
+                : b.name.toLowerCase();
+            return keyA.localeCompare(keyB);
+        });
+
         return nodes;
+    }
+
+    private _entitiesEqual(a: Map<string, EntityEntry>, b: Map<string, EntityEntry>): boolean {
+        if (a.size !== b.size) { return false; }
+        const serialize = (m: Map<string, EntityEntry>) =>
+            JSON.stringify([...m.entries()].sort(([k1], [k2]) => k1.localeCompare(k2)).map(([k, v]) => [k, JSON.stringify(v)]));
+        return serialize(a) === serialize(b);
     }
 
     private _treesEqual(a: TreeNode[], b: TreeNode[]): boolean {

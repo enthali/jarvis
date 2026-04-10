@@ -8,15 +8,17 @@ Explorer User Stories
    :links: US_MSG_CHATQUEUE
 
    **As a** Jarvis User,
-   **I want** a dedicated sidebar in VS Code that lists my projects, events, and messages in three separate groups,
-   **so that** I can quickly see and navigate to my active projects and upcoming events without leaving the editor.
+   **I want** a dedicated sidebar in VS Code that lists my projects, events, messages,
+   and heartbeat jobs in four separate groups,
+   **so that** I can quickly see and navigate to my active projects, upcoming events,
+   queued messages, and scheduled automation jobs without leaving the editor.
 
    **Acceptance Criteria:**
 
    * AC-1: A "Jarvis" icon appears in the VS Code Activity Bar
    * AC-2: Clicking the icon opens a sidebar panel
-   * AC-3: The sidebar contains three collapsible sections: "Projects", "Events",
-     and "Messages"
+   * AC-3: The sidebar contains four collapsible sections: "Projects", "Events",
+     "Messages", and "Heartbeat"
    * AC-4: Each section displays items hierarchically. A folder containing a convention
      file (``project.yaml`` or ``event.yaml``) is a leaf node representing that item.
      Folders without a convention file are grouping nodes (collapsible). Grouping folders
@@ -110,3 +112,58 @@ Explorer User Stories
      without waiting for the next scan interval
    * AC-6: The commands SHALL NOT appear in the Command Palette (they are only
      reachable via the title bar icons)
+
+
+.. story:: Manual Rescan Button
+   :id: US_EXP_SCANREFRESH
+   :status: implemented
+   :priority: mandatory
+   :links: US_EXP_SIDEBAR
+
+   **As a** Jarvis User,
+   **I want** a refresh button in the title bar of the Projects and Events tree views,
+   **so that** I can trigger an immediate rescan without waiting for the next scan cycle.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A refresh icon (``$(refresh)``) is visible in the Projects title bar
+   * AC-2: A refresh icon (``$(refresh)``) is visible in the Events title bar
+   * AC-3: Clicking the button triggers an immediate rescan and the tree updates
+
+
+.. story:: YAML Content Change Detection
+   :id: US_EXP_CONTENTDETECT
+   :status: implemented
+   :priority: mandatory
+   :links: US_EXP_SIDEBAR
+
+   **As a** Jarvis User,
+   **I want** changes to YAML file content (e.g. renaming a project) to be reflected
+   in the sidebar after the next scan,
+   **so that** the displayed data stays accurate and I don't see stale names or dates.
+
+   **Acceptance Criteria:**
+
+   * AC-1: After editing a YAML field (e.g. ``name:``) and the next scan runs,
+     the sidebar reflects the new value
+   * AC-2: Changes to ``dates.end`` in event YAML are detected and the future-event
+     filter behaves correctly with the new value
+
+
+.. story:: Sort Tree by Entity Name
+   :id: US_EXP_NAMESORT
+   :status: implemented
+   :priority: optional
+   :links: US_EXP_SIDEBAR
+
+   **As a** Jarvis User,
+   **I want** the tree items sorted alphabetically by their YAML entity name
+   rather than by folder name,
+   **so that** I can find projects and events more easily in the sidebar.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Leaf nodes are sorted by their YAML ``name`` field (case-insensitive)
+   * AC-2: Folder (grouping) nodes are sorted by folder name (case-insensitive)
+   * AC-3: Folders and leaves are interleaved — all children at a given level are
+     sorted together in a single alphabetical list

@@ -4,7 +4,7 @@ Explorer Design Specifications
 .. spec:: Extension Manifest & Activation
    :id: SPEC_EXP_EXTENSION
    :status: implemented
-   :links: REQ_EXP_ACTIVITYBAR, REQ_CFG_FOLDERPATHS, REQ_CFG_SCANINTERVAL, REQ_EXP_FILTERPERSIST, REQ_EXP_EVENTFILTERPERSIST, REQ_EXP_OPENYAML, REQ_EXP_NEWPROJECT, REQ_EXP_NEWEVENT
+   :links: REQ_EXP_ACTIVITYBAR, REQ_CFG_FOLDERPATHS, REQ_CFG_SCANINTERVAL, REQ_EXP_FILTERPERSIST, REQ_EXP_EVENTFILTERPERSIST, REQ_EXP_OPENYAML, REQ_EXP_NEWPROJECT, REQ_EXP_NEWEVENT, REQ_EXP_RESCAN_BTN
 
    **Description:**
    The extension is scaffolded as a standard VS Code TypeScript extension.
@@ -25,6 +25,18 @@ Explorer Design Specifications
    The extension activates lazily when any tree view becomes visible.
    The ``activate()`` function registers all three TreeDataProviders.
 
+   **Activation order (heartbeat-register change):**
+
+   1. ``activateHeartbeat(context, ...)`` → returns ``HeartbeatScheduler``
+   2. ``scanner = new YamlScanner(callback)``
+   3. ``scanner.start(projectsFolder, eventsFolder)`` → immediate scan (no timer)
+   4. ``syncRescanJob()`` → if ``scanInterval > 0``: ``scheduler.registerJob(rescanJob)``
+
+   A ``syncRescanJob()`` helper reads ``jarvis.scanInterval`` and either registers or
+   unregisters the ``"Jarvis: Rescan"`` heartbeat job. The config change handler calls
+   ``syncRescanJob()`` when ``jarvis.scanInterval`` changes, and ``startScanner()`` when
+   folder paths change.
+
    **New-entity manifest additions:**
 
    * ``contributes.commands``: ``jarvis.newProject`` (title "Jarvis: New Project",
@@ -34,6 +46,16 @@ Explorer Design Specifications
      ``jarvis.newProject`` with ``when: "view == jarvisProjects"`` (group ``navigation``)
      and ``jarvis.newEvent`` with ``when: "view == jarvisEvents"`` (group ``navigation``)
    * ``contributes.menus.commandPalette``: hide both commands (``when: "false"``)
+
+   **Rescan-button manifest additions (scanner-refresh change):**
+
+   * ``contributes.commands``: ``jarvis.rescan`` (title "Jarvis: Rescan",
+     icon ``$(refresh)``)
+   * ``contributes.menus.view/title``: two entries —
+     ``jarvis.rescan`` with ``when: "view == jarvisProjects"``
+     (group ``navigation``) and ``jarvis.rescan`` with
+     ``when: "view == jarvisEvents"`` (group ``navigation``)
+   * ``contributes.menus.commandPalette``: hide command (``when: "false"``)
 
    **Project structure:**
 
@@ -111,6 +133,8 @@ Explorer Design Specifications
 
    **Description:**
    File ``src/yamlScanner.ts`` — background scanner service with two-layer output.
+   The scanner does NOT own a timer; periodic re-scanning is managed via a
+   heartbeat job (see ``SPEC_AUT_JOBREG``).
 
    **Data Types:**
 
@@ -137,8 +161,9 @@ Explorer Design Specifications
    **Public Interface:**
 
    * ``constructor(onCacheChanged: () => void)``
-   * ``start(projectsFolder, eventsFolder, intervalSec): void``
-   * ``stop(): void``
+   * ``start(projectsFolder, eventsFolder): void`` — stores folder paths and
+     performs one immediate scan. Does NOT create a timer.
+   * ``stop(): void`` — no-op (no timer to clear); kept for API compatibility
    * ``rescan(): Promise<void>`` — triggers an immediate re-scan using the folder
      paths stored from the last ``start()`` call. No-op if ``start()`` has not been
      called yet.
@@ -175,6 +200,28 @@ Explorer Design Specifications
    * Non-YAML files and YAML files other than the convention file are ignored.
    * Compares new tree + entity map against cached versions;
      fires ``onCacheChanged()`` only when diff detected.
+
+   **Entity-map comparison (scanner-refresh change):**
+
+   The ``_scan()`` method SHALL compare the new entity map against the cached
+   entity map in addition to comparing tree structures. Comparison is done by
+   converting each map to a sorted array of ``[key, JSON.stringify(value)]``
+   pairs and comparing the resulting strings. This ensures that changes to
+   YAML content (e.g. ``name`` or ``dates.end``) are detected even when the
+   tree structure (folder/leaf paths) remains identical.
+
+   **Sort logic (scanner-refresh change):**
+
+   After ``_buildTree()`` has assembled all nodes for a directory level, it
+   SHALL sort them alphabetically before returning. The sort key is:
+
+   * ``LeafNode``: ``entities.get(node.id)?.name?.toLowerCase()`` (fallback:
+     ``path.basename(path.dirname(node.id)).toLowerCase()``)
+   * ``FolderNode``: ``node.name.toLowerCase()``
+
+   Folders and leaves are interleaved — the sort treats all children uniformly.
+   The sort is applied recursively (each call to ``_buildTree`` sorts its own
+   level). ``localeCompare`` is used for comparison.
 
    **Callers in ``_scan()``:**
 
@@ -519,3 +566,62 @@ Explorer Design Specifications
    **Disposable** pushed to ``context.subscriptions``.
 
    **Registration in package.json** — see ``SPEC_EXP_EXTENSION``.
+
+
+.. spec:: Rescan Command
+   :id: SPEC_EXP_RESCAN_CMD
+   :status: implemented
+   :links: REQ_EXP_RESCAN_BTN; SPEC_EXP_SCANNER; SPEC_EXP_EXTENSION
+
+   **Description:**
+   Register ``jarvis.rescan`` in ``extension.ts``. Triggered by the ``$(refresh)``
+   icon in both the Projects and Events view title bars. Calls the scanner's
+   existing ``rescan()`` method.
+
+   **Handler:**
+
+   .. code-block:: typescript
+
+      vscode.commands.registerCommand('jarvis.rescan', async () => {
+          await scanner.rescan();
+      });
+
+   **Registration in package.json:**
+
+   * ``contributes.commands``:
+
+     .. code-block:: json
+
+        {
+          "command": "jarvis.rescan",
+          "title": "Jarvis: Rescan",
+          "icon": "$(refresh)"
+        }
+
+   * ``contributes.menus.view/title``: two entries:
+
+     .. code-block:: json
+
+        [
+          {
+            "command": "jarvis.rescan",
+            "when": "view == jarvisProjects",
+            "group": "navigation@3"
+          },
+          {
+            "command": "jarvis.rescan",
+            "when": "view == jarvisEvents",
+            "group": "navigation@3"
+          }
+        ]
+
+   * ``contributes.menus.commandPalette``: hide from Command Palette:
+
+     .. code-block:: json
+
+        {
+          "command": "jarvis.rescan",
+          "when": "false"
+        }
+
+   **Disposable** pushed to ``context.subscriptions``.

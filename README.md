@@ -37,7 +37,7 @@ Cron-based job scheduling configured via YAML:
 |---------|-------------|---------|
 | `jarvis.projectsFolder` | Absolute path to projects YAML folder | — |
 | `jarvis.eventsFolder` | Absolute path to events YAML folder | — |
-| `jarvis.scanInterval` | Background scan interval in seconds | 120 |
+| `jarvis.scanInterval` | Background rescan interval in minutes (0 = disabled) | 2 |
 | `jarvis.heartbeatConfigFile` | Absolute path to `heartbeat.yaml` | workspace storage |
 | `jarvis.heartbeatInterval` | Scheduler tick interval in seconds | 60 |
 | `jarvis.messagesFile` | Absolute path to `messages.json` | extension storage |

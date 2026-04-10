@@ -153,3 +153,71 @@ Developer Tooling Design Specifications
 
    <!-- Implementation: SPEC_DEV_CONVENTIONS -->
    <!-- Requirements: REQ_DEV_CONVENTIONS -->
+
+
+.. spec:: Unified LogOutputChannel
+   :id: SPEC_DEV_LOGCHANNEL
+   :status: implemented
+   :links: REQ_DEV_LOGGING
+
+   **Description:**
+   Create a single ``LogOutputChannel`` in ``activate()`` and pass it to every module.
+
+   **Channel creation** (``src/extension.ts``, inside ``activate()``):
+
+   .. code-block:: typescript
+
+      const log = vscode.window.createOutputChannel('Jarvis', { log: true });
+      context.subscriptions.push(log);
+
+   **Module wiring:**
+
+   * ``activateHeartbeat(context, messageProvider, resolveMessagesPath, log)``
+     — new fourth parameter; ``activateHeartbeat`` no longer creates its own channel.
+   * ``checkForUpdates(context, silent, log)``
+     — new third parameter.
+   * ``new YamlScanner(onCacheChanged, log)``
+     — new second parameter.
+   * Inline logging in ``extension.ts`` for ``[MSG]``, ``[Scanner]``, ``[Update]``
+     commands uses the same ``log`` reference.
+
+   **heartbeat.ts type changes:**
+
+   All functions and the ``HeartbeatScheduler`` class that previously accepted
+   ``vscode.OutputChannel`` now accept ``vscode.LogOutputChannel``.
+
+   * ``loadJobs()``: ``channel.error(...)`` instead of ``channel.appendLine(...)``
+   * ``spawnStep()``: collect stdout/stderr per-line, call ``channel.info(...)``
+     instead of ``channel.append(...)``
+   * ``executeAgentStep()``: ``channel.debug(...)`` for prompt/model/response-length,
+     ``channel.info(...)`` for write-to-file
+   * ``executeQueueStep()``: ``channel.info(...)``
+   * ``notifyFailure()``: ``channel.error(...)``
+   * ``HeartbeatScheduler.tick()``: ``channel.trace(...)`` for tick marker (optional)
+
+   **updateCheck.ts changes:**
+
+   ``checkForUpdates(context, silent, log)`` gains a third parameter
+   ``log: vscode.LogOutputChannel``:
+
+   * ``log.info('[Update] Checking for updates…')`` at start
+   * ``log.info('[Update] Current: vX.Y.Z, latest: vA.B.C')`` after fetch
+   * ``log.info('[Update] Up to date')`` or ``log.info('[Update] New version available: vA.B.C')``
+   * ``log.error('[Update] …')`` on fetch/download failures
+   * ``log.info('[Update] Downloaded and installed vA.B.C')`` on success
+
+   **yamlScanner.ts changes:**
+
+   ``YamlScanner`` constructor gains a second parameter ``log: vscode.LogOutputChannel``:
+
+   * ``log.info('[Scanner] Scan started')``
+   * ``log.info('[Scanner] Scan complete — N projects, M events')``
+   * ``log.debug('[Scanner] Entity change detected, refreshing tree')``
+
+   **extension.ts inline logging:**
+
+   * ``log.info('[MSG] sendToSession: …')`` in sendToSession LM tool
+   * ``log.info('[MSG] readMessage: …')`` in readMessage LM tool
+   * ``log.info('[MSG] sendMessages: delivering to …')`` in sendMessages command
+   * ``log.info('[Scanner] Manual rescan triggered')`` in rescan command
+   * ``log.info('[Update] Automatic update check on activation')`` at startup

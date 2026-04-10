@@ -70,3 +70,117 @@ Heartbeat User Acceptance Tests
      Action: Run ``Jarvis: Run Heartbeat Job`` → select job.
      Expected: Output Channel logs prompt path, model ID, and response length;
      ``testdata/heartbeat/agent-response.txt`` is created with the LLM response.
+
+
+.. story:: Heartbeat Tree View Acceptance Tests
+   :id: US_UAT_HEARTBEATVIEW
+   :status: implemented
+   :priority: optional
+   :links: US_AUT_HEARTBEAT; REQ_AUT_HEARTBEATVIEW; REQ_AUT_RUNJOB
+
+   **As a** Jarvis Test Engineer,
+   **I want** a set of manual acceptance test scripts for the heartbeat tree view,
+   **so that** I can verify the sidebar visualization and job actions before release.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Test scripts verify that the Heartbeat view appears as the 4th section in
+     the Jarvis sidebar
+   * AC-2: Test scripts verify job nodes display name and next execution time
+   * AC-3: Test scripts verify step nodes display type and run/prompt information
+   * AC-4: Test scripts verify the play button executes a single job
+   * AC-5: Test scripts verify the refresh button reloads the configuration
+   * AC-6: Test scripts verify that the tree refreshes automatically on scheduler tick
+
+   **Test Scenarios:**
+
+   **T-9 — Heartbeat view shows all jobs**
+     Setup: ``heartbeat.yaml`` with at least one scheduled and one manual job.
+     Action: Open the Jarvis sidebar; expand the Heartbeat section.
+     Expected: All jobs from ``heartbeat.yaml`` appear as tree nodes. Scheduled jobs
+     show next fire time (e.g. ``Mo 08:00``). Manual jobs show ``manuell``.
+
+   **T-10 — Job node expands to show steps**
+     Setup: ``heartbeat.yaml`` with a multi-step job.
+     Action: Click the expand arrow on a job node.
+     Expected: Child nodes show step type and run target (e.g. ``powershell: scripts/report.ps1``,
+     ``agent → prompts/standup.md``).
+
+   **T-11 — Play button runs a single job**
+     Setup: ``heartbeat.yaml`` with a manual job (e.g. ``t2-manual-show-output``).
+     Action: Click the ``$(play)`` inline icon on the job node.
+     Expected: The job executes; Output Channel shows step output.
+
+   **T-12 — Refresh reloads configuration**
+     Setup: Modify ``heartbeat.yaml`` while VS Code is running (add a new job).
+     Action: Click the ``$(refresh)`` icon in the Heartbeat view title bar.
+     Expected: The new job appears in the tree; next execution times are updated.
+
+   **T-13 — Cyclic refresh updates next-run times**
+     Setup: Observe a job's next-run time in the tree.
+     Action: Wait for one scheduler tick (or set ``jarvis.heartbeatInterval`` to 10 s).
+     Expected: The next-run time description updates automatically without clicking
+     refresh.
+
+
+.. story:: Heartbeat Job Registration Acceptance Tests
+   :id: US_UAT_JOBREG
+   :status: approved
+   :priority: optional
+   :links: US_AUT_HEARTBEAT; REQ_AUT_JOBREG; REQ_CFG_SCANINTERVAL
+
+   **As a** Jarvis Test Engineer,
+   **I want** a set of manual acceptance test scripts for the heartbeat job
+   registration API and scanner-heartbeat integration,
+   **so that** I can verify that modules can register and unregister heartbeat jobs
+   and that the scanner uses the heartbeat system for periodic rescans.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Test scripts verify that ``registerJob`` creates or updates an entry in
+     ``heartbeat.yaml`` and the tree view refreshes
+   * AC-2: Test scripts verify that ``unregisterJob`` removes an entry from
+     ``heartbeat.yaml`` and the tree view refreshes
+   * AC-3: Test scripts verify the scanner registers a ``"Jarvis: Rescan"`` heartbeat
+     job when ``scanInterval > 0``
+   * AC-4: Test scripts verify that ``scanInterval = 0`` disables automatic scanning
+     (no heartbeat job registered)
+   * AC-5: Test scripts verify that changing ``scanInterval`` at runtime re-registers
+     or unregisters the rescan job
+
+   **Test Scenarios:**
+
+   **T-14 — registerJob creates entry in heartbeat.yaml**
+     Setup: Extension running; set ``jarvis.heartbeatConfigFile`` to a known path;
+     ``jarvis.scanInterval`` = 2.
+     Action: Reload window.
+     Expected: ``heartbeat.yaml`` contains a ``"Jarvis: Rescan"`` job with schedule
+     ``*/2 * * * *`` and a ``command`` step running ``jarvis.rescan``. The job appears
+     in the Heartbeat tree view.
+
+   **T-15 — registerJob upserts existing entry**
+     Setup: ``scanInterval`` = 2; ``"Jarvis: Rescan"`` job already in
+     ``heartbeat.yaml``.
+     Action: Change ``jarvis.scanInterval`` to 5 in VS Code settings.
+     Expected: ``heartbeat.yaml`` now has ``"Jarvis: Rescan"`` with schedule
+     ``*/5 * * * *``. Only one entry with that name exists (no duplicates). Tree
+     view reflects the new schedule.
+
+   **T-16 — unregisterJob removes entry**
+     Setup: ``scanInterval`` = 2; ``"Jarvis: Rescan"`` job present.
+     Action: Change ``jarvis.scanInterval`` to 0.
+     Expected: ``"Jarvis: Rescan"`` job is removed from ``heartbeat.yaml``. Job
+     disappears from the Heartbeat tree view.
+
+   **T-17 — Rescan fires via heartbeat**
+     Setup: ``scanInterval`` = 1 (every minute); ``heartbeatInterval`` = 10.
+     Action: Modify a project YAML file; wait for the next cron fire.
+     Expected: The sidebar updates with the changed data (rescan fired via heartbeat).
+     Output Channel shows the ``jarvis.rescan`` command step executing.
+
+   **T-18 — scanInterval 0 disables automatic scanning**
+     Setup: ``scanInterval`` = 0.
+     Action: Start extension; check ``heartbeat.yaml``.
+     Expected: No ``"Jarvis: Rescan"`` job registered. Scanner performs the initial
+     scan only. No periodic rescans occur (sidebar does not update after modifying
+     a YAML file, until manual rescan).

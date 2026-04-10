@@ -24,12 +24,17 @@ Configuration Requirements
    :links: US_CFG_PROJECTPATH
 
    **Description:**
-   The extension SHALL provide a VS Code setting to control the background scanner interval.
+   The extension SHALL provide a VS Code setting to control the background scanner
+   interval, expressed in minutes.
 
    **Acceptance Criteria:**
 
-   * AC-1: ``jarvis.scanInterval`` accepts integer seconds, minimum 20, default 120
-   * AC-2: A change to the interval takes effect at the start of the next scan cycle
+   * AC-1: ``jarvis.scanInterval`` accepts an integer number of minutes; minimum 0,
+     default 2; value 0 disables automatic scanning
+   * AC-2: A non-zero value SHALL cause the extension to register a heartbeat job
+     ``"Jarvis: Rescan"`` with schedule ``*/<value> * * * *``
+   * AC-3: A change to the interval SHALL take effect immediately: the rescan heartbeat
+     job is re-registered with the new schedule, or unregistered if the new value is 0
 
 
 .. req:: Heartbeat Config File Resolution
@@ -104,3 +109,23 @@ Configuration Requirements
    * AC-2: When set to ``false``, the automatic check at activation is skipped
    * AC-3: The manual command ``Jarvis: Check for Updates`` works regardless of
      this setting
+
+
+.. req:: MCP Server Configuration
+   :id: REQ_CFG_MCPPORT
+   :status: implemented
+   :priority: mandatory
+   :links: US_MSG_MCPSERVER; REQ_MSG_MCPSERVER
+
+   **Description:**
+   The extension SHALL provide VS Code settings for the MCP server port and
+   enable/disable toggle.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``jarvis.mcpPort`` SHALL accept a number with default ``31415``
+   * AC-2: ``jarvis.mcpEnabled`` SHALL accept a boolean with default ``true``
+   * AC-3: When ``jarvis.mcpEnabled`` is ``false``, the MCP server SHALL not
+     start during activation
+   * AC-4: The port setting SHALL be read at activation time — runtime changes
+     require extension reload

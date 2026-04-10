@@ -1,54 +1,38 @@
-# Heartbeat test data — covers all 6 UAT scenarios from US_UAT_HEARTBEAT
-#
-# T-1: scheduled cron job (powershell, writes sentinel file)
-# T-2: manual job (VS Code command)
-# T-3: python step (uses active interpreter)
-# T-4: failing job (exit 1)
-# T-5: used via jarvis.heartbeatConfigFile override — see README below
-# T-6: interval change — runtime test, no YAML change needed
-
 jobs:
-
-  # T-1: Scheduled every minute, PowerShell step writes a sentinel file
   - name: t1-cron-sentinel
-    schedule: "* * * * *"
+    schedule: '* * * * *'
     steps:
       - type: powershell
         run: scripts/write-sentinel.ps1
-
-  # T-2: Manual job — runs a VS Code built-in command
   - name: t2-manual-show-output
-    schedule: "manual"
+    schedule: manual
     steps:
       - type: command
         run: workbench.action.output.toggleOutput
-
-  # T-3: Python step — prints sys.executable so you can verify the active venv
   - name: t3-python-venv-check
-    schedule: "manual"
+    schedule: manual
     steps:
       - type: python
         run: scripts/venv-check.py
-
-  # T-4: Failing job — exit 1 triggers error toast + Output Channel log
   - name: t4-fail-exit1
-    schedule: "manual"
+    schedule: manual
     steps:
       - type: powershell
         run: scripts/fail-exit1.ps1
-
-  # T-7: Agent step — sends prompt to vscode.lm, writes response to file
   - name: t7-agent-hello
-    schedule: "manual"
+    schedule: manual
     steps:
       - type: agent
         prompt: prompts/hello.md
         outputFile: agent-response.txt
-
-  # T-8: Queue step — appends message to queue for send-to-chat testing
   - name: t8-queue-message
-    schedule: "manual"
+    schedule: manual
     steps:
       - type: queue
-        destination: "Test Session"
-        text: "Hello from heartbeat queue step"
+        destination: Test Session
+        text: Hello from heartbeat queue step
+  - name: 'Jarvis: Rescan'
+    schedule: '*/1 * * * *'
+    steps:
+      - type: command
+        run: jarvis.rescan

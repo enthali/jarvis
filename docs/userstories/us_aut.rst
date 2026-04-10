@@ -3,7 +3,7 @@ Automation User Stories
 
 .. story:: Scheduled and Manual Automation Jobs
    :id: US_AUT_HEARTBEAT
-   :status: implemented
+   :status: approved
    :priority: optional
    :links: US_CFG_HEARTBEAT
 
@@ -23,3 +23,11 @@ Automation User Stories
    * AC-6: Job output is visible in a dedicated Output Channel
    * AC-7: When a job fails (non-zero exit code or unhandled exception), Jarvis shows a VS Code
      error notification (toast) and logs the error to the Output Channel
+   * AC-8: A "Heartbeat" tree view in the Jarvis sidebar shows all configured jobs
+     with their next execution time (or ``manuell`` for manual jobs)
+   * AC-9: Each job node can be expanded to show its steps (type + run/prompt info)
+   * AC-10: A play button on each job node triggers immediate execution of that job
+   * AC-11: A refresh button in the view title reloads ``heartbeat.yaml`` and updates
+     the tree; the tree also refreshes automatically on each scheduler tick
+   * AC-12: Extension modules can programmatically register or remove heartbeat jobs;
+     registered jobs appear in the tree view and are persisted in ``heartbeat.yaml``

@@ -46,6 +46,8 @@ Automation Requirements
    * AC-4: A job SHALL NOT be dispatched again if it already fired within the same
      clock-minute (deduplication via ``lastFired`` timestamp)
    * AC-5: When no jobs match the current tick, no log output is emitted (silent idle)
+   * AC-6: The scheduler SHALL expose ``registerJob()`` and ``unregisterJob()``
+     methods that persist changes to the heartbeat YAML file (see ``REQ_AUT_JOBREG``)
 
 
 .. req:: Job Step Execution
@@ -114,18 +116,85 @@ Automation Requirements
    :id: REQ_AUT_OUTPUT
    :status: implemented
    :priority: optional
-   :links: US_AUT_HEARTBEAT
+   :links: US_AUT_HEARTBEAT; REQ_DEV_LOGGING
 
    **Description:**
-   The extension SHALL route job output to a dedicated Output Channel and surface
+   The extension SHALL route job output to the shared ``LogOutputChannel`` and surface
    job failures as an error notification.
 
    **Acceptance Criteria:**
 
-   * AC-1: A VS Code Output Channel named ``"Jarvis Heartbeat"`` SHALL be created on
-     extension activation
+   * AC-1: The shared ``LogOutputChannel`` "Jarvis" (created by ``REQ_DEV_LOGGING``)
+     SHALL be used for all heartbeat output — no separate channel is created
    * AC-2: All job step output (stdout, stderr) SHALL be written to this channel
    * AC-3: When a job fails, the extension SHALL show a VS Code error notification
      (``vscode.window.showErrorMessage``) containing the job name
    * AC-4: The error notification SHALL also include the failed step type and exit code
      or exception message
+
+
+.. req:: Heartbeat Tree View
+   :id: REQ_AUT_HEARTBEATVIEW
+   :status: implemented
+   :priority: optional
+   :links: US_AUT_HEARTBEAT; US_EXP_SIDEBAR
+
+   **Description:**
+   The extension SHALL provide a tree view in the Jarvis sidebar that visualizes all
+   configured heartbeat jobs and their steps.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A view ``jarvisHeartbeat`` with title "Heartbeat" SHALL appear as the 4th
+     section in the Jarvis activity bar container
+   * AC-2: Each job SHALL be rendered as a collapsible top-level node with the job name
+     as label
+   * AC-3: The description of each job node SHALL display the next execution time in a
+     short local-time format (e.g. ``Mo 08:00`` or ``13.04. 08:00``) computed from the
+     cron schedule using the ``cron-parser`` library
+   * AC-4: Jobs with ``schedule: "manual"`` SHALL display ``manuell`` as description
+   * AC-5: Each job node SHALL expand to show its steps as child nodes
+   * AC-6: Step nodes SHALL display ``<type>: <run>`` for script/command steps and
+     ``agent → <prompt>`` for agent steps; step nodes are informational only (no actions)
+   * AC-7: A ``$(refresh)`` button in the view title SHALL reload ``heartbeat.yaml``
+     and refresh the tree (including updated next-run times); the tree SHALL also
+     refresh automatically on each scheduler tick
+
+
+.. req:: Run Single Heartbeat Job
+   :id: REQ_AUT_RUNJOB
+   :status: implemented
+   :priority: optional
+   :links: US_AUT_HEARTBEAT; REQ_AUT_JOBEXEC
+
+   **Description:**
+   The extension SHALL allow the user to execute any single heartbeat job from the
+   tree view via an inline action.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A ``$(play)`` icon SHALL appear as an inline action on each job node
+   * AC-2: Clicking the icon SHALL execute the job immediately using the existing
+     job execution pipeline
+   * AC-3: The command SHALL work for both scheduled and manual jobs
+
+
+.. req:: Heartbeat Job Registration API
+   :id: REQ_AUT_JOBREG
+   :status: implemented
+   :priority: optional
+   :links: US_AUT_HEARTBEAT; REQ_AUT_JOBCONFIG
+
+   **Description:**
+   The heartbeat scheduler SHALL provide a programmatic API to register and
+   unregister jobs at runtime.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``registerJob(job)`` SHALL upsert a job entry in ``heartbeat.yaml``
+     by name — overwriting if already present, appending if new
+   * AC-2: ``unregisterJob(name)`` SHALL remove a job entry from
+     ``heartbeat.yaml`` by name; no-op if not found
+   * AC-3: Both methods SHALL write to the YAML file immediately, reload the
+     in-memory job list, and refresh the Heartbeat tree view
+   * AC-4: The YAML file is the single source of truth — no RAM-only jobs

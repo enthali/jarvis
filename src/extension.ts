@@ -1,5 +1,5 @@
-// Implementation: SPEC_EXP_EXTENSION, SPEC_EXP_FILTERCOMMAND, SPEC_EXP_EVENTFILTER_CMD, SPEC_EXP_OPENYAML_CMD, SPEC_AUT_MANUALCOMMAND, SPEC_MSG_SENDCOMMAND, SPEC_MSG_OPENSESSION, SPEC_MSG_LISTSESSIONS, SPEC_EXP_AGENTSESSION, SPEC_EXP_NEWPROJECT_CMD, SPEC_EXP_NEWEVENT_CMD, SPEC_REL_UPDATECOMMAND
-// Requirements: REQ_EXP_ACTIVITYBAR, REQ_EXP_TREEVIEW, REQ_EXP_REACTIVECACHE, REQ_CFG_FOLDERPATHS, REQ_CFG_SCANINTERVAL, REQ_EXP_PROJECTFILTER, REQ_EXP_FILTERPERSIST, REQ_EXP_EVENTFILTER, REQ_EXP_EVENTFILTERPERSIST, REQ_EXP_OPENYAML, REQ_AUT_MANUALRUN, REQ_MSG_SEND, REQ_MSG_DELETE, REQ_MSG_OPENSESSION, REQ_MSG_SESSIONFILTER, REQ_MSG_LISTSESSIONS, REQ_EXP_AGENTSESSION, REQ_EXP_NEWPROJECT, REQ_EXP_NEWEVENT, REQ_REL_UPDATECOMMAND, REQ_CFG_UPDATECHECK
+// Implementation: SPEC_EXP_EXTENSION, SPEC_EXP_FILTERCOMMAND, SPEC_EXP_EVENTFILTER_CMD, SPEC_EXP_OPENYAML_CMD, SPEC_AUT_MANUALCOMMAND, SPEC_MSG_SENDCOMMAND, SPEC_MSG_OPENSESSION, SPEC_MSG_LISTSESSIONS, SPEC_EXP_AGENTSESSION, SPEC_EXP_NEWPROJECT_CMD, SPEC_EXP_NEWEVENT_CMD, SPEC_REL_UPDATECOMMAND, SPEC_EXP_RESCAN_CMD, SPEC_AUT_JOBREG, SPEC_DEV_LOGCHANNEL, SPEC_MSG_DUALREGISTRATION
+// Requirements: REQ_EXP_ACTIVITYBAR, REQ_EXP_TREEVIEW, REQ_EXP_REACTIVECACHE, REQ_CFG_FOLDERPATHS, REQ_CFG_SCANINTERVAL, REQ_EXP_PROJECTFILTER, REQ_EXP_FILTERPERSIST, REQ_EXP_EVENTFILTER, REQ_EXP_EVENTFILTERPERSIST, REQ_EXP_OPENYAML, REQ_AUT_MANUALRUN, REQ_MSG_SEND, REQ_MSG_DELETE, REQ_MSG_OPENSESSION, REQ_MSG_SESSIONFILTER, REQ_MSG_LISTSESSIONS, REQ_EXP_AGENTSESSION, REQ_EXP_NEWPROJECT, REQ_EXP_NEWEVENT, REQ_REL_UPDATECOMMAND, REQ_CFG_UPDATECHECK, REQ_EXP_RESCAN_BTN, REQ_AUT_JOBREG, REQ_DEV_LOGGING, REQ_MSG_MCPSERVER, REQ_CFG_MCPPORT
 
 import * as vscode from 'vscode';
 import * as fs from 'fs';
@@ -8,10 +8,12 @@ import { ProjectTreeProvider } from './projectTreeProvider';
 import { EventTreeProvider } from './eventTreeProvider';
 import { MessageTreeProvider, SessionGroupNode, MessageLeafNode } from './messageTreeProvider';
 import { YamlScanner, LeafNode, TreeNode } from './yamlScanner';
-import { activateHeartbeat } from './heartbeat';
-import { deleteMessage, deleteByDestination, appendMessage } from './messageQueue';
+import { activateHeartbeat, HeartbeatScheduler, HeartbeatJob } from './heartbeat';
+import { deleteMessage, appendMessage, popMessage } from './messageQueue';
 import { lookupSessionUUID, getAllSessions, initSessionLookup, filterNamedSessions } from './sessionLookup';
 import { checkForUpdates } from './updateCheck';
+import { registerMcpTool, startMcpServer, stopMcpServer } from './mcpServer';
+import { z } from 'zod';
 
 // Implementation: SPEC_EXP_NEWPROJECT_CMD
 function toKebabCase(name: string): string {
@@ -40,14 +42,6 @@ export function activate(context: vscode.ExtensionContext) {
         initSessionLookup(context.storageUri);
     }
 
-    const scanner = new YamlScanner(() => {
-        projectProvider.refresh();
-        eventProvider.refresh();
-    });
-
-    const projectProvider = new ProjectTreeProvider(scanner);
-    const eventProvider = new EventTreeProvider(scanner);
-
     // Message queue path resolution (SPEC_CFG_HEARTBEATSETTINGS)
     function resolveMessagesPath(): string {
         const override = vscode.workspace
@@ -59,12 +53,48 @@ export function activate(context: vscode.ExtensionContext) {
 
     const messageProvider = new MessageTreeProvider(() => resolveMessagesPath());
 
+    // Implementation: SPEC_DEV_LOGCHANNEL
+    // Requirements: REQ_DEV_LOGGING
+    const log = vscode.window.createOutputChannel('Jarvis', { log: true });
+    context.subscriptions.push(log);
+
+    // Activate heartbeat scheduler first (SPEC_EXP_EXTENSION, SPEC_AUT_SCHEDULERLOOP)
+    const scheduler = activateHeartbeat(context, messageProvider, resolveMessagesPath, log);
+
+    const scanner = new YamlScanner(() => {
+        projectProvider.refresh();
+        eventProvider.refresh();
+    });
+
+    const projectProvider = new ProjectTreeProvider(scanner);
+    const eventProvider = new EventTreeProvider(scanner);
+
     function startScanner(): void {
         const config = vscode.workspace.getConfiguration('jarvis');
         const projectsFolder = config.get<string>('projectsFolder', '');
         const eventsFolder = config.get<string>('eventsFolder', '');
-        const scanInterval = config.get<number>('scanInterval', 120);
-        scanner.start(projectsFolder, eventsFolder, scanInterval);
+        scanner.start(projectsFolder, eventsFolder);
+        log.info('[Scanner] starting scan');
+    }
+
+    // Implementation: SPEC_EXP_EXTENSION (syncRescanJob helper)
+    // Requirements: REQ_CFG_SCANINTERVAL, REQ_AUT_JOBREG
+    function syncRescanJob(): void {
+        const interval = vscode.workspace
+            .getConfiguration('jarvis')
+            .get<number>('scanInterval', 2);
+        if (interval > 0) {
+            const job: HeartbeatJob = {
+                name: 'Jarvis: Rescan',
+                schedule: `*/${interval} * * * *`,
+                steps: [{ type: 'command', run: 'jarvis.rescan' }]
+            };
+            scheduler.registerJob(job);
+            log.info(`[Scanner] registered rescan job: */${interval} * * * *`);
+        } else {
+            scheduler.unregisterJob('Jarvis: Rescan');
+            log.info('[Scanner] unregistered rescan job (interval=0)');
+        }
     }
 
     const projectView = vscode.window.createTreeView('jarvisProjects', { treeDataProvider: projectProvider });
@@ -90,22 +120,29 @@ export function activate(context: vscode.ExtensionContext) {
     // Start scanner immediately on activation (view may already be visible)
     startScanner();
 
-    // Activate heartbeat scheduler (SPEC_AUT_SCHEDULERLOOP, SPEC_CFG_HEARTBEATSETTINGS)
-    activateHeartbeat(context, messageProvider, resolveMessagesPath);
+    // Register rescan heartbeat job (SPEC_EXP_EXTENSION)
+    syncRescanJob();
 
     // Automatic update check (SPEC_REL_UPDATECOMMAND, SPEC_CFG_UPDATECHECK)
     const autoCheck = vscode.workspace
         .getConfiguration('jarvis')
         .get<boolean>('checkForUpdates', true);
     if (autoCheck) {
-        checkForUpdates(context, true);
+        checkForUpdates(context, true, log);
     }
 
     // Manual update check command (SPEC_REL_UPDATECOMMAND)
     const checkForUpdatesCommand = vscode.commands.registerCommand(
         'jarvis.checkForUpdates',
-        () => checkForUpdates(context, false)
+        () => checkForUpdates(context, false, log)
     );
+
+    // Register rescan command (SPEC_EXP_RESCAN_CMD)
+    // Requirements: REQ_EXP_RESCAN_BTN
+    const rescanCommand = vscode.commands.registerCommand('jarvis.rescan', async () => {
+        await scanner.rescan();
+        log.info('[Scanner] manual rescan triggered');
+    });
 
     // Register filter command (SPEC_EXP_FILTERCOMMAND)
     const filterHandler = () => {
@@ -183,6 +220,7 @@ export function activate(context: vscode.ExtensionContext) {
                 vscode.window.showWarningMessage('Jarvis: Use the play button on a session group in the Messages tree.');
                 return;
             }
+            log.info(`[MSG] sendMessages: destination="${node.destination}", count=${node.children.length}`);
             // 1. Resolve session UUID
             const uuid = await lookupSessionUUID(node.destination);
 
@@ -200,21 +238,17 @@ export function activate(context: vscode.ExtensionContext) {
                 await new Promise(resolve => setTimeout(resolve, 800));
             }
 
-            // 3. Submit each message with preamble
-            for (const child of node.children) {
-                const preamble = `[Jarvis Message Service — from: ${child.sender}, to: ${node.destination}]\n\n`;
-                await vscode.commands.executeCommand(
-                    'workbench.action.chat.open',
-                    { query: preamble + child.text }
-                );
-                // Wait between messages to avoid race conditions
-                await new Promise(resolve => setTimeout(resolve, 500));
-            }
+            // 3. Send single notification stub
+            const count = node.children.length;
+            const stub =
+                `[Jarvis Message Service] Du hast ${count} neue Nachrichten in deiner Inbox.\n` +
+                `Lies sie mit dem Tool jarvis_readMessage (destination: "${node.destination}") bis remaining = 0.`;
+            await vscode.commands.executeCommand(
+                'workbench.action.chat.open',
+                { query: stub }
+            );
 
-            // 4. Remove delivered messages from queue
-            deleteByDestination(resolveMessagesPath(), node.destination);
-
-            // 5. Refresh tree
+            // 4. Refresh tree (messages stay in queue)
             messageProvider.reload();
         }
     );
@@ -281,41 +315,114 @@ export function activate(context: vscode.ExtensionContext) {
     const deleteMessageCommand = vscode.commands.registerCommand(
         'jarvis.deleteMessage',
         (node: MessageLeafNode) => {
+            log.debug(`[MSG] deleteMessage: index=${node.index}`);
             deleteMessage(resolveMessagesPath(), node.index);
             messageProvider.reload();
         }
     );
 
-    // Register LM tool: sendToSession (allows LLMs to queue messages to other sessions)
-    const sendToSessionTool = vscode.lm.registerTool('jarvis_sendToSession', {
-        async invoke(options: vscode.LanguageModelToolInvocationOptions<{ session: string; senderSession?: string; text: string }>, _token: vscode.CancellationToken) {
+    // Implementation: SPEC_MSG_DUALREGISTRATION
+    // Requirements: REQ_MSG_MCPSERVER
+    function registerDualTool(
+        name: string,
+        lmHandler: (options: vscode.LanguageModelToolInvocationOptions<any>, token: vscode.CancellationToken) => Promise<vscode.LanguageModelToolResult>,
+        mcpDescription: string,
+        mcpInputSchema: Record<string, z.ZodTypeAny>,
+        mcpHandler: (args: Record<string, unknown>) => Promise<object>
+    ): vscode.Disposable {
+        const lmTool = vscode.lm.registerTool(name, { invoke: lmHandler });
+        registerMcpTool(name, mcpDescription, mcpInputSchema, mcpHandler);
+        return lmTool;
+    }
+
+    // Register LM+MCP tool: sendToSession (allows LLMs to queue messages to other sessions)
+    const sendToSessionTool = registerDualTool(
+        'jarvis_sendToSession',
+        async (options: vscode.LanguageModelToolInvocationOptions<{ session: string; senderSession?: string; text: string }>, _token: vscode.CancellationToken) => {
             const { session, text } = options.input;
-            // Auto-detect sender from active chat tab label
             const activeTab = vscode.window.tabGroups.activeTabGroup.activeTab;
             const sender = activeTab?.label || options.input.senderSession || 'unknown';
             appendMessage(resolveMessagesPath(), session, sender, text);
+            log.info(`[MSG] sendToSession: destination="${session}", sender="${sender}"`);
             messageProvider.reload();
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(`Message queued for destination "${session}" from "${sender}"`)
             ]);
+        },
+        'Queues a message for delivery to another VS Code chat session identified by name.',
+        { session: z.string(), senderSession: z.string().optional(), text: z.string() },
+        async (args) => {
+            const session = args.session as string;
+            const text = args.text as string;
+            const sender = (args.senderSession as string) || 'mcp-client';
+            appendMessage(resolveMessagesPath(), session, sender, text);
+            log.info(`[MSG] sendToSession(MCP): destination="${session}", sender="${sender}"`);
+            messageProvider.reload();
+            return { status: 'queued', destination: session, sender };
         }
-    });
+    );
 
-    // Register LM tool: listSessions (SPEC_MSG_LISTSESSIONS)
+    // Register LM+MCP tool: readMessage (SPEC_MSG_READMESSAGE)
+    // Requirements: REQ_MSG_READ
+    const readMessageTool = registerDualTool(
+        'jarvis_readMessage',
+        async (options: vscode.LanguageModelToolInvocationOptions<{ destination: string }>, _token: vscode.CancellationToken) => {
+            const result = popMessage(resolveMessagesPath(), options.input.destination);
+            log.info(`[MSG] readMessage: destination="${options.input.destination}", remaining=${result.remaining}`);
+            messageProvider.reload();
+            if (result.message) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart(JSON.stringify({
+                        message: { sender: result.message.sender, text: result.message.text, timestamp: result.message.timestamp },
+                        remaining: result.remaining
+                    }))
+                ]);
+            }
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(JSON.stringify({ message: null, remaining: 0 }))
+            ]);
+        },
+        'Reads and removes the oldest message from the Jarvis message queue for the given destination session.',
+        { destination: z.string() },
+        async (args) => {
+            const destination = args.destination as string;
+            const result = popMessage(resolveMessagesPath(), destination);
+            log.info(`[MSG] readMessage(MCP): destination="${destination}", remaining=${result.remaining}`);
+            messageProvider.reload();
+            if (result.message) {
+                return {
+                    message: { sender: result.message.sender, text: result.message.text, timestamp: result.message.timestamp },
+                    remaining: result.remaining
+                };
+            }
+            return { message: null, remaining: 0 };
+        }
+    );
+
+    // Register LM+MCP tool: listSessions (SPEC_MSG_LISTSESSIONS)
     // Requirements: REQ_MSG_LISTSESSIONS, REQ_MSG_SESSIONFILTER
-    const listSessionsTool = vscode.lm.registerTool('jarvis_listSessions', {
-        async invoke(
+    const listSessionsTool = registerDualTool(
+        'jarvis_listSessions',
+        async (
             _options: vscode.LanguageModelToolInvocationOptions<Record<string, never>>,
             _token: vscode.CancellationToken
-        ) {
+        ) => {
             const sessions = await getAllSessions();
             const named = filterNamedSessions(sessions)
                 .map(s => s.title);
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(JSON.stringify(named))
             ]);
+        },
+        'Returns the list of named chat session titles in the current workspace.',
+        {},
+        async () => {
+            const sessions = await getAllSessions();
+            const named = filterNamedSessions(sessions)
+                .map(s => s.title);
+            return { sessions: named };
         }
-    });
+    );
 
     // Register new project command (SPEC_EXP_NEWPROJECT_CMD)
     // Requirements: REQ_EXP_NEWPROJECT
@@ -428,7 +535,26 @@ export function activate(context: vscode.ExtensionContext) {
         }
     );
 
+    // Implementation: SPEC_MSG_DUALREGISTRATION (lifecycle)
+    // Requirements: REQ_MSG_MCPSERVER, REQ_CFG_MCPPORT
+    const mcpConfig = vscode.workspace.getConfiguration('jarvis');
+    const mcpEnabled = mcpConfig.get<boolean>('mcpEnabled', true);
+    const mcpPort = mcpConfig.get<number>('mcpPort', 31415);
+
+    const mcpStatusBar = vscode.window.createStatusBarItem(
+        vscode.StatusBarAlignment.Right, 100
+    );
+    mcpStatusBar.text = `Jarvis MCP: ${mcpPort}`;
+    mcpStatusBar.tooltip = 'Jarvis MCP Server';
+
+    if (mcpEnabled) {
+        startMcpServer(mcpPort, log).then(() => {
+            mcpStatusBar.show();
+        }).catch(() => { /* error already logged */ });
+    }
+
     context.subscriptions.push(
+        rescanCommand,
         filterCommand,
         filterCommandActive,
         eventFilterCommand,
@@ -442,7 +568,9 @@ export function activate(context: vscode.ExtensionContext) {
         newEventCommand,
         checkForUpdatesCommand,
         sendToSessionTool,
+        readMessageTool,
         listSessionsTool,
+        mcpStatusBar,
         projectView,
         eventView,
         messageView,
@@ -454,12 +582,18 @@ export function activate(context: vscode.ExtensionContext) {
             }
         }),
         vscode.workspace.onDidChangeConfiguration(e => {
-            if (e.affectsConfiguration('jarvis')) {
+            if (e.affectsConfiguration('jarvis.projectsFolder') ||
+                e.affectsConfiguration('jarvis.eventsFolder')) {
                 startScanner();
+            }
+            if (e.affectsConfiguration('jarvis.scanInterval')) {
+                syncRescanJob();
             }
         }),
         { dispose: () => scanner.stop() }
     );
 }
 
-export function deactivate() {}
+export async function deactivate() {
+    await stopMcpServer();
+}

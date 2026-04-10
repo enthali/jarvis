@@ -1,5 +1,20 @@
 # Release Notes
 
+## v0.3.0
+
+*2026-04-10*
+
+Six new features: scanner improvements, heartbeat UI and registration API, pull-based message inbox, structured logging, and an embedded MCP server.
+
+### New Features
+
+- **scanner-refresh**: Fix YAML content-change detection (tree refresh now triggers on entity data changes, not just structure), add rescan button to Projects and Events title bars, and sort tree nodes by entity `name` instead of filesystem folder name.
+- **heartbeat-view**: Add a 4th tree view "Heartbeat" to the Jarvis sidebar — visualizes all jobs from `heartbeat.yaml` with job name + next execution time, step details, inline play button per job, and view-title actions to run all non-manual jobs and refresh.
+- **heartbeat-register**: Job registration API (`registerJob`/`unregisterJob`) for the heartbeat scheduler — extension modules register heartbeat jobs instead of managing their own timers. `jarvis.scanInterval` changes from seconds to minutes (0 = disabled).
+- **message-inbox**: Replace push-based message delivery with a pull-based inbox pattern — the Play-Button sends a single notification stub; the target session reads messages one-by-one via the new `jarvis_readMessage` LM Tool.
+- **unified-logging**: Replace the heartbeat-only `OutputChannel` with a single shared `LogOutputChannel` ("Jarvis") — structured log levels (trace/debug/info/warn/error) and module tags (`[Heartbeat]`, `[MSG]`, `[Scanner]`, `[Update]`, `[MCP]`).
+- **mcp-server**: Embed an MCP (Model Context Protocol) HTTP server — all existing LM Tools (`jarvis_sendToSession`, `jarvis_listSessions`, `jarvis_readMessage`) are also exposed as MCP Tools via HTTP/SSE on localhost. Dual-registration wrapper registers each tool with both `vscode.lm` and MCP simultaneously.
+
 ## v0.2.0
 
 *2026-04-10*

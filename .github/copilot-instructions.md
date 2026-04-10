@@ -11,19 +11,21 @@ Projects and events are stored as YAML files in configurable folders.
 - **Platform**: VS Code Extension API
 - **Documentation**: Sphinx + sphinx-needs (syspilot v0.4.0)
 - **Build**: Node.js / npm
+- **Runtime dep**: cron-parser (next-run time computation for heartbeat)
 
 ## Project Structure
 
 ```
 src/                    — Extension source (TypeScript)
-  extension.ts          — Activation, commands (new-entity, filters, agent sessions), LM tools
-  yamlScanner.ts        — Convention-file scanner: folder with project.yaml/event.yaml = leaf; public rescan()
+  extension.ts          — Activation, commands (new-entity, filters, rescan, agent sessions), LM tools (jarvis_readMessage: pull-based inbox), syncRescanJob() heartbeat bridge, shared LogOutputChannel "Jarvis" (structured logging with levels and module tags)
+  yamlScanner.ts        — Convention-file scanner: folder with project.yaml/event.yaml = leaf; content-change detection, name-sorted output; no own timer (rescans via heartbeat)
   projectTreeProvider.ts — Tree UI for projects (owns _hiddenFolders filter; contextValue: jarvisProject)
   eventTreeProvider.ts  — Tree UI for events (owns _futureOnly filter; contextValue: jarvisEvent)
   messageTreeProvider.ts — Tree UI for messages (grouped by destination session)
-  messageQueue.ts       — JSON message queue: append, delete, read
+  heartbeatTreeProvider.ts — Tree UI for heartbeat jobs (contextValue: heartbeatJob)
+  messageQueue.ts       — JSON message queue: append, delete, read, popMessage (oldest-first pull for LM tool)
   sessionLookup.ts      — Session UUID resolver via state.vscdb (sql.js)
-  heartbeat.ts          — Heartbeat scheduler (cron dispatch, step executor, status bar)
+  heartbeat.ts          — Heartbeat scheduler (cron dispatch, step executor, status bar, registerJob/unregisterJob for heartbeat.yaml); exports HeartbeatStep, HeartbeatJob, loadJobs(), executeJob(), notifyFailure()
   updateCheck.ts        — Self-update: GitHub Releases fetch, semver compare, .vsix download + install
 resources/              — Static assets (SVG icons)
 schemas/                — JSON Schemas for project/event YAML files
@@ -96,3 +98,11 @@ At release: squash-merge all pending feature branches into `main`, then tag.
 - **Events**: `name` (free-form string), `location`, `dates.start/end`, `status`, `role`, `summary`
 
 JSON Schemas: `schemas/project.schema.json`, `schemas/event.schema.json`
+
+## Session–Project Binding
+
+Every chat session should be aware of which project it belongs to.
+
+1. At session start, read your project's `context.md` from the project folder (e.g. `projects/project-manager/context.md`).
+2. If you don't know which project this session belongs to, ask the user.
+3. The `context.md` describes the role, tasks, and boundaries for this session's project. Follow it.

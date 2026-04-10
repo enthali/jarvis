@@ -75,3 +75,29 @@ Developer Tooling Requirements
    * AC-1: `docs/namingconventions.rst` contains a "Git Workflow" section
    * AC-2: Section covers branch naming, squash merge, retention, no direct commits
    * AC-3: `copilot-instructions.md` and Release Agent reference `namingconventions.rst`
+
+
+.. req:: Unified LogOutputChannel
+   :id: REQ_DEV_LOGGING
+   :status: implemented
+   :priority: mandatory
+   :links: US_DEV_LOGGING
+
+   **Description:**
+   The extension SHALL provide a single ``LogOutputChannel`` named ``"Jarvis"`` that
+   all modules use for structured, levelled logging with module category tags.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A single ``LogOutputChannel`` named ``"Jarvis"`` SHALL be created at
+     extension activation via
+     ``vscode.window.createOutputChannel('Jarvis', { log: true })``
+   * AC-2: The heartbeat module SHALL tag all log entries with ``[Heartbeat]``
+   * AC-3: The message/session module SHALL tag log entries with ``[MSG]``
+   * AC-4: The scanner module SHALL tag log entries with ``[Scanner]``
+   * AC-5: The update-check module SHALL tag log entries with ``[Update]``
+   * AC-6: Modules SHALL use ``channel.error()`` for failures,
+     ``channel.warn()`` for non-critical issues, ``channel.info()`` for normal
+     operations, ``channel.debug()`` for detailed diagnostics, and
+     ``channel.trace()`` for very verbose output
+   * AC-7: The previous ``"Jarvis Heartbeat"`` output channel SHALL be removed

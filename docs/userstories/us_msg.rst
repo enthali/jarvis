@@ -22,8 +22,12 @@ Messaging User Stories
      name; the group label shows the message count (e.g. ``Atlas (2)``)
    * AC-3: Hovering a message entry shows a ``$(trash)`` button that deletes the
      individual message
-   * AC-4: Clicking a session group node sends all messages for that session to the
-     named chat tab and removes them from the queue
+   * AC-4: Clicking a session group node sends a single notification stub to the
+     named chat tab informing the session about pending messages; messages stay in
+     the queue and are consumed by the session via the ``jarvis_readMessage`` tool
+   * AC-4a: The ``jarvis_readMessage`` Language Model Tool returns the oldest
+     message for a given destination and removes it from the queue; the session
+     calls it repeatedly until ``remaining === 0``
    * AC-5: Session targeting uses ``state.vscdb``
      (``chat.ChatSessionStore.index``) for UUID lookup, then
      ``vscode.open(vscode-chat-session://local/<b64uuid>)`` to focus the session —
@@ -97,3 +101,33 @@ Messaging User Stories
      initialization prompt is sent that tells the agent which project/event it
      is working on and asks the user to rename the session
    * AC-4: Folder nodes do not show the button
+
+
+.. story:: MCP Server for External Tool Access
+   :id: US_MSG_MCPSERVER
+   :status: approved
+   :priority: mandatory
+   :links: US_MSG_CHATQUEUE; US_MSG_LISTSESSIONS
+
+   **As a** Jarvis User,
+   **I want** all Jarvis LM Tools (sendToSession, listSessions, readMessage) to be
+   accessible via an embedded MCP server on localhost,
+   **so that** external clients (heartbeat scripts, other VS Code instances,
+   Claude Desktop) can interact with the same tool surface without being inside a
+   VS Code Chat session.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The extension SHALL run an embedded MCP server on ``127.0.0.1`` using
+     HTTP/SSE transport when ``jarvis.mcpEnabled`` is ``true``
+   * AC-2: Every LM Tool registered via ``vscode.lm.registerTool()`` SHALL
+     simultaneously be exposed as an MCP Tool on the MCP server with the same
+     name and input schema
+   * AC-3: The MCP server port SHALL be configurable via ``jarvis.mcpPort``
+     (default ``31415``)
+   * AC-4: A status bar item SHALL show ``Jarvis MCP: <port>`` when the MCP
+     server is running and SHALL be hidden when MCP is disabled
+   * AC-5: The MCP server SHALL start during extension activation and stop
+     during deactivation
+   * AC-6: The MCP server SHALL only bind to ``127.0.0.1`` — no external
+     network access

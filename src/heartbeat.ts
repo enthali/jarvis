@@ -1,9 +1,11 @@
 // Implementation: SPEC_AUT_JOBSCHEMA, SPEC_AUT_SCHEDULERLOOP, SPEC_AUT_EXECUTOR,
 //                 SPEC_AUT_MANUALCOMMAND, SPEC_AUT_STATUSBARITEM, SPEC_AUT_OUTPUTCHANNEL,
-//                 SPEC_AUT_AGENTEXEC, SPEC_AUT_QUEUEEXEC, SPEC_CFG_HEARTBEATSETTINGS
+//                 SPEC_AUT_AGENTEXEC, SPEC_AUT_QUEUEEXEC, SPEC_CFG_HEARTBEATSETTINGS,
+//                 SPEC_AUT_JOBREG
 // Requirements:   REQ_AUT_JOBCONFIG, REQ_AUT_SCHEDULER, REQ_AUT_JOBEXEC,
 //                 REQ_AUT_MANUALRUN, REQ_AUT_STATUSBAR, REQ_AUT_OUTPUT,
-//                 REQ_CFG_HEARTBEATPATH, REQ_CFG_HEARTBEATINTERVAL, REQ_MSG_QUEUE
+//                 REQ_CFG_HEARTBEATPATH, REQ_CFG_HEARTBEATINTERVAL, REQ_MSG_QUEUE,
+//                 REQ_AUT_JOBREG
 
 import * as vscode from 'vscode';
 import * as fs from 'fs';
@@ -12,12 +14,13 @@ import * as path from 'path';
 import * as yaml from 'js-yaml';
 import { appendMessage } from './messageQueue';
 import { MessageTreeProvider } from './messageTreeProvider';
+import { HeartbeatTreeProvider, JobNode } from './heartbeatTreeProvider';
 
 // ---------------------------------------------------------------------------
 // Types (SPEC_AUT_JOBSCHEMA)
 // ---------------------------------------------------------------------------
 
-interface HeartbeatStep {
+export interface HeartbeatStep {
     type: 'python' | 'powershell' | 'command' | 'agent' | 'queue';
     run?: string;         // script path or VS Code command ID (omitted for agent/queue)
     prompt?: string;      // agent: path to prompt file
@@ -28,7 +31,7 @@ interface HeartbeatStep {
     text?: string;        // queue: message content
 }
 
-interface HeartbeatJob {
+export interface HeartbeatJob {
     name: string;
     schedule: string; // 5-field cron string or "manual"
     steps: HeartbeatStep[];
@@ -44,13 +47,13 @@ interface ExecResult {
 // Job loader (SPEC_AUT_JOBSCHEMA)
 // ---------------------------------------------------------------------------
 
-function loadJobs(filePath: string, outputChannel: vscode.OutputChannel): HeartbeatJob[] {
+export function loadJobs(filePath: string, outputChannel: vscode.LogOutputChannel): HeartbeatJob[] {
     try {
         const raw = fs.readFileSync(filePath, 'utf8');
         const data = yaml.load(raw) as { jobs: HeartbeatJob[] };
         return data?.jobs ?? [];
     } catch (e) {
-        outputChannel.appendLine(`[Heartbeat] Failed to load config: ${e}`);
+        outputChannel.warn(`[Heartbeat] Failed to load config: ${e}`);
         return [];
     }
 }
@@ -136,13 +139,13 @@ function updateStatusBar(jobs: HeartbeatJob[], now: Date, item: vscode.StatusBar
 function spawnStep(
     executable: string,
     args: string[],
-    outputChannel: vscode.OutputChannel,
+    outputChannel: vscode.LogOutputChannel,
     stepType: HeartbeatStep['type']
 ): Promise<ExecResult> {
     return new Promise(resolve => {
         const proc = cp.spawn(executable, args, { shell: false });
-        proc.stdout.on('data', (d: Buffer) => outputChannel.append(d.toString()));
-        proc.stderr.on('data', (d: Buffer) => outputChannel.append(d.toString()));
+        proc.stdout.on('data', (d: Buffer) => outputChannel.debug('[Heartbeat] stdout: ' + d.toString().trimEnd()));
+        proc.stderr.on('data', (d: Buffer) => outputChannel.debug('[Heartbeat] stderr: ' + d.toString().trimEnd()));
         proc.on('close', (code: number | null) => {
             if (code !== 0) {
                 resolve({ success: false, stepType, error: `exit ${code ?? 'null'}` });
@@ -167,11 +170,11 @@ function resolveScriptPath(run: string, configDir: string): string {
 
 async function executeAgentStep(
     step: HeartbeatStep,
-    outputChannel: vscode.OutputChannel,
+    outputChannel: vscode.LogOutputChannel,
     configDir: string
 ): Promise<ExecResult> {
     const promptPath = resolveScriptPath(step.prompt!, configDir);
-    outputChannel.appendLine(`[Heartbeat] agent: prompt=${promptPath}`);
+    outputChannel.info(`[Heartbeat] agent: prompt=${promptPath}`);
     try {
         const promptText = fs.readFileSync(promptPath, 'utf8');
         const models = await vscode.lm.selectChatModels({ vendor: 'copilot', family: 'gpt-4o' });
@@ -179,12 +182,12 @@ async function executeAgentStep(
             return { success: false, stepType: 'agent', error: 'no LM model available' };
         }
         const model = models[0];
-        outputChannel.appendLine(`[Heartbeat] agent: model=${model.id}`);
+        outputChannel.debug(`[Heartbeat] agent: model=${model.id}`);
         const messages = [vscode.LanguageModelChatMessage.User(promptText)];
         const response = await model.sendRequest(messages, {});
         let text = '';
         for await (const chunk of response.text) { text += chunk; }
-        outputChannel.appendLine(`[Heartbeat] agent: response length=${text.length}`);
+        outputChannel.debug(`[Heartbeat] agent: response length=${text.length}`);
         if (step.outputFile) {
             const outPath = resolveScriptPath(step.outputFile, configDir);
             if (step.append) {
@@ -192,7 +195,7 @@ async function executeAgentStep(
             } else {
                 fs.writeFileSync(outPath, text);
             }
-            outputChannel.appendLine(`[Heartbeat] agent: written to ${outPath}`);
+            outputChannel.info(`[Heartbeat] agent: written to ${outPath}`);
         }
         return { success: true };
     } catch (e) {
@@ -206,14 +209,14 @@ async function executeAgentStep(
 
 async function executeQueueStep(
     step: HeartbeatStep,
-    outputChannel: vscode.OutputChannel,
+    outputChannel: vscode.LogOutputChannel,
     queuePath: string,
     messageTreeProvider: MessageTreeProvider
 ): Promise<ExecResult> {
     try {
         appendMessage(queuePath, step.destination!, step.sender || 'heartbeat', step.text!);
         messageTreeProvider.reload();
-        outputChannel.appendLine(
+        outputChannel.info(
             `[Heartbeat] queue: destination="${step.destination}" sender="${step.sender || 'heartbeat'}" text="${step.text}"`
         );
         return { success: true };
@@ -228,7 +231,7 @@ async function executeQueueStep(
 
 async function runStep(
     step: HeartbeatStep,
-    outputChannel: vscode.OutputChannel,
+    outputChannel: vscode.LogOutputChannel,
     configDir: string,
     queuePath: string,
     messageTreeProvider: MessageTreeProvider
@@ -254,7 +257,7 @@ async function runStep(
 
     // command
     try {
-        outputChannel.appendLine(`[Heartbeat] command: ${step.run}`);
+        outputChannel.info(`[Heartbeat] command: ${step.run}`);
         await vscode.commands.executeCommand(step.run!);
         return { success: true };
     } catch (e) {
@@ -262,9 +265,9 @@ async function runStep(
     }
 }
 
-async function executeJob(
+export async function executeJob(
     job: HeartbeatJob,
-    outputChannel: vscode.OutputChannel,
+    outputChannel: vscode.LogOutputChannel,
     configDir: string,
     queuePath: string,
     messageTreeProvider: MessageTreeProvider
@@ -280,14 +283,14 @@ async function executeJob(
 // Failure notification (SPEC_AUT_OUTPUTCHANNEL)
 // ---------------------------------------------------------------------------
 
-function notifyFailure(
+export function notifyFailure(
     job: HeartbeatJob,
     result: ExecResult,
-    outputChannel: vscode.OutputChannel
+    outputChannel: vscode.LogOutputChannel
 ): void {
     const msg = `Jarvis: job "${job.name}" failed — ${result.stepType} ${result.error}`;
     vscode.window.showErrorMessage(msg);
-    outputChannel.appendLine(`[Heartbeat] ERROR ${msg}`);
+    outputChannel.error(`[Heartbeat] ${msg}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -296,7 +299,7 @@ function notifyFailure(
 
 export async function runManualJob(
     jobs: HeartbeatJob[],
-    outputChannel: vscode.OutputChannel,
+    outputChannel: vscode.LogOutputChannel,
     configDir: string,
     queuePath: string,
     messageTreeProvider: MessageTreeProvider
@@ -325,15 +328,60 @@ export class HeartbeatScheduler {
     private lastFired = new Map<string, number>();
     private jobs: HeartbeatJob[] = [];
     private configDir: string = '';
-    private outputChannel: vscode.OutputChannel | undefined;
+    private outputChannel: vscode.LogOutputChannel | undefined;
     private statusBarItem: vscode.StatusBarItem | undefined;
     private context: vscode.ExtensionContext | undefined;
     private queuePath: string = '';
     private messageTreeProvider: MessageTreeProvider | undefined;
+    private heartbeatTreeProvider: HeartbeatTreeProvider | undefined;
 
     get currentJobs(): HeartbeatJob[] { return this.jobs; }
     get currentConfigDir(): string { return this.configDir; }
     get currentQueuePath(): string { return this.queuePath; }
+
+    setTreeProvider(provider: HeartbeatTreeProvider): void {
+        this.heartbeatTreeProvider = provider;
+    }
+
+    // Implementation: SPEC_AUT_JOBREG
+    // Requirements: REQ_AUT_JOBREG
+    async registerJob(job: HeartbeatJob): Promise<void> {
+        const configPath = resolveConfigPath(this.context!);
+        let data: { jobs: HeartbeatJob[] } = { jobs: [] };
+        try {
+            const raw = fs.readFileSync(configPath, 'utf8');
+            data = (yaml.load(raw) as { jobs: HeartbeatJob[] }) ?? { jobs: [] };
+            if (!data.jobs) { data.jobs = []; }
+        } catch { /* file missing or unparseable — start fresh */ }
+
+        const idx = data.jobs.findIndex(j => j.name === job.name);
+        if (idx >= 0) { data.jobs[idx] = job; } else { data.jobs.push(job); }
+
+        fs.mkdirSync(path.dirname(configPath), { recursive: true });
+        fs.writeFileSync(configPath, yaml.dump(data), 'utf8');
+        this.reload();
+        this.heartbeatTreeProvider?.setJobs(this.jobs);
+    }
+
+    // Implementation: SPEC_AUT_JOBREG
+    // Requirements: REQ_AUT_JOBREG
+    async unregisterJob(name: string): Promise<void> {
+        const configPath = resolveConfigPath(this.context!);
+        let data: { jobs: HeartbeatJob[] };
+        try {
+            const raw = fs.readFileSync(configPath, 'utf8');
+            data = (yaml.load(raw) as { jobs: HeartbeatJob[] }) ?? { jobs: [] };
+            if (!data.jobs) { return; }
+        } catch { return; }
+
+        const idx = data.jobs.findIndex(j => j.name === name);
+        if (idx < 0) { return; }
+        data.jobs.splice(idx, 1);
+
+        fs.writeFileSync(configPath, yaml.dump(data), 'utf8');
+        this.reload();
+        this.heartbeatTreeProvider?.setJobs(this.jobs);
+    }
 
     reload(): void {
         if (!this.context || !this.outputChannel) { return; }
@@ -344,7 +392,7 @@ export class HeartbeatScheduler {
 
     start(
         context: vscode.ExtensionContext,
-        outputChannel: vscode.OutputChannel,
+        outputChannel: vscode.LogOutputChannel,
         statusBarItem: vscode.StatusBarItem,
         queuePath: string,
         messageTreeProvider: MessageTreeProvider
@@ -398,6 +446,11 @@ export class HeartbeatScheduler {
         }
 
         updateStatusBar(this.jobs, now, this.statusBarItem);
+
+        // Refresh tree view with updated next-run times
+        if (this.heartbeatTreeProvider) {
+            this.heartbeatTreeProvider.setJobs(this.jobs);
+        }
     }
 
     dispose(): void {
@@ -415,12 +468,9 @@ export class HeartbeatScheduler {
 export function activateHeartbeat(
     context: vscode.ExtensionContext,
     messageTreeProvider: MessageTreeProvider,
-    resolveMessagesPath: () => string
+    resolveMessagesPath: () => string,
+    outputChannel: vscode.LogOutputChannel
 ): HeartbeatScheduler {
-    // Output Channel (SPEC_AUT_OUTPUTCHANNEL)
-    const outputChannel = vscode.window.createOutputChannel('Jarvis Heartbeat');
-    context.subscriptions.push(outputChannel);
-
     // Status bar item (SPEC_AUT_STATUSBARITEM)
     const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
     statusBarItem.text = 'Heartbeat: idle';
@@ -431,6 +481,15 @@ export function activateHeartbeat(
     const scheduler = new HeartbeatScheduler();
     scheduler.start(context, outputChannel, statusBarItem, resolveMessagesPath(), messageTreeProvider);
     context.subscriptions.push({ dispose: () => scheduler.dispose() });
+
+    // Heartbeat tree view (SPEC_AUT_HEARTBEATPROVIDER)
+    const heartbeatTreeProvider = new HeartbeatTreeProvider();
+    heartbeatTreeProvider.setJobs(scheduler.currentJobs);
+    scheduler.setTreeProvider(heartbeatTreeProvider);
+    const heartbeatView = vscode.window.createTreeView('jarvisHeartbeat', {
+        treeDataProvider: heartbeatTreeProvider
+    });
+    context.subscriptions.push(heartbeatView);
 
     // Manual run command (SPEC_AUT_MANUALCOMMAND)
     context.subscriptions.push(
@@ -443,6 +502,25 @@ export function activateHeartbeat(
         })
     );
 
+    // Run single job from tree (SPEC_AUT_RUNJOBCOMMAND)
+    context.subscriptions.push(
+        vscode.commands.registerCommand('jarvis.runJob', (node: JobNode) => {
+            executeJob(node.job, outputChannel, scheduler.currentConfigDir,
+                scheduler.currentQueuePath, messageTreeProvider)
+                .then(result => {
+                    if (!result.success) { notifyFailure(node.job, result, outputChannel); }
+                });
+        })
+    );
+
+    // Refresh heartbeat tree (SPEC_AUT_RUNJOBCOMMAND)
+    context.subscriptions.push(
+        vscode.commands.registerCommand('jarvis.refreshHeartbeat', () => {
+            scheduler.reload();
+            heartbeatTreeProvider.setJobs(scheduler.currentJobs);
+        })
+    );
+
     // Config change handler — restart scheduler (SPEC_CFG_HEARTBEATSETTINGS)
     context.subscriptions.push(
         vscode.workspace.onDidChangeConfiguration(e => {
@@ -452,6 +530,7 @@ export function activateHeartbeat(
             ) {
                 scheduler.dispose();
                 scheduler.start(context, outputChannel, statusBarItem, resolveMessagesPath(), messageTreeProvider);
+                heartbeatTreeProvider.setJobs(scheduler.currentJobs);
             }
             if (e.affectsConfiguration('jarvis.messagesFile')) {
                 messageTreeProvider.reload();

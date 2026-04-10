@@ -2,7 +2,7 @@
   "name": "jarvis",
   "displayName": "Jarvis",
   "description": "Personal assistant for managing projects and events in VS Code",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "enthali",
   "repository": {
     "type": "git",
@@ -18,7 +18,8 @@
     "onStartupFinished",
     "onView:jarvisProjects",
     "onView:jarvisEvents",
-    "onView:jarvisMessages"
+    "onView:jarvisMessages",
+    "onView:jarvisHeartbeat"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -44,6 +45,10 @@
         {
           "id": "jarvisMessages",
           "name": "Messages"
+        },
+        {
+          "id": "jarvisHeartbeat",
+          "name": "Heartbeat"
         }
       ]
     },
@@ -109,6 +114,21 @@
       {
         "command": "jarvis.checkForUpdates",
         "title": "Jarvis: Check for Updates"
+      },
+      {
+        "command": "jarvis.rescan",
+        "title": "Jarvis: Rescan",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "jarvis.runJob",
+        "title": "Jarvis: Run Job",
+        "icon": "$(play)"
+      },
+      {
+        "command": "jarvis.refreshHeartbeat",
+        "title": "Jarvis: Refresh Heartbeat",
+        "icon": "$(refresh)"
       }
     ],
     "menus": {
@@ -123,6 +143,18 @@
         },
         {
           "command": "jarvis.newEvent",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.rescan",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.runJob",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.refreshHeartbeat",
           "when": "false"
         }
       ],
@@ -143,6 +175,11 @@
           "group": "navigation@2"
         },
         {
+          "command": "jarvis.rescan",
+          "when": "view == jarvisProjects",
+          "group": "navigation@3"
+        },
+        {
           "command": "jarvis.newEvent",
           "when": "view == jarvisEvents",
           "group": "navigation@1"
@@ -156,6 +193,16 @@
           "command": "jarvis.filterFutureEventsActive",
           "when": "view == jarvisEvents && jarvis.eventFilterActive",
           "group": "navigation@2"
+        },
+        {
+          "command": "jarvis.rescan",
+          "when": "view == jarvisEvents",
+          "group": "navigation@3"
+        },
+        {
+          "command": "jarvis.refreshHeartbeat",
+          "when": "view == jarvisHeartbeat",
+          "group": "navigation@1"
         }
       ],
       "view/item/context": [
@@ -188,6 +235,11 @@
           "command": "jarvis.openAgentSession",
           "when": "viewItem == jarvisEvent",
           "group": "inline"
+        },
+        {
+          "command": "jarvis.runJob",
+          "when": "viewItem == heartbeatJob",
+          "group": "inline"
         }
       ]
     },
@@ -206,9 +258,9 @@
         },
         "jarvis.scanInterval": {
           "type": "number",
-          "default": 120,
-          "minimum": 20,
-          "description": "Background scan interval in seconds (minimum 20)."
+          "default": 2,
+          "minimum": 0,
+          "description": "Background rescan interval in minutes (0 = disabled, registers via heartbeat)."
         },
         "jarvis.heartbeatConfigFile": {
           "type": "string",
@@ -230,6 +282,16 @@
           "type": "boolean",
           "default": true,
           "description": "Check for new Jarvis releases on GitHub when the extension activates."
+        },
+        "jarvis.mcpPort": {
+          "type": "number",
+          "default": 31415,
+          "description": "Port for the embedded MCP server (localhost only)."
+        },
+        "jarvis.mcpEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable or disable the embedded MCP server."
         }
       }
     },
@@ -257,7 +319,10 @@
               "description": "The message text to send to the target session"
             }
           },
-          "required": ["session", "text"]
+          "required": [
+            "session",
+            "text"
+          ]
         }
       },
       {
@@ -270,6 +335,26 @@
         "inputSchema": {
           "type": "object",
           "properties": {}
+        }
+      },
+      {
+        "name": "jarvis_readMessage",
+        "displayName": "Read Message from Inbox",
+        "modelDescription": "Reads and removes the oldest message from the Jarvis message queue for the given destination session. Returns the message (sender, text, timestamp) and the count of remaining messages. Call repeatedly until remaining is 0 to read all messages.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "readMessage",
+        "icon": "$(mail-read)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "destination": {
+              "type": "string",
+              "description": "The exact name/title of the destination chat session whose messages to read"
+            }
+          },
+          "required": [
+            "destination"
+          ]
         }
       }
     ]
@@ -292,6 +377,8 @@
     "typescript": "^5.5.0"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "cron-parser": "^5.5.0",
     "js-yaml": "^4.1.1",
     "sql.js": "^1.14.1"
   }

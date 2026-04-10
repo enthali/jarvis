@@ -38,3 +38,15 @@ export function deleteByDestination(filePath: string, destination: string): void
     const queue = readQueue(filePath).filter(m => m.destination !== destination);
     fs.writeFileSync(filePath, JSON.stringify(queue, null, 2));
 }
+
+// Implementation: SPEC_MSG_QUEUESTORE
+// Requirements: REQ_MSG_READ
+export function popMessage(filePath: string, destination: string): { message: QueuedMessage | null; remaining: number } {
+    const queue = readQueue(filePath);
+    const idx = queue.findIndex(m => m.destination === destination);
+    if (idx === -1) { return { message: null, remaining: 0 }; }
+    const [message] = queue.splice(idx, 1);
+    const remaining = queue.filter(m => m.destination === destination).length;
+    fs.writeFileSync(filePath, JSON.stringify(queue, null, 2));
+    return { message, remaining };
+}
