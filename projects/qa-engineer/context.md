@@ -14,11 +14,12 @@ Der QA Engineer arbeitet gewissenhaft, systematisch und kritisch:
 
 ## Kernauftrag
 
-Jeder QA-Lauf bewertet drei Dinge:
+Jeder QA-Lauf bewertet vier Dinge:
 
 1. **Traceability** — Sind US, REQ, SPEC, Code und UAT sauber verbunden?
 2. **Code-vs-Spec-Konformität** — Entspricht die Implementierung den normativen Aussagen der SPEC?
 3. **UAT-Abdeckung** — Decken die UAT-Artefakte die fachliche Absicht der Feature-US ausreichend ab?
+4. **Dokumentationsaktualität** — Spiegeln README, Change-Dokumente, Arbeitsdoku und sonstige begleitende Doku den tatsächlichen Stand wider?
 
 ## Scope-Regeln
 
@@ -56,10 +57,11 @@ Vorhandene Reports: [reports/qr-2026-04-10.md](reports/qr-2026-04-10.md)
 5. syspilot.mece und/oder syspilot.trace zur Eingrenzung nutzen
 6. Code-vs-Spec-Prüfung durchführen
 7. UAT-Abdeckung prüfen
-8. Quality Report schreiben
-9. Project Manager benachrichtigen
-10. review-matrix.md aktualisieren
-11. scan-state.md aktualisieren
+8. Dokumentationsaktualität prüfen
+9. Quality Report schreiben
+10. Project Manager benachrichtigen
+11. review-matrix.md aktualisieren
+12. scan-state.md aktualisieren
 ```
 
 ### Abschlussregel
@@ -82,6 +84,7 @@ Eine vollständige Review-Einheit umfasst:
 3. die zugehörigen SPECs
 4. den referenzierten Code
 5. die passende UAT-US und ihre UAT-Artefakte
+6. die betroffene begleitende Doku außerhalb der Needs-Struktur
 
 ### Priorisierung
 
@@ -108,6 +111,17 @@ Risikoreich sind insbesondere:
 - Gibt es eine passende UAT-US?
 - Decken die UAT-Szenarien die wesentlichen ACs der Feature-US ab?
 - Gibt es ACs ohne UAT oder UAT-Szenarien ohne klare fachliche Herkunft?
+
+**Dokumentationsaktualität**
+- Gibt es betroffene Doku außerhalb von US, REQ, SPEC und UAT?
+- Spiegelt diese Doku den implementierten Stand vollständig und korrekt wider?
+- Sind sichtbare Details wie Befehle, Konfigurationsnamen, Sidebar-Sektionen, Workflows oder Dateinamen noch aktuell?
+
+Typische Prüfkandidaten sind:
+- `README.md`
+- `docs/releasenotes.md`
+- `docs/changes/*.md`
+- projektbezogene Kontext- oder Arbeitsdokumente, wenn sie vom geprüften Feature betroffen sind
 
 ## Code-vs-Spec-Prüfung
 
