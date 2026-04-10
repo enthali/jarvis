@@ -1,5 +1,17 @@
 # Release Notes
 
+## v0.2.0
+
+*2026-04-10*
+
+Three new features: convention-file scanning model, entity creation commands, and self-update checks.
+
+### New Features
+
+- **proj-folders**: Switch project and event scanners to a folder-convention model — a folder containing `project.yaml` (or `event.yaml`) becomes a leaf node. EventTreeProvider gains empty-branch pruning when the future-only filter hides all events in a grouping folder.
+- **new-entity**: Add `Jarvis: New Project` and `Jarvis: New Event` commands — create a convention-file folder with YAML template, trigger immediate scanner refresh, and open an agent session for the new entity.
+- **self-update**: Self-update check via GitHub Releases API — queries for newer versions on activation (and via manual command), with options to view release notes or download and install the `.vsix` directly.
+
 ## v0.1.1
 
 *2026-04-09*

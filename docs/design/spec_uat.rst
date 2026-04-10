@@ -13,7 +13,10 @@ outcome tables** for each feature's acceptance tests.
    spec_uat_explorer
    spec_uat_heartbeat
    spec_uat_msgqueue
+   spec_uat_newentity
+   spec_uat_projfolders
    spec_uat_sessiontools
+   spec_uat_selfupdate
 
 All UAT Specifications
 ----------------------

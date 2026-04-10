@@ -2,7 +2,7 @@
   "name": "jarvis",
   "displayName": "Jarvis",
   "description": "Personal assistant for managing projects and events in VS Code",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "publisher": "enthali",
   "repository": {
     "type": "git",
@@ -95,6 +95,20 @@
         "command": "jarvis.openAgentSession",
         "title": "Jarvis: Open Agent Session",
         "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "jarvis.newProject",
+        "title": "Jarvis: New Project",
+        "icon": "$(add)"
+      },
+      {
+        "command": "jarvis.newEvent",
+        "title": "Jarvis: New Event",
+        "icon": "$(add)"
+      },
+      {
+        "command": "jarvis.checkForUpdates",
+        "title": "Jarvis: Check for Updates"
       }
     ],
     "menus": {
@@ -102,39 +116,57 @@
         {
           "command": "jarvis.openAgentSession",
           "when": "false"
+        },
+        {
+          "command": "jarvis.newProject",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.newEvent",
+          "when": "false"
         }
       ],
       "view/title": [
         {
+          "command": "jarvis.newProject",
+          "when": "view == jarvisProjects",
+          "group": "navigation@1"
+        },
+        {
           "command": "jarvis.filterProjectFolders",
           "when": "view == jarvisProjects && !jarvis.projectFilterActive",
-          "group": "navigation"
+          "group": "navigation@2"
         },
         {
           "command": "jarvis.filterProjectFoldersActive",
           "when": "view == jarvisProjects && jarvis.projectFilterActive",
-          "group": "navigation"
+          "group": "navigation@2"
+        },
+        {
+          "command": "jarvis.newEvent",
+          "when": "view == jarvisEvents",
+          "group": "navigation@1"
         },
         {
           "command": "jarvis.filterFutureEvents",
           "when": "view == jarvisEvents && !jarvis.eventFilterActive",
-          "group": "navigation"
+          "group": "navigation@2"
         },
         {
           "command": "jarvis.filterFutureEventsActive",
           "when": "view == jarvisEvents && jarvis.eventFilterActive",
-          "group": "navigation"
+          "group": "navigation@2"
         }
       ],
       "view/item/context": [
         {
           "command": "jarvis.openYamlFile",
-          "when": "viewItem == project",
+          "when": "viewItem == jarvisProject",
           "group": "inline"
         },
         {
           "command": "jarvis.openYamlFile",
-          "when": "viewItem == event",
+          "when": "viewItem == jarvisEvent",
           "group": "inline"
         },
         {
@@ -149,12 +181,12 @@
         },
         {
           "command": "jarvis.openAgentSession",
-          "when": "viewItem == project",
+          "when": "viewItem == jarvisProject",
           "group": "inline"
         },
         {
           "command": "jarvis.openAgentSession",
-          "when": "viewItem == event",
+          "when": "viewItem == jarvisEvent",
           "group": "inline"
         }
       ]
@@ -193,6 +225,11 @@
           "type": "string",
           "default": "",
           "description": "Absolute path to messages.json queue file. Defaults to extension storage if empty."
+        },
+        "jarvis.checkForUpdates": {
+          "type": "boolean",
+          "default": true,
+          "description": "Check for new Jarvis releases on GitHub when the extension activates."
         }
       }
     },

@@ -13,7 +13,10 @@ end-to-end verification of each feature.
    req_uat_explorer
    req_uat_heartbeat
    req_uat_msgqueue
+   req_uat_newentity
+   req_uat_projfolders
    req_uat_sessiontools
+   req_uat_selfupdate
 
 All UAT Requirements
 --------------------

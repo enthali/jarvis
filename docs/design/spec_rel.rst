@@ -187,3 +187,160 @@ Release Design Specifications
 
    <!-- Implementation: SPEC_REL_SPHINXCOMPAT -->
    <!-- Requirements: REQ_REL_SPHINXCOMPAT -->
+
+
+.. spec:: GitHub API Fetch and Version Compare
+   :id: SPEC_REL_UPDATECHECK
+   :status: implemented
+   :links: REQ_REL_UPDATECHECK
+
+   **Description:**
+   Create a new module ``src/updateCheck.ts`` with the core update-check logic.
+
+   **GitHub API call:**
+
+   .. code-block:: typescript
+
+      import * as https from 'https';
+
+      interface GitHubRelease {
+        tag_name: string;
+        html_url: string;
+        assets: { name: string; browser_download_url: string }[];
+      }
+
+      function fetchLatestRelease(): Promise<GitHubRelease> {
+        const options = {
+          hostname: 'api.github.com',
+          path: '/repos/enthali/jarvis/releases/latest',
+          headers: { 'User-Agent': 'Jarvis-VSCode-Extension' }
+        };
+        return new Promise((resolve, reject) => {
+          https.get(options, res => {
+            if (res.statusCode !== 200) {
+              reject(new Error(`HTTP ${res.statusCode}`));
+              res.resume();
+              return;
+            }
+            let data = '';
+            res.on('data', chunk => data += chunk);
+            res.on('end', () => resolve(JSON.parse(data)));
+          }).on('error', reject);
+        });
+      }
+
+   **Version comparison:**
+
+   .. code-block:: typescript
+
+      function isNewer(remote: string, local: string): boolean {
+        const r = remote.replace(/^v/, '').split('.').map(Number);
+        const l = local.split('.').map(Number);
+        for (let i = 0; i < 3; i++) {
+          if ((r[i] || 0) > (l[i] || 0)) return true;
+          if ((r[i] || 0) < (l[i] || 0)) return false;
+        }
+        return false;
+      }
+
+   **Exported entry point** ``checkForUpdates(context, silent)``:
+
+   * Calls ``fetchLatestRelease()``
+   * Compares ``tag_name`` with ``context.extension.packageJSON.version``
+   * If newer → calls notification flow (SPEC_REL_UPDATENOTIFY)
+   * If equal/older and ``silent === false`` → shows "up to date" message
+   * On error and ``silent === true`` → swallow silently
+
+
+.. spec:: Update Notification UX
+   :id: SPEC_REL_UPDATENOTIFY
+   :status: implemented
+   :links: REQ_REL_UPDATENOTIFY; REQ_REL_UPDATEINSTALL
+
+   **Description:**
+   Show an information notification with two action buttons when an update is available.
+
+   **Notification:**
+
+   .. code-block:: typescript
+
+      const action = await vscode.window.showInformationMessage(
+        `Jarvis v${newVersion} is available (current: v${currentVersion})`,
+        'Release Notes',
+        'Download & Install'
+      );
+
+   **"Release Notes" handler:**
+
+   .. code-block:: typescript
+
+      if (action === 'Release Notes') {
+        vscode.env.openExternal(vscode.Uri.parse(release.html_url));
+      }
+
+   **"Download & Install" handler:**
+
+   1. Find the first asset where ``name`` ends with ``.vsix``
+   2. If no ``.vsix`` asset found → show error and open ``html_url`` as fallback
+   3. Download the ``.vsix`` via HTTPS to ``os.tmpdir() + '/' + asset.name``
+   4. Install via:
+
+      .. code-block:: typescript
+
+         await vscode.commands.executeCommand(
+           'workbench.extensions.installExtension',
+           vscode.Uri.file(tmpPath)
+         );
+
+   5. After install, prompt reload:
+
+      .. code-block:: typescript
+
+         const reload = await vscode.window.showInformationMessage(
+           `Jarvis has been updated. Reload to activate v${newVersion}.`,
+           'Reload Now'
+         );
+         if (reload === 'Reload Now') {
+           vscode.commands.executeCommand('workbench.action.reloadWindow');
+         }
+
+   6. Clean up the temporary ``.vsix`` file after install.
+
+
+.. spec:: Command Registration and Activation Hook
+   :id: SPEC_REL_UPDATECOMMAND
+   :status: implemented
+   :links: REQ_REL_UPDATECOMMAND
+
+   **Description:**
+   Register the manual command and wire the automatic check into the activation flow.
+
+   **package.json command entry:**
+
+   .. code-block:: json
+
+      {
+        "command": "jarvis.checkForUpdates",
+        "title": "Jarvis: Check for Updates"
+      }
+
+   **In ``extension.ts`` activate():**
+
+   .. code-block:: typescript
+
+      import { checkForUpdates } from './updateCheck';
+
+      // Automatic check (silent = true → no "up to date" message, errors swallowed)
+      const autoCheck = vscode.workspace
+        .getConfiguration('jarvis')
+        .get<boolean>('checkForUpdates', true);
+      if (autoCheck) {
+        checkForUpdates(context, true);
+      }
+
+      // Manual command (silent = false → shows "up to date" or errors)
+      context.subscriptions.push(
+        vscode.commands.registerCommand('jarvis.checkForUpdates', () =>
+          checkForUpdates(context, false)
+        )
+      );

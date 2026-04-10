@@ -16,18 +16,20 @@ Projects and events are stored as YAML files in configurable folders.
 
 ```
 src/                    — Extension source (TypeScript)
-  extension.ts          — Activation, commands, LM tools (sendToSession, listSessions)
-  yamlScanner.ts        — Two-layer cache: EntityEntry store + TreeNode[] tree
-  projectTreeProvider.ts — Tree UI for projects (owns _hiddenFolders filter)
-  eventTreeProvider.ts  — Tree UI for events (owns _futureOnly filter toggle)
+  extension.ts          — Activation, commands (new-entity, filters, agent sessions), LM tools
+  yamlScanner.ts        — Convention-file scanner: folder with project.yaml/event.yaml = leaf; public rescan()
+  projectTreeProvider.ts — Tree UI for projects (owns _hiddenFolders filter; contextValue: jarvisProject)
+  eventTreeProvider.ts  — Tree UI for events (owns _futureOnly filter; contextValue: jarvisEvent)
   messageTreeProvider.ts — Tree UI for messages (grouped by destination session)
   messageQueue.ts       — JSON message queue: append, delete, read
   sessionLookup.ts      — Session UUID resolver via state.vscdb (sql.js)
   heartbeat.ts          — Heartbeat scheduler (cron dispatch, step executor, status bar)
+  updateCheck.ts        — Self-update: GitHub Releases fetch, semver compare, .vsix download + install
 resources/              — Static assets (SVG icons)
 schemas/                — JSON Schemas for project/event YAML files
-testdata/               — Sample YAML files for manual testing
-  projects/, events/    — Project/event test data
+testdata/               — Convention-file test data for manual UAT
+  projects/             — alpha/project.yaml, beta/…, active/delta/…
+  events/               — 2025/<date-slug>/event.yaml, 2027/…, invalid-*/…
   heartbeat/            — heartbeat.yaml + scripts/ + prompts/ for UAT (T-1..T-7)
 .vscode/                — launch.json (F5 = Run Extension), tasks.json
 docs/

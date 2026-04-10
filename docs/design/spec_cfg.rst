@@ -114,3 +114,28 @@ Configuration Design Specifications
           context.storageUri!, 'messages.json'
         ).fsPath;
       }
+
+
+.. spec:: Update Check Setting in package.json
+   :id: SPEC_CFG_UPDATECHECK
+   :status: implemented
+   :links: REQ_CFG_UPDATECHECK
+
+   **Description:**
+   Add a boolean configuration entry to the ``contributes.configuration`` block
+   in ``package.json``.
+
+   **package.json addition:**
+
+   .. code-block:: json
+
+      {
+        "jarvis.checkForUpdates": {
+          "type": "boolean",
+          "default": true,
+          "description": "Check for new Jarvis releases on GitHub when the extension activates."
+        }
+      }
+
+   The setting is read once at activation time (see SPEC_REL_UPDATECOMMAND).
+   No runtime change handler is needed — the check only runs at startup.

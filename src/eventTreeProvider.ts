@@ -1,6 +1,7 @@
 // Implementation: SPEC_EXP_PROVIDER, SPEC_EXP_EVENTFILTER_CMD
 // Requirements: REQ_EXP_TREEVIEW, REQ_EXP_YAMLDATA, REQ_EXP_REACTIVECACHE, REQ_EXP_EVENTFILTER, REQ_EXP_EVENTFILTERPERSIST
 
+import * as path from 'path';
 import * as vscode from 'vscode';
 import { YamlScanner, TreeNode, FolderNode, LeafNode } from './yamlScanner';
 
@@ -32,13 +33,13 @@ export class EventTreeProvider implements vscode.TreeDataProvider<TreeNode> {
     getTreeItem(element: TreeNode): vscode.TreeItem {
         if (element.kind === 'folder') {
             const item = new vscode.TreeItem(element.name, vscode.TreeItemCollapsibleState.Collapsed);
-            item.contextValue = 'folder';
+            item.contextValue = 'jarvisFolder';
             return item;
         }
         const entity = this._scanner.getEntity(element.id);
-        const label = entity ? entity.name : element.id;
+        const label = entity ? entity.name : path.basename(path.dirname(element.id));
         const item = new vscode.TreeItem(label, vscode.TreeItemCollapsibleState.None);
-        item.contextValue = 'event';
+        item.contextValue = 'jarvisEvent';
         return item;
     }
 

@@ -2,10 +2,10 @@
 # Requirements: REQ_UAT_VALID_SAMPLES
 name: "Event: Berlin Tech Meetup"
 location: "Factory Berlin, Berlin, Germany"
-status: "cancelled"
+status: "planned"
 role: "visitor"
-summary: "Monthly tech meetup — cancelled due to venue unavailability."
-lastUpdated: "2026-03-20"
+summary: "Monthly tech meetup — future event for filter testing."
+lastUpdated: "2026-12-01"
 dates:
-  start: "2026-04-10"
-  end: "2026-04-10"
+  start: "2027-01-10"
+  end: "2027-01-10"

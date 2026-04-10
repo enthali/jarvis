@@ -34,13 +34,16 @@ Explorer Requirements
    * AC-1: The sidebar contains a "Projects" tree view
    * AC-2: The sidebar contains an "Events" tree view
    * AC-3: Both Projects and Events tree views are collapsible sections
-   * AC-4: Subfolders within projectsFolder/eventsFolder appear as collapsible folder nodes
-     labeled with the folder name
+   * AC-4: Subfolders that do **not** contain the applicable convention file appear as
+     collapsible grouping nodes labeled with the folder name
    * AC-5: Folder nodes can be nested to any depth
-   * AC-6: YAML files are leaf items under their parent folder node
+   * AC-6: A folder containing the applicable convention file (``project.yaml`` or
+     ``event.yaml``) is a leaf item labeled with the entity ``name``; no further descent
+     into that folder occurs
    * AC-7: The sidebar contains a "Messages" tree view
    * AC-8: When the message queue is empty, the Messages tree view SHALL display a
      single node with label ``nothing to deliver``
+   * AC-9: Grouping nodes with no descendant leaf items SHALL be omitted from the tree
 
 
 .. req:: Static Dummy Data
@@ -67,7 +70,7 @@ Explorer Requirements
    :id: REQ_EXP_YAMLDATA
    :status: implemented
    :priority: mandatory
-   :links: US_EXP_SIDEBAR
+   :links: US_EXP_SIDEBAR; REQ_EXP_TREEVIEW
 
    **Description:**
    The tree views SHALL load project and event data from YAML files in the
@@ -76,11 +79,14 @@ Explorer Requirements
 
    **Acceptance Criteria:**
 
-   * AC-1: Subfolders in ``jarvis.projectsFolder`` are represented as collapsible folder nodes;
-     YAML files within them appear as named leaf items beneath their parent folder node
-   * AC-2: Same behaviour applies for ``jarvis.eventsFolder``
+   * AC-1: Subfolders in ``jarvis.projectsFolder`` are scanned recursively. A folder containing
+     a ``project.yaml`` file is a leaf node (the project); folders without it are grouping
+     nodes. Only ``project.yaml`` is read — other YAML files in the same folder are ignored.
+   * AC-2: Same behaviour applies for ``jarvis.eventsFolder`` using ``event.yaml`` as the
+     convention file.
    * AC-3: The ``name`` field value is used as the tree item label
-   * AC-4: Files that cannot be parsed or are missing the ``name`` field are skipped without crashing
+   * AC-4: If a convention file is present but cannot be parsed or is missing the ``name``
+     field, the folder SHALL still appear as a leaf node with the folder name as the label
    * AC-5: For event YAML files, the ``dates.end`` field SHALL be extracted and stored as
      ``EntityEntry.datesEnd`` (string ``YYYY-MM-DD``); if absent or not a string, this field is ``undefined``
 
@@ -105,6 +111,8 @@ Explorer Requirements
      is fired only if the cache actually changed
    * AC-5: On first scan the cache is empty and the tree shows nothing; after the first scan
      completes the cache is populated and the event is fired
+   * AC-6: The scanner SHALL expose a public method to trigger an immediate rescan
+     outside the timer cycle
 
 
 .. req:: Project Folder Filter
@@ -147,7 +155,7 @@ Explorer Requirements
    :id: REQ_EXP_EVENTFILTER
    :status: implemented
    :priority: optional
-   :links: US_EXP_EVENTFILTER
+   :links: US_EXP_EVENTFILTER; REQ_EXP_TREEVIEW
 
    **Description:**
    The Events tree view SHALL provide a toggle button that, when active,
@@ -160,6 +168,8 @@ Explorer Requirements
    * AC-3: When active, events whose ``datesEnd`` is strictly before today are hidden
    * AC-4: Events with no parseable ``datesEnd`` are always shown (fail-open)
    * AC-5: The icon changes visually when the filter is active (``filter`` vs ``filter-filled``)
+   * AC-6: When the future-only filter is active, grouping nodes whose **every** descendant
+     leaf is hidden SHALL themselves be hidden (empty-branch pruning)
 
 
 .. req:: Event Filter Persistence
@@ -228,3 +238,64 @@ Explorer Requirements
    * AC-4: Folder nodes SHALL NOT display the button
    * AC-5: The command SHALL NOT appear in the Command Palette (it requires a
      tree element argument and would fail without one)
+
+
+.. req:: New Project Command
+   :id: REQ_EXP_NEWPROJECT
+   :status: implemented
+   :priority: optional
+   :links: US_EXP_NEWENTITY; REQ_EXP_REACTIVECACHE; REQ_EXP_AGENTSESSION; REQ_EXP_YAMLDATA
+
+   **Description:**
+   A command triggered by a ``+`` icon in the Projects title bar SHALL create
+   a new project folder with a convention file and immediately refresh the scanner.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A ``$(add)`` icon in the Projects view title bar triggers the command
+     ``jarvis.newProject``
+   * AC-2: The command shows an InputBox prompting for the project name
+   * AC-3: The folder name is derived as kebab-case of the input name (lowercase,
+     spaces and special characters replaced by hyphens, consecutive hyphens collapsed)
+   * AC-4: The folder ``<kebab-name>/`` is created inside ``jarvis.projectsFolder``
+     with ``project.yaml`` containing ``name: "<input>"``
+   * AC-5: After file creation, an immediate scanner rescan is triggered
+   * AC-6: After the rescan, the agent session for the new entity is opened
+     (delegated to ``jarvis.openAgentSession`` logic)
+   * AC-7: If the user cancels the InputBox, the command exits without side effects
+   * AC-8: The command SHALL NOT appear in the Command Palette
+   * AC-9: If a folder with the derived name already exists, the command SHALL
+     show an error notification and abort without modifying the file system
+
+
+.. req:: New Event Command
+   :id: REQ_EXP_NEWEVENT
+   :status: implemented
+   :priority: optional
+   :links: US_EXP_NEWENTITY; REQ_EXP_REACTIVECACHE; REQ_EXP_AGENTSESSION; REQ_EXP_YAMLDATA
+
+   **Description:**
+   A command triggered by a ``+`` icon in the Events title bar SHALL create
+   a new event folder with a convention file and immediately refresh the scanner.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A ``$(add)`` icon in the Events view title bar triggers the command
+     ``jarvis.newEvent``
+   * AC-2: The command shows an InputBox prompting for the event name
+   * AC-3: The command shows a second InputBox prompting for a start date
+     (``YYYY-MM-DD``) with validation — if the input does not match the format
+     or is not a valid calendar date, the InputBox shows an inline error and
+     re-prompts
+   * AC-4: The folder name is derived as ``<date>-<kebab-name>``
+     (e.g. ``2026-06-10-devcon-2026``)
+   * AC-5: The folder is created directly in ``jarvis.eventsFolder``
+     (not nested in a year subfolder)
+   * AC-6: ``event.yaml`` contains ``name``, ``dates.start``, ``dates.end``
+     (start = end = input date)
+   * AC-7: After file creation, an immediate scanner rescan is triggered
+   * AC-8: After the rescan, the agent session for the new entity is opened
+   * AC-9: If the user cancels any InputBox, the command exits without side effects
+   * AC-10: The command SHALL NOT appear in the Command Palette
+   * AC-11: If a folder with the derived name already exists, the command SHALL
+     show an error notification and abort without modifying the file system

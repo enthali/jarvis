@@ -68,3 +68,28 @@ Release User Stories
    * AC-3: Feature branches are kept locally after merge but NOT pushed to origin
    * AC-4: All changes including hotfixes go through the syspilot Change process — no direct commits to `main`
    * AC-5: The Release Agent documents and follows the merge strategy
+
+
+.. story:: Self-Update Check
+   :id: US_REL_SELFUPDATE
+   :status: implemented
+   :priority: optional
+   :links: US_REL_RELEASE; US_REL_VERSION
+
+   **As a** Jarvis User,
+   **I want** Jarvis to check for newer versions on GitHub at startup (and on demand)
+   and offer to install the update,
+   **so that** I always run the latest version without manually checking the releases page.
+
+   **Acceptance Criteria:**
+
+   * AC-1: On extension activation, Jarvis queries the GitHub Releases API for the latest
+     release and compares the tag version against the installed version
+   * AC-2: If a newer version is available, a notification shows the available version and
+     offers "Release Notes" (opens browser) and "Download & Install" (downloads ``.vsix``,
+     installs, prompts reload)
+   * AC-3: If the installed version is current or newer, no notification is shown
+   * AC-4: A command ``Jarvis: Check for Updates`` triggers the same check manually; if
+     already up to date, an informational message confirms this
+   * AC-5: A setting ``jarvis.checkForUpdates`` (default ``true``) controls whether the
+     automatic check runs at activation; the manual command works regardless

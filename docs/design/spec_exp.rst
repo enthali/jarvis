@@ -4,7 +4,7 @@ Explorer Design Specifications
 .. spec:: Extension Manifest & Activation
    :id: SPEC_EXP_EXTENSION
    :status: implemented
-   :links: REQ_EXP_ACTIVITYBAR, REQ_CFG_FOLDERPATHS, REQ_CFG_SCANINTERVAL, REQ_EXP_FILTERPERSIST, REQ_EXP_EVENTFILTERPERSIST, REQ_EXP_OPENYAML
+   :links: REQ_EXP_ACTIVITYBAR, REQ_CFG_FOLDERPATHS, REQ_CFG_SCANINTERVAL, REQ_EXP_FILTERPERSIST, REQ_EXP_EVENTFILTERPERSIST, REQ_EXP_OPENYAML, REQ_EXP_NEWPROJECT, REQ_EXP_NEWEVENT
 
    **Description:**
    The extension is scaffolded as a standard VS Code TypeScript extension.
@@ -24,6 +24,16 @@ Explorer Design Specifications
    **Activation:**
    The extension activates lazily when any tree view becomes visible.
    The ``activate()`` function registers all three TreeDataProviders.
+
+   **New-entity manifest additions:**
+
+   * ``contributes.commands``: ``jarvis.newProject`` (title "Jarvis: New Project",
+     icon ``$(add)``) and ``jarvis.newEvent`` (title "Jarvis: New Event",
+     icon ``$(add)``)
+   * ``contributes.menus.view/title``: two entries —
+     ``jarvis.newProject`` with ``when: "view == jarvisProjects"`` (group ``navigation``)
+     and ``jarvis.newEvent`` with ``when: "view == jarvisEvents"`` (group ``navigation``)
+   * ``contributes.menus.commandPalette``: hide both commands (``when: "false"``)
 
    **Project structure:**
 
@@ -45,7 +55,7 @@ Explorer Design Specifications
 .. spec:: Tree Data Providers
    :id: SPEC_EXP_PROVIDER
    :status: implemented
-   :links: REQ_EXP_TREEVIEW, REQ_EXP_YAMLDATA, REQ_EXP_REACTIVECACHE, REQ_EXP_PROJECTFILTER, REQ_EXP_EVENTFILTER
+   :links: REQ_EXP_TREEVIEW, REQ_EXP_YAMLDATA, REQ_EXP_REACTIVECACHE, REQ_EXP_PROJECTFILTER, REQ_EXP_EVENTFILTER, SPEC_EXP_SCANNER
 
    **Description:**
    Two classes implement ``vscode.TreeDataProvider<TreeNode>``:
@@ -64,10 +74,12 @@ Explorer Design Specifications
    **getTreeItem(element):**
 
    * ``FolderNode`` → ``TreeItem`` with label = folder name,
-     ``collapsibleState = Collapsed``, ``contextValue = 'folder'``
+     ``collapsibleState = Collapsed``, ``contextValue = 'jarvisFolder'``
    * ``LeafNode`` → look up ``scanner.getEntity(element.id)`` →
      ``TreeItem`` with label = entity name,
-     ``collapsibleState = None``, ``contextValue = 'project'`` or ``'event'``
+     ``collapsibleState = None``, ``contextValue = 'jarvisProject'`` or ``'jarvisEvent'``.
+     If entity lookup fails, the label falls back to the parent folder name
+     (derived from ``path.basename(path.dirname(element.id))``)
 
    **ProjectTreeProvider filter state:**
 
@@ -87,6 +99,9 @@ Explorer Design Specifications
 
    * ``const today = new Date().toISOString().slice(0, 10)``
    * Exclude ``LeafNode``\s where ``entity.datesEnd !== undefined && entity.datesEnd < today``
+   * After filtering, ``FolderNode``\s with zero remaining children SHALL be excluded
+     from the result (empty-branch pruning). This applies recursively — a
+     ``FolderNode`` containing only pruned ``FolderNode``\s is itself pruned.
 
 
 .. spec:: YAML Scanner Service
@@ -124,23 +139,49 @@ Explorer Design Specifications
    * ``constructor(onCacheChanged: () => void)``
    * ``start(projectsFolder, eventsFolder, intervalSec): void``
    * ``stop(): void``
+   * ``rescan(): Promise<void>`` — triggers an immediate re-scan using the folder
+     paths stored from the last ``start()`` call. No-op if ``start()`` has not been
+     called yet.
    * ``getProjectTree(): TreeNode[]`` — returns root-level children for projects
    * ``getEventTree(): TreeNode[]`` — returns root-level children for events
    * ``getEntity(id: string): EntityEntry | undefined`` — looks up entity by id
 
-   **Scan Logic:**
+   **Stored folder paths:**
 
-   * Recursively reads folders. For each subfolder → ``FolderNode`` with children.
-   * For each ``.yaml``/``.yml`` file → parse, extract ``name``; if valid →
-     ``LeafNode`` + store ``EntityEntry`` in entity map (keyed by absolute path).
+   ``start()`` stores ``projectsFolder`` and ``eventsFolder`` in private fields
+   (``_projectsFolder``, ``_eventsFolder``) so that ``rescan()`` can call
+   ``_scan(_projectsFolder, _eventsFolder)`` without requiring the caller to
+   supply paths again.
+
+   **Scan Logic (convention file model):**
+
+   ``_buildTree(folder, entities, conventionFile)`` where ``conventionFile`` is
+   ``'project.yaml'`` or ``'event.yaml'``:
+
+   * Read directory entries. For each subdirectory:
+
+     1. Check whether ``conventionFile`` exists in that subdirectory.
+     2. **Convention file found and valid** — read it, extract ``name``
+        (+ ``datesEnd`` for events via ``doc['dates']?.['end']``). Store
+        ``EntityEntry`` keyed by the convention file's absolute path.
+        Emit ``LeafNode`` with ``id`` = convention file path. **No further
+        descent** into the subdirectory.
+     3. **Convention file found but invalid** (unparseable or missing ``name``) —
+        emit ``LeafNode`` with ``id`` = convention file path. Store
+        ``EntityEntry`` with ``name`` = folder name (fallback). No further descent.
+     4. **No convention file** — recurse into the subdirectory → ``FolderNode``
+        (only if children exist; empty grouping folders are omitted).
+
+   * Non-YAML files and YAML files other than the convention file are ignored.
    * Compares new tree + entity map against cached versions;
      fires ``onCacheChanged()`` only when diff detected.
 
-   Dependency: ``js-yaml`` in ``package.json`` dependencies.
+   **Callers in ``_scan()``:**
 
-   **Scan Logic note:** For event YAML files, after extracting ``name``, also read
-   ``doc['dates']?.['end']`` — if it is a string, store as ``datesEnd`` in ``EntityEntry``.
-   For project files, ``datesEnd`` is not set.
+   * ``_buildTree(projectsFolder, entities, 'project.yaml')`` for projects
+   * ``_buildTree(eventsFolder, entities, 'event.yaml')`` for events
+
+   Dependency: ``js-yaml`` in ``package.json`` dependencies.
 
    **Design note:** ``EntityEntry`` will be further enriched in future changes
    (summary, tasks, emails).
@@ -149,7 +190,7 @@ Explorer Design Specifications
 .. spec:: Project Folder Filter Command
    :id: SPEC_EXP_FILTERCOMMAND
    :status: implemented
-   :links: REQ_EXP_PROJECTFILTER, REQ_EXP_FILTERPERSIST
+   :links: REQ_EXP_PROJECTFILTER, REQ_EXP_FILTERPERSIST, SPEC_EXP_SCANNER, SPEC_EXP_PROVIDER
 
    **Description:**
    A new command ``jarvis.filterProjectFolders`` implements the filter dialog using a
@@ -184,7 +225,7 @@ Explorer Design Specifications
 .. spec:: Future Event Filter Command
    :id: SPEC_EXP_EVENTFILTER_CMD
    :status: implemented
-   :links: REQ_EXP_EVENTFILTER, REQ_EXP_EVENTFILTERPERSIST
+   :links: REQ_EXP_EVENTFILTER, REQ_EXP_EVENTFILTERPERSIST, SPEC_EXP_PROVIDER
 
    **Description:**
    Two commands ``jarvis.filterFutureEvents`` and ``jarvis.filterFutureEventsActive``
@@ -239,12 +280,12 @@ Explorer Design Specifications
         [
           {
             "command": "jarvis.openYamlFile",
-            "when": "viewItem == project",
+            "when": "viewItem == jarvisProject",
             "group": "inline"
           },
           {
             "command": "jarvis.openYamlFile",
-            "when": "viewItem == event",
+            "when": "viewItem == jarvisEvent",
             "group": "inline"
           }
         ]
@@ -319,12 +360,12 @@ Explorer Design Specifications
         [
           {
             "command": "jarvis.openAgentSession",
-            "when": "viewItem == project",
+            "when": "viewItem == jarvisProject",
             "group": "inline"
           },
           {
             "command": "jarvis.openAgentSession",
-            "when": "viewItem == event",
+            "when": "viewItem == jarvisEvent",
             "group": "inline"
           }
         ]
@@ -343,11 +384,138 @@ Explorer Design Specifications
 
    **Design notes:**
 
-   * No changes to ``contextValue`` — the button appears on all ``project`` and
-     ``event`` items alongside the existing ``$(go-to-file)`` button
+   * ``contextValue`` uses namespaced values (``jarvisProject``, ``jarvisEvent``,
+     ``jarvisFolder``) to prevent collisions with other extensions — the button
+     appears on all ``jarvisProject`` and ``jarvisEvent`` items alongside the
+     existing ``$(go-to-file)`` button
    * No changes to ``yamlScanner.ts`` — uses existing ``entity.name`` from the
      entity store
    * No changes to ``sessionLookup.ts`` — reuses ``lookupSessionUUID()`` as-is
    * The initialization prompt is submitted directly via
      ``workbench.action.chat.open`` (not via the message queue)
    * Disposable pushed to ``context.subscriptions``
+
+
+.. spec:: New Project Command
+   :id: SPEC_EXP_NEWPROJECT_CMD
+   :status: implemented
+   :links: REQ_EXP_NEWPROJECT; REQ_EXP_REACTIVECACHE; REQ_EXP_AGENTSESSION; SPEC_EXP_SCANNER; SPEC_EXP_EXTENSION; SPEC_EXP_AGENTSESSION
+
+   **Description:**
+   Register ``jarvis.newProject`` in ``extension.ts``. Triggered by the ``$(add)``
+   icon in the Projects view title bar. Creates a new project folder with
+   ``project.yaml`` and opens an agent session for the new entity.
+
+   **Helper — kebab-case derivation:**
+
+   A local helper function ``toKebabCase(name: string): string`` is defined in
+   ``extension.ts`` (not exported — only used by the two new commands):
+
+   .. code-block:: typescript
+
+      function toKebabCase(name: string): string {
+          return name
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, '-')
+              .replace(/^-|-$/g, '');
+      }
+
+   **Handler flow:**
+
+   1. Read ``jarvis.projectsFolder`` from configuration.
+      If empty, show warning notification and return.
+   2. Show ``InputBox`` with prompt ``"Project name"``,
+      ``placeHolder: "My Project"``.
+   3. If user cancels (``undefined``), return.
+   4. Derive folder name: ``toKebabCase(input)``.
+   5. Compute target path: ``path.join(projectsFolder, kebabName)``.
+   6. If target path already exists (``fs.existsSync``), show error notification
+      ``"Folder '<kebabName>' already exists in projects folder"`` and return.
+   7. Create directory: ``await fs.promises.mkdir(targetPath)``.
+   8. Write ``project.yaml``:
+
+      .. code-block:: typescript
+
+         const content = `name: "${input}"\n`;
+         await fs.promises.writeFile(
+             path.join(targetPath, 'project.yaml'), content, 'utf-8');
+
+   9. Trigger scanner rescan: ``await scanner.rescan()``.
+   10. Find the new entity's ``LeafNode`` in ``scanner.getProjectTree()``
+       (search for leaf whose ``id`` contains the new folder path).
+   11. Execute ``jarvis.openAgentSession`` with the found ``LeafNode``:
+
+       .. code-block:: typescript
+
+          await vscode.commands.executeCommand(
+              'jarvis.openAgentSession', leafNode);
+
+   **Disposable** pushed to ``context.subscriptions``.
+
+   **Registration in package.json** — see ``SPEC_EXP_EXTENSION``.
+
+
+.. spec:: New Event Command
+   :id: SPEC_EXP_NEWEVENT_CMD
+   :status: implemented
+   :links: REQ_EXP_NEWEVENT; REQ_EXP_REACTIVECACHE; REQ_EXP_AGENTSESSION; SPEC_EXP_SCANNER; SPEC_EXP_EXTENSION; SPEC_EXP_AGENTSESSION
+
+   **Description:**
+   Register ``jarvis.newEvent`` in ``extension.ts``. Triggered by the ``$(add)``
+   icon in the Events view title bar. Creates a new event folder with
+   ``event.yaml`` and opens an agent session for the new entity.
+
+   **Handler flow:**
+
+   1. Read ``jarvis.eventsFolder`` from configuration.
+      If empty, show warning notification and return.
+   2. Show ``InputBox`` with prompt ``"Event name"``,
+      ``placeHolder: "My Event"``.
+   3. If user cancels (``undefined``), return.
+   4. Show second ``InputBox`` with prompt ``"Start date (YYYY-MM-DD)"``,
+      ``placeHolder: "2026-01-15"``, with ``validateInput``:
+
+      .. code-block:: typescript
+
+         validateInput: (value: string) => {
+             if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+                 return 'Date must be in YYYY-MM-DD format';
+             }
+             const [y, m, d] = value.split('-').map(Number);
+             const date = new Date(y, m - 1, d);
+             if (date.getFullYear() !== y ||
+                 date.getMonth() !== m - 1 ||
+                 date.getDate() !== d) {
+                 return 'Not a valid calendar date';
+             }
+             return undefined;
+         }
+
+   5. If user cancels (``undefined``), return.
+   6. Derive folder name: ```${dateInput}-${toKebabCase(nameInput)}``.
+   7. Compute target path: ``path.join(eventsFolder, folderName)``.
+   8. If target path already exists (``fs.existsSync``), show error notification
+      ``"Folder '<folderName>' already exists in events folder"`` and return.
+   9. Create directory: ``await fs.promises.mkdir(targetPath)``.
+   10. Write ``event.yaml``:
+
+       .. code-block:: typescript
+
+          const content = [
+              `name: "${nameInput}"`,
+              `dates:`,
+              `  start: "${dateInput}"`,
+              `  end: "${dateInput}"`,
+              ''
+          ].join('\n');
+          await fs.promises.writeFile(
+              path.join(targetPath, 'event.yaml'), content, 'utf-8');
+
+   11. Trigger scanner rescan: ``await scanner.rescan()``.
+   12. Find the new entity's ``LeafNode`` in ``scanner.getEventTree()``
+       (search for leaf whose ``id`` contains the new folder path).
+   13. Execute ``jarvis.openAgentSession`` with the found ``LeafNode``.
+
+   **Disposable** pushed to ``context.subscriptions``.
+
+   **Registration in package.json** — see ``SPEC_EXP_EXTENSION``.

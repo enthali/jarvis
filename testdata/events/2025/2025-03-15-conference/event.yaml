@@ -6,10 +6,10 @@ url: "https://www.embedded-world.de"
 status: "registered"
 role: "speaker"
 summary: "Major European embedded systems conference — presenting our tooling solutions."
-lastUpdated: "2026-03-01"
+lastUpdated: "2025-03-01"
 dates:
-  start: "2026-05-12"
-  end: "2026-05-14"
+  start: "2025-03-15"
+  end: "2025-03-17"
 tags:
   - embedded
   - hardware

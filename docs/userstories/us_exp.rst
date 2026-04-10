@@ -17,14 +17,17 @@ Explorer User Stories
    * AC-2: Clicking the icon opens a sidebar panel
    * AC-3: The sidebar contains three collapsible sections: "Projects", "Events",
      and "Messages"
-   * AC-4: Each section displays items hierarchically — subfolders appear as collapsible
-     folder nodes, YAML files within them as leaf items. The full folder tree is shown recursively.
+   * AC-4: Each section displays items hierarchically. A folder containing a convention
+     file (``project.yaml`` or ``event.yaml``) is a leaf node representing that item.
+     Folders without a convention file are grouping nodes (collapsible). Grouping folders
+     are shown recursively; empty grouping folders (no descendants) are omitted.
 
 
 .. story:: Project Folder Filter
    :id: US_EXP_PROJECTFILTER
    :status: implemented
    :priority: optional
+   :links: US_EXP_SIDEBAR
 
    **As a** Jarvis User,
    **I want** to show/hide individual folders in the Projects explorer,
@@ -42,6 +45,7 @@ Explorer User Stories
    :id: US_EXP_EVENTFILTER
    :status: implemented
    :priority: optional
+   :links: US_EXP_SIDEBAR
 
    **As a** Jarvis User,
    **I want** to toggle a filter in the Events explorer that shows only upcoming events,
@@ -54,6 +58,8 @@ Explorer User Stories
    * AC-3: Events without a parseable end date are shown regardless of filter state (fail-open)
    * AC-4: When the filter is active, the icon visually indicates the active state
    * AC-5: The filter state persists across VS Code restarts (workspaceState)
+   * AC-6: When the future-only filter hides all events within a grouping folder
+     (and its sub-folders), that folder node SHALL also be hidden (empty-branch pruning)
 
 
 .. story:: Open YAML from Tree Item
@@ -73,3 +79,34 @@ Explorer User Stories
    * AC-4: Clicking on the tree item label itself does nothing (``TreeItem.command`` stays
      empty, reserved for a future detail view)
    * AC-5: Folder nodes do not have this button
+
+
+.. story:: Create New Project or Event
+   :id: US_EXP_NEWENTITY
+   :status: implemented
+   :priority: optional
+   :links: US_EXP_SIDEBAR; US_EXP_AGENTSESSION; US_CFG_PROJECTPATH
+
+   **As a** Jarvis User,
+   **I want** to create a new project or event directly from a ``+`` button in the
+   explorer title bar,
+   **so that** I can quickly scaffold a new entity folder, see it immediately in the
+   sidebar, and start working in its agent session.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A ``+`` icon (``$(add)``) in the Projects title bar triggers
+     ``Jarvis: New Project`` — prompts for a project name, creates
+     ``<kebab-name>/project.yaml`` in ``jarvis.projectsFolder``, triggers a scanner
+     refresh, and opens the agent session
+   * AC-2: A ``+`` icon (``$(add)``) in the Events title bar triggers
+     ``Jarvis: New Event`` — prompts for an event name and a start date
+     (``YYYY-MM-DD``), creates ``<yyyy-MM-dd-kebab-name>/event.yaml`` in
+     ``jarvis.eventsFolder``, triggers a scanner refresh, and opens the agent session
+   * AC-3: The convention YAML file is pre-populated with a minimal template
+     (``name`` field, plus ``dates`` for events with start = end = input date)
+   * AC-4: If the user cancels any input prompt, the command aborts without side effects
+   * AC-5: The scanner refresh is immediate — the new entity appears in the sidebar
+     without waiting for the next scan interval
+   * AC-6: The commands SHALL NOT appear in the Command Palette (they are only
+     reachable via the title bar icons)

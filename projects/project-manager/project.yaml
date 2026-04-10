@@ -1,0 +1,7 @@
+name: "Project Manager"
+summary: >-
+  The actual project for the project manager role, which is used in the test suite to verify that the project manager role is correctly associated with projects 
+  and events. This project is stored in the 'projectmanager' subfolder.
+externalStatus: ''
+internalStatus: ''
+lastUpdated: '2026-04-09'

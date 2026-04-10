@@ -13,7 +13,7 @@ handoffs:
   - label: Generate UAT
     agent: syspilot.uat
     prompt: Generate User Acceptance Tests for the Change Document
-agents: ["syspilot.mece", "syspilot.trace", "syspilot.uat"]
+agents: ["syspilot.mece", "syspilot.trace", "syspilot.uat", "syspilot.implement", "syspilot.verify", "syspilot.memory"]
 ---
 
 # syspilot Change Agent v2

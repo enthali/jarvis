@@ -1,14 +1,38 @@
-// Implementation: SPEC_EXP_EXTENSION, SPEC_EXP_FILTERCOMMAND, SPEC_EXP_EVENTFILTER_CMD, SPEC_EXP_OPENYAML_CMD, SPEC_AUT_MANUALCOMMAND, SPEC_MSG_SENDCOMMAND, SPEC_MSG_OPENSESSION, SPEC_MSG_LISTSESSIONS, SPEC_EXP_AGENTSESSION
-// Requirements: REQ_EXP_ACTIVITYBAR, REQ_EXP_TREEVIEW, REQ_EXP_REACTIVECACHE, REQ_CFG_FOLDERPATHS, REQ_CFG_SCANINTERVAL, REQ_EXP_PROJECTFILTER, REQ_EXP_FILTERPERSIST, REQ_EXP_EVENTFILTER, REQ_EXP_EVENTFILTERPERSIST, REQ_EXP_OPENYAML, REQ_AUT_MANUALRUN, REQ_MSG_SEND, REQ_MSG_DELETE, REQ_MSG_OPENSESSION, REQ_MSG_SESSIONFILTER, REQ_MSG_LISTSESSIONS, REQ_EXP_AGENTSESSION
+// Implementation: SPEC_EXP_EXTENSION, SPEC_EXP_FILTERCOMMAND, SPEC_EXP_EVENTFILTER_CMD, SPEC_EXP_OPENYAML_CMD, SPEC_AUT_MANUALCOMMAND, SPEC_MSG_SENDCOMMAND, SPEC_MSG_OPENSESSION, SPEC_MSG_LISTSESSIONS, SPEC_EXP_AGENTSESSION, SPEC_EXP_NEWPROJECT_CMD, SPEC_EXP_NEWEVENT_CMD, SPEC_REL_UPDATECOMMAND
+// Requirements: REQ_EXP_ACTIVITYBAR, REQ_EXP_TREEVIEW, REQ_EXP_REACTIVECACHE, REQ_CFG_FOLDERPATHS, REQ_CFG_SCANINTERVAL, REQ_EXP_PROJECTFILTER, REQ_EXP_FILTERPERSIST, REQ_EXP_EVENTFILTER, REQ_EXP_EVENTFILTERPERSIST, REQ_EXP_OPENYAML, REQ_AUT_MANUALRUN, REQ_MSG_SEND, REQ_MSG_DELETE, REQ_MSG_OPENSESSION, REQ_MSG_SESSIONFILTER, REQ_MSG_LISTSESSIONS, REQ_EXP_AGENTSESSION, REQ_EXP_NEWPROJECT, REQ_EXP_NEWEVENT, REQ_REL_UPDATECOMMAND, REQ_CFG_UPDATECHECK
 
 import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as path from 'path';
 import { ProjectTreeProvider } from './projectTreeProvider';
 import { EventTreeProvider } from './eventTreeProvider';
 import { MessageTreeProvider, SessionGroupNode, MessageLeafNode } from './messageTreeProvider';
-import { YamlScanner, LeafNode } from './yamlScanner';
+import { YamlScanner, LeafNode, TreeNode } from './yamlScanner';
 import { activateHeartbeat } from './heartbeat';
 import { deleteMessage, deleteByDestination, appendMessage } from './messageQueue';
 import { lookupSessionUUID, getAllSessions, initSessionLookup, filterNamedSessions } from './sessionLookup';
+import { checkForUpdates } from './updateCheck';
+
+// Implementation: SPEC_EXP_NEWPROJECT_CMD
+function toKebabCase(name: string): string {
+    return name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+}
+
+function findLeafNode(nodes: TreeNode[], targetFolder: string): LeafNode | undefined {
+    for (const node of nodes) {
+        if (node.kind === 'leaf' && node.id.includes(targetFolder)) {
+            return node;
+        }
+        if (node.kind === 'folder') {
+            const found = findLeafNode(node.children, targetFolder);
+            if (found) { return found; }
+        }
+    }
+    return undefined;
+}
 
 export function activate(context: vscode.ExtensionContext) {
     // Initialize workspace-scoped session lookup (SPEC_MSG_SESSIONLOOKUP)
@@ -68,6 +92,20 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Activate heartbeat scheduler (SPEC_AUT_SCHEDULERLOOP, SPEC_CFG_HEARTBEATSETTINGS)
     activateHeartbeat(context, messageProvider, resolveMessagesPath);
+
+    // Automatic update check (SPEC_REL_UPDATECOMMAND, SPEC_CFG_UPDATECHECK)
+    const autoCheck = vscode.workspace
+        .getConfiguration('jarvis')
+        .get<boolean>('checkForUpdates', true);
+    if (autoCheck) {
+        checkForUpdates(context, true);
+    }
+
+    // Manual update check command (SPEC_REL_UPDATECOMMAND)
+    const checkForUpdatesCommand = vscode.commands.registerCommand(
+        'jarvis.checkForUpdates',
+        () => checkForUpdates(context, false)
+    );
 
     // Register filter command (SPEC_EXP_FILTERCOMMAND)
     const filterHandler = () => {
@@ -279,6 +317,117 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
+    // Register new project command (SPEC_EXP_NEWPROJECT_CMD)
+    // Requirements: REQ_EXP_NEWPROJECT
+    const newProjectCommand = vscode.commands.registerCommand(
+        'jarvis.newProject',
+        async () => {
+            const projectsFolder = vscode.workspace
+                .getConfiguration('jarvis')
+                .get<string>('projectsFolder', '');
+            if (!projectsFolder) {
+                vscode.window.showWarningMessage('Jarvis: projectsFolder is not configured');
+                return;
+            }
+
+            const input = await vscode.window.showInputBox({
+                prompt: 'Project name',
+                placeHolder: 'My Project',
+            });
+            if (!input) { return; }
+
+            const kebabName = toKebabCase(input);
+            const targetPath = path.join(projectsFolder, kebabName);
+
+            if (fs.existsSync(targetPath)) {
+                vscode.window.showErrorMessage(
+                    `Folder '${kebabName}' already exists in projects folder`);
+                return;
+            }
+
+            await fs.promises.mkdir(targetPath);
+            const content = `name: "${input}"\n`;
+            await fs.promises.writeFile(
+                path.join(targetPath, 'project.yaml'), content, 'utf-8');
+
+            await scanner.rescan();
+
+            const leafNode = findLeafNode(scanner.getProjectTree(), targetPath);
+            if (leafNode) {
+                await vscode.commands.executeCommand(
+                    'jarvis.openAgentSession', leafNode);
+            }
+        }
+    );
+
+    // Register new event command (SPEC_EXP_NEWEVENT_CMD)
+    // Requirements: REQ_EXP_NEWEVENT
+    const newEventCommand = vscode.commands.registerCommand(
+        'jarvis.newEvent',
+        async () => {
+            const eventsFolder = vscode.workspace
+                .getConfiguration('jarvis')
+                .get<string>('eventsFolder', '');
+            if (!eventsFolder) {
+                vscode.window.showWarningMessage('Jarvis: eventsFolder is not configured');
+                return;
+            }
+
+            const nameInput = await vscode.window.showInputBox({
+                prompt: 'Event name',
+                placeHolder: 'My Event',
+            });
+            if (!nameInput) { return; }
+
+            const dateInput = await vscode.window.showInputBox({
+                prompt: 'Start date (YYYY-MM-DD)',
+                placeHolder: '2026-01-15',
+                validateInput: (value: string) => {
+                    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+                        return 'Date must be in YYYY-MM-DD format';
+                    }
+                    const [y, m, d] = value.split('-').map(Number);
+                    const date = new Date(y, m - 1, d);
+                    if (date.getFullYear() !== y ||
+                        date.getMonth() !== m - 1 ||
+                        date.getDate() !== d) {
+                        return 'Not a valid calendar date';
+                    }
+                    return undefined;
+                },
+            });
+            if (!dateInput) { return; }
+
+            const folderName = `${dateInput}-${toKebabCase(nameInput)}`;
+            const targetPath = path.join(eventsFolder, folderName);
+
+            if (fs.existsSync(targetPath)) {
+                vscode.window.showErrorMessage(
+                    `Folder '${folderName}' already exists in events folder`);
+                return;
+            }
+
+            await fs.promises.mkdir(targetPath);
+            const content = [
+                `name: "${nameInput}"`,
+                `dates:`,
+                `  start: "${dateInput}"`,
+                `  end: "${dateInput}"`,
+                '',
+            ].join('\n');
+            await fs.promises.writeFile(
+                path.join(targetPath, 'event.yaml'), content, 'utf-8');
+
+            await scanner.rescan();
+
+            const leafNode = findLeafNode(scanner.getEventTree(), targetPath);
+            if (leafNode) {
+                await vscode.commands.executeCommand(
+                    'jarvis.openAgentSession', leafNode);
+            }
+        }
+    );
+
     context.subscriptions.push(
         filterCommand,
         filterCommandActive,
@@ -289,6 +438,9 @@ export function activate(context: vscode.ExtensionContext) {
         deleteMessageCommand,
         openSessionCommand,
         openAgentSessionCommand,
+        newProjectCommand,
+        newEventCommand,
+        checkForUpdatesCommand,
         sendToSessionTool,
         listSessionsTool,
         projectView,

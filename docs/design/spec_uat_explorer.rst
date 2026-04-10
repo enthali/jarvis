@@ -8,83 +8,68 @@ Explorer UAT Design Specifications
 
    **Description:**
    The repo SHALL contain the following test data files under ``testdata/``.
-   Valid files conform fully to the JSON Schemas. Invalid files contain deliberate
-   errors to enable out-of-bounds and error-handling tests.
+   Each project and event uses the **convention-file model**: the entity is a
+   folder containing ``project.yaml`` or ``event.yaml``. Valid files conform
+   fully to the JSON Schemas. Invalid files contain deliberate errors to enable
+   out-of-bounds and error-handling tests.
 
    **testdata/projects/**
 
    .. list-table::
       :header-rows: 1
-      :widths: 40 40 20
+      :widths: 45 35 20
 
-      * - Filename
+      * - Path
         - Description
         - Valid?
-      * - ``project-alpha.yaml``
+      * - ``alpha/project.yaml``
         - Full project, externalStatus + internalStatus set
         - valid
-      * - ``project-beta.yaml``
+      * - ``beta/project.yaml``
         - Minimal project, only required fields (name + summary)
         - valid
-      * - ``project-gamma.yaml``
+      * - ``gamma/project.yaml``
         - Project with stakeholders list
         - valid
-      * - ``project-invalid-no-name.yaml``
-        - Missing required ``name`` field
+      * - ``invalid-no-name/project.yaml``
+        - Missing required ``name`` field — leaf with folder name fallback
         - invalid
-      * - ``project-invalid-bad-name.yaml``
-        - ``name`` is an integer (wrong type — must be string)
+      * - ``invalid-bad-name/project.yaml``
+        - ``name`` is an integer (wrong type) — leaf with folder name fallback
         - invalid
+      * - ``active/delta/project.yaml``
+        - Valid project nested inside a grouping folder
+        - valid
 
    **testdata/events/**
 
+   Events use a year/date-slug convention: ``<YYYY>/<YYYY-MM-DD-slug>/event.yaml``.
+   At least one past and one future event are required for filter testing.
+
    .. list-table::
       :header-rows: 1
-      :widths: 40 40 20
+      :widths: 50 30 20
 
-      * - Filename
+      * - Path
         - Description
         - Valid?
-      * - ``event-conference.yaml``
-        - Full event, status: registered, role: speaker
+      * - ``2025/2025-03-15-conference/event.yaml``
+        - Past event, status: registered, role: speaker
         - valid
-      * - ``event-workshop.yaml``
-        - Event, status: attended
+      * - ``2025/2025-06-20-workshop/event.yaml``
+        - Past event, status: attended
         - valid
-      * - ``event-meetup.yaml``
-        - Event, status: cancelled
+      * - ``2027/2027-01-10-meetup/event.yaml``
+        - Future event, status: planned
         - valid
-      * - ``event-invalid-empty.yaml``
-        - Empty file (no fields)
+      * - ``invalid-empty/event.yaml``
+        - Empty file (no fields) — leaf with folder name fallback
         - invalid
-      * - ``event-invalid-bad-status.yaml``
+      * - ``invalid-bad-status/event.yaml``
         - ``status: does-not-exist`` (not in enum)
         - invalid
-
-   **testdata/projects/active/** (subfolder)
-
-   .. list-table::
-      :header-rows: 1
-      :widths: 40 40 20
-
-      * - Filename
-        - Description
-        - Valid?
-      * - ``project-delta.yaml``
-        - Valid project in a subfolder
-        - valid
-
-   **testdata/events/conferences/** (subfolder)
-
-   .. list-table::
-      :header-rows: 1
-      :widths: 40 40 20
-
-      * - Filename
-        - Description
-        - Valid?
-      * - ``event-iot-summit.yaml``
-        - Valid event in a subfolder
+      * - ``2025/2025-09-18-iot-summit/event.yaml``
+        - Past event nested in year grouping folder
         - valid
 
    **Expected test outcomes (documented in test protocol):**
@@ -109,11 +94,11 @@ Explorer UAT Design Specifications
         - Expand Events section
         - 3+ valid events shown as leaf nodes by name
       * - T-5 (event subfolder)
-        - Expand Events → conferences/
-        - Folder node visible; "IoT Summit" inside
+        - Expand Events → 2025/
+        - Year grouping node visible; past events inside
       * - T-6 (open YAML)
         - Click ``$(go-to-file)`` on "Project Alpha"
-        - ``project-alpha.yaml`` opens in editor
+        - ``alpha/project.yaml`` opens in editor
       * - T-7 (folder no button)
         - Hover over ``active/`` folder node
         - No ``$(go-to-file)`` button visible
@@ -130,5 +115,5 @@ Explorer UAT Design Specifications
         - Change ``jarvis.projectsFolder`` to empty dir
         - Projects tree clears immediately
       * - T-12 (invalid YAML)
-        - Expand Projects with invalid files present
-        - No crash; invalid files handled gracefully
+        - Expand Projects with invalid convention files present
+        - No crash; invalid entries show folder name as fallback label

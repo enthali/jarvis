@@ -29,6 +29,8 @@ export class YamlScanner {
     private _entities: Map<string, EntityEntry> = new Map();
     private _timer: NodeJS.Timeout | undefined;
     private _onCacheChanged: () => void;
+    private _projectsFolder = '';
+    private _eventsFolder = '';
 
     constructor(onCacheChanged: () => void) {
         this._onCacheChanged = onCacheChanged;
@@ -36,9 +38,16 @@ export class YamlScanner {
 
     start(projectsFolder: string, eventsFolder: string, intervalSec: number): void {
         this.stop();
+        this._projectsFolder = projectsFolder;
+        this._eventsFolder = eventsFolder;
         const effectiveInterval = Math.max(20, intervalSec) * 1000;
         this._scan(projectsFolder, eventsFolder);
         this._timer = setInterval(() => this._scan(projectsFolder, eventsFolder), effectiveInterval);
+    }
+
+    async rescan(): Promise<void> {
+        if (!this._projectsFolder && !this._eventsFolder) { return; }
+        await this._scan(this._projectsFolder, this._eventsFolder);
     }
 
     stop(): void {
@@ -62,8 +71,8 @@ export class YamlScanner {
 
     private async _scan(projectsFolder: string, eventsFolder: string): Promise<void> {
         const newEntities = new Map<string, EntityEntry>();
-        const newProjectTree = await this._buildTree(projectsFolder, newEntities);
-        const newEventTree = await this._buildTree(eventsFolder, newEntities);
+        const newProjectTree = await this._buildTree(projectsFolder, newEntities, 'project.yaml');
+        const newEventTree = await this._buildTree(eventsFolder, newEntities, 'event.yaml');
 
         const changed =
             !this._treesEqual(newProjectTree, this._projectTree) ||
@@ -77,7 +86,7 @@ export class YamlScanner {
         }
     }
 
-    private async _buildTree(folder: string, entities: Map<string, EntityEntry>): Promise<TreeNode[]> {
+    private async _buildTree(folder: string, entities: Map<string, EntityEntry>, conventionFile: string): Promise<TreeNode[]> {
         if (!folder) {
             return [];
         }
@@ -94,26 +103,44 @@ export class YamlScanner {
         for (const entry of entries) {
             const fullPath = path.join(folder, entry.name);
             if (entry.isDirectory()) {
-                const children = await this._buildTree(fullPath, entities);
-                if (children.length > 0) {
-                    nodes.push({ kind: 'folder', name: entry.name, children });
-                }
-            } else if (entry.isFile() && (entry.name.endsWith('.yaml') || entry.name.endsWith('.yml'))) {
+                const conventionPath = path.join(fullPath, conventionFile);
+                let hasConventionFile = false;
                 try {
-                    const content = await fs.promises.readFile(fullPath, 'utf8');
-                    const doc = yaml.load(content) as Record<string, unknown>;
-                    if (doc && typeof doc['name'] === 'string') {
-                        const datesEnd = (doc['dates'] as Record<string, unknown>)?.['end'];
-                        entities.set(fullPath, {
-                            name: doc['name'],
-                            ...(typeof datesEnd === 'string' ? { datesEnd } : {})
-                        });
-                        nodes.push({ kind: 'leaf', id: fullPath });
-                    }
+                    await fs.promises.access(conventionPath);
+                    hasConventionFile = true;
                 } catch {
-                    // skip unparseable files
+                    // no convention file
+                }
+
+                if (hasConventionFile) {
+                    // Leaf node — read convention file, no further descent
+                    try {
+                        const content = await fs.promises.readFile(conventionPath, 'utf8');
+                        const doc = yaml.load(content) as Record<string, unknown>;
+                        if (doc && typeof doc['name'] === 'string') {
+                            const datesEnd = (doc['dates'] as Record<string, unknown>)?.['end'];
+                            entities.set(conventionPath, {
+                                name: doc['name'],
+                                ...(typeof datesEnd === 'string' ? { datesEnd } : {})
+                            });
+                        } else {
+                            // Fallback: convention file present but missing/invalid name
+                            entities.set(conventionPath, { name: entry.name });
+                        }
+                    } catch {
+                        // Fallback: convention file present but unparseable
+                        entities.set(conventionPath, { name: entry.name });
+                    }
+                    nodes.push({ kind: 'leaf', id: conventionPath });
+                } else {
+                    // Grouping folder — recurse, only include if non-empty
+                    const children = await this._buildTree(fullPath, entities, conventionFile);
+                    if (children.length > 0) {
+                        nodes.push({ kind: 'folder', name: entry.name, children });
+                    }
                 }
             }
+            // Non-directory entries (files) are ignored — only convention files inside folders matter
         }
 
         return nodes;

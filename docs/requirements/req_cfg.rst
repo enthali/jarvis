@@ -86,3 +86,21 @@ Configuration Requirements
      with an absolute file path
    * AC-3: A runtime change to the setting SHALL trigger a reload of the queue
      data and a refresh of the Messages tree view
+
+
+.. req:: Update Check Configuration
+   :id: REQ_CFG_UPDATECHECK
+   :status: implemented
+   :priority: optional
+   :links: US_REL_SELFUPDATE
+
+   **Description:**
+   The extension SHALL provide a boolean setting to enable or disable the automatic
+   update check on activation.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``jarvis.checkForUpdates`` is a boolean setting with default ``true``
+   * AC-2: When set to ``false``, the automatic check at activation is skipped
+   * AC-3: The manual command ``Jarvis: Check for Updates`` works regardless of
+     this setting
