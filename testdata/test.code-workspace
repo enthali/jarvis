@@ -14,11 +14,12 @@
 		"mcp": {
 			"servers": {
 				"Jarvis-LM-tools": {
-					"url": "http://localhost:31415",
+					"url": "http://localhost:31420",
 					"type": "http"
 				}
 			},
 			"inputs": []
-		}
+		},
+		"jarvis.mcpPort": 31420
 	}
 }

@@ -1,0 +1,9 @@
+{
+	"servers": {
+		"Jarvis-LLM-tools": {
+			"url": "http://localhost:31415",
+			"type": "http"
+		}
+	},
+	"inputs": []
+}

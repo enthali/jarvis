@@ -2,7 +2,7 @@
   "name": "jarvis",
   "displayName": "Jarvis",
   "description": "Personal assistant for managing projects and events in VS Code",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "publisher": "enthali",
   "repository": {
     "type": "git",
@@ -354,6 +354,94 @@
           },
           "required": [
             "destination"
+          ]
+        }
+      },
+      {
+        "name": "jarvis_registerJob",
+        "displayName": "Register Heartbeat Job",
+        "modelDescription": "Registers (or updates) a heartbeat job with the given name, cron schedule, and steps. Use this to create recurring automation tasks. Steps can be of type python, powershell, command, agent, or queue.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "registerJob",
+        "icon": "$(add)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Unique name for the heartbeat job"
+            },
+            "schedule": {
+              "type": "string",
+              "description": "5-field cron expression or 'manual'"
+            },
+            "steps": {
+              "type": "array",
+              "description": "Ordered list of steps to execute",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "description": "Step type: python, powershell, command, agent, or queue"
+                  },
+                  "run": {
+                    "type": "string",
+                    "description": "Script path or VS Code command ID (for python/powershell/command)"
+                  },
+                  "prompt": {
+                    "type": "string",
+                    "description": "Path to prompt file (for agent steps)"
+                  },
+                  "outputFile": {
+                    "type": "string",
+                    "description": "Path to write LLM response (for agent steps)"
+                  },
+                  "append": {
+                    "type": "boolean",
+                    "description": "Append to outputFile instead of overwrite (for agent steps)"
+                  },
+                  "destination": {
+                    "type": "string",
+                    "description": "Target chat session name (for queue steps)"
+                  },
+                  "sender": {
+                    "type": "string",
+                    "description": "Sender name (for queue steps)"
+                  },
+                  "text": {
+                    "type": "string",
+                    "description": "Message content (for queue steps)"
+                  }
+                },
+                "required": ["type"]
+              }
+            }
+          },
+          "required": [
+            "name",
+            "schedule",
+            "steps"
+          ]
+        }
+      },
+      {
+        "name": "jarvis_unregisterJob",
+        "displayName": "Unregister Heartbeat Job",
+        "modelDescription": "Removes a heartbeat job by name. Returns whether the job was found and removed.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "unregisterJob",
+        "icon": "$(trash)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "The name of the heartbeat job to remove"
+            }
+          },
+          "required": [
+            "name"
           ]
         }
       }

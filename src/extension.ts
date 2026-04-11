@@ -8,7 +8,7 @@ import { ProjectTreeProvider } from './projectTreeProvider';
 import { EventTreeProvider } from './eventTreeProvider';
 import { MessageTreeProvider, SessionGroupNode, MessageLeafNode } from './messageTreeProvider';
 import { YamlScanner, LeafNode, TreeNode } from './yamlScanner';
-import { activateHeartbeat, HeartbeatScheduler, HeartbeatJob } from './heartbeat';
+import { activateHeartbeat, HeartbeatScheduler, HeartbeatJob, HeartbeatStep } from './heartbeat';
 import { deleteMessage, appendMessage, popMessage } from './messageQueue';
 import { lookupSessionUUID, getAllSessions, initSessionLookup, filterNamedSessions } from './sessionLookup';
 import { checkForUpdates } from './updateCheck';
@@ -341,7 +341,7 @@ export function activate(context: vscode.ExtensionContext) {
         async (options: vscode.LanguageModelToolInvocationOptions<{ session: string; senderSession?: string; text: string }>, _token: vscode.CancellationToken) => {
             const { session, text } = options.input;
             const activeTab = vscode.window.tabGroups.activeTabGroup.activeTab;
-            const sender = activeTab?.label || options.input.senderSession || 'unknown';
+            const sender = options.input.senderSession || activeTab?.label || 'unknown';
             appendMessage(resolveMessagesPath(), session, sender, text);
             log.info(`[MSG] sendToSession: destination="${session}", sender="${sender}"`);
             messageProvider.reload();
@@ -421,6 +421,72 @@ export function activate(context: vscode.ExtensionContext) {
             const named = filterNamedSessions(sessions)
                 .map(s => s.title);
             return { sessions: named };
+        }
+    );
+
+    // Implementation: SPEC_AUT_JOBREG_TOOLS
+    // Requirements: REQ_AUT_JOBREG_TOOLS
+    const registerJobTool = registerDualTool(
+        'jarvis_registerJob',
+        async (options: vscode.LanguageModelToolInvocationOptions<{ name: string; schedule: string; steps: HeartbeatStep[] }>, _token: vscode.CancellationToken) => {
+            const { name, schedule, steps } = options.input;
+            const job: HeartbeatJob = { name, schedule, steps };
+            await scheduler.registerJob(job);
+            log.info(`[Heartbeat] registerJob: name="${name}", schedule="${schedule}"`);
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`Job '${name}' registered with schedule '${schedule}'`)
+            ]);
+        },
+        'Registers (or updates) a heartbeat job with the given name, cron schedule, and steps.',
+        {
+            name: z.string(),
+            schedule: z.string(),
+            steps: z.array(z.object({
+                type: z.string(),
+                run: z.string().optional(),
+                prompt: z.string().optional(),
+                outputFile: z.string().optional(),
+                append: z.boolean().optional(),
+                destination: z.string().optional(),
+                sender: z.string().optional(),
+                text: z.string().optional()
+            }))
+        },
+        async (args) => {
+            const name = args.name as string;
+            const schedule = args.schedule as string;
+            const steps = args.steps as HeartbeatStep[];
+            const job: HeartbeatJob = { name, schedule, steps };
+            await scheduler.registerJob(job);
+            log.info(`[Heartbeat] registerJob(MCP): name="${name}", schedule="${schedule}"`);
+            return { status: 'registered', name, schedule };
+        }
+    );
+
+    // Implementation: SPEC_AUT_JOBREG_TOOLS
+    // Requirements: REQ_AUT_JOBREG_TOOLS
+    const unregisterJobTool = registerDualTool(
+        'jarvis_unregisterJob',
+        async (options: vscode.LanguageModelToolInvocationOptions<{ name: string }>, _token: vscode.CancellationToken) => {
+            const { name } = options.input;
+            const existed = scheduler.currentJobs.some(j => j.name === name);
+            await scheduler.unregisterJob(name);
+            log.info(`[Heartbeat] unregisterJob: name="${name}", existed=${existed}`);
+            const text = existed ? `Job '${name}' unregistered` : `Job '${name}' not found`;
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(text)
+            ]);
+        },
+        'Removes a heartbeat job by name. Returns whether the job was found and removed.',
+        { name: z.string() },
+        async (args) => {
+            const name = args.name as string;
+            const existed = scheduler.currentJobs.some(j => j.name === name);
+            await scheduler.unregisterJob(name);
+            log.info(`[Heartbeat] unregisterJob(MCP): name="${name}", existed=${existed}`);
+            return existed
+                ? { status: 'unregistered', name }
+                : { status: 'not_found', name };
         }
     );
 
@@ -570,6 +636,8 @@ export function activate(context: vscode.ExtensionContext) {
         sendToSessionTool,
         readMessageTool,
         listSessionsTool,
+        registerJobTool,
+        unregisterJobTool,
         mcpStatusBar,
         projectView,
         eventView,

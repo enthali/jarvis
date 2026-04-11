@@ -167,3 +167,27 @@ Explorer User Stories
    * AC-2: Folder (grouping) nodes are sorted by folder name (case-insensitive)
    * AC-3: Folders and leaves are interleaved — all children at a given level are
      sorted together in a single alphabetical list
+
+
+.. story:: Open Agent Session from Explorer
+   :id: US_EXP_AGENTSESSION
+   :status: approved
+   :priority: optional
+   :links: US_EXP_SIDEBAR; US_MSG_OPENSESSION; US_EXP_OPENYAML
+
+   **As a** Jarvis User,
+   **I want** to open the dedicated agent chat session for a project or event
+   directly from its tree node in the Jarvis Explorer,
+   **so that** I can jump straight into the agent conversation for that item
+   without searching through chat sessions manually.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Every project and event leaf node shows an inline action button
+     (comment-discussion icon) to open the agent session for that item
+   * AC-2: Clicking the button looks up a chat session whose title matches the
+     project/event ``name`` and opens it in the editor
+   * AC-3: If no matching session exists, a new editor chat is opened and an
+     initialization prompt is sent that tells the agent which project/event it
+     is working on and asks the user to rename the session
+   * AC-4: Folder nodes do not show the button

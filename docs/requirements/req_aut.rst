@@ -22,7 +22,7 @@ Automation Requirements
    * AC-4: Steps of type ``agent`` SHALL have a ``prompt`` field (path to prompt file)
      and an optional ``outputFile`` field (path to write the LLM response) and an
      optional ``append`` field (boolean, default ``false``, append vs. overwrite)
-   * AC-5: Steps of type ``queue`` SHALL have a ``session`` field (target chat tab label)
+   * AC-5: Steps of type ``queue`` SHALL have a ``destination`` field (target chat tab label)
      and a ``text`` field (message content)
 
 

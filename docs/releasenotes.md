@@ -1,5 +1,21 @@
 # Release Notes
 
+## v0.3.1
+
+*2026-04-11*
+
+Bugfixes, new heartbeat tools, and documentation corrections.
+
+### New Features
+
+- **heartbeat-job-tools**: Two new LM+MCP tools (`jarvis_registerJob`, `jarvis_unregisterJob`) — exposes the existing heartbeat job registration API via `registerDualTool()`, making it available to both VS Code language models and MCP clients.
+
+### Fixes
+
+- **sender-fix**: `jarvis_sendToSession` now prioritises the explicit `senderSession` parameter over the ambient active-tab label, fixing agent-to-agent sender identification.
+- **qa-fix-critical**: Fixed `session` → `destination` field name in REQ_AUT_JOBCONFIG AC-5; updated sidebar section count from 3 to 4 in US_UAT_SAMPLEDATA T-1.
+- **qa-doc-cleanup**: Corrected `OutputChannel` → `LogOutputChannel` in 5 SPECs, moved US_EXP_AGENTSESSION to the correct file (`us_exp.rst`), clarified UAT scope overlap in US_UAT_EXPLORER.
+
 ## v0.3.0
 
 *2026-04-10*

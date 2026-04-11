@@ -37,14 +37,14 @@ Automation Design Specifications
 
       export function loadJobs(
         filePath: string,
-        outputChannel: vscode.OutputChannel
+        outputChannel: vscode.LogOutputChannel
       ): HeartbeatJob[] {
         try {
           const raw = fs.readFileSync(filePath, 'utf8');
           const data = yaml.load(raw) as { jobs: HeartbeatJob[] };
           return data?.jobs ?? [];
         } catch (e) {
-          outputChannel.appendLine(`[Heartbeat] Failed to load config: ${e}`);
+          outputChannel.error(`[Heartbeat] Failed to load config: ${e}`);
           return [];
         }
       }
@@ -143,7 +143,7 @@ Automation Design Specifications
 
       export async function executeJob(
         job: HeartbeatJob,
-        outputChannel: vscode.OutputChannel
+        outputChannel: vscode.LogOutputChannel
       ): Promise<ExecResult> {
         for (const step of job.steps) {
           const result = await runStep(step, outputChannel);
@@ -186,7 +186,7 @@ Automation Design Specifications
 
       async function runManualJob(
         jobs: HeartbeatJob[],
-        outputChannel: vscode.OutputChannel
+        outputChannel: vscode.LogOutputChannel
       ): Promise<void> {
         const manual = jobs.filter(j => j.schedule === 'manual');
         if (manual.length === 0) {
@@ -308,11 +308,11 @@ Automation Design Specifications
 
       async function executeAgentStep(
         step: HeartbeatStep,
-        outputChannel: vscode.OutputChannel,
+        outputChannel: vscode.LogOutputChannel,
         configDir: string
       ): Promise<ExecResult> {
         const promptPath = resolveScriptPath(step.prompt!, configDir);
-        outputChannel.appendLine(`[Heartbeat] agent: prompt=${promptPath}`);
+        outputChannel.info(`[Heartbeat] agent: prompt=${promptPath}`);
         try {
           const promptText = fs.readFileSync(promptPath, 'utf8');
           const models = await vscode.lm.selectChatModels(
@@ -322,12 +322,12 @@ Automation Design Specifications
             return { success: false, stepType: 'agent', error: 'no LM model available' };
           }
           const model = models[0];
-          outputChannel.appendLine(`[Heartbeat] agent: model=${model.id}`);
+          outputChannel.info(`[Heartbeat] agent: model=${model.id}`);
           const messages = [vscode.LanguageModelChatMessage.User(promptText)];
           const response = await model.sendRequest(messages, {});
           let text = '';
           for await (const chunk of response.text) { text += chunk; }
-          outputChannel.appendLine(
+          outputChannel.info(
             `[Heartbeat] agent: response length=${text.length}`
           );
           if (step.outputFile) {
@@ -337,7 +337,7 @@ Automation Design Specifications
             } else {
               fs.writeFileSync(outPath, text);
             }
-            outputChannel.appendLine(`[Heartbeat] agent: written to ${outPath}`);
+            outputChannel.info(`[Heartbeat] agent: written to ${outPath}`);
           }
           return { success: true };
         } catch (e) {
@@ -368,14 +368,14 @@ Automation Design Specifications
 
       async function executeQueueStep(
         step: HeartbeatStep,
-        outputChannel: vscode.OutputChannel,
+        outputChannel: vscode.LogOutputChannel,
         queuePath: string,
         messageTreeProvider: MessageTreeProvider
       ): Promise<ExecResult> {
         try {
           appendMessage(queuePath, step.destination!, step.sender || 'heartbeat', step.text!);
           messageTreeProvider.reload();
-          outputChannel.appendLine(
+          outputChannel.info(
             `[Heartbeat] queue: destination="${step.destination}" sender="${step.sender || 'heartbeat'}" text="${step.text}"`
           );
           return { success: true };
