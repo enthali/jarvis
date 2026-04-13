@@ -192,6 +192,13 @@ Configuration Design Specifications
           "properties": {
             "jarvis.checkForUpdates": { ... }
           }
+        },
+        {
+          "title": "Outlook",
+          "properties": {
+            "jarvis.outlookEnabled": { ... },
+            "jarvis.outlook.showCategories": { ... }
+          }
         }
       ]
 

@@ -24,10 +24,12 @@ Explorer Requirements
    :links: US_EXP_SIDEBAR
 
    **Description:**
-   The extension SHALL provide three tree views inside the Jarvis sidebar:
-   "Projects", "Events", and "Messages". The Projects and Events tree views
-   display items hierarchically reflecting the folder structure on disk. The
-   Messages tree view displays queued messages grouped by target session.
+   The extension SHALL provide tree views inside the Jarvis sidebar:
+   "Projects", "Events", "Messages", "Heartbeat", and "Categories". The
+   Projects and Events tree views display items hierarchically reflecting
+   the folder structure on disk. The Messages tree view displays queued
+   messages grouped by target session. The Categories view displays
+   Outlook categories (see ``REQ_OLK_CATVIEW``).
 
    **Acceptance Criteria:**
 
@@ -44,6 +46,8 @@ Explorer Requirements
    * AC-8: When the message queue is empty, the Messages tree view SHALL display a
      single node with label ``nothing to deliver``
    * AC-9: Grouping nodes with no descendant leaf items SHALL be omitted from the tree
+   * AC-10: The sidebar contains a "Categories" tree view (visible when Outlook is
+     enabled — see ``REQ_OLK_CATVIEW`` for visibility rules)
 
 
 .. req:: Static Dummy Data
@@ -412,6 +416,9 @@ Explorer Requirements
      ``jarvis.heartbeatConfigFile`` is set to a non-empty string
    * AC-5: Visibility SHALL be controlled via the ``when`` property on the
      view definition in ``package.json`` — no runtime code required
+   * AC-6: The Categories view SHALL only be visible when
+     ``jarvis.outlookEnabled`` is ``true`` AND
+     ``jarvis.outlook.showCategories`` is ``true``
 
 
 .. req:: Context Actions on Leaf Nodes
