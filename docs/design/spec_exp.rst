@@ -831,7 +831,7 @@ Explorer Design Specifications
         { "id": "jarvisHeartbeat", "name": "Heartbeat",
           "when": "config.jarvis.heartbeatConfigFile != ''" },
         { "id": "jarvisCategories", "name": "Categories",
-          "when": "config.jarvis.outlookEnabled && config.jarvis.outlook.showCategories" }
+          "when": "config.jarvis.pim.showCategories" }
       ]
 
    **Bootstrap sequence for new installations:**
