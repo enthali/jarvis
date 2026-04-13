@@ -53,7 +53,7 @@ Outlook Requirements
 
 .. req:: Auto-Create Outlook Category on New Entity
    :id: REQ_OLK_AUTOCAT_NEWENTITY
-   :status: approved
+   :status: implemented
    :priority: optional
    :links: US_OLK_AUTOCATEGORY; REQ_EXP_NEWPROJECT; REQ_EXP_NEWEVENT; REQ_OLK_ENABLE; REQ_PIM_SERVICE
 

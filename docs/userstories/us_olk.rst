@@ -28,7 +28,7 @@ Outlook User Stories
 
 .. story:: Auto-Create Outlook Category on New Entity
    :id: US_OLK_AUTOCATEGORY
-   :status: approved
+   :status: implemented
    :priority: optional
    :links: US_EXP_NEWENTITY; US_OLK_COMBRIDGE
 

@@ -256,7 +256,7 @@ Outlook Categories User Acceptance Tests
 
 .. story:: Auto-Category on New Entity Acceptance Tests
    :id: US_UAT_AUTOCAT
-   :status: approved
+   :status: implemented
    :priority: optional
    :links: US_OLK_AUTOCATEGORY; REQ_OLK_AUTOCAT_NEWENTITY
 

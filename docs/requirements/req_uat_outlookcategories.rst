@@ -87,7 +87,7 @@ Outlook Categories UAT Requirements
 
 .. req:: Auto-Category Test Data
    :id: REQ_UAT_AUTOCAT_TESTDATA
-   :status: approved
+   :status: implemented
    :priority: optional
    :links: US_UAT_AUTOCAT; REQ_OLK_AUTOCAT_NEWENTITY; REQ_EXP_NEWPROJECT; REQ_EXP_NEWEVENT
 
