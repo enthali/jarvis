@@ -41,17 +41,20 @@ Confirm decisions with the user. If any are missing, ask the user to provide val
 <!-- Requirements: REQ_REL_AGENTPOLICY, REQ_REL_BRANCHRETENTION -->
 
 Merge to `main` happens **only at release time** — not after individual changes.
-Squash-merge all verified feature branches accumulated since the last release:
+All verified feature branches have already been merged into `develop` by the Change Manager.
+The release agent performs a single squash-merge of `develop` into `main`:
 
 ```bash
 git checkout main
-git merge --squash feature/<change-name>
-git commit -m "feat: <change-name> — <one-line summary>"
-# Repeat for each feature branch in this release
-# Do NOT: git push origin feature/<change-name>
+git merge --squash develop
+git commit -m "release: vX.Y.Z
+
+<release notes summary>"
 ```
 
-Then bump version, tag, and push.
+Then bump version, tag, and push. Do NOT merge feature branches individually into `main`.
+
+**Important:** After tagging and pushing, switch back to `develop` for the archive step and any post-release commits. `develop` is never reset — it continues accumulating changes for the next release.
 
 ## Release Note Generation
 
