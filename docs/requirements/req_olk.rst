@@ -3,7 +3,7 @@ Outlook Requirements
 
 .. req:: Outlook Category Provider (COM Bridge)
    :id: REQ_OLK_COMBRIDGE
-   :status: draft
+   :status: implemented
    :priority: mandatory
    :links: US_OLK_COMBRIDGE; REQ_PIM_PROVIDER
 
@@ -34,7 +34,7 @@ Outlook Requirements
 
 .. req:: Outlook Master Toggle
    :id: REQ_OLK_ENABLE
-   :status: draft
+   :status: implemented
    :priority: mandatory
    :links: US_OLK_COMBRIDGE; REQ_CFG_SETTINGSGROUPS
 

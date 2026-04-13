@@ -3,7 +3,7 @@ Outlook Design Specifications
 
 .. spec:: OutlookCategoryProvider (COM Bridge)
    :id: SPEC_OLK_COMBRIDGE
-   :status: draft
+   :status: implemented
    :links: REQ_OLK_COMBRIDGE; SPEC_PIM_IFACE
 
    **Description:**
@@ -117,7 +117,7 @@ Outlook Design Specifications
 
 .. spec:: Outlook Settings and Activation Guard
    :id: SPEC_OLK_SETTINGS
-   :status: draft
+   :status: implemented
    :links: REQ_OLK_ENABLE; REQ_CFG_SETTINGSGROUPS; SPEC_CFG_SETTINGSGROUPS
 
    **Description:**

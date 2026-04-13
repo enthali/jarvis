@@ -3,7 +3,7 @@ PIM Requirements
 
 .. req:: Category Provider Interface (Strategy Pattern)
    :id: REQ_PIM_PROVIDER
-   :status: draft
+   :status: implemented
    :priority: mandatory
    :links: US_PIM_CATEGORIES
 
@@ -36,7 +36,7 @@ PIM Requirements
 
 .. req:: Generic Domain Cache
    :id: REQ_PIM_CACHE
-   :status: draft
+   :status: implemented
    :priority: mandatory
    :links: US_PIM_CATEGORIES; REQ_AUT_SCHEDULER
 
@@ -59,7 +59,7 @@ PIM Requirements
 
 .. req:: Category Service
    :id: REQ_PIM_SERVICE
-   :status: draft
+   :status: implemented
    :priority: mandatory
    :links: US_PIM_CATEGORIES; REQ_PIM_PROVIDER; REQ_PIM_CACHE
 
@@ -86,7 +86,7 @@ PIM Requirements
 
 .. req:: Category Management Tool (LM/MCP)
    :id: REQ_PIM_CATTOOL
-   :status: draft
+   :status: implemented
    :priority: mandatory
    :links: US_PIM_CATTOOL; REQ_PIM_SERVICE; REQ_MSG_MCPSERVER
 
@@ -116,7 +116,7 @@ PIM Requirements
 
 .. req:: Categories Sidebar Tree View
    :id: REQ_PIM_CATVIEW
-   :status: draft
+   :status: implemented
    :priority: optional
    :links: US_PIM_CATVIEW; REQ_PIM_SERVICE; REQ_EXP_TREEVIEW
 

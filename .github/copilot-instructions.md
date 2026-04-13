@@ -17,7 +17,12 @@ Projects and events are stored as YAML files in configurable folders.
 
 ```
 src/                    — Extension source (TypeScript)
-  extension.ts          — Activation, commands (new-entity, filters, rescan, context-actions, agent sessions), populateDefaultPaths() for workspace-settings bootstrap, 6 LM+MCP tools (sendToSession, readMessage, listSessions, listProjects, registerJob, unregisterJob) via registerDualTool(), syncRescanJob() heartbeat bridge, shared LogOutputChannel "Jarvis" (structured logging with levels and module tags)
+  extension.ts          — Activation, commands (new-entity, filters, rescan, context-actions, agent sessions, category rename/delete/refresh), populateDefaultPaths() for workspace-settings bootstrap, 7 LM+MCP tools (sendToSession, readMessage, listSessions, listProjects, registerJob, unregisterJob, jarvis_category) via registerDualTool(), syncRescanJob()+syncCategoryRefreshJob() heartbeat bridges, shared LogOutputChannel "Jarvis" (structured logging with levels and module tags)
+  pim/ICategoryProvider.ts — Category + ICategoryProvider strategy-pattern interface
+  pim/DomainCache.ts    — Generic in-memory cache with refresh callback
+  pim/CategoryService.ts — Provider list + DomainCache<Category[]>; getCategories/setCategory/deleteCategory/renameCategory/refresh/hasProviders
+  pim/CategoryTreeProvider.ts — TreeDataProvider for Categories sidebar view (contextValue: jarvisCategory)
+  outlookIntegration/OutlookCategoryProvider.ts — ICategoryProvider via PowerShell COM; color heuristic (project→8, event→10); single-quote escaping
   yamlScanner.ts        — Convention-file scanner: folder with project.yaml/event.yaml = leaf; content-change detection; events sorted by datesStart+name, projects by name; no own timer (rescans via heartbeat)
   projectTreeProvider.ts — Tree UI for projects (owns _hiddenFolders filter; contextValue: jarvisProject)
   eventTreeProvider.ts  — Tree UI for events (owns _futureOnly filter; label: "datesStart — name"; contextValue: jarvisEvent)

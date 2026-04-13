@@ -3,7 +3,7 @@ PIM Design Specifications
 
 .. spec:: ICategoryProvider Interface
    :id: SPEC_PIM_IFACE
-   :status: draft
+   :status: implemented
    :links: REQ_PIM_PROVIDER
 
    **Description:**
@@ -44,7 +44,7 @@ PIM Design Specifications
 
 .. spec:: DomainCache<T> Implementation
    :id: SPEC_PIM_CACHE
-   :status: draft
+   :status: implemented
    :links: REQ_PIM_CACHE
 
    **Description:**
@@ -89,7 +89,7 @@ PIM Design Specifications
 
 .. spec:: CategoryService Orchestrator
    :id: SPEC_PIM_SERVICE
-   :status: draft
+   :status: implemented
    :links: REQ_PIM_SERVICE; SPEC_PIM_IFACE; SPEC_PIM_CACHE
 
    **Description:**
@@ -260,7 +260,7 @@ PIM Design Specifications
 
 .. spec:: jarvis_category Dual Tool
    :id: SPEC_PIM_CATTOOL
-   :status: draft
+   :status: implemented
    :links: REQ_PIM_CATTOOL; SPEC_PIM_SERVICE; SPEC_MSG_DUALREGISTRATION
 
    **Description:**
@@ -409,7 +409,7 @@ PIM Design Specifications
 
 .. spec:: CategoryTreeProvider
    :id: SPEC_PIM_CATVIEW
-   :status: draft
+   :status: implemented
    :links: REQ_PIM_CATVIEW; SPEC_PIM_SERVICE
 
    **Description:**
