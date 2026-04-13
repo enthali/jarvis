@@ -1,4 +1,4 @@
-# QA Review Matrix — User Stories
+# Quality Manager Review Matrix — User Stories
 
 Diese Übersicht zeigt auf einen Blick, welche User Stories bereits im QA-Review als vollständige Review-Einheit geprüft wurden.
 

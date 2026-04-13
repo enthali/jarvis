@@ -55,6 +55,7 @@ Release User Stories
    :id: US_REL_GITWORKFLOW
    :status: implemented
    :priority: mandatory
+   :links: US_DEV_CONVENTIONS
 
    **As a** Jarvis Developer,
    **I want** a defined Git workflow for feature branches and merging to main,

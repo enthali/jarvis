@@ -22,7 +22,7 @@ Developer Tooling Requirements
    :id: REQ_DEV_TESTSUMMARY
    :status: implemented
    :priority: mandatory
-   :links: US_DEV_MANUALTEST
+   :links: US_DEV_MANUALTEST; REQ_DEV_TESTPROTOCOL
 
    **Description:**
    After implementation, the Implement Agent SHALL present the user with a
@@ -101,3 +101,50 @@ Developer Tooling Requirements
      operations, ``channel.debug()`` for detailed diagnostics, and
      ``channel.trace()`` for very verbose output
    * AC-7: The previous ``"Jarvis Heartbeat"`` output channel SHALL be removed
+
+
+.. req:: Activation Events & Boot Sequence
+   :id: REQ_DEV_ACTIVATION
+   :status: implemented
+   :priority: mandatory
+   :links: US_DEV_MANUALTEST
+
+   **Description:**
+   The extension SHALL declare activation events in ``package.json`` and initialize
+   all subsystems in dependency order during ``activate()``. The boot sequence SHALL
+   ensure that each subsystem's dependencies are available before it starts.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``package.json`` SHALL declare ``onStartupFinished`` plus ``onView:``
+     events for all four Jarvis views (``jarvisProjects``, ``jarvisEvents``,
+     ``jarvisMessages``, ``jarvisHeartbeat``) in the ``activationEvents`` array
+   * AC-2: The ``activate()`` function SHALL initialize subsystems in dependency
+     order: LogOutputChannel → HeartbeatScheduler → YamlScanner →
+     TreeDataProviders → MCP Server
+   * AC-3: No subsystem SHALL depend on a component that is initialized later in
+     the boot sequence
+
+
+.. req:: Graceful Deactivation
+   :id: REQ_DEV_DISPOSAL
+   :status: implemented
+   :priority: mandatory
+   :links: US_DEV_MANUALTEST
+
+   **Description:**
+   All background timers, file watchers, output channels, and the MCP server SHALL
+   be registered in ``context.subscriptions`` for clean disposal. The ``deactivate()``
+   function SHALL stop the MCP server explicitly.
+
+   **Acceptance Criteria:**
+
+   * AC-1: All VS Code commands, tree views, LM tools, status bar items, and event
+     listeners SHALL be pushed to ``context.subscriptions``
+   * AC-2: The HeartbeatScheduler timer SHALL be disposed via a wrapper in
+     ``context.subscriptions``
+   * AC-3: The YamlScanner SHALL be stopped via a dispose wrapper in
+     ``context.subscriptions``
+   * AC-4: The LogOutputChannel SHALL be pushed to ``context.subscriptions``
+   * AC-5: ``deactivate()`` SHALL call ``stopMcpServer()`` to shut down the
+     embedded MCP server

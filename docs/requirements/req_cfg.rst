@@ -21,7 +21,7 @@ Configuration Requirements
    :id: REQ_CFG_SCANINTERVAL
    :status: implemented
    :priority: mandatory
-   :links: US_CFG_PROJECTPATH
+   :links: US_CFG_PROJECTPATH; REQ_AUT_JOBREG
 
    **Description:**
    The extension SHALL provide a VS Code setting to control the background scanner
@@ -129,3 +129,46 @@ Configuration Requirements
      start during activation
    * AC-4: The port setting SHALL be read at activation time — runtime changes
      require extension reload
+
+
+.. req:: Grouped Settings Categories
+   :id: REQ_CFG_SETTINGSGROUPS
+   :status: implemented
+   :priority: mandatory
+   :links: US_CFG_SETTINGSGROUPS; REQ_EXP_FEATURETOGGLE
+
+   **Description:**
+   The extension SHALL organize its VS Code settings into named sub-categories
+   so they appear grouped in the Settings UI.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The ``contributes.configuration`` block in ``package.json`` SHALL be
+     an array of configuration objects, each with a distinct ``title``
+   * AC-2: The groups SHALL be: Projects, Events, Heartbeat, Messages,
+     MCP Server, Updates
+   * AC-3: Each setting SHALL appear in exactly one group
+   * AC-4: No setting key, type, or default value SHALL change
+
+
+.. req:: Default Path Population at Activation
+   :id: REQ_CFG_DEFAULTPATHS
+   :status: implemented
+   :priority: mandatory
+   :links: US_EXP_FEATURETOGGLE; REQ_CFG_HEARTBEATPATH; REQ_CFG_MSGPATH
+
+   **Description:**
+   The extension SHALL write the resolved default file paths into the user-visible
+   settings at activation time when those settings are empty. This ensures that
+   ``when``-clauses based on non-empty settings evaluate correctly.
+
+   **Acceptance Criteria:**
+
+   * AC-1: If ``jarvis.heartbeatConfigFile`` is empty at activation, the extension
+     SHALL write the resolved default path (workspace storage) into the setting
+   * AC-2: If ``jarvis.messagesFile`` is empty at activation, the extension SHALL
+     write the resolved default path (workspace storage) into the setting
+   * AC-3: The written value SHALL be the same path that the extension would use
+     as fallback — no behavioral change
+   * AC-4: The write SHALL use ``ConfigurationTarget.Workspace`` so the value is
+     scoped to the current workspace

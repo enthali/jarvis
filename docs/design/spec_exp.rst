@@ -4,7 +4,7 @@ Explorer Design Specifications
 .. spec:: Extension Manifest & Activation
    :id: SPEC_EXP_EXTENSION
    :status: implemented
-   :links: REQ_EXP_ACTIVITYBAR, REQ_CFG_FOLDERPATHS, REQ_CFG_SCANINTERVAL, REQ_EXP_FILTERPERSIST, REQ_EXP_EVENTFILTERPERSIST, REQ_EXP_OPENYAML, REQ_EXP_NEWPROJECT, REQ_EXP_NEWEVENT, REQ_EXP_RESCAN_BTN
+   :links: REQ_EXP_ACTIVITYBAR, REQ_CFG_FOLDERPATHS, REQ_CFG_SCANINTERVAL, REQ_EXP_FILTERPERSIST, REQ_EXP_EVENTFILTERPERSIST, REQ_EXP_OPENYAML, REQ_EXP_NEWPROJECT, REQ_EXP_NEWEVENT, REQ_EXP_RESCAN_BTN, REQ_EXP_FEATURETOGGLE, REQ_CFG_DEFAULTPATHS, REQ_EXP_CONTEXTACTIONS
 
    **Description:**
    The extension is scaffolded as a standard VS Code TypeScript extension.
@@ -13,20 +13,21 @@ Explorer Design Specifications
 
    * ``name``: ``jarvis``
    * ``displayName``: ``Jarvis``
-   * ``activationEvents``: ``onView:jarvisProjects``, ``onView:jarvisEvents``,
-     ``onView:jarvisMessages``
+   * ``activationEvents``: ``onStartupFinished``, ``onView:jarvisProjects``,
+     ``onView:jarvisEvents``, ``onView:jarvisMessages``, ``onView:jarvisHeartbeat``
    * ``contributes.viewsContainers.activitybar``: One entry with id ``jarvis-explorer``,
      title ``Jarvis``, and a custom icon (``resources/jarvis.svg``)
-   * ``contributes.views.jarvis-explorer``: Three views — ``jarvisProjects`` (title
-     "Projects"), ``jarvisEvents`` (title "Events"), and ``jarvisMessages`` (title
-     "Messages")
+   * ``contributes.views.jarvis-explorer``: Four views with conditional visibility.
+     See ``SPEC_EXP_FEATURETOGGLE`` for the authoritative ``when``-clause definitions.
 
    **Activation:**
    The extension activates lazily when any tree view becomes visible.
-   The ``activate()`` function registers all three TreeDataProviders.
+   The ``activate()`` function first calls ``populateDefaultPaths()`` (see
+   ``SPEC_CFG_DEFAULTPATHS``), then registers all four TreeDataProviders.
 
    **Activation order (heartbeat-register change):**
 
+   0. ``await populateDefaultPaths(context)`` — writes default paths to settings
    1. ``activateHeartbeat(context, ...)`` → returns ``HeartbeatScheduler``
    2. ``scanner = new YamlScanner(callback)``
    3. ``scanner.start(projectsFolder, eventsFolder)`` → immediate scan (no timer)
@@ -74,10 +75,66 @@ Explorer Design Specifications
       tsconfig.json
 
 
+.. spec:: syncRescanJob Bridge
+   :id: SPEC_EXP_RESCANBRIDGE
+   :status: implemented
+   :links: REQ_CFG_SCANINTERVAL; SPEC_AUT_JOBREG; SPEC_EXP_SCANNER
+
+   **Description:**
+   A helper function in ``src/extension.ts`` that bridges the YamlScanner and the
+   HeartbeatScheduler. It reads the ``jarvis.scanInterval`` setting and registers
+   or unregisters a ``"Jarvis: Rescan"`` heartbeat job accordingly.
+
+   **Implementation** (``src/extension.ts``, inside ``activate()``):
+
+   .. code-block:: typescript
+
+      function syncRescanJob(): void {
+          const interval = vscode.workspace
+              .getConfiguration('jarvis')
+              .get<number>('scanInterval', 2);
+          if (interval > 0) {
+              const job: HeartbeatJob = {
+                  name: 'Jarvis: Rescan',
+                  schedule: `*/${interval} * * * *`,
+                  steps: [{ type: 'command', run: 'jarvis.rescan' }]
+              };
+              scheduler.registerJob(job);
+              log.info(`[Scanner] registered rescan job: */${interval} * * * *`);
+          } else {
+              scheduler.unregisterJob('Jarvis: Rescan');
+              log.info('[Scanner] unregistered rescan job (interval=0)');
+          }
+      }
+
+   **Callers:**
+
+   * Called once during activation after ``startScanner()`` to establish the
+     initial rescan schedule
+   * Called from the ``onDidChangeConfiguration`` handler when
+     ``jarvis.scanInterval`` changes at runtime
+
+   **Behaviour:**
+
+   * ``scanInterval > 0``: registers a heartbeat job named ``"Jarvis: Rescan"``
+     with a cron schedule of ``*/<interval> * * * *`` and a single ``command``
+     step that executes ``jarvis.rescan``. If the job already exists, it is
+     updated (upsert via ``SPEC_AUT_JOBREG``).
+   * ``scanInterval === 0``: unregisters the ``"Jarvis: Rescan"`` job, disabling
+     automatic periodic scanning. The scanner still performs its initial scan
+     via ``startScanner()``.
+
+   **Dependencies:**
+
+   * ``scheduler`` (``HeartbeatScheduler``) — must be initialized before
+     ``syncRescanJob()`` is called (see ``SPEC_DEV_ACTIVATION``)
+   * ``log`` (``LogOutputChannel``) — shared logging channel
+
+
 .. spec:: Tree Data Providers
    :id: SPEC_EXP_PROVIDER
    :status: implemented
-   :links: REQ_EXP_TREEVIEW, REQ_EXP_YAMLDATA, REQ_EXP_REACTIVECACHE, REQ_EXP_PROJECTFILTER, REQ_EXP_EVENTFILTER, SPEC_EXP_SCANNER
+   :links: REQ_EXP_TREEVIEW, REQ_EXP_YAMLDATA, REQ_EXP_REACTIVECACHE, REQ_EXP_PROJECTFILTER, REQ_EXP_EVENTFILTER, REQ_EVT_DATESORT, SPEC_EXP_SCANNER
 
    **Description:**
    Two classes implement ``vscode.TreeDataProvider<TreeNode>``:
@@ -102,6 +159,13 @@ Explorer Design Specifications
      ``collapsibleState = None``, ``contextValue = 'jarvisProject'`` or ``'jarvisEvent'``.
      If entity lookup fails, the label falls back to the parent folder name
      (derived from ``path.basename(path.dirname(element.id))``)
+
+   **Event date label (event-sort change, EventTreeProvider only):**
+
+   For event leaf nodes, if ``entity.datesStart`` is defined, the label SHALL be
+   ``<datesStart> — <name>`` (e.g. ``2026-04-15 — DevCon 2026``). The separator
+   is an em-dash (``—``) with surrounding spaces. If ``datesStart`` is
+   ``undefined``, the label is the entity name only (fail-open).
 
    **ProjectTreeProvider filter state:**
 
@@ -129,7 +193,7 @@ Explorer Design Specifications
 .. spec:: YAML Scanner Service
    :id: SPEC_EXP_SCANNER
    :status: implemented
-   :links: REQ_EXP_YAMLDATA, REQ_EXP_REACTIVECACHE
+   :links: REQ_EXP_YAMLDATA, REQ_EXP_REACTIVECACHE, REQ_EXP_NAMESORT, REQ_EVT_DATESORT
 
    **Description:**
    File ``src/yamlScanner.ts`` — background scanner service with two-layer output.
@@ -143,6 +207,7 @@ Explorer Design Specifications
       interface EntityEntry {
           name: string;
           datesEnd?: string;         // event end date YYYY-MM-DD; undefined for projects or if absent
+          datesStart?: string;       // event start date YYYY-MM-DD; undefined for projects or if absent
       }
 
       interface FolderNode {
@@ -219,9 +284,27 @@ Explorer Design Specifications
      ``path.basename(path.dirname(node.id)).toLowerCase()``)
    * ``FolderNode``: ``node.name.toLowerCase()``
 
+   **Event date sort override (event-sort change):**
+
+   When ``conventionFile === 'event.yaml'``, the sort key for ``LeafNode``\s
+   SHALL be ``(entity.datesStart ?? '') + entity.name.toLowerCase()`` instead
+   of ``entity.name.toLowerCase()`` alone. This ensures events with a start date
+   sort chronologically (YYYY-MM-DD is lexicographically sortable), while events
+   without a date sort after all dated events (empty string prefix).
+
    Folders and leaves are interleaved — the sort treats all children uniformly.
    The sort is applied recursively (each call to ``_buildTree`` sorts its own
    level). ``localeCompare`` is used for comparison.
+
+   **``datesStart`` extraction (event-sort change):**
+
+   In ``_buildTree()``, when reading the convention file for events, the scanner
+   SHALL also extract ``dates.start``:
+
+   * If ``dates.start`` is a ``Date`` object (YAML auto-parses unquoted dates) →
+     ``toISOString().slice(0, 10)``
+   * If ``dates.start`` is a ``string`` → use directly
+   * Otherwise → ``undefined`` (field omitted from ``EntityEntry``)
 
    **Callers in ``_scan()``:**
 
@@ -625,3 +708,250 @@ Explorer Design Specifications
         }
 
    **Disposable** pushed to ``context.subscriptions``.
+
+
+.. spec:: List Projects LM Tool
+   :id: SPEC_EXP_LISTPROJECTS
+   :status: implemented
+   :links: REQ_EXP_LISTPROJECTS; SPEC_EXP_SCANNER; SPEC_MSG_DUALREGISTRATION
+
+   **Description:**
+   Register ``jarvis_listProjects`` as a dual LM + MCP tool in ``extension.ts``.
+   Returns the list of projects from the scanner with their name and relative
+   folder path. Follows the ``jarvis_listSessions`` pattern.
+
+   **Leaf extraction helper** (local to ``activate()``):
+
+   .. code-block:: typescript
+
+      function collectLeaves(nodes: TreeNode[]): LeafNode[] {
+          const leaves: LeafNode[] = [];
+          for (const node of nodes) {
+              if (node.kind === 'leaf') {
+                  leaves.push(node);
+              } else {
+                  leaves.push(...collectLeaves(node.children));
+              }
+          }
+          return leaves;
+      }
+
+   **Core logic** (shared by LM and MCP handlers):
+
+   .. code-block:: typescript
+
+      function getProjectList(): { name: string; folder: string }[] {
+          const projectsFolder = vscode.workspace
+              .getConfiguration('jarvis')
+              .get<string>('projectsFolder', '');
+          const leaves = collectLeaves(scanner.getProjectTree());
+          return leaves.map(leaf => {
+              const entity = scanner.getEntity(leaf.id);
+              const absDir = path.dirname(leaf.id);
+              const rel = projectsFolder
+                  ? path.relative(projectsFolder, absDir)
+                  : absDir;
+              return {
+                  name: entity?.name ?? path.basename(absDir),
+                  folder: rel.replace(/\\/g, '/')
+              };
+          });
+      }
+
+   **Dual-tool registration:**
+
+   .. code-block:: typescript
+
+      const listProjectsTool = registerDualTool(
+          'jarvis_listProjects',
+          // LM handler
+          async (_options, _token) => {
+              const projects = getProjectList();
+              return new vscode.LanguageModelToolResult([
+                  new vscode.LanguageModelTextPart(JSON.stringify(projects))
+              ]);
+          },
+          // MCP description
+          'Returns the list of projects with name and folder path.',
+          // MCP input schema (Zod)
+          {},
+          // MCP handler
+          async () => {
+              const projects = getProjectList();
+              return { projects };
+          }
+      );
+
+   **Registration in package.json:**
+
+   .. code-block:: json
+
+      {
+        "name": "jarvis_listProjects",
+        "displayName": "List Projects",
+        "modelDescription": "Returns the list of projects in the Jarvis workspace with their name and folder path. Use this to discover available projects.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "listProjects",
+        "icon": "$(project)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+
+   **Design notes:**
+
+   * No input parameters — mirrors ``jarvis_listSessions`` pattern
+   * ``folder`` uses forward slashes for cross-platform consistency
+   * Falls back to folder basename if entity lookup fails (defensive)
+   * Disposable pushed to ``context.subscriptions``
+
+
+.. spec:: Feature-Toggled Sidebar Views
+   :id: SPEC_EXP_FEATURETOGGLE
+   :status: implemented
+   :links: REQ_EXP_FEATURETOGGLE; SPEC_CFG_DEFAULTPATHS; SPEC_EXP_EXTENSION
+
+   **Description:**
+   The `contributes.views` section in `package.json` SHALL be updated so that
+   optional sidebar views carry a `when`-clause that hides them until the
+   corresponding feature setting is non-empty.
+
+   **package.json change** (`contributes.views.jarvis-explorer`):
+
+   .. code-block:: json
+
+      [
+        { "id": "jarvisProjects",  "name": "Projects" },
+        { "id": "jarvisEvents",    "name": "Events",
+          "when": "config.jarvis.eventsFolder != ''" },
+        { "id": "jarvisMessages",  "name": "Messages",
+          "when": "config.jarvis.messagesFile != ''" },
+        { "id": "jarvisHeartbeat", "name": "Heartbeat",
+          "when": "config.jarvis.heartbeatConfigFile != ''" }
+      ]
+
+   **Bootstrap sequence for new installations:**
+
+   1. VS Code starts; `onStartupFinished` fires; extension activates
+   2. `SPEC_CFG_DEFAULTPATHS` logic writes resolved paths into
+      `jarvis.messagesFile` and `jarvis.heartbeatConfigFile`
+   3. VS Code re-evaluates `when`-clauses; Messages and Heartbeat views
+      become visible automatically
+   4. On subsequent starts the settings are already non-empty; views are
+      visible immediately without waiting for `onStartupFinished`
+
+   **Constraints:**
+
+   * The Projects view carries NO `when`-clause (always visible)
+   * The Events view is hidden until the user explicitly sets
+     `jarvis.eventsFolder` — no default is written for this setting
+   * `when`-clause syntax uses `config.<key> != ''`; this evaluates to
+     `true` as soon as the setting holds any non-empty string
+   * No TypeScript code changes are required for the visibility logic itself;
+     VS Code evaluates `when`-clauses natively
+
+
+.. spec:: Context Actions Commands
+   :id: SPEC_EXP_CONTEXTACTIONS
+   :status: implemented
+   :links: REQ_EXP_CONTEXTACTIONS; SPEC_EXP_EXTENSION; SPEC_EXP_PROVIDER
+
+   **Description:**
+   Register three commands in ``extension.ts`` that delegate to built-in VS Code
+   commands to reveal the entity folder in the file explorer, OS file manager, or
+   integrated terminal. Each command receives a ``LeafNode`` from the tree view
+   context menu and derives the folder URI from the convention file path.
+
+   **Handlers:**
+
+   .. code-block:: typescript
+
+      vscode.commands.registerCommand('jarvis.revealInExplorer', (node: LeafNode) => {
+          vscode.commands.executeCommand('revealInExplorer', vscode.Uri.file(node.id));
+      });
+
+      vscode.commands.registerCommand('jarvis.revealInOS', (node: LeafNode) => {
+          vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(node.id));
+      });
+
+      vscode.commands.registerCommand('jarvis.openInTerminal', (node: LeafNode) => {
+          vscode.commands.executeCommand('openInTerminal', vscode.Uri.file(node.id));
+      });
+
+   **Design note:** ``node.id`` is the absolute path to the convention file
+   (``project.yaml`` / ``event.yaml``). The built-in ``revealInExplorer`` command
+   accepts a file URI and reveals the containing folder. ``revealFileInOS`` opens
+   the OS file manager at that path. ``openInTerminal`` opens a terminal at the
+   directory of the given URI. All three handle the folder resolution internally.
+
+   **Registration in package.json:**
+
+   * ``contributes.commands``:
+
+     .. code-block:: json
+
+        [
+          {
+            "command": "jarvis.revealInExplorer",
+            "title": "Reveal in Explorer"
+          },
+          {
+            "command": "jarvis.revealInOS",
+            "title": "Reveal in File Explorer"
+          },
+          {
+            "command": "jarvis.openInTerminal",
+            "title": "Open in Terminal"
+          }
+        ]
+
+   * ``contributes.menus.view/item/context``: six entries (3 commands × 2 contextValues),
+     all in group ``"context-actions"``:
+
+     .. code-block:: json
+
+        [
+          {
+            "command": "jarvis.revealInExplorer",
+            "when": "viewItem == jarvisProject",
+            "group": "context-actions"
+          },
+          {
+            "command": "jarvis.revealInExplorer",
+            "when": "viewItem == jarvisEvent",
+            "group": "context-actions"
+          },
+          {
+            "command": "jarvis.revealInOS",
+            "when": "viewItem == jarvisProject",
+            "group": "context-actions"
+          },
+          {
+            "command": "jarvis.revealInOS",
+            "when": "viewItem == jarvisEvent",
+            "group": "context-actions"
+          },
+          {
+            "command": "jarvis.openInTerminal",
+            "when": "viewItem == jarvisProject",
+            "group": "context-actions"
+          },
+          {
+            "command": "jarvis.openInTerminal",
+            "when": "viewItem == jarvisEvent",
+            "group": "context-actions"
+          }
+        ]
+
+   * ``contributes.menus.commandPalette``: hide all three commands:
+
+     .. code-block:: json
+
+        [
+          { "command": "jarvis.revealInExplorer", "when": "false" },
+          { "command": "jarvis.revealInOS", "when": "false" },
+          { "command": "jarvis.openInTerminal", "when": "false" }
+        ]
+
+   **Disposables** pushed to ``context.subscriptions``.

@@ -1,7 +1,0 @@
-name: "Developer"
-summary: >-
-  The actual project for the developer role, which is used in the test suite to verify that the developer role is correctly associated with projects 
-  and events. This project is stored in the 'developer' subfolder.
-externalStatus: ''
-internalStatus: ''
-lastUpdated: '2026-04-09'

@@ -1,5 +1,5 @@
-// Implementation: SPEC_EXP_EXTENSION, SPEC_EXP_FILTERCOMMAND, SPEC_EXP_EVENTFILTER_CMD, SPEC_EXP_OPENYAML_CMD, SPEC_AUT_MANUALCOMMAND, SPEC_MSG_SENDCOMMAND, SPEC_MSG_OPENSESSION, SPEC_MSG_LISTSESSIONS, SPEC_EXP_AGENTSESSION, SPEC_EXP_NEWPROJECT_CMD, SPEC_EXP_NEWEVENT_CMD, SPEC_REL_UPDATECOMMAND, SPEC_EXP_RESCAN_CMD, SPEC_AUT_JOBREG, SPEC_DEV_LOGCHANNEL, SPEC_MSG_DUALREGISTRATION
-// Requirements: REQ_EXP_ACTIVITYBAR, REQ_EXP_TREEVIEW, REQ_EXP_REACTIVECACHE, REQ_CFG_FOLDERPATHS, REQ_CFG_SCANINTERVAL, REQ_EXP_PROJECTFILTER, REQ_EXP_FILTERPERSIST, REQ_EXP_EVENTFILTER, REQ_EXP_EVENTFILTERPERSIST, REQ_EXP_OPENYAML, REQ_AUT_MANUALRUN, REQ_MSG_SEND, REQ_MSG_DELETE, REQ_MSG_OPENSESSION, REQ_MSG_SESSIONFILTER, REQ_MSG_LISTSESSIONS, REQ_EXP_AGENTSESSION, REQ_EXP_NEWPROJECT, REQ_EXP_NEWEVENT, REQ_REL_UPDATECOMMAND, REQ_CFG_UPDATECHECK, REQ_EXP_RESCAN_BTN, REQ_AUT_JOBREG, REQ_DEV_LOGGING, REQ_MSG_MCPSERVER, REQ_CFG_MCPPORT
+// Implementation: SPEC_EXP_EXTENSION, SPEC_EXP_FILTERCOMMAND, SPEC_EXP_EVENTFILTER_CMD, SPEC_EXP_OPENYAML_CMD, SPEC_EXP_CONTEXTACTIONS, SPEC_AUT_MANUALCOMMAND, SPEC_MSG_SENDCOMMAND, SPEC_MSG_OPENSESSION, SPEC_MSG_LISTSESSIONS, SPEC_EXP_AGENTSESSION, SPEC_EXP_NEWPROJECT_CMD, SPEC_EXP_NEWEVENT_CMD, SPEC_REL_UPDATECOMMAND, SPEC_EXP_RESCAN_CMD, SPEC_AUT_JOBREG, SPEC_DEV_LOGCHANNEL, SPEC_MSG_DUALREGISTRATION, SPEC_EXP_LISTPROJECTS, SPEC_CFG_DEFAULTPATHS, SPEC_EXP_FEATURETOGGLE
+// Requirements: REQ_EXP_ACTIVITYBAR, REQ_EXP_TREEVIEW, REQ_EXP_REACTIVECACHE, REQ_CFG_FOLDERPATHS, REQ_CFG_SCANINTERVAL, REQ_EXP_PROJECTFILTER, REQ_EXP_FILTERPERSIST, REQ_EXP_EVENTFILTER, REQ_EXP_EVENTFILTERPERSIST, REQ_EXP_OPENYAML, REQ_EXP_CONTEXTACTIONS, REQ_AUT_MANUALRUN, REQ_MSG_SEND, REQ_MSG_DELETE, REQ_MSG_OPENSESSION, REQ_MSG_SESSIONFILTER, REQ_MSG_LISTSESSIONS, REQ_EXP_AGENTSESSION, REQ_EXP_NEWPROJECT, REQ_EXP_NEWEVENT, REQ_REL_UPDATECOMMAND, REQ_CFG_UPDATECHECK, REQ_EXP_RESCAN_BTN, REQ_AUT_JOBREG, REQ_DEV_LOGGING, REQ_MSG_MCPSERVER, REQ_CFG_MCPPORT, REQ_EXP_LISTPROJECTS, REQ_CFG_DEFAULTPATHS, REQ_EXP_FEATURETOGGLE
 
 import * as vscode from 'vscode';
 import * as fs from 'fs';
@@ -50,6 +50,23 @@ export function activate(context: vscode.ExtensionContext) {
         if (override) { return override; }
         return vscode.Uri.joinPath(context.storageUri!, 'messages.json').fsPath;
     }
+
+    // Implementation: SPEC_CFG_DEFAULTPATHS
+    // Requirements: REQ_CFG_DEFAULTPATHS
+    // Writes heartbeatConfigFile and messagesFile into Workspace settings when empty,
+    // so that the feature-toggle when-clauses become truthy on first activation.
+    function populateDefaultPaths(): void {
+        const cfg = vscode.workspace.getConfiguration('jarvis');
+        if (!cfg.get<string>('messagesFile', '')) {
+            cfg.update('messagesFile', resolveMessagesPath(), vscode.ConfigurationTarget.Workspace);
+        }
+        if (!cfg.get<string>('heartbeatConfigFile', '')) {
+            cfg.update('heartbeatConfigFile', vscode.Uri.joinPath(context.storageUri!, 'heartbeat.yaml').fsPath, vscode.ConfigurationTarget.Workspace);
+        }
+    }
+
+    // Populate default paths early so feature-toggle when-clauses become truthy (SPEC_CFG_DEFAULTPATHS)
+    populateDefaultPaths();
 
     const messageProvider = new MessageTreeProvider(() => resolveMessagesPath());
 
@@ -212,6 +229,17 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.executeCommand('vscode.open', uri);
     });
 
+    // Register context actions (SPEC_EXP_CONTEXTACTIONS)
+    const revealInExplorerCommand = vscode.commands.registerCommand('jarvis.revealInExplorer', (node: LeafNode) => {
+        vscode.commands.executeCommand('revealInExplorer', vscode.Uri.file(node.id));
+    });
+    const revealInOSCommand = vscode.commands.registerCommand('jarvis.revealInOS', (node: LeafNode) => {
+        vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(node.id));
+    });
+    const openInTerminalCommand = vscode.commands.registerCommand('jarvis.openInTerminal', (node: LeafNode) => {
+        vscode.commands.executeCommand('openInTerminal', vscode.Uri.file(node.id));
+    });
+
     // Register send messages command (SPEC_MSG_SENDCOMMAND)
     const sendMessagesCommand = vscode.commands.registerCommand(
         'jarvis.sendMessages',
@@ -350,7 +378,7 @@ export function activate(context: vscode.ExtensionContext) {
             ]);
         },
         'Queues a message for delivery to another VS Code chat session identified by name.',
-        { session: z.string(), senderSession: z.string().optional(), text: z.string() },
+        { session: z.string().describe('Target chat session name'), senderSession: z.string().optional().describe('Sender session name'), text: z.string().describe('Message text') },
         async (args) => {
             const session = args.session as string;
             const text = args.text as string;
@@ -383,7 +411,7 @@ export function activate(context: vscode.ExtensionContext) {
             ]);
         },
         'Reads and removes the oldest message from the Jarvis message queue for the given destination session.',
-        { destination: z.string() },
+        { destination: z.string().describe('The exact name/title of the chat session whose inbox to read') },
         async (args) => {
             const destination = args.destination as string;
             const result = popMessage(resolveMessagesPath(), destination);
@@ -439,17 +467,17 @@ export function activate(context: vscode.ExtensionContext) {
         },
         'Registers (or updates) a heartbeat job with the given name, cron schedule, and steps.',
         {
-            name: z.string(),
-            schedule: z.string(),
+            name: z.string().describe('Unique name for the heartbeat job'),
+            schedule: z.string().describe('5-field cron expression or "manual"'),
             steps: z.array(z.object({
-                type: z.string(),
-                run: z.string().optional(),
-                prompt: z.string().optional(),
-                outputFile: z.string().optional(),
-                append: z.boolean().optional(),
-                destination: z.string().optional(),
-                sender: z.string().optional(),
-                text: z.string().optional()
+                type: z.string().describe('Step type: python, powershell, command, agent, or queue'),
+                run: z.string().optional().describe('Script path or VS Code command ID (for python/powershell/command)'),
+                prompt: z.string().optional().describe('Path to prompt file (for agent steps)'),
+                outputFile: z.string().optional().describe('Path to write LLM response (for agent steps)'),
+                append: z.boolean().optional().describe('Append to outputFile instead of overwrite (for agent steps)'),
+                destination: z.string().optional().describe('Target chat session name (for queue steps)'),
+                sender: z.string().optional().describe('Sender name (for queue steps)'),
+                text: z.string().optional().describe('Message content (for queue steps)')
             }))
         },
         async (args) => {
@@ -478,7 +506,7 @@ export function activate(context: vscode.ExtensionContext) {
             ]);
         },
         'Removes a heartbeat job by name. Returns whether the job was found and removed.',
-        { name: z.string() },
+        { name: z.string().describe('The name of the heartbeat job to remove') },
         async (args) => {
             const name = args.name as string;
             const existed = scheduler.currentJobs.some(j => j.name === name);
@@ -487,6 +515,69 @@ export function activate(context: vscode.ExtensionContext) {
             return existed
                 ? { status: 'unregistered', name }
                 : { status: 'not_found', name };
+        }
+    );
+
+    // Implementation: SPEC_EXP_LISTPROJECTS
+    // Requirements: REQ_EXP_LISTPROJECTS
+    function collectLeaves(nodes: TreeNode[]): LeafNode[] {
+        const result: LeafNode[] = [];
+        for (const node of nodes) {
+            if (node.kind === 'leaf') {
+                result.push(node);
+            } else {
+                result.push(...collectLeaves(node.children));
+            }
+        }
+        return result;
+    }
+
+    const listProjectsTool = registerDualTool(
+        'jarvis_listProjects',
+        async (
+            _options: vscode.LanguageModelToolInvocationOptions<Record<string, never>>,
+            _token: vscode.CancellationToken
+        ) => {
+            const projectsFolder = vscode.workspace
+                .getConfiguration('jarvis')
+                .get<string>('projectsFolder', '');
+            const leaves = collectLeaves(scanner.getProjectTree());
+            const projects = leaves.map(leaf => {
+                const entity = scanner.getEntity(leaf.id);
+                const absDir = path.dirname(leaf.id);
+                const rel = projectsFolder
+                    ? path.relative(projectsFolder, absDir)
+                    : absDir;
+                return {
+                    name: entity?.name ?? path.basename(absDir),
+                    folder: rel.replace(/\\/g, '/')
+                };
+            });
+            log.info(`[EXP] listProjects: ${projects.length} project(s)`);
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(JSON.stringify(projects))
+            ]);
+        },
+        'Returns the list of projects configured in the current Jarvis workspace. Each project has a name and folder path.',
+        {},
+        async () => {
+            const projectsFolder = vscode.workspace
+                .getConfiguration('jarvis')
+                .get<string>('projectsFolder', '');
+            const leaves = collectLeaves(scanner.getProjectTree());
+            const projects = leaves.map(leaf => {
+                const entity = scanner.getEntity(leaf.id);
+                const absDir = path.dirname(leaf.id);
+                const rel = projectsFolder
+                    ? path.relative(projectsFolder, absDir)
+                    : absDir;
+                return {
+                    name: entity?.name ?? path.basename(absDir),
+                    folder: rel.replace(/\\/g, '/')
+                };
+            });
+            log.info(`[EXP] listProjects(MCP): ${projects.length} project(s)`);
+            return { projects };
         }
     );
 
@@ -626,6 +717,9 @@ export function activate(context: vscode.ExtensionContext) {
         eventFilterCommand,
         eventFilterCommandActive,
         openYamlCommand,
+        revealInExplorerCommand,
+        revealInOSCommand,
+        openInTerminalCommand,
         sendMessagesCommand,
         deleteMessageCommand,
         openSessionCommand,
@@ -638,6 +732,7 @@ export function activate(context: vscode.ExtensionContext) {
         listSessionsTool,
         registerJobTool,
         unregisterJobTool,
+        listProjectsTool,
         mcpStatusBar,
         projectView,
         eventView,

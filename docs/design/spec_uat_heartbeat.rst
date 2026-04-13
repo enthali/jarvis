@@ -91,7 +91,7 @@ Heartbeat UAT Design Specifications
 .. spec:: Job Registration UAT Procedures
    :id: SPEC_UAT_JOBREG_PROCEDURES
    :status: approved
-   :links: REQ_UAT_JOBREG_TESTS
+   :links: REQ_UAT_JOBREG_TESTS; SPEC_AUT_JOBREG
 
    **Description:**
    Manual test procedures for the heartbeat job registration API and scanner

@@ -17,10 +17,10 @@ Projects and events are stored as YAML files in configurable folders.
 
 ```
 src/                    — Extension source (TypeScript)
-  extension.ts          — Activation, commands (new-entity, filters, rescan, agent sessions), LM tools (jarvis_readMessage: pull-based inbox), syncRescanJob() heartbeat bridge, shared LogOutputChannel "Jarvis" (structured logging with levels and module tags)
-  yamlScanner.ts        — Convention-file scanner: folder with project.yaml/event.yaml = leaf; content-change detection, name-sorted output; no own timer (rescans via heartbeat)
+  extension.ts          — Activation, commands (new-entity, filters, rescan, context-actions, agent sessions), populateDefaultPaths() for workspace-settings bootstrap, 6 LM+MCP tools (sendToSession, readMessage, listSessions, listProjects, registerJob, unregisterJob) via registerDualTool(), syncRescanJob() heartbeat bridge, shared LogOutputChannel "Jarvis" (structured logging with levels and module tags)
+  yamlScanner.ts        — Convention-file scanner: folder with project.yaml/event.yaml = leaf; content-change detection; events sorted by datesStart+name, projects by name; no own timer (rescans via heartbeat)
   projectTreeProvider.ts — Tree UI for projects (owns _hiddenFolders filter; contextValue: jarvisProject)
-  eventTreeProvider.ts  — Tree UI for events (owns _futureOnly filter; contextValue: jarvisEvent)
+  eventTreeProvider.ts  — Tree UI for events (owns _futureOnly filter; label: "datesStart — name"; contextValue: jarvisEvent)
   messageTreeProvider.ts — Tree UI for messages (grouped by destination session)
   heartbeatTreeProvider.ts — Tree UI for heartbeat jobs (contextValue: heartbeatJob)
   messageQueue.ts       — JSON message queue: append, delete, read, popMessage (oldest-first pull for LM tool)
@@ -88,9 +88,14 @@ Feature branches accumulate changes until a release. **Merge to `main` only at r
 
 ## Git Workflow
 
+**`main` is protected.** Only the Release Manager (via `syspilot.release`) may commit to or merge into `main`. No other session or role may commit directly to `main` — no exceptions.
+
+**`develop`** is the integration branch. PM and QA work here directly (roadmap, context.md, QA reports). Feature branches start from `develop` and merge back into `develop`.
+
 Each change lives on `feature/<change-name>` (name matches Change Document).
-Feature branches stay open until a release — **do not merge individual changes to `main`**.
-At release: squash-merge all pending feature branches into `main`, then tag.
+Feature branches branch from `develop`, not from `main` or other feature branches.
+Change Managers merge completed feature branches back into `develop`.
+At release: the PM triggers `syspilot.release` which merges `develop` into `main` and tags.
 
 ## Key Schemas
 

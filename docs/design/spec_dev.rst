@@ -221,3 +221,99 @@ Developer Tooling Design Specifications
    * ``log.info('[MSG] sendMessages: delivering to …')`` in sendMessages command
    * ``log.info('[Scanner] Manual rescan triggered')`` in rescan command
    * ``log.info('[Update] Automatic update check on activation')`` at startup
+
+
+.. spec:: Activation Events & Boot Sequence
+   :id: SPEC_DEV_ACTIVATION
+   :status: implemented
+   :links: REQ_DEV_ACTIVATION; SPEC_EXP_EXTENSION
+
+   **Description:**
+   Documents the declared activation events and the subsystem initialization order
+   in ``activate()``.
+
+   **Activation events** (``package.json``):
+
+   .. code-block:: json
+
+      "activationEvents": [
+        "onStartupFinished",
+        "onView:jarvisProjects",
+        "onView:jarvisEvents",
+        "onView:jarvisMessages",
+        "onView:jarvisHeartbeat"
+      ]
+
+   ``onStartupFinished`` ensures the extension activates even if no Jarvis view is
+   visible. The ``onView:`` events provide faster activation when a view is opened
+   before startup completes.
+
+   **Boot sequence** (``src/extension.ts`` ``activate()``):
+
+   1. ``initSessionLookup(context.storageUri)`` — initialize session UUID resolver
+   2. ``new MessageTreeProvider(resolveMessagesPath)`` — create message tree (needs
+      message path resolver)
+   3. ``vscode.window.createOutputChannel('Jarvis', { log: true })`` — create shared
+      LogOutputChannel; pushed to ``context.subscriptions``
+   4. ``activateHeartbeat(context, messageProvider, resolveMessagesPath, log)`` —
+      start HeartbeatScheduler (needs log channel, message provider); returns
+      ``HeartbeatScheduler`` instance; pushes its own disposables to
+      ``context.subscriptions``
+   5. ``new YamlScanner(onCacheChanged)`` — create scanner (callback refreshes tree
+      providers)
+   6. ``new ProjectTreeProvider(scanner)`` / ``new EventTreeProvider(scanner)`` —
+      create tree data providers (need scanner)
+   7. ``vscode.window.createTreeView(...)`` — register Projects, Events, Messages
+      tree views
+   8. Restore persisted filter state from ``workspaceState``
+   9. ``startScanner()`` — perform first scan with configured folder paths
+   10. ``syncRescanJob()`` — register/unregister the ``"Jarvis: Rescan"`` heartbeat
+       job based on ``jarvis.scanInterval``
+   11. ``checkForUpdates(context, true, log)`` — automatic update check (if enabled)
+   12. Register VS Code commands, LM tools (dual registration), MCP server
+   13. ``startMcpServer(mcpPort, log)`` — start embedded MCP server (if
+       ``jarvis.mcpEnabled``)
+   14. Push all disposables to ``context.subscriptions``
+
+
+.. spec:: Graceful Deactivation
+   :id: SPEC_DEV_DISPOSAL
+   :status: implemented
+   :links: REQ_DEV_DISPOSAL
+
+   **Description:**
+   Documents which disposables are registered in ``context.subscriptions`` and the
+   ``deactivate()`` contract.
+
+   **Disposables in context.subscriptions** (``src/extension.ts``):
+
+   * **Commands** (15): ``rescanCommand``, ``filterCommand``,
+     ``filterCommandActive``, ``eventFilterCommand``, ``eventFilterCommandActive``,
+     ``openYamlCommand``, ``sendMessagesCommand``, ``deleteMessageCommand``,
+     ``openSessionCommand``, ``openAgentSessionCommand``, ``newProjectCommand``,
+     ``newEventCommand``, ``checkForUpdatesCommand`` — plus 2 from heartbeat
+     (``jarvis.runJob``, ``jarvis.refreshHeartbeat``)
+   * **LM Tools** (5): ``sendToSessionTool``, ``readMessageTool``,
+     ``listSessionsTool``, ``registerJobTool``, ``unregisterJobTool``
+   * **Tree Views** (4): ``projectView``, ``eventView``, ``messageView``,
+     ``heartbeatView`` (created in ``activateHeartbeat``)
+   * **Status Bar Items** (2): ``mcpStatusBar``, heartbeat status bar item
+     (created in ``activateHeartbeat``)
+   * **Event Listeners** (2): ``projectView.onDidChangeVisibility``,
+     ``workspace.onDidChangeConfiguration``
+   * **LogOutputChannel** (1): ``log``
+   * **Scanner wrapper** (1): ``{ dispose: () => scanner.stop() }``
+   * **Scheduler wrapper** (1): ``{ dispose: () => scheduler.dispose() }``
+     (pushed in ``activateHeartbeat``)
+
+   **deactivate() function:**
+
+   .. code-block:: typescript
+
+      export async function deactivate() {
+          await stopMcpServer();
+      }
+
+   The MCP server is stopped explicitly because it manages TCP sockets that
+   are not tracked by ``context.subscriptions``. All other subsystems are
+   cleaned up by VS Code disposing the subscriptions array.

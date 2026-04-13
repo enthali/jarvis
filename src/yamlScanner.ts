@@ -7,7 +7,8 @@ import * as yaml from 'js-yaml';
 
 export interface EntityEntry {
     name: string;
-    datesEnd?: string;  // event end date YYYY-MM-DD; undefined for projects or if absent
+    datesStart?: string; // event start date YYYY-MM-DD; undefined for projects or if absent
+    datesEnd?: string;   // event end date YYYY-MM-DD; undefined for projects or if absent
 }
 
 export interface FolderNode {
@@ -115,9 +116,15 @@ export class YamlScanner {
                         const content = await fs.promises.readFile(conventionPath, 'utf8');
                         const doc = yaml.load(content) as Record<string, unknown>;
                         if (doc && typeof doc['name'] === 'string') {
-                            const datesEnd = (doc['dates'] as Record<string, unknown>)?.['end'];
+                            const dates = doc['dates'] as Record<string, unknown> | undefined;
+                            const datesEnd = dates?.['end'];
+                            const rawStart = dates?.['start'];
+                            const datesStart = rawStart instanceof Date
+                                ? rawStart.toISOString().slice(0, 10)
+                                : typeof rawStart === 'string' ? rawStart : undefined;
                             entities.set(conventionPath, {
                                 name: doc['name'],
+                                ...(datesStart ? { datesStart } : {}),
                                 ...(typeof datesEnd === 'string' ? { datesEnd } : {})
                             });
                         } else {
@@ -140,13 +147,19 @@ export class YamlScanner {
             // Non-directory entries (files) are ignored — only convention files inside folders matter
         }
 
-        // Sort nodes alphabetically: leaves by entity name, folders by folder name
+        // Sort nodes: event leaves by (datesStart+name) for chronological order,
+        // project leaves / folders by name
+        const isEvent = conventionFile === 'event.yaml';
         nodes.sort((a, b) => {
             const keyA = a.kind === 'leaf'
-                ? (entities.get(a.id)?.name?.toLowerCase() ?? path.basename(path.dirname(a.id)).toLowerCase())
+                ? (isEvent
+                    ? ((entities.get(a.id)?.datesStart ?? '') + (entities.get(a.id)?.name ?? '')).toLowerCase()
+                    : (entities.get(a.id)?.name?.toLowerCase() ?? path.basename(path.dirname(a.id)).toLowerCase()))
                 : a.name.toLowerCase();
             const keyB = b.kind === 'leaf'
-                ? (entities.get(b.id)?.name?.toLowerCase() ?? path.basename(path.dirname(b.id)).toLowerCase())
+                ? (isEvent
+                    ? ((entities.get(b.id)?.datesStart ?? '') + (entities.get(b.id)?.name ?? '')).toLowerCase()
+                    : (entities.get(b.id)?.name?.toLowerCase() ?? path.basename(path.dirname(b.id)).toLowerCase()))
                 : b.name.toLowerCase();
             return keyA.localeCompare(keyB);
         });

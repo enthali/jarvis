@@ -2,7 +2,7 @@
   "name": "jarvis",
   "displayName": "Jarvis",
   "description": "Personal assistant for managing projects and events in VS Code",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "publisher": "enthali",
   "repository": {
     "type": "git",
@@ -40,15 +40,18 @@
         },
         {
           "id": "jarvisEvents",
-          "name": "Events"
+          "name": "Events",
+          "when": "config.jarvis.eventsFolder != ''"
         },
         {
           "id": "jarvisMessages",
-          "name": "Messages"
+          "name": "Messages",
+          "when": "config.jarvis.messagesFile != ''"
         },
         {
           "id": "jarvisHeartbeat",
-          "name": "Heartbeat"
+          "name": "Heartbeat",
+          "when": "config.jarvis.heartbeatConfigFile != ''"
         }
       ]
     },
@@ -129,6 +132,18 @@
         "command": "jarvis.refreshHeartbeat",
         "title": "Jarvis: Refresh Heartbeat",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "jarvis.revealInExplorer",
+        "title": "Reveal in Explorer"
+      },
+      {
+        "command": "jarvis.revealInOS",
+        "title": "Reveal in File Explorer"
+      },
+      {
+        "command": "jarvis.openInTerminal",
+        "title": "Open in Terminal"
       }
     ],
     "menus": {
@@ -155,6 +170,18 @@
         },
         {
           "command": "jarvis.refreshHeartbeat",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.revealInExplorer",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.revealInOS",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.openInTerminal",
           "when": "false"
         }
       ],
@@ -240,61 +267,118 @@
           "command": "jarvis.runJob",
           "when": "viewItem == heartbeatJob",
           "group": "inline"
+        },
+        {
+          "command": "jarvis.revealInExplorer",
+          "when": "viewItem == jarvisProject",
+          "group": "context-actions"
+        },
+        {
+          "command": "jarvis.revealInExplorer",
+          "when": "viewItem == jarvisEvent",
+          "group": "context-actions"
+        },
+        {
+          "command": "jarvis.revealInOS",
+          "when": "viewItem == jarvisProject",
+          "group": "context-actions"
+        },
+        {
+          "command": "jarvis.revealInOS",
+          "when": "viewItem == jarvisEvent",
+          "group": "context-actions"
+        },
+        {
+          "command": "jarvis.openInTerminal",
+          "when": "viewItem == jarvisProject",
+          "group": "context-actions"
+        },
+        {
+          "command": "jarvis.openInTerminal",
+          "when": "viewItem == jarvisEvent",
+          "group": "context-actions"
         }
       ]
     },
-    "configuration": {
-      "title": "Jarvis",
-      "properties": {
-        "jarvis.projectsFolder": {
-          "type": "string",
-          "default": "",
-          "description": "Absolute path to the folder containing project YAML files."
-        },
-        "jarvis.eventsFolder": {
-          "type": "string",
-          "default": "",
-          "description": "Absolute path to the folder containing event YAML files."
-        },
-        "jarvis.scanInterval": {
-          "type": "number",
-          "default": 2,
-          "minimum": 0,
-          "description": "Background rescan interval in minutes (0 = disabled, registers via heartbeat)."
-        },
-        "jarvis.heartbeatConfigFile": {
-          "type": "string",
-          "default": "",
-          "description": "Absolute path to heartbeat.yaml. Defaults to workspace storage if empty."
-        },
-        "jarvis.heartbeatInterval": {
-          "type": "number",
-          "default": 60,
-          "minimum": 10,
-          "description": "Heartbeat scheduler tick interval in seconds (minimum 10)."
-        },
-        "jarvis.messagesFile": {
-          "type": "string",
-          "default": "",
-          "description": "Absolute path to messages.json queue file. Defaults to extension storage if empty."
-        },
-        "jarvis.checkForUpdates": {
-          "type": "boolean",
-          "default": true,
-          "description": "Check for new Jarvis releases on GitHub when the extension activates."
-        },
-        "jarvis.mcpPort": {
-          "type": "number",
-          "default": 31415,
-          "description": "Port for the embedded MCP server (localhost only)."
-        },
-        "jarvis.mcpEnabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable or disable the embedded MCP server."
+    "configuration": [
+      {
+        "title": "Projects",
+        "properties": {
+          "jarvis.projectsFolder": {
+            "type": "string",
+            "default": "",
+            "description": "Absolute path to the folder containing project YAML files."
+          },
+          "jarvis.scanInterval": {
+            "type": "number",
+            "default": 2,
+            "minimum": 0,
+            "description": "Background rescan interval in minutes (0 = disabled, registers via heartbeat)."
+          }
+        }
+      },
+      {
+        "title": "Events",
+        "properties": {
+          "jarvis.eventsFolder": {
+            "type": "string",
+            "default": "",
+            "description": "Absolute path to the folder containing event YAML files."
+          }
+        }
+      },
+      {
+        "title": "Heartbeat",
+        "properties": {
+          "jarvis.heartbeatConfigFile": {
+            "type": "string",
+            "default": "",
+            "description": "Absolute path to heartbeat.yaml. Defaults to workspace storage if empty."
+          },
+          "jarvis.heartbeatInterval": {
+            "type": "number",
+            "default": 60,
+            "minimum": 10,
+            "description": "Heartbeat scheduler tick interval in seconds (minimum 10)."
+          }
+        }
+      },
+      {
+        "title": "Messages",
+        "properties": {
+          "jarvis.messagesFile": {
+            "type": "string",
+            "default": "",
+            "description": "Absolute path to messages.json queue file. Defaults to extension storage if empty."
+          }
+        }
+      },
+      {
+        "title": "MCP Server",
+        "properties": {
+          "jarvis.mcpPort": {
+            "type": "number",
+            "default": 31415,
+            "description": "Port for the embedded MCP server (localhost only)."
+          },
+          "jarvis.mcpEnabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable or disable the embedded MCP server."
+          }
+        }
+      },
+      {
+        "title": "Updates",
+        "properties": {
+          "jarvis.checkForUpdates": {
+            "type": "boolean",
+            "default": true,
+            "description": "Check for new Jarvis releases on GitHub when the extension activates."
+          }
         }
       }
-    },
+    ],
     "languageModelTools": [
       {
         "name": "jarvis_sendToSession",
@@ -332,6 +416,18 @@
         "canBeReferencedInPrompt": true,
         "toolReferenceName": "listSessions",
         "icon": "$(list-unordered)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "name": "jarvis_listProjects",
+        "displayName": "List Projects",
+        "modelDescription": "Returns the list of projects configured in the current Jarvis workspace. Each project has a name and folder path.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "listProjects",
+        "icon": "$(project)",
         "inputSchema": {
           "type": "object",
           "properties": {}
@@ -414,7 +510,9 @@
                     "description": "Message content (for queue steps)"
                   }
                 },
-                "required": ["type"]
+                "required": [
+                  "type"
+                ]
               }
             }
           },

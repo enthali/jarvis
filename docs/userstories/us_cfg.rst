@@ -5,6 +5,7 @@ Configuration User Stories
    :id: US_CFG_PROJECTPATH
    :status: approved
    :priority: mandatory
+   :links: US_AUT_HEARTBEAT
 
    **As a** Jarvis User,
    **I want** to configure the folder paths where Jarvis looks for project and event YAML files,
@@ -51,3 +52,25 @@ Configuration User Stories
    * AC-1: By default, ``messages.json`` is stored in VS Code workspace storage
      (``context.storageUri``)
    * AC-2: A setting ``jarvis.messagesFile`` overrides the default with an absolute path
+
+
+.. story:: Grouped Settings Categories
+   :id: US_CFG_SETTINGSGROUPS
+   :status: approved
+   :priority: mandatory
+   :links: US_CFG_PROJECTPATH; US_CFG_HEARTBEAT; US_CFG_MSG
+
+   **As a** Jarvis User,
+   **I want** the Jarvis settings to be organized in named sub-categories
+   (Projects, Events, Heartbeat, Messages, MCP Server, Updates),
+   **so that** I can find and configure related settings together instead of
+   scrolling through a flat list.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The VS Code Settings UI shows Jarvis settings grouped under named
+     sub-headings
+   * AC-2: Each group contains only its related settings according to the
+     grouping table (Projects, Events, Heartbeat, Messages, MCP Server, Updates)
+   * AC-3: No setting changes its key name, type, or default value — this is a
+     presentation-only change

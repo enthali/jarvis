@@ -1,4 +1,4 @@
-# QA Engineer — Scan State
+# Quality Manager — Scan State
 
 Diese Datei wird nach jedem Scan-Lauf aktualisiert, damit beim nächsten Lauf
 erkennbar ist was neu hinzugekommen ist.

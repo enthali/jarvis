@@ -6,20 +6,12 @@
 	],
 	"settings": {
 		"jarvis.eventsFolder": "C:\\workspace\\Jarvis\\testdata\\events",
-		"jarvis.heartbeatConfigFile": "C:\\workspace\\Jarvis\\testdata\\heartbeat\\heartbeat.yaml",
+		"jarvis.heartbeatConfigFile": "C:\\workspace\\Jarvis\\testdata\\heartbeat",
 		"jarvis.heartbeatInterval": 30,
 		"jarvis.projectsFolder": "C:\\workspace\\Jarvis\\testdata\\projects",
 		"jarvis.messagesFile": "C:\\workspace\\Jarvis\\testdata\\msg\\messages.json",
 		"jarvis.scanInterval": 1,
-		"mcp": {
-			"servers": {
-				"Jarvis-LM-tools": {
-					"url": "http://localhost:31420",
-					"type": "http"
-				}
-			},
-			"inputs": []
-		},
-		"jarvis.mcpPort": 31420
+		"jarvis.mcpPort": 31420,
+		"jarvis.mcpEnabled": true
 	}
 }

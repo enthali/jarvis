@@ -31,8 +31,8 @@ Explorer Requirements
 
    **Acceptance Criteria:**
 
-   * AC-1: The sidebar contains a "Projects" tree view
-   * AC-2: The sidebar contains an "Events" tree view
+   * AC-1: The sidebar contains a "Projects" tree view (always visible)
+   * AC-2: The sidebar contains an "Events" tree view (visible when configured)
    * AC-3: Both Projects and Events tree views are collapsible sections
    * AC-4: Subfolders that do **not** contain the applicable convention file appear as
      collapsible grouping nodes labeled with the folder name
@@ -95,7 +95,7 @@ Explorer Requirements
    :id: REQ_EXP_REACTIVECACHE
    :status: implemented
    :priority: mandatory
-   :links: US_EXP_SIDEBAR
+   :links: US_EXP_SIDEBAR; REQ_CFG_SCANINTERVAL
 
    **Description:**
    A background scanner SHALL maintain an in-memory cache and update the tree view
@@ -122,7 +122,7 @@ Explorer Requirements
    :id: REQ_EXP_PROJECTFILTER
    :status: implemented
    :priority: optional
-   :links: US_EXP_PROJECTFILTER
+   :links: US_EXP_PROJECTFILTER; REQ_EXP_FILTERPERSIST
 
    **Description:**
    The Projects tree view SHALL provide a filter mechanism to show/hide
@@ -158,7 +158,7 @@ Explorer Requirements
    :id: REQ_EXP_EVENTFILTER
    :status: implemented
    :priority: optional
-   :links: US_EXP_EVENTFILTER; REQ_EXP_TREEVIEW
+   :links: US_EXP_EVENTFILTER; REQ_EXP_TREEVIEW; REQ_EXP_EVENTFILTERPERSIST
 
    **Description:**
    The Events tree view SHALL provide a toggle button that, when active,
@@ -247,7 +247,7 @@ Explorer Requirements
    :id: REQ_EXP_NEWPROJECT
    :status: implemented
    :priority: optional
-   :links: US_EXP_NEWENTITY; REQ_EXP_REACTIVECACHE; REQ_EXP_AGENTSESSION; REQ_EXP_YAMLDATA
+   :links: US_EXP_NEWENTITY; REQ_EXP_REACTIVECACHE; REQ_EXP_AGENTSESSION; REQ_EXP_YAMLDATA; REQ_CFG_FOLDERPATHS
 
    **Description:**
    A command triggered by a ``+`` icon in the Projects title bar SHALL create
@@ -275,7 +275,7 @@ Explorer Requirements
    :id: REQ_EXP_NEWEVENT
    :status: implemented
    :priority: optional
-   :links: US_EXP_NEWENTITY; REQ_EXP_REACTIVECACHE; REQ_EXP_AGENTSESSION; REQ_EXP_YAMLDATA
+   :links: US_EXP_NEWENTITY; REQ_EXP_REACTIVECACHE; REQ_EXP_AGENTSESSION; REQ_EXP_YAMLDATA; REQ_CFG_FOLDERPATHS
 
    **Description:**
    A command triggered by a ``+`` icon in the Events title bar SHALL create
@@ -341,3 +341,102 @@ Explorer Requirements
    * AC-2: Folder nodes at each level are sorted by folder name (case-insensitive)
    * AC-3: Folders and leaves are interleaved in a single alphabetical list at
      each level (not grouped separately)
+
+
+.. req:: Chronological Event Sorting
+   :id: REQ_EVT_DATESORT
+   :status: implemented
+   :priority: optional
+   :links: US_EVT_DATESORT
+
+   **Description:**
+   The Events tree view SHALL sort event leaf nodes by their start date
+   (``dates.start``) in ascending order and display the start date as a
+   prefix in the tree item label.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Event leaf nodes SHALL be sorted by ``dates.start``
+     (``YYYY-MM-DD``, ascending) rather than by entity name
+   * AC-2: The event tree item label SHALL be ``<dates.start> — <name>``
+     (e.g. ``2026-04-15 — DevCon 2026``)
+   * AC-3: If ``dates.start`` is a JavaScript ``Date`` object (unquoted YAML),
+     it SHALL be converted to ``YYYY-MM-DD`` via ``toISOString().slice(0, 10)``
+   * AC-4: If ``dates.start`` is already a string, it SHALL be used directly
+   * AC-5: If ``dates.start`` is absent or not parseable, the event SHALL sort
+     by name and display name only (fail-open)
+   * AC-6: Grouping folder sort order is unchanged (alphabetical by folder name)
+
+
+.. req:: List Projects LM Tool
+   :id: REQ_EXP_LISTPROJECTS
+   :status: implemented
+   :priority: optional
+   :links: US_EXP_LISTPROJECTS; REQ_EXP_YAMLDATA
+
+   **Description:**
+   The extension SHALL register a Language Model Tool that returns the list of
+   projects from the configured projects folder, enabling LLM agents and MCP
+   clients to discover available projects programmatically.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A Language Model Tool named ``jarvis_listProjects`` SHALL be registered
+     via ``registerDualTool()`` with ``canBeReferencedInPrompt: true``
+   * AC-2: The tool SHALL accept no input parameters (empty input schema)
+   * AC-3: The tool SHALL return an array of objects, each containing ``name``
+     (string, from the project YAML ``name`` field) and ``folder`` (string,
+     relative path from the configured projects folder to the project directory)
+   * AC-4: If no projects exist, the tool SHALL return an empty array
+   * AC-5: The tool SHALL be simultaneously available via the MCP server
+
+
+.. req:: Feature-Toggled Sidebar Views
+   :id: REQ_EXP_FEATURETOGGLE
+   :status: implemented
+   :priority: mandatory
+   :links: US_EXP_FEATURETOGGLE; REQ_EXP_TREEVIEW; REQ_CFG_DEFAULTPATHS
+
+   **Description:**
+   Optional sidebar views SHALL only be visible when their corresponding feature
+   is configured. This prevents empty views from cluttering the Jarvis Explorer.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The Projects view SHALL always be visible (no ``when``-clause)
+   * AC-2: The Events view SHALL only be visible when ``jarvis.eventsFolder``
+     is set to a non-empty string
+   * AC-3: The Messages view SHALL only be visible when ``jarvis.messagesFile``
+     is set to a non-empty string
+   * AC-4: The Heartbeat view SHALL only be visible when
+     ``jarvis.heartbeatConfigFile`` is set to a non-empty string
+   * AC-5: Visibility SHALL be controlled via the ``when`` property on the
+     view definition in ``package.json`` — no runtime code required
+
+
+.. req:: Context Actions on Leaf Nodes
+   :id: REQ_EXP_CONTEXTACTIONS
+   :status: implemented
+   :priority: optional
+   :links: US_EXP_CONTEXTACTIONS
+
+   **Description:**
+   Project and event leaf nodes SHALL provide three context-menu actions that
+   delegate to built-in VS Code commands for revealing the entity folder in
+   the file explorer, the OS file manager, or an integrated terminal.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Right-clicking a leaf node with ``contextValue`` = ``jarvisProject`` or
+     ``jarvisEvent`` SHALL show "Reveal in Explorer", "Reveal in File Explorer",
+     and "Open in Terminal" in the context menu
+   * AC-2: "Reveal in Explorer" SHALL reveal the entity folder in the VS Code
+     file explorer (built-in ``revealInExplorer``)
+   * AC-3: "Reveal in File Explorer" SHALL open the entity folder in the OS-native
+     file manager (built-in ``revealFileInOS``)
+   * AC-4: "Open in Terminal" SHALL open an integrated terminal with the working
+     directory set to the entity folder (built-in ``openInTerminal``)
+   * AC-5: Folder nodes (``contextValue`` = ``jarvisFolder``) SHALL NOT show
+     these actions
+   * AC-6: The three commands SHALL NOT appear in the Command Palette (they require
+     a tree node argument)

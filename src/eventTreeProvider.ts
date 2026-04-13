@@ -37,7 +37,9 @@ export class EventTreeProvider implements vscode.TreeDataProvider<TreeNode> {
             return item;
         }
         const entity = this._scanner.getEntity(element.id);
-        const label = entity ? entity.name : path.basename(path.dirname(element.id));
+        const label = entity
+            ? (entity.datesStart ? `${entity.datesStart} — ${entity.name}` : entity.name)
+            : path.basename(path.dirname(element.id));
         const item = new vscode.TreeItem(label, vscode.TreeItemCollapsibleState.None);
         item.contextValue = 'jarvisEvent';
         return item;

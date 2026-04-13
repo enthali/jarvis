@@ -192,7 +192,7 @@ Release Design Specifications
 .. spec:: GitHub API Fetch and Version Compare
    :id: SPEC_REL_UPDATECHECK
    :status: implemented
-   :links: REQ_REL_UPDATECHECK
+   :links: REQ_REL_UPDATECHECK; SPEC_DEV_LOGCHANNEL
 
    **Description:**
    Create a new module ``src/updateCheck.ts`` with the core update-check logic.
@@ -310,7 +310,7 @@ Release Design Specifications
 .. spec:: Command Registration and Activation Hook
    :id: SPEC_REL_UPDATECOMMAND
    :status: implemented
-   :links: REQ_REL_UPDATECOMMAND
+   :links: REQ_REL_UPDATECOMMAND; SPEC_DEV_LOGCHANNEL
 
    **Description:**
    Register the manual command and wire the automatic check into the activation flow.

@@ -54,7 +54,7 @@ Automation Requirements
    :id: REQ_AUT_JOBEXEC
    :status: implemented
    :priority: optional
-   :links: US_AUT_HEARTBEAT; REQ_AUT_OUTPUT; REQ_MSG_QUEUE
+   :links: US_AUT_HEARTBEAT; REQ_AUT_OUTPUT; REQ_MSG_QUEUE; REQ_AUT_JOBCONFIG
 
    **Description:**
    The extension SHALL execute a job's steps sequentially and abort the job on the

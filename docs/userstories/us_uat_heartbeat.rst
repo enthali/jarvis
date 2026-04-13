@@ -5,7 +5,7 @@ Heartbeat User Acceptance Tests
    :id: US_UAT_HEARTBEAT
    :status: implemented
    :priority: optional
-   :links: US_AUT_HEARTBEAT; US_CFG_HEARTBEAT; US_MSG_CHATQUEUE; REQ_AUT_JOBCONFIG; REQ_AUT_SCHEDULER; REQ_AUT_JOBEXEC; REQ_AUT_MANUALRUN; REQ_AUT_STATUSBAR; REQ_AUT_OUTPUT; REQ_CFG_HEARTBEATPATH; REQ_CFG_HEARTBEATINTERVAL
+   :links: US_AUT_HEARTBEAT; US_CFG_HEARTBEAT; US_MSG_CHATQUEUE
 
    **As a** Jarvis Test Engineer,
    **I want** a set of manual acceptance test scripts for the heartbeat scheduler,
@@ -76,7 +76,7 @@ Heartbeat User Acceptance Tests
    :id: US_UAT_HEARTBEATVIEW
    :status: implemented
    :priority: optional
-   :links: US_AUT_HEARTBEAT; REQ_AUT_HEARTBEATVIEW; REQ_AUT_RUNJOB
+   :links: US_AUT_HEARTBEAT
 
    **As a** Jarvis Test Engineer,
    **I want** a set of manual acceptance test scripts for the heartbeat tree view,
@@ -127,7 +127,7 @@ Heartbeat User Acceptance Tests
    :id: US_UAT_JOBREG
    :status: approved
    :priority: optional
-   :links: US_AUT_HEARTBEAT; REQ_AUT_JOBREG; REQ_CFG_SCANINTERVAL
+   :links: US_AUT_HEARTBEAT; US_CFG_PROJECTPATH
 
    **As a** Jarvis Test Engineer,
    **I want** a set of manual acceptance test scripts for the heartbeat job

@@ -1,4 +1,4 @@
-# Session Context: Jarvis Development
+# Session Context: Jarvis Change Manager
 
 ## Role
 
@@ -7,11 +7,11 @@ through the change lifecycle, handles user interaction, and resolves issues.
 
 ## Responsibilities
 
-- Receive change requests from the user (PM/Developer)
+- Receive change requests from the Project Manager (via Jarvis Message Service)
 - Delegate to syspilot agents: `change` → `implement` → `verify` → `memory`
 - Launch `release` agent when changes are ready to ship
 - Intervene when agents need clarification or encounter problems
-- Present UAT checklists and collect test results from the user
+- Execute UAT in the Extension Development Host
 - Track progress across multiple concurrent changes
 
 ## Boundaries
@@ -24,16 +24,20 @@ through the change lifecycle, handles user interaction, and resolves issues.
 
 ## Current State
 
-- **Version**: v0.2.0 (released 2026-04-10)
-- **Completed changes**: proj-folders, new-entity, self-update, scanner-refresh
-- **Pending release**: scanner-refresh (on feature/scanner-refresh)
+- **Version**: v0.3.1 (released 2026-04-11)
 
 ## Workflow Reference
 
 ```
-User Request → syspilot.change → syspilot.implement → syspilot.verify → syspilot.memory
-                    ↓ (UAT)
-              syspilot.uat
+PM sends Change Request
+  → syspilot.change → syspilot.implement → UAT → syspilot.verify → syspilot.memory
+                           ↓ (UAT)
+                     syspilot.uat
 ```
 
 At release: `syspilot.release` → squash-merge to main → tag → push
+
+## Communication
+
+- Reads messages via `jarvis_readMessage(destination: "Change Manager")`
+- Reports back to Project Manager via `jarvis_sendToSession`

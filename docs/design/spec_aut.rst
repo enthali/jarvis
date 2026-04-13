@@ -298,7 +298,7 @@ Automation Design Specifications
 .. spec:: Agent Step Executor
    :id: SPEC_AUT_AGENTEXEC
    :status: implemented
-   :links: REQ_AUT_JOBEXEC; REQ_AUT_OUTPUT; SPEC_AUT_EXECUTOR
+   :links: REQ_AUT_JOBEXEC; REQ_AUT_OUTPUT; SPEC_AUT_EXECUTOR; SPEC_DEV_LOGCHANNEL
 
    **Description:**
    ``executeAgentStep`` sends a prompt file to the VS Code LM API and optionally
@@ -357,7 +357,7 @@ Automation Design Specifications
 .. spec:: Queue Step Executor
    :id: SPEC_AUT_QUEUEEXEC
    :status: implemented
-   :links: REQ_AUT_JOBEXEC; REQ_MSG_QUEUE; SPEC_AUT_EXECUTOR; SPEC_MSG_QUEUESTORE
+   :links: REQ_AUT_JOBEXEC; REQ_MSG_QUEUE; SPEC_AUT_EXECUTOR; SPEC_MSG_QUEUESTORE; SPEC_DEV_LOGCHANNEL
 
    **Description:**
    ``executeQueueStep`` appends a message to the queue file and refreshes the
@@ -487,7 +487,7 @@ Automation Design Specifications
 .. spec:: Run Job and Run-All Commands
    :id: SPEC_AUT_RUNJOBCOMMAND
    :status: implemented
-   :links: REQ_AUT_RUNJOB; REQ_AUT_HEARTBEATVIEW; SPEC_AUT_EXECUTOR
+   :links: REQ_AUT_RUNJOB; REQ_AUT_HEARTBEATVIEW; SPEC_AUT_EXECUTOR; SPEC_AUT_HEARTBEATPROVIDER
 
    **Description:**
    Two new VS Code commands registered in ``extension.ts`` via
