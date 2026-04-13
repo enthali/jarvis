@@ -513,7 +513,7 @@ PIM Design Specifications
         {
           "id": "jarvisCategories",
           "name": "Categories",
-          "when": "config.jarvis.pim.showCategories"
+          "when": "config.jarvis.pim.showCategories == true"
         }
 
    * ``contributes.commands``: ``jarvis.refreshCategories``
@@ -538,12 +538,12 @@ PIM Design Specifications
      - ``jarvis.deleteCategory`` hidden (``when: "false"``)
    * ``activationEvents``: add ``onView:jarvisCategories``
 
-   **Settings (package.json — "Categories" group):**
+   **Settings (package.json — "PIM" group, combined with Outlook settings):**
 
    .. code-block:: json
 
       {
-        "title": "Categories",
+        "title": "PIM",
         "properties": {
           "jarvis.pim.showCategories": {
             "type": "boolean",

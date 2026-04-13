@@ -3,7 +3,7 @@ PIM User Stories
 
 .. story:: Category Sync via Exchangeable Providers
    :id: US_PIM_CATEGORIES
-   :status: draft
+   :status: implemented
    :priority: mandatory
    :links: US_AUT_HEARTBEAT
 
@@ -28,7 +28,7 @@ PIM User Stories
 
 .. story:: Category Management Tool (LM/MCP)
    :id: US_PIM_CATTOOL
-   :status: draft
+   :status: implemented
    :priority: mandatory
    :links: US_PIM_CATEGORIES; US_MSG_MCPSERVER
 
@@ -61,7 +61,7 @@ PIM User Stories
 
 .. story:: Categories Sidebar View
    :id: US_PIM_CATVIEW
-   :status: draft
+   :status: implemented
    :priority: optional
    :links: US_PIM_CATEGORIES; US_EXP_SIDEBAR
 

@@ -121,15 +121,16 @@ Outlook Design Specifications
    :links: REQ_OLK_ENABLE; REQ_CFG_SETTINGSGROUPS; SPEC_CFG_SETTINGSGROUPS
 
    **Description:**
-   Add an "Outlook" group to the ``contributes.configuration`` array in
-   ``package.json`` and wire the activation guard in ``extension.ts``.
+   Add ``jarvis.outlookEnabled`` to the ``"PIM"`` configuration group in
+   ``package.json`` (merged with ``jarvis.pim.showCategories`` — see
+   ``SPEC_PIM_CATVIEW``) and wire the activation guard in ``extension.ts``.
 
-   **package.json addition** (new configuration object in the array):
+   **package.json addition** (property inside the shared "PIM" configuration object):
 
    .. code-block:: json
 
       {
-        "title": "Outlook",
+        "title": "PIM",
         "properties": {
           "jarvis.outlookEnabled": {
             "type": "boolean",
@@ -182,6 +183,5 @@ Outlook Design Specifications
      ``OutlookCategoryProvider`` is instantiated once during activation
    * The ``CategoryService`` and ``CategoryTreeProvider`` are always
      instantiated (PIM layer) — only the provider registration is conditional
-   * The "Outlook" settings group contains only ``jarvis.outlookEnabled``;
-     ``jarvis.pim.showCategories`` belongs to the "Categories" group
-     (see ``SPEC_PIM_CATVIEW``)
+   * Both ``jarvis.outlookEnabled`` and ``jarvis.pim.showCategories`` are
+     combined in the single ``"PIM"`` settings group (see ``SPEC_PIM_CATVIEW``)

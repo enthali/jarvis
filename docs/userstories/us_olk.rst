@@ -3,7 +3,7 @@ Outlook User Stories
 
 .. story:: Outlook COM Integration (PIM Provider)
    :id: US_OLK_COMBRIDGE
-   :status: draft
+   :status: implemented
    :priority: mandatory
    :links: US_PIM_CATEGORIES
 

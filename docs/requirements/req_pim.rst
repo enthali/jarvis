@@ -137,7 +137,7 @@ PIM Requirements
    * AC-5: When no providers are configured, the view SHALL display
      "no categories"
    * AC-6: The ``when``-clause SHALL be:
-     ``config.jarvis.pim.showCategories``
+     ``config.jarvis.pim.showCategories == true``
    * AC-7: A context menu on category nodes (``contextValue: jarvisCategory``)
      SHALL offer "Rename Category" — opening an input box pre-filled with
      the current name, then renaming via ``CategoryService``
