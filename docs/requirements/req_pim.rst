@@ -29,6 +29,9 @@ PIM Requirements
      rename a category
    * AC-6: Each ``Category`` object SHALL carry a ``source`` tag identifying
      which provider supplied it
+   * AC-7: Each ``Category`` object MAY carry an optional ``id`` field
+     containing the provider-specific unique identifier; operations (delete,
+     rename) SHALL prefer ``id`` over ``name`` when available
 
 
 .. req:: Generic Domain Cache

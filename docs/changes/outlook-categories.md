@@ -58,6 +58,7 @@ need to implement `ICategoryProvider` — no Outlook dependency.
 - D-11: `rename` action added to `jarvis_category` tool — requires `oldName` + `newName`
 - D-12: Context menu on category tree nodes: Rename Category + Delete Category
 - D-13: Outlook COM rename = delete old + create new with preserved color (COM has no native rename)
+- D-14: Optional `id?: string` on Category interface for provider-specific unique IDs (e.g. Outlook CategoryID); operations prefer `id` over `name` when available; `jarvis_category` tool does NOT expose `id` — it's an internal implementation detail
 
 ### Horizontal Check (MECE)
 
@@ -105,6 +106,7 @@ need to implement `ICategoryProvider` — no Outlook dependency.
 - D-L1-9: `renameCategory()` added to ICategoryProvider and CategoryService
 - D-L1-10: Context menu on category nodes: rename + delete — hidden from Command Palette
 - D-L1-11: Outlook COM rename: delete old + create new with preserved color (AC-6 on REQ_OLK_COMBRIDGE)
+- D-L1-12: Optional `id` field on Category (AC-7 on REQ_PIM_PROVIDER); Outlook fills with CategoryID (AC-7 on REQ_OLK_COMBRIDGE)
 
 ### Horizontal Check (MECE)
 
@@ -156,6 +158,7 @@ need to implement `ICategoryProvider` — no Outlook dependency.
 - D-L2-11: SPEC_PIM_CATTOOL adds `rename` action with `oldName`/`newName` Zod schema params
 - D-L2-12: SPEC_PIM_CATVIEW adds `jarvis.renameCategory` + `jarvis.deleteCategory` context menu commands
 - D-L2-13: SPEC_OLK_COMBRIDGE rename: delete + re-create with preserved color via PowerShell COM
+- D-L2-14: SPEC_PIM_IFACE: `id?: string` on Category; SPEC_PIM_SERVICE: `deleteCategory`/`renameCategory` accept optional `id`, pass to provider; SPEC_OLK_COMBRIDGE: getCategories populates `id` from COM CategoryID, delete/rename scripts use ID-or-name lookup
 
 ### Horizontal Check (MECE)
 

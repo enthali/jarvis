@@ -28,6 +28,8 @@ Outlook Requirements
      otherwise ``olCategoryColorNone`` (0)
    * AC-6: ``renameCategory`` SHALL delete the old category and create a new
      one with the new name, preserving the original colour value
+   * AC-7: ``getCategories`` SHALL populate the ``id`` field of each
+     ``Category`` with the Outlook ``CategoryID`` from the COM object
 
 
 .. req:: Outlook Master Toggle

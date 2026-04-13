@@ -15,6 +15,7 @@ PIM Design Specifications
    .. code-block:: typescript
 
       export interface Category {
+          id?: string;         // provider-specific unique ID (e.g. Outlook CategoryID)
           name: string;
           color: number;       // provider-specific colour value (0 = none)
           source: string;      // provider identifier (e.g. "outlook")
@@ -34,6 +35,9 @@ PIM Design Specifications
      ``OlCategoryColor`` enum (0 = none, 8 = blue, 10 = pink, etc.).
      Other provider implementations may map their own colour systems
      to these values or use 0.
+   * ``id`` is optional — not all providers have internal unique IDs.
+     When present, operations (delete, rename) SHOULD prefer ``id`` over
+     ``name`` for provider dispatch. Name-based lookup remains the fallback.
    * ``source`` is set by each provider implementation (e.g. ``"outlook"``);
      callers use it for filtering and targeted operations.
 
@@ -149,13 +153,14 @@ PIM Design Specifications
 
           async deleteCategory(
               name: string,
-              provider?: string
+              provider?: string,
+              id?: string
           ): Promise<void> {
               const targets = provider
                   ? this._providers.filter(p => p.source === provider)
                   : this._providers;
               for (const p of targets) {
-                  await p.deleteCategory(name);
+                  await p.deleteCategory(id ?? name);
               }
               this._cache.invalidate();
           }
@@ -163,13 +168,14 @@ PIM Design Specifications
           async renameCategory(
               oldName: string,
               newName: string,
-              provider?: string
+              provider?: string,
+              id?: string
           ): Promise<void> {
               const targets = provider
                   ? this._providers.filter(p => p.source === provider)
                   : this._providers;
               for (const p of targets) {
-                  await p.renameCategory(oldName, newName);
+                  await p.renameCategory(id ?? oldName, newName);
               }
               this._cache.invalidate();
           }
@@ -245,6 +251,9 @@ PIM Design Specifications
    * ``renameCategory`` delegates to each provider's ``renameCategory()`` —
      provider implementations decide how to perform the rename (e.g. Outlook
      COM deletes + re-creates)
+   * ``deleteCategory`` and ``renameCategory`` accept an optional ``id``
+     parameter; when present, ``id`` is passed to the provider instead of
+     ``name``, enabling lookup by provider-specific ID
    * ``hasProviders()`` is used by the tool guard and heartbeat refresh to
      determine whether the PIM layer is operational
 
@@ -415,6 +424,7 @@ PIM Design Specifications
 
       interface CategoryLeafNode {
           kind: 'category';
+          id?: string;
           name: string;
           source: string;
           color: number;
@@ -469,7 +479,7 @@ PIM Design Specifications
               });
               if (newName && newName !== node.name) {
                   await categoryService.renameCategory(
-                      node.name, newName, node.source
+                      node.name, newName, node.source, node.id
                   );
                   categoryTreeProvider.refresh();
               }
@@ -487,7 +497,7 @@ PIM Design Specifications
               );
               if (confirm === 'Delete') {
                   await categoryService.deleteCategory(
-                      node.name, node.source
+                      node.name, node.source, node.id
                   );
                   categoryTreeProvider.refresh();
               }

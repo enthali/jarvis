@@ -27,15 +27,17 @@ Outlook Design Specifications
       $result = @()
       foreach ($c in $cats) {
           $result += [PSCustomObject]@{
-              Name = $c.Name
+              Id    = $c.CategoryID
+              Name  = $c.Name
               Color = [int]$c.Color
           }
       }
       $result | ConvertTo-Json -Compress
 
    Output is parsed as ``JSON.parse()``; each entry gets ``source: "outlook"``
-   appended. An empty ``$result`` (no categories) produces ``null`` from
-   ``ConvertTo-Json`` — the parser treats ``null`` as ``[]``.
+   and ``id`` (set to the COM ``CategoryID``) appended. An empty ``$result``
+   (no categories) produces ``null`` from ``ConvertTo-Json`` — the parser
+   treats ``null`` as ``[]``.
 
    **setCategory() PowerShell script:**
 
@@ -56,20 +58,31 @@ Outlook Design Specifications
 
    **deleteCategory() PowerShell script:**
 
+   The ``nameOrId`` parameter is either a ``CategoryID`` (when ``id`` was
+   provided by the caller) or a category name (fallback). The script tries
+   ``CategoryID`` match first, then falls back to name.
+
    .. code-block:: powershell
 
       $ol = New-Object -ComObject Outlook.Application
       $ns = $ol.GetNamespace('MAPI')
-      $cat = $ns.Categories | Where-Object { $_.Name -eq '{{name}}' }
+      $cat = $ns.Categories | Where-Object {
+          $_.CategoryID -eq '{{nameOrId}}' -or $_.Name -eq '{{nameOrId}}'
+      } | Select-Object -First 1
       if ($cat) { $ns.Categories.Remove($cat.CategoryID) }
 
    **renameCategory() PowerShell script:**
 
+   The ``oldNameOrId`` parameter is either a ``CategoryID`` (when ``id`` was
+   provided by the caller) or a category name (fallback).
+
    .. code-block:: powershell
 
       $ol = New-Object -ComObject Outlook.Application
       $ns = $ol.GetNamespace('MAPI')
-      $cat = $ns.Categories | Where-Object { $_.Name -eq '{{oldName}}' }
+      $cat = $ns.Categories | Where-Object {
+          $_.CategoryID -eq '{{oldNameOrId}}' -or $_.Name -eq '{{oldNameOrId}}'
+      } | Select-Object -First 1
       if ($cat) {
           $color = [int]$cat.Color
           $ns.Categories.Remove($cat.CategoryID)
@@ -77,7 +90,7 @@ Outlook Design Specifications
       }
 
    The implementation deletes the old category and re-creates it with the new
-   name, preserving the original colour value. Both ``{{oldName}}`` and
+   name, preserving the original colour value. Both ``{{oldNameOrId}}`` and
    ``{{newName}}`` are sanitized by escaping single quotes (``'`` → ``''``).
 
    **Colour heuristic** (applied during ``setCategory`` when ``color`` is 0):
