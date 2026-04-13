@@ -57,7 +57,7 @@
         {
           "id": "jarvisCategories",
           "name": "Categories",
-          "when": "config.jarvis.pim.showCategories"
+          "when": "config.jarvis.pim.showCategories == true"
         }
       ]
     },
@@ -424,18 +424,13 @@
         }
       },
       {
-        "title": "Outlook",
+        "title": "PIM",
         "properties": {
           "jarvis.outlookEnabled": {
             "type": "boolean",
             "default": false,
             "description": "Enable Outlook COM integration (Windows + Outlook Classic). When disabled, no Outlook COM calls are made."
-          }
-        }
-      },
-      {
-        "title": "Categories",
-        "properties": {
+          },
           "jarvis.pim.showCategories": {
             "type": "boolean",
             "default": true,
