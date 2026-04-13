@@ -114,6 +114,8 @@ JSON Schemas: `schemas/project.schema.json`, `schemas/event.schema.json`
 
 - **When-clauses**: Boolean config values require explicit `== true` (e.g. `config.jarvis.pim.showCategories == true`); bare identifiers don't work.
 - **Settings groups**: Consolidate by feature theme (e.g. PIM), not by technical layer (e.g. Outlook vs. extension internals).
+- **Category naming prefix**: Apply "Project: " / "Event: " prefixes in the command handler, not inside `CategoryService`. The service is prefix-agnostic.
+- **Optional integration guard**: When calling optional integrations (e.g., category sync) from a primary command, wrap in try/catch and log.warn only — errors must never block the primary operation (folder + YAML creation).
 
 ## Session–Project Binding
 
