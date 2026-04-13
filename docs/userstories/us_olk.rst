@@ -24,3 +24,32 @@ Outlook User Stories
    * AC-4: A setting ``jarvis.outlookEnabled`` (default: ``false``) controls whether
      the Outlook COM provider is instantiated; when disabled, no COM calls are made
    * AC-5: Changing ``jarvis.outlookEnabled`` requires a window reload
+
+
+.. story:: Auto-Create Outlook Category on New Entity
+   :id: US_OLK_AUTOCATEGORY
+   :status: implemented
+   :priority: optional
+   :links: US_EXP_NEWENTITY; US_OLK_COMBRIDGE
+
+   **As a** Jarvis User,
+   **I want** an Outlook category automatically created with a conventional name
+   when I create a new project or event via the Jarvis explorer,
+   **so that** my Outlook inbox and calendar are immediately categorised without
+   manual effort.
+
+   **Acceptance Criteria:**
+
+   * AC-1: When a new project "Foo" is created and ``jarvis.outlookEnabled = true``,
+     the Outlook category ``"Project: Foo"`` is created automatically
+   * AC-2: When a new event "Bar Conference" is created and
+     ``jarvis.outlookEnabled = true``, the Outlook category
+     ``"Event: Bar Conference"`` is created automatically
+   * AC-3: If ``jarvis.outlookEnabled = false`` or no category providers are
+     configured, no category operation is attempted and the entity is still created
+     successfully
+   * AC-4: A failure to create the category does NOT prevent the entity from being
+     created — the error is logged only
+   * AC-5: The naming convention ``"Project: <name>"`` and ``"Event: <name>"`` is
+     enforced at the command handler level, not delegated to ``CategoryService``
+     or any provider

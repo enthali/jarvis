@@ -185,3 +185,78 @@ Outlook Design Specifications
      instantiated (PIM layer) — only the provider registration is conditional
    * Both ``jarvis.outlookEnabled`` and ``jarvis.pim.showCategories`` are
      combined in the single ``"PIM"`` settings group (see ``SPEC_PIM_CATVIEW``)
+
+
+.. spec:: Auto-Create Outlook Category in New-Entity Commands
+   :id: SPEC_OLK_AUTOCAT_NEWENTITY
+   :status: implemented
+   :links: REQ_OLK_AUTOCAT_NEWENTITY; SPEC_EXP_NEWPROJECT_CMD; SPEC_EXP_NEWEVENT_CMD; SPEC_PIM_SERVICE
+
+   **Description:**
+   Both ``jarvis.newProject`` and ``jarvis.newEvent`` command handlers in
+   ``src/extension.ts`` include a guarded category-creation step after writing
+   the entity files.
+
+   **Placement within ``jarvis.newProject`` handler:**
+
+   After step 8 (``fs.promises.writeFile`` for ``project.yaml``), before
+   step 9 (``scanner.rescan()``):
+
+   .. code-block:: typescript
+
+      try {
+          const outlookEnabled = vscode.workspace
+              .getConfiguration('jarvis')
+              .get<boolean>('outlookEnabled', false);
+          if (outlookEnabled && categoryService.hasProviders()) {
+              await categoryService.setCategory(`Project: ${input}`, 0);
+              log.info(`[NewProject] Outlook category created: "Project: ${input}"`);
+          }
+      } catch (err) {
+          log.warn(`[NewProject] Failed to create Outlook category: ${err}`);
+      }
+
+   **Placement within ``jarvis.newEvent`` handler:**
+
+   After step 10 (``fs.promises.writeFile`` for ``event.yaml``), before
+   step 11 (``scanner.rescan()``):
+
+   .. code-block:: typescript
+
+      try {
+          const outlookEnabled = vscode.workspace
+              .getConfiguration('jarvis')
+              .get<boolean>('outlookEnabled', false);
+          if (outlookEnabled && categoryService.hasProviders()) {
+              await categoryService.setCategory(`Event: ${nameInput}`, 0);
+              log.info(`[NewEvent] Outlook category created: "Event: ${nameInput}"`);
+          }
+      } catch (err) {
+          log.warn(`[NewEvent] Failed to create Outlook category: ${err}`);
+      }
+
+   **Naming convention:**
+
+   * Projects: ``"Project: <name>"`` — the human-readable user input, not the
+     kebab-case folder name
+   * Events: ``"Event: <name>"`` — the human-readable user input
+
+   The ``OutlookCategoryProvider`` colour heuristic automatically assigns
+   blue (8) for names containing "Project" and pink (10) for names containing
+   "Event" when ``color`` is passed as ``0``.
+
+   **Guard conditions (evaluated inline each call):**
+
+   1. ``outlookEnabled === true`` — read fresh from configuration at call time
+      (not hoisted from activation) to reflect current state
+   2. ``categoryService.hasProviders() === true`` — ensures the
+      ``OutlookCategoryProvider`` is registered; prevents no-op COM calls
+
+   **``categoryService`` reference:**
+
+   The ``categoryService`` instance is already in scope in the outer
+   ``activate()`` closure (line 148 of ``src/extension.ts``). No parameter
+   passing is required.
+
+   **No changes** to ``CategoryService``, ``OutlookCategoryProvider``,
+   ``package.json``, or any other file.
