@@ -1,5 +1,29 @@
 # Release Notes
 
+## v0.4.0
+
+*2026-04-13*
+
+New user features: grouped settings, feature-toggled sidebar views, context menu actions, chronological event sorting, and a new listProjects tool.
+
+### New Features
+
+- **list-projects**: New `jarvis_listProjects` LM+MCP tool — exposes all scanned projects via `registerDualTool()`, available to both VS Code language models and MCP clients.
+- **settings-grp**: Settings reorganized into 6 categories (Projects, Events, Heartbeat, Messages, MCP Server, Updates). Sidebar views for Events, Messages, and Heartbeat are now feature-toggled — hidden when their corresponding setting is empty. `populateDefaultPaths()` writes defaults at activation so Messages and Heartbeat appear automatically.
+- **context-actions**: Three context menu actions on project and event nodes — Reveal in Explorer, Reveal in File Explorer, and Open in Terminal. Delegates to VS Code built-in commands.
+- **event-sort**: Events are sorted chronologically by `dates.start` instead of alphabetically. Labels show date prefix: `2025-06-24 — Event Name`.
+
+### Fixes
+
+- Zod `.describe()` added to all MCP tool parameter schemas for better client-side documentation.
+- MCP client config moved to `testdata/.vscode/mcp.json`.
+
+### Docs & Infra
+
+- Role renaming: Developer → Change Manager, QA-Engineer → Quality Manager.
+- QA doc improvements: new REQ/SPEC artifacts (`REQ_DEV_ACTIVATION`, `REQ_DEV_DISPOSAL`, `SPEC_EXP_RESCANBRIDGE`), 21 link hygiene fixes.
+- Git workflow updated to develop-based squash-merge strategy.
+
 ## v0.3.1
 
 *2026-04-11*
