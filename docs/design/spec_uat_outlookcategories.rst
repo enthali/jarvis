@@ -180,3 +180,39 @@ Outlook Categories UAT Design Specifications
       * - T-26 (disabled guard)
         - ``outlookEnabled=false``; check Output Channel
         - No COM/PowerShell log entries; no child processes
+
+
+.. spec:: Auto-Category on New Entity Test Procedures
+   :id: SPEC_UAT_AUTOCAT_FILES
+   :status: approved
+   :links: REQ_UAT_AUTOCAT_TESTDATA; SPEC_OLK_AUTOCAT_NEWENTITY; SPEC_EXP_NEWPROJECT_CMD; SPEC_EXP_NEWEVENT_CMD
+
+   **Description:**
+   Manual test procedures for the automatic Outlook category creation triggered
+   by the ``jarvis.newProject`` and ``jarvis.newEvent`` commands. Requires
+   Windows OS with Outlook Classic running.
+
+   **Test data:**
+
+   * No new testdata/ files — entity folders are created and deleted during testing
+   * Precondition: ``jarvis.outlookEnabled = true``; ``jarvis.projectsFolder`` and
+     ``jarvis.eventsFolder`` configured; Outlook Classic open
+
+   **Expected test outcomes (documented in test protocol):**
+
+   .. list-table::
+      :header-rows: 1
+      :widths: 15 45 40
+
+      * - Scenario
+        - Action
+        - Expected Result
+      * - T-27 (project auto-category)
+        - ``+`` in Projects bar; name ``"UAT-AutoCat"``
+        - Category ``"Project: UAT-AutoCat"`` created in Outlook (blue); entity folder created
+      * - T-28 (event auto-category)
+        - ``+`` in Events bar; name ``"UAT-AutoCat Conf"``; date ``2099-12-31``
+        - Category ``"Event: UAT-AutoCat Conf"`` created in Outlook (pink); event folder created
+      * - T-29 (guard disabled)
+        - ``outlookEnabled=false``; ``+`` in Projects bar; name ``"UAT-GuardTest"``
+        - Entity created successfully; NO new Outlook category created; no user-visible error

@@ -83,3 +83,26 @@ Outlook Categories UAT Requirements
      running; tests involving ``Category.id`` require debug-level logging enabled
    * AC-4: Tests that create categories (T-22) SHALL use a "UAT-" prefix for
      easy cleanup
+
+
+.. req:: Auto-Category Test Data
+   :id: REQ_UAT_AUTOCAT_TESTDATA
+   :status: approved
+   :priority: optional
+   :links: US_UAT_AUTOCAT; REQ_OLK_AUTOCAT_NEWENTITY; REQ_EXP_NEWPROJECT; REQ_EXP_NEWEVENT
+
+   **Description:**
+   The repo SHALL contain documented expected outcomes for manual verification of
+   the automatic Outlook category creation triggered by the new-entity commands.
+
+   **Acceptance Criteria:**
+
+   * AC-1: No new testdata/ files required — tests use the Extension Development
+     Host with live Outlook Classic; test entity folders are created and cleaned up
+     during the test run
+   * AC-2: Expected outcomes for each test scenario (T-27 through T-29 from
+     ``US_UAT_AUTOCAT``) SHALL be documented in the test protocol
+   * AC-3: Test preconditions specify ``jarvis.outlookEnabled = true``, Outlook
+     Classic running on Windows, and the Extension Development Host launched
+   * AC-4: Test categories use the ``"UAT-AutoCat"`` prefix for easy identification
+     and cleanup

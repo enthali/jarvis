@@ -252,3 +252,53 @@ Outlook Categories User Acceptance Tests
      Action: Open Output Channel "Jarvis"; search for any PowerShell or COM log.
      Expected: No Outlook COM-related log entries; no ``powershell`` child
      processes spawned.
+
+
+.. story:: Auto-Category on New Entity Acceptance Tests
+   :id: US_UAT_AUTOCAT
+   :status: approved
+   :priority: optional
+   :links: US_OLK_AUTOCATEGORY; REQ_OLK_AUTOCAT_NEWENTITY
+
+   **As a** Jarvis Test Engineer,
+   **I want** manual acceptance test scenarios for the automatic Outlook category
+   creation triggered by the new-entity commands,
+   **so that** I can verify convention enforcement, guard conditions, and error
+   resilience before release.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Test scenarios verify that creating a project auto-creates
+     ``"Project: <name>"`` in Outlook when ``outlookEnabled = true``
+   * AC-2: Test scenarios verify that creating an event auto-creates
+     ``"Event: <name>"`` in Outlook when ``outlookEnabled = true``
+   * AC-3: Test scenarios verify that with ``outlookEnabled = false`` no category
+     is created but the entity is still created successfully
+
+   **Test Scenarios:**
+
+   **T-27 — New project auto-creates Outlook category**
+     Setup: ``jarvis.outlookEnabled = true``; Outlook running; Extension
+     Development Host launched.
+     Action: Click ``+`` in the Projects title bar; enter name ``"UAT-AutoCat"``.
+     Expected: Folder ``uat-autocat/project.yaml`` created; category
+     ``"Project: UAT-AutoCat"`` appears in Outlook with blue colour.
+     Cleanup: Delete ``uat-autocat/`` folder; delete category from Outlook.
+
+   **T-28 — New event auto-creates Outlook category**
+     Setup: ``jarvis.outlookEnabled = true``; Outlook running; Extension
+     Development Host launched.
+     Action: Click ``+`` in the Events title bar; enter name ``"UAT-AutoCat Conf"``
+     and date ``"2099-12-31"``.
+     Expected: Folder ``2099-12-31-uat-autocat-conf/event.yaml`` created; category
+     ``"Event: UAT-AutoCat Conf"`` appears in Outlook with pink colour.
+     Cleanup: Delete event folder; delete category from Outlook.
+
+   **T-29 — Guard: no category created when outlookEnabled=false**
+     Setup: ``jarvis.outlookEnabled = false`` (default); Extension Development
+     Host launched.
+     Action: Click ``+`` in the Projects title bar; enter name ``"UAT-GuardTest"``.
+     Expected: Folder ``uat-guardtest/project.yaml`` created and appears in sidebar;
+     NO new category ``"Project: UAT-GuardTest"`` visible in Outlook; no error shown
+     to the user.
+     Cleanup: Delete ``uat-guardtest/`` folder.
