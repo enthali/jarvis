@@ -1,6 +1,6 @@
 {
     "livePreview.defaultPreviewPath": "/docs/_build/html/index.html",
-    "jarvis.eventsFolder": "C:\\workspace\\Jarvis\\events",
+    "jarvis.eventsFolder": "",
     "jarvis.heartbeatConfigFile": "C:\\workspace\\Jarvis\\.jarvis\\heartbeat.yaml",
     "jarvis.messagesFile": "C:\\workspace\\Jarvis\\.jarvis\\messages.json",
     "jarvis.projectsFolder": "C:\\workspace\\Jarvis\\projects",
