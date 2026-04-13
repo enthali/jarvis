@@ -25,6 +25,7 @@ PIM Design Specifications
           getCategories(): Promise<Category[]>;
           setCategory(name: string, color: number): Promise<void>;
           deleteCategory(name: string): Promise<void>;
+          renameCategory(oldName: string, newName: string): Promise<void>;
       }
 
    **Design notes:**
@@ -159,6 +160,20 @@ PIM Design Specifications
               this._cache.invalidate();
           }
 
+          async renameCategory(
+              oldName: string,
+              newName: string,
+              provider?: string
+          ): Promise<void> {
+              const targets = provider
+                  ? this._providers.filter(p => p.source === provider)
+                  : this._providers;
+              for (const p of targets) {
+                  await p.renameCategory(oldName, newName);
+              }
+              this._cache.invalidate();
+          }
+
           async refresh(): Promise<Category[]> {
               return this._cache.refresh();
           }
@@ -227,6 +242,9 @@ PIM Design Specifications
      deterministic ordering
    * After write operations, only ``invalidate()`` is called — the next
      ``getCategories()`` call triggers a fresh ``refresh()``
+   * ``renameCategory`` delegates to each provider's ``renameCategory()`` —
+     provider implementations decide how to perform the rename (e.g. Outlook
+     COM deletes + re-creates)
    * ``hasProviders()`` is used by the tool guard and heartbeat refresh to
      determine whether the PIM layer is operational
 
@@ -256,7 +274,7 @@ PIM Design Specifications
               )
             ]);
           }
-          const { action, name, filter, provider } = options.input;
+          const { action, name, filter, provider, oldName, newName } = options.input;
           let result: object;
           switch (action) {
             case 'get':
@@ -274,6 +292,11 @@ PIM Design Specifications
               await categoryService!.deleteCategory(name, provider);
               result = { status: 'ok', name };
               break;
+            case 'rename':
+              if (!oldName || !newName) throw new Error('oldName and newName required for rename');
+              await categoryService!.renameCategory(oldName, newName, provider);
+              result = { status: 'ok', oldName, newName };
+              break;
             default:
               throw new Error(`Unknown action: ${action}`);
           }
@@ -283,13 +306,15 @@ PIM Design Specifications
           ]);
         },
         // MCP description
-        'Manage categories: get, set, or delete.',
+        'Manage categories: get, set, delete, or rename.',
         // MCP input schema (Zod)
         {
-          action: z.enum(['get', 'set', 'delete']),
+          action: z.enum(['get', 'set', 'delete', 'rename']),
           name: z.string().optional(),
           filter: z.string().optional(),
-          provider: z.string().optional()
+          provider: z.string().optional(),
+          oldName: z.string().optional(),
+          newName: z.string().optional()
         },
         // MCP handler
         async (args) => {
@@ -300,6 +325,8 @@ PIM Design Specifications
           const name = args.name as string | undefined;
           const filter = args.filter as string | undefined;
           const provider = args.provider as string | undefined;
+          const oldNameArg = args.oldName as string | undefined;
+          const newNameArg = args.newName as string | undefined;
           switch (action) {
             case 'get':
               return {
@@ -315,6 +342,11 @@ PIM Design Specifications
               await categoryService!.deleteCategory(name, provider);
               categoryTreeProvider?.refresh();
               return { status: 'ok', name };
+            case 'rename':
+              if (!oldNameArg || !newNameArg) return { error: 'oldName and newName are required' };
+              await categoryService!.renameCategory(oldNameArg, newNameArg, provider);
+              categoryTreeProvider?.refresh();
+              return { status: 'ok', oldName: oldNameArg, newName: newNameArg };
             default:
               return { error: `Unknown action: ${action}` };
           }
@@ -328,7 +360,7 @@ PIM Design Specifications
       {
         "name": "jarvis_category",
         "displayName": "Manage Categories",
-        "modelDescription": "Manage categories from all configured PIM providers. Actions: get (list/filter categories from cache), set (create/update a category), delete (remove a category). When no providers are configured, returns an error.",
+        "modelDescription": "Manage categories from all configured PIM providers. Actions: get (list/filter categories from cache), set (create/update a category), delete (remove a category), rename (rename a category). When no providers are configured, returns an error.",
         "canBeReferencedInPrompt": true,
         "toolReferenceName": "category",
         "icon": "$(tag)",
@@ -337,7 +369,7 @@ PIM Design Specifications
           "properties": {
             "action": {
               "type": "string",
-              "enum": ["get", "set", "delete"],
+              "enum": ["get", "set", "delete", "rename"],
               "description": "The action to perform"
             },
             "name": {
@@ -351,6 +383,14 @@ PIM Design Specifications
             "provider": {
               "type": "string",
               "description": "Target provider (omit to broadcast to all)"
+            },
+            "oldName": {
+              "type": "string",
+              "description": "Current category name (required for rename)"
+            },
+            "newName": {
+              "type": "string",
+              "description": "New category name (required for rename)"
             }
           },
           "required": ["action"]
@@ -414,6 +454,46 @@ PIM Design Specifications
    Calls ``this._service.refresh()``, then fires
    ``this._onDidChangeTreeData.fire(undefined)`` to refresh the tree.
 
+   **Context menu command handlers (registered in ``extension.ts``):**
+
+   .. code-block:: typescript
+
+      // jarvis.renameCategory
+      vscode.commands.registerCommand(
+          'jarvis.renameCategory',
+          async (node: CategoryLeafNode) => {
+              const newName = await vscode.window.showInputBox({
+                  prompt: 'New category name',
+                  value: node.name,
+                  validateInput: v => v?.trim() ? null : 'Name cannot be empty'
+              });
+              if (newName && newName !== node.name) {
+                  await categoryService.renameCategory(
+                      node.name, newName, node.source
+                  );
+                  categoryTreeProvider.refresh();
+              }
+          }
+      );
+
+      // jarvis.deleteCategory
+      vscode.commands.registerCommand(
+          'jarvis.deleteCategory',
+          async (node: CategoryLeafNode) => {
+              const confirm = await vscode.window.showWarningMessage(
+                  `Delete category "${node.name}"?`,
+                  { modal: true },
+                  'Delete'
+              );
+              if (confirm === 'Delete') {
+                  await categoryService.deleteCategory(
+                      node.name, node.source
+                  );
+                  categoryTreeProvider.refresh();
+              }
+          }
+      );
+
    **Manifest additions (package.json):**
 
    * ``contributes.views.jarvis-explorer``: add 5th view:
@@ -428,9 +508,24 @@ PIM Design Specifications
 
    * ``contributes.commands``: ``jarvis.refreshCategories``
      (title "Jarvis: Refresh Categories", icon ``$(refresh)``)
+   * ``contributes.commands``: ``jarvis.renameCategory``
+     (title "Jarvis: Rename Category")
+   * ``contributes.commands``: ``jarvis.deleteCategory``
+     (title "Jarvis: Delete Category")
    * ``contributes.menus.view/title``: ``jarvis.refreshCategories``
      with ``when: "view == jarvisCategories"`` (group ``navigation``)
-   * ``contributes.menus.commandPalette``: hide (``when: "false"``)
+   * ``contributes.menus.view/item/context``:
+
+     - ``jarvis.renameCategory`` with
+       ``when: "viewItem == jarvisCategory"`` (group ``inline``)
+     - ``jarvis.deleteCategory`` with
+       ``when: "viewItem == jarvisCategory"``
+
+   * ``contributes.menus.commandPalette``:
+
+     - ``jarvis.refreshCategories`` hidden (``when: "false"``)
+     - ``jarvis.renameCategory`` hidden (``when: "false"``)
+     - ``jarvis.deleteCategory`` hidden (``when: "false"``)
    * ``activationEvents``: add ``onView:jarvisCategories``
 
    **Settings (package.json — "Categories" group):**

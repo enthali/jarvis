@@ -55,6 +55,9 @@ need to implement `ICategoryProvider` — no Outlook dependency.
 - D-8: US_DEV_LOGGING NOT modified — already generic enough
 - D-9: US_MSG_MCPSERVER NOT modified — dual-registration pattern already established
 - D-10: Naming convention enforcement is caller responsibility (per architecture)
+- D-11: `rename` action added to `jarvis_category` tool — requires `oldName` + `newName`
+- D-12: Context menu on category tree nodes: Rename Category + Delete Category
+- D-13: Outlook COM rename = delete old + create new with preserved color (COM has no native rename)
 
 ### Horizontal Check (MECE)
 
@@ -99,6 +102,9 @@ need to implement `ICategoryProvider` — no Outlook dependency.
 - D-L1-6: REQ_PIM_CATTOOL guard: checks for providers (not outlookEnabled) — tool works with any provider
 - D-L1-7: REQ_PIM_CATVIEW when-clause: `config.jarvis.pim.showCategories` — single boolean, no compound condition
 - D-L1-8: REQ_OLK_ENABLE scoped to Outlook provider only — no longer gates view or tool
+- D-L1-9: `renameCategory()` added to ICategoryProvider and CategoryService
+- D-L1-10: Context menu on category nodes: rename + delete — hidden from Command Palette
+- D-L1-11: Outlook COM rename: delete old + create new with preserved color (AC-6 on REQ_OLK_COMBRIDGE)
 
 ### Horizontal Check (MECE)
 
@@ -146,6 +152,10 @@ need to implement `ICategoryProvider` — no Outlook dependency.
 - D-L2-7: Tool registered via `registerDualTool()` as `jarvis_category`
 - D-L2-8: CategoryTreeProvider sorts categories alphabetically by name
 - D-L2-9: Tool guard checks `categoryService.hasProviders()` instead of `outlookEnabled`
+- D-L2-10: `renameCategory` on SPEC_PIM_IFACE — providers implement rename
+- D-L2-11: SPEC_PIM_CATTOOL adds `rename` action with `oldName`/`newName` Zod schema params
+- D-L2-12: SPEC_PIM_CATVIEW adds `jarvis.renameCategory` + `jarvis.deleteCategory` context menu commands
+- D-L2-13: SPEC_OLK_COMBRIDGE rename: delete + re-create with preserved color via PowerShell COM
 
 ### Horizontal Check (MECE)
 

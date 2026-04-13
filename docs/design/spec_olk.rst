@@ -63,6 +63,23 @@ Outlook Design Specifications
       $cat = $ns.Categories | Where-Object { $_.Name -eq '{{name}}' }
       if ($cat) { $ns.Categories.Remove($cat.CategoryID) }
 
+   **renameCategory() PowerShell script:**
+
+   .. code-block:: powershell
+
+      $ol = New-Object -ComObject Outlook.Application
+      $ns = $ol.GetNamespace('MAPI')
+      $cat = $ns.Categories | Where-Object { $_.Name -eq '{{oldName}}' }
+      if ($cat) {
+          $color = [int]$cat.Color
+          $ns.Categories.Remove($cat.CategoryID)
+          $ns.Categories.Add('{{newName}}', $color)
+      }
+
+   The implementation deletes the old category and re-creates it with the new
+   name, preserving the original colour value. Both ``{{oldName}}`` and
+   ``{{newName}}`` are sanitized by escaping single quotes (``'`` → ``''``).
+
    **Colour heuristic** (applied during ``setCategory`` when ``color`` is 0):
 
    .. code-block:: typescript

@@ -33,26 +33,29 @@ PIM User Stories
    :links: US_PIM_CATEGORIES; US_MSG_MCPSERVER
 
    **As a** LLM agent working in a Jarvis workspace,
-   **I want** a tool to get, set, and delete categories,
+   **I want** a tool to get, set, delete, and rename categories,
    **so that** automation workflows can manage categories programmatically.
 
    **Acceptance Criteria:**
 
    * AC-1: A Language Model Tool ``jarvis_category`` is available in the
      Chat tool picker
-   * AC-2: The tool accepts ``action: "get" | "set" | "delete"``, optional
-     ``name``, ``filter``, and ``provider`` parameters
+   * AC-2: The tool accepts ``action: "get" | "set" | "delete" | "rename"``,
+     optional ``name``, ``filter``, ``provider``, ``oldName``, and ``newName``
+     parameters
    * AC-3: ``get`` without filter returns all categories from cache; with filter
      returns only categories matching the prefix or source
    * AC-4: ``set`` creates or updates a category; without ``provider`` the
      operation is broadcast to all providers
    * AC-5: ``delete`` removes a category; without ``provider`` the operation is
      broadcast to all providers
-   * AC-6: The tool does NOT enforce naming conventions — that is the caller's
+   * AC-6: ``rename`` renames a category from ``oldName`` to ``newName``;
+     without ``provider`` the operation is broadcast to all providers
+   * AC-7: The tool does NOT enforce naming conventions — that is the caller's
      responsibility
-   * AC-7: The tool is also available via the MCP server (dual registration via
+   * AC-8: The tool is also available via the MCP server (dual registration via
      ``registerDualTool()``)
-   * AC-8: When no category providers are configured, the tool returns an error
+   * AC-9: When no category providers are configured, the tool returns an error
      explaining that no PIM providers are available
 
 
@@ -76,3 +79,8 @@ PIM User Stories
    * AC-4: The view is controlled by ``jarvis.pim.showCategories``
      (default: ``true``)
    * AC-5: When no providers are configured, the view shows "no categories"
+   * AC-6: Right-clicking a category node offers "Rename Category" — shows an
+     input box pre-filled with the current name, then renames via
+     ``CategoryService``
+   * AC-7: Right-clicking a category node offers "Delete Category" — shows a
+     confirmation dialog, then deletes via ``CategoryService``

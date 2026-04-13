@@ -26,6 +26,8 @@ Outlook Requirements
      "project" (case-insensitive) → ``olCategoryColorBlue`` (8), names
      containing "event" (case-insensitive) → ``olCategoryColorPink`` (10),
      otherwise ``olCategoryColorNone`` (0)
+   * AC-6: ``renameCategory`` SHALL delete the old category and create a new
+     one with the new name, preserving the original colour value
 
 
 .. req:: Outlook Master Toggle

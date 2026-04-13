@@ -24,7 +24,10 @@ PIM Requirements
      update a category
    * AC-4: The interface SHALL define
      ``deleteCategory(name: string): Promise<void>`` to remove a category
-   * AC-5: Each ``Category`` object SHALL carry a ``source`` tag identifying
+   * AC-5: The interface SHALL define
+     ``renameCategory(oldName: string, newName: string): Promise<void>`` to
+     rename a category
+   * AC-6: Each ``Category`` object SHALL carry a ``source`` tag identifying
      which provider supplied it
 
 
@@ -71,9 +74,11 @@ PIM Requirements
      providers; with ``provider`` SHALL target only the named provider
    * AC-4: ``delete`` without ``provider`` parameter SHALL broadcast to all
      providers; with ``provider`` SHALL target only the named provider
-   * AC-5: After ``set`` or ``delete``, the cache SHALL be invalidated so the
-     next ``get`` fetches fresh data
-   * AC-6: The service SHALL own the cache — providers are stateless
+   * AC-5: ``rename`` without ``provider`` parameter SHALL broadcast to all
+     providers; with ``provider`` SHALL target only the named provider
+   * AC-6: After ``set``, ``delete``, or ``rename``, the cache SHALL be
+     invalidated so the next ``get`` fetches fresh data
+   * AC-7: The service SHALL own the cache — providers are stateless
 
 
 .. req:: Category Management Tool (LM/MCP)
@@ -88,18 +93,21 @@ PIM Requirements
 
    **Acceptance Criteria:**
 
-   * AC-1: The tool SHALL accept ``action: "get" | "set" | "delete"``
+   * AC-1: The tool SHALL accept ``action: "get" | "set" | "delete" | "rename"``
    * AC-2: The tool SHALL accept optional ``name`` (string), ``filter``
-     (string), and ``provider`` (string) parameters
+     (string), ``provider`` (string), ``oldName`` (string), and ``newName``
+     (string) parameters
    * AC-3: ``get`` without filter SHALL return all categories from cache; with
      filter SHALL return categories matching the prefix or source
    * AC-4: ``set`` SHALL create or update a category via ``CategoryService``
    * AC-5: ``delete`` SHALL remove a category via ``CategoryService``
-   * AC-6: The tool SHALL NOT enforce naming conventions — that is the caller's
+   * AC-6: ``rename`` SHALL rename a category via ``CategoryService``;
+     requires both ``oldName`` and ``newName`` parameters
+   * AC-7: The tool SHALL NOT enforce naming conventions — that is the caller's
      responsibility
-   * AC-7: The tool SHALL be registered via ``registerDualTool()`` for
+   * AC-8: The tool SHALL be registered via ``registerDualTool()`` for
      simultaneous LM and MCP availability
-   * AC-8: When no category providers are configured, the tool SHALL return
+   * AC-9: When no category providers are configured, the tool SHALL return
      an informational error message
 
 
@@ -127,3 +135,9 @@ PIM Requirements
      "no categories"
    * AC-6: The ``when``-clause SHALL be:
      ``config.jarvis.pim.showCategories``
+   * AC-7: A context menu on category nodes (``contextValue: jarvisCategory``)
+     SHALL offer "Rename Category" — opening an input box pre-filled with
+     the current name, then renaming via ``CategoryService``
+   * AC-8: A context menu on category nodes SHALL offer "Delete Category" —
+     showing a confirmation dialog, then deleting via ``CategoryService``
+   * AC-9: Both context menu commands SHALL be hidden from the Command Palette
