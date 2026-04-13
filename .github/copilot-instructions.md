@@ -60,7 +60,7 @@ This is a single-project repo — **no family prefix**.
 Format: `<TYPE>_<THEME>_<SHORT_SLUG>`
 
 - `US_` = User Story, `REQ_` = Requirement, `SPEC_` = Design Spec
-- Themes: `EXP` (Explorer UI), `DEV` (Developer Tooling), `CFG` (Config), `PRJ` (Projects), `EVT` (Events), `MSG` (Message Queue / Chat Sessions), `REL` (Release), `UAT` (User Acceptance Tests), `AUT` (Automation/Scheduling)
+- Themes: `EXP` (Explorer UI), `DEV` (Developer Tooling), `CFG` (Config), `PRJ` (Projects), `EVT` (Events), `MSG` (Message Queue / Chat Sessions), `PIM` (Personal Information Manager — categories), `OLK` (Outlook integration), `REL` (Release), `UAT` (User Acceptance Tests), `AUT` (Automation/Scheduling)
 - Example: `US_EXP_SIDEBAR`, `REQ_DEV_LAUNCHCONFIG`, `SPEC_REL_RELEASEACTION`, `US_AUT_HEARTBEAT`
 
 Full conventions: `docs/namingconventions.rst`
@@ -109,6 +109,11 @@ At release: `syspilot.release` squash-merges `develop` into `main` (`git merge -
 - **Events**: `name` (free-form string), `location`, `dates.start/end`, `status`, `role`, `summary`
 
 JSON Schemas: `schemas/project.schema.json`, `schemas/event.schema.json`
+
+## VS Code Extension Gotchas
+
+- **When-clauses**: Boolean config values require explicit `== true` (e.g. `config.jarvis.pim.showCategories == true`); bare identifiers don't work.
+- **Settings groups**: Consolidate by feature theme (e.g. PIM), not by technical layer (e.g. Outlook vs. extension internals).
 
 ## Session–Project Binding
 
