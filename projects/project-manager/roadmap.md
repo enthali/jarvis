@@ -8,7 +8,7 @@
 |--------|--------|
 | qa-lifecycle-reqs (M-1: Activation, M-2: Disposal, M-5: RescanBridge) | planned |
 
-## v0.4.0 (in progress)
+## v0.4.0 (released)
 
 | Change | Status |
 |--------|--------|
@@ -16,7 +16,7 @@
 | list-projects (jarvis_listProjects LM+MCP Tool) | done |
 | settings-grp (Settings Gruppierung + Feature-Toggle) | done |
 | context-actions (Reveal in Explorer/OS/Terminal) | done |
-| event-sort (Chronologische Sortierung mit Datums-Label) | in progress |
+| event-sort (Chronologische Sortierung mit Datums-Label) | done |
 
 ## v0.3.1 (released)
 
@@ -72,13 +72,39 @@ Constraint: Windows + Outlook Classic (COM), kein Graph/OAuth.
 - **Dep:** `@modelcontextprotocol/sdk`
 
 ### Outlook Integration (2026-04-13)
+
+**Constraints & Toggles:**
 - **Constraint:** Windows + Outlook Classic (COM) only — kein Graph, kein OAuth
 - **Feature-Toggle:** Alle Outlook-Features abschaltbar (`jarvis.outlookEnabled`), Sidebar-Views via `when`-Clauses versteckt
-- **Kategorien als Fundament:** Pro Projekt/Event eine Outlook-Kategorie → gemeinsames Label-System für Tasks, Mails, Kalender, Kontakte
-- **Provider-Pattern:** OutlookProvider Interface (read/write) — kein MCP zur Laufzeit
-- **Cache:** RAM-basiert (Read-Through), zyklisch via Heartbeat refreshed
-- **Sidebar-Regel:** View nur wenn echter "browse" Workflow — Kategorien-Sync ist Infrastruktur (kein eigener View)
-- **LM Tools:** Agent kann Tasks/Kontakte lesen/schreiben über VS Code Function Calls
+- **Instanz-Isolation:** Privat und geschäftlich sind separate Jarvis-Instanzen — keine gemeinsame Inbox, keine Cross-Contamination
+
+**Provider-Architektur (Strategy Pattern):**
+- `ICategoryProvider` Interface: `source: string`, `getCategories()`, `setCategory()`, `deleteCategory()`
+- `CategoryService` verwaltet Array von Providern (Fan-Out bei write, Merge bei read)
+- Jeder Cache-Eintrag trägt `source`-Tag — UI und LM Tools wissen woher ein Eintrag kommt
+- `set`/`delete` mit optionalem `provider`-Parameter: ohne → broadcast an alle, mit → gezielt
+- Gleiche Struktur für alle Domains: `ITaskProvider`, `ICalendarProvider`, `IContactProvider`
+
+**Cache-Architektur:**
+- Ein `DomainCache<T>` Interface: `get()`, `invalidate()`, `refresh()` — gemeinsame Struktur, je Domain eigenständig
+- Provider ist zustandslos (nur COM/API Calls) — Cache lebt im Service
+- `set`/`delete` → direkt durch → Cache invalidieren; `get` → nur Cache
+- Cache-Refresh läuft mit Jarvis-Scan-Frequenz via Heartbeat
+
+**Kategorien als Fundament:**
+- Pro Projekt/Event eine Kategorie → gemeinsames Label-System für Tasks, Mails, Kalender, Kontakte
+- Convention (`Project: X` / `Event: Y`) wird beim Anlegen enforced (neues Entity), nicht im Category-Tool
+- Color-Heuristik: Name enthält "project" → Blau, enthält "event" → Pink, sonst keine Farbe
+- Categories-View: abschaltbar, default an (für UAT/Einrichtung), eigener Toggle
+
+**MCP Tool `jarvis_outlookCategory`:**
+- `action: "get" | "set" | "delete"`, `name?: string`, `filter?: string`, `provider?: string`
+- `get` ohne Filter → alle Kategorien aus Cache; mit Filter → gefiltert nach Präfix/Source
+- Tool macht keine Validation — Naming Convention liegt beim Aufrufer
+
+**Build-Reihenfolge:**
+1. Outlook Category Provider (COM) + CategoryService + Cache + MCP Tool
+2. Weitere Provider (Gmail Labels) nach Bedarf — Interface steht, Einstiegshürde niedrig
 
 ## Backlog
 
