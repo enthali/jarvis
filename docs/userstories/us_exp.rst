@@ -5,7 +5,7 @@ Explorer User Stories
    :id: US_EXP_SIDEBAR
    :status: implemented
    :priority: mandatory
-   :links: US_MSG_CHATQUEUE
+   :links: US_MSG_CHATQUEUE; US_OLK_CATVIEW
 
    **As a** Jarvis User,
    **I want** a dedicated sidebar in VS Code that lists my projects, events, messages,
@@ -17,9 +17,9 @@ Explorer User Stories
 
    * AC-1: A "Jarvis" icon appears in the VS Code Activity Bar
    * AC-2: Clicking the icon opens a sidebar panel
-   * AC-3: The sidebar contains four collapsible sections: Projects (always visible),
-     Events, Messages, and Heartbeat. Visibility rules for optional views are governed
-     by ``US_EXP_FEATURETOGGLE``.
+   * AC-3: The sidebar contains five collapsible sections: Projects (always visible),
+     Events, Messages, Heartbeat, and Categories. Visibility rules for optional views
+     are governed by ``US_EXP_FEATURETOGGLE``.
    * AC-4: Each section displays items hierarchically. A folder containing a convention
      file (``project.yaml`` or ``event.yaml``) is a leaf node representing that item.
      Folders without a convention file are grouping nodes (collapsible). Grouping folders
@@ -219,7 +219,7 @@ Explorer User Stories
    :id: US_EXP_FEATURETOGGLE
    :status: approved
    :priority: mandatory
-   :links: US_EXP_SIDEBAR; US_CFG_PROJECTPATH; US_CFG_HEARTBEAT; US_CFG_MSG
+   :links: US_EXP_SIDEBAR; US_CFG_PROJECTPATH; US_CFG_HEARTBEAT; US_CFG_MSG; US_OLK_CATEGORIES
 
    **As a** Jarvis User,
    **I want** optional sidebar views (Events, Messages, Heartbeat) to appear only
@@ -238,6 +238,8 @@ Explorer User Stories
    * AC-5: When the extension activates for the first time (no prior configuration),
      the Messages and Heartbeat views appear automatically — the user does not need
      to manually configure a path to make them visible
+   * AC-6: The Categories view appears only when ``jarvis.outlookEnabled`` is ``true``
+     AND ``jarvis.outlook.showCategories`` is ``true``
 
 
 .. story:: Chronological Event Sorting

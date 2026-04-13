@@ -52,6 +52,9 @@ Theme Abbreviations
    * - ``REL``
      - Release & CI/CD
      - ``US_REL_PUBLISH``, ``REQ_REL_VSIX``
+   * - ``OLK``
+     - Outlook Integration (Categories, Tasks, Calendar, Contacts)
+     - ``US_OLK_CATEGORIES``, ``REQ_OLK_PROVIDER``
    * - ``UAT``
      - User Acceptance Tests
      - ``US_UAT_SAMPLEDATA``, ``REQ_UAT_VALID_SAMPLES``

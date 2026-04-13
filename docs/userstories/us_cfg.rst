@@ -71,6 +71,7 @@ Configuration User Stories
    * AC-1: The VS Code Settings UI shows Jarvis settings grouped under named
      sub-headings
    * AC-2: Each group contains only its related settings according to the
-     grouping table (Projects, Events, Heartbeat, Messages, MCP Server, Updates)
+     grouping table (Projects, Events, Heartbeat, Messages, MCP Server, Updates,
+     Outlook)
    * AC-3: No setting changes its key name, type, or default value — this is a
      presentation-only change
