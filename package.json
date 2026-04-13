@@ -19,7 +19,8 @@
     "onView:jarvisProjects",
     "onView:jarvisEvents",
     "onView:jarvisMessages",
-    "onView:jarvisHeartbeat"
+    "onView:jarvisHeartbeat",
+    "onView:jarvisCategories"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -52,6 +53,11 @@
           "id": "jarvisHeartbeat",
           "name": "Heartbeat",
           "when": "config.jarvis.heartbeatConfigFile != ''"
+        },
+        {
+          "id": "jarvisCategories",
+          "name": "Categories",
+          "when": "config.jarvis.pim.showCategories == true"
         }
       ]
     },
@@ -144,6 +150,19 @@
       {
         "command": "jarvis.openInTerminal",
         "title": "Open in Terminal"
+      },
+      {
+        "command": "jarvis.refreshCategories",
+        "title": "Jarvis: Refresh Categories",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "jarvis.renameCategory",
+        "title": "Jarvis: Rename Category"
+      },
+      {
+        "command": "jarvis.deleteCategory",
+        "title": "Jarvis: Delete Category"
       }
     ],
     "menus": {
@@ -170,6 +189,18 @@
         },
         {
           "command": "jarvis.refreshHeartbeat",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.refreshCategories",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.renameCategory",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.deleteCategory",
           "when": "false"
         },
         {
@@ -229,6 +260,11 @@
         {
           "command": "jarvis.refreshHeartbeat",
           "when": "view == jarvisHeartbeat",
+          "group": "navigation@1"
+        },
+        {
+          "command": "jarvis.refreshCategories",
+          "when": "view == jarvisCategories",
           "group": "navigation@1"
         }
       ],
@@ -297,6 +333,15 @@
           "command": "jarvis.openInTerminal",
           "when": "viewItem == jarvisEvent",
           "group": "context-actions"
+        },
+        {
+          "command": "jarvis.renameCategory",
+          "when": "viewItem == jarvisCategory",
+          "group": "inline"
+        },
+        {
+          "command": "jarvis.deleteCategory",
+          "when": "viewItem == jarvisCategory"
         }
       ]
     },
@@ -375,6 +420,21 @@
             "type": "boolean",
             "default": true,
             "description": "Check for new Jarvis releases on GitHub when the extension activates."
+          }
+        }
+      },
+      {
+        "title": "PIM",
+        "properties": {
+          "jarvis.outlookEnabled": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable Outlook COM integration (Windows + Outlook Classic). When disabled, no Outlook COM calls are made."
+          },
+          "jarvis.pim.showCategories": {
+            "type": "boolean",
+            "default": true,
+            "description": "Show the Categories view in the Jarvis sidebar."
           }
         }
       }
@@ -541,6 +601,45 @@
           "required": [
             "name"
           ]
+        }
+      },
+      {
+        "name": "jarvis_category",
+        "displayName": "Manage Categories",
+        "modelDescription": "Manage categories from all configured PIM providers. Actions: get (list/filter categories from cache), set (create/update a category), delete (remove a category), rename (rename a category). When no providers are configured, returns an error.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "category",
+        "icon": "$(tag)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": ["get", "set", "delete", "rename"],
+              "description": "The action to perform"
+            },
+            "name": {
+              "type": "string",
+              "description": "Category name (required for set/delete)"
+            },
+            "filter": {
+              "type": "string",
+              "description": "Filter by name prefix or source (for get)"
+            },
+            "provider": {
+              "type": "string",
+              "description": "Target provider (omit to broadcast to all)"
+            },
+            "oldName": {
+              "type": "string",
+              "description": "Current category name (required for rename)"
+            },
+            "newName": {
+              "type": "string",
+              "description": "New category name (required for rename)"
+            }
+          },
+          "required": ["action"]
         }
       }
     ]

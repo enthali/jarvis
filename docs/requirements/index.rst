@@ -15,6 +15,8 @@ Requirements describe **what** the system must do.
    req_cfg
    req_aut
    req_msg
+   req_pim
+   req_olk
    req_uat
 
 All Requirements

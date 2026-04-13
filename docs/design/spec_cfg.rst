@@ -192,6 +192,18 @@ Configuration Design Specifications
           "properties": {
             "jarvis.checkForUpdates": { ... }
           }
+        },
+        {
+          "title": "Outlook",
+          "properties": {
+            "jarvis.outlookEnabled": { ... }
+          }
+        },
+        {
+          "title": "Categories",
+          "properties": {
+            "jarvis.pim.showCategories": { ... }
+          }
         }
       ]
 

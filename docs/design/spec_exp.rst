@@ -14,10 +14,11 @@ Explorer Design Specifications
    * ``name``: ``jarvis``
    * ``displayName``: ``Jarvis``
    * ``activationEvents``: ``onStartupFinished``, ``onView:jarvisProjects``,
-     ``onView:jarvisEvents``, ``onView:jarvisMessages``, ``onView:jarvisHeartbeat``
+     ``onView:jarvisEvents``, ``onView:jarvisMessages``, ``onView:jarvisHeartbeat``,
+     ``onView:jarvisCategories``
    * ``contributes.viewsContainers.activitybar``: One entry with id ``jarvis-explorer``,
      title ``Jarvis``, and a custom icon (``resources/jarvis.svg``)
-   * ``contributes.views.jarvis-explorer``: Four views with conditional visibility.
+   * ``contributes.views.jarvis-explorer``: Five views with conditional visibility.
      See ``SPEC_EXP_FEATURETOGGLE`` for the authoritative ``when``-clause definitions.
 
    **Activation:**
@@ -828,7 +829,9 @@ Explorer Design Specifications
         { "id": "jarvisMessages",  "name": "Messages",
           "when": "config.jarvis.messagesFile != ''" },
         { "id": "jarvisHeartbeat", "name": "Heartbeat",
-          "when": "config.jarvis.heartbeatConfigFile != ''" }
+          "when": "config.jarvis.heartbeatConfigFile != ''" },
+        { "id": "jarvisCategories", "name": "Categories",
+          "when": "config.jarvis.pim.showCategories" }
       ]
 
    **Bootstrap sequence for new installations:**

@@ -1,5 +1,5 @@
-// Implementation: SPEC_EXP_EXTENSION, SPEC_EXP_FILTERCOMMAND, SPEC_EXP_EVENTFILTER_CMD, SPEC_EXP_OPENYAML_CMD, SPEC_EXP_CONTEXTACTIONS, SPEC_AUT_MANUALCOMMAND, SPEC_MSG_SENDCOMMAND, SPEC_MSG_OPENSESSION, SPEC_MSG_LISTSESSIONS, SPEC_EXP_AGENTSESSION, SPEC_EXP_NEWPROJECT_CMD, SPEC_EXP_NEWEVENT_CMD, SPEC_REL_UPDATECOMMAND, SPEC_EXP_RESCAN_CMD, SPEC_AUT_JOBREG, SPEC_DEV_LOGCHANNEL, SPEC_MSG_DUALREGISTRATION, SPEC_EXP_LISTPROJECTS, SPEC_CFG_DEFAULTPATHS, SPEC_EXP_FEATURETOGGLE
-// Requirements: REQ_EXP_ACTIVITYBAR, REQ_EXP_TREEVIEW, REQ_EXP_REACTIVECACHE, REQ_CFG_FOLDERPATHS, REQ_CFG_SCANINTERVAL, REQ_EXP_PROJECTFILTER, REQ_EXP_FILTERPERSIST, REQ_EXP_EVENTFILTER, REQ_EXP_EVENTFILTERPERSIST, REQ_EXP_OPENYAML, REQ_EXP_CONTEXTACTIONS, REQ_AUT_MANUALRUN, REQ_MSG_SEND, REQ_MSG_DELETE, REQ_MSG_OPENSESSION, REQ_MSG_SESSIONFILTER, REQ_MSG_LISTSESSIONS, REQ_EXP_AGENTSESSION, REQ_EXP_NEWPROJECT, REQ_EXP_NEWEVENT, REQ_REL_UPDATECOMMAND, REQ_CFG_UPDATECHECK, REQ_EXP_RESCAN_BTN, REQ_AUT_JOBREG, REQ_DEV_LOGGING, REQ_MSG_MCPSERVER, REQ_CFG_MCPPORT, REQ_EXP_LISTPROJECTS, REQ_CFG_DEFAULTPATHS, REQ_EXP_FEATURETOGGLE
+// Implementation: SPEC_EXP_EXTENSION, SPEC_EXP_FILTERCOMMAND, SPEC_EXP_EVENTFILTER_CMD, SPEC_EXP_OPENYAML_CMD, SPEC_EXP_CONTEXTACTIONS, SPEC_AUT_MANUALCOMMAND, SPEC_MSG_SENDCOMMAND, SPEC_MSG_OPENSESSION, SPEC_MSG_LISTSESSIONS, SPEC_EXP_AGENTSESSION, SPEC_EXP_NEWPROJECT_CMD, SPEC_EXP_NEWEVENT_CMD, SPEC_REL_UPDATECOMMAND, SPEC_EXP_RESCAN_CMD, SPEC_AUT_JOBREG, SPEC_DEV_LOGCHANNEL, SPEC_MSG_DUALREGISTRATION, SPEC_EXP_LISTPROJECTS, SPEC_CFG_DEFAULTPATHS, SPEC_EXP_FEATURETOGGLE, SPEC_PIM_SERVICE, SPEC_PIM_CATVIEW, SPEC_PIM_CATTOOL, SPEC_OLK_COMBRIDGE, SPEC_OLK_SETTINGS
+// Requirements: REQ_EXP_ACTIVITYBAR, REQ_EXP_TREEVIEW, REQ_EXP_REACTIVECACHE, REQ_CFG_FOLDERPATHS, REQ_CFG_SCANINTERVAL, REQ_EXP_PROJECTFILTER, REQ_EXP_FILTERPERSIST, REQ_EXP_EVENTFILTER, REQ_EXP_EVENTFILTERPERSIST, REQ_EXP_OPENYAML, REQ_EXP_CONTEXTACTIONS, REQ_AUT_MANUALRUN, REQ_MSG_SEND, REQ_MSG_DELETE, REQ_MSG_OPENSESSION, REQ_MSG_SESSIONFILTER, REQ_MSG_LISTSESSIONS, REQ_EXP_AGENTSESSION, REQ_EXP_NEWPROJECT, REQ_EXP_NEWEVENT, REQ_REL_UPDATECOMMAND, REQ_CFG_UPDATECHECK, REQ_EXP_RESCAN_BTN, REQ_AUT_JOBREG, REQ_DEV_LOGGING, REQ_MSG_MCPSERVER, REQ_CFG_MCPPORT, REQ_EXP_LISTPROJECTS, REQ_CFG_DEFAULTPATHS, REQ_EXP_FEATURETOGGLE, REQ_PIM_SERVICE, REQ_PIM_CATVIEW, REQ_PIM_CATTOOL, REQ_OLK_COMBRIDGE, REQ_OLK_ENABLE
 
 import * as vscode from 'vscode';
 import * as fs from 'fs';
@@ -14,6 +14,9 @@ import { lookupSessionUUID, getAllSessions, initSessionLookup, filterNamedSessio
 import { checkForUpdates } from './updateCheck';
 import { registerMcpTool, startMcpServer, stopMcpServer } from './mcpServer';
 import { z } from 'zod';
+import { CategoryService } from './pim/CategoryService';
+import { CategoryTreeProvider } from './pim/CategoryTreeProvider';
+import { OutlookCategoryProvider } from './outlookIntegration/OutlookCategoryProvider';
 
 // Implementation: SPEC_EXP_NEWPROJECT_CMD
 function toKebabCase(name: string): string {
@@ -140,6 +143,48 @@ export function activate(context: vscode.ExtensionContext) {
     // Register rescan heartbeat job (SPEC_EXP_EXTENSION)
     syncRescanJob();
 
+    // Implementation: SPEC_OLK_SETTINGS, SPEC_PIM_SERVICE, SPEC_PIM_CATVIEW
+    // Requirements: REQ_PIM_SERVICE, REQ_PIM_CATVIEW, REQ_OLK_ENABLE
+    const categoryService = new CategoryService(log);
+    const categoryTreeProvider = new CategoryTreeProvider(categoryService);
+
+    const outlookEnabled = vscode.workspace
+        .getConfiguration('jarvis')
+        .get<boolean>('outlookEnabled', false);
+
+    if (outlookEnabled) {
+        categoryService.addProvider(new OutlookCategoryProvider(log));
+    }
+
+    context.subscriptions.push(
+        vscode.window.registerTreeDataProvider('jarvisCategories', categoryTreeProvider)
+    );
+
+    // Implementation: SPEC_PIM_SERVICE (syncCategoryRefreshJob)
+    function syncCategoryRefreshJob(): void {
+        if (!categoryService.hasProviders()) {
+            scheduler.unregisterJob('Jarvis: Category Refresh');
+            return;
+        }
+        const interval = vscode.workspace
+            .getConfiguration('jarvis')
+            .get<number>('scanInterval', 2);
+        if (interval > 0) {
+            const job: HeartbeatJob = {
+                name: 'Jarvis: Category Refresh',
+                schedule: `*/${interval} * * * *`,
+                steps: [{ type: 'command', run: 'jarvis.refreshCategories' }]
+            };
+            scheduler.registerJob(job);
+            log.info(`[PIM] registered refresh job: */${interval} * * * *`);
+        } else {
+            scheduler.unregisterJob('Jarvis: Category Refresh');
+            log.info('[PIM] unregistered refresh job (interval=0)');
+        }
+    }
+
+    syncCategoryRefreshJob();
+
     // Automatic update check (SPEC_REL_UPDATECOMMAND, SPEC_CFG_UPDATECHECK)
     const autoCheck = vscode.workspace
         .getConfiguration('jarvis')
@@ -239,6 +284,42 @@ export function activate(context: vscode.ExtensionContext) {
     const openInTerminalCommand = vscode.commands.registerCommand('jarvis.openInTerminal', (node: LeafNode) => {
         vscode.commands.executeCommand('openInTerminal', vscode.Uri.file(node.id));
     });
+
+    // Register category commands (SPEC_PIM_CATVIEW, SPEC_OLK_SETTINGS)
+    const refreshCategoriesCommand = vscode.commands.registerCommand('jarvis.refreshCategories', async () => {
+        await categoryTreeProvider.refresh();
+        log.info('[PIM] manual categories refresh triggered');
+    });
+
+    const renameCategoryCommand = vscode.commands.registerCommand(
+        'jarvis.renameCategory',
+        async (node: { name: string; source: string; id?: string }) => {
+            const newName = await vscode.window.showInputBox({
+                prompt: 'New category name',
+                value: node.name,
+                validateInput: v => v?.trim() ? null : 'Name cannot be empty'
+            });
+            if (newName && newName !== node.name) {
+                await categoryService.renameCategory(node.name, newName, node.source, node.id);
+                categoryTreeProvider.refresh();
+            }
+        }
+    );
+
+    const deleteCategoryCommand = vscode.commands.registerCommand(
+        'jarvis.deleteCategory',
+        async (node: { name: string; source: string; id?: string }) => {
+            const confirm = await vscode.window.showWarningMessage(
+                `Delete category "${node.name}"?`,
+                { modal: true },
+                'Delete'
+            );
+            if (confirm === 'Delete') {
+                await categoryService.deleteCategory(node.name, node.source, node.id);
+                categoryTreeProvider.refresh();
+            }
+        }
+    );
 
     // Register send messages command (SPEC_MSG_SENDCOMMAND)
     const sendMessagesCommand = vscode.commands.registerCommand(
@@ -581,6 +662,98 @@ export function activate(context: vscode.ExtensionContext) {
         }
     );
 
+    // Implementation: SPEC_PIM_CATTOOL
+    // Requirements: REQ_PIM_CATTOOL
+    const categoryTool = registerDualTool(
+        'jarvis_category',
+        async (options: vscode.LanguageModelToolInvocationOptions<{
+            action: string;
+            name?: string;
+            filter?: string;
+            provider?: string;
+            oldName?: string;
+            newName?: string;
+        }>, _token: vscode.CancellationToken) => {
+            if (!categoryService.hasProviders()) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart(
+                        'No category providers configured. '
+                        + 'Enable a PIM provider (e.g. jarvis.outlookEnabled).'
+                    )
+                ]);
+            }
+            const { action, name, filter, provider, oldName, newName } = options.input;
+            let result: object;
+            switch (action) {
+                case 'get':
+                    result = { categories: await categoryService.getCategories(filter) };
+                    break;
+                case 'set':
+                    if (!name) { throw new Error('name required for set'); }
+                    await categoryService.setCategory(name, 0, provider);
+                    result = { status: 'ok', name };
+                    break;
+                case 'delete':
+                    if (!name) { throw new Error('name required for delete'); }
+                    await categoryService.deleteCategory(name, provider);
+                    result = { status: 'ok', name };
+                    break;
+                case 'rename':
+                    if (!oldName || !newName) { throw new Error('oldName and newName required for rename'); }
+                    await categoryService.renameCategory(oldName, newName, provider);
+                    result = { status: 'ok', oldName, newName };
+                    break;
+                default:
+                    throw new Error(`Unknown action: ${action}`);
+            }
+            categoryTreeProvider.refresh();
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(JSON.stringify(result))
+            ]);
+        },
+        'Manage categories: get, set, delete, or rename.',
+        {
+            action: z.enum(['get', 'set', 'delete', 'rename']),
+            name: z.string().optional(),
+            filter: z.string().optional(),
+            provider: z.string().optional(),
+            oldName: z.string().optional(),
+            newName: z.string().optional()
+        },
+        async (args) => {
+            if (!categoryService.hasProviders()) {
+                return { error: 'No category providers configured.' };
+            }
+            const action = args.action as string;
+            const name = args.name as string | undefined;
+            const filter = args.filter as string | undefined;
+            const provider = args.provider as string | undefined;
+            const oldNameArg = args.oldName as string | undefined;
+            const newNameArg = args.newName as string | undefined;
+            switch (action) {
+                case 'get':
+                    return { categories: await categoryService.getCategories(filter) };
+                case 'set':
+                    if (!name) { return { error: 'name is required' }; }
+                    await categoryService.setCategory(name, 0, provider);
+                    categoryTreeProvider.refresh();
+                    return { status: 'ok', name };
+                case 'delete':
+                    if (!name) { return { error: 'name is required' }; }
+                    await categoryService.deleteCategory(name, provider);
+                    categoryTreeProvider.refresh();
+                    return { status: 'ok', name };
+                case 'rename':
+                    if (!oldNameArg || !newNameArg) { return { error: 'oldName and newName are required' }; }
+                    await categoryService.renameCategory(oldNameArg, newNameArg, provider);
+                    categoryTreeProvider.refresh();
+                    return { status: 'ok', oldName: oldNameArg, newName: newNameArg };
+                default:
+                    return { error: `Unknown action: ${action}` };
+            }
+        }
+    );
+
     // Register new project command (SPEC_EXP_NEWPROJECT_CMD)
     // Requirements: REQ_EXP_NEWPROJECT
     const newProjectCommand = vscode.commands.registerCommand(
@@ -733,6 +906,10 @@ export function activate(context: vscode.ExtensionContext) {
         registerJobTool,
         unregisterJobTool,
         listProjectsTool,
+        categoryTool,
+        refreshCategoriesCommand,
+        renameCategoryCommand,
+        deleteCategoryCommand,
         mcpStatusBar,
         projectView,
         eventView,
@@ -751,6 +928,17 @@ export function activate(context: vscode.ExtensionContext) {
             }
             if (e.affectsConfiguration('jarvis.scanInterval')) {
                 syncRescanJob();
+                syncCategoryRefreshJob();
+            }
+            if (e.affectsConfiguration('jarvis.outlookEnabled')) {
+                vscode.window.showInformationMessage(
+                    'Jarvis: Outlook toggle changed. Reload window to apply.',
+                    'Reload'
+                ).then(choice => {
+                    if (choice === 'Reload') {
+                        vscode.commands.executeCommand('workbench.action.reloadWindow');
+                    }
+                });
             }
         }),
         { dispose: () => scanner.stop() }
