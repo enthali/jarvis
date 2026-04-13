@@ -1,6 +1,6 @@
 # Change Document: new-entity-category
 
-**Status**: approved
+**Status**: implemented
 **Branch**: feature/new-entity-category
 **Created**: 2026-04-13
 **Author**: Change Agent (syspilot.change)
