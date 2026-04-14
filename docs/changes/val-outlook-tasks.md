@@ -108,7 +108,7 @@ All deviations are accepted per UAT result. No blockers.
 - [x] AC-3: "Uncategorized Tasks (n)" section at top of projects tree ✓
 - [x] AC-4: Task leaf label: `<subject> — <dueDate>` or `<subject>` ✓
 - [x] AC-5: `item.description` shows open-task count (rendered dimmed right of label) ✓
-- [x] AC-6: Badge: `⚠` (overdue, warning icon `list.warningForeground`) / `(n)` + orange icon due-soon / `(n)` plain ✓ (color: `charts.yellow` instead of `charts.orange` — cosmetic, accepted)
+- [x] AC-6: Badge: `warning` icon (`list.warningForeground`, yellow) for overdue; `circle-filled` icon (`charts.yellow`) for due-soon; `item.description` = count for all cases ✓ (spec text updated to match implementation)
 - [x] AC-7: Tree reads from `TaskService._cache` directly — no COM calls in tree refresh ✓
 - [x] AC-8: No task nodes when `TaskService` unavailable or has no providers ✓
 

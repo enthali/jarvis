@@ -6,8 +6,8 @@ erkennbar ist was neu hinzugekommen ist.
 ## Letzter Scan
 
 - **Datum**: 2026-04-15
-- **Report**: [reports/qr-2026-04-15-outlook-tasks.md](reports/qr-2026-04-15-outlook-tasks.md)
-- **Methode**: Focused QA review for `outlook-tasks` (code-vs-spec, UAT coverage, documentation currency)
+- **Report**: [reports/qr-2026-04-15-l0-mece-followup.md](reports/qr-2026-04-15-l0-mece-followup.md)
+- **Methode**: Focused L0 documentation and traceability follow-up after fresh MECE findings
 
 ## Bekannte Releases (bei letztem Scan)
 

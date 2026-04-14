@@ -187,8 +187,11 @@ PIM Requirements
 
    **Description:**
    The extension SHALL provide a ``TaskService`` that manages an array of task
-   providers and a ``DomainCache<Task[]>``, orchestrating fan-out writes and
-   cached reads.
+   providers and a ``DomainCache<Task[]>``.
+
+   **Note (v1):** ``setTask`` / ``modifyTask`` / ``deleteTask`` target the **first
+   registered provider only**. Multi-provider fan-out will be introduced when a
+   second ``ITaskProvider`` is added.
 
    **Acceptance Criteria:**
 
@@ -197,7 +200,8 @@ PIM Requirements
      trigger a refresh; filters: ``category`` (string), ``status`` (string),
      ``dueBefore`` (ISO date string)
    * AC-3: ``setTask`` / ``modifyTask`` / ``deleteTask`` SHALL delegate to the
-     provider and immediately call ``cache.invalidate()`` + ``cache.refresh()``
+     **first registered provider** and immediately call ``cache.invalidate()`` + ``cache.refresh()``
+     (single-provider by design in v1; multi-provider fan-out deferred)
    * AC-4: The service SHALL expose ``hasProviders(): boolean``
    * AC-5: Cache refresh SHALL be schedulable via a ``syncTaskRefreshJob()``
      helper (analogous to ``syncCategoryRefreshJob()``) that registers a
@@ -247,12 +251,14 @@ PIM Requirements
      (string), ``dueBefore`` (ISO date), and ``includeBody`` (boolean,
      default ``false``) parameters
    * AC-3: ``set`` SHALL accept ``subject``, ``body``, ``dueDate``, ``priority``,
-     ``isComplete``, ``categories``, and optional ``provider`` parameters
+     ``isComplete``, ``categories``, and optional ``provider`` parameters;
+     **due date deletion (setting to empty) is not supported in v1** — the field
+     can only be set or changed, not cleared
    * AC-4: ``modify`` SHALL accept ``id`` (required) plus any subset of the
      writable ``Task`` fields; ``completedDate`` SHALL be rejected if supplied
    * AC-5: ``delete`` SHALL accept ``id`` (required)
-   * AC-6: Without ``provider`` the operation is broadcast to all providers;
-     with ``provider`` it targets only the named provider
+   * AC-6: Without ``provider`` the operation targets the **first registered provider**
+     (single-provider by design in v1); multi-provider fan-out is deferred
    * AC-7: The tool SHALL be registered via ``registerDualTool()`` for
      simultaneous LM and MCP availability
    * AC-8: When no task providers are configured, the tool SHALL return an
