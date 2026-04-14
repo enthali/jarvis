@@ -51,6 +51,7 @@ export class TaskEditorProvider implements vscode.CustomEditorProvider<TaskDocum
         webviewPanel: vscode.WebviewPanel,
         _token: vscode.CancellationToken
     ): Promise<void> {
+        webviewPanel.title = document.task.subject;
         webviewPanel.webview.options = { enableScripts: true };
 
         const categories = this._categoryService.hasProviders()
@@ -73,10 +74,6 @@ export class TaskEditorProvider implements vscode.CustomEditorProvider<TaskDocum
                     this._log.error(`[TaskEditor] save failed: ${e}`);
                     webviewPanel.webview.postMessage({ command: 'error', message: String(e) });
                 }
-            } else if (msg.command === 'openInOutlook') {
-                vscode.env.openExternal(
-                    vscode.Uri.parse(`outlook://open?entryid=${encodeURIComponent(document.task.id)}`)
-                );
             }
         });
     }
@@ -132,16 +129,16 @@ export class TaskEditorProvider implements vscode.CustomEditorProvider<TaskDocum
             `<option value="${p}"${task.priority === p ? ' selected' : ''}>${p}</option>`
         ).join('');
 
-        const categoryCheckboxes = allCategories.map(cat =>
-            `<label><input type="checkbox" name="category" value="${esc(cat)}"${task.categories.includes(cat) ? ' checked' : ''}> ${esc(cat)}</label><br>`
+        const sortedCategories = [...allCategories].sort((a, b) => a.localeCompare(b));
+        const categoryOptions = sortedCategories.map(cat =>
+            `<option value="${esc(cat)}"${task.categories.includes(cat) ? ' selected' : ''}>${esc(cat)}</option>`
         ).join('');
+        const currentCategoryTags = task.categories.length > 0
+            ? task.categories.map(c => `<span class="tag">${esc(c)}</span>`).join(' ')
+            : '<span class="none">—</span>';
 
         const completedDateRow = task.isComplete
             ? `<tr><td><b>Completed Date:</b></td><td>${task.completedDate ? esc(task.completedDate) : '—'}</td></tr>`
-            : '';
-
-        const openInOutlookBtn = task.source === 'outlook'
-            ? `<button onclick="openInOutlook()">Open in Outlook</button>`
             : '';
 
         return `<!DOCTYPE html>
@@ -161,6 +158,9 @@ export class TaskEditorProvider implements vscode.CustomEditorProvider<TaskDocum
             width: 100%;
             box-sizing: border-box;
         }
+        select[multiple] { height: 120px; display: none; margin-top: 4px; }
+        .cat-toggle { font-size: 0.85em; cursor: pointer; color: var(--vscode-textLink-foreground);
+                      background: none; border: none; padding: 0; margin-top: 4px; }
         textarea { height: 120px; }
         button {
             background: var(--vscode-button-background);
@@ -173,9 +173,15 @@ export class TaskEditorProvider implements vscode.CustomEditorProvider<TaskDocum
         }
         .badge { display: inline-block; padding: 2px 6px; border-radius: 4px;
                  background: var(--vscode-badge-background); color: var(--vscode-badge-foreground); }
+        .tag { display: inline-block; padding: 1px 8px; border-radius: 3px; margin: 1px 2px;
+               background: var(--vscode-badge-background); color: var(--vscode-badge-foreground);
+               font-size: 0.9em; }
+        .none { color: var(--vscode-descriptionForeground); }
+        .cat-hint { font-size: 0.85em; color: var(--vscode-descriptionForeground); margin-top: 3px; }
     </style>
 </head>
 <body>
+    <div style="font-size:0.8em; color:var(--vscode-descriptionForeground); margin-bottom:2px;">jarvis task</div>
     <h2>${esc(task.subject)}</h2>
     <span class="badge">${esc(task.source)}</span>
     <hr>
@@ -185,18 +191,51 @@ export class TaskEditorProvider implements vscode.CustomEditorProvider<TaskDocum
         <tr><td><b>Status:</b></td><td><select id="status">${statusSelect}</select></td></tr>
         <tr><td><b>Priority:</b></td><td><select id="priority">${prioritySelect}</select></td></tr>
         <tr><td><b>Body:</b></td><td><textarea id="body">${esc(task.body ?? '')}</textarea></td></tr>
-        <tr><td><b>Categories:</b></td><td>${categoryCheckboxes}</td></tr>
+        <tr><td><b>Categories:</b></td><td>
+            <div id="cat-tags">${currentCategoryTags}</div>
+            <button class="cat-toggle" onclick="toggleCatSelect()" id="cat-toggle-btn">▶ Change…</button>
+            <select id="categories" multiple>${categoryOptions}</select>
+            <div class="cat-hint" id="cat-hint" style="display:none">Ctrl+Click to select multiple</div>
+        </td></tr>
         ${completedDateRow}
     </table>
-    <button onclick="save()">Save</button>
-    ${openInOutlookBtn}
     <div id="status-msg"></div>
     <script>
         const vscode = acquireVsCodeApi();
 
+        // Keep tag display in sync with multi-select
+        const catSelect = document.getElementById('categories');
+        const catTags = document.getElementById('cat-tags');
+        const catToggleBtn = document.getElementById('cat-toggle-btn');
+        const catHint = document.getElementById('cat-hint');
+
+        function toggleCatSelect() {
+            const open = catSelect.style.display === 'block';
+            catSelect.style.display = open ? 'none' : 'block';
+            catHint.style.display = open ? 'none' : 'block';
+            catToggleBtn.textContent = open ? '▶ Change…' : '▼ Change…';
+        }
+
+        catSelect.addEventListener('change', () => {
+            const selected = Array.from(catSelect.selectedOptions).map(o => o.value);
+            catTags.innerHTML = selected.length > 0
+                ? selected.map(c => '<span class="tag">' + esc(c) + '</span>').join(' ')
+                : '<span class="none">—</span>';
+            save();
+        });
+
+        function esc(s) {
+            return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        }
+
+        let _debounceTimer;
+        function scheduleSave() {
+            clearTimeout(_debounceTimer);
+            _debounceTimer = setTimeout(save, 300);
+        }
+
         function save() {
-            const categoryInputs = document.querySelectorAll('input[name="category"]:checked');
-            const categories = Array.from(categoryInputs).map(el => el.value);
+            const categories = Array.from(catSelect.selectedOptions).map(o => o.value);
             const changes = {
                 subject: document.getElementById('subject').value,
                 dueDate: document.getElementById('dueDate').value || undefined,
@@ -208,9 +247,12 @@ export class TaskEditorProvider implements vscode.CustomEditorProvider<TaskDocum
             vscode.postMessage({ command: 'save', changes });
         }
 
-        function openInOutlook() {
-            vscode.postMessage({ command: 'openInOutlook' });
-        }
+        // Auto-save: immediate for selects/date, debounced for text/textarea
+        document.getElementById('status').addEventListener('change', save);
+        document.getElementById('priority').addEventListener('change', save);
+        document.getElementById('dueDate').addEventListener('change', save);
+        document.getElementById('subject').addEventListener('input', scheduleSave);
+        document.getElementById('body').addEventListener('input', scheduleSave);
 
         window.addEventListener('message', event => {
             const msg = event.data;

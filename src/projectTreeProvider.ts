@@ -83,12 +83,12 @@ export class ProjectTreeProvider implements vscode.TreeDataProvider<ProjectTreeI
         // LeafNode (project)
         const entity = this._scanner.getEntity(element.id);
         const name = entity ? entity.name : path.basename(path.dirname(element.id));
-        const label = this._buildProjectLabel(name);
         const collapsible = (this._taskService && this._taskService.hasProviders())
             ? vscode.TreeItemCollapsibleState.Collapsed
             : vscode.TreeItemCollapsibleState.None;
-        const item = new vscode.TreeItem(label, collapsible);
+        const item = new vscode.TreeItem(name, collapsible);
         item.contextValue = 'jarvisProject';
+        this._applyTaskBadge(item, name);
         return item;
     }
 
@@ -217,23 +217,24 @@ export class ProjectTreeProvider implements vscode.TreeDataProvider<ProjectTreeI
         return item;
     }
 
-    private _buildProjectLabel(name: string): string {
-        if (!this._taskService || !this._taskService.hasProviders()) {
-            return name;
-        }
-        const projectCategory = name;
+    private _applyTaskBadge(item: vscode.TreeItem, name: string): void {
+        if (!this._taskService || !this._taskService.hasProviders()) { return; }
         const cachedTasks = this._getCachedTasks();
-        if (!cachedTasks) { return name; }
+        if (!cachedTasks) { return; }
         const openTasks = cachedTasks.filter(
-            t => t.categories.includes(projectCategory) && !t.isComplete
+            t => t.categories.includes(name) && !t.isComplete
         );
         const n = openTasks.length;
-        if (n === 0) { return name; }
+        if (n === 0) { return; }
+
+        item.description = `${n}`;
 
         const today = new Date().toISOString().slice(0, 10);
         const hasOverdue = openTasks.some(t => t.dueDate && t.dueDate < today);
         if (hasOverdue) {
-            return `${name} ⚠`;
+            item.iconPath = new vscode.ThemeIcon('warning',
+                new vscode.ThemeColor('list.warningForeground'));
+            return;
         }
 
         const fiveDaysFromNow = new Date();
@@ -241,9 +242,8 @@ export class ProjectTreeProvider implements vscode.TreeDataProvider<ProjectTreeI
         const fiveDaysStr = fiveDaysFromNow.toISOString().slice(0, 10);
         const hasDueSoon = openTasks.some(t => t.dueDate && t.dueDate <= fiveDaysStr);
         if (hasDueSoon) {
-            return `${name} (${n} !)`;
+            item.iconPath = new vscode.ThemeIcon('circle-filled',
+                new vscode.ThemeColor('charts.yellow'));
         }
-
-        return `${name} (${n})`;
     }
 }

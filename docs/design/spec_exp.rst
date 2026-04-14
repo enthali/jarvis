@@ -1011,12 +1011,16 @@ Explorer Design Specifications
 
    **getTreeItem(element):**
 
-   * ``ProjectNode``/``EventNode`` label:
-     - Count open tasks: ``n = openTasks.length``
-     - Determine badge:
-       - Any overdue task (``dueDate < today``): ``⚠``
-       - Any task due within 5 days: ``(n !)``
-       - Otherwise: ``(n)`` or no suffix when ``n === 0``
+   * ``ProjectNode``/``EventNode`` label: plain name (no text suffix).
+     Task indicator via ``_applyTaskBadge(item, name)``:
+
+     - Count open tasks ``n``. If ``n === 0``: no change.
+     - Set ``item.description = n`` (renders as dimmed count right of label).
+     - If any open task has ``dueDate < today``:
+       ``item.iconPath = ThemeIcon('warning', ThemeColor('list.warningForeground'))``
+     - Else if any open task has ``dueDate ≤ today + 5 days``:
+       ``item.iconPath = ThemeIcon('circle-filled', ThemeColor('charts.orange'))``
+
    * ``TaskGroupNode``: ``collapsibleState = Collapsed`` (completed) or
      ``Expanded`` (open); label = ``"Open Tasks (n)"`` / ``"Completed Tasks (n)"``
    * ``TaskLeafNode``: label = ``<subject>`` when no dueDate, or

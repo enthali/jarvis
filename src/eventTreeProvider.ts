@@ -58,13 +58,13 @@ export class EventTreeProvider implements vscode.TreeDataProvider<EventTreeItem>
         // LeafNode (event)
         const entity = this._scanner.getEntity(element.id);
         const entityName = entity ? entity.name : path.basename(path.dirname(element.id));
-        const nameWithBadge = this._buildEventLabel(entityName);
-        const label = (entity && entity.datesStart) ? `${entity.datesStart} — ${nameWithBadge}` : nameWithBadge;
+        const label = (entity && entity.datesStart) ? `${entity.datesStart} — ${entityName}` : entityName;
         const collapsible = (this._taskService && this._taskService.hasProviders())
             ? vscode.TreeItemCollapsibleState.Collapsed
             : vscode.TreeItemCollapsibleState.None;
         const item = new vscode.TreeItem(label, collapsible);
         item.contextValue = 'jarvisEvent';
+        this._applyTaskBadge(item, entityName);
         return item;
     }
 
@@ -158,22 +158,31 @@ export class EventTreeProvider implements vscode.TreeDataProvider<EventTreeItem>
         return item;
     }
 
-    private _buildEventLabel(name: string): string {
-        if (!this._taskService || !this._taskService.hasProviders()) { return name; }
+    private _applyTaskBadge(item: vscode.TreeItem, name: string): void {
+        if (!this._taskService || !this._taskService.hasProviders()) { return; }
         const cachedTasks = this._getCachedTasks();
-        if (!cachedTasks) { return name; }
+        if (!cachedTasks) { return; }
         const openTasks = cachedTasks.filter(t => t.categories.includes(name) && !t.isComplete);
         const n = openTasks.length;
-        if (n === 0) { return name; }
+        if (n === 0) { return; }
+
+        item.description = `${n}`;
+
         const today = new Date().toISOString().slice(0, 10);
         const hasOverdue = openTasks.some(t => t.dueDate && t.dueDate < today);
-        if (hasOverdue) { return `${name} ⚠`; }
+        if (hasOverdue) {
+            item.iconPath = new vscode.ThemeIcon('warning',
+                new vscode.ThemeColor('list.warningForeground'));
+            return;
+        }
         const fiveDays = new Date();
         fiveDays.setDate(fiveDays.getDate() + 5);
         const fiveDaysStr = fiveDays.toISOString().slice(0, 10);
         const hasDueSoon = openTasks.some(t => t.dueDate && t.dueDate <= fiveDaysStr);
-        if (hasDueSoon) { return `${name} (${n} !)`; }
-        return `${name} (${n})`;
+        if (hasDueSoon) {
+            item.iconPath = new vscode.ThemeIcon('circle-filled',
+                new vscode.ThemeColor('charts.yellow'));
+        }
     }
 
     private _filterFuture(nodes: TreeNode[], today: string): TreeNode[] {
