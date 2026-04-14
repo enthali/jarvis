@@ -777,29 +777,44 @@ PIM Design Specifications
    The ``id`` is placed in the query string (not the authority) to avoid
    URI authority restrictions on long Outlook EntryIDs.
 
+   **HTML layout:**
+
+   * Small ``<div>`` label ``"jarvis task"`` rendered above the ``<h2>`` heading
+     (using ``descriptionForeground`` color, font-size 0.8em)
+   * ``<h2>`` heading populated from ``task.subject``
+   * ``<span class="badge">`` shows ``task.source`` below the heading
+   * Editor tab title set to ``task.subject`` via ``webviewPanel.title =
+     document.task.subject`` in ``resolveCustomEditor()``
+
    **Editor fields:**
 
    * Editable: ``subject`` (text), ``body`` (textarea), ``dueDate`` (date input),
      ``status`` (select: notStarted/inProgress/completed/deferred/waitingOnOther),
      ``priority`` (select: low/normal/high),
-     ``categories`` (multi-checkbox list from ``CategoryService.getCategories()``)
-   * Read-only: ``source`` (badge label), ``completedDate`` (shown only when
-     task is completed)
-  * No external-launch button: task editing stays in the custom editor; there
-    is no separate "Open in Outlook" action
+     ``categories`` (collapsed multi-select: current selections rendered as tag
+     badges; a ``▶ Change…`` / ``▼ Change…`` toggle button reveals the hidden
+     ``<select multiple>``; Ctrl+Click selects multiple items; saves immediately
+     on ``change``)
+   * Read-only: ``source`` (badge label), ``completedDate`` (rendered as a
+     read-only table row whenever ``task.isComplete`` is ``true``, showing
+     ``—`` when the completed date value is an empty string)
+   * No "Open in Outlook" button — task editing stays inside the custom editor
+     (not in v1)
 
    **Save flow:**
 
-  #. User changes an editor field
-  #. ``status`` / ``priority`` / ``dueDate`` save immediately; ``subject`` /
-    ``body`` save via a short debounce; category selection saves on change
+   #. User changes an editor field (no explicit save gesture required)
+   #. Immediate save: ``status``, ``priority``, ``dueDate``, and
+      ``categories`` trigger ``save()`` on the DOM ``change`` event
+   #. Debounced save (300 ms): ``subject`` and ``body`` call
+      ``scheduleSave()`` on the DOM ``input`` event
    #. Webview posts ``{ command: 'save', changes }`` message
    #. ``TaskEditorProvider.resolveCustomEditor()`` message handler calls
       ``taskService.modifyTask(id, changes)``
    #. Provider executes COM call → ``cache.invalidate()`` + background
       ``cache.refresh()`` (fire-and-forget)
-   #. "Saved." feedback shown immediately; tree refreshes when background
-      refresh completes
+   #. ``"Saved."`` feedback shown in the status div for 2 seconds; tree
+      refreshes when background refresh completes
 
    **Design notes:**
 
