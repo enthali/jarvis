@@ -182,6 +182,10 @@ All deviations are accepted per UAT result. No blockers.
 
 ---
 
+**Post-merge fix (feature/outlook-tasks-fix):** QA finding HIGH-1 resolved —
+`body` is now always loaded in `OutlookTaskProvider.getTasks()` cache refresh.
+Body editing and saving verified manually: ✅ PASSED.
+
 ## Conclusion
 
 All 7 requirements are implemented and verified. All 22 test cases in the test protocol have passed or been accepted as N/A (T-47). The four issues found are all low-severity accepted deviations confirmed during UAT:
