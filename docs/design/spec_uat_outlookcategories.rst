@@ -216,3 +216,97 @@ Outlook Categories UAT Design Specifications
       * - T-29 (guard disabled)
         - ``outlookEnabled=false``; ``+`` in Projects bar; name ``"UAT-GuardTest"``
         - Entity created successfully; NO new Outlook category created; no user-visible error
+
+
+.. spec:: Outlook Tasks Test Procedures
+   :id: SPEC_UAT_TASKS_FILES
+   :status: approved
+   :links: REQ_UAT_TASKS_TESTDATA; SPEC_PIM_ITASKPROVIDER; SPEC_PIM_TASKSERVICE; SPEC_PIM_TASKEDITOR; SPEC_PIM_TASKTOOL; SPEC_EXP_TASKTREE; SPEC_OLK_TASKPROVIDER; SPEC_OLK_TASKENABLE
+
+   **Description:**
+   Manual test procedures for the Outlook Tasks integration. Requires Windows OS
+   with Outlook Classic installed and running. Most tests require both
+   ``jarvis.outlookEnabled=true`` and ``jarvis.outlook.tasks.enabled=true``.
+
+   **Test data:**
+
+   * No new testdata/ files — tests use a live Outlook Classic instance
+   * Precondition: Outlook Classic running with at least two tasks, including
+     one tagged "Project: Alpha" and one with no Jarvis-linked category
+   * Test tasks use ``"UAT-Task-"`` prefix for easy cleanup
+
+   **Expected test outcomes (documented in test protocol):**
+
+   .. list-table::
+      :header-rows: 1
+      :widths: 15 45 40
+
+      * - Scenario
+        - Action
+        - Expected Result
+      * - T-30 (sub-toggle off)
+        - ``tasks.enabled=false``; reload; open tree
+        - No task nodes; jarvis_task returns "tasks not enabled"
+      * - T-31 (master toggle off)
+        - ``outlookEnabled=false``; reload; open tree
+        - No task nodes; no COM/PowerShell processes
+      * - T-32 (get all tasks)
+        - ``jarvis_task action:get``
+        - All tasks returned with subject, dueDate, isComplete, categories, source: "outlook"
+      * - T-33 (get by category)
+        - ``jarvis_task action:get filter:{category:"Project: Alpha"}``
+        - Only tasks tagged "Project: Alpha" returned
+      * - T-34 (get by status)
+        - ``jarvis_task action:get filter:{status:"open"}``
+        - Only open tasks returned; no completed tasks
+      * - T-35 (get by dueBefore)
+        - ``jarvis_task action:get filter:{dueBefore:"2026-12-31"}``
+        - Only tasks due before 2026-12-31 returned
+      * - T-36 (create task)
+        - ``jarvis_task action:set subject:"UAT-Task-New" dueDate:"2027-01-01" categories:["Project: Alpha"]``
+        - Task created in Outlook; appears in subsequent get
+      * - T-37 (modify task)
+        - ``jarvis_task action:set subject:"UAT-Task-New" priority:"high"``
+        - Task priority updated in Outlook; subsequent get shows priority: "high"
+      * - T-38 (complete task)
+        - ``jarvis_task action:set subject:"UAT-Task-New" isComplete:true``
+        - Outlook marks complete; DateCompleted set; get shows isComplete:true + completedDate
+      * - T-39 (delete task)
+        - ``jarvis_task action:delete subject:"UAT-Task-New"``
+        - Task removed from Outlook; absent in subsequent get
+      * - T-40 (uncategorized section)
+        - Open Projects tree with ≥1 uncategorized Outlook task
+        - "Uncategorized Tasks" section at top of tree with task nodes
+      * - T-41 (inline task nodes)
+        - Expand "Alpha" project node
+        - Task tagged "Project: Alpha" appears as child node; no COM call triggered
+      * - T-42 (badge count)
+        - 2 open tasks for "Project: Alpha", not overdue
+        - Project node label shows "(2)"
+      * - T-43 (badge overdue)
+        - 1 overdue task for "Project: Alpha"
+        - Project node label shows "(1 !)"
+      * - T-44 (badge ⚠)
+        - Uncategorized task exists
+        - "Uncategorized Tasks" node label includes ⚠
+      * - T-45 (editor opens)
+        - Click task node
+        - Custom Editor opens with subject, body, dueDate, status, priority, categories; completedDate read-only
+      * - T-46 (editor save)
+        - Edit subject; press Ctrl+S
+        - Task updated in Outlook; tree node label updates
+      * - T-47 ("Open in Outlook" button)
+        - Click "Open in Outlook" in editor
+        - Outlook opens to the specific task item
+      * - T-48 (completedDate read-only)
+        - Open editor for completed task; inspect completedDate field
+        - Displayed as plain read-only text; no input control
+      * - T-49 (single-quote escaping)
+        - ``jarvis_task action:get``; Outlook has task "Team's Meeting UAT"
+        - Task returned intact; no PowerShell error in Output Channel
+      * - T-50 (isComplete → completedDate)
+        - Outlook completed task; ``jarvis_task action:get``
+        - Returned task has isComplete:true and completedDate from COM DateCompleted
+      * - T-51 (heartbeat refresh)
+        - Add task in Outlook; wait for heartbeat tick
+        - Task appears in tree; Output Channel logs TaskService refresh

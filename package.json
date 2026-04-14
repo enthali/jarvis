@@ -24,6 +24,16 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "customEditors": [
+      {
+        "viewType": "jarvis.taskEditor",
+        "displayName": "Jarvis Task Editor",
+        "selector": [
+          { "filenamePattern": "*.jarvis-task" }
+        ],
+        "priority": "default"
+      }
+    ],
     "viewsContainers": {
       "activitybar": [
         {
@@ -163,6 +173,11 @@
       {
         "command": "jarvis.deleteCategory",
         "title": "Jarvis: Delete Category"
+      },
+      {
+        "command": "jarvis.refreshTasks",
+        "title": "Jarvis: Refresh Tasks",
+        "icon": "$(refresh)"
       }
     ],
     "menus": {
@@ -201,6 +216,10 @@
         },
         {
           "command": "jarvis.deleteCategory",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.refreshTasks",
           "when": "false"
         },
         {
@@ -437,6 +456,16 @@
             "description": "Show the Categories view in the Jarvis sidebar."
           }
         }
+      },
+      {
+        "title": "Outlook",
+        "properties": {
+          "jarvis.outlook.tasks.enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable the Outlook Tasks integration. Only effective when jarvis.outlookEnabled is true."
+          }
+        }
       }
     ],
     "languageModelTools": [
@@ -637,6 +666,75 @@
             "newName": {
               "type": "string",
               "description": "New category name (required for rename)"
+            }
+          },
+          "required": ["action"]
+        }
+      },
+      {
+        "name": "jarvis_task",
+        "displayName": "Manage Tasks",
+        "modelDescription": "Manage Outlook tasks linked to Jarvis projects and events. Actions: get (list/filter tasks from cache), set (create a new task), modify (update task fields), delete (remove a task). completedDate is read-only. When no providers are configured, returns an error.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "task",
+        "icon": "$(checklist)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": ["get", "set", "modify", "delete"],
+              "description": "The action to perform"
+            },
+            "category": {
+              "type": "string",
+              "description": "Filter by category name (for get)"
+            },
+            "status": {
+              "type": "string",
+              "description": "Filter by status (for get)"
+            },
+            "dueBefore": {
+              "type": "string",
+              "description": "Filter: only tasks due before this ISO date (for get)"
+            },
+            "includeBody": {
+              "type": "boolean",
+              "description": "Include task body in get results (default false)"
+            },
+            "id": {
+              "type": "string",
+              "description": "Task ID (required for modify/delete)"
+            },
+            "subject": {
+              "type": "string",
+              "description": "Task subject"
+            },
+            "body": {
+              "type": "string",
+              "description": "Task body text"
+            },
+            "dueDate": {
+              "type": "string",
+              "description": "Due date (ISO YYYY-MM-DD)"
+            },
+            "priority": {
+              "type": "string",
+              "enum": ["low", "normal", "high"],
+              "description": "Task priority"
+            },
+            "isComplete": {
+              "type": "boolean",
+              "description": "Mark task as complete (sets completedDate as side effect)"
+            },
+            "categories": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Outlook category names linking task to projects/events"
+            },
+            "provider": {
+              "type": "string",
+              "description": "Target provider (omit to broadcast to all)"
             }
           },
           "required": ["action"]

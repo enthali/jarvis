@@ -552,3 +552,297 @@ PIM Design Specifications
           }
         }
       }
+
+
+.. spec:: ITaskProvider Interface + Task Model
+   :id: SPEC_PIM_ITASKPROVIDER
+   :status: implemented
+   :links: REQ_PIM_TASKPROVIDER
+
+   **Description:**
+   File ``src/pim/ITaskProvider.ts`` defines the Strategy Pattern contract
+   for task sources and the ``Task`` domain model.
+
+   **TypeScript interfaces:**
+
+   .. code-block:: typescript
+
+      export type TaskStatus =
+        | "notStarted" | "inProgress" | "completed"
+        | "deferred" | "waitingOnOther";
+
+      export type TaskPriority = "low" | "normal" | "high";
+
+      export interface Task {
+          id: string;               // provider-specific unique ID (e.g. Outlook EntryID)
+          subject: string;
+          dueDate?: string;         // ISO date string (YYYY-MM-DD)
+          status: TaskStatus;
+          priority: TaskPriority;
+          isComplete: boolean;      // explicit completion flag — independent of status
+          completedDate?: string;   // read-only; side-effect of isComplete → true
+          body?: string;            // optional, loaded on-demand only
+          categories: string[];     // link to Jarvis projects/events via category name
+          source: string;           // provider identifier (e.g. "outlook")
+      }
+
+      export interface ITaskProvider {
+          readonly source: string;
+          getTasks(): Promise<Task[]>;
+          setTask(task: Partial<Task>): Promise<Task>;
+          modifyTask(id: string, changes: Partial<Task>): Promise<void>;
+          deleteTask(id: string): Promise<void>;
+      }
+
+   **Design notes:**
+
+   * ``completedDate`` is never directly writable. Providers MUST NOT accept
+     writes to it. Setting ``isComplete: true`` causes the provider to trigger
+     native completion (e.g. Outlook sets ``DateCompleted`` automatically).
+   * ``body`` is optional and should be loaded on-demand only, not during
+     bulk ``getTasks()`` — avoids unnecessary COM roundtrips on large task lists.
+   * ``categories`` contains raw category names matching the ``"Project: ..."``
+     / ``"Event: ..."`` convention — the tree provider resolves them to tree
+     nodes via prefix matching.
+   * ``source`` is set by each provider implementation; callers use it for
+     filtering and "Open in <source>" actions.
+
+
+.. spec:: TaskService Orchestrator
+   :id: SPEC_PIM_TASKSERVICE
+   :status: implemented
+   :links: REQ_PIM_TASKSERVICE; SPEC_PIM_ITASKPROVIDER; SPEC_PIM_CACHE
+
+   **Description:**
+   File ``src/pim/TaskService.ts`` manages providers and a
+   ``DomainCache<Task[]>``, orchestrating fan-out writes and filtered reads.
+
+   **TypeScript implementation:**
+
+   .. code-block:: typescript
+
+      export interface TaskFilter {
+          category?: string;
+          status?: string;
+          dueBefore?: string;   // ISO date string
+      }
+
+      export class TaskService {
+          private _providers: ITaskProvider[] = [];
+          private _cache: DomainCache<Task[]>;
+
+          constructor() {
+              this._cache = new DomainCache<Task[]>(
+                  () => this._fetchAll()
+              );
+          }
+
+          addProvider(p: ITaskProvider): void {
+              this._providers.push(p);
+          }
+
+          hasProviders(): boolean {
+              return this._providers.length > 0;
+          }
+
+          async getTasks(filter?: TaskFilter): Promise<Task[]> {
+              let tasks = this._cache.get();
+              if (!tasks) { tasks = await this._cache.refresh(); }
+              if (!filter) { return tasks; }
+              const catLower = filter.category?.toLowerCase();
+              return tasks.filter(t => {
+                  if (catLower && !t.categories.some(c => c.toLowerCase().startsWith(catLower))) {
+                      return false;
+                  }
+                  if (filter.status && t.status !== filter.status) { return false; }
+                  if (filter.dueBefore && t.dueDate && t.dueDate > filter.dueBefore) {
+                      return false;
+                  }
+                  return true;
+              });
+          }
+
+          async setTask(task: Partial<Task>, provider?: string): Promise<Task> {
+              const targets = this._targets(provider);
+              const result = await targets[0].setTask(task);
+              this._cache.invalidate();
+              await this._cache.refresh();
+              return result;
+          }
+
+          async modifyTask(
+              id: string, changes: Partial<Task>, provider?: string
+          ): Promise<void> {
+              for (const p of this._targets(provider)) {
+                  await p.modifyTask(id, changes);
+              }
+              // Invalidate synchronously; refresh in background so caller is
+              // not blocked by the full provider read-back
+              this._cache.invalidate();
+              this._cache.refresh().catch(e => console.error(`[TaskService] refresh failed: ${e}`));
+          }
+
+          async deleteTask(id: string, provider?: string): Promise<void> {
+              for (const p of this._targets(provider)) {
+                  await p.deleteTask(id);
+              }
+              this._cache.invalidate();
+              this._cache.refresh().catch(e => console.error(`[TaskService] refresh failed: ${e}`));
+          }
+
+          async refresh(): Promise<void> {
+              await this._cache.refresh();
+          }
+
+          private _targets(provider?: string): ITaskProvider[] {
+              if (!provider) { return this._providers; }
+              const t = this._providers.find(p => p.source === provider);
+              if (!t) { throw new Error(`Unknown provider: ${provider}`); }
+              return [t];
+          }
+
+          private async _fetchAll(): Promise<Task[]> {
+              const results: Task[] = [];
+              for (const p of this._providers) {
+                  try {
+                      results.push(...await p.getTasks());
+                  } catch (e) {
+                      // log but do not propagate — one failing provider must not
+                      // block others
+                  }
+              }
+              return results;
+          }
+      }
+
+   **Heartbeat-triggered cache refresh (in ``extension.ts``):**
+
+   A ``syncTaskRefreshJob()`` helper (analogous to ``syncCategoryRefreshJob()``)
+   registers a ``"Jarvis: Task Refresh"`` heartbeat job when ``taskService``
+   has providers and ``scanInterval > 0``:
+
+   .. code-block:: typescript
+
+      function syncTaskRefreshJob(): void {
+          if (!taskService || !taskService.hasProviders()) {
+              scheduler.unregisterJob('Jarvis: Task Refresh');
+              return;
+          }
+          const interval = vscode.workspace
+              .getConfiguration('jarvis')
+              .get<number>('scanInterval', 2);
+          if (interval > 0) {
+              const job: HeartbeatJob = {
+                  name: 'Jarvis: Task Refresh',
+                  schedule: `*/${interval} * * * *`,
+                  steps: [{ type: 'command', run: 'jarvis.refreshTasks' }]
+              };
+              scheduler.registerJob(job);
+          } else {
+              scheduler.unregisterJob('Jarvis: Task Refresh');
+          }
+      }
+
+   Called once during activation after providers are added (fire-and-forget
+   initial ``taskService.refresh()`` populates the cache immediately without
+   blocking the activation path), and from ``onDidChangeConfiguration`` when
+   ``jarvis.scanInterval`` changes.
+
+
+.. spec:: TaskEditorProvider (Custom Editor)
+   :id: SPEC_PIM_TASKEDITOR
+   :status: implemented
+   :links: REQ_PIM_TASKEDITOR; SPEC_PIM_TASKSERVICE; SPEC_PIM_IFACE
+
+   **Description:**
+   File ``src/pim/TaskEditorProvider.ts`` implements a VS Code
+   ``CustomEditorProvider`` that opens when the user activates a task tree node.
+
+   **Registration (``extension.ts``):**
+
+   .. code-block:: typescript
+
+      context.subscriptions.push(
+          vscode.window.registerCustomEditorProvider(
+              TaskEditorProvider.viewType,   // 'jarvis.taskEditor'
+              new TaskEditorProvider(taskService, categoryService, log),
+              { supportsMultipleEditorsPerDocument: false }
+          )
+      );
+
+   Task tree nodes set ``command.command = 'vscode.openWith'`` with
+   ``command.arguments = [taskUri, 'jarvis.taskEditor']`` where
+   ``taskUri`` is a virtual URI of scheme ``task:`` with path
+   ``/task.jarvis-task`` and query ``id=<encodedOutlookEntryID>``.
+   The ``id`` is placed in the query string (not the authority) to avoid
+   URI authority restrictions on long Outlook EntryIDs.
+
+   **Editor fields:**
+
+   * Editable: ``subject`` (text), ``body`` (textarea), ``dueDate`` (date input),
+     ``status`` (select: notStarted/inProgress/completed/deferred/waitingOnOther),
+     ``priority`` (select: low/normal/high),
+     ``categories`` (multi-checkbox list from ``CategoryService.getCategories()``)
+   * Read-only: ``source`` (badge label), ``completedDate`` (shown only when
+     task is completed)
+   * Conditional: "Open in Outlook" button only when ``source === "outlook"``
+
+   **Save flow:**
+
+   #. User triggers Save (``Ctrl+S`` or toolbar button)
+   #. Webview posts ``{ command: 'save', changes }`` message
+   #. ``TaskEditorProvider.resolveCustomEditor()`` message handler calls
+      ``taskService.modifyTask(id, changes)``
+   #. Provider executes COM call → ``cache.invalidate()`` + background
+      ``cache.refresh()`` (fire-and-forget)
+   #. "Saved." feedback shown immediately; tree refreshes when background
+      refresh completes
+
+   **Design notes:**
+
+   * ``completedDate`` is never passed as a writable field in ``changes``
+   * If ``body`` was not already loaded, the editor loads it on open via a
+     separate ``getTasks()`` call with ``includeBody: true`` scoped to the
+     task id (provider-level optimization)
+
+
+.. spec:: jarvis_task Dual Tool
+   :id: SPEC_PIM_TASKTOOL
+   :status: implemented
+   :links: REQ_PIM_TASKTOOL; SPEC_PIM_TASKSERVICE
+
+   **Description:**
+   Register ``jarvis_task`` via ``registerDualTool()`` in ``extension.ts``.
+
+   **Input schema:**
+
+   .. code-block:: typescript
+
+      {
+        action:       "get" | "set" | "modify" | "delete",
+        // get filters
+        category?:    string,
+        status?:      string,
+        dueBefore?:   string,   // ISO date
+        includeBody?: boolean,  // default false
+        // set / modify / delete fields
+        id?:          string,   // required for modify/delete
+        subject?:     string,
+        body?:        string,
+        dueDate?:     string,
+        priority?:    string,
+        isComplete?:  boolean,
+        categories?:  string[],
+        provider?:    string,   // optional; broadcast if omitted
+      }
+
+   **Handler logic:**
+
+   * Guard: if ``!taskService || !taskService.hasProviders()`` → return
+     informational error
+   * ``get``: ``taskService.getTasks(filter)``; when ``includeBody`` is false,
+     strip ``body`` field from results
+   * ``set``: ``taskService.setTask(input, provider)``
+   * ``modify``: reject if ``completedDate`` present in input; call
+     ``taskService.modifyTask(id, changes, provider)``
+   * ``delete``: ``taskService.deleteTask(id, provider)``
