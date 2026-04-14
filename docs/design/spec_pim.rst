@@ -785,11 +785,14 @@ PIM Design Specifications
      ``categories`` (multi-checkbox list from ``CategoryService.getCategories()``)
    * Read-only: ``source`` (badge label), ``completedDate`` (shown only when
      task is completed)
-   * Conditional: "Open in Outlook" button only when ``source === "outlook"``
+  * No external-launch button: task editing stays in the custom editor; there
+    is no separate "Open in Outlook" action
 
    **Save flow:**
 
-   #. User triggers Save (``Ctrl+S`` or toolbar button)
+  #. User changes an editor field
+  #. ``status`` / ``priority`` / ``dueDate`` save immediately; ``subject`` /
+    ``body`` save via a short debounce; category selection saves on change
    #. Webview posts ``{ command: 'save', changes }`` message
    #. ``TaskEditorProvider.resolveCustomEditor()`` message handler calls
       ``taskService.modifyTask(id, changes)``

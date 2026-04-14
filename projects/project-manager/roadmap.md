@@ -106,6 +106,10 @@ Constraint: Windows + Outlook Classic (COM), kein Graph/OAuth.
 1. Outlook Category Provider (COM) + CategoryService + Cache + MCP Tool
 2. Weitere Provider (Gmail Labels) nach Bedarf — Interface steht, Einstiegshürde niedrig
 
+## Research
+
+- **Silent Session Inject** — Zweiter Input-Kanal für laufende Chat-Sessions (wie Claude Web/Telegram). `chat-session-resources` enthält nur Tool-Output-Blobs, kein Input-Buffer. Session-History vermutlich in `state.vscdb`. Alternativ: gh copilot CLI als background Agent der Queue direkt via MCP pollt ohne UI-Fokus-Switch. Forschungsprojekt, kein Feature.
+
 ## Backlog
 
 - **CLI Session Lookup** — Play-Button findet Copilot CLI Sessions nicht (`state.vscdb` enthält sie nicht). Braucht alternativen Mechanismus (z.B. Session-Registry via `jarvis_registerSession`). Blockiert parallele CM-Skalierung.

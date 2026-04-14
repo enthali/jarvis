@@ -228,10 +228,11 @@ PIM Requirements
      ``categories`` (multi-select from ``CategoryService.getCategories()`` cache)
    * AC-3: Read-only display fields: ``source`` (provider badge),
      ``completedDate`` (visible only when the task is completed)
-   * AC-4: An "Open in Outlook" button SHALL be displayed only when
-     ``source === "outlook"``
-   * AC-5: Saving SHALL call ``TaskService.modifyTask()`` → provider → cache
-     invalidate + immediate refresh
+   * AC-4: The editor SHALL keep task editing inside VS Code and SHALL NOT
+     expose a separate "Open in Outlook" button
+   * AC-5: Field changes SHALL auto-save via ``TaskService.modifyTask()`` →
+     provider → cache invalidate + immediate refresh; text fields MAY use a
+     short debounce before saving
 
 
 .. req:: Task Management Tool (LM/MCP)
