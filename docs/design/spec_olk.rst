@@ -264,7 +264,7 @@ Outlook Design Specifications
 
 .. spec:: OutlookTaskProvider (COM Bridge)
    :id: SPEC_OLK_TASKPROVIDER
-   :status: approved
+   :status: implemented
    :links: REQ_OLK_TASKPROVIDER; SPEC_PIM_ITASKPROVIDER; SPEC_OLK_COMBRIDGE
 
    **Description:**
@@ -315,6 +315,15 @@ Outlook Design Specifications
      0 → ``"low"``, 1 → ``"normal"``, 2 → ``"high"``
    * ``Categories`` is a comma-separated string; split on ``", "``
 
+   **JSON output sanitization:**
+
+   ``ConvertTo-Json`` does not escape all Unicode control characters.
+   The TypeScript layer strips ``U+0000–U+001F`` (except tab, LF, CR) from
+   the raw JSON string before parsing::
+
+      const sanitized = output.trim().replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, ' ');
+      const raw = JSON.parse(sanitized);
+
    **modifyTask() PowerShell script:**
 
    .. code-block:: powershell
@@ -327,7 +336,8 @@ Outlook Design Specifications
    ``{{patchStatements}}`` is generated from the ``changes`` object,
    emitting one assignment line per changed field. ``completedDate`` is
    always excluded. Setting ``IsComplete = $true`` causes Outlook to set
-   ``DateCompleted`` natively.
+   ``DateCompleted`` natively. Clearing ``dueDate`` (empty string) sets
+   ``$task.DueDate = [DateTime]::MaxValue`` (Outlook's "no due date" sentinel).
 
    Input parameters are sanitized: string values have single quotes escaped
    (``'`` → ``''``).
@@ -357,14 +367,27 @@ Outlook Design Specifications
 
 .. spec:: Tasks Sub-Toggle Setting
    :id: SPEC_OLK_TASKENABLE
-   :status: approved
+   :status: implemented
    :links: REQ_OLK_TASKENABLE; SPEC_EXP_EXTENSION
 
    **Description:**
    Adds ``jarvis.outlook.tasks.enabled`` to the ``package.json`` configuration
    and guards task provider instantiation in ``extension.ts``.
 
-   **package.json delta:**
+   **package.json delta (``contributes.customEditors`` + configuration):**
+
+   .. code-block:: json
+
+      "customEditors": [
+        {
+          "viewType": "jarvis.taskEditor",
+          "displayName": "Jarvis Task Editor",
+          "selector": [ { "filenamePattern": "*.jarvis-task" } ],
+          "priority": "default"
+        }
+      ]
+
+   The tasks setting stays in the existing "PIM" configuration group:
 
    .. code-block:: json
 

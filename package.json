@@ -24,6 +24,16 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "customEditors": [
+      {
+        "viewType": "jarvis.taskEditor",
+        "displayName": "Jarvis Task Editor",
+        "selector": [
+          { "filenamePattern": "*.jarvis-task" }
+        ],
+        "priority": "default"
+      }
+    ],
     "viewsContainers": {
       "activitybar": [
         {

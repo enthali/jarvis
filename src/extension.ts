@@ -1019,8 +1019,8 @@ export function activate(context: vscode.ExtensionContext) {
                     .getConfiguration('jarvis')
                     .get<boolean>('outlookEnabled', false);
                 if (outlookEnabled && categoryService.hasProviders()) {
-                    await categoryService.setCategory(`Project: ${input}`, 0);
-                    log.info(`[NewProject] Outlook category created: "Project: ${input}"`);
+                    await categoryService.setCategory(input, 0);
+                    log.info(`[NewProject] Outlook category created: "${input}"`);
                 }
             } catch (err) {
                 log.warn(`[NewProject] Failed to create Outlook category: ${err}`);
@@ -1101,8 +1101,8 @@ export function activate(context: vscode.ExtensionContext) {
                     .getConfiguration('jarvis')
                     .get<boolean>('outlookEnabled', false);
                 if (outlookEnabled && categoryService.hasProviders()) {
-                    await categoryService.setCategory(`Event: ${nameInput}`, 0);
-                    log.info(`[NewEvent] Outlook category created: "Event: ${nameInput}"`);
+                    await categoryService.setCategory(nameInput, 0);
+                    log.info(`[NewEvent] Outlook category created: "${nameInput}"`);
                 }
             } catch (err) {
                 log.warn(`[NewEvent] Failed to create Outlook category: ${err}`);

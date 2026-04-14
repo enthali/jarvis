@@ -610,7 +610,7 @@ PIM Design Specifications
 
 .. spec:: TaskService Orchestrator
    :id: SPEC_PIM_TASKSERVICE
-   :status: approved
+   :status: implemented
    :links: REQ_PIM_TASKSERVICE; SPEC_PIM_ITASKPROVIDER; SPEC_PIM_CACHE
 
    **Description:**
@@ -649,8 +649,9 @@ PIM Design Specifications
               let tasks = this._cache.get();
               if (!tasks) { tasks = await this._cache.refresh(); }
               if (!filter) { return tasks; }
+              const catLower = filter.category?.toLowerCase();
               return tasks.filter(t => {
-                  if (filter.category && !t.categories.includes(filter.category)) {
+                  if (catLower && !t.categories.some(c => c.toLowerCase().startsWith(catLower))) {
                       return false;
                   }
                   if (filter.status && t.status !== filter.status) { return false; }
@@ -675,8 +676,10 @@ PIM Design Specifications
               for (const p of this._targets(provider)) {
                   await p.modifyTask(id, changes);
               }
+              // Invalidate synchronously; refresh in background so caller is
+              // not blocked by the full provider read-back
               this._cache.invalidate();
-              await this._cache.refresh();
+              this._cache.refresh().catch(e => console.error(`[TaskService] refresh failed: ${e}`));
           }
 
           async deleteTask(id: string, provider?: string): Promise<void> {
@@ -684,7 +687,7 @@ PIM Design Specifications
                   await p.deleteTask(id);
               }
               this._cache.invalidate();
-              await this._cache.refresh();
+              this._cache.refresh().catch(e => console.error(`[TaskService] refresh failed: ${e}`));
           }
 
           async refresh(): Promise<void> {
@@ -740,13 +743,15 @@ PIM Design Specifications
           }
       }
 
-   Called once during activation after providers are added, and from
-   ``onDidChangeConfiguration`` when ``jarvis.scanInterval`` changes.
+   Called once during activation after providers are added (fire-and-forget
+   initial ``taskService.refresh()`` populates the cache immediately without
+   blocking the activation path), and from ``onDidChangeConfiguration`` when
+   ``jarvis.scanInterval`` changes.
 
 
 .. spec:: TaskEditorProvider (Custom Editor)
    :id: SPEC_PIM_TASKEDITOR
-   :status: approved
+   :status: implemented
    :links: REQ_PIM_TASKEDITOR; SPEC_PIM_TASKSERVICE; SPEC_PIM_IFACE
 
    **Description:**
@@ -759,7 +764,7 @@ PIM Design Specifications
 
       context.subscriptions.push(
           vscode.window.registerCustomEditorProvider(
-              'jarvis.taskEditor',
+              TaskEditorProvider.viewType,   // 'jarvis.taskEditor'
               new TaskEditorProvider(taskService, categoryService, log),
               { supportsMultipleEditorsPerDocument: false }
           )
@@ -767,7 +772,10 @@ PIM Design Specifications
 
    Task tree nodes set ``command.command = 'vscode.openWith'`` with
    ``command.arguments = [taskUri, 'jarvis.taskEditor']`` where
-   ``taskUri`` is a virtual URI of scheme ``task://`` carrying the task id.
+   ``taskUri`` is a virtual URI of scheme ``task:`` with path
+   ``/task.jarvis-task`` and query ``id=<encodedOutlookEntryID>``.
+   The ``id`` is placed in the query string (not the authority) to avoid
+   URI authority restrictions on long Outlook EntryIDs.
 
    **Editor fields:**
 
@@ -782,10 +790,13 @@ PIM Design Specifications
    **Save flow:**
 
    #. User triggers Save (``Ctrl+S`` or toolbar button)
-   #. ``TaskEditorProvider.saveCustomDocument()`` calls
+   #. Webview posts ``{ command: 'save', changes }`` message
+   #. ``TaskEditorProvider.resolveCustomEditor()`` message handler calls
       ``taskService.modifyTask(id, changes)``
-   #. Provider executes COM call → ``cache.invalidate()`` + ``cache.refresh()``
-   #. Tree fires ``onDidChangeTreeData`` → UI updates
+   #. Provider executes COM call → ``cache.invalidate()`` + background
+      ``cache.refresh()`` (fire-and-forget)
+   #. "Saved." feedback shown immediately; tree refreshes when background
+      refresh completes
 
    **Design notes:**
 

@@ -102,9 +102,10 @@ export class ProjectTreeProvider implements vscode.TreeDataProvider<ProjectTreeI
             if (this._taskService && this._taskService.hasProviders()) {
                 const cachedTasks = this._getCachedTasks();
                 if (cachedTasks && cachedTasks.length > 0) {
+                    const entityNames = this._getEntityNames();
                     const uncategorized = cachedTasks.filter(t =>
                         !t.isComplete &&
-                        !t.categories.some(c => c.startsWith('Project: ') || c.startsWith('Event: '))
+                        !t.categories.some(c => entityNames.has(c))
                     );
                     if (uncategorized.length > 0) {
                         const uncatNode: UncategorizedTasksNode = {
@@ -139,7 +140,8 @@ export class ProjectTreeProvider implements vscode.TreeDataProvider<ProjectTreeI
         if (this._taskService && this._taskService.hasProviders()) {
             const entity = this._scanner.getEntity(element.id);
             const name = entity ? entity.name : path.basename(path.dirname(element.id));
-            const projectCategory = `Project: ${name}`;
+            // Use name as-is — no prefix manipulation. Category in Outlook must match YAML name exactly.
+            const projectCategory = name;
             const cachedTasks = this._getCachedTasks();
             if (cachedTasks) {
                 const projectTasks = cachedTasks.filter(
@@ -176,6 +178,23 @@ export class ProjectTreeProvider implements vscode.TreeDataProvider<ProjectTreeI
         return (this._taskService as any)._cache?.get() as Task[] | undefined;
     }
 
+    private _getEntityNames(): Set<string> {
+        const names = new Set<string>();
+        const collect = (nodes: TreeNode[]) => {
+            for (const node of nodes) {
+                if (node.kind === 'leaf') {
+                    const entity = this._scanner.getEntity(node.id);
+                    if (entity?.name) { names.add(entity.name); }
+                } else {
+                    collect(node.children);
+                }
+            }
+        };
+        collect(this._scanner.getProjectTree());
+        collect(this._scanner.getEventTree());
+        return names;
+    }
+
     private _makeTaskLeafItem(task: Task): vscode.TreeItem {
         const label = task.dueDate
             ? `${task.subject} — ${task.dueDate}`
@@ -187,8 +206,8 @@ export class ProjectTreeProvider implements vscode.TreeDataProvider<ProjectTreeI
         item.contextValue = 'jarvisTask';
         const taskUri = vscode.Uri.from({
             scheme: 'task',
-            authority: task.id,
-            path: `/${encodeURIComponent(task.subject)}`
+            path: '/task.jarvis-task',
+            query: `id=${encodeURIComponent(task.id)}`
         });
         item.command = {
             command: 'vscode.openWith',
@@ -202,7 +221,7 @@ export class ProjectTreeProvider implements vscode.TreeDataProvider<ProjectTreeI
         if (!this._taskService || !this._taskService.hasProviders()) {
             return name;
         }
-        const projectCategory = `Project: ${name}`;
+        const projectCategory = name;
         const cachedTasks = this._getCachedTasks();
         if (!cachedTasks) { return name; }
         const openTasks = cachedTasks.filter(

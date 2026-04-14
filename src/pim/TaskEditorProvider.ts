@@ -19,6 +19,8 @@ export class TaskDocument implements vscode.CustomDocument {
 
 export class TaskEditorProvider implements vscode.CustomEditorProvider<TaskDocument> {
 
+    static readonly viewType = 'jarvis.taskEditor';
+
     private readonly _onDidChangeCustomDocument = new vscode.EventEmitter<vscode.CustomDocumentEditEvent<TaskDocument>>();
     readonly onDidChangeCustomDocument = this._onDidChangeCustomDocument.event;
 
@@ -33,7 +35,9 @@ export class TaskEditorProvider implements vscode.CustomEditorProvider<TaskDocum
         _openContext: vscode.CustomDocumentOpenContext,
         _token: vscode.CancellationToken
     ): Promise<TaskDocument> {
-        const id = uri.authority;
+        // ID is stored in query param to avoid URI authority restrictions
+        const params = new URLSearchParams(uri.query);
+        const id = params.get('id') ?? '';
         const tasks = await this._taskService.getTasks();
         const task = tasks.find(t => t.id === id);
         if (!task) {
@@ -78,15 +82,14 @@ export class TaskEditorProvider implements vscode.CustomEditorProvider<TaskDocum
     }
 
     saveCustomDocument(
-        document: TaskDocument,
+        _document: TaskDocument,
         _cancellation: vscode.CancellationToken
     ): Thenable<void> {
-        // Save is handled via webview message 'save'
         return Promise.resolve();
     }
 
     saveCustomDocumentAs(
-        document: TaskDocument,
+        _document: TaskDocument,
         _destination: vscode.Uri,
         _cancellation: vscode.CancellationToken
     ): Thenable<void> {
@@ -101,7 +104,7 @@ export class TaskEditorProvider implements vscode.CustomEditorProvider<TaskDocum
     }
 
     backupCustomDocument(
-        document: TaskDocument,
+        _document: TaskDocument,
         context: vscode.CustomDocumentBackupContext,
         _cancellation: vscode.CancellationToken
     ): Thenable<vscode.CustomDocumentBackup> {
@@ -133,8 +136,8 @@ export class TaskEditorProvider implements vscode.CustomEditorProvider<TaskDocum
             `<label><input type="checkbox" name="category" value="${esc(cat)}"${task.categories.includes(cat) ? ' checked' : ''}> ${esc(cat)}</label><br>`
         ).join('');
 
-        const completedDateRow = task.isComplete && task.completedDate
-            ? `<tr><td><b>Completed Date:</b></td><td>${esc(task.completedDate)}</td></tr>`
+        const completedDateRow = task.isComplete
+            ? `<tr><td><b>Completed Date:</b></td><td>${task.completedDate ? esc(task.completedDate) : '—'}</td></tr>`
             : '';
 
         const openInOutlookBtn = task.source === 'outlook'

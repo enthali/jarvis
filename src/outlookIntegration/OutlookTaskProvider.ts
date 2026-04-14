@@ -75,7 +75,12 @@ function buildPatchStatements(changes: Partial<Task>): string {
         lines.push(`$task.Subject = '${escapePs(changes.subject)}'`);
     }
     if (changes.dueDate !== undefined) {
-        lines.push(`$task.DueDate = [DateTime]::Parse('${escapePs(changes.dueDate)}')`);
+        if (changes.dueDate === '') {
+            // Clear due date — set to Outlook's "none" sentinel (year 4501)
+            lines.push(`$task.DueDate = [DateTime]::MaxValue`);
+        } else {
+            lines.push(`$task.DueDate = [DateTime]::Parse('${escapePs(changes.dueDate)}')`);
+        }
     }
     if (changes.status !== undefined) {
         lines.push(`$task.Status = ${mapStatusToOutlook(changes.status)}`);
@@ -137,14 +142,17 @@ $result | ConvertTo-Json -Compress`;
         if (!trimmed || trimmed === 'null') {
             return [];
         }
-        const raw = JSON.parse(trimmed);
+        // PowerShell ConvertTo-Json does not escape all control characters;
+        // strip U+0000–U+001F except tab (\x09), LF (\x0A), CR (\x0D)
+        const sanitized = trimmed.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, ' ');
+        const raw = JSON.parse(sanitized);
         const items: Array<{
             Id: unknown; Subject: unknown; DueDate: unknown;
             Status: unknown; Priority: unknown; IsComplete: unknown;
             CompletedDate: unknown; Categories: unknown;
         }> = Array.isArray(raw) ? raw : [raw];
 
-        return items.map(item => ({
+        const tasks = items.map(item => ({
             id: String(item.Id),
             subject: String(item.Subject ?? ''),
             dueDate: item.DueDate ? String(item.DueDate) : undefined,
@@ -157,6 +165,11 @@ $result | ConvertTo-Json -Compress`;
                 : [],
             source: this.source
         }));
+        this._log.info(`[Outlook] getTasks: ${tasks.length} tasks loaded`);
+        tasks.forEach(t => this._log.debug(
+            `[Outlook] task: "${t.subject}" categories=[${t.categories.join(', ')}] isComplete=${t.isComplete}`
+        ));
+        return tasks;
     }
 
     async setTask(task: Partial<Task>): Promise<Task> {
@@ -193,14 +206,17 @@ Write-Output $id`;
         const safeId = escapePs(id);
         const patchStatements = buildPatchStatements(changes);
         if (!patchStatements) {
-            return; // nothing to do
+            this._log.info('[Outlook] modifyTask: no changes to apply');
+            return;
         }
+        this._log.info(`[Outlook] modifyTask: applying changes: ${JSON.stringify(Object.keys(changes))}`);
         const script = `
 $ol = New-Object -ComObject Outlook.Application
 $ns = $ol.GetNamespace('MAPI')
 $task = $ns.GetItemFromID('${safeId}')
 ${patchStatements}`;
         await runPowerShell(script, this._log);
+        this._log.info('[Outlook] modifyTask: done');
     }
 
     async deleteTask(id: string): Promise<void> {

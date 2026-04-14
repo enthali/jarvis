@@ -57,9 +57,9 @@ export class EventTreeProvider implements vscode.TreeDataProvider<EventTreeItem>
 
         // LeafNode (event)
         const entity = this._scanner.getEntity(element.id);
-        const label = entity
-            ? (entity.datesStart ? `${entity.datesStart} — ${entity.name}` : entity.name)
-            : path.basename(path.dirname(element.id));
+        const entityName = entity ? entity.name : path.basename(path.dirname(element.id));
+        const nameWithBadge = this._buildEventLabel(entityName);
+        const label = (entity && entity.datesStart) ? `${entity.datesStart} — ${nameWithBadge}` : nameWithBadge;
         const collapsible = (this._taskService && this._taskService.hasProviders())
             ? vscode.TreeItemCollapsibleState.Collapsed
             : vscode.TreeItemCollapsibleState.None;
@@ -98,7 +98,8 @@ export class EventTreeProvider implements vscode.TreeDataProvider<EventTreeItem>
         if (this._taskService && this._taskService.hasProviders()) {
             const entity = this._scanner.getEntity(element.id);
             const name = entity ? entity.name : path.basename(path.dirname(element.id));
-            const eventCategory = `Event: ${name}`;
+            // Use name as-is — no prefix manipulation. Category in Outlook must match YAML name exactly.
+            const eventCategory = name;
             const cachedTasks = this._getCachedTasks();
             if (cachedTasks) {
                 const eventTasks = cachedTasks.filter(
@@ -146,8 +147,8 @@ export class EventTreeProvider implements vscode.TreeDataProvider<EventTreeItem>
         item.contextValue = 'jarvisTask';
         const taskUri = vscode.Uri.from({
             scheme: 'task',
-            authority: task.id,
-            path: `/${encodeURIComponent(task.subject)}`
+            path: '/task.jarvis-task',
+            query: `id=${encodeURIComponent(task.id)}`
         });
         item.command = {
             command: 'vscode.openWith',
@@ -155,6 +156,24 @@ export class EventTreeProvider implements vscode.TreeDataProvider<EventTreeItem>
             arguments: [taskUri, 'jarvis.taskEditor']
         };
         return item;
+    }
+
+    private _buildEventLabel(name: string): string {
+        if (!this._taskService || !this._taskService.hasProviders()) { return name; }
+        const cachedTasks = this._getCachedTasks();
+        if (!cachedTasks) { return name; }
+        const openTasks = cachedTasks.filter(t => t.categories.includes(name) && !t.isComplete);
+        const n = openTasks.length;
+        if (n === 0) { return name; }
+        const today = new Date().toISOString().slice(0, 10);
+        const hasOverdue = openTasks.some(t => t.dueDate && t.dueDate < today);
+        if (hasOverdue) { return `${name} ⚠`; }
+        const fiveDays = new Date();
+        fiveDays.setDate(fiveDays.getDate() + 5);
+        const fiveDaysStr = fiveDays.toISOString().slice(0, 10);
+        const hasDueSoon = openTasks.some(t => t.dueDate && t.dueDate <= fiveDaysStr);
+        if (hasDueSoon) { return `${name} (${n} !)`; }
+        return `${name} (${n})`;
     }
 
     private _filterFuture(nodes: TreeNode[], today: string): TreeNode[] {

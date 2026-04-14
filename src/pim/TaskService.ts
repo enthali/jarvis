@@ -32,8 +32,9 @@ export class TaskService {
         let tasks = this._cache.get();
         if (!tasks) { tasks = await this._cache.refresh(); }
         if (!filter) { return tasks; }
+        const catLower = filter.category?.toLowerCase();
         return tasks.filter(t => {
-            if (filter.category && !t.categories.includes(filter.category)) {
+            if (catLower && !t.categories.some(c => c.toLowerCase().startsWith(catLower))) {
                 return false;
             }
             if (filter.status && t.status !== filter.status) { return false; }
@@ -58,8 +59,11 @@ export class TaskService {
         for (const p of this._targets(provider)) {
             await p.modifyTask(id, changes);
         }
+        // Invalidate synchronously so next get() re-fetches; refresh in background
         this._cache.invalidate();
-        await this._cache.refresh();
+        this._cache.refresh().catch(e =>
+            console.error(`[TaskService] background refresh after modifyTask failed: ${e}`)
+        );
     }
 
     async deleteTask(id: string, provider?: string): Promise<void> {
@@ -67,7 +71,9 @@ export class TaskService {
             await p.deleteTask(id);
         }
         this._cache.invalidate();
-        await this._cache.refresh();
+        this._cache.refresh().catch(e =>
+            console.error(`[TaskService] background refresh after deleteTask failed: ${e}`)
+        );
     }
 
     async refresh(): Promise<void> {
@@ -87,8 +93,8 @@ export class TaskService {
             try {
                 results.push(...await p.getTasks());
             } catch (e) {
-                // log but do not propagate — one failing provider must not
-                // block others
+                // log via console — TaskService has no logger injected
+                console.error(`[TaskService] provider "${p.source}" getTasks failed: ${e}`);
             }
         }
         return results;
