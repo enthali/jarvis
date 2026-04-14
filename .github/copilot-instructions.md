@@ -17,12 +17,16 @@ Projects and events are stored as YAML files in configurable folders.
 
 ```
 src/                    — Extension source (TypeScript)
-  extension.ts          — Activation, commands (new-entity, filters, rescan, context-actions, agent sessions, category rename/delete/refresh), populateDefaultPaths() for workspace-settings bootstrap, 7 LM+MCP tools (sendToSession, readMessage, listSessions, listProjects, registerJob, unregisterJob, jarvis_category) via registerDualTool(), syncRescanJob()+syncCategoryRefreshJob() heartbeat bridges, shared LogOutputChannel "Jarvis" (structured logging with levels and module tags)
+  extension.ts          — Activation, commands (new-entity, filters, rescan, context-actions, agent sessions, category/task rename/delete/refresh), populateDefaultPaths() for workspace-settings bootstrap, 8 LM+MCP tools (sendToSession, readMessage, listSessions, listProjects, registerJob, unregisterJob, jarvis_category, jarvis_task) via registerDualTool(), syncRescanJob()+syncCategoryRefreshJob()+syncTaskRefreshJob() heartbeat bridges, shared LogOutputChannel "Jarvis" (structured logging with levels and module tags)
   pim/ICategoryProvider.ts — Category + ICategoryProvider strategy-pattern interface
   pim/DomainCache.ts    — Generic in-memory cache with refresh callback
   pim/CategoryService.ts — Provider list + DomainCache<Category[]>; getCategories/setCategory/deleteCategory/renameCategory/refresh/hasProviders
   pim/CategoryTreeProvider.ts — TreeDataProvider for Categories sidebar view (contextValue: jarvisCategory)
-  outlookIntegration/OutlookCategoryProvider.ts — ICategoryProvider via PowerShell COM; color heuristic (project→8, event→10); single-quote escaping
+  pim/ITaskProvider.ts  — Task + ITaskProvider strategy-pattern interface
+  pim/TaskService.ts    — Provider list + DomainCache<Task[]>; getTasks/setTask/deleteTask/refresh/hasProviders
+  pim/TaskEditorProvider.ts — CustomTextEditorProvider for task details (URI: task:///task.jarvis-task?id=<encodedId>); auto-save on field change
+  outlookIntegration/OutlookCategoryProvider.ts — ICategoryProvider via PowerShell COM; resolveColor() maps name content to Outlook color index; single-quote escaping
+  outlookIntegration/OutlookTaskProvider.ts — ITaskProvider via PowerShell COM; JSON sanitization (strips U+0000–U+001F before JSON.parse)
   yamlScanner.ts        — Convention-file scanner: folder with project.yaml/event.yaml = leaf; content-change detection; events sorted by datesStart+name, projects by name; no own timer (rescans via heartbeat)
   projectTreeProvider.ts — Tree UI for projects (owns _hiddenFolders filter; contextValue: jarvisProject)
   eventTreeProvider.ts  — Tree UI for events (owns _futureOnly filter; label: "datesStart — name"; contextValue: jarvisEvent)
@@ -114,8 +118,13 @@ JSON Schemas: `schemas/project.schema.json`, `schemas/event.schema.json`
 
 - **When-clauses**: Boolean config values require explicit `== true` (e.g. `config.jarvis.pim.showCategories == true`); bare identifiers don't work.
 - **Settings groups**: Consolidate by feature theme (e.g. PIM), not by technical layer (e.g. Outlook vs. extension internals).
-- **Category naming prefix**: Apply "Project: " / "Event: " prefixes in the command handler, not inside `CategoryService`. The service is prefix-agnostic.
-- **Optional integration guard**: When calling optional integrations (e.g., category sync) from a primary command, wrap in try/catch and log.warn only — errors must never block the primary operation (folder + YAML creation).
+- **Category naming**: No prefix is added automatically — raw user input flows to `categoryService.setCategory()`. Color is resolved by `resolveColor()` in `OutlookCategoryProvider` based on name content. YAML `name` is used as-is as the Outlook category/task match key; users own naming conventions.
+- **Optional integration guard**: When calling optional integrations (e.g., category/task sync) from a primary command, wrap in try/catch and log.warn only — errors must never block the primary operation.
+- **Tree status display**: Use `item.description` (string) for count badges and `item.iconPath = new vscode.ThemeIcon(icon, new vscode.ThemeColor(color))` for status color. `item.badge` does NOT exist on `TreeItem` (only on `WebviewView`).
+- **CustomEditor URI**: Put the entry ID in query params, not authority — `task:///task.jarvis-task?id=<encodedId>`.
+- **PowerShell JSON**: Strip U+0000–U+001F control chars before `JSON.parse()` — `ConvertTo-Json` does not escape all of them.
+- **DomainCache population**: Fire-and-forget `refresh()` after provider registration — `DomainCache.get()` returns `undefined` synchronously until first refresh completes.
+- **Heartbeat command registration**: If `syncXxxJob()` references a command name, that command MUST be registered via `vscode.commands.registerCommand()` — otherwise heartbeat jobs fail silently with "command not found".
 
 ## Session–Project Binding
 
