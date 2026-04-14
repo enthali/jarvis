@@ -962,7 +962,7 @@ Explorer Design Specifications
 
 .. spec:: Inline Task Nodes + Badge Logic
    :id: SPEC_EXP_TASKTREE
-   :status: approved
+   :status: implemented
    :links: REQ_EXP_TASKTREE; SPEC_PIM_TASKSERVICE; SPEC_EXP_PROVIDER
 
    **Description:**

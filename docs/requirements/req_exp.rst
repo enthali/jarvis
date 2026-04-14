@@ -450,7 +450,7 @@ Explorer Requirements
 
 .. req:: Inline Task Nodes in Project/Event Tree
    :id: REQ_EXP_TASKTREE
-   :status: approved
+   :status: implemented
    :priority: mandatory
    :links: US_EXP_SIDEBAR; REQ_PIM_TASKSERVICE; REQ_EXP_TREEVIEW
 

@@ -86,7 +86,7 @@ Outlook Requirements
 
 .. req:: Outlook Task Provider (COM Bridge)
    :id: REQ_OLK_TASKPROVIDER
-   :status: approved
+   :status: implemented
    :priority: mandatory
    :links: US_OLK_TASKS; REQ_PIM_TASKPROVIDER
 
@@ -119,7 +119,7 @@ Outlook Requirements
 
 .. req:: Tasks Feature Sub-Toggle
    :id: REQ_OLK_TASKENABLE
-   :status: approved
+   :status: implemented
    :priority: mandatory
    :links: US_OLK_TASKS; REQ_OLK_ENABLE; REQ_CFG_SETTINGSGROUPS
 

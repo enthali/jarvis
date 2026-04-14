@@ -148,7 +148,7 @@ PIM Requirements
 
 .. req:: Task Provider Interface (Strategy Pattern)
    :id: REQ_PIM_TASKPROVIDER
-   :status: approved
+   :status: implemented
    :priority: mandatory
    :links: US_PIM_TASKS
 
@@ -181,7 +181,7 @@ PIM Requirements
 
 .. req:: Task Service + Domain Cache
    :id: REQ_PIM_TASKSERVICE
-   :status: approved
+   :status: implemented
    :priority: mandatory
    :links: US_PIM_TASKS; REQ_PIM_TASKPROVIDER; REQ_PIM_CACHE
 
@@ -207,7 +207,7 @@ PIM Requirements
 
 .. req:: Task Editor (Custom Editor)
    :id: REQ_PIM_TASKEDITOR
-   :status: approved
+   :status: implemented
    :priority: mandatory
    :links: US_PIM_TASKS; REQ_PIM_TASKSERVICE
 
@@ -232,7 +232,7 @@ PIM Requirements
 
 .. req:: Task Management Tool (LM/MCP)
    :id: REQ_PIM_TASKTOOL
-   :status: approved
+   :status: implemented
    :priority: mandatory
    :links: US_PIM_TASKS; REQ_PIM_TASKSERVICE; REQ_MSG_MCPSERVER
 

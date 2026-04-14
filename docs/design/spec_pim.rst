@@ -556,7 +556,7 @@ PIM Design Specifications
 
 .. spec:: ITaskProvider Interface + Task Model
    :id: SPEC_PIM_ITASKPROVIDER
-   :status: approved
+   :status: implemented
    :links: REQ_PIM_TASKPROVIDER
 
    **Description:**
@@ -808,7 +808,7 @@ PIM Design Specifications
 
 .. spec:: jarvis_task Dual Tool
    :id: SPEC_PIM_TASKTOOL
-   :status: approved
+   :status: implemented
    :links: REQ_PIM_TASKTOOL; SPEC_PIM_TASKSERVICE
 
    **Description:**
