@@ -134,6 +134,7 @@ foreach ($t in $tasks) {
         IsComplete    = [bool]$t.Complete
         CompletedDate = $completed
         Categories    = $t.Categories
+        Body          = $t.Body
     }
 }
 $result | ConvertTo-Json -Compress`;
@@ -149,7 +150,7 @@ $result | ConvertTo-Json -Compress`;
         const items: Array<{
             Id: unknown; Subject: unknown; DueDate: unknown;
             Status: unknown; Priority: unknown; IsComplete: unknown;
-            CompletedDate: unknown; Categories: unknown;
+            CompletedDate: unknown; Categories: unknown; Body: unknown;
         }> = Array.isArray(raw) ? raw : [raw];
 
         const tasks = items.map(item => ({
@@ -163,7 +164,8 @@ $result | ConvertTo-Json -Compress`;
             categories: item.Categories
                 ? String(item.Categories).split(', ').filter(c => c.trim().length > 0)
                 : [],
-            source: this.source
+            source: this.source,
+            body: item.Body ? String(item.Body) : ''
         }));
         this._log.info(`[Outlook] getTasks: ${tasks.length} tasks loaded`);
         tasks.forEach(t => this._log.debug(
