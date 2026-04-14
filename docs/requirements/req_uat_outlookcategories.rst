@@ -106,3 +106,29 @@ Outlook Categories UAT Requirements
      Classic running on Windows, and the Extension Development Host launched
    * AC-4: Test categories use the ``"UAT-AutoCat"`` prefix for easy identification
      and cleanup
+
+
+.. req:: Outlook Tasks Test Data
+   :id: REQ_UAT_TASKS_TESTDATA
+   :status: approved
+   :priority: optional
+   :links: US_UAT_TASKS; REQ_PIM_TASKPROVIDER; REQ_PIM_TASKSERVICE; REQ_EXP_TASKTREE; REQ_OLK_TASKPROVIDER; REQ_OLK_TASKENABLE
+
+   **Description:**
+   The repo SHALL contain documented expected outcomes for manual verification
+   of the Outlook Tasks integration, covering feature toggle, task CRUD,
+   tree rendering, editor behaviour, and COM bridge correctness.
+
+   **Acceptance Criteria:**
+
+   * AC-1: No new testdata/ files required — tests use a live Outlook Classic
+     instance with manually created tasks
+   * AC-2: Expected outcomes for each test scenario (T-30 through T-51 from
+     ``US_UAT_TASKS``) SHALL be documented in the test protocol
+   * AC-3: Test preconditions specify Windows OS + Outlook Classic installed and
+     running; ``jarvis.outlookEnabled=true`` and
+     ``jarvis.outlook.tasks.enabled=true`` required for most tests
+   * AC-4: Tasks used in CRUD tests (T-36 through T-39) SHALL use the
+     ``"UAT-Task-"`` prefix for easy identification and cleanup
+   * AC-5: Tree view tests (T-40 through T-44) require at least one Outlook task
+     linked to a project name that exists in the configured projects folder
