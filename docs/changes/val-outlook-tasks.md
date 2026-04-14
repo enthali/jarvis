@@ -89,8 +89,8 @@ All deviations are accepted per UAT result. No blockers.
 - [x] AC-1: `CustomEditorProvider<TaskDocument>` — not a WebviewPanel ✓
 - [x] AC-2: Editable fields: subject, body, dueDate, status, priority, categories multi-select ✓
 - [x] AC-3: Read-only display: source (badge), completedDate (conditional) ✓
-- [x] AC-4: Editing stays inside the custom editor; no separate "Open in Outlook" button ✓
-- [x] AC-5: Field changes auto-save via `TaskService.modifyTask()` → cache invalidate + background refresh ✓
+- [x] AC-4: No "Open in Outlook" button (not in v1); editing stays entirely inside VS Code custom editor ✓
+- [x] AC-5: status/priority/dueDate/categories save immediately on `change`; subject/body debounced 300ms on `input`; all via `TaskService.modifyTask()` → cache invalidate + background refresh ✓
 
 ### REQ_PIM_TASKTOOL
 - [x] AC-1: `action: "get" | "set" | "modify" | "delete"` ✓

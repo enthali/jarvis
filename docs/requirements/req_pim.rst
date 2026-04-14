@@ -224,15 +224,18 @@ PIM Requirements
    * AC-1: The editor SHALL be a VS Code Custom Editor (``CustomEditorProvider``),
      NOT a Webview panel
    * AC-2: Editable fields: ``subject`` (text input), ``body`` (textarea),
-     ``dueDate`` (date picker), ``status`` (dropdown), ``priority`` (dropdown),
+     ``dueDate`` (date picker — leaving empty is supported; clearing an existing
+     date is not supported in v1), ``status`` (dropdown), ``priority`` (dropdown),
      ``categories`` (multi-select from ``CategoryService.getCategories()`` cache)
    * AC-3: Read-only display fields: ``source`` (provider badge),
-     ``completedDate`` (visible only when the task is completed)
-   * AC-4: The editor SHALL keep task editing inside VS Code and SHALL NOT
-     expose a separate "Open in Outlook" button
+     ``completedDate`` (shown as read-only text whenever the task is completed,
+     displaying ``—`` when the completed date value is empty)
+   * AC-4: An "Open in Outlook" button is **not implemented in v1**; task
+     editing stays entirely inside the VS Code custom editor
    * AC-5: Field changes SHALL auto-save via ``TaskService.modifyTask()`` →
-     provider → cache invalidate + immediate refresh; text fields MAY use a
-     short debounce before saving
+     provider → cache invalidate + immediate refresh; ``status``, ``priority``,
+     ``dueDate``, and ``categories`` save immediately on DOM ``change``;
+     ``subject`` and ``body`` use a 300 ms debounce on DOM ``input``
 
 
 .. req:: Task Management Tool (LM/MCP)
