@@ -260,3 +260,145 @@ Outlook Design Specifications
 
    **No changes** to ``CategoryService``, ``OutlookCategoryProvider``,
    ``package.json``, or any other file.
+
+
+.. spec:: OutlookTaskProvider (COM Bridge)
+   :id: SPEC_OLK_TASKPROVIDER
+   :status: approved
+   :links: REQ_OLK_TASKPROVIDER; SPEC_PIM_ITASKPROVIDER; SPEC_OLK_COMBRIDGE
+
+   **Description:**
+   File ``src/outlookIntegration/OutlookTaskProvider.ts`` implements
+   ``ITaskProvider`` using PowerShell COM automation (same technique as
+   ``OutlookCategoryProvider``).
+
+   **COM execution pattern:**
+
+   All COM calls use
+   ``child_process.execFile('powershell', ['-NoProfile', '-Command', script])``
+   with a timeout of 15 000 ms.
+
+   **getTasks() PowerShell script:**
+
+   .. code-block:: powershell
+
+      $ol = New-Object -ComObject Outlook.Application
+      $ns = $ol.GetNamespace('MAPI')
+      $tasks = $ns.GetDefaultFolder(13).Items  # 13 = olFolderTasks
+      $result = @()
+      foreach ($t in $tasks) {
+          $due = if ($t.DueDate -and $t.DueDate -ne '4501-01-01') {
+              $t.DueDate.ToString('yyyy-MM-dd')
+          } else { $null }
+          $completed = if ($t.DateCompleted -and $t.Complete) {
+              $t.DateCompleted.ToString('yyyy-MM-dd')
+          } else { $null }
+          $result += [PSCustomObject]@{
+              Id            = $t.EntryID
+              Subject       = $t.Subject
+              DueDate       = $due
+              Status        = [int]$t.Status
+              Priority      = [int]$t.Importance
+              IsComplete    = [bool]$t.Complete
+              CompletedDate = $completed
+              Categories    = $t.Categories
+          }
+      }
+      $result | ConvertTo-Json -Compress
+
+   Output is parsed as ``JSON.parse()``. Field mapping:
+
+   * ``Status`` (0–4) → ``TaskStatus`` enum:
+     0 → ``"notStarted"``, 1 → ``"inProgress"``, 2 → ``"completed"``,
+     3 → ``"waitingOnOther"``, 4 → ``"deferred"``
+   * ``Priority`` (0–2, Outlook Importance) → ``TaskPriority``:
+     0 → ``"low"``, 1 → ``"normal"``, 2 → ``"high"``
+   * ``Categories`` is a comma-separated string; split on ``", "``
+
+   **modifyTask() PowerShell script:**
+
+   .. code-block:: powershell
+
+      $ol = New-Object -ComObject Outlook.Application
+      $ns = $ol.GetNamespace('MAPI')
+      $task = $ns.GetItemFromID('{{id}}')
+      {{patchStatements}}
+
+   ``{{patchStatements}}`` is generated from the ``changes`` object,
+   emitting one assignment line per changed field. ``completedDate`` is
+   always excluded. Setting ``IsComplete = $true`` causes Outlook to set
+   ``DateCompleted`` natively.
+
+   Input parameters are sanitized: string values have single quotes escaped
+   (``'`` → ``''``).
+
+   **deleteTask() PowerShell script:**
+
+   .. code-block:: powershell
+
+      $ol = New-Object -ComObject Outlook.Application
+      $ns = $ol.GetNamespace('MAPI')
+      $task = $ns.GetItemFromID('{{id}}')
+      if ($task) { $task.Delete() }
+
+   **setTask() PowerShell script:**
+
+   Creates a new task item in the default Tasks folder and applies fields
+   from the ``task`` partial using the same patch-statement generator as
+   ``modifyTask()``.
+
+   **Design notes:**
+
+   * ``body`` is NOT loaded in ``getTasks()`` — only in on-demand calls
+   * ``completedDate`` is never sent as an assignment in COM scripts
+   * Invalid ``id`` (item not found by ``GetItemFromID``) raises a COM
+     exception which propagates as a rejected ``Promise``
+
+
+.. spec:: Tasks Sub-Toggle Setting
+   :id: SPEC_OLK_TASKENABLE
+   :status: approved
+   :links: REQ_OLK_TASKENABLE; SPEC_EXP_EXTENSION
+
+   **Description:**
+   Adds ``jarvis.outlook.tasks.enabled`` to the ``package.json`` configuration
+   and guards task provider instantiation in ``extension.ts``.
+
+   **package.json delta:**
+
+   .. code-block:: json
+
+      {
+        "title": "Outlook",
+        "properties": {
+          "jarvis.outlook.tasks.enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable the Outlook Tasks integration. Only effective when jarvis.outlookEnabled is true."
+          }
+        }
+      }
+
+   **Instantiation guard (``extension.ts``):**
+
+   .. code-block:: typescript
+
+      const cfg = vscode.workspace.getConfiguration('jarvis');
+      if (cfg.get('outlookEnabled') === true
+          && cfg.get('outlook.tasks.enabled') === true) {
+          const outlookTaskProvider = new OutlookTaskProvider(log);
+          taskService.addProvider(outlookTaskProvider);
+      }
+
+   **When-clause example** (task-related tree commands):
+
+   .. code-block:: json
+
+      "when": "config.jarvis.outlookEnabled == true && config.jarvis.outlook.tasks.enabled == true"
+
+   **Design notes:**
+
+   * ``jarvis.outlookEnabled`` guard precedes the tasks toggle — no COM
+     instantiation without the master switch
+   * Changing either setting requires a window reload (same behaviour as
+     ``REQ_OLK_ENABLE``)

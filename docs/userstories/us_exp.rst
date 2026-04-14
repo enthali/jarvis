@@ -5,7 +5,7 @@ Explorer User Stories
    :id: US_EXP_SIDEBAR
    :status: implemented
    :priority: mandatory
-   :links: US_MSG_CHATQUEUE; US_PIM_CATVIEW
+   :links: US_MSG_CHATQUEUE; US_PIM_CATVIEW; US_PIM_TASKS
 
    **As a** Jarvis User,
    **I want** a dedicated sidebar in VS Code that lists my projects, events, messages,
@@ -24,6 +24,10 @@ Explorer User Stories
      file (``project.yaml`` or ``event.yaml``) is a leaf node representing that item.
      Folders without a convention file are grouping nodes (collapsible). Grouping folders
      are shown recursively; empty grouping folders (no descendants) are omitted.
+   * AC-5: When ``jarvis.outlookEnabled`` and ``jarvis.outlook.tasks.enabled`` are both
+     ``true``, each project and event leaf node exposes its linked tasks inline as child
+     nodes ("Open Tasks" and "Completed Tasks" groups). An "Uncategorized Tasks" section
+     appears at the TOP of the Projects tree before all project nodes.
 
 
 .. story:: Project Folder Filter

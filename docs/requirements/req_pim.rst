@@ -144,3 +144,116 @@ PIM Requirements
    * AC-8: A context menu on category nodes SHALL offer "Delete Category" —
      showing a confirmation dialog, then deleting via ``CategoryService``
    * AC-9: Both context menu commands SHALL be hidden from the Command Palette
+
+
+.. req:: Task Provider Interface (Strategy Pattern)
+   :id: REQ_PIM_TASKPROVIDER
+   :status: approved
+   :priority: mandatory
+   :links: US_PIM_TASKS
+
+   **Description:**
+   The extension SHALL define a common ``ITaskProvider`` interface that all
+   task sources implement, enabling a Strategy Pattern for interchangeable
+   task providers.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The interface SHALL define ``source: string`` — a unique provider
+     identifier
+   * AC-2: The interface SHALL define ``getTasks(): Promise<Task[]>`` to read
+     all tasks from the source
+   * AC-3: The interface SHALL define ``setTask(task: Partial<Task>): Promise<Task>``
+     to create a new task
+   * AC-4: The interface SHALL define
+     ``modifyTask(id: string, changes: Partial<Task>): Promise<void>``
+     to update an existing task
+   * AC-5: The interface SHALL define ``deleteTask(id: string): Promise<void>``
+     to remove a task
+   * AC-6: The ``Task`` model SHALL include: ``id`` (string), ``subject``
+     (string), ``dueDate?`` (ISO date string), ``status`` (enum of 5 values),
+     ``priority`` (enum of 3 values), ``isComplete`` (boolean), ``completedDate?``
+     (read-only string), ``body?`` (optional string, on-demand only),
+     ``categories`` (string[]), and ``source`` (string)
+   * AC-7: ``completedDate`` SHALL be read-only — it is a side-effect of
+     setting ``isComplete: true``; providers MUST NOT accept direct writes to it
+
+
+.. req:: Task Service + Domain Cache
+   :id: REQ_PIM_TASKSERVICE
+   :status: approved
+   :priority: mandatory
+   :links: US_PIM_TASKS; REQ_PIM_TASKPROVIDER; REQ_PIM_CACHE
+
+   **Description:**
+   The extension SHALL provide a ``TaskService`` that manages an array of task
+   providers and a ``DomainCache<Task[]>``, orchestrating fan-out writes and
+   cached reads.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The service SHALL manage one or more ``ITaskProvider`` instances
+   * AC-2: ``getTasks(filter?)`` SHALL return cached data; cache-miss SHALL
+     trigger a refresh; filters: ``category`` (string), ``status`` (string),
+     ``dueBefore`` (ISO date string)
+   * AC-3: ``setTask`` / ``modifyTask`` / ``deleteTask`` SHALL delegate to the
+     provider and immediately call ``cache.invalidate()`` + ``cache.refresh()``
+   * AC-4: The service SHALL expose ``hasProviders(): boolean``
+   * AC-5: Cache refresh SHALL be schedulable via a ``syncTaskRefreshJob()``
+     helper (analogous to ``syncCategoryRefreshJob()``) that registers a
+     ``"Jarvis: Task Refresh"`` heartbeat job when providers are available and
+     ``scanInterval > 0``
+
+
+.. req:: Task Editor (Custom Editor)
+   :id: REQ_PIM_TASKEDITOR
+   :status: approved
+   :priority: mandatory
+   :links: US_PIM_TASKS; REQ_PIM_TASKSERVICE
+
+   **Description:**
+   The extension SHALL provide a ``TaskEditorProvider`` that opens a Custom
+   Editor when the user clicks a task tree node, enabling inline task editing.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The editor SHALL be a VS Code Custom Editor (``CustomEditorProvider``),
+     NOT a Webview panel
+   * AC-2: Editable fields: ``subject`` (text input), ``body`` (textarea),
+     ``dueDate`` (date picker), ``status`` (dropdown), ``priority`` (dropdown),
+     ``categories`` (multi-select from ``CategoryService.getCategories()`` cache)
+   * AC-3: Read-only display fields: ``source`` (provider badge),
+     ``completedDate`` (visible only when the task is completed)
+   * AC-4: An "Open in Outlook" button SHALL be displayed only when
+     ``source === "outlook"``
+   * AC-5: Saving SHALL call ``TaskService.modifyTask()`` → provider → cache
+     invalidate + immediate refresh
+
+
+.. req:: Task Management Tool (LM/MCP)
+   :id: REQ_PIM_TASKTOOL
+   :status: approved
+   :priority: mandatory
+   :links: US_PIM_TASKS; REQ_PIM_TASKSERVICE; REQ_MSG_MCPSERVER
+
+   **Description:**
+   The extension SHALL register a ``jarvis_task`` tool available via both
+   Language Model API and MCP server for programmatic task management.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The tool SHALL accept ``action: "get" | "set" | "modify" | "delete"``
+   * AC-2: ``get`` SHALL accept optional ``category`` (string), ``status``
+     (string), ``dueBefore`` (ISO date), and ``includeBody`` (boolean,
+     default ``false``) parameters
+   * AC-3: ``set`` SHALL accept ``subject``, ``body``, ``dueDate``, ``priority``,
+     ``isComplete``, ``categories``, and optional ``provider`` parameters
+   * AC-4: ``modify`` SHALL accept ``id`` (required) plus any subset of the
+     writable ``Task`` fields; ``completedDate`` SHALL be rejected if supplied
+   * AC-5: ``delete`` SHALL accept ``id`` (required)
+   * AC-6: Without ``provider`` the operation is broadcast to all providers;
+     with ``provider`` it targets only the named provider
+   * AC-7: The tool SHALL be registered via ``registerDualTool()`` for
+     simultaneous LM and MCP availability
+   * AC-8: When no task providers are configured, the tool SHALL return an
+     informational error message

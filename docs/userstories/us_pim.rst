@@ -84,3 +84,38 @@ PIM User Stories
      ``CategoryService``
    * AC-7: Right-clicking a category node offers "Delete Category" — shows a
      confirmation dialog, then deletes via ``CategoryService``
+
+
+.. story:: Task Sync via Exchangeable Task Providers
+   :id: US_PIM_TASKS
+   :status: approved
+   :priority: mandatory
+   :links: US_AUT_HEARTBEAT; US_EXP_SIDEBAR; US_PIM_CATEGORIES
+
+   **As a** Jarvis User,
+   **I want** my tasks automatically cached and displayed per project/event via a
+   pluggable provider architecture,
+   **so that** I can manage my work items project-oriented directly in the Jarvis
+   explorer without switching to a dedicated task application.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A ``TaskService`` manages one or more task providers behind a common
+     ``ITaskProvider`` interface (Strategy Pattern) — enabling alternative sources
+     (e.g. Outlook Tasks, Gmail Tasks)
+   * AC-2: Tasks are cached in RAM via the existing generic ``DomainCache<T>``
+     mechanism; cache refresh runs via the heartbeat scheduler at the configured
+     scan interval
+   * AC-3: The provider is stateless — cache management lives in ``TaskService``
+   * AC-4: ``TaskService.getTasks(filter?)`` returns cached tasks; filters include
+     ``category``, ``status``, and ``dueBefore``
+   * AC-5: ``TaskService.setTask``, ``modifyTask``, and ``deleteTask`` delegate to
+     the provider and immediately invalidate + refresh the cache
+   * AC-6: A ``TaskEditorProvider`` Custom Editor opens when the user clicks a task
+     node; editable fields are ``subject``, ``body``, ``dueDate``, ``status``,
+     ``priority``, and ``categories`` (multi-select from cached categories);
+     ``source`` and ``completedDate`` are read-only
+   * AC-7: Save flow calls ``TaskService.modifyTask()`` → provider → cache invalidate
+     + refresh
+   * AC-8: A ``jarvis_task`` LM/MCP tool is registered via ``registerDualTool()``
+     supporting ``get``, ``set``, ``modify``, and ``delete`` actions

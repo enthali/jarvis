@@ -82,3 +82,60 @@ Outlook Requirements
      any provider
    * AC-5: The category creation SHALL occur after the entity files are written
      and before ``scanner.rescan()`` is triggered
+
+
+.. req:: Outlook Task Provider (COM Bridge)
+   :id: REQ_OLK_TASKPROVIDER
+   :status: approved
+   :priority: mandatory
+   :links: US_OLK_TASKS; REQ_PIM_TASKPROVIDER
+
+   **Description:**
+   The extension SHALL provide an ``OutlookTaskProvider`` that reads and writes
+   Outlook Tasks via COM automation on Windows using PowerShell, implementing
+   the ``ITaskProvider`` interface.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The provider SHALL implement ``ITaskProvider`` with
+     ``source: "outlook"``
+   * AC-2: COM calls SHALL be made via ``child_process.execFile`` executing
+     PowerShell scripts — no native Node.js COM binding
+   * AC-3: The provider SHALL be stateless — it only performs COM calls and
+     does not cache results
+   * AC-4: The provider SHALL only function on Windows with Outlook Classic
+     installed; on other platforms, calls SHALL return empty results or reject
+     gracefully
+   * AC-5: Setting ``isComplete: true`` on a task SHALL delegate to native
+     Outlook completion, which sets ``DateCompleted`` automatically; the
+     provider SHALL never accept direct writes to ``completedDate``
+   * AC-6: The provider SHALL map Outlook task fields to the ``Task`` model:
+     ``EntryID`` → ``id``, ``Subject`` → ``subject``, ``DueDate`` → ``dueDate``
+     (ISO string or undefined), ``Status`` → ``status`` (mapped enum),
+     ``Importance`` → ``priority`` (mapped enum), ``Complete`` → ``isComplete``,
+     ``DateCompleted`` → ``completedDate``, ``Body`` → ``body`` (loaded only
+     when requested), ``Categories`` → ``categories`` (split on comma)
+
+
+.. req:: Tasks Feature Sub-Toggle
+   :id: REQ_OLK_TASKENABLE
+   :status: approved
+   :priority: mandatory
+   :links: US_OLK_TASKS; REQ_OLK_ENABLE; REQ_CFG_SETTINGSGROUPS
+
+   **Description:**
+   The extension SHALL provide a boolean setting ``jarvis.outlook.tasks.enabled``
+   that controls whether the Outlook task provider is instantiated, independent
+   of the category provider.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``jarvis.outlook.tasks.enabled`` SHALL be a boolean setting with
+     default ``true``
+   * AC-2: The tasks feature SHALL only be active when BOTH
+     ``jarvis.outlookEnabled === true`` AND
+     ``jarvis.outlook.tasks.enabled === true``
+   * AC-3: When either toggle is ``false``, no task COM calls SHALL be made and
+     no task provider SHALL be instantiated
+   * AC-4: All ``when``-clauses referencing the tasks feature SHALL use the
+     explicit form ``config.jarvis.outlook.tasks.enabled == true``
