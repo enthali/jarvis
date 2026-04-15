@@ -70,6 +70,12 @@ export class HeartbeatTreeProvider implements vscode.TreeDataProvider<HeartbeatT
             );
             item.description = formatNextRun(element.job.schedule);
             item.contextValue = 'heartbeatJob';
+            // Implementation: SPEC_EXP_HEARTBEAT_OPENFILE
+            item.command = {
+                command: 'jarvis.openHeartbeatJob',
+                title: 'Open in heartbeat.yaml',
+                arguments: [element]
+            };
             return item;
         }
         // StepNode
