@@ -100,6 +100,7 @@ export function activate(context: vscode.ExtensionContext) {
     // Implementation: SPEC_REC_SUBPROCESS, SPEC_REC_STATUSBAR, SPEC_REC_BUTTON
     // Requirements: REQ_REC_SUBPROCESS, REQ_REC_STATUSBAR, REQ_REC_BUTTON
     _recordingManager = new RecordingManager();
+    _recordingManager.setLog(log);
 
     const projectProvider = new ProjectTreeProvider(scanner, taskService, _recordingManager);
     const eventProvider = new EventTreeProvider(scanner, taskService, _recordingManager);

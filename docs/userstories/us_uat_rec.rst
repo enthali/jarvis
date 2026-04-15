@@ -127,12 +127,13 @@ Session Recording UI Acceptance Tests
      stop button.
      Expected: Same observable result as T-9.
 
-   **T-11 — Cannot start second recording while one is active**
+   **T-11 — Clicking another node switches recording**
      Setup: Recording active on project node ``alpha``.
      Action: Click the ``$(circle-outline)`` record button on a *different* project node
      (e.g. ``beta``).
-     Expected: An informational or warning notification prevents the second recording from
-     starting; StatusBar still shows the original ``alpha`` recording.
+     Expected: The ``alpha`` recording stops (StatusBar updates to ``beta``,
+     ``testdata/recording/.recording.json`` is rewritten with ``project=beta``);
+     the ``alpha`` node reverts to grey, the ``beta`` node turns red.
 
    **T-12 — Extension deactivate stops recording gracefully**
      Setup: Recording active (T-7 precondition); ``testdata/recording/.recording.json``
