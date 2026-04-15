@@ -3,7 +3,7 @@ Recording User Stories
 
 .. story:: Record a Meeting with One Click
    :id: US_REC_CAPTURE
-   :status: approved
+   :status: implemented
    :priority: mandatory
 
    **As a** Jarvis user,
@@ -21,7 +21,7 @@ Recording User Stories
 
 .. story:: Enable / Disable Recording Feature
    :id: US_REC_ENABLE
-   :status: approved
+   :status: implemented
    :priority: mandatory
 
    **As a** Jarvis user,
@@ -37,7 +37,7 @@ Recording User Stories
 
 .. story:: Configure Whisper Project Path
    :id: US_REC_CONFIG
-   :status: approved
+   :status: implemented
    :priority: mandatory
 
    **As a** Jarvis user,

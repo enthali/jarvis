@@ -14,7 +14,8 @@ Session Recording UI UAT Design Specifications
    **Test data:**
 
    * ``testdata/recording/recorder.py`` — mock recorder; polls for ``.stop`` sentinel
-     and exits cleanly; accepts ``--project`` and ``--output`` CLI args
+     and exits cleanly; accepts ``--name``, ``--no-timestamp``, and ``--output-dir`` CLI
+     args (matching the actual recorder.py API)
    * ``testdata/recording/input/`` — empty placeholder directory for audio chunk output
    * Existing ``testdata/projects/`` YAML files are reused as recording targets
      (no new project files needed)
@@ -28,14 +29,15 @@ Session Recording UI UAT Design Specifications
       import argparse, os, sys, time
 
       parser = argparse.ArgumentParser()
-      parser.add_argument("--project", required=True)
-      parser.add_argument("--output", required=True)
+      parser.add_argument("--name", required=True)
+      parser.add_argument("--no-timestamp", action="store_true")
+      parser.add_argument("--output-dir", required=True)
       args = parser.parse_args()
 
       whisper_path = os.path.dirname(os.path.abspath(__file__))
       stop_file = os.path.join(whisper_path, ".stop")
 
-      print(f"[mock-recorder] started for project={args.project}", flush=True)
+      print(f"[mock-recorder] started name={args.name}", flush=True)
       while not os.path.exists(stop_file):
           time.sleep(0.5)
       print("[mock-recorder] .stop detected, exiting cleanly", flush=True)

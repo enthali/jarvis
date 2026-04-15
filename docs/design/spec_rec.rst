@@ -3,7 +3,7 @@ Recording Design Specifications
 
 .. spec:: Recording Settings in package.json
    :id: SPEC_REC_SETTINGS
-   :status: approved
+   :status: implemented
    :links: REQ_REC_ENABLE; REQ_REC_CONFIG
 
    **Description:**
@@ -33,7 +33,7 @@ Recording Design Specifications
 
 .. spec:: Tree Button Contributions
    :id: SPEC_REC_BUTTON
-   :status: approved
+   :status: implemented
    :links: REQ_REC_BUTTON; REQ_REC_ENABLE
 
    **Description:**
@@ -80,7 +80,7 @@ Recording Design Specifications
 
 .. spec:: StatusBar Recording Timer
    :id: SPEC_REC_STATUSBAR
-   :status: approved
+   :status: implemented
    :links: REQ_REC_STATUSBAR
 
    **Description:**
@@ -105,7 +105,7 @@ Recording Design Specifications
 
 .. spec:: RecordingManager Class
    :id: SPEC_REC_SUBPROCESS
-   :status: approved
+   :status: implemented
    :links: REQ_REC_SUBPROCESS; REQ_REC_CONFIG
 
    **Description:**
@@ -132,7 +132,8 @@ Recording Design Specifications
    2. Guard: ``jarvis.recording.whisperPath`` must be set and exist on disk
    3. Guard: not already recording
    4. Python check: ``cp.spawn('python', ['--version'])`` → error message if unavailable
-   5. ``cp.spawn('python', [recorder.py, '--project', name, '--output', input/])``
+   5. ``cp.spawn('python', [recorder.py, '--name', recordingName, '--no-timestamp', '--output-dir', outputDir])``
+      where ``recordingName = YYYY-MM-DD_HHmm_<sanitized-name>`` (e.g. ``2026-04-15_1430_alpha``)
    6. Write ``<whisperPath>/.recording.json``: ``{ project, pid, startTime }``
    7. ``setContext('jarvis.recordingActive', true)`` + fire ``onDidChange``
 

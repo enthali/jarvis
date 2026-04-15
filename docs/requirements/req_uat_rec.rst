@@ -15,9 +15,11 @@ Session Recording UI UAT Requirements
    **Acceptance Criteria:**
 
    * AC-1: ``testdata/recording/recorder.py`` exists — a mock Python script that
-     accepts ``--project`` and ``--output`` arguments, writes a start marker, sleeps
-     until the ``.stop`` sentinel file appears (polling every 0.5 s), then exits cleanly;
-     this allows T-7 through T-12 to run without a real Whisper installation
+     accepts ``--name``, ``--no-timestamp``, and ``--output-dir`` arguments (matching
+     the actual recorder.py API used by ``RecordingManager.start()``), writes a start
+     marker, sleeps until the ``.stop`` sentinel file appears (polling every 0.5 s),
+     then exits cleanly; this allows T-7 through T-12 to run without a real Whisper
+     installation
    * AC-2: ``testdata/recording/input/`` directory exists (empty placeholder) so
      ``recorder.py`` can write audio chunks without path errors
    * AC-3: Expected outcomes for each scenario (T-1 through T-12 from

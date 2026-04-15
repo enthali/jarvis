@@ -3,7 +3,7 @@ Recording Requirements
 
 .. req:: Recording Enabled Setting
    :id: REQ_REC_ENABLE
-   :status: approved
+   :status: implemented
    :priority: mandatory
    :links: US_REC_ENABLE
 
@@ -21,7 +21,7 @@ Recording Requirements
 
 .. req:: Whisper Path Setting
    :id: REQ_REC_CONFIG
-   :status: approved
+   :status: implemented
    :priority: mandatory
    :links: US_REC_CONFIG
 
@@ -41,7 +41,7 @@ Recording Requirements
 
 .. req:: Start/Stop Recording Buttons
    :id: REQ_REC_BUTTON
-   :status: approved
+   :status: implemented
    :priority: mandatory
    :links: US_REC_CAPTURE; US_REC_ENABLE
 
@@ -65,7 +65,7 @@ Recording Requirements
 
 .. req:: Recording StatusBar Timer
    :id: REQ_REC_STATUSBAR
-   :status: approved
+   :status: implemented
    :priority: mandatory
    :links: US_REC_CAPTURE
 
@@ -83,7 +83,7 @@ Recording Requirements
 
 .. req:: Recording Subprocess Management
    :id: REQ_REC_SUBPROCESS
-   :status: approved
+   :status: implemented
    :priority: mandatory
    :links: US_REC_CAPTURE; US_REC_CONFIG
 
@@ -96,7 +96,9 @@ Recording Requirements
    * AC-1: Before starting, the extension SHALL verify Python is available in PATH;
      a missing Python SHALL result in an error message, not a crash
    * AC-2: Recording SHALL be started via ``child_process.spawn("python", ["recorder.py",
-     "--project", <name>, "--output", <whisperPath>/input/])``
+     "--name", <recordingName>, "--no-timestamp", "--output-dir", <whisperPath>/input/])``,
+     where ``<recordingName>`` is a timestamp-prefixed, sanitized form of the project name
+     (e.g. ``2026-04-15_1430_alpha``)
    * AC-3: A ``<whisperPath>/.recording.json`` file SHALL be written on start containing
      ``{ project, pid, startTime }``
    * AC-4: Stop SHALL write a ``<whisperPath>/.stop`` sentinel file, wait 500 ms,
