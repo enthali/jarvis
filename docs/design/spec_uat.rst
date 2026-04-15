@@ -21,6 +21,7 @@ outcome tables** for each feature's acceptance tests.
    spec_uat_logging
    spec_uat_mcpserver
    spec_uat_outlookcategories
+   spec_uat_rec
 
 All UAT Specifications
 ----------------------
