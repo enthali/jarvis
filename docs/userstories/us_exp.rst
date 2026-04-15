@@ -238,3 +238,40 @@ Explorer User Stories
    * AC-5: When the extension activates for the first time (no prior configuration),
      the Messages and Heartbeat views appear automatically — the user does not need
      to manually configure a path to make them visible
+
+
+.. story:: Context Actions on Project and Event Nodes
+   :id: US_EXP_CONTEXTACTIONS
+   :status: approved
+   :priority: optional
+   :links: US_EXP_SIDEBAR
+
+   **As a** Jarvis User,
+   **I want** context menu actions on project and event tree nodes,
+   **so that** I can quickly navigate to the entity folder in the editor,
+   OS file manager, or an integrated terminal.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Right-clicking a project or event node shows "Reveal in Explorer",
+     "Reveal in File Explorer", and "Open in Terminal" actions
+   * AC-2: Each action delegates to the corresponding built-in VS Code command
+   * AC-3: No custom file-system logic is needed — all three actions use VS Code
+     built-in commands
+
+
+.. story:: Chronological Event Sorting
+   :id: US_EVT_DATESORT
+   :status: approved
+   :priority: optional
+   :links: US_EXP_SIDEBAR
+
+   **As a** Jarvis User,
+   **I want** events displayed in chronological order with their start date visible,
+   **so that** I can quickly find upcoming events without scanning unordered names.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Events are sorted by ``dates.start`` in ascending order
+   * AC-2: The event label shows the start date as a prefix (e.g. ``2025-06-24 — Event Name``)
+   * AC-3: Events without a start date appear at the end of the list

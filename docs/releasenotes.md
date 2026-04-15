@@ -1,5 +1,21 @@
 # Release Notes
 
+## v0.5.0
+
+*2026-04-15*
+
+Outlook Tasks and Categories integration with a generic PIM layer, auto-category creation for new entities, and spec alignment fixes.
+
+### New Features
+
+- **outlook-categories**: Generic PIM category layer (`ICategoryProvider`, `DomainCache<T>`, `CategoryService`, `jarvis_category` LM+MCP tool, Categories sidebar view, `jarvis.pim.showCategories` setting). Outlook COM provider (`OutlookCategoryProvider`) plugs in as the first concrete provider, gated by `jarvis.outlookEnabled`. Architecture decouples generic PIM (theme `PIM`) from Outlook-specific code (theme `OLK`) for future provider extensibility.
+- **outlook-tasks**: Outlook Tasks integration inline in the Project/Event tree (`ITaskProvider`, `TaskService`, `DomainCache<Task[]>`, `OutlookTaskProvider`, inline task nodes, `TaskEditorProvider` Custom Editor, `jarvis_task` LM+MCP tool). Tasks linked to projects/events via Outlook `categories` field. Gated by `jarvis.outlookEnabled === true` AND `jarvis.outlook.tasks.enabled === true`. "Uncategorized Tasks" section at top of tree for unlinked tasks.
+- **new-entity-category**: When creating a new project or event via `jarvis.newEntity`, an Outlook category is automatically created using the pattern `"Project: <name>"` / `"Event: <name>"`, guarded by `jarvis.outlookEnabled` and `categoryService.hasProviders()`. Errors never block entity creation.
+
+### Fixes & Docs
+
+- **outlook-tasks-spec-fix**: Docs-only alignment of `REQ_PIM_TASKEDITOR` and `SPEC_PIM_TASKEDITOR` with the actual implemented Task Editor UI — auto-save replaces explicit Save button, "Open in Outlook" button removed. `val-outlook-tasks.md` updated accordingly.
+
 ## v0.4.0
 
 *2026-04-13*
