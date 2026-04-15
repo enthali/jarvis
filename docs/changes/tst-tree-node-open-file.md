@@ -3,7 +3,7 @@
 **Date**: 2026-04-15
 **Change**: tree-node-open-file
 **Branch**: feature/tree-node-open-file
-**Result**: PENDING — manual execution in Extension Development Host required
+**Result**: PASSED
 
 ---
 
@@ -24,16 +24,16 @@ Test data: `testdata/heartbeat/heartbeat.yaml` (T-1..T-3), `testdata/msg/message
 
 | # | REQ ID | AC | Description | Result | Tester | Date |
 |---|--------|----|-------------|--------|--------|------|
-| T-1 | REQ_EXP_HEARTBEAT_OPENFILE | AC-1, AC-2, AC-3 | Click any job node → `heartbeat.yaml` opens, cursor at `name: <jobName>` line | PENDING | | |
-| T-2 | REQ_EXP_HEARTBEAT_OPENFILE | AC-4 | Temporarily rename a job in YAML (so name no longer matches node label), click node → file opens at line 0 | PENDING | | |
-| T-3 | REQ_EXP_HEARTBEAT_OPENFILE | AC-6 | Set `jarvis.heartbeatConfigFile` to a non-existent path, click job node → warning toast appears, no crash | PENDING | | |
-| T-4 | REQ_EXP_MESSAGE_OPENFILE | AC-1, AC-2, AC-3 | Click message node at index > 0 → `messages.json` opens, cursor at that message's line | PENDING | | |
-| T-5 | REQ_EXP_MESSAGE_OPENFILE | AC-3 | Click index-0 and index-1 nodes alternately → cursor positions differ between clicks | PENDING | | |
-| T-6 | REQ_EXP_MESSAGE_OPENFILE | AC-6 | Set `jarvis.messagesFile` to a non-existent path, click message node → warning toast appears, no crash | PENDING | | |
+| T-1 | REQ_EXP_HEARTBEAT_OPENFILE | AC-1, AC-2, AC-3 | Click any job node → `heartbeat.yaml` opens, cursor at `name: <jobName>` line | PASS | Georg | 2026-04-15 |
+| T-2 | REQ_EXP_HEARTBEAT_OPENFILE | AC-4 | Temporarily rename a job in YAML (so name no longer matches node label), click node → file opens at line 0 | PASS | Georg | 2026-04-15 |
+| T-3 | REQ_EXP_HEARTBEAT_OPENFILE | AC-6 | Set `jarvis.heartbeatConfigFile` to a non-existent path, click job node → warning toast appears, no crash | PASS | Georg | 2026-04-15 |
+| T-4 | REQ_EXP_MESSAGE_OPENFILE | AC-1, AC-2, AC-3 | Click message node at index > 0 → `messages.json` opens, cursor at that message's line | PASS | Georg | 2026-04-15 |
+| T-5 | REQ_EXP_MESSAGE_OPENFILE | AC-3 | Click index-0 and index-1 nodes alternately → cursor positions differ between clicks | PASS | Georg | 2026-04-15 |
+| T-6 | REQ_EXP_MESSAGE_OPENFILE | AC-6 | Set `jarvis.messagesFile` to a non-existent path, click message node → warning toast appears, no crash | PASS | Georg | 2026-04-15 |
 
 ---
 
 ## Notes
 
 - `npm run compile` exits 0 — no TypeScript errors (verified).
-- T-1..T-6 require manual execution in the Extension Development Host (F5). Results above are PENDING until executed.
+- T-1..T-6 require manual execution in the Extension Development Host (F5). All executed 2026-04-15 by Georg Doll.
