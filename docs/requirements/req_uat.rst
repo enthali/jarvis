@@ -21,6 +21,7 @@ end-to-end verification of each feature.
    req_uat_logging
    req_uat_mcpserver
    req_uat_outlookcategories
+   req_uat_rec
 
 All UAT Requirements
 --------------------

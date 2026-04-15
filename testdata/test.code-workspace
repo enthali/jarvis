@@ -14,6 +14,8 @@
 		"jarvis.mcpPort": 31420,
 		"jarvis.mcpEnabled": true,
 		"jarvis.outlookEnabled": true,
-		"jarvis.pim.showCategories": true
+		"jarvis.pim.showCategories": true,
+		"jarvis.recording.enabled": true,
+		"jarvis.recording.whisperPath": "C:\\workspace\\whisper"
 	}
 }

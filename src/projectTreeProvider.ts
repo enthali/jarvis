@@ -6,6 +6,7 @@ import * as vscode from 'vscode';
 import { YamlScanner, TreeNode } from './yamlScanner';
 import { TaskService } from './pim/TaskService';
 import { Task } from './pim/ITaskProvider';
+import { RecordingManager } from './recording';
 
 export type TaskGroupNode = {
     kind: 'taskGroup';
@@ -34,10 +35,12 @@ export class ProjectTreeProvider implements vscode.TreeDataProvider<ProjectTreeI
     private _scanner: YamlScanner;
     private _hiddenFolders: Set<string> = new Set();
     private _taskService: TaskService | undefined;
+    private _recordingManager: RecordingManager | undefined;
 
-    constructor(scanner: YamlScanner, taskService?: TaskService) {
+    constructor(scanner: YamlScanner, taskService?: TaskService, recordingManager?: RecordingManager) {
         this._scanner = scanner;
         this._taskService = taskService;
+        this._recordingManager = recordingManager;
     }
 
     setHiddenFolders(folders: Set<string>): void {
@@ -88,6 +91,10 @@ export class ProjectTreeProvider implements vscode.TreeDataProvider<ProjectTreeI
             : vscode.TreeItemCollapsibleState.None;
         const item = new vscode.TreeItem(name, collapsible);
         item.contextValue = 'jarvisProject';
+        // Implementation: SPEC_REC_BUTTON — highlight the actively-recording node
+        if (this._recordingManager && this._recordingManager.currentProject === name) {
+            item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('charts.red'));
+        }
         this._applyTaskBadge(item, name);
         return item;
     }
@@ -197,7 +204,7 @@ export class ProjectTreeProvider implements vscode.TreeDataProvider<ProjectTreeI
 
     private _makeTaskLeafItem(task: Task): vscode.TreeItem {
         const label = task.dueDate
-            ? `${task.subject} — ${task.dueDate}`
+            ? `${task.dueDate.slice(2)}  ${task.subject}`
             : task.subject;
         const item = new vscode.TreeItem(label, vscode.TreeItemCollapsibleState.None);
         item.iconPath = task.isComplete

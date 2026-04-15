@@ -20,5 +20,24 @@ Der Project Manager steuert die Entwicklung der Jarvis VS Code Extension.
 
 ## Kommunikation
 
-- **An Developer:** Change Requests, Bug Reports, Feature-Ergänzungen via Jarvis Message Queue
-- **Von Developer:** Status-Updates, Rückfragen, Verification Reports
+- **An Change Manager:** Change Requests, Bug Reports, Feature-Ergänzungen via Jarvis Message Queue
+- **Von Change Manager:** Status-Updates, Rückfragen, Verification Reports
+- **An Quality Manager:** QA Review Requests vor Releases
+- **Von Quality Manager:** QA Reports, UX-Feedback
+
+## Change Request Convention
+
+Jeder Change Request enthält einen **Modus**:
+
+| Modus | Keyword | Ablauf |
+|-------|---------|--------|
+| **autonomous** | `Modus: autonomous` | CM: change → implement → verify → notify PM+QM → merge |
+| **review-per-level** | `Modus: review-per-level` | CM: L0 → PM Review → L1 → PM Review → L2 → PM Review → implement → verify → notify PM+QM |
+
+**Nach Verify immer:** PM und QM per Message benachrichtigen — unabhängig vom Modus.
+
+## Lessons Learned
+
+### Release-Qualität (2026-04-15)
+**"QM hat keine Blocker" ≠ "Release-bereit"**
+Wenn REQ/SPEC nicht mit der tatsächlichen Implementation übereinstimmen, darf nicht released werden — auch wenn UAT technisch bestanden wurde. Spec/Implementation-Mismatch ist ein Release-Blocker. Erst Doc-Fix, dann Release.

@@ -7,6 +7,7 @@ import { YamlScanner, TreeNode } from './yamlScanner';
 import { TaskService } from './pim/TaskService';
 import { Task } from './pim/ITaskProvider';
 import { TaskGroupNode, TaskLeafNode } from './projectTreeProvider';
+import { RecordingManager } from './recording';
 
 export type EventTreeItem = TreeNode | TaskGroupNode | TaskLeafNode;
 
@@ -18,10 +19,12 @@ export class EventTreeProvider implements vscode.TreeDataProvider<EventTreeItem>
     private _scanner: YamlScanner;
     private _futureOnly: boolean = false;
     private _taskService: TaskService | undefined;
+    private _recordingManager: RecordingManager | undefined;
 
-    constructor(scanner: YamlScanner, taskService?: TaskService) {
+    constructor(scanner: YamlScanner, taskService?: TaskService, recordingManager?: RecordingManager) {
         this._scanner = scanner;
         this._taskService = taskService;
+        this._recordingManager = recordingManager;
     }
 
     setFutureOnly(value: boolean): void {
@@ -64,6 +67,10 @@ export class EventTreeProvider implements vscode.TreeDataProvider<EventTreeItem>
             : vscode.TreeItemCollapsibleState.None;
         const item = new vscode.TreeItem(label, collapsible);
         item.contextValue = 'jarvisEvent';
+        // Implementation: SPEC_REC_BUTTON — highlight the actively-recording node
+        if (this._recordingManager && this._recordingManager.currentProject === entityName) {
+            item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('charts.red'));
+        }
         this._applyTaskBadge(item, entityName);
         return item;
     }
@@ -138,7 +145,7 @@ export class EventTreeProvider implements vscode.TreeDataProvider<EventTreeItem>
 
     private _makeTaskLeafItem(task: Task): vscode.TreeItem {
         const label = task.dueDate
-            ? `${task.subject} — ${task.dueDate}`
+            ? `${task.dueDate.slice(2)}  ${task.subject}`
             : task.subject;
         const item = new vscode.TreeItem(label, vscode.TreeItemCollapsibleState.None);
         item.iconPath = task.isComplete

@@ -2,7 +2,7 @@
   "name": "jarvis",
   "displayName": "Jarvis",
   "description": "Personal assistant for managing projects and events in VS Code",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "publisher": "enthali",
   "repository": {
     "type": "git",
@@ -178,6 +178,16 @@
         "command": "jarvis.refreshTasks",
         "title": "Jarvis: Refresh Tasks",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "jarvis.startRecording",
+        "title": "Start Recording",
+        "icon": "$(circle-outline)"
+      },
+      {
+        "command": "jarvis.stopRecording",
+        "title": "Stop Recording",
+        "icon": "$(circle-filled)"
       }
     ],
     "menus": {
@@ -220,6 +230,14 @@
         },
         {
           "command": "jarvis.refreshTasks",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.startRecording",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.stopRecording",
           "when": "false"
         },
         {
@@ -361,6 +379,26 @@
         {
           "command": "jarvis.deleteCategory",
           "when": "viewItem == jarvisCategory"
+        },
+        {
+          "command": "jarvis.startRecording",
+          "when": "viewItem == jarvisProject && config.jarvis.recording.enabled == true && jarvis.recordingActive != true",
+          "group": "inline"
+        },
+        {
+          "command": "jarvis.stopRecording",
+          "when": "viewItem == jarvisProject && config.jarvis.recording.enabled == true && jarvis.recordingActive == true",
+          "group": "inline"
+        },
+        {
+          "command": "jarvis.startRecording",
+          "when": "viewItem == jarvisEvent && config.jarvis.recording.enabled == true && jarvis.recordingActive != true",
+          "group": "inline"
+        },
+        {
+          "command": "jarvis.stopRecording",
+          "when": "viewItem == jarvisEvent && config.jarvis.recording.enabled == true && jarvis.recordingActive == true",
+          "group": "inline"
         }
       ]
     },
@@ -454,6 +492,21 @@
             "type": "boolean",
             "default": true,
             "description": "Show the Categories view in the Jarvis sidebar."
+          }
+        }
+      },
+      {
+        "title": "Recording",
+        "properties": {
+          "jarvis.recording.enabled": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable the Session Recording feature. When true, Start/Stop Recording buttons appear on Project and Event nodes."
+          },
+          "jarvis.recording.whisperPath": {
+            "type": "string",
+            "default": "",
+            "description": "Absolute path to the Whisper project folder containing recorder.py and the input/ subfolder."
           }
         }
       },

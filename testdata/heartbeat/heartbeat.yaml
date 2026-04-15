@@ -46,3 +46,8 @@ jobs:
     steps:
       - type: command
         run: jarvis.refreshTasks
+  - name: 'Jarvis: Check Transcripts'
+    schedule: '*/1 * * * *'
+    steps:
+      - type: command
+        run: jarvis.checkTranscripts

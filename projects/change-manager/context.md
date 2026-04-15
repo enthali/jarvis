@@ -24,16 +24,27 @@ through the change lifecycle, handles user interaction, and resolves issues.
 
 ## Current State
 
-- **Version**: v0.3.1 (released 2026-04-11)
+- **Version**: v0.5.0-dev (develop branch, awaiting QM clearance)
+
+## Change Request Modi
+
+Der PM gibt den Modus im Change Request vor:
+
+- **`autonomous`**: CM zieht komplett durch (change → uat → implement → verify) ohne Rückfragen beim User. Nur bei Blocker-Problemen intervenieren.
+- **`review-per-level`** (auch: "Mit User-Feedback"): CM stoppt nach jedem syspilot-Level (L0, L1, L2 einzeln) und wartet auf Freigabe des Users bevor er weitermacht.
 
 ## Workflow Reference
 
 ```
 PM sends Change Request
-  → syspilot.change → syspilot.implement → UAT → syspilot.verify → syspilot.memory
-                           ↓ (UAT)
-                     syspilot.uat
+  → syspilot.change → syspilot.uat → syspilot.implement → UAT → syspilot.verify → syspilot.memory
 ```
+
+Modi:
+- `autonomous`: alle Schritte ohne Unterbrechung
+- `review-per-level`: L0 vorlegen → warten → L1 vorlegen → warten → L2 vorlegen → warten → implement
+
+**Nach verify immer PM + QM benachrichtigen** — unabhängig vom Modus.
 
 At release: `syspilot.release` → squash-merge to main → tag → push
 

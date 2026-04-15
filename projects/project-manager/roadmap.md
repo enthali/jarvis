@@ -2,15 +2,23 @@
 
 *Last updated: 2026-04-15*
 
-## Next Up
+## Next Up (v0.5.2 candidates)
 
 | Change | Status |
 |--------|--------|
-| outlook-tasks-spec-fix (REQ/SPEC auf tatsächliche UI nachziehen) | in progress |
+| heartbeat-edit (click job node → open heartbeat.yaml at correct line) | planned |
 | doc-traceability-fix (US_EXP_FEATURETOGGLE, US_EXP_NAMESORT, UAT-Hygiene) | planned |
 | qa-lifecycle-reqs (M-1: Activation, M-2: Disposal, M-5: RescanBridge) | planned |
 
-## v0.5.0 (in progress)
+## v0.5.1 (in progress — develop)
+
+| Change | Status |
+|--------|--------|
+| task-view-format (badge→dueDate→name, ISO yy-mm-dd Format) | done |
+| session-recording-ui (RecordingManager, StatusBar, Record-Button, Settings) | done |
+| session-recording-watcher (checkTranscripts, Heartbeat-Job, sidecar .json, End-to-End) | done |
+
+## v0.5.0 (released)
 
 | Change | Status |
 |--------|--------|
@@ -67,7 +75,7 @@ Constraint: Windows + Outlook Classic (COM), kein Graph/OAuth.
 
 - **Detail Pages** — Webview für Projekt/Event Details (Felder anzeigen, editieren)
 - **Dashboard** — Übersicht Tasks/Fälligkeiten/Backlog-Trend
-- **Session Recorder** — Audio → Whisper → Transcript → sendToSession
+- **Calendar Auto-Recording** — Kalendertermin beginnt → Recorder startet automatisch
 
 ## Architecture Decisions
 

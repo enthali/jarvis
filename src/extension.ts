@@ -20,6 +20,10 @@ import { OutlookCategoryProvider } from './outlookIntegration/OutlookCategoryPro
 import { TaskService } from './pim/TaskService';
 import { TaskEditorProvider } from './pim/TaskEditorProvider';
 import { OutlookTaskProvider } from './outlookIntegration/OutlookTaskProvider';
+import { RecordingManager } from './recording';
+
+// Module-level reference so deactivate() can call recordingManager.deactivate() (SPEC_REC_SUBPROCESS)
+let _recordingManager: RecordingManager | undefined;
 
 // Implementation: SPEC_EXP_NEWPROJECT_CMD
 function toKebabCase(name: string): string {
@@ -93,8 +97,13 @@ export function activate(context: vscode.ExtensionContext) {
     // Requirements: REQ_PIM_TASKSERVICE
     const taskService = new TaskService();
 
-    const projectProvider = new ProjectTreeProvider(scanner, taskService);
-    const eventProvider = new EventTreeProvider(scanner, taskService);
+    // Implementation: SPEC_REC_SUBPROCESS, SPEC_REC_STATUSBAR, SPEC_REC_BUTTON
+    // Requirements: REQ_REC_SUBPROCESS, REQ_REC_STATUSBAR, REQ_REC_BUTTON
+    _recordingManager = new RecordingManager();
+    _recordingManager.setLog(log);
+
+    const projectProvider = new ProjectTreeProvider(scanner, taskService, _recordingManager);
+    const eventProvider = new EventTreeProvider(scanner, taskService, _recordingManager);
 
     function startScanner(): void {
         const config = vscode.workspace.getConfiguration('jarvis');
@@ -124,6 +133,29 @@ export function activate(context: vscode.ExtensionContext) {
         }
     }
 
+    // Implementation: SPEC_REC_WATCHERJOB
+    // Requirements: REQ_REC_WATCHERJOB
+    function syncTranscriptWatcherJob(): void {
+        const cfg = vscode.workspace.getConfiguration('jarvis');
+        const enabled = cfg.get<boolean>('recording.enabled', false);
+        const whisperPath = cfg.get<string>('recording.whisperPath', '');
+        const jobName = 'Jarvis: Check Transcripts';
+        if (enabled && whisperPath) {
+            const interval = cfg.get<number>('scanInterval', 2);
+            const schedule = interval > 0 ? `*/${interval} * * * *` : '*/2 * * * *';
+            const job: HeartbeatJob = {
+                name: jobName,
+                schedule,
+                steps: [{ type: 'command', run: 'jarvis.checkTranscripts' }]
+            };
+            scheduler.registerJob(job);
+            log.info(`[Recording] registered transcript watcher job: ${schedule}`);
+        } else {
+            scheduler.unregisterJob(jobName);
+            log.info('[Recording] unregistered transcript watcher job');
+        }
+    }
+
     const projectView = vscode.window.createTreeView('jarvisProjects', { treeDataProvider: projectProvider });
     const eventView = vscode.window.createTreeView('jarvisEvents', { treeDataProvider: eventProvider });
     const messageView = vscode.window.createTreeView('jarvisMessages', { treeDataProvider: messageProvider });
@@ -149,6 +181,48 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Register rescan heartbeat job (SPEC_EXP_EXTENSION)
     syncRescanJob();
+
+    // Register transcript watcher heartbeat job (SPEC_REC_WATCHERJOB)
+    syncTranscriptWatcherJob();
+
+    // Implementation: SPEC_REC_WATCHER
+    // Requirements: REQ_REC_DISPATCH, REQ_REC_SIDECAR
+    context.subscriptions.push(
+        vscode.commands.registerCommand('jarvis.checkTranscripts', async () => {
+            const cfg = vscode.workspace.getConfiguration('jarvis');
+            const enabled = cfg.get<boolean>('recording.enabled', false);
+            const whisperPath = cfg.get<string>('recording.whisperPath', '');
+            if (!enabled || !whisperPath) { return; }
+
+            const outputDir = path.join(whisperPath, 'output');
+            const inputDir = path.join(whisperPath, 'input');
+            if (!fs.existsSync(outputDir)) { return; }
+
+            const files = fs.readdirSync(outputDir).filter(f => f.endsWith('.txt'));
+            for (const file of files) {
+                const stem = file.slice(0, -4);
+                const sidecarPath = path.join(inputDir, `${stem}.json`);
+                if (!fs.existsSync(sidecarPath)) { continue; }
+
+                let project: string;
+                try {
+                    const sidecar = JSON.parse(fs.readFileSync(sidecarPath, 'utf-8')) as { project: string };
+                    project = sidecar.project;
+                } catch {
+                    log.warn(`[Recording] could not parse sidecar: ${sidecarPath}`);
+                    continue;
+                }
+
+                const txtPath = path.join(outputDir, file);
+                const transcript = `Ein neues Meeting Transcript liegt für dich bereit: ${txtPath}`;
+                appendMessage(resolveMessagesPath(), project, 'Whisper Watcher', transcript);
+                messageProvider.reload();
+                log.info(`[Recording] dispatched transcript "${stem}" to session "${project}"`);
+
+                try { fs.unlinkSync(sidecarPath); } catch { /* ignore */ }
+            }
+        })
+    );
 
     // Implementation: SPEC_OLK_SETTINGS, SPEC_PIM_SERVICE, SPEC_PIM_CATVIEW
     // Requirements: REQ_PIM_SERVICE, REQ_PIM_CATVIEW, REQ_OLK_ENABLE
@@ -1136,6 +1210,61 @@ export function activate(context: vscode.ExtensionContext) {
         }).catch(() => { /* error already logged */ });
     }
 
+    // Implementation: SPEC_REC_STATUSBAR
+    // Requirements: REQ_REC_STATUSBAR
+    const recordingStatusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 10);
+    recordingStatusBar.command = 'jarvis.stopRecording';
+    recordingStatusBar.hide();
+
+    let recordingTimer: ReturnType<typeof setInterval> | undefined;
+
+    function updateRecordingStatusBar(): void {
+        const name = _recordingManager!.currentProject;
+        const t0 = _recordingManager!.startTime;
+        if (!name || t0 === undefined) {
+            recordingStatusBar.hide();
+            return;
+        }
+        const elapsed = Math.floor((Date.now() - t0) / 1000);
+        const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
+        const ss = String(elapsed % 60).padStart(2, '0');
+        recordingStatusBar.text = `🔴 ${name} — ${mm}:${ss}`;
+        recordingStatusBar.show();
+    }
+
+    _recordingManager.onDidChange(() => {
+        if (_recordingManager!.currentProject) {
+            updateRecordingStatusBar();
+            recordingTimer = setInterval(updateRecordingStatusBar, 1000);
+        } else {
+            if (recordingTimer) {
+                clearInterval(recordingTimer);
+                recordingTimer = undefined;
+            }
+            recordingStatusBar.hide();
+        }
+        projectProvider.refresh();
+        eventProvider.refresh();
+    });
+
+    // Implementation: SPEC_REC_BUTTON
+    // Requirements: REQ_REC_BUTTON
+    const startRecordingCommand = vscode.commands.registerCommand(
+        'jarvis.startRecording',
+        async (element: LeafNode) => {
+            const entity = scanner.getEntity(element.id);
+            const name = entity?.name ?? path.basename(path.dirname(element.id));
+            await _recordingManager!.start(name, context);
+        }
+    );
+
+    const stopRecordingCommand = vscode.commands.registerCommand(
+        'jarvis.stopRecording',
+        async () => {
+            await _recordingManager!.stop();
+        }
+    );
+
     context.subscriptions.push(
         rescanCommand,
         filterCommand,
@@ -1166,6 +1295,10 @@ export function activate(context: vscode.ExtensionContext) {
         deleteCategoryCommand,
         refreshTasksCommand,
         mcpStatusBar,
+        recordingStatusBar,
+        startRecordingCommand,
+        stopRecordingCommand,
+        { dispose: () => { if (recordingTimer) { clearInterval(recordingTimer); } } },
         projectView,
         eventView,
         messageView,
@@ -1186,6 +1319,10 @@ export function activate(context: vscode.ExtensionContext) {
                 syncCategoryRefreshJob();
                 syncTaskRefreshJob();
             }
+            if (e.affectsConfiguration('jarvis.recording.enabled') ||
+                e.affectsConfiguration('jarvis.recording.whisperPath')) {
+                syncTranscriptWatcherJob();
+            }
             if (e.affectsConfiguration('jarvis.outlookEnabled')
                 || e.affectsConfiguration('jarvis.outlook.tasks.enabled')) {
                 vscode.window.showInformationMessage(
@@ -1203,5 +1340,8 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export async function deactivate() {
+    if (_recordingManager) {
+        await _recordingManager.deactivate();
+    }
     await stopMcpServer();
 }

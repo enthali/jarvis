@@ -17,6 +17,7 @@ Design Specifications describe **how** requirements are fulfilled technically.
    spec_msg
    spec_pim
    spec_olk
+   spec_rec
    spec_uat
 
 All Specifications
