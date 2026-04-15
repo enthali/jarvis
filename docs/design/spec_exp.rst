@@ -1024,7 +1024,7 @@ Explorer Design Specifications
    * ``TaskGroupNode``: ``collapsibleState = Collapsed`` (completed) or
      ``Expanded`` (open); label = ``"Open Tasks (n)"`` / ``"Completed Tasks (n)"``
    * ``TaskLeafNode``: label = ``<subject>`` when no dueDate, or
-     ``<subject> — <dueDate>`` when set; icon = ``$(check)`` for complete,
+     ``<shortDate>  <subject>`` (where ``shortDate = yy-MM-dd``, i.e. ``dueDate.slice(2)``) when set; icon = ``$(check)`` for complete,
      ``$(circle-outline)`` for open; command = open with ``jarvis.taskEditor``
    * ``UncategorizedTasksNode``: label = ``"Uncategorized Tasks (n)"``;
      ``collapsibleState = Collapsed``

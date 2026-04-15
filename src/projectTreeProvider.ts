@@ -197,7 +197,7 @@ export class ProjectTreeProvider implements vscode.TreeDataProvider<ProjectTreeI
 
     private _makeTaskLeafItem(task: Task): vscode.TreeItem {
         const label = task.dueDate
-            ? `${task.subject} — ${task.dueDate}`
+            ? `${task.dueDate.slice(2)}  ${task.subject}`
             : task.subject;
         const item = new vscode.TreeItem(label, vscode.TreeItemCollapsibleState.None);
         item.iconPath = task.isComplete
