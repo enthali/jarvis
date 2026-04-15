@@ -140,6 +140,18 @@ export class RecordingManager {
             // non-fatal: subprocess is running, state file is best-effort
         }
 
+        // Sidecar: input/<recordingName>.json — lookup for watcher dispatch (SPEC_REC_SIDECAR)
+        try {
+            fs.writeFileSync(
+                path.join(whisperPath, 'input', `${recordingName}.json`),
+                JSON.stringify({ project: name }),
+                'utf-8'
+            );
+            this._info(`sidecar written: input/${recordingName}.json`);
+        } catch {
+            // non-fatal
+        }
+
         vscode.commands.executeCommand('setContext', 'jarvis.recordingActive', true);
         this._onDidChange.fire();
     }

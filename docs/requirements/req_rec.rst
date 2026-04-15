@@ -105,3 +105,65 @@ Recording Requirements
      then delete ``.recording.json``
    * AC-5: When the extension is deactivated while a recording is active, the recording
      SHALL be stopped gracefully (``deactivate()`` hook)
+
+
+.. req:: Transcript Dispatch
+   :id: REQ_REC_DISPATCH
+   :status: implemented
+   :priority: mandatory
+   :links: US_REC_DISPATCH
+
+   **Description:**
+   The extension SHALL poll ``whisperPath/output/`` for new ``.txt`` transcript files
+   and dispatch each to the corresponding project session via the Message Queue.
+
+   **Acceptance Criteria:**
+
+   * AC-1: For each ``.txt`` file in ``output/``, the watcher SHALL check whether a
+     matching sidecar ``input/<stem>.json`` exists
+   * AC-2: If the sidecar exists, the watcher SHALL read the project name from it,
+     append a notification message (containing the transcript file path) as a Message Queue
+     entry for that project, and delete the sidecar (processed handshake)
+   * AC-3: If no sidecar exists, the file SHALL be skipped (already processed)
+   * AC-4: The feature SHALL be inactive when ``jarvis.recording.enabled`` is false
+     or ``whisperPath`` is not set
+
+
+.. req:: Recording Sidecar File
+   :id: REQ_REC_SIDECAR
+   :status: implemented
+   :priority: mandatory
+   :links: US_REC_DISPATCH; US_REC_CAPTURE
+
+   **Description:**
+   When a recording starts, a sidecar JSON file SHALL be written to
+   ``whisperPath/input/<recordingName>.json`` containing the original project name.
+   Deletion of this file by the watcher serves as the processed handshake.
+
+   **Acceptance Criteria:**
+
+   * AC-1: On recording start, ``input/<recordingName>.json`` SHALL be written with
+     ``{ "project": "<originalProjectName>" }``
+   * AC-2: The watcher SHALL delete the sidecar after successful dispatch
+   * AC-3: If the sidecar cannot be written, recording SHALL continue (non-fatal)
+
+
+.. req:: Transcript Watcher Heartbeat Job
+   :id: REQ_REC_WATCHERJOB
+   :status: implemented
+   :priority: mandatory
+   :links: US_REC_DISPATCH; US_REC_ENABLE
+
+   **Description:**
+   The ``jarvis.checkTranscripts`` command SHALL be registered as a Heartbeat job
+   when recording is enabled and ``whisperPath`` is set.
+
+   **Acceptance Criteria:**
+
+   * AC-1: When ``jarvis.recording.enabled == true`` and ``whisperPath`` is set, a
+     ``"Jarvis: Check Transcripts"`` heartbeat job SHALL be registered with the same
+     cron schedule as the rescan job
+   * AC-2: When ``jarvis.recording.enabled`` is set to false or ``whisperPath`` is
+     cleared, the job SHALL be unregistered
+   * AC-3: Changes to ``jarvis.recording.enabled`` or ``jarvis.recording.whisperPath``
+     SHALL take effect immediately without reloading the window

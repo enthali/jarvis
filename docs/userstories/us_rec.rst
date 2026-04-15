@@ -49,3 +49,20 @@ Recording User Stories
    * AC-1: A ``jarvis.recording.whisperPath`` setting (string, default ``""``) stores the path
    * AC-2: When starting a recording, Jarvis validates the path exists; an error message is shown if not
    * AC-3: The path is used to locate ``recorder.py`` and the ``input/`` output folder
+
+
+.. story:: Auto-Dispatch Transcripts to Project Session
+   :id: US_REC_DISPATCH
+   :status: implemented
+   :priority: mandatory
+
+   **As a** Jarvis user,
+   **I want** finished transcripts to be automatically forwarded to the corresponding project session,
+   **so that** meeting minutes appear in the right context without manual steps.
+
+   **Acceptance Criteria:**
+
+   * AC-1: When Whisper finishes a transcription, a message is dispatched to the project's Message Queue entry
+   * AC-2: The message notifies the session of the transcript file path so the LLM can process it on demand
+   * AC-3: The watcher only runs when recording is enabled and ``whisperPath`` is configured
+   * AC-4: No duplicate messages are dispatched for the same transcript

@@ -133,6 +133,29 @@ export function activate(context: vscode.ExtensionContext) {
         }
     }
 
+    // Implementation: SPEC_REC_WATCHERJOB
+    // Requirements: REQ_REC_WATCHERJOB
+    function syncTranscriptWatcherJob(): void {
+        const cfg = vscode.workspace.getConfiguration('jarvis');
+        const enabled = cfg.get<boolean>('recording.enabled', false);
+        const whisperPath = cfg.get<string>('recording.whisperPath', '');
+        const jobName = 'Jarvis: Check Transcripts';
+        if (enabled && whisperPath) {
+            const interval = cfg.get<number>('scanInterval', 2);
+            const schedule = interval > 0 ? `*/${interval} * * * *` : '*/2 * * * *';
+            const job: HeartbeatJob = {
+                name: jobName,
+                schedule,
+                steps: [{ type: 'command', run: 'jarvis.checkTranscripts' }]
+            };
+            scheduler.registerJob(job);
+            log.info(`[Recording] registered transcript watcher job: ${schedule}`);
+        } else {
+            scheduler.unregisterJob(jobName);
+            log.info('[Recording] unregistered transcript watcher job');
+        }
+    }
+
     const projectView = vscode.window.createTreeView('jarvisProjects', { treeDataProvider: projectProvider });
     const eventView = vscode.window.createTreeView('jarvisEvents', { treeDataProvider: eventProvider });
     const messageView = vscode.window.createTreeView('jarvisMessages', { treeDataProvider: messageProvider });
@@ -158,6 +181,48 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Register rescan heartbeat job (SPEC_EXP_EXTENSION)
     syncRescanJob();
+
+    // Register transcript watcher heartbeat job (SPEC_REC_WATCHERJOB)
+    syncTranscriptWatcherJob();
+
+    // Implementation: SPEC_REC_WATCHER
+    // Requirements: REQ_REC_DISPATCH, REQ_REC_SIDECAR
+    context.subscriptions.push(
+        vscode.commands.registerCommand('jarvis.checkTranscripts', async () => {
+            const cfg = vscode.workspace.getConfiguration('jarvis');
+            const enabled = cfg.get<boolean>('recording.enabled', false);
+            const whisperPath = cfg.get<string>('recording.whisperPath', '');
+            if (!enabled || !whisperPath) { return; }
+
+            const outputDir = path.join(whisperPath, 'output');
+            const inputDir = path.join(whisperPath, 'input');
+            if (!fs.existsSync(outputDir)) { return; }
+
+            const files = fs.readdirSync(outputDir).filter(f => f.endsWith('.txt'));
+            for (const file of files) {
+                const stem = file.slice(0, -4);
+                const sidecarPath = path.join(inputDir, `${stem}.json`);
+                if (!fs.existsSync(sidecarPath)) { continue; }
+
+                let project: string;
+                try {
+                    const sidecar = JSON.parse(fs.readFileSync(sidecarPath, 'utf-8')) as { project: string };
+                    project = sidecar.project;
+                } catch {
+                    log.warn(`[Recording] could not parse sidecar: ${sidecarPath}`);
+                    continue;
+                }
+
+                const txtPath = path.join(outputDir, file);
+                const transcript = `Ein neues Meeting Transcript liegt für dich bereit: ${txtPath}`;
+                appendMessage(resolveMessagesPath(), project, 'Whisper Watcher', transcript);
+                messageProvider.reload();
+                log.info(`[Recording] dispatched transcript "${stem}" to session "${project}"`);
+
+                try { fs.unlinkSync(sidecarPath); } catch { /* ignore */ }
+            }
+        })
+    );
 
     // Implementation: SPEC_OLK_SETTINGS, SPEC_PIM_SERVICE, SPEC_PIM_CATVIEW
     // Requirements: REQ_PIM_SERVICE, REQ_PIM_CATVIEW, REQ_OLK_ENABLE
@@ -1253,6 +1318,10 @@ export function activate(context: vscode.ExtensionContext) {
                 syncRescanJob();
                 syncCategoryRefreshJob();
                 syncTaskRefreshJob();
+            }
+            if (e.affectsConfiguration('jarvis.recording.enabled') ||
+                e.affectsConfiguration('jarvis.recording.whisperPath')) {
+                syncTranscriptWatcherJob();
             }
             if (e.affectsConfiguration('jarvis.outlookEnabled')
                 || e.affectsConfiguration('jarvis.outlook.tasks.enabled')) {
