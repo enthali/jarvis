@@ -186,11 +186,12 @@ Recording Design Specifications
 
       a. Check if ``<whisperPath>/input/<stem>.json`` exists — if not, skip
       b. Parse JSON: ``{ project: string }``
-      c. Read transcript text from ``output/<stem>.txt``
-      d. ``appendMessage(resolveMessagesPath(), project, 'Whisper Watcher', transcript)``
+      c. Construct notification text: ``Ein neues Meeting Transcript liegt für dich bereit: <fullPath>``
+         (the transcript file path — NOT the transcript content; the LLM reads the file on demand)
+      d. ``appendMessage(resolveMessagesPath(), project, 'Whisper Watcher', notificationText)``
       e. ``messageProvider.reload()``
       f. Delete ``input/<stem>.json``
-      g. Log: ``[Recording] dispatched transcript "<stem>" to session "<project>"``
+      g. Log: ``[Recording] dispatched transcript "<stem>" to session "<project>"
 
 
 .. spec:: Transcript Watcher Heartbeat Job

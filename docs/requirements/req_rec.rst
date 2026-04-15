@@ -122,8 +122,8 @@ Recording Requirements
    * AC-1: For each ``.txt`` file in ``output/``, the watcher SHALL check whether a
      matching sidecar ``input/<stem>.json`` exists
    * AC-2: If the sidecar exists, the watcher SHALL read the project name from it,
-     append the transcript text as a Message Queue entry for that project, and delete
-     the sidecar (processed handshake)
+     append a notification message (containing the transcript file path) as a Message Queue
+     entry for that project, and delete the sidecar (processed handshake)
    * AC-3: If no sidecar exists, the file SHALL be skipped (already processed)
    * AC-4: The feature SHALL be inactive when ``jarvis.recording.enabled`` is false
      or ``whisperPath`` is not set
