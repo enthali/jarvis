@@ -22,6 +22,7 @@ end-to-end verification of each feature.
    req_uat_mcpserver
    req_uat_outlookcategories
    req_uat_rec
+   req_uat_tree_node_open_file
 
 All UAT Requirements
 --------------------

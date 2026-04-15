@@ -1041,3 +1041,177 @@ Explorer Design Specifications
    cache. It does NOT ``await`` — the cache is pre-populated by the heartbeat
    ``"Jarvis: Task Refresh"`` job. If the cache is cold (e.g. first activation
    before the first heartbeat tick), the tree shows no task nodes without error.
+
+
+.. spec:: Open Heartbeat Job Command
+   :id: SPEC_EXP_HEARTBEAT_OPENFILE
+   :status: implemented
+   :links: REQ_EXP_HEARTBEAT_OPENFILE; SPEC_EXP_EXTENSION
+
+   **Description:**
+   Register ``jarvis.openHeartbeatJob`` in ``extension.ts``. Set as
+   ``TreeItem.command`` on every ``JobNode`` in ``HeartbeatTreeProvider``.
+   Opens ``heartbeat.yaml`` and reveals the line where the job is defined.
+
+   **Handler:**
+
+   .. code-block:: typescript
+
+      vscode.commands.registerCommand(
+        'jarvis.openHeartbeatJob',
+        async (node: JobNode) => {
+          const configPath = vscode.workspace
+            .getConfiguration('jarvis')
+            .get<string>('heartbeatConfigFile', '');
+          if (!configPath) {
+            vscode.window.showWarningMessage('Jarvis: heartbeatConfigFile is not configured.');
+            return;
+          }
+          const uri = vscode.Uri.file(configPath);
+          let lineIndex = 0;
+          try {
+            const doc = await vscode.workspace.openTextDocument(uri);
+            const target = `name: ${node.job.name}`;
+            for (let i = 0; i < doc.lineCount; i++) {
+              if (doc.lineAt(i).text.includes(target)) {
+                lineIndex = i;
+                break;
+              }
+            }
+            const range = new vscode.Range(lineIndex, 0, lineIndex, 0);
+            const editor = await vscode.window.showTextDocument(doc);
+            editor.revealRange(range, vscode.TextEditorRevealType.InCenterIfOutsideViewport);
+            editor.selection = new vscode.Selection(range.start, range.start);
+          } catch {
+            vscode.window.showWarningMessage(`Jarvis: Cannot open heartbeat config: ${configPath}`);
+          }
+        }
+      );
+
+   **HeartbeatTreeProvider change:**
+
+   In ``getTreeItem``, for ``JobNode``, set ``item.command``:
+
+   .. code-block:: typescript
+
+      item.command = {
+        command: 'jarvis.openHeartbeatJob',
+        title: 'Open in heartbeat.yaml',
+        arguments: [element]
+      };
+
+   **Registration in package.json:**
+
+   * ``contributes.commands``:
+
+     .. code-block:: json
+
+        {
+          "command": "jarvis.openHeartbeatJob",
+          "title": "Jarvis: Open Heartbeat Job"
+        }
+
+   * ``contributes.menus.commandPalette``: hide from Command Palette:
+
+     .. code-block:: json
+
+        { "command": "jarvis.openHeartbeatJob", "when": "false" }
+
+   **Design notes:**
+
+   * ``TreeItem.command`` fires on single-click — no inline button needed
+   * Line search uses ``includes()`` — matches both ``name: JobName`` and
+     ``  - name: JobName`` (any indentation level)
+   * Falls back to ``lineIndex = 0`` if no match is found (fail-open)
+   * Disposable pushed to ``context.subscriptions``
+
+
+.. spec:: Open Message File Command
+   :id: SPEC_EXP_MESSAGE_OPENFILE
+   :status: implemented
+   :links: REQ_EXP_MESSAGE_OPENFILE; SPEC_EXP_EXTENSION
+
+   **Description:**
+   Register ``jarvis.openMessageFile`` in ``extension.ts``. Set as
+   ``TreeItem.command`` on every ``MessageLeafNode`` in ``MessageTreeProvider``.
+   Opens the messages JSON file and reveals the position of the message at the
+   node's queue index.
+
+   **Handler:**
+
+   .. code-block:: typescript
+
+      vscode.commands.registerCommand(
+        'jarvis.openMessageFile',
+        async (node: MessageLeafNode) => {
+          const messagesPath = vscode.workspace
+            .getConfiguration('jarvis')
+            .get<string>('messagesFile', '');
+          if (!messagesPath) {
+            vscode.window.showWarningMessage('Jarvis: messagesFile is not configured.');
+            return;
+          }
+          const uri = vscode.Uri.file(messagesPath);
+          let lineIndex = 0;
+          try {
+            const doc = await vscode.workspace.openTextDocument(uri);
+            // Find the Nth "text": occurrence (0-based index = node.index)
+            let count = -1;
+            for (let i = 0; i < doc.lineCount; i++) {
+              if (doc.lineAt(i).text.trimStart().startsWith('"text":')) {
+                count++;
+                if (count === node.index) {
+                  lineIndex = i;
+                  break;
+                }
+              }
+            }
+            const range = new vscode.Range(lineIndex, 0, lineIndex, 0);
+            const editor = await vscode.window.showTextDocument(doc);
+            editor.revealRange(range, vscode.TextEditorRevealType.InCenterIfOutsideViewport);
+            editor.selection = new vscode.Selection(range.start, range.start);
+          } catch {
+            vscode.window.showWarningMessage(`Jarvis: Cannot open messages file: ${messagesPath}`);
+          }
+        }
+      );
+
+   **MessageTreeProvider change:**
+
+   In ``getTreeItem``, for ``MessageLeafNode``, set ``item.command``:
+
+   .. code-block:: typescript
+
+      item.command = {
+        command: 'jarvis.openMessageFile',
+        title: 'Open in messages file',
+        arguments: [element]
+      };
+
+   **Registration in package.json:**
+
+   * ``contributes.commands``:
+
+     .. code-block:: json
+
+        {
+          "command": "jarvis.openMessageFile",
+          "title": "Jarvis: Open Message File"
+        }
+
+   * ``contributes.menus.commandPalette``: hide from Command Palette:
+
+     .. code-block:: json
+
+        { "command": "jarvis.openMessageFile", "when": "false" }
+
+   **Design notes:**
+
+   * ``TreeItem.command`` fires on single-click — no inline button needed
+   * The ``"text":`` line heuristic works because the messages JSON format
+     places exactly one ``"text":`` field per message object (see ``messageQueue.ts``)
+   * ``node.index`` is the 0-based queue position, set by ``MessageTreeProvider``
+     during ``getChildren``
+   * Falls back to ``lineIndex = 0`` if the index exceeds the number of ``"text":``
+     lines found (fail-open)
+   * Disposable pushed to ``context.subscriptions``
