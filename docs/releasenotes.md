@@ -1,26 +1,5 @@
 # Release Notes
 
-## v0.5.1 — Session Recording
-
-*2026-04-15*
-
-Tree item format improvements, full session recording pipeline with Whisper integration, and transcript dispatching.
-
-### New Features
-
-- **session-recording-ui**: Record meetings directly from the project tree. Click the record button (▶) on any project node to start. The status bar shows 🔴 ProjectName — MM:SS during recording. Gated by `jarvis.recording.enabled`. `jarvis.recording.whisperPath` points to the Whisper pipeline folder.
-- **session-recording-watcher**: `Jarvis: Check Transcripts` command scans the Whisper sidecar output folder for processed transcript JSON files and dispatches each as a notification path message to the corresponding project's chat session. A heartbeat job is auto-registered at activation to run this check periodically.
-- **task-view-format**: Tasks in the tree now display as `yy-mm-dd  Subject` for better scannability. Overdue tasks are marked with ⚠.
-
-### Settings
-
-- `jarvis.recording.enabled` — Enable/disable the recording feature (default: false)
-- `jarvis.recording.whisperPath` — Path to the Whisper pipeline folder (default: C:\workspace\whisper)
-
-### Bug Fixes
-
-- None
-
 ## v0.5.0
 
 *2026-04-15*

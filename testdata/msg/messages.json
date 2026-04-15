@@ -1,1 +1,16 @@
-[]
+[
+  {
+    "id": "test-msg-1",
+    "sender": "Test Session",
+    "destination": "Change Manager",
+    "text": "Hello from T-4 (index 0)",
+    "timestamp": "2026-04-15T10:00:00.000Z"
+  },
+  {
+    "id": "test-msg-2",
+    "sender": "Project Manager",
+    "destination": "Change Manager",
+    "text": "Hello from T-5 (index 1)",
+    "timestamp": "2026-04-15T10:01:00.000Z"
+  }
+]

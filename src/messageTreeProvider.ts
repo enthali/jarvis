@@ -101,6 +101,12 @@ export class MessageTreeProvider implements vscode.TreeDataProvider<MessageNode>
                 vscode.TreeItemCollapsibleState.None
             );
             item.contextValue = 'messageItem';
+            // Implementation: SPEC_EXP_MESSAGE_OPENFILE
+            item.command = {
+                command: 'jarvis.openMessageFile',
+                title: 'Open in messages file',
+                arguments: [element]
+            };
             return item;
         }
 

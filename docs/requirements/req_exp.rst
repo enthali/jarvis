@@ -482,3 +482,50 @@ Explorer Requirements
      calls in the tree refresh path
    * AC-8: When ``TaskService`` is unavailable or has no providers, task child
      nodes SHALL be omitted silently (tree looks identical to current state)
+
+
+.. req:: Open heartbeat.yaml at Job Line
+   :id: REQ_EXP_HEARTBEAT_OPENFILE
+   :status: implemented
+   :priority: optional
+   :links: US_EXP_OPENFILE
+
+   **Description:**
+   Clicking a Heartbeat Job node in the Heartbeat tree view SHALL open
+   ``heartbeat.yaml`` in the VS Code editor and reveal the line where that
+   job's definition begins.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The command is triggered by clicking the job node (``TreeItem.command``)
+   * AC-2: The file opened is the path from ``jarvis.heartbeatConfigFile`` setting
+   * AC-3: The revealed line is the first line in the file that contains the job
+     name (case-sensitive match against ``name:`` YAML key)
+   * AC-4: If the job name is not found in the file, the file opens at line 0
+     (start of file, fail-open)
+   * AC-5: The file is opened read-write (standard editor, no custom editor)
+   * AC-6: If ``jarvis.heartbeatConfigFile`` is empty or the file does not exist,
+     the command shows a warning notification and returns without opening a file
+
+
+.. req:: Open Messages File at Message Position
+   :id: REQ_EXP_MESSAGE_OPENFILE
+   :status: implemented
+   :priority: optional
+   :links: US_EXP_OPENFILE
+
+   **Description:**
+   Clicking a Message leaf node in the Messages tree view SHALL open the messages
+   JSON file in the VS Code editor and reveal the position of that message.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The command is triggered by clicking the message node (``TreeItem.command``)
+   * AC-2: The file opened is the path from ``jarvis.messagesFile`` setting
+   * AC-3: The revealed position is determined by the message's index in the queue
+     (the Nth message entry in the JSON array)
+   * AC-4: If the index is out of range or the position cannot be determined, the
+     file opens at line 0 (fail-open)
+   * AC-5: The file is opened read-write (standard editor, no custom editor)
+   * AC-6: If ``jarvis.messagesFile`` is empty or the file does not exist, the
+     command shows a warning notification and returns without opening a file

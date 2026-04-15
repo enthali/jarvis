@@ -2,7 +2,7 @@
   "name": "jarvis",
   "displayName": "Jarvis",
   "description": "Personal assistant for managing projects and events in VS Code",
-  "version": "0.5.1",
+  "version": "0.5.0",
   "publisher": "enthali",
   "repository": {
     "type": "git",
@@ -188,6 +188,14 @@
         "command": "jarvis.stopRecording",
         "title": "Stop Recording",
         "icon": "$(circle-filled)"
+      },
+      {
+        "command": "jarvis.openHeartbeatJob",
+        "title": "Jarvis: Open Heartbeat Job"
+      },
+      {
+        "command": "jarvis.openMessageFile",
+        "title": "Jarvis: Open Message File"
       }
     ],
     "menus": {
@@ -250,6 +258,14 @@
         },
         {
           "command": "jarvis.openInTerminal",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.openHeartbeatJob",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.openMessageFile",
           "when": "false"
         }
       ],

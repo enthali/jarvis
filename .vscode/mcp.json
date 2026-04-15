@@ -1,5 +1,21 @@
 {
 	"servers": {
+		"calendar": {
+			"command": "agency",
+			"args": [
+				"mcp",
+				"calendar"
+			],
+			"type": "stdio"
+		},
+		"teams": {
+			"command": "agency",
+			"args": [
+				"mcp",
+				"teams"
+			],
+			"type": "stdio"
+		},
 		"jarvis-pmo-llm-tools": {
 			"url": "http://localhost:31410",
 			"type": "http"

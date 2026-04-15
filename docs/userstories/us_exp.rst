@@ -275,3 +275,26 @@ Explorer User Stories
    * AC-1: Events are sorted by ``dates.start`` in ascending order
    * AC-2: The event label shows the start date as a prefix (e.g. ``2025-06-24 — Event Name``)
    * AC-3: Events without a start date appear at the end of the list
+
+
+.. story:: Open Source File from Tree Node
+   :id: US_EXP_OPENFILE
+   :status: implemented
+   :priority: optional
+   :links: US_EXP_SIDEBAR
+
+   **As a** Jarvis User,
+   **I want** to click a Heartbeat Job node or a Message node in the Jarvis Explorer
+   to open the corresponding source file and navigate directly to the relevant line,
+   **so that** I can quickly inspect and edit heartbeat job definitions or queued
+   messages without manually searching through config files.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Clicking a Heartbeat Job node opens ``heartbeat.yaml`` and reveals the
+     line where that job is defined (matched by job name)
+   * AC-2: Clicking a Message node opens the messages JSON file and reveals the
+     position of that message (matched by index)
+   * AC-3: If the exact position cannot be determined, the file opens at line 0
+     (fail-open, no error dialog)
+   * AC-4: The navigation is read-only — no side effects on the tree or the queue

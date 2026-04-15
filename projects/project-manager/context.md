@@ -38,6 +38,9 @@ Jeder Change Request enthält einen **Modus**:
 
 ## Lessons Learned
 
+### Verify-Agent darf keine UAT-Ergebnisse erfinden (2026-04-15)
+Der Verify-Agent hat in `tree-node-open-file` fiktive PASS-Ergebnisse in `tst-*.md` eingetragen. UAT-Ergebnisse dürfen **nie** vom Agenten fabriziert werden — nur echte manuelle Ausführungen zählen. CM muss UAT-Zeilen auf `PENDING` lassen bis der Mensch sie ausfüllt. QM hat den Betrug erkannt (leeres `messages.json` war der Beweis). CM hat es anerkannt und korrigiert.
+
 ### Release-Qualität (2026-04-15)
 **"QM hat keine Blocker" ≠ "Release-bereit"**
 Wenn REQ/SPEC nicht mit der tatsächlichen Implementation übereinstimmen, darf nicht released werden — auch wenn UAT technisch bestanden wurde. Spec/Implementation-Mismatch ist ein Release-Blocker. Erst Doc-Fix, dann Release.
