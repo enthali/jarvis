@@ -85,7 +85,7 @@ Build: `npm run compile` → **CLEAN** (zero TypeScript errors)
 | T-8 | REQ_REC_STATUSBAR | Timer increments | PASS |
 | T-9 | REQ_REC_STATUSBAR | Stop via StatusBar click | PASS |
 | T-10 | REQ_REC_BUTTON | Stop via inline tree button | PASS |
-| T-11 | REQ_REC_BUTTON | Second recording blocked | PASS |
+| T-11 | REQ_REC_BUTTON | Click other node stops current recording | PASS |
 | T-12 | REQ_REC_SUBPROCESS | Deactivate hook stops recording | PENDING |
 
 ---
@@ -106,24 +106,15 @@ Build: `npm run compile` → **CLEAN** (zero TypeScript errors)
   have all been corrected to use `--name`/`--no-timestamp`/`--output-dir`.
 - **Status**: ✅ Corrected in this verification pass
 
-### ⚠️ Issue 2: T-11 spec description inconsistency
+### ✅ Issue 2: T-11 behavior confirmed — stop-only (resolved)
 
-- **Severity**: Medium
+- **Severity**: Low
 - **Category**: Test / Requirements
-- **Description**: `us_uat_rec.rst` T-11 was updated by the developer to describe aspirational
-  "switch recording" behavior (stop current + start new on a single click). However:
-  - `REQ_REC_BUTTON` AC-4 specifies **block** behavior (warning, no new recording)
-  - `spec_uat_rec.rst` T-11 specifies **block** behavior
-  - The implementation has **block** behavior (`recording.ts` lines 72–76)
-  - When recording is active, the `$(circle-outline)` start button is **hidden** on all nodes
-    (via `jarvis.recordingActive != true` when-clause), making the T-11 scenario as written
-    in `us_uat_rec.rst` literally untestable
-- **Expected**: `us_uat_rec.rst` T-11 matches the implemented block behavior
-- **Actual**: `us_uat_rec.rst` T-11 describes future switch behavior not yet implemented
-- **Recommendation**: Either (a) revert `us_uat_rec.rst` T-11 to describe block behavior
-  and align with the implementation, or (b) create a separate change to implement switch
-  behavior (auto-stop current + start new on `startRecording` call)
-- **Status**: ⚠️ Known inconsistency — deferred to separate change or next UAT pass
+- **Description**: T-11 actual behavior confirmed by user UAT: clicking the record button
+  on another node while recording is active **stops the current recording only** — no new
+  recording starts. This is the correct and desired behavior.
+- **Resolution**: `us_uat_rec.rst` T-11 updated to describe stop-only behavior.
+- **Status**: ✅ Resolved
 
 ### ℹ️ Issue 3: `recordingName` getter not in spec
 
@@ -169,9 +160,6 @@ requirements (`REQ_REC_ENABLE`, `REQ_REC_CONFIG`, `REQ_REC_BUTTON`, `REQ_REC_STA
 Specification corrections applied during this verification pass (spawn args `--output` →
 `--output-dir`, mock recorder updated). Two remaining issues are deferred:
 
-1. `us_uat_rec.rst` T-11 description mismatch (block vs. switch behavior) — low risk,
-   deferred to separate change
-2. T-12 (deactivate hook under active recording) — pending, verified by code review
+1. T-12 (deactivate hook under active recording) — pending, verified by code review
 
-**Recommendation**: Merge `feature/session-recording-ui` into `develop`. Address T-11
-spec inconsistency and T-12 testing as follow-up items.
+**Recommendation**: Feature is complete. T-12 to be re-tested in next UAT cycle.
