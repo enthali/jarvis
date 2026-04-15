@@ -150,3 +150,76 @@ Recording Design Specifications
    **``extension.ts`` integration**:
    Module-level ``_recordingManager`` variable so ``deactivate()`` export can call
    ``_recordingManager.deactivate()``.
+
+   **Sidecar write** (``SPEC_REC_SIDECAR``):
+   After step 6, additionally writes ``<whisperPath>/input/<recordingName>.json``
+   with ``{ "project": "<originalName>" }``. Non-fatal if write fails.
+
+
+.. spec:: Recording Sidecar File
+   :id: SPEC_REC_SIDECAR
+   :status: implemented
+   :links: REQ_REC_SIDECAR
+
+   **Description:**
+   ``RecordingManager.start()`` writes ``<whisperPath>/input/<recordingName>.json``
+   with ``{ "project": "<originalName>" }`` immediately after spawning the subprocess.
+
+   This file serves as both a project-name lookup for the transcript watcher and as
+   an unprocessed-flag: its deletion by the watcher signals the transcript has been
+   dispatched.
+
+
+.. spec:: Transcript Watcher Command
+   :id: SPEC_REC_WATCHER
+   :status: implemented
+   :links: REQ_REC_DISPATCH; REQ_REC_SIDECAR
+
+   **Description:**
+   ``jarvis.checkTranscripts`` command registered in ``extension.ts``.
+
+   **Logic**:
+
+   1. Guard: ``jarvis.recording.enabled`` must be true and ``whisperPath`` set
+   2. Read all ``*.txt`` files from ``<whisperPath>/output/``
+   3. For each ``<stem>.txt``:
+
+      a. Check if ``<whisperPath>/input/<stem>.json`` exists — if not, skip
+      b. Parse JSON: ``{ project: string }``
+      c. Read transcript text from ``output/<stem>.txt``
+      d. ``appendMessage(resolveMessagesPath(), project, 'Whisper Watcher', transcript)``
+      e. ``messageProvider.reload()``
+      f. Delete ``input/<stem>.json``
+      g. Log: ``[Recording] dispatched transcript "<stem>" to session "<project>"``
+
+
+.. spec:: Transcript Watcher Heartbeat Job
+   :id: SPEC_REC_WATCHERJOB
+   :status: implemented
+   :links: REQ_REC_WATCHERJOB
+
+   **Description:**
+   ``syncTranscriptWatcherJob()`` helper in ``extension.ts``, analogous to
+   ``syncRescanJob()``.
+
+   **Logic**:
+
+   .. code-block:: typescript
+
+      function syncTranscriptWatcherJob(): void {
+          const cfg = vscode.workspace.getConfiguration('jarvis');
+          const enabled = cfg.get<boolean>('recording.enabled', false);
+          const whisperPath = cfg.get<string>('recording.whisperPath', '');
+          const jobName = 'Jarvis: Check Transcripts';
+          if (enabled && whisperPath) {
+              const interval = cfg.get<number>('scanInterval', 2);
+              const schedule = interval > 0 ? \`*/\${interval} * * * *\` : '*/2 * * * *';
+              scheduler.registerJob({ name: jobName, schedule,
+                  steps: [{ type: 'command', run: 'jarvis.checkTranscripts' }] });
+          } else {
+              scheduler.unregisterJob(jobName);
+          }
+      }
+
+   Called once on activation and from ``onDidChangeConfiguration`` when
+   ``jarvis.recording.enabled`` or ``jarvis.recording.whisperPath`` changes.
