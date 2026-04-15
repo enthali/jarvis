@@ -486,7 +486,7 @@ Explorer Requirements
 
 .. req:: Open heartbeat.yaml at Job Line
    :id: REQ_EXP_HEARTBEAT_OPENFILE
-   :status: approved
+   :status: implemented
    :priority: optional
    :links: US_EXP_OPENFILE
 
@@ -510,7 +510,7 @@ Explorer Requirements
 
 .. req:: Open Messages File at Message Position
    :id: REQ_EXP_MESSAGE_OPENFILE
-   :status: approved
+   :status: implemented
    :priority: optional
    :links: US_EXP_OPENFILE
 

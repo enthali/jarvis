@@ -279,7 +279,7 @@ Explorer User Stories
 
 .. story:: Open Source File from Tree Node
    :id: US_EXP_OPENFILE
-   :status: approved
+   :status: implemented
    :priority: optional
    :links: US_EXP_SIDEBAR
 

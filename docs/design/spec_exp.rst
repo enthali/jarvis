@@ -1045,7 +1045,7 @@ Explorer Design Specifications
 
 .. spec:: Open Heartbeat Job Command
    :id: SPEC_EXP_HEARTBEAT_OPENFILE
-   :status: approved
+   :status: implemented
    :links: REQ_EXP_HEARTBEAT_OPENFILE; SPEC_EXP_EXTENSION
 
    **Description:**
@@ -1128,7 +1128,7 @@ Explorer Design Specifications
 
 .. spec:: Open Message File Command
    :id: SPEC_EXP_MESSAGE_OPENFILE
-   :status: approved
+   :status: implemented
    :links: REQ_EXP_MESSAGE_OPENFILE; SPEC_EXP_EXTENSION
 
    **Description:**
