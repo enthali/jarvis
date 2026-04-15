@@ -9,7 +9,7 @@ Projects and events are stored as YAML files in configurable folders.
 
 - **Language**: TypeScript
 - **Platform**: VS Code Extension API
-- **Documentation**: Sphinx + sphinx-needs (syspilot v0.4.0)
+- **Documentation**: Sphinx + sphinx-needs (syspilot v0.5.0)
 - **Build**: Node.js / npm
 - **Runtime dep**: cron-parser (next-run time computation for heartbeat)
 
@@ -83,13 +83,13 @@ Press **F5** in VS Code to launch the Extension Development Host.
 ## Development Workflow
 
 ```
-syspilot.change (→ syspilot.uat) → syspilot.implement → syspilot.verify → syspilot.memory
+syspilot.cm (→ syspilot.uat) → syspilot.implement → syspilot.verify
 ```
 
-The Change Agent calls `syspilot.uat` as a subagent after MECE analysis to generate UAT artifacts (US_UAT_\*, REQ_UAT_\*, SPEC_UAT_\*) before handing off to implementation.
+The Change Manager (`syspilot.cm`) orchestrates the full change workflow, invoking engineers in sequence. It calls `syspilot.uat` as a subagent after MECE analysis to generate UAT artifacts (US_UAT_\*, REQ_UAT_\*, SPEC_UAT_\*) before handing off to implementation.
 
 Each change produces three artifacts in `docs/changes/`:
-- `<name>.md` — Change Document (approved by Change Agent)
+- `<name>.md` — Change Document (approved by Change Manager)
 - `tst-<name>.md` — Test Protocol (created by Implement Agent after manual UAT)
 - `val-<name>.md` — Verification Report (created by Verify Agent)
 
