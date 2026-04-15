@@ -77,6 +77,16 @@ Constraint: Windows + Outlook Classic (COM), kein Graph/OAuth.
 - **Dashboard** — Übersicht Tasks/Fälligkeiten/Backlog-Trend
 - **Calendar Auto-Recording** — Kalendertermin beginnt → Recorder startet automatisch
 
+## Research
+
+### Teams Integration
+**Idee:** TeamsProvider (ITeamsProvider) + DomainCache<TeamsChat[]> — gleiches Service+Cache+Provider-Triplet wie Outlook.
+- Read + Send: bereits via MCP Teams Tools (`mcp_teams_*`) möglich
+- **Mark-as-read:** `teams-mark-read-playwright.py` — Playwright navigiert zu Chat-Deep-Link, öffnet Chat → Teams markiert automatisch als gelesen, Browser zu. Scope bewusst eng gehalten: kein Scraping, nur Navigation.
+- Auth: bereits funktionsfähig (kein Blocker)
+- ToS-Grauzone: akzeptiertes Risiko für internen Gebrauch
+- **Voraussetzung:** Outlook feature-complete (post v0.5.x)
+
 ## Architecture Decisions
 
 ### MCP Server (2026-04-10)
