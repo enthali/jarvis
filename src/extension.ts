@@ -213,7 +213,8 @@ export function activate(context: vscode.ExtensionContext) {
                     continue;
                 }
 
-                const transcript = fs.readFileSync(path.join(outputDir, file), 'utf-8').trim();
+                const txtPath = path.join(outputDir, file);
+                const transcript = `Ein neues Meeting Transcript liegt für dich bereit: ${txtPath}`;
                 appendMessage(resolveMessagesPath(), project, 'Whisper Watcher', transcript);
                 messageProvider.reload();
                 log.info(`[Recording] dispatched transcript "${stem}" to session "${project}"`);
