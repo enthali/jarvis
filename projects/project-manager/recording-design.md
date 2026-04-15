@@ -14,14 +14,14 @@ damit ich Meeting Minutes per LLM generieren kann — mit Projekt-Kontext.
 
 🔴 Record Button (Projekt-Zeile)
   → spawnt recorder.py Subprocess
-  → schreibt .wav nach recordings/
+  → schreibt .wav nach whisperPath/input/
   → State: .recording.json
 
 Stopp (StatusBar-Klick) → .stop File ──→ recorder.py stoppt
 
-                              recordings/ProjektX_2026-04-15_1430.wav
+                              input/ProjektX_2026-04-15_1430.wav
                                          ↓
-                              Whisper (Docker/Ollama) pollt & transkribiert
+                              Whisper (Docker/Ollama) pollt input/ & transkribiert
                                          ↓
                               output/ProjektX_2026-04-15_1430.txt
 
@@ -66,9 +66,17 @@ Heartbeat-Watcher pollt output/ ←────
 ## Settings
 
 - `jarvis.recording.enabled` (boolean, default: **false**) — Master-Toggle, Feature off by default
-- `jarvis.recording.recorderPath` (string) — Pfad zu `recorder.py`
-- `jarvis.recording.recordingsPath` (string) — Ordner für .wav Dateien
-- `jarvis.recording.outputPath` (string) — Ordner wo Whisper die .txt ablegt
+- `jarvis.recording.whisperPath` (string, default: `""`) — Basispfad zum Whisper-Projekt
+
+Convention innerhalb `whisperPath`:
+```
+C:\whisper\
+  ├── recorder.py       ← Audio-Capture Script (gepflegt im Whisper-Projekt)
+  ├── input\            ← .wav (Jarvis schreibt hier, Whisper liest)
+  └── output\           ← .txt (Whisper schreibt hier, Jarvis-Watcher liest)
+```
+
+Jarvis sucht `recorder.py` in `whisperPath`, schreibt `.wav` nach `whisperPath/input/`, Heartbeat-Watcher pollt `whisperPath/output/`.
 
 ## Constraints
 

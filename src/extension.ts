@@ -20,6 +20,10 @@ import { OutlookCategoryProvider } from './outlookIntegration/OutlookCategoryPro
 import { TaskService } from './pim/TaskService';
 import { TaskEditorProvider } from './pim/TaskEditorProvider';
 import { OutlookTaskProvider } from './outlookIntegration/OutlookTaskProvider';
+import { RecordingManager } from './recording';
+
+// Module-level reference so deactivate() can call recordingManager.deactivate() (SPEC_REC_SUBPROCESS)
+let _recordingManager: RecordingManager | undefined;
 
 // Implementation: SPEC_EXP_NEWPROJECT_CMD
 function toKebabCase(name: string): string {
@@ -93,8 +97,12 @@ export function activate(context: vscode.ExtensionContext) {
     // Requirements: REQ_PIM_TASKSERVICE
     const taskService = new TaskService();
 
-    const projectProvider = new ProjectTreeProvider(scanner, taskService);
-    const eventProvider = new EventTreeProvider(scanner, taskService);
+    // Implementation: SPEC_REC_SUBPROCESS, SPEC_REC_STATUSBAR, SPEC_REC_BUTTON
+    // Requirements: REQ_REC_SUBPROCESS, REQ_REC_STATUSBAR, REQ_REC_BUTTON
+    _recordingManager = new RecordingManager();
+
+    const projectProvider = new ProjectTreeProvider(scanner, taskService, _recordingManager);
+    const eventProvider = new EventTreeProvider(scanner, taskService, _recordingManager);
 
     function startScanner(): void {
         const config = vscode.workspace.getConfiguration('jarvis');
@@ -1136,6 +1144,61 @@ export function activate(context: vscode.ExtensionContext) {
         }).catch(() => { /* error already logged */ });
     }
 
+    // Implementation: SPEC_REC_STATUSBAR
+    // Requirements: REQ_REC_STATUSBAR
+    const recordingStatusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 10);
+    recordingStatusBar.command = 'jarvis.stopRecording';
+    recordingStatusBar.hide();
+
+    let recordingTimer: ReturnType<typeof setInterval> | undefined;
+
+    function updateRecordingStatusBar(): void {
+        const name = _recordingManager!.currentProject;
+        const t0 = _recordingManager!.startTime;
+        if (!name || t0 === undefined) {
+            recordingStatusBar.hide();
+            return;
+        }
+        const elapsed = Math.floor((Date.now() - t0) / 1000);
+        const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
+        const ss = String(elapsed % 60).padStart(2, '0');
+        recordingStatusBar.text = `🔴 ${name} — ${mm}:${ss}`;
+        recordingStatusBar.show();
+    }
+
+    _recordingManager.onDidChange(() => {
+        if (_recordingManager!.currentProject) {
+            updateRecordingStatusBar();
+            recordingTimer = setInterval(updateRecordingStatusBar, 1000);
+        } else {
+            if (recordingTimer) {
+                clearInterval(recordingTimer);
+                recordingTimer = undefined;
+            }
+            recordingStatusBar.hide();
+        }
+        projectProvider.refresh();
+        eventProvider.refresh();
+    });
+
+    // Implementation: SPEC_REC_BUTTON
+    // Requirements: REQ_REC_BUTTON
+    const startRecordingCommand = vscode.commands.registerCommand(
+        'jarvis.startRecording',
+        async (element: LeafNode) => {
+            const entity = scanner.getEntity(element.id);
+            const name = entity?.name ?? path.basename(path.dirname(element.id));
+            await _recordingManager!.start(name, context);
+        }
+    );
+
+    const stopRecordingCommand = vscode.commands.registerCommand(
+        'jarvis.stopRecording',
+        async () => {
+            await _recordingManager!.stop();
+        }
+    );
+
     context.subscriptions.push(
         rescanCommand,
         filterCommand,
@@ -1166,6 +1229,10 @@ export function activate(context: vscode.ExtensionContext) {
         deleteCategoryCommand,
         refreshTasksCommand,
         mcpStatusBar,
+        recordingStatusBar,
+        startRecordingCommand,
+        stopRecordingCommand,
+        { dispose: () => { if (recordingTimer) { clearInterval(recordingTimer); } } },
         projectView,
         eventView,
         messageView,
@@ -1203,5 +1270,8 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export async function deactivate() {
+    if (_recordingManager) {
+        await _recordingManager.deactivate();
+    }
     await stopMcpServer();
 }
