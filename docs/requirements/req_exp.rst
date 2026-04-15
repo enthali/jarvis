@@ -469,8 +469,9 @@ Explorer Requirements
    * AC-3: An "Uncategorized Tasks (n)" node SHALL appear at the TOP of the
      projects tree (before all project nodes) listing tasks whose ``categories``
      field contains no Jarvis project or event category name
-   * AC-4: Task leaf nodes SHALL display label ``<subject> — <dueDate>`` when
-     ``dueDate`` is set, otherwise ``<subject>``
+   * AC-4: Task leaf nodes SHALL display label ``<shortDate>  <subject>`` (where
+     ``shortDate = yy-MM-dd``, i.e. ``dueDate.slice(2)``) when ``dueDate`` is set,
+     otherwise ``<subject>``
    * AC-5: The project/event leaf label SHALL include the open-task count in
      parentheses, e.g. ``My Project (3)``
    * AC-6: Badge encoding on the project/event label:

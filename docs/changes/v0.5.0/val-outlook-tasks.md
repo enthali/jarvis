@@ -106,7 +106,7 @@ All deviations are accepted per UAT result. No blockers.
 - [x] AC-1: Project/event leaf expands to "Open Tasks (n)" + "Completed Tasks (m)" groups ✓
 - [x] AC-2: Completed Tasks group starts collapsed ✓
 - [x] AC-3: "Uncategorized Tasks (n)" section at top of projects tree ✓
-- [x] AC-4: Task leaf label: `<subject> — <dueDate>` or `<subject>` ✓
+- [x] AC-4: Task leaf label: `<shortDate>  <subject>` (shortDate = yy-MM-dd) or `<subject>` ✓
 - [x] AC-5: `item.description` shows open-task count (rendered dimmed right of label) ✓
 - [x] AC-6: Badge: `warning` icon (`list.warningForeground`, yellow) for overdue; `circle-filled` icon (`charts.yellow`) for due-soon; `item.description` = count for all cases ✓ (spec text updated to match implementation)
 - [x] AC-7: Tree reads from `TaskService._cache` directly — no COM calls in tree refresh ✓
