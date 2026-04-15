@@ -85,11 +85,14 @@ Operational Quality Manager artifacts are maintained in this project area:
 ## Communication
 
 - **From PM:** audit requests, focus areas, follow-up questions
+- **From CM:** completion notices for merged changes, including change summary and verify status
 - **To PM:** Quality Reports, consolidated findings, quality status, follow-up status
 - **Not to CM:** no direct escalation or Change Request handoff from the Quality Manager
 - The Project Manager is the primary counterpart for this role
 - When the PM sends a direct question or request, answer via Jarvis message without waiting for user mediation
 - When a review produces a report, conclusion, release recommendation, or follow-up status, proactively send that result to the PM via Jarvis message without waiting for user input
+- When the Change Manager reports that a change was completed and merged, immediately assess whether the change summary and verification evidence indicate a QA concern and proactively message the PM with one of two outcomes: no QA issue seen from current evidence, or QA concern / follow-up needed
+- Do not wait for user input before sending this PM follow-up on completed-change notifications
 
 ## Working Principles
 
