@@ -17,6 +17,7 @@ User Stories describe **why** functionality is needed from the stakeholder's per
    us_msg
    us_pim
    us_olk
+   us_rec
    us_uat
 
 All User Stories
