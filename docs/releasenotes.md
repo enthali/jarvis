@@ -1,5 +1,17 @@
 # Release Notes
 
+## v0.5.2
+
+*2026-04-15*
+
+### New Features
+- **Open Heartbeat Job**: Click any job node in the Heartbeat tree view to open `heartbeat.yaml` directly at the job definition.
+- **Open Message**: Click any message node in the Message tree view to open the `messages.json` file at the corresponding message entry.
+- Fallback: if the exact position cannot be determined, the file opens at the top.
+
+### Bug Fixes
+- None
+
 ## v0.5.0
 
 *2026-04-15*

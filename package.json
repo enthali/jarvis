@@ -2,7 +2,7 @@
   "name": "jarvis",
   "displayName": "Jarvis",
   "description": "Personal assistant for managing projects and events in VS Code",
-  "version": "0.5.0",
+  "version": "0.5.2",
   "publisher": "enthali",
   "repository": {
     "type": "git",
@@ -29,7 +29,9 @@
         "viewType": "jarvis.taskEditor",
         "displayName": "Jarvis Task Editor",
         "selector": [
-          { "filenamePattern": "*.jarvis-task" }
+          {
+            "filenamePattern": "*.jarvis-task"
+          }
         ],
         "priority": "default"
       }
@@ -713,7 +715,12 @@
           "properties": {
             "action": {
               "type": "string",
-              "enum": ["get", "set", "delete", "rename"],
+              "enum": [
+                "get",
+                "set",
+                "delete",
+                "rename"
+              ],
               "description": "The action to perform"
             },
             "name": {
@@ -737,7 +744,9 @@
               "description": "New category name (required for rename)"
             }
           },
-          "required": ["action"]
+          "required": [
+            "action"
+          ]
         }
       },
       {
@@ -752,7 +761,12 @@
           "properties": {
             "action": {
               "type": "string",
-              "enum": ["get", "set", "modify", "delete"],
+              "enum": [
+                "get",
+                "set",
+                "modify",
+                "delete"
+              ],
               "description": "The action to perform"
             },
             "category": {
@@ -789,7 +803,11 @@
             },
             "priority": {
               "type": "string",
-              "enum": ["low", "normal", "high"],
+              "enum": [
+                "low",
+                "normal",
+                "high"
+              ],
               "description": "Task priority"
             },
             "isComplete": {
@@ -798,7 +816,9 @@
             },
             "categories": {
               "type": "array",
-              "items": { "type": "string" },
+              "items": {
+                "type": "string"
+              },
               "description": "Outlook category names linking task to projects/events"
             },
             "provider": {
@@ -806,7 +826,9 @@
               "description": "Target provider (omit to broadcast to all)"
             }
           },
-          "required": ["action"]
+          "required": [
+            "action"
+          ]
         }
       }
     ]
