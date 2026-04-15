@@ -240,47 +240,38 @@ Explorer User Stories
      to manually configure a path to make them visible
 
 
-.. story:: Chronological Event Sorting
-   :id: US_EVT_DATESORT
-   :status: implemented
-   :priority: optional
-   :links: US_EXP_SIDEBAR; US_EXP_NAMESORT
-
-   **As a** Jarvis User,
-   **I want** events in the sidebar sorted chronologically by their start date
-   with the date displayed as a label prefix,
-   **so that** I can quickly identify when events occur and find upcoming events
-   by scanning the list from top to bottom.
-
-   **Acceptance Criteria:**
-
-   * AC-1: Event leaf nodes are sorted by ``dates.start`` (ascending — earliest first)
-   * AC-2: The event label shows ``<dates.start> — <name>``
-     (e.g. "2026-04-15 — DevCon 2026")
-   * AC-3: Events without a parseable ``dates.start`` are sorted by name and
-     displayed with name only (fallback, fail-open)
-   * AC-4: Grouping folders remain sorted by folder name as before
-
-
-.. story:: Context Actions on Project/Event Nodes
+.. story:: Context Actions on Project and Event Nodes
    :id: US_EXP_CONTEXTACTIONS
-   :status: implemented
+   :status: approved
    :priority: optional
    :links: US_EXP_SIDEBAR
 
    **As a** Jarvis User,
-   **I want** context-menu actions on project and event tree nodes to reveal the
-   folder in the VS Code Explorer, the OS file manager, or open it in an
-   integrated terminal,
-   **so that** I can quickly access the project/event folder in the tool that best
-   fits my current task without navigating there manually.
+   **I want** context menu actions on project and event tree nodes,
+   **so that** I can quickly navigate to the entity folder in the editor,
+   OS file manager, or an integrated terminal.
 
    **Acceptance Criteria:**
 
-   * AC-1: Right-clicking a project or event leaf node shows "Reveal in Explorer"
-   * AC-2: Right-clicking a project or event leaf node shows "Reveal in File Explorer"
-   * AC-3: Right-clicking a project or event leaf node shows "Open in Terminal"
-   * AC-4: "Reveal in Explorer" reveals the entity folder in the VS Code file explorer
-   * AC-5: "Reveal in File Explorer" opens the entity folder in the OS file manager
-   * AC-6: "Open in Terminal" opens an integrated terminal at the entity folder
-   * AC-7: Folder (grouping) nodes do NOT show these actions
+   * AC-1: Right-clicking a project or event node shows "Reveal in Explorer",
+     "Reveal in File Explorer", and "Open in Terminal" actions
+   * AC-2: Each action delegates to the corresponding built-in VS Code command
+   * AC-3: No custom file-system logic is needed — all three actions use VS Code
+     built-in commands
+
+
+.. story:: Chronological Event Sorting
+   :id: US_EVT_DATESORT
+   :status: approved
+   :priority: optional
+   :links: US_EXP_SIDEBAR
+
+   **As a** Jarvis User,
+   **I want** events displayed in chronological order with their start date visible,
+   **so that** I can quickly find upcoming events without scanning unordered names.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Events are sorted by ``dates.start`` in ascending order
+   * AC-2: The event label shows the start date as a prefix (e.g. ``2025-06-24 — Event Name``)
+   * AC-3: Events without a start date appear at the end of the list

@@ -36,3 +36,13 @@ jobs:
     steps:
       - type: command
         run: jarvis.rescan
+  - name: 'Jarvis: Category Refresh'
+    schedule: '*/1 * * * *'
+    steps:
+      - type: command
+        run: jarvis.refreshCategories
+  - name: 'Jarvis: Task Refresh'
+    schedule: '*/1 * * * *'
+    steps:
+      - type: command
+        run: jarvis.refreshTasks

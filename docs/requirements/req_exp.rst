@@ -24,10 +24,12 @@ Explorer Requirements
    :links: US_EXP_SIDEBAR
 
    **Description:**
-   The extension SHALL provide three tree views inside the Jarvis sidebar:
-   "Projects", "Events", and "Messages". The Projects and Events tree views
-   display items hierarchically reflecting the folder structure on disk. The
-   Messages tree view displays queued messages grouped by target session.
+   The extension SHALL provide tree views inside the Jarvis sidebar:
+   "Projects", "Events", "Messages", "Heartbeat", and "Categories". The
+   Projects and Events tree views display items hierarchically reflecting
+   the folder structure on disk. The Messages tree view displays queued
+   messages grouped by target session. The Categories view displays
+   Outlook categories (see ``REQ_PIM_CATVIEW``).
 
    **Acceptance Criteria:**
 
@@ -44,6 +46,8 @@ Explorer Requirements
    * AC-8: When the message queue is empty, the Messages tree view SHALL display a
      single node with label ``nothing to deliver``
    * AC-9: Grouping nodes with no descendant leaf items SHALL be omitted from the tree
+   * AC-10: The sidebar contains a "Categories" tree view (visible when
+     categories are enabled — see ``REQ_PIM_CATVIEW`` for visibility rules)
 
 
 .. req:: Static Dummy Data
@@ -412,6 +416,8 @@ Explorer Requirements
      ``jarvis.heartbeatConfigFile`` is set to a non-empty string
    * AC-5: Visibility SHALL be controlled via the ``when`` property on the
      view definition in ``package.json`` — no runtime code required
+   * AC-6: The Categories view SHALL only be visible when
+     ``jarvis.pim.showCategories`` is ``true``
 
 
 .. req:: Context Actions on Leaf Nodes
@@ -440,3 +446,38 @@ Explorer Requirements
      these actions
    * AC-6: The three commands SHALL NOT appear in the Command Palette (they require
      a tree node argument)
+
+
+.. req:: Inline Task Nodes in Project/Event Tree
+   :id: REQ_EXP_TASKTREE
+   :status: implemented
+   :priority: mandatory
+   :links: US_EXP_SIDEBAR; REQ_PIM_TASKSERVICE; REQ_EXP_TREEVIEW
+
+   **Description:**
+   When the tasks feature is active, the project and event tree SHALL display
+   task child nodes inline under each project/event leaf, and an "Uncategorized
+   Tasks" top-level section SHALL appear before all project nodes.
+
+   **Acceptance Criteria:**
+
+   * AC-1: When ``jarvis.outlookEnabled == true`` AND
+     ``jarvis.outlook.tasks.enabled == true``, each project and event leaf node
+     SHALL expand to show two child groups: "Open Tasks (n)" and "Completed Tasks
+     (m)" (where n/m are item counts)
+   * AC-2: "Completed Tasks" groups SHALL be collapsed by default
+   * AC-3: An "Uncategorized Tasks (n)" node SHALL appear at the TOP of the
+     projects tree (before all project nodes) listing tasks whose ``categories``
+     field contains no Jarvis project or event category name
+   * AC-4: Task leaf nodes SHALL display label ``<subject> — <dueDate>`` when
+     ``dueDate`` is set, otherwise ``<subject>``
+   * AC-5: The project/event leaf label SHALL include the open-task count in
+     parentheses, e.g. ``My Project (3)``
+   * AC-6: Badge encoding on the project/event label:
+     ``⚠`` when at least one task is overdue;
+     ``(n !)`` when open tasks exist and at least one is due within 5 days;
+     ``(n)`` otherwise
+   * AC-7: Tree providers SHALL read from ``TaskService`` cache only — no COM
+     calls in the tree refresh path
+   * AC-8: When ``TaskService`` is unavailable or has no providers, task child
+     nodes SHALL be omitted silently (tree looks identical to current state)

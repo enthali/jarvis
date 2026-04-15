@@ -21,6 +21,7 @@ Eine Review-Einheit umfasst:
 | `US_DEV_MANUALTEST` | — | — | — |
 | `US_DEV_CONVENTIONS` | — | — | — |
 | `US_DEV_LOGGING` | — | — | — |
+| `US_PIM_TASKS` | 2026-04-15 | [qr-2026-04-15-outlook-tasks.md](reports/qr-2026-04-15-outlook-tasks.md) | geprüft |
 | `US_EXP_SIDEBAR` | — | — | — |
 | `US_EXP_PROJECTFILTER` | — | — | — |
 | `US_EXP_EVENTFILTER` | — | — | — |
@@ -34,6 +35,7 @@ Eine Review-Einheit umfasst:
 | `US_MSG_LISTSESSIONS` | — | — | — |
 | `US_EXP_AGENTSESSION` | — | — | — |
 | `US_MSG_MCPSERVER` | — | — | — |
+| `US_OLK_TASKS` | 2026-04-15 | [qr-2026-04-15-outlook-tasks.md](reports/qr-2026-04-15-outlook-tasks.md) | geprüft |
 | `US_REL_DOCS` | — | — | — |
 | `US_REL_RELEASE` | — | — | — |
 | `US_REL_VERSION` | — | — | — |
@@ -51,6 +53,7 @@ Eine Review-Einheit umfasst:
 | `US_UAT_LOGGING` | — | — | — |
 | `US_UAT_MSG` | — | — | — |
 | `US_UAT_MCPSERVER` | — | — | — |
+| `US_UAT_OUTLOOK_TASKS` | — | — | — |
 | `US_UAT_NEWENTITY` | — | — | — |
 | `US_UAT_SIDEBAR` | — | — | — |
 | `US_UAT_EVENTFILTER` | — | — | — |

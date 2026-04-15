@@ -2,7 +2,7 @@
   "name": "jarvis",
   "displayName": "Jarvis",
   "description": "Personal assistant for managing projects and events in VS Code",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publisher": "enthali",
   "repository": {
     "type": "git",
@@ -19,10 +19,21 @@
     "onView:jarvisProjects",
     "onView:jarvisEvents",
     "onView:jarvisMessages",
-    "onView:jarvisHeartbeat"
+    "onView:jarvisHeartbeat",
+    "onView:jarvisCategories"
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "customEditors": [
+      {
+        "viewType": "jarvis.taskEditor",
+        "displayName": "Jarvis Task Editor",
+        "selector": [
+          { "filenamePattern": "*.jarvis-task" }
+        ],
+        "priority": "default"
+      }
+    ],
     "viewsContainers": {
       "activitybar": [
         {
@@ -52,6 +63,11 @@
           "id": "jarvisHeartbeat",
           "name": "Heartbeat",
           "when": "config.jarvis.heartbeatConfigFile != ''"
+        },
+        {
+          "id": "jarvisCategories",
+          "name": "Categories",
+          "when": "config.jarvis.pim.showCategories == true"
         }
       ]
     },
@@ -144,6 +160,24 @@
       {
         "command": "jarvis.openInTerminal",
         "title": "Open in Terminal"
+      },
+      {
+        "command": "jarvis.refreshCategories",
+        "title": "Jarvis: Refresh Categories",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "jarvis.renameCategory",
+        "title": "Jarvis: Rename Category"
+      },
+      {
+        "command": "jarvis.deleteCategory",
+        "title": "Jarvis: Delete Category"
+      },
+      {
+        "command": "jarvis.refreshTasks",
+        "title": "Jarvis: Refresh Tasks",
+        "icon": "$(refresh)"
       }
     ],
     "menus": {
@@ -170,6 +204,22 @@
         },
         {
           "command": "jarvis.refreshHeartbeat",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.refreshCategories",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.renameCategory",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.deleteCategory",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.refreshTasks",
           "when": "false"
         },
         {
@@ -229,6 +279,11 @@
         {
           "command": "jarvis.refreshHeartbeat",
           "when": "view == jarvisHeartbeat",
+          "group": "navigation@1"
+        },
+        {
+          "command": "jarvis.refreshCategories",
+          "when": "view == jarvisCategories",
           "group": "navigation@1"
         }
       ],
@@ -297,6 +352,15 @@
           "command": "jarvis.openInTerminal",
           "when": "viewItem == jarvisEvent",
           "group": "context-actions"
+        },
+        {
+          "command": "jarvis.renameCategory",
+          "when": "viewItem == jarvisCategory",
+          "group": "inline"
+        },
+        {
+          "command": "jarvis.deleteCategory",
+          "when": "viewItem == jarvisCategory"
         }
       ]
     },
@@ -375,6 +439,31 @@
             "type": "boolean",
             "default": true,
             "description": "Check for new Jarvis releases on GitHub when the extension activates."
+          }
+        }
+      },
+      {
+        "title": "PIM",
+        "properties": {
+          "jarvis.outlookEnabled": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable Outlook COM integration (Windows + Outlook Classic). When disabled, no Outlook COM calls are made."
+          },
+          "jarvis.pim.showCategories": {
+            "type": "boolean",
+            "default": true,
+            "description": "Show the Categories view in the Jarvis sidebar."
+          }
+        }
+      },
+      {
+        "title": "Outlook",
+        "properties": {
+          "jarvis.outlook.tasks.enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable the Outlook Tasks integration. Only effective when jarvis.outlookEnabled is true."
           }
         }
       }
@@ -541,6 +630,114 @@
           "required": [
             "name"
           ]
+        }
+      },
+      {
+        "name": "jarvis_category",
+        "displayName": "Manage Categories",
+        "modelDescription": "Manage categories from all configured PIM providers. Actions: get (list/filter categories from cache), set (create/update a category), delete (remove a category), rename (rename a category). When no providers are configured, returns an error.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "category",
+        "icon": "$(tag)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": ["get", "set", "delete", "rename"],
+              "description": "The action to perform"
+            },
+            "name": {
+              "type": "string",
+              "description": "Category name (required for set/delete)"
+            },
+            "filter": {
+              "type": "string",
+              "description": "Filter by name prefix or source (for get)"
+            },
+            "provider": {
+              "type": "string",
+              "description": "Target provider (omit to broadcast to all)"
+            },
+            "oldName": {
+              "type": "string",
+              "description": "Current category name (required for rename)"
+            },
+            "newName": {
+              "type": "string",
+              "description": "New category name (required for rename)"
+            }
+          },
+          "required": ["action"]
+        }
+      },
+      {
+        "name": "jarvis_task",
+        "displayName": "Manage Tasks",
+        "modelDescription": "Manage Outlook tasks linked to Jarvis projects and events. Actions: get (list/filter tasks from cache), set (create a new task), modify (update task fields), delete (remove a task). completedDate is read-only. When no providers are configured, returns an error.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "task",
+        "icon": "$(checklist)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": ["get", "set", "modify", "delete"],
+              "description": "The action to perform"
+            },
+            "category": {
+              "type": "string",
+              "description": "Filter by category name (for get)"
+            },
+            "status": {
+              "type": "string",
+              "description": "Filter by status (for get)"
+            },
+            "dueBefore": {
+              "type": "string",
+              "description": "Filter: only tasks due before this ISO date (for get)"
+            },
+            "includeBody": {
+              "type": "boolean",
+              "description": "Include task body in get results (default false)"
+            },
+            "id": {
+              "type": "string",
+              "description": "Task ID (required for modify/delete)"
+            },
+            "subject": {
+              "type": "string",
+              "description": "Task subject"
+            },
+            "body": {
+              "type": "string",
+              "description": "Task body text"
+            },
+            "dueDate": {
+              "type": "string",
+              "description": "Due date (ISO YYYY-MM-DD)"
+            },
+            "priority": {
+              "type": "string",
+              "enum": ["low", "normal", "high"],
+              "description": "Task priority"
+            },
+            "isComplete": {
+              "type": "boolean",
+              "description": "Mark task as complete (sets completedDate as side effect)"
+            },
+            "categories": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Outlook category names linking task to projects/events"
+            },
+            "provider": {
+              "type": "string",
+              "description": "Target provider (omit to broadcast to all)"
+            }
+          },
+          "required": ["action"]
         }
       }
     ]

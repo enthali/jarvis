@@ -1,12 +1,23 @@
 # Jarvis Roadmap
 
-*Last updated: 2026-04-13*
+*Last updated: 2026-04-15*
 
 ## Next Up
 
 | Change | Status |
 |--------|--------|
+| outlook-tasks-spec-fix (REQ/SPEC auf tatsächliche UI nachziehen) | in progress |
+| doc-traceability-fix (US_EXP_FEATURETOGGLE, US_EXP_NAMESORT, UAT-Hygiene) | planned |
 | qa-lifecycle-reqs (M-1: Activation, M-2: Disposal, M-5: RescanBridge) | planned |
+
+## v0.5.0 (in progress)
+
+| Change | Status |
+|--------|--------|
+| outlook-categories (ICategoryProvider, CategoryService, OutlookCategoryProvider, MCP Tool, TreeView) | done |
+| outlook-tasks (ITaskProvider, TaskService, OutlookTaskProvider, Task Editor, Tree-Integration, MCP Tool) | done |
+| outlook-tasks-fix (HIGH-1 body cache, MEDIUM-1/2/3 Spec-Fixes) | done |
+| outlook-tasks-spec-fix (REQ/SPEC Task Editor auf tatsächliche UI nachziehen) | done |
 
 ## v0.4.0 (released)
 
@@ -105,6 +116,10 @@ Constraint: Windows + Outlook Classic (COM), kein Graph/OAuth.
 **Build-Reihenfolge:**
 1. Outlook Category Provider (COM) + CategoryService + Cache + MCP Tool
 2. Weitere Provider (Gmail Labels) nach Bedarf — Interface steht, Einstiegshürde niedrig
+
+## Research
+
+- **Silent Session Inject** — Zweiter Input-Kanal für laufende Chat-Sessions (wie Claude Web/Telegram). `chat-session-resources` enthält nur Tool-Output-Blobs, kein Input-Buffer. Session-History vermutlich in `state.vscdb`. Alternativ: gh copilot CLI als background Agent der Queue direkt via MCP pollt ohne UI-Fokus-Switch. Forschungsprojekt, kein Feature.
 
 ## Backlog
 

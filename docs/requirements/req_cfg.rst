@@ -146,7 +146,7 @@ Configuration Requirements
    * AC-1: The ``contributes.configuration`` block in ``package.json`` SHALL be
      an array of configuration objects, each with a distinct ``title``
    * AC-2: The groups SHALL be: Projects, Events, Heartbeat, Messages,
-     MCP Server, Updates
+     MCP Server, Updates, PIM
    * AC-3: Each setting SHALL appear in exactly one group
    * AC-4: No setting key, type, or default value SHALL change
 

@@ -14,10 +14,11 @@ Explorer Design Specifications
    * ``name``: ``jarvis``
    * ``displayName``: ``Jarvis``
    * ``activationEvents``: ``onStartupFinished``, ``onView:jarvisProjects``,
-     ``onView:jarvisEvents``, ``onView:jarvisMessages``, ``onView:jarvisHeartbeat``
+     ``onView:jarvisEvents``, ``onView:jarvisMessages``, ``onView:jarvisHeartbeat``,
+     ``onView:jarvisCategories``
    * ``contributes.viewsContainers.activitybar``: One entry with id ``jarvis-explorer``,
      title ``Jarvis``, and a custom icon (``resources/jarvis.svg``)
-   * ``contributes.views.jarvis-explorer``: Four views with conditional visibility.
+   * ``contributes.views.jarvis-explorer``: Five views with conditional visibility.
      See ``SPEC_EXP_FEATURETOGGLE`` for the authoritative ``when``-clause definitions.
 
    **Activation:**
@@ -828,7 +829,9 @@ Explorer Design Specifications
         { "id": "jarvisMessages",  "name": "Messages",
           "when": "config.jarvis.messagesFile != ''" },
         { "id": "jarvisHeartbeat", "name": "Heartbeat",
-          "when": "config.jarvis.heartbeatConfigFile != ''" }
+          "when": "config.jarvis.heartbeatConfigFile != ''" },
+        { "id": "jarvisCategories", "name": "Categories",
+          "when": "config.jarvis.pim.showCategories" }
       ]
 
    **Bootstrap sequence for new installations:**
@@ -955,3 +958,86 @@ Explorer Design Specifications
         ]
 
    **Disposables** pushed to ``context.subscriptions``.
+
+
+.. spec:: Inline Task Nodes + Badge Logic
+   :id: SPEC_EXP_TASKTREE
+   :status: implemented
+   :links: REQ_EXP_TASKTREE; SPEC_PIM_TASKSERVICE; SPEC_EXP_PROVIDER
+
+   **Description:**
+   Modifies ``src/projectTreeProvider.ts`` and ``src/eventTreeProvider.ts``
+   to inject task child nodes under project/event leaves and an
+   "Uncategorized Tasks" top-level section.
+
+   **Tree node types added:**
+
+   .. code-block:: typescript
+
+      type TaskGroupNode = {
+          kind: 'taskGroup';
+          label: string;      // "Open Tasks (n)" | "Completed Tasks (n)"
+          tasks: Task[];
+          collapsed: boolean; // Completed groups start collapsed
+      };
+
+      type TaskLeafNode = {
+          kind: 'taskLeaf';
+          task: Task;
+      };
+
+      type UncategorizedTasksNode = {
+          kind: 'uncategorizedTasks';
+          tasks: Task[];
+      };
+
+   **ProjectTreeProvider.getChildren(element):**
+
+   * Root level: prepend an ``UncategorizedTasksNode`` (if tasks feature is
+     active and uncategorized tasks exist) before all project nodes
+   * Project leaf (``ProjectNode``): after the existing leaf item, expand to
+     return ``[TaskGroupNode(open), TaskGroupNode(completed)]``, where tasks
+     are filtered by ``taskService.getTasks({ category: "Project: <name>" })``
+   * ``TaskGroupNode``: return ``TaskLeafNode[]`` from ``node.tasks``
+   * ``UncategorizedTasksNode``: return ``TaskLeafNode[]``
+   * All task reads are synchronous cache reads (``_taskService.getTasks()``
+     called during ``getChildren`` — cache must already be populated by
+     heartbeat refresh)
+
+   **EventTreeProvider.getChildren(element):**
+
+   * Event leaf (``EventNode``): same pattern as project leaf, filtered by
+     ``taskService.getTasks({ category: "Event: <name>" })``
+
+   **getTreeItem(element):**
+
+   * ``ProjectNode``/``EventNode`` label: plain name (no text suffix).
+     Task indicator via ``_applyTaskBadge(item, name)``:
+
+     - Count open tasks ``n``. If ``n === 0``: no change.
+     - Set ``item.description = n`` (renders as dimmed count right of label).
+     - If any open task has ``dueDate < today``:
+       ``item.iconPath = ThemeIcon('warning', ThemeColor('list.warningForeground'))``
+     - Else if any open task has ``dueDate ≤ today + 5 days``:
+       ``item.iconPath = ThemeIcon('circle-filled', ThemeColor('charts.orange'))``
+
+   * ``TaskGroupNode``: ``collapsibleState = Collapsed`` (completed) or
+     ``Expanded`` (open); label = ``"Open Tasks (n)"`` / ``"Completed Tasks (n)"``
+   * ``TaskLeafNode``: label = ``<subject>`` when no dueDate, or
+     ``<subject> — <dueDate>`` when set; icon = ``$(check)`` for complete,
+     ``$(circle-outline)`` for open; command = open with ``jarvis.taskEditor``
+   * ``UncategorizedTasksNode``: label = ``"Uncategorized Tasks (n)"``;
+     ``collapsibleState = Collapsed``
+
+   **Guard:**
+
+   All task-related code in ``getChildren`` and ``getTreeItem`` is conditioned
+   on ``taskService && taskService.hasProviders()``. When false, behavior is
+   identical to the current implementation (no task nodes rendered).
+
+   **Cache-only contract:**
+
+   ``getChildren`` calls ``taskService.getTasks(filter)`` synchronously from
+   cache. It does NOT ``await`` — the cache is pre-populated by the heartbeat
+   ``"Jarvis: Task Refresh"`` job. If the cache is cold (e.g. first activation
+   before the first heartbeat tick), the tree shows no task nodes without error.

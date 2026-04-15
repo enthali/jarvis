@@ -52,6 +52,12 @@ Theme Abbreviations
    * - ``REL``
      - Release & CI/CD
      - ``US_REL_PUBLISH``, ``REQ_REL_VSIX``
+   * - ``OLK``
+     - Outlook Integration (COM Bridge, Outlook-specific provider)
+     - ``US_OLK_COMBRIDGE``, ``REQ_OLK_COMBRIDGE``
+   * - ``PIM``
+     - Personal Information Management (generic category layer, provider interface, cache, service, tool, tree view)
+     - ``US_PIM_CATEGORIES``, ``REQ_PIM_PROVIDER``, ``SPEC_PIM_SERVICE``
    * - ``UAT``
      - User Acceptance Tests
      - ``US_UAT_SAMPLEDATA``, ``REQ_UAT_VALID_SAMPLES``

@@ -87,6 +87,9 @@ Operational Quality Manager artifacts are maintained in this project area:
 - **From PM:** audit requests, focus areas, follow-up questions
 - **To PM:** Quality Reports, consolidated findings, quality status, follow-up status
 - **Not to CM:** no direct escalation or Change Request handoff from the Quality Manager
+- The Project Manager is the primary counterpart for this role
+- When the PM sends a direct question or request, answer via Jarvis message without waiting for user mediation
+- When a review produces a report, conclusion, release recommendation, or follow-up status, proactively send that result to the PM via Jarvis message without waiting for user input
 
 ## Working Principles
 

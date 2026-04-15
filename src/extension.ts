@@ -1,5 +1,5 @@
-// Implementation: SPEC_EXP_EXTENSION, SPEC_EXP_FILTERCOMMAND, SPEC_EXP_EVENTFILTER_CMD, SPEC_EXP_OPENYAML_CMD, SPEC_EXP_CONTEXTACTIONS, SPEC_AUT_MANUALCOMMAND, SPEC_MSG_SENDCOMMAND, SPEC_MSG_OPENSESSION, SPEC_MSG_LISTSESSIONS, SPEC_EXP_AGENTSESSION, SPEC_EXP_NEWPROJECT_CMD, SPEC_EXP_NEWEVENT_CMD, SPEC_REL_UPDATECOMMAND, SPEC_EXP_RESCAN_CMD, SPEC_AUT_JOBREG, SPEC_DEV_LOGCHANNEL, SPEC_MSG_DUALREGISTRATION, SPEC_EXP_LISTPROJECTS, SPEC_CFG_DEFAULTPATHS, SPEC_EXP_FEATURETOGGLE
-// Requirements: REQ_EXP_ACTIVITYBAR, REQ_EXP_TREEVIEW, REQ_EXP_REACTIVECACHE, REQ_CFG_FOLDERPATHS, REQ_CFG_SCANINTERVAL, REQ_EXP_PROJECTFILTER, REQ_EXP_FILTERPERSIST, REQ_EXP_EVENTFILTER, REQ_EXP_EVENTFILTERPERSIST, REQ_EXP_OPENYAML, REQ_EXP_CONTEXTACTIONS, REQ_AUT_MANUALRUN, REQ_MSG_SEND, REQ_MSG_DELETE, REQ_MSG_OPENSESSION, REQ_MSG_SESSIONFILTER, REQ_MSG_LISTSESSIONS, REQ_EXP_AGENTSESSION, REQ_EXP_NEWPROJECT, REQ_EXP_NEWEVENT, REQ_REL_UPDATECOMMAND, REQ_CFG_UPDATECHECK, REQ_EXP_RESCAN_BTN, REQ_AUT_JOBREG, REQ_DEV_LOGGING, REQ_MSG_MCPSERVER, REQ_CFG_MCPPORT, REQ_EXP_LISTPROJECTS, REQ_CFG_DEFAULTPATHS, REQ_EXP_FEATURETOGGLE
+// Implementation: SPEC_EXP_EXTENSION, SPEC_EXP_FILTERCOMMAND, SPEC_EXP_EVENTFILTER_CMD, SPEC_EXP_OPENYAML_CMD, SPEC_EXP_CONTEXTACTIONS, SPEC_AUT_MANUALCOMMAND, SPEC_MSG_SENDCOMMAND, SPEC_MSG_OPENSESSION, SPEC_MSG_LISTSESSIONS, SPEC_EXP_AGENTSESSION, SPEC_EXP_NEWPROJECT_CMD, SPEC_EXP_NEWEVENT_CMD, SPEC_REL_UPDATECOMMAND, SPEC_EXP_RESCAN_CMD, SPEC_AUT_JOBREG, SPEC_DEV_LOGCHANNEL, SPEC_MSG_DUALREGISTRATION, SPEC_EXP_LISTPROJECTS, SPEC_CFG_DEFAULTPATHS, SPEC_EXP_FEATURETOGGLE, SPEC_PIM_SERVICE, SPEC_PIM_CATVIEW, SPEC_PIM_CATTOOL, SPEC_OLK_COMBRIDGE, SPEC_OLK_SETTINGS, SPEC_OLK_AUTOCAT_NEWENTITY, SPEC_PIM_TASKSERVICE, SPEC_PIM_TASKEDITOR, SPEC_PIM_TASKTOOL, SPEC_OLK_TASKPROVIDER, SPEC_OLK_TASKENABLE
+// Requirements: REQ_EXP_ACTIVITYBAR, REQ_EXP_TREEVIEW, REQ_EXP_REACTIVECACHE, REQ_CFG_FOLDERPATHS, REQ_CFG_SCANINTERVAL, REQ_EXP_PROJECTFILTER, REQ_EXP_FILTERPERSIST, REQ_EXP_EVENTFILTER, REQ_EXP_EVENTFILTERPERSIST, REQ_EXP_OPENYAML, REQ_EXP_CONTEXTACTIONS, REQ_AUT_MANUALRUN, REQ_MSG_SEND, REQ_MSG_DELETE, REQ_MSG_OPENSESSION, REQ_MSG_SESSIONFILTER, REQ_MSG_LISTSESSIONS, REQ_EXP_AGENTSESSION, REQ_EXP_NEWPROJECT, REQ_EXP_NEWEVENT, REQ_REL_UPDATECOMMAND, REQ_CFG_UPDATECHECK, REQ_EXP_RESCAN_BTN, REQ_AUT_JOBREG, REQ_DEV_LOGGING, REQ_MSG_MCPSERVER, REQ_CFG_MCPPORT, REQ_EXP_LISTPROJECTS, REQ_CFG_DEFAULTPATHS, REQ_EXP_FEATURETOGGLE, REQ_PIM_SERVICE, REQ_PIM_CATVIEW, REQ_PIM_CATTOOL, REQ_OLK_COMBRIDGE, REQ_OLK_ENABLE, REQ_OLK_AUTOCAT_NEWENTITY, REQ_PIM_TASKSERVICE, REQ_PIM_TASKEDITOR, REQ_PIM_TASKTOOL, REQ_OLK_TASKPROVIDER, REQ_OLK_TASKENABLE
 
 import * as vscode from 'vscode';
 import * as fs from 'fs';
@@ -14,6 +14,12 @@ import { lookupSessionUUID, getAllSessions, initSessionLookup, filterNamedSessio
 import { checkForUpdates } from './updateCheck';
 import { registerMcpTool, startMcpServer, stopMcpServer } from './mcpServer';
 import { z } from 'zod';
+import { CategoryService } from './pim/CategoryService';
+import { CategoryTreeProvider } from './pim/CategoryTreeProvider';
+import { OutlookCategoryProvider } from './outlookIntegration/OutlookCategoryProvider';
+import { TaskService } from './pim/TaskService';
+import { TaskEditorProvider } from './pim/TaskEditorProvider';
+import { OutlookTaskProvider } from './outlookIntegration/OutlookTaskProvider';
 
 // Implementation: SPEC_EXP_NEWPROJECT_CMD
 function toKebabCase(name: string): string {
@@ -83,8 +89,12 @@ export function activate(context: vscode.ExtensionContext) {
         eventProvider.refresh();
     });
 
-    const projectProvider = new ProjectTreeProvider(scanner);
-    const eventProvider = new EventTreeProvider(scanner);
+    // Implementation: SPEC_PIM_TASKSERVICE
+    // Requirements: REQ_PIM_TASKSERVICE
+    const taskService = new TaskService();
+
+    const projectProvider = new ProjectTreeProvider(scanner, taskService);
+    const eventProvider = new EventTreeProvider(scanner, taskService);
 
     function startScanner(): void {
         const config = vscode.workspace.getConfiguration('jarvis');
@@ -139,6 +149,97 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Register rescan heartbeat job (SPEC_EXP_EXTENSION)
     syncRescanJob();
+
+    // Implementation: SPEC_OLK_SETTINGS, SPEC_PIM_SERVICE, SPEC_PIM_CATVIEW
+    // Requirements: REQ_PIM_SERVICE, REQ_PIM_CATVIEW, REQ_OLK_ENABLE
+    const categoryService = new CategoryService(log);
+    const categoryTreeProvider = new CategoryTreeProvider(categoryService);
+
+    const outlookEnabled = vscode.workspace
+        .getConfiguration('jarvis')
+        .get<boolean>('outlookEnabled', false);
+
+    if (outlookEnabled) {
+        categoryService.addProvider(new OutlookCategoryProvider(log));
+    }
+
+    context.subscriptions.push(
+        vscode.window.registerTreeDataProvider('jarvisCategories', categoryTreeProvider)
+    );
+
+    // Implementation: SPEC_OLK_TASKENABLE, SPEC_PIM_TASKSERVICE
+    // Requirements: REQ_OLK_TASKENABLE, REQ_PIM_TASKSERVICE
+    try {
+        const cfg = vscode.workspace.getConfiguration('jarvis');
+        if (cfg.get('outlookEnabled') === true
+            && cfg.get('outlook.tasks.enabled') === true) {
+            const outlookTaskProvider = new OutlookTaskProvider(log);
+            taskService.addProvider(outlookTaskProvider);
+            log.info('[Tasks] OutlookTaskProvider registered');
+        }
+    } catch (err) {
+        log.warn(`[Tasks] Failed to initialize task providers: ${err}`);
+    }
+
+    // Register TaskEditorProvider (SPEC_PIM_TASKEDITOR)
+    context.subscriptions.push(
+        vscode.window.registerCustomEditorProvider(
+            'jarvis.taskEditor',
+            new TaskEditorProvider(taskService, categoryService, log),
+            { supportsMultipleEditorsPerDocument: false }
+        )
+    );
+
+    // Implementation: SPEC_PIM_SERVICE (syncCategoryRefreshJob)
+    function syncCategoryRefreshJob(): void {
+        if (!categoryService.hasProviders()) {
+            scheduler.unregisterJob('Jarvis: Category Refresh');
+            return;
+        }
+        const interval = vscode.workspace
+            .getConfiguration('jarvis')
+            .get<number>('scanInterval', 2);
+        if (interval > 0) {
+            const job: HeartbeatJob = {
+                name: 'Jarvis: Category Refresh',
+                schedule: `*/${interval} * * * *`,
+                steps: [{ type: 'command', run: 'jarvis.refreshCategories' }]
+            };
+            scheduler.registerJob(job);
+            log.info(`[PIM] registered refresh job: */${interval} * * * *`);
+        } else {
+            scheduler.unregisterJob('Jarvis: Category Refresh');
+            log.info('[PIM] unregistered refresh job (interval=0)');
+        }
+    }
+
+    syncCategoryRefreshJob();
+
+    // Implementation: SPEC_PIM_TASKSERVICE (syncTaskRefreshJob)
+    // Requirements: REQ_PIM_TASKSERVICE
+    function syncTaskRefreshJob(): void {
+        if (!taskService.hasProviders()) {
+            scheduler.unregisterJob('Jarvis: Task Refresh');
+            return;
+        }
+        const interval = vscode.workspace
+            .getConfiguration('jarvis')
+            .get<number>('scanInterval', 2);
+        if (interval > 0) {
+            const job: HeartbeatJob = {
+                name: 'Jarvis: Task Refresh',
+                schedule: `*/${interval} * * * *`,
+                steps: [{ type: 'command', run: 'jarvis.refreshTasks' }]
+            };
+            scheduler.registerJob(job);
+            log.info(`[Tasks] registered refresh job: */${interval} * * * *`);
+        } else {
+            scheduler.unregisterJob('Jarvis: Task Refresh');
+            log.info('[Tasks] unregistered refresh job (interval=0)');
+        }
+    }
+
+    syncTaskRefreshJob();
 
     // Automatic update check (SPEC_REL_UPDATECOMMAND, SPEC_CFG_UPDATECHECK)
     const autoCheck = vscode.workspace
@@ -239,6 +340,54 @@ export function activate(context: vscode.ExtensionContext) {
     const openInTerminalCommand = vscode.commands.registerCommand('jarvis.openInTerminal', (node: LeafNode) => {
         vscode.commands.executeCommand('openInTerminal', vscode.Uri.file(node.id));
     });
+
+    // Register refreshTasks command (SPEC_PIM_TASKSERVICE)
+    const refreshTasksCommand = vscode.commands.registerCommand('jarvis.refreshTasks', async () => {
+        try {
+            await taskService.refresh();
+            projectProvider.refresh();
+            eventProvider.refresh();
+            log.info('[Tasks] manual task refresh triggered');
+        } catch (err) {
+            log.warn(`[Tasks] refresh failed: ${err}`);
+        }
+    });
+
+    // Register category commands (SPEC_PIM_CATVIEW, SPEC_OLK_SETTINGS)
+    const refreshCategoriesCommand = vscode.commands.registerCommand('jarvis.refreshCategories', async () => {
+        await categoryTreeProvider.refresh();
+        log.info('[PIM] manual categories refresh triggered');
+    });
+
+    const renameCategoryCommand = vscode.commands.registerCommand(
+        'jarvis.renameCategory',
+        async (node: { name: string; source: string; id?: string }) => {
+            const newName = await vscode.window.showInputBox({
+                prompt: 'New category name',
+                value: node.name,
+                validateInput: v => v?.trim() ? null : 'Name cannot be empty'
+            });
+            if (newName && newName !== node.name) {
+                await categoryService.renameCategory(node.name, newName, node.source, node.id);
+                categoryTreeProvider.refresh();
+            }
+        }
+    );
+
+    const deleteCategoryCommand = vscode.commands.registerCommand(
+        'jarvis.deleteCategory',
+        async (node: { name: string; source: string; id?: string }) => {
+            const confirm = await vscode.window.showWarningMessage(
+                `Delete category "${node.name}"?`,
+                { modal: true },
+                'Delete'
+            );
+            if (confirm === 'Delete') {
+                await categoryService.deleteCategory(node.name, node.source, node.id);
+                categoryTreeProvider.refresh();
+            }
+        }
+    );
 
     // Register send messages command (SPEC_MSG_SENDCOMMAND)
     const sendMessagesCommand = vscode.commands.registerCommand(
@@ -581,6 +730,255 @@ export function activate(context: vscode.ExtensionContext) {
         }
     );
 
+    // Implementation: SPEC_PIM_CATTOOL
+    // Requirements: REQ_PIM_CATTOOL
+    const categoryTool = registerDualTool(
+        'jarvis_category',
+        async (options: vscode.LanguageModelToolInvocationOptions<{
+            action: string;
+            name?: string;
+            filter?: string;
+            provider?: string;
+            oldName?: string;
+            newName?: string;
+        }>, _token: vscode.CancellationToken) => {
+            if (!categoryService.hasProviders()) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart(
+                        'No category providers configured. '
+                        + 'Enable a PIM provider (e.g. jarvis.outlookEnabled).'
+                    )
+                ]);
+            }
+            const { action, name, filter, provider, oldName, newName } = options.input;
+            let result: object;
+            switch (action) {
+                case 'get':
+                    result = { categories: await categoryService.getCategories(filter) };
+                    break;
+                case 'set':
+                    if (!name) { throw new Error('name required for set'); }
+                    await categoryService.setCategory(name, 0, provider);
+                    result = { status: 'ok', name };
+                    break;
+                case 'delete':
+                    if (!name) { throw new Error('name required for delete'); }
+                    await categoryService.deleteCategory(name, provider);
+                    result = { status: 'ok', name };
+                    break;
+                case 'rename':
+                    if (!oldName || !newName) { throw new Error('oldName and newName required for rename'); }
+                    await categoryService.renameCategory(oldName, newName, provider);
+                    result = { status: 'ok', oldName, newName };
+                    break;
+                default:
+                    throw new Error(`Unknown action: ${action}`);
+            }
+            categoryTreeProvider.refresh();
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(JSON.stringify(result))
+            ]);
+        },
+        'Manage categories: get, set, delete, or rename.',
+        {
+            action: z.enum(['get', 'set', 'delete', 'rename']),
+            name: z.string().optional(),
+            filter: z.string().optional(),
+            provider: z.string().optional(),
+            oldName: z.string().optional(),
+            newName: z.string().optional()
+        },
+        async (args) => {
+            if (!categoryService.hasProviders()) {
+                return { error: 'No category providers configured.' };
+            }
+            const action = args.action as string;
+            const name = args.name as string | undefined;
+            const filter = args.filter as string | undefined;
+            const provider = args.provider as string | undefined;
+            const oldNameArg = args.oldName as string | undefined;
+            const newNameArg = args.newName as string | undefined;
+            switch (action) {
+                case 'get':
+                    return { categories: await categoryService.getCategories(filter) };
+                case 'set':
+                    if (!name) { return { error: 'name is required' }; }
+                    await categoryService.setCategory(name, 0, provider);
+                    categoryTreeProvider.refresh();
+                    return { status: 'ok', name };
+                case 'delete':
+                    if (!name) { return { error: 'name is required' }; }
+                    await categoryService.deleteCategory(name, provider);
+                    categoryTreeProvider.refresh();
+                    return { status: 'ok', name };
+                case 'rename':
+                    if (!oldNameArg || !newNameArg) { return { error: 'oldName and newName are required' }; }
+                    await categoryService.renameCategory(oldNameArg, newNameArg, provider);
+                    categoryTreeProvider.refresh();
+                    return { status: 'ok', oldName: oldNameArg, newName: newNameArg };
+                default:
+                    return { error: `Unknown action: ${action}` };
+            }
+        }
+    );
+
+    // Implementation: SPEC_PIM_TASKTOOL
+    // Requirements: REQ_PIM_TASKTOOL
+    const taskTool = registerDualTool(
+        'jarvis_task',
+        async (options: vscode.LanguageModelToolInvocationOptions<{
+            action: string;
+            category?: string;
+            status?: string;
+            dueBefore?: string;
+            includeBody?: boolean;
+            id?: string;
+            subject?: string;
+            body?: string;
+            dueDate?: string;
+            priority?: string;
+            isComplete?: boolean;
+            categories?: string[];
+            provider?: string;
+            completedDate?: string;
+        }>, _token: vscode.CancellationToken) => {
+            if (!taskService.hasProviders()) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart(
+                        'No task providers configured. '
+                        + 'Enable jarvis.outlookEnabled and jarvis.outlook.tasks.enabled.'
+                    )
+                ]);
+            }
+            const input = options.input;
+            if (input.completedDate !== undefined) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart('completedDate is read-only and cannot be set directly.')
+                ]);
+            }
+            let result: object;
+            switch (input.action) {
+                case 'get': {
+                    const tasks = await taskService.getTasks({
+                        category: input.category,
+                        status: input.status,
+                        dueBefore: input.dueBefore
+                    });
+                    const mapped = input.includeBody
+                        ? tasks
+                        : tasks.map(({ body: _b, ...t }) => t);
+                    result = { tasks: mapped };
+                    break;
+                }
+                case 'set': {
+                    const newTask = await taskService.setTask(input as any, input.provider);
+                    projectProvider.refresh();
+                    eventProvider.refresh();
+                    result = { task: newTask };
+                    break;
+                }
+                case 'modify': {
+                    if (!input.id) { throw new Error('id required for modify'); }
+                    const { completedDate: _cd, ...changes } = input as any;
+                    delete changes.action;
+                    delete changes.provider;
+                    delete changes.id;
+                    delete changes.includeBody;
+                    delete changes.category;
+                    delete changes.status;
+                    delete changes.dueBefore;
+                    await taskService.modifyTask(input.id, changes, input.provider);
+                    projectProvider.refresh();
+                    eventProvider.refresh();
+                    result = { status: 'ok', id: input.id };
+                    break;
+                }
+                case 'delete': {
+                    if (!input.id) { throw new Error('id required for delete'); }
+                    await taskService.deleteTask(input.id, input.provider);
+                    projectProvider.refresh();
+                    eventProvider.refresh();
+                    result = { status: 'ok', id: input.id };
+                    break;
+                }
+                default:
+                    throw new Error(`Unknown action: ${input.action}`);
+            }
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(JSON.stringify(result))
+            ]);
+        },
+        'Manage tasks: get, set, modify, or delete. Tasks are linked to projects/events via their categories field.',
+        {
+            action: z.enum(['get', 'set', 'modify', 'delete']),
+            category: z.string().optional(),
+            status: z.string().optional(),
+            dueBefore: z.string().optional(),
+            includeBody: z.boolean().optional(),
+            id: z.string().optional(),
+            subject: z.string().optional(),
+            body: z.string().optional(),
+            dueDate: z.string().optional(),
+            priority: z.string().optional(),
+            isComplete: z.boolean().optional(),
+            categories: z.array(z.string()).optional(),
+            provider: z.string().optional()
+        },
+        async (args) => {
+            if (!taskService.hasProviders()) {
+                return { error: 'No task providers configured.' };
+            }
+            const action = args.action as string;
+            if ((args as any).completedDate !== undefined) {
+                return { error: 'completedDate is read-only.' };
+            }
+            switch (action) {
+                case 'get': {
+                    const tasks = await taskService.getTasks({
+                        category: args.category as string | undefined,
+                        status: args.status as string | undefined,
+                        dueBefore: args.dueBefore as string | undefined
+                    });
+                    const mapped = args.includeBody
+                        ? tasks
+                        : tasks.map(({ body: _b, ...t }) => t);
+                    return { tasks: mapped };
+                }
+                case 'set': {
+                    const newTask = await taskService.setTask(args as any, args.provider as string | undefined);
+                    projectProvider.refresh();
+                    eventProvider.refresh();
+                    return { task: newTask };
+                }
+                case 'modify': {
+                    if (!args.id) { return { error: 'id is required for modify' }; }
+                    const changes = { ...args } as any;
+                    delete changes.action;
+                    delete changes.id;
+                    delete changes.provider;
+                    delete changes.includeBody;
+                    delete changes.category;
+                    delete changes.status;
+                    delete changes.dueBefore;
+                    delete changes.completedDate;
+                    await taskService.modifyTask(args.id as string, changes, args.provider as string | undefined);
+                    projectProvider.refresh();
+                    eventProvider.refresh();
+                    return { status: 'ok', id: args.id };
+                }
+                case 'delete': {
+                    if (!args.id) { return { error: 'id is required for delete' }; }
+                    await taskService.deleteTask(args.id as string, args.provider as string | undefined);
+                    projectProvider.refresh();
+                    eventProvider.refresh();
+                    return { status: 'ok', id: args.id };
+                }
+                default:
+                    return { error: `Unknown action: ${action}` };
+            }
+        }
+    );
+
     // Register new project command (SPEC_EXP_NEWPROJECT_CMD)
     // Requirements: REQ_EXP_NEWPROJECT
     const newProjectCommand = vscode.commands.registerCommand(
@@ -613,6 +1011,20 @@ export function activate(context: vscode.ExtensionContext) {
             const content = `name: "${input}"\n`;
             await fs.promises.writeFile(
                 path.join(targetPath, 'project.yaml'), content, 'utf-8');
+
+            // Implementation: SPEC_OLK_AUTOCAT_NEWENTITY
+            // Requirements: REQ_OLK_AUTOCAT_NEWENTITY
+            try {
+                const outlookEnabled = vscode.workspace
+                    .getConfiguration('jarvis')
+                    .get<boolean>('outlookEnabled', false);
+                if (outlookEnabled && categoryService.hasProviders()) {
+                    await categoryService.setCategory(input, 0);
+                    log.info(`[NewProject] Outlook category created: "${input}"`);
+                }
+            } catch (err) {
+                log.warn(`[NewProject] Failed to create Outlook category: ${err}`);
+            }
 
             await scanner.rescan();
 
@@ -682,6 +1094,20 @@ export function activate(context: vscode.ExtensionContext) {
             await fs.promises.writeFile(
                 path.join(targetPath, 'event.yaml'), content, 'utf-8');
 
+            // Implementation: SPEC_OLK_AUTOCAT_NEWENTITY
+            // Requirements: REQ_OLK_AUTOCAT_NEWENTITY
+            try {
+                const outlookEnabled = vscode.workspace
+                    .getConfiguration('jarvis')
+                    .get<boolean>('outlookEnabled', false);
+                if (outlookEnabled && categoryService.hasProviders()) {
+                    await categoryService.setCategory(nameInput, 0);
+                    log.info(`[NewEvent] Outlook category created: "${nameInput}"`);
+                }
+            } catch (err) {
+                log.warn(`[NewEvent] Failed to create Outlook category: ${err}`);
+            }
+
             await scanner.rescan();
 
             const leafNode = findLeafNode(scanner.getEventTree(), targetPath);
@@ -733,6 +1159,12 @@ export function activate(context: vscode.ExtensionContext) {
         registerJobTool,
         unregisterJobTool,
         listProjectsTool,
+        categoryTool,
+        taskTool,
+        refreshCategoriesCommand,
+        renameCategoryCommand,
+        deleteCategoryCommand,
+        refreshTasksCommand,
         mcpStatusBar,
         projectView,
         eventView,
@@ -751,6 +1183,19 @@ export function activate(context: vscode.ExtensionContext) {
             }
             if (e.affectsConfiguration('jarvis.scanInterval')) {
                 syncRescanJob();
+                syncCategoryRefreshJob();
+                syncTaskRefreshJob();
+            }
+            if (e.affectsConfiguration('jarvis.outlookEnabled')
+                || e.affectsConfiguration('jarvis.outlook.tasks.enabled')) {
+                vscode.window.showInformationMessage(
+                    'Jarvis: Outlook toggle changed. Reload window to apply.',
+                    'Reload'
+                ).then(choice => {
+                    if (choice === 'Reload') {
+                        vscode.commands.executeCommand('workbench.action.reloadWindow');
+                    }
+                });
             }
         }),
         { dispose: () => scanner.stop() }
