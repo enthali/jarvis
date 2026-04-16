@@ -93,8 +93,28 @@ Constraint: Windows + Outlook Classic (COM), kein Graph/OAuth.
 - ToS-Grauzone: akzeptiertes Risiko für internen Gebrauch
 - **Voraussetzung:** Outlook feature-complete (post v0.5.x)
 
-### Silent Session Inject
-Zweiter Input-Kanal für laufende Chat-Sessions (wie Claude Web/Telegram). `chat-session-resources` enthält nur Tool-Output-Blobs, kein Input-Buffer. Session-History vermutlich in `state.vscdb`. Alternativ: gh copilot CLI als background Agent der Queue direkt via MCP pollt ohne UI-Fokus-Switch. Forschungsprojekt, kein Feature.
+### Background Agent Sessions (proposed APIs)
+**Vision:** Multi-Agent-Sessions die selbstständig miteinander interagieren — ohne UI-Fokus-Wechsel, ohne Play-Button.
+
+**VS Code 1.116 proposed APIs (entdeckt 2026-04-16):**
+- `chatSessionsProvider`: Sessions programmatisch erstellen, Requests senden, Responses streamen
+- `chatParticipantPrivate`: Active Session URI, `permissionLevel: 'autoApprove'` für autonome Agents
+- Aktivierung: `"enabledApiProposals": ["chatSessionsProvider", "chatParticipantPrivate"]` in package.json
+- Kein Marketplace-Blocker — Jarvis ist sideloaded
+
+**Erster Kandidat: Quality Manager**
+- Wird bereits per Message getriggert (Heartbeat oder CM-Notification)
+- Arbeitet vollständig autonom (MECE/Trace dispatch → Report → CR per Message)
+- Null UI-Interaktion nötig — perfekt für Background-Inject
+- Aktueller Workaround: Play-Button klicken, UI-Fokus geht verloren
+
+**Stufenplan:**
+1. **PoC:** `enabledApiProposals` aktivieren, Session erstellen, Request senden, Response lesen
+2. **QM Background:** QM-Session per Heartbeat-Job starten, Message injizieren, Ergebnis per Message Queue zurück
+3. **Multi-Agent:** CM triggert QM im Hintergrund, QM antwortet per Message — kein menschlicher Klick mehr
+4. **Generalisierung:** Beliebige Agent-Sessions per API starten (PM → CM → Implement → Verify Pipeline)
+
+**Abgrenzung:** Play-Button bleibt primärer Trigger für interaktive Sessions (PM, CM). Background-Inject nur für autonome Agents.
 
 ## Architecture Decisions
 
