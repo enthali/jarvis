@@ -327,20 +327,21 @@ Explorer Requirements
    * AC-5: The command SHALL NOT appear in the Command Palette
 
 
-.. req:: Sort Tree by Entity Name
+.. req:: Sort Projects Tree by Entity Name
    :id: REQ_EXP_NAMESORT
    :status: implemented
    :priority: optional
    :links: US_EXP_NAMESORT
 
    **Description:**
-   The scanner SHALL sort tree nodes alphabetically by entity name (for leaf
-   nodes) or folder name (for grouping nodes), so that the explorer displays
-   items in a predictable, user-friendly order.
+   The scanner SHALL sort **Projects** tree nodes alphabetically by entity name
+   (for leaf nodes) or folder name (for grouping nodes). This requirement applies
+   to the Projects tree only. Events tree sorting is governed by
+   ``REQ_EVT_DATESORT`` (chronological by ``dates.start``).
 
    **Acceptance Criteria:**
 
-   * AC-1: Leaf nodes at each level are sorted by their YAML ``name`` field
+   * AC-1: Project leaf nodes at each level are sorted by their YAML ``name`` field
      (case-insensitive)
    * AC-2: Folder nodes at each level are sorted by folder name (case-insensitive)
    * AC-3: Folders and leaves are interleaved in a single alphabetical list at
@@ -395,15 +396,18 @@ Explorer Requirements
    * AC-5: The tool SHALL be simultaneously available via the MCP server
 
 
-.. req:: Feature-Toggled Sidebar Views
+.. req:: Selected Feature Toggles via Settings
    :id: REQ_EXP_FEATURETOGGLE
    :status: implemented
    :priority: mandatory
    :links: US_EXP_FEATURETOGGLE; REQ_EXP_TREEVIEW; REQ_CFG_DEFAULTPATHS
 
    **Description:**
-   Optional sidebar views SHALL only be visible when their corresponding feature
-   is configured. This prevents empty views from cluttering the Jarvis Explorer.
+   Selected optional features SHALL be individually enabled or hidden via VS Code
+   settings. Not all features are toggleable — only the following: sidebar views
+   for Events, Messages, Heartbeat (path-based), the Categories view (boolean),
+   and the Recording feature (boolean). This prevents empty views and unused
+   controls from cluttering the Jarvis Explorer.
 
    **Acceptance Criteria:**
 
@@ -418,6 +422,9 @@ Explorer Requirements
      view definition in ``package.json`` — no runtime code required
    * AC-6: The Categories view SHALL only be visible when
      ``jarvis.pim.showCategories`` is ``true``
+   * AC-7: Recording start/stop buttons in tree item menus SHALL only appear
+     when ``jarvis.recording.enabled`` is ``true`` (controlled via ``when``
+     clause in ``contributes.menus``)
 
 
 .. req:: Context Actions on Leaf Nodes
