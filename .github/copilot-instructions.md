@@ -103,7 +103,7 @@ Feature branches accumulate changes until a release. **Merge to `main` only at r
 
 Each change lives on `feature/<change-name>` (name matches Change Document).
 Feature branches branch from `develop`, not from `main` or other feature branches.
-Change Managers merge completed feature branches back into `develop` (normal merge).
+Change Managers squash-merge completed feature branches into `develop` (`git merge --squash feature/<name>`), then commit with a short summary message.
 At release: `syspilot.release` squash-merges `develop` into `main` (`git merge --squash develop`) and tags.
 `develop` is never pushed to origin — only `main` is public.
 
