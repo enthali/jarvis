@@ -808,7 +808,7 @@ Explorer Design Specifications
    * Disposable pushed to ``context.subscriptions``
 
 
-.. spec:: Feature-Toggled Sidebar Views
+.. spec:: Selected Feature Toggles via Settings
    :id: SPEC_EXP_FEATURETOGGLE
    :status: implemented
    :links: REQ_EXP_FEATURETOGGLE; SPEC_CFG_DEFAULTPATHS; SPEC_EXP_EXTENSION
@@ -816,7 +816,8 @@ Explorer Design Specifications
    **Description:**
    The `contributes.views` section in `package.json` SHALL be updated so that
    optional sidebar views carry a `when`-clause that hides them until the
-   corresponding feature setting is non-empty.
+   corresponding feature setting is non-empty or enabled. Recording start/stop
+   buttons are similarly gated via ``when``-clauses in ``contributes.menus``.
 
    **package.json change** (`contributes.views.jarvis-explorer`):
 
@@ -853,6 +854,9 @@ Explorer Design Specifications
      `true` as soon as the setting holds any non-empty string
    * No TypeScript code changes are required for the visibility logic itself;
      VS Code evaluates `when`-clauses natively
+   * Recording start/stop buttons in ``contributes.menus`` carry
+     ``"when": "config.jarvis.recording.enabled == true && ..."`` —
+     these are **menu** toggles, not view toggles; governed by ``REQ_REC_BUTTON``
 
 
 .. spec:: Context Actions Commands
