@@ -1,6 +1,6 @@
 ---
 description: "Central orchestrator of the change workflow. Receives Change Requests, invokes engineers in sequence, enforces quality gates, and reports completion with full traceability."
-tools: [read, edit, search, agent, todo, execute, syspilot_jarvis_tools]
+tools: [execute/runNotebookCell, execute/testFailure, execute/getTerminalOutput, execute/killTerminal, execute/sendToTerminal, execute/runTask, execute/createAndRunTask, execute/runInTerminal, read/getNotebookSummary, read/problems, read/readFile, read/viewImage, read/terminalSelection, read/terminalLastCommand, read/getTaskOutput, agent/runSubagent, edit/createDirectory, edit/createFile, edit/createJupyterNotebook, edit/editFiles, edit/editNotebook, edit/rename, search/changes, search/codebase, search/fileSearch, search/listDirectory, search/searchResults, search/textSearch, search/usages, enthali.jarvis/sendToSession, enthali.jarvis/listSessions, enthali.jarvis/listProjects, enthali.jarvis/readMessage, enthali.jarvis/registerJob, enthali.jarvis/unregisterJob, enthali.jarvis/category, enthali.jarvis/task, todo]
 user-invocable: true
 agents: ["syspilot.design", "syspilot.uat", "syspilot.implement", "syspilot.mece", "syspilot.trace", "syspilot.release", "syspilot.docu"]
 ---
