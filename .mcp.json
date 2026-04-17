@@ -1,0 +1,20 @@
+{
+    "mcpServers":  {
+                       "jarvis-pmo-llm-tools":  {
+                                                    "url":  "http://localhost:31410",
+                                                    "type":  "http"
+                                                },
+                       "jarvis-vse-llm-tools":  {
+                                                    "url":  "http://localhost:31414",
+                                                    "type":  "http"
+                                                },
+                       "jarvis-syspilot-llm-tools":  {
+                                                         "url":  "http://localhost:31413",
+                                                         "type":  "http"
+                                                     },
+                       "jarvis-devhost-llm-tools":  {
+                                                        "url":  "http://localhost:31420",
+                                                        "type":  "http"
+                                                    }
+                   }
+}
