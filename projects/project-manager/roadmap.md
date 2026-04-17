@@ -1,6 +1,6 @@
 # Jarvis Roadmap
 
-*Last updated: 2026-04-16*
+*Last updated: 2026-04-17*
 
 ## On develop (next release candidates)
 
@@ -93,28 +93,20 @@ Constraint: Windows + Outlook Classic (COM), kein Graph/OAuth.
 - ToS-Grauzone: akzeptiertes Risiko für internen Gebrauch
 - **Voraussetzung:** Outlook feature-complete (post v0.5.x)
 
-### Background Agent Sessions (proposed APIs)
-**Vision:** Multi-Agent-Sessions die selbstständig miteinander interagieren — ohne UI-Fokus-Wechsel, ohne Play-Button.
+### CLI Agent Sessions
+**Research abgeschlossen (2026-04-17).** Findings in `projects/research/context.md`, PoC auf `feature/cli-agent-sessions`.
 
-**VS Code 1.116 proposed APIs (entdeckt 2026-04-16):**
-- `chatSessionsProvider`: Sessions programmatisch erstellen, Requests senden, Responses streamen
-- `chatParticipantPrivate`: Active Session URI, `permissionLevel: 'autoApprove'` für autonome Agents
-- Aktivierung: `"enabledApiProposals": ["chatSessionsProvider", "chatParticipantPrivate"]` in package.json
-- Kein Marketplace-Blocker — Jarvis ist sideloaded
+**Ergebnis:**
+- VS Code proposed APIs (chatSessionsProvider, chatParticipantPrivate) sind Sackgasse — Provider-Pattern, kein Consumer-Inject
+- Copilot CLI + `terminal.sendText()` funktioniert — Session erstellen, Prompt injizieren, MCP-Rueckkanal
+- PoC implementiert und getestet (UAT T-1..T-6), aber **nicht gemergt** wegen Blockers:
+  - Readiness-Detection fragil (Lock-File + 3s Delay)
+  - MCP-Konflikt beim Resume
+  - Foreground-Zwang beim ersten Oeffnen
 
-**Erster Kandidat: Quality Manager**
-- Wird bereits per Message getriggert (Heartbeat oder CM-Notification)
-- Arbeitet vollständig autonom (MECE/Trace dispatch → Report → CR per Message)
-- Null UI-Interaktion nötig — perfekt für Background-Inject
-- Aktueller Workaround: Play-Button klicken, UI-Fokus geht verloren
+**Entscheidung:** Aktuelle Loesung (Chat View + Play-Button + Message Queue) bleibt. Laeuft stabil in 3 Szenarien ohne Fehler. CLI-Sessions manuell startbar mit MCP send/receive. CLI-Inject bei Bedarf nachruestbar.
 
-**Stufenplan:**
-1. **PoC:** `enabledApiProposals` aktivieren, Session erstellen, Request senden, Response lesen
-2. **QM Background:** QM-Session per Heartbeat-Job starten, Message injizieren, Ergebnis per Message Queue zurück
-3. **Multi-Agent:** CM triggert QM im Hintergrund, QM antwortet per Message — kein menschlicher Klick mehr
-4. **Generalisierung:** Beliebige Agent-Sessions per API starten (PM → CM → Implement → Verify Pipeline)
-
-**Abgrenzung:** Play-Button bleibt primärer Trigger für interaktive Sessions (PM, CM). Background-Inject nur für autonome Agents.
+**Feature-Branch:** `feature/cli-agent-sessions` bleibt als Referenz fuer spaetere Iteration.
 
 ## Architecture Decisions
 
