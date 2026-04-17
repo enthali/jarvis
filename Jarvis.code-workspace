@@ -1,0 +1,20 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../Jarvis.worktrees/copilot-worktree-2026-04-17T10-45-47"
+		}
+	],
+	"settings": {
+		"jarvis.eventsFolder": "",
+		"jarvis.heartbeatConfigFile": "C:\\workspace\\Jarvis\\.jarvis\\heartbeat.yaml",
+		"jarvis.messagesFile": "C:\\workspace\\Jarvis\\.jarvis\\messages.json",
+		"jarvis.projectsFolder": "C:\\workspace\\Jarvis\\projects",
+		"jarvis.scanInterval": 20,
+		"jarvis.heartbeatInterval": 300,
+		"jarvis.pim.showCategories": false,
+		"jarvis.outlook.tasks.enabled": false
+	}
+}
