@@ -1219,7 +1219,7 @@ Explorer Design Specifications
 
 .. spec:: Tree Search — Manifest
    :id: SPEC_EXP_SEARCH_MANIFEST
-   :status: open
+   :status: implemented
    :links: REQ_EXP_SEARCHPROJECTS; REQ_EXP_SEARCHEVENTS; SPEC_EXP_EXTENSION
 
    **Description:**
@@ -1271,7 +1271,7 @@ Explorer Design Specifications
 
 .. spec:: Tree Search — Command Handlers
    :id: SPEC_EXP_SEARCH_CMD
-   :status: open
+   :status: implemented
    :links: REQ_EXP_SEARCHPROJECTS; REQ_EXP_SEARCHEVENTS; SPEC_EXP_SCANNER; SPEC_EXP_PROVIDER; SPEC_EXP_SEARCH_MANIFEST
 
    **Description:**
@@ -1308,12 +1308,10 @@ Explorer Design Specifications
               const entity = scanner.getEntity(leaf.id);
               const name = entity?.name
                   ?? path.basename(path.dirname(leaf.id));
-              const rel = path.relative(projectsFolder, path.dirname(leaf.id));
-              return { label: name, description: rel, leaf };
+              return { label: name, description: leaf.id, leaf };
           });
           const qp = vscode.window.createQuickPick<PItem>();
           qp.items = items;
-          qp.placeholder = 'Search projects\u2026';
           qp.matchOnDescription = true;
           qp.onDidAccept(() => {
               const sel = qp.selectedItems[0];
@@ -1338,18 +1336,14 @@ Explorer Design Specifications
               const entity = scanner.getEntity(leaf.id);
               const name = entity?.name
                   ?? path.basename(path.dirname(leaf.id));
-              const label = entity?.datesStart
-                  ? `${entity.datesStart} \u2014 ${name}`
-                  : name;
               return {
-                  label,
+                  label: name,
                   description: entity?.datesStart,
                   leaf
               };
           });
           const qp = vscode.window.createQuickPick<EItem>();
           qp.items = items;
-          qp.placeholder = 'Search events\u2026';
           qp.matchOnDescription = true;
           qp.onDidAccept(() => {
               const sel = qp.selectedItems[0];
@@ -1377,6 +1371,4 @@ Explorer Design Specifications
      API will expand parent folders automatically via ``expand: true``
    * ``projectTreeView`` and ``eventTreeView`` are ``vscode.TreeView<TreeNode>``
      references already held in ``extension.ts``
-   * ``projectsFolder`` (used for the relative description) is the resolved
-     path from ``jarvis.projectsFolder`` settings
    * Both disposables are pushed to ``context.subscriptions``

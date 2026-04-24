@@ -533,7 +533,7 @@ Explorer Requirements
 
 .. req:: Search Projects via QuickPick
    :id: REQ_EXP_SEARCHPROJECTS
-   :status: open
+   :status: implemented
    :priority: optional
    :links: US_EXP_TREESEARCH
 
@@ -549,7 +549,7 @@ Explorer Requirements
    * AC-2: The QuickPick lists all project leaf items sourced from the in-memory
      scanner cache; the list reflects the current scan result
    * AC-3: Each QuickPick item label is the project ``name`` field; the
-     description shows the relative folder path within ``jarvis.projectsFolder``
+     description shows the absolute path of the project's YAML folder (``leaf.id``)
    * AC-4: Selecting an item calls ``TreeView.reveal()`` with
      ``{ select: true, focus: true, expand: true }`` on the corresponding
      ``LeafNode``
@@ -565,7 +565,7 @@ Explorer Requirements
 
 .. req:: Search Events via QuickPick
    :id: REQ_EXP_SEARCHEVENTS
-   :status: open
+   :status: implemented
    :priority: optional
    :links: US_EXP_TREESEARCH
 
@@ -580,9 +580,8 @@ Explorer Requirements
      command ``jarvis.searchEvents``
    * AC-2: The QuickPick lists all event leaf items sourced from the in-memory
      scanner cache; the list reflects the current scan result
-   * AC-3: Each QuickPick item label uses the same format as the tree label:
-     ``<datesStart> — <name>`` if ``datesStart`` is defined, otherwise ``<name>``
-     only; the description shows the event start date when available
+   * AC-3: Each QuickPick item label is the event ``name`` field; the
+     description shows ``datesStart`` when available, otherwise is empty
    * AC-4: Selecting an item calls ``TreeView.reveal()`` with
      ``{ select: true, focus: true, expand: true }`` on the corresponding
      ``LeafNode``

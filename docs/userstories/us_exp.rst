@@ -302,7 +302,7 @@ Explorer User Stories
 
 .. story:: Tree Quick Search
    :id: US_EXP_TREESEARCH
-   :status: open
+   :status: implemented
    :priority: optional
    :links: US_EXP_SIDEBAR
 
