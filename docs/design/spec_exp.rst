@@ -1215,3 +1215,160 @@ Explorer Design Specifications
    * Falls back to ``lineIndex = 0`` if the index exceeds the number of ``"text":``
      lines found (fail-open)
    * Disposable pushed to ``context.subscriptions``
+
+
+.. spec:: Tree Search — Manifest
+   :id: SPEC_EXP_SEARCH_MANIFEST
+   :status: implemented
+   :links: REQ_EXP_SEARCHPROJECTS; REQ_EXP_SEARCHEVENTS; SPEC_EXP_EXTENSION
+
+   **Description:**
+   Package.json additions for the two tree search commands.
+
+   **``contributes.commands``:**
+
+   .. code-block:: json
+
+      [
+        {
+          "command": "jarvis.searchProjects",
+          "title": "Jarvis: Search Projects",
+          "icon": "$(search)"
+        },
+        {
+          "command": "jarvis.searchEvents",
+          "title": "Jarvis: Search Events",
+          "icon": "$(search)"
+        }
+      ]
+
+   **``contributes.menus.view/title``:**
+
+   .. code-block:: json
+
+      [
+        {
+          "command": "jarvis.searchProjects",
+          "when": "view == jarvisProjects",
+          "group": "navigation"
+        },
+        {
+          "command": "jarvis.searchEvents",
+          "when": "view == jarvisEvents",
+          "group": "navigation"
+        }
+      ]
+
+   **``contributes.menus.commandPalette``:**
+
+   .. code-block:: json
+
+      [
+        { "command": "jarvis.searchProjects", "when": "false" },
+        { "command": "jarvis.searchEvents",   "when": "false" }
+      ]
+
+
+.. spec:: Tree Search — Command Handlers
+   :id: SPEC_EXP_SEARCH_CMD
+   :status: implemented
+   :links: REQ_EXP_SEARCHPROJECTS; REQ_EXP_SEARCHEVENTS; SPEC_EXP_SCANNER; SPEC_EXP_PROVIDER; SPEC_EXP_SEARCH_MANIFEST
+
+   **Description:**
+   Register ``jarvis.searchProjects`` and ``jarvis.searchEvents`` in
+   ``extension.ts``. Both commands use ``vscode.window.createQuickPick()``
+   (not ``showQuickPick``) so VS Code applies its built-in fuzzy filter as
+   the user types. Items are populated once from the scanner cache at open
+   time; no dynamic reload is needed.
+
+   **Shared helper (local to ``activate()``):**
+
+   .. code-block:: typescript
+
+      function flattenLeaves(nodes: TreeNode[]): LeafNode[] {
+          const result: LeafNode[] = [];
+          for (const node of nodes) {
+              if (node.kind === 'leaf') {
+                  result.push(node);
+              } else {
+                  result.push(...flattenLeaves(node.children));
+              }
+          }
+          return result;
+      }
+
+   **``jarvis.searchProjects`` handler:**
+
+   .. code-block:: typescript
+
+      vscode.commands.registerCommand('jarvis.searchProjects', () => {
+          type PItem = vscode.QuickPickItem & { leaf: LeafNode };
+          const leaves = flattenLeaves(scanner.getProjectTree());
+          const items: PItem[] = leaves.map(leaf => {
+              const entity = scanner.getEntity(leaf.id);
+              const name = entity?.name
+                  ?? path.basename(path.dirname(leaf.id));
+              return { label: name, description: leaf.id, leaf };
+          });
+          const qp = vscode.window.createQuickPick<PItem>();
+          qp.items = items;
+          qp.matchOnDescription = true;
+          qp.onDidAccept(() => {
+              const sel = qp.selectedItems[0];
+              qp.hide();
+              if (sel?.leaf) {
+                  projectTreeView.reveal(
+                      sel.leaf, { select: true, focus: true, expand: true });
+              }
+          });
+          qp.onDidHide(() => qp.dispose());
+          qp.show();
+      });
+
+   **``jarvis.searchEvents`` handler:**
+
+   .. code-block:: typescript
+
+      vscode.commands.registerCommand('jarvis.searchEvents', () => {
+          type EItem = vscode.QuickPickItem & { leaf: LeafNode };
+          const leaves = flattenLeaves(scanner.getEventTree());
+          const items: EItem[] = leaves.map(leaf => {
+              const entity = scanner.getEntity(leaf.id);
+              const name = entity?.name
+                  ?? path.basename(path.dirname(leaf.id));
+              return {
+                  label: name,
+                  description: entity?.datesStart,
+                  leaf
+              };
+          });
+          const qp = vscode.window.createQuickPick<EItem>();
+          qp.items = items;
+          qp.matchOnDescription = true;
+          qp.onDidAccept(() => {
+              const sel = qp.selectedItems[0];
+              qp.hide();
+              if (sel?.leaf) {
+                  eventTreeView.reveal(
+                      sel.leaf, { select: true, focus: true, expand: true });
+              }
+          });
+          qp.onDidHide(() => qp.dispose());
+          qp.show();
+      });
+
+   **Design notes:**
+
+   * ``createQuickPick()`` is used instead of ``showQuickPick()`` to expose
+     the ``QuickPick<T>`` API; VS Code performs built-in fuzzy filtering on
+     ``label`` and (when ``matchOnDescription = true``) on ``description``
+     automatically — no ``onDidChangeValue`` handler is needed
+   * Items are sourced from the raw scanner cache (all projects/events), not
+     from the tree provider — this means the folder filter and the future-only
+     event filter are intentionally not applied in the QuickPick. All entities
+     are searchable regardless of current filter state
+   * ``TreeView.reveal()`` is called on the ``LeafNode`` directly; the VS Code
+     API will expand parent folders automatically via ``expand: true``
+   * ``projectTreeView`` and ``eventTreeView`` are ``vscode.TreeView<TreeNode>``
+     references already held in ``extension.ts``
+   * Both disposables are pushed to ``context.subscriptions``

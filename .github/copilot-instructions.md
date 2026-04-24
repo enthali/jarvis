@@ -9,7 +9,7 @@ Projects and events are stored as YAML files in configurable folders.
 
 - **Language**: TypeScript
 - **Platform**: VS Code Extension API
-- **Documentation**: Sphinx + sphinx-needs (syspilot v0.4.0)
+- **Documentation**: Sphinx + sphinx-needs (syspilot v0.5.0)
 - **Build**: Node.js / npm
 - **Runtime dep**: cron-parser (next-run time computation for heartbeat)
 
@@ -17,7 +17,7 @@ Projects and events are stored as YAML files in configurable folders.
 
 ```
 src/                    — Extension source (TypeScript)
-  extension.ts          — Activation, commands (new-entity, filters, rescan, context-actions, agent sessions, category/task rename/delete/refresh), populateDefaultPaths() for workspace-settings bootstrap, 8 LM+MCP tools (sendToSession, readMessage, listSessions, listProjects, registerJob, unregisterJob, jarvis_category, jarvis_task) via registerDualTool(), syncRescanJob()+syncCategoryRefreshJob()+syncTaskRefreshJob() heartbeat bridges, shared LogOutputChannel "Jarvis" (structured logging with levels and module tags)
+  extension.ts          — Activation, commands (new-entity, filters, rescan, context-actions, agent sessions, category/task rename/delete/refresh, searchProjects/searchEvents with flattenLeaves() helper), populateDefaultPaths() for workspace-settings bootstrap, 8 LM+MCP tools (sendToSession, readMessage, listSessions, listProjects, registerJob, unregisterJob, jarvis_category, jarvis_task) via registerDualTool(), syncRescanJob()+syncCategoryRefreshJob()+syncTaskRefreshJob() heartbeat bridges, shared LogOutputChannel "Jarvis" (structured logging with levels and module tags)
   pim/ICategoryProvider.ts — Category + ICategoryProvider strategy-pattern interface
   pim/DomainCache.ts    — Generic in-memory cache with refresh callback
   pim/CategoryService.ts — Provider list + DomainCache<Category[]>; getCategories/setCategory/deleteCategory/renameCategory/refresh/hasProviders
@@ -83,13 +83,13 @@ Press **F5** in VS Code to launch the Extension Development Host.
 ## Development Workflow
 
 ```
-syspilot.change (→ syspilot.uat) → syspilot.implement → syspilot.verify → syspilot.memory
+syspilot.cm (→ syspilot.uat) → syspilot.implement → syspilot.verify
 ```
 
-The Change Agent calls `syspilot.uat` as a subagent after MECE analysis to generate UAT artifacts (US_UAT_\*, REQ_UAT_\*, SPEC_UAT_\*) before handing off to implementation.
+The Change Manager (`syspilot.cm`) orchestrates the full change workflow, invoking engineers in sequence. It calls `syspilot.uat` as a subagent after MECE analysis to generate UAT artifacts (US_UAT_\*, REQ_UAT_\*, SPEC_UAT_\*) before handing off to implementation.
 
 Each change produces three artifacts in `docs/changes/`:
-- `<name>.md` — Change Document (approved by Change Agent)
+- `<name>.md` — Change Document (approved by Change Manager)
 - `tst-<name>.md` — Test Protocol (created by Implement Agent after manual UAT)
 - `val-<name>.md` — Verification Report (created by Verify Agent)
 
@@ -103,7 +103,7 @@ Feature branches accumulate changes until a release. **Merge to `main` only at r
 
 Each change lives on `feature/<change-name>` (name matches Change Document).
 Feature branches branch from `develop`, not from `main` or other feature branches.
-Change Managers merge completed feature branches back into `develop` (normal merge).
+Change Managers squash-merge completed feature branches into `develop` (`git merge --squash feature/<name>`), then commit with a short summary message.
 At release: `syspilot.release` squash-merges `develop` into `main` (`git merge --squash develop`) and tags.
 `develop` is never pushed to origin — only `main` is public.
 
@@ -125,6 +125,7 @@ JSON Schemas: `schemas/project.schema.json`, `schemas/event.schema.json`
 - **PowerShell JSON**: Strip U+0000–U+001F control chars before `JSON.parse()` — `ConvertTo-Json` does not escape all of them.
 - **DomainCache population**: Fire-and-forget `refresh()` after provider registration — `DomainCache.get()` returns `undefined` synchronously until first refresh completes.
 - **Heartbeat command registration**: If `syncXxxJob()` references a command name, that command MUST be registered via `vscode.commands.registerCommand()` — otherwise heartbeat jobs fail silently with "command not found".
+- **TreeView.reveal()**: Pass the exact item object from the provider (not a reconstructed copy). The `TreeView` must be created with `canSelectMany: false` and the provider must implement `getParent()` for reveal to work correctly.
 
 ## Session–Project Binding
 

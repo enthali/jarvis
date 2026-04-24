@@ -2,7 +2,7 @@
   "name": "jarvis",
   "displayName": "Jarvis",
   "description": "Personal assistant for managing projects and events in VS Code",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "publisher": "enthali",
   "repository": {
     "type": "git",
@@ -29,9 +29,7 @@
         "viewType": "jarvis.taskEditor",
         "displayName": "Jarvis Task Editor",
         "selector": [
-          {
-            "filenamePattern": "*.jarvis-task"
-          }
+          { "filenamePattern": "*.jarvis-task" }
         ],
         "priority": "default"
       }
@@ -198,6 +196,16 @@
       {
         "command": "jarvis.openMessageFile",
         "title": "Jarvis: Open Message File"
+      },
+      {
+        "command": "jarvis.searchProjects",
+        "title": "Search Projects",
+        "icon": "$(search)"
+      },
+      {
+        "command": "jarvis.searchEvents",
+        "title": "Search Events",
+        "icon": "$(search)"
       }
     ],
     "menus": {
@@ -269,6 +277,14 @@
         {
           "command": "jarvis.openMessageFile",
           "when": "false"
+        },
+        {
+          "command": "jarvis.searchProjects",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.searchEvents",
+          "when": "false"
         }
       ],
       "view/title": [
@@ -293,6 +309,11 @@
           "group": "navigation@3"
         },
         {
+          "command": "jarvis.searchProjects",
+          "when": "view == jarvisProjects",
+          "group": "navigation"
+        },
+        {
           "command": "jarvis.newEvent",
           "when": "view == jarvisEvents",
           "group": "navigation@1"
@@ -311,6 +332,11 @@
           "command": "jarvis.rescan",
           "when": "view == jarvisEvents",
           "group": "navigation@3"
+        },
+        {
+          "command": "jarvis.searchEvents",
+          "when": "view == jarvisEvents",
+          "group": "navigation"
         },
         {
           "command": "jarvis.refreshHeartbeat",
@@ -715,12 +741,7 @@
           "properties": {
             "action": {
               "type": "string",
-              "enum": [
-                "get",
-                "set",
-                "delete",
-                "rename"
-              ],
+              "enum": ["get", "set", "delete", "rename"],
               "description": "The action to perform"
             },
             "name": {
@@ -744,9 +765,7 @@
               "description": "New category name (required for rename)"
             }
           },
-          "required": [
-            "action"
-          ]
+          "required": ["action"]
         }
       },
       {
@@ -761,12 +780,7 @@
           "properties": {
             "action": {
               "type": "string",
-              "enum": [
-                "get",
-                "set",
-                "modify",
-                "delete"
-              ],
+              "enum": ["get", "set", "modify", "delete"],
               "description": "The action to perform"
             },
             "category": {
@@ -803,11 +817,7 @@
             },
             "priority": {
               "type": "string",
-              "enum": [
-                "low",
-                "normal",
-                "high"
-              ],
+              "enum": ["low", "normal", "high"],
               "description": "Task priority"
             },
             "isComplete": {
@@ -816,9 +826,7 @@
             },
             "categories": {
               "type": "array",
-              "items": {
-                "type": "string"
-              },
+              "items": { "type": "string" },
               "description": "Outlook category names linking task to projects/events"
             },
             "provider": {
@@ -826,9 +834,7 @@
               "description": "Target provider (omit to broadcast to all)"
             }
           },
-          "required": [
-            "action"
-          ]
+          "required": ["action"]
         }
       }
     ]

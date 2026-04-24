@@ -1,16 +1,24 @@
 # Release Notes
 
-## v0.5.2
+## v0.5.3
 
-*2026-04-15*
+*2026-04-24*
+
+Tree search, syspilot tooling update, and documentation fixes.
 
 ### New Features
-- **Open Heartbeat Job**: Click any job node in the Heartbeat tree view to open `heartbeat.yaml` directly at the job definition.
-- **Open Message**: Click any message node in the Message tree view to open the `messages.json` file at the corresponding message entry.
-- Fallback: if the exact position cannot be determined, the file opens at the top.
 
-### Bug Fixes
-- None
+- **tree-search**: QuickPick-based search for Projects and Events tree views — press the search icon in the title bar to fuzzy-filter all items and reveal the selected entry in the tree. Uses `TreeView.reveal()` with `getParent()` support. Search is unfiltered (hidden items remain searchable). Two new commands: `jarvis.searchProjects`, `jarvis.searchEvents`.
+
+### Fixes & Docs
+
+- **doc-traceability-fix**: Fixed traceability inconsistencies for `US_EXP_FEATURETOGGLE` and `US_EXP_NAMESORT`.
+- **tree-search-spec-fix**: Aligned `SPEC_EXP_SEARCH_CMD` and `SPEC_EXP_SEARCH_MANIFEST` with implementation (QM review MEDIUM-1/2, LOW-3/4).
+
+### Infra & Tooling
+
+- **syspilot v0.5.0**: Agent refactoring, skills, prompts — updated from syspilot 0.4.0 to 0.5.0.
+- Housekeeping: `.mcp.json` configuration, research docs, workflow fix, workspace file removed.
 
 ## v0.5.0
 

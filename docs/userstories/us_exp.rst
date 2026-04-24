@@ -298,3 +298,27 @@ Explorer User Stories
    * AC-3: If the exact position cannot be determined, the file opens at line 0
      (fail-open, no error dialog)
    * AC-4: The navigation is read-only — no side effects on the tree or the queue
+
+
+.. story:: Tree Quick Search
+   :id: US_EXP_TREESEARCH
+   :status: implemented
+   :priority: optional
+   :links: US_EXP_SIDEBAR
+
+   **As a** Jarvis User with many projects or events (20+),
+   **I want** to quickly find and focus an element in the Projects or Events tree
+   via a QuickPick — similar to "Go to Symbol" in VS Code —
+   **so that** I can navigate to a specific item instantly without scrolling through
+   a long list.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A search icon (``$(search)``) appears in the Projects tree title bar
+   * AC-2: A search icon (``$(search)``) appears in the Events tree title bar
+   * AC-3: Clicking the icon opens a QuickPick that lists all items from that tree
+   * AC-4: Typing in the QuickPick filters the list in real time (fuzzy match,
+     identical behaviour to the VS Code Command Palette)
+   * AC-5: Selecting an item closes the QuickPick and reveals and focuses that
+     item in the tree (scroll + highlight)
+   * AC-6: Pressing Escape dismisses the QuickPick without any side effects

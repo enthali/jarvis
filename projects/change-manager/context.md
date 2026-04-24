@@ -52,3 +52,10 @@ At release: `syspilot.release` → squash-merge to main → tag → push
 
 - Reads messages via `jarvis_readMessage(destination: "Change Manager")`
 - Reports back to Project Manager via `jarvis_sendToSession`
+
+## Lessons Learned
+
+- **Change Document belongs on feature branch** — never commit it to develop
+- **Merge only after explicit UAT PASS** — never merge implementation before UAT completes
+- **Delegate design to syspilot.design** — CM never writes specs or RST directly
+- **Create Change Document before design work** — first artifact, documents intent and decisions

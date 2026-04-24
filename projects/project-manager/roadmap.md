@@ -1,16 +1,23 @@
 # Jarvis Roadmap
 
-*Last updated: 2026-04-15*
+*Last updated: 2026-04-24*
 
-## Next Up (v0.5.2 candidates)
+## On develop (next release candidates)
 
 | Change | Status |
 |--------|--------|
-| heartbeat-edit (click job node → open heartbeat.yaml at correct line) | planned |
-| doc-traceability-fix (US_EXP_FEATURETOGGLE, US_EXP_NAMESORT, UAT-Hygiene) | planned |
-| qa-lifecycle-reqs (M-1: Activation, M-2: Disposal, M-5: RescanBridge) | planned |
+| doc-traceability-fix (US_EXP_FEATURETOGGLE, US_EXP_NAMESORT Korrekturen) | done |
+| syspilot v0.5.0 update (Agent-Refactoring, Skills, Prompts) | done |
+| tree-search (QuickPick Search for Projects + Events, TreeView.reveal) | done |
+| tree-search-spec-fix (Spec an Code anpassen, Status implemented) | done |
 
-## v0.5.1 (in progress — develop)
+## v0.5.2 (released)
+
+| Change | Status |
+|--------|--------|
+| tree-node-open-file (click heartbeat job / message → open file at correct position) | done |
+
+## v0.5.1 (released)
 
 | Change | Status |
 |--------|--------|
@@ -87,6 +94,21 @@ Constraint: Windows + Outlook Classic (COM), kein Graph/OAuth.
 - ToS-Grauzone: akzeptiertes Risiko für internen Gebrauch
 - **Voraussetzung:** Outlook feature-complete (post v0.5.x)
 
+### CLI Agent Sessions
+**Research abgeschlossen (2026-04-17).** Findings in `projects/research/context.md`, PoC auf `feature/cli-agent-sessions`.
+
+**Ergebnis:**
+- VS Code proposed APIs (chatSessionsProvider, chatParticipantPrivate) sind Sackgasse — Provider-Pattern, kein Consumer-Inject
+- Copilot CLI + `terminal.sendText()` funktioniert — Session erstellen, Prompt injizieren, MCP-Rueckkanal
+- PoC implementiert und getestet (UAT T-1..T-6), aber **nicht gemergt** wegen Blockers:
+  - Readiness-Detection fragil (Lock-File + 3s Delay)
+  - MCP-Konflikt beim Resume
+  - Foreground-Zwang beim ersten Oeffnen
+
+**Entscheidung:** Aktuelle Loesung (Chat View + Play-Button + Message Queue) bleibt. Laeuft stabil in 3 Szenarien ohne Fehler. CLI-Sessions manuell startbar mit MCP send/receive. CLI-Inject bei Bedarf nachruestbar.
+
+**Feature-Branch:** `feature/cli-agent-sessions` bleibt als Referenz fuer spaetere Iteration.
+
 ## Architecture Decisions
 
 ### MCP Server (2026-04-10)
@@ -134,19 +156,3 @@ Constraint: Windows + Outlook Classic (COM), kein Graph/OAuth.
 **Build-Reihenfolge:**
 1. Outlook Category Provider (COM) + CategoryService + Cache + MCP Tool
 2. Weitere Provider (Gmail Labels) nach Bedarf — Interface steht, Einstiegshürde niedrig
-
-## Research
-
-- **Silent Session Inject** — Zweiter Input-Kanal für laufende Chat-Sessions (wie Claude Web/Telegram). `chat-session-resources` enthält nur Tool-Output-Blobs, kein Input-Buffer. Session-History vermutlich in `state.vscdb`. Alternativ: gh copilot CLI als background Agent der Queue direkt via MCP pollt ohne UI-Fokus-Switch. Forschungsprojekt, kein Feature.
-
-## Backlog
-
-- **CLI Session Lookup** — Play-Button findet Copilot CLI Sessions nicht (`state.vscdb` enthält sie nicht). Braucht alternativen Mechanismus (z.B. Session-Registry via `jarvis_registerSession`). Blockiert parallele CM-Skalierung.
-- **message tree actions** — Klick auf Message öffnet messages.json; Klick auf Pfad/Session öffnet die Session; einzelne Messages zustellbar (nicht nur ganze Session-Gruppe)
-- **esbuild bundler** — VSIX von 4.4MB auf ~200KB reduzieren
-
-## Open Questions
-
-- **OSS Readiness:** Produkt-Boundaries und Dependencies definieren bevor Open Source
-- **Distribution:** GitHub Release + .vsix — kein Marketplace
-- **Parallel Development (Worktrees):** Git Worktrees ermöglichen parallele Change Manager auf getrennten Branches. Jarvis liefert Infrastruktur (MCP, Message Queue), syspilot muss Agent-Orchestrierung bauen (Worktree-Lifecycle, Branch-Konflikt-Vermeidung, Merge-Strategie). Gemeinsam mit syspilot PM entwickeln.

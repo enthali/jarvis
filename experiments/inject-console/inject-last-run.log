@@ -1,0 +1,28 @@
+=== 2026-04-17T08:35:18.2517405+02:00  TargetPid=54204  Text='Hallo'  NoEnter=False ===
+[08:35:18.275] PowerShell version: 7.6.0
+[08:35:18.311] Host name: ServerRemoteHost
+[08:35:18.314] Own PID: 53484
+[08:35:18.330] Target PID: 54204
+[08:35:18.345] Target process: Name='copilot.exe.old' MainWindowTitle='' StartTime='17/04/2026 08:30:45'
+[08:35:18.347] Loading Win32 P/Invoke types...
+[08:35:18.987] P/Invoke types loaded.
+[08:35:18.998] Payload: 'Hallo<CR>' (length=6)
+[08:35:19.040] Built 12 INPUT_RECORDs
+[08:35:19.049] Own console HWND (before FreeConsole): 0x0
+[08:35:19.053] Calling FreeConsole() (detach own console)...
+[08:35:19.064] FreeConsole returned True (Win32Error=6)
+[08:35:19.068] Calling AttachConsole(54204)...
+[08:35:19.077] AttachConsole returned True (Win32Error=187)
+[08:35:19.081] Target console HWND (after AttachConsole): 0x44157E
+[08:35:19.084] Opening CONIN$ with CreateFile(GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ|WRITE, OPEN_EXISTING)...
+[08:35:19.094] CreateFile(CONIN$) returned handle 0x6C (Win32Error=0)
+[08:35:19.109] GetConsoleMode: ok=True mode=0x208 (Win32Error=0)
+[08:35:19.115] GetNumberOfConsoleInputEvents: ok=True count=0 (Win32Error=0)
+[08:35:19.117] Calling WriteConsoleInput...
+[08:35:19.128] WriteConsoleInput: ok=True requested=12 written=12 (Win32Error=0)
+[08:35:19.131] Closing CONIN$ handle...
+[08:35:19.135] Calling FreeConsole() on target...
+[08:35:19.137] Re-attaching to own console (PID=53484)...
+[08:35:19.141] Re-AttachConsole: ok=False (Win32Error=6)
+[08:35:19.147] RESULT: SUCCESS - 12 events injected.
+[08:35:19.160] Done. Log file: C:\workspace\Jarvis\experiments\inject-console\inject-last-run.log

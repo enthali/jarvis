@@ -529,3 +529,67 @@ Explorer Requirements
    * AC-5: The file is opened read-write (standard editor, no custom editor)
    * AC-6: If ``jarvis.messagesFile`` is empty or the file does not exist, the
      command shows a warning notification and returns without opening a file
+
+
+.. req:: Search Projects via QuickPick
+   :id: REQ_EXP_SEARCHPROJECTS
+   :status: implemented
+   :priority: optional
+   :links: US_EXP_TREESEARCH
+
+   **Description:**
+   The Projects tree view SHALL provide a search command, triggered by a
+   ``$(search)`` icon in its title bar, that opens a QuickPick listing all
+   projects. Selecting a project SHALL reveal and focus it in the tree.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A ``$(search)`` icon button in the Projects title bar triggers the
+     command ``jarvis.searchProjects``
+   * AC-2: The QuickPick lists all project leaf items sourced from the in-memory
+     scanner cache; the list reflects the current scan result
+   * AC-3: Each QuickPick item label is the project ``name`` field; the
+     description shows the absolute path of the project's YAML folder (``leaf.id``)
+   * AC-4: Selecting an item calls ``TreeView.reveal()`` with
+     ``{ select: true, focus: true, expand: true }`` on the corresponding
+     ``LeafNode``
+   * AC-5: The command SHALL NOT appear in the Command Palette
+   * AC-6: If the scanner cache is empty (no projects), the QuickPick opens with
+     an empty list — no error is shown
+   * AC-7: The QuickPick SHALL apply VS Code's built-in fuzzy filtering on item
+     label and description as the user types — no custom filtering code is
+     required
+   * AC-8: Pressing Escape or clicking outside the QuickPick SHALL dismiss it
+     without any side effects on the tree view or scanner state
+
+
+.. req:: Search Events via QuickPick
+   :id: REQ_EXP_SEARCHEVENTS
+   :status: implemented
+   :priority: optional
+   :links: US_EXP_TREESEARCH
+
+   **Description:**
+   The Events tree view SHALL provide a search command, triggered by a
+   ``$(search)`` icon in its title bar, that opens a QuickPick listing all
+   events. Selecting an event SHALL reveal and focus it in the tree.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A ``$(search)`` icon button in the Events title bar triggers the
+     command ``jarvis.searchEvents``
+   * AC-2: The QuickPick lists all event leaf items sourced from the in-memory
+     scanner cache; the list reflects the current scan result
+   * AC-3: Each QuickPick item label is the event ``name`` field; the
+     description shows ``datesStart`` when available, otherwise is empty
+   * AC-4: Selecting an item calls ``TreeView.reveal()`` with
+     ``{ select: true, focus: true, expand: true }`` on the corresponding
+     ``LeafNode``
+   * AC-5: The command SHALL NOT appear in the Command Palette
+   * AC-6: If the scanner cache is empty (no events), the QuickPick opens with
+     an empty list — no error is shown
+   * AC-7: The QuickPick SHALL apply VS Code's built-in fuzzy filtering on item
+     label and description as the user types — no custom filtering code is
+     required
+   * AC-8: Pressing Escape or clicking outside the QuickPick SHALL dismiss it
+     without any side effects on the tree view or scanner state

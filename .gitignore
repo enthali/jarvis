@@ -21,3 +21,6 @@ test-projects/
 test-events/
 .jarvis/
 build.log
+
+# Workspace (machine-specific)
+Jarvis.code-workspace

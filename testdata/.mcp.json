@@ -1,0 +1,8 @@
+{
+    "mcpServers":  {
+                       "jarvis-devhost-llm-tools":  {
+                                                        "url":  "http://localhost:31420",
+                                                        "type":  "http"
+                                                    }
+                   }
+}

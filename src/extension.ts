@@ -1,4 +1,4 @@
-// Implementation: SPEC_EXP_EXTENSION, SPEC_EXP_FILTERCOMMAND, SPEC_EXP_EVENTFILTER_CMD, SPEC_EXP_OPENYAML_CMD, SPEC_EXP_CONTEXTACTIONS, SPEC_AUT_MANUALCOMMAND, SPEC_MSG_SENDCOMMAND, SPEC_MSG_OPENSESSION, SPEC_MSG_LISTSESSIONS, SPEC_EXP_AGENTSESSION, SPEC_EXP_NEWPROJECT_CMD, SPEC_EXP_NEWEVENT_CMD, SPEC_REL_UPDATECOMMAND, SPEC_EXP_RESCAN_CMD, SPEC_AUT_JOBREG, SPEC_DEV_LOGCHANNEL, SPEC_MSG_DUALREGISTRATION, SPEC_EXP_LISTPROJECTS, SPEC_CFG_DEFAULTPATHS, SPEC_EXP_FEATURETOGGLE, SPEC_PIM_SERVICE, SPEC_PIM_CATVIEW, SPEC_PIM_CATTOOL, SPEC_OLK_COMBRIDGE, SPEC_OLK_SETTINGS, SPEC_OLK_AUTOCAT_NEWENTITY, SPEC_PIM_TASKSERVICE, SPEC_PIM_TASKEDITOR, SPEC_PIM_TASKTOOL, SPEC_OLK_TASKPROVIDER, SPEC_OLK_TASKENABLE, SPEC_EXP_HEARTBEAT_OPENFILE, SPEC_EXP_MESSAGE_OPENFILE
+// Implementation: SPEC_EXP_EXTENSION, SPEC_EXP_FILTERCOMMAND, SPEC_EXP_EVENTFILTER_CMD, SPEC_EXP_OPENYAML_CMD, SPEC_EXP_CONTEXTACTIONS, SPEC_AUT_MANUALCOMMAND, SPEC_MSG_SENDCOMMAND, SPEC_MSG_OPENSESSION, SPEC_MSG_LISTSESSIONS, SPEC_EXP_AGENTSESSION, SPEC_EXP_NEWPROJECT_CMD, SPEC_EXP_NEWEVENT_CMD, SPEC_REL_UPDATECOMMAND, SPEC_EXP_RESCAN_CMD, SPEC_AUT_JOBREG, SPEC_DEV_LOGCHANNEL, SPEC_MSG_DUALREGISTRATION, SPEC_EXP_LISTPROJECTS, SPEC_CFG_DEFAULTPATHS, SPEC_EXP_FEATURETOGGLE, SPEC_PIM_SERVICE, SPEC_PIM_CATVIEW, SPEC_PIM_CATTOOL, SPEC_OLK_COMBRIDGE, SPEC_OLK_SETTINGS, SPEC_OLK_AUTOCAT_NEWENTITY, SPEC_PIM_TASKSERVICE, SPEC_PIM_TASKEDITOR, SPEC_PIM_TASKTOOL, SPEC_OLK_TASKPROVIDER, SPEC_OLK_TASKENABLE, SPEC_EXP_HEARTBEAT_OPENFILE, SPEC_EXP_MESSAGE_OPENFILE, SPEC_EXP_SEARCH_CMD
 // Requirements: REQ_EXP_ACTIVITYBAR, REQ_EXP_TREEVIEW, REQ_EXP_REACTIVECACHE, REQ_CFG_FOLDERPATHS, REQ_CFG_SCANINTERVAL, REQ_EXP_PROJECTFILTER, REQ_EXP_FILTERPERSIST, REQ_EXP_EVENTFILTER, REQ_EXP_EVENTFILTERPERSIST, REQ_EXP_OPENYAML, REQ_EXP_CONTEXTACTIONS, REQ_AUT_MANUALRUN, REQ_MSG_SEND, REQ_MSG_DELETE, REQ_MSG_OPENSESSION, REQ_MSG_SESSIONFILTER, REQ_MSG_LISTSESSIONS, REQ_EXP_AGENTSESSION, REQ_EXP_NEWPROJECT, REQ_EXP_NEWEVENT, REQ_REL_UPDATECOMMAND, REQ_CFG_UPDATECHECK, REQ_EXP_RESCAN_BTN, REQ_AUT_JOBREG, REQ_DEV_LOGGING, REQ_MSG_MCPSERVER, REQ_CFG_MCPPORT, REQ_EXP_LISTPROJECTS, REQ_CFG_DEFAULTPATHS, REQ_EXP_FEATURETOGGLE, REQ_PIM_SERVICE, REQ_PIM_CATVIEW, REQ_PIM_CATTOOL, REQ_OLK_COMBRIDGE, REQ_OLK_ENABLE, REQ_OLK_AUTOCAT_NEWENTITY, REQ_PIM_TASKSERVICE, REQ_PIM_TASKEDITOR, REQ_PIM_TASKTOOL, REQ_OLK_TASKPROVIDER, REQ_OLK_TASKENABLE
 
 import * as vscode from 'vscode';
@@ -45,6 +45,19 @@ function findLeafNode(nodes: TreeNode[], targetFolder: string): LeafNode | undef
         }
     }
     return undefined;
+}
+
+// Implementation: SPEC_EXP_SEARCH_CMD
+function flattenLeaves(nodes: TreeNode[]): LeafNode[] {
+    const result: LeafNode[] = [];
+    for (const node of nodes) {
+        if (node.kind === 'leaf') {
+            result.push(node);
+        } else {
+            result.push(...flattenLeaves(node.children));
+        }
+    }
+    return result;
 }
 
 export function activate(context: vscode.ExtensionContext) {
@@ -398,6 +411,52 @@ export function activate(context: vscode.ExtensionContext) {
 
     const eventFilterCommand = vscode.commands.registerCommand('jarvis.filterFutureEvents', eventFilterHandler);
     const eventFilterCommandActive = vscode.commands.registerCommand('jarvis.filterFutureEventsActive', eventFilterHandler);
+
+    // Implementation: SPEC_EXP_SEARCH_CMD
+    // Requirements: REQ_EXP_SEARCHPROJECTS
+    type SearchItem = vscode.QuickPickItem & { leaf: LeafNode };
+
+    const searchProjectsCommand = vscode.commands.registerCommand('jarvis.searchProjects', () => {
+        const leaves = flattenLeaves(scanner.getProjectTree());
+        const qp = vscode.window.createQuickPick<SearchItem>();
+        qp.matchOnDescription = true;
+        qp.items = leaves.map(leaf => {
+            const entity = scanner.getEntity(leaf.id);
+            const name = entity ? entity.name : path.basename(path.dirname(leaf.id));
+            return { label: name, description: leaf.id, leaf };
+        });
+        qp.onDidAccept(() => {
+            const [selected] = qp.selectedItems;
+            if (selected) {
+                projectView.reveal(selected.leaf, { select: true, focus: true, expand: true });
+            }
+            qp.hide();
+        });
+        qp.onDidHide(() => qp.dispose());
+        qp.show();
+    });
+
+    // Implementation: SPEC_EXP_SEARCH_CMD
+    // Requirements: REQ_EXP_SEARCHEVENTS
+    const searchEventsCommand = vscode.commands.registerCommand('jarvis.searchEvents', () => {
+        const leaves = flattenLeaves(scanner.getEventTree());
+        const qp = vscode.window.createQuickPick<SearchItem>();
+        qp.matchOnDescription = true;
+        qp.items = leaves.map(leaf => {
+            const entity = scanner.getEntity(leaf.id);
+            const name = entity ? entity.name : path.basename(path.dirname(leaf.id));
+            return { label: name, description: entity?.datesStart, leaf };
+        });
+        qp.onDidAccept(() => {
+            const [selected] = qp.selectedItems;
+            if (selected) {
+                eventView.reveal(selected.leaf, { select: true, focus: true, expand: true });
+            }
+            qp.hide();
+        });
+        qp.onDidHide(() => qp.dispose());
+        qp.show();
+    });
 
     // Register open YAML command (SPEC_EXP_OPENYAML_CMD)
     const openYamlCommand = vscode.commands.registerCommand('jarvis.openYamlFile', (element: LeafNode) => {
@@ -1339,6 +1398,8 @@ export function activate(context: vscode.ExtensionContext) {
         filterCommandActive,
         eventFilterCommand,
         eventFilterCommandActive,
+        searchProjectsCommand,
+        searchEventsCommand,
         openYamlCommand,
         revealInExplorerCommand,
         revealInOSCommand,

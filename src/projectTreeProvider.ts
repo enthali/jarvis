@@ -3,7 +3,7 @@
 
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { YamlScanner, TreeNode } from './yamlScanner';
+import { YamlScanner, TreeNode, FolderNode } from './yamlScanner';
 import { TaskService } from './pim/TaskService';
 import { Task } from './pim/ITaskProvider';
 import { RecordingManager } from './recording';
@@ -178,6 +178,24 @@ export class ProjectTreeProvider implements vscode.TreeDataProvider<ProjectTreeI
         }
 
         return [];
+    }
+
+    getParent(element: ProjectTreeItem): ProjectTreeItem | undefined {
+        if (element.kind === 'leaf' || element.kind === 'folder') {
+            return this._findParent(element, this._scanner.getProjectTree(), undefined) ?? undefined;
+        }
+        return undefined;
+    }
+
+    private _findParent(target: TreeNode, nodes: TreeNode[], parent: FolderNode | undefined): FolderNode | undefined | null {
+        for (const node of nodes) {
+            if (node === target) { return parent; }
+            if (node.kind === 'folder') {
+                const result = this._findParent(target, node.children, node);
+                if (result !== null) { return result; }
+            }
+        }
+        return null;
     }
 
     private _getCachedTasks(): Task[] | undefined {
