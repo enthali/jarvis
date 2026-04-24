@@ -3,7 +3,7 @@
 
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { YamlScanner, TreeNode } from './yamlScanner';
+import { YamlScanner, TreeNode, FolderNode } from './yamlScanner';
 import { TaskService } from './pim/TaskService';
 import { Task } from './pim/ITaskProvider';
 import { TaskGroupNode, TaskLeafNode } from './projectTreeProvider';
@@ -136,6 +136,24 @@ export class EventTreeProvider implements vscode.TreeDataProvider<EventTreeItem>
         }
 
         return [];
+    }
+
+    getParent(element: EventTreeItem): EventTreeItem | undefined {
+        if (element.kind === 'leaf' || element.kind === 'folder') {
+            return this._findParent(element, this._scanner.getEventTree(), undefined) ?? undefined;
+        }
+        return undefined;
+    }
+
+    private _findParent(target: TreeNode, nodes: TreeNode[], parent: FolderNode | undefined): FolderNode | undefined | null {
+        for (const node of nodes) {
+            if (node === target) { return parent; }
+            if (node.kind === 'folder') {
+                const result = this._findParent(target, node.children, node);
+                if (result !== null) { return result; }
+            }
+        }
+        return null;
     }
 
     private _getCachedTasks(): Task[] | undefined {
