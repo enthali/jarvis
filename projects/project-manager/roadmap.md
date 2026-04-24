@@ -1,6 +1,6 @@
 # Jarvis Roadmap
 
-*Last updated: 2026-04-17*
+*Last updated: 2026-04-24*
 
 ## On develop (next release candidates)
 
@@ -8,7 +8,6 @@
 |--------|--------|
 | doc-traceability-fix (US_EXP_FEATURETOGGLE, US_EXP_NAMESORT Korrekturen) | done |
 | syspilot v0.5.0 update (Agent-Refactoring, Skills, Prompts) | done |
-| qa-lifecycle-reqs (M-1: Activation, M-2: Disposal, M-5: RescanBridge) | planned |
 
 ## v0.5.2 (released)
 
