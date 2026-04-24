@@ -327,21 +327,20 @@ Explorer Requirements
    * AC-5: The command SHALL NOT appear in the Command Palette
 
 
-.. req:: Sort Projects Tree by Entity Name
+.. req:: Sort Tree by Entity Name
    :id: REQ_EXP_NAMESORT
    :status: implemented
    :priority: optional
    :links: US_EXP_NAMESORT
 
    **Description:**
-   The scanner SHALL sort **Projects** tree nodes alphabetically by entity name
-   (for leaf nodes) or folder name (for grouping nodes). This requirement applies
-   to the Projects tree only. Events tree sorting is governed by
-   ``REQ_EVT_DATESORT`` (chronological by ``dates.start``).
+   The scanner SHALL sort tree nodes alphabetically by entity name (for leaf
+   nodes) or folder name (for grouping nodes), so that the explorer displays
+   items in a predictable, user-friendly order.
 
    **Acceptance Criteria:**
 
-   * AC-1: Project leaf nodes at each level are sorted by their YAML ``name`` field
+   * AC-1: Leaf nodes at each level are sorted by their YAML ``name`` field
      (case-insensitive)
    * AC-2: Folder nodes at each level are sorted by folder name (case-insensitive)
    * AC-3: Folders and leaves are interleaved in a single alphabetical list at
@@ -396,18 +395,15 @@ Explorer Requirements
    * AC-5: The tool SHALL be simultaneously available via the MCP server
 
 
-.. req:: Selected Feature Toggles via Settings
+.. req:: Feature-Toggled Sidebar Views
    :id: REQ_EXP_FEATURETOGGLE
    :status: implemented
    :priority: mandatory
    :links: US_EXP_FEATURETOGGLE; REQ_EXP_TREEVIEW; REQ_CFG_DEFAULTPATHS
 
    **Description:**
-   Selected optional features SHALL be individually enabled or hidden via VS Code
-   settings. Not all features are toggleable — only the following: sidebar views
-   for Events, Messages, Heartbeat (path-based), the Categories view (boolean),
-   and the Recording feature (boolean). This prevents empty views and unused
-   controls from cluttering the Jarvis Explorer.
+   Optional sidebar views SHALL only be visible when their corresponding feature
+   is configured. This prevents empty views from cluttering the Jarvis Explorer.
 
    **Acceptance Criteria:**
 
@@ -422,9 +418,6 @@ Explorer Requirements
      view definition in ``package.json`` — no runtime code required
    * AC-6: The Categories view SHALL only be visible when
      ``jarvis.pim.showCategories`` is ``true``
-   * AC-7: Recording start/stop buttons in tree item menus SHALL only appear
-     when ``jarvis.recording.enabled`` is ``true`` (controlled via ``when``
-     clause in ``contributes.menus``)
 
 
 .. req:: Context Actions on Leaf Nodes
@@ -536,3 +529,68 @@ Explorer Requirements
    * AC-5: The file is opened read-write (standard editor, no custom editor)
    * AC-6: If ``jarvis.messagesFile`` is empty or the file does not exist, the
      command shows a warning notification and returns without opening a file
+
+
+.. req:: Search Projects via QuickPick
+   :id: REQ_EXP_SEARCHPROJECTS
+   :status: open
+   :priority: optional
+   :links: US_EXP_TREESEARCH
+
+   **Description:**
+   The Projects tree view SHALL provide a search command, triggered by a
+   ``$(search)`` icon in its title bar, that opens a QuickPick listing all
+   projects. Selecting a project SHALL reveal and focus it in the tree.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A ``$(search)`` icon button in the Projects title bar triggers the
+     command ``jarvis.searchProjects``
+   * AC-2: The QuickPick lists all project leaf items sourced from the in-memory
+     scanner cache; the list reflects the current scan result
+   * AC-3: Each QuickPick item label is the project ``name`` field; the
+     description shows the relative folder path within ``jarvis.projectsFolder``
+   * AC-4: Selecting an item calls ``TreeView.reveal()`` with
+     ``{ select: true, focus: true, expand: true }`` on the corresponding
+     ``LeafNode``
+   * AC-5: The command SHALL NOT appear in the Command Palette
+   * AC-6: If the scanner cache is empty (no projects), the QuickPick opens with
+     an empty list — no error is shown
+   * AC-7: The QuickPick SHALL apply VS Code's built-in fuzzy filtering on item
+     label and description as the user types — no custom filtering code is
+     required
+   * AC-8: Pressing Escape or clicking outside the QuickPick SHALL dismiss it
+     without any side effects on the tree view or scanner state
+
+
+.. req:: Search Events via QuickPick
+   :id: REQ_EXP_SEARCHEVENTS
+   :status: open
+   :priority: optional
+   :links: US_EXP_TREESEARCH
+
+   **Description:**
+   The Events tree view SHALL provide a search command, triggered by a
+   ``$(search)`` icon in its title bar, that opens a QuickPick listing all
+   events. Selecting an event SHALL reveal and focus it in the tree.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A ``$(search)`` icon button in the Events title bar triggers the
+     command ``jarvis.searchEvents``
+   * AC-2: The QuickPick lists all event leaf items sourced from the in-memory
+     scanner cache; the list reflects the current scan result
+   * AC-3: Each QuickPick item label uses the same format as the tree label:
+     ``<datesStart> — <name>`` if ``datesStart`` is defined, otherwise ``<name>``
+     only; the description shows the event start date when available
+   * AC-4: Selecting an item calls ``TreeView.reveal()`` with
+     ``{ select: true, focus: true, expand: true }`` on the corresponding
+     ``LeafNode``
+   * AC-5: The command SHALL NOT appear in the Command Palette
+   * AC-6: If the scanner cache is empty (no events), the QuickPick opens with
+     an empty list — no error is shown
+   * AC-7: The QuickPick SHALL apply VS Code's built-in fuzzy filtering on item
+     label and description as the user types — no custom filtering code is
+     required
+   * AC-8: Pressing Escape or clicking outside the QuickPick SHALL dismiss it
+     without any side effects on the tree view or scanner state

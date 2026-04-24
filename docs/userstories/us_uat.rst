@@ -23,6 +23,7 @@ for each feature. Each file corresponds to one feature or change.
    us_uat_outlookcategories
    us_uat_rec
    us_uat_tree_node_open_file
+   us_uat_treesearch
 
 All UAT User Stories
 --------------------

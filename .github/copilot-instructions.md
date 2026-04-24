@@ -17,7 +17,7 @@ Projects and events are stored as YAML files in configurable folders.
 
 ```
 src/                    — Extension source (TypeScript)
-  extension.ts          — Activation, commands (new-entity, filters, rescan, context-actions, agent sessions, category/task rename/delete/refresh), populateDefaultPaths() for workspace-settings bootstrap, 8 LM+MCP tools (sendToSession, readMessage, listSessions, listProjects, registerJob, unregisterJob, jarvis_category, jarvis_task) via registerDualTool(), syncRescanJob()+syncCategoryRefreshJob()+syncTaskRefreshJob() heartbeat bridges, shared LogOutputChannel "Jarvis" (structured logging with levels and module tags)
+  extension.ts          — Activation, commands (new-entity, filters, rescan, context-actions, agent sessions, category/task rename/delete/refresh, searchProjects/searchEvents with flattenLeaves() helper), populateDefaultPaths() for workspace-settings bootstrap, 8 LM+MCP tools (sendToSession, readMessage, listSessions, listProjects, registerJob, unregisterJob, jarvis_category, jarvis_task) via registerDualTool(), syncRescanJob()+syncCategoryRefreshJob()+syncTaskRefreshJob() heartbeat bridges, shared LogOutputChannel "Jarvis" (structured logging with levels and module tags)
   pim/ICategoryProvider.ts — Category + ICategoryProvider strategy-pattern interface
   pim/DomainCache.ts    — Generic in-memory cache with refresh callback
   pim/CategoryService.ts — Provider list + DomainCache<Category[]>; getCategories/setCategory/deleteCategory/renameCategory/refresh/hasProviders
@@ -125,6 +125,7 @@ JSON Schemas: `schemas/project.schema.json`, `schemas/event.schema.json`
 - **PowerShell JSON**: Strip U+0000–U+001F control chars before `JSON.parse()` — `ConvertTo-Json` does not escape all of them.
 - **DomainCache population**: Fire-and-forget `refresh()` after provider registration — `DomainCache.get()` returns `undefined` synchronously until first refresh completes.
 - **Heartbeat command registration**: If `syncXxxJob()` references a command name, that command MUST be registered via `vscode.commands.registerCommand()` — otherwise heartbeat jobs fail silently with "command not found".
+- **TreeView.reveal()**: Pass the exact item object from the provider (not a reconstructed copy). The `TreeView` must be created with `canSelectMany: false` and the provider must implement `getParent()` for reveal to work correctly.
 
 ## Session–Project Binding
 
