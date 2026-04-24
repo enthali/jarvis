@@ -8,6 +8,8 @@
 |--------|--------|
 | doc-traceability-fix (US_EXP_FEATURETOGGLE, US_EXP_NAMESORT Korrekturen) | done |
 | syspilot v0.5.0 update (Agent-Refactoring, Skills, Prompts) | done |
+| tree-search (QuickPick Search for Projects + Events, TreeView.reveal) | done |
+| tree-search-spec-fix (Spec an Code anpassen, Status implemented) | done |
 
 ## v0.5.2 (released)
 
