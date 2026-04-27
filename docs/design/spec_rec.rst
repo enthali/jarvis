@@ -191,7 +191,7 @@ Recording Design Specifications
       d. ``appendMessage(resolveMessagesPath(), project, 'Whisper Watcher', notificationText)``
       e. ``messageProvider.reload()``
       f. Delete ``input/<stem>.json``
-      g. Log: ``[Recording] dispatched transcript "<stem>" to session "<project>"
+      g. Log: ``[Recording] dispatched transcript "<stem>" to session "<project>"``
 
 
 .. spec:: Transcript Watcher Heartbeat Job
@@ -214,7 +214,7 @@ Recording Design Specifications
           const jobName = 'Jarvis: Check Transcripts';
           if (enabled && whisperPath) {
               const interval = cfg.get<number>('scanInterval', 2);
-              const schedule = interval > 0 ? \`*/\${interval} * * * *\` : '*/2 * * * *';
+              const schedule = interval > 0 ? `*/${interval} * * * *` : '*/2 * * * *';
               scheduler.registerJob({ name: jobName, schedule,
                   steps: [{ type: 'command', run: 'jarvis.checkTranscripts' }] });
           } else {
