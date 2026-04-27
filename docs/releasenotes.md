@@ -1,5 +1,24 @@
 # Release Notes
 
+## v0.5.4
+
+*2026-04-27*
+
+Hotfix release: Sphinx build fixes, Messages UX improvements, and tooling updates.
+
+### Fixes
+
+- **sphinx-build**: Fixed escaped backticks and unclosed inline literal in spec_rec.rst — CI build green again
+- **messages-ux**: Message session groups default to collapsed; added refresh button to Messages view title bar
+
+### Tooling & Docs
+
+- **release-agent**: Fixed workflow — change doc archival now happens on develop before squash merge
+- **tree-search-spec-fix**: Aligned REQ/SPEC to implementation (QM MEDIUM-1/2, LOW-3/4)
+- **.mcp.json**: Added Copilot CLI MCP server configuration
+- **doc-traceability-fix**: US_EXP_FEATURETOGGLE + US_EXP_NAMESORT corrections
+- **syspilot v0.5.0**: Agent refactoring, skills, prompts
+
 ## v0.5.3
 
 *2026-04-24*
@@ -8,17 +27,38 @@ Tree search, syspilot tooling update, and documentation fixes.
 
 ### New Features
 
-- **tree-search**: QuickPick-based search for Projects and Events tree views — press the search icon in the title bar to fuzzy-filter all items and reveal the selected entry in the tree. Uses `TreeView.reveal()` with `getParent()` support. Search is unfiltered (hidden items remain searchable). Two new commands: `jarvis.searchProjects`, `jarvis.searchEvents`.
+- **tree-search**: QuickPick-based search for Projects and Events tree views — press the search icon in the title bar to fuzzy-filter all items and reveal the selected entry in the tree. Uses `TreeView.reveal()` with `getParent()` support. Two new commands: `jarvis.searchProjects`, `jarvis.searchEvents`.
 
 ### Fixes & Docs
 
 - **doc-traceability-fix**: Fixed traceability inconsistencies for `US_EXP_FEATURETOGGLE` and `US_EXP_NAMESORT`.
-- **tree-search-spec-fix**: Aligned `SPEC_EXP_SEARCH_CMD` and `SPEC_EXP_SEARCH_MANIFEST` with implementation (QM review MEDIUM-1/2, LOW-3/4).
+- **tree-search-spec-fix**: Aligned `SPEC_EXP_SEARCH_CMD` and `SPEC_EXP_SEARCH_MANIFEST` with implementation.
 
 ### Infra & Tooling
 
-- **syspilot v0.5.0**: Agent refactoring, skills, prompts — updated from syspilot 0.4.0 to 0.5.0.
-- Housekeeping: `.mcp.json` configuration, research docs, workflow fix, workspace file removed.
+- **syspilot v0.5.0**: Agent refactoring, skills, prompts.
+- Housekeeping: `.mcp.json`, research docs, workflow fix, workspace file removed.
+
+## v0.5.2
+
+*2026-04-15*
+
+### New Features
+
+- **Open Heartbeat Job**: Click any job node in the Heartbeat tree view to open `heartbeat.yaml` at the job definition.
+- **Open Message**: Click any message node in the Message tree view to open `messages.json` at the corresponding entry.
+
+## v0.5.1
+
+*2026-04-15*
+
+Tree item format improvements, full session recording pipeline with Whisper integration.
+
+### New Features
+
+- **session-recording-ui**: Record meetings from the project tree. Status bar shows recording indicator. Gated by `jarvis.recording.enabled`.
+- **session-recording-watcher**: `Jarvis: Check Transcripts` command — dispatches processed Whisper transcripts to project chat sessions via heartbeat job.
+- **task-view-format**: Tasks display as `yy-mm-dd  Subject`. Overdue tasks marked with ⚠.
 
 ## v0.5.0
 

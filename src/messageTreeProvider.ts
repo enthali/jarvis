@@ -86,7 +86,7 @@ export class MessageTreeProvider implements vscode.TreeDataProvider<MessageNode>
         if (element.kind === 'session') {
             const item = new vscode.TreeItem(
                 element.label,
-                vscode.TreeItemCollapsibleState.Expanded
+                vscode.TreeItemCollapsibleState.Collapsed
             );
             item.contextValue = 'messageSession';
             return item;
