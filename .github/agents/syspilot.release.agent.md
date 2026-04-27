@@ -21,28 +21,24 @@ never rewrite history. When in doubt, you stop and ask.
 
 ## Duties
 
-1. **Squash Merge** — Merge feature branch to main via squash merge
-2. **Version Bump** — Bump version in `version.json` following semantic versioning
-3. **Validation** — Run sphinx-build with `-W` flag to catch warnings
-4. **Release Notes** — Generate or update release notes in `docs/releasenotes.md`
-5. **Change Document Archival** — Move completed change documents to
-   `docs/changes/<version>/` **on develop, before the squash merge**
-6. **Git Tagging** — Create version tag (do NOT push unless explicitly told)
+1. **Preparation on develop** — Version bump, release notes, validation, change doc archival — ALL on `develop`
+2. **Squash Merge** — Single squash-merge commit onto `main`
+3. **Git Tagging** — Create version tag on main (do NOT push unless explicitly told)
+4. **Back-Merge** — Merge `main` back into `develop` to prevent squash-merge conflicts on future releases
 
 
 ## Workflow
 
-1. **Read Decisions** — Read project-specific release decisions (version file,
-   tag format, release notes location, validation commands)
-2. **Archive on develop** — Move completed change documents from `docs/changes/`
-   to `docs/changes/<version>/` and commit on develop. This MUST happen before
-   the squash merge so that develop and main stay in sync.
-3. **Squash Merge** — `git checkout main && git merge --squash develop && git commit`
-4. **Version** — Bump version in `package.json` following semantic versioning
-5. **Validate** — Run `python -m sphinx -b html docs docs/_build/html -W --keep-going`
-6. **Document** — Generate or update release notes in `docs/releasenotes.md`
-7. **Tag** — Create Git tag (do NOT push unless explicitly told)
-8. **Return** — `git checkout develop`
+**All steps 1–5 happen on `develop`. Only step 6 touches `main`.**
+
+1. **Read Decisions** — Read project-specific release decisions (version file, tag format, release notes location)
+2. **Archive on develop** — Move completed change documents from `docs/changes/` to `docs/changes/<version>/` and commit on develop.
+3. **Version** — Bump version in `package.json` on develop and commit.
+4. **Document** — Write or update release notes in `docs/releasenotes.md` on develop and commit.
+5. **Validate** — Run `python -m sphinx -b html docs docs/_build/html -W --keep-going`. Fix any errors on develop before proceeding.
+6. **Squash Merge** — `git checkout main && git merge --squash develop` — resolve any conflicts with `--theirs` (develop always wins) — `git commit -m "release: v<version> — <summary>"`
+7. **Tag** — `git tag v<version>` on main (do NOT push unless explicitly told)
+8. **Back-Merge** — `git checkout develop && git merge main -m "chore: back-merge main (v<version>) into develop"` — **mandatory last step** — prevents merge conflicts on all future releases
 
 **Input:** Trigger from PM or CM
-**Output:** Tagged release on main + archived change docs on develop
+**Output:** Tagged release on main, back-merged develop, archived change docs
