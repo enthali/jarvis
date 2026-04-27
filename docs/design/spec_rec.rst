@@ -191,7 +191,7 @@ Recording Design Specifications
       d. ``appendMessage(resolveMessagesPath(), project, 'Whisper Watcher', notificationText)``
       e. ``messageProvider.reload()``
       f. Delete ``input/<stem>.json``
-      g. Log: ``[Recording] dispatched transcript "<stem>" to session "<project>"
+      g. Log: ``[Recording] dispatched transcript "<stem>" to session "<project>"``
 
 
 .. spec:: Transcript Watcher Heartbeat Job
