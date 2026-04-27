@@ -1,6 +1,6 @@
 jobs:
   - name: t1-cron-sentinel
-    schedule: '* * * * *'
+    schedule: '*/5 * * * *'
     steps:
       - type: powershell
         run: scripts/write-sentinel.ps1
