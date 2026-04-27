@@ -493,6 +493,11 @@ export function activate(context: vscode.ExtensionContext) {
         log.info('[PIM] manual categories refresh triggered');
     });
 
+    const refreshMessagesCommand = vscode.commands.registerCommand('jarvis.refreshMessages', () => {
+        messageProvider.reload();
+        log.info('[MSG] manual messages refresh triggered');
+    });
+
     const renameCategoryCommand = vscode.commands.registerCommand(
         'jarvis.renameCategory',
         async (node: { name: string; source: string; id?: string }) => {
@@ -1422,6 +1427,7 @@ export function activate(context: vscode.ExtensionContext) {
         categoryTool,
         taskTool,
         refreshCategoriesCommand,
+        refreshMessagesCommand,
         renameCategoryCommand,
         deleteCategoryCommand,
         refreshTasksCommand,
