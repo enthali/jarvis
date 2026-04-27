@@ -1,5 +1,24 @@
 # Release Notes
 
+## v0.5.4
+
+*2026-04-27*
+
+Hotfix release: Sphinx build fixes, Messages UX improvements, and tooling updates.
+
+### Fixes
+
+- **sphinx-build**: Fixed escaped backticks and unclosed inline literal in spec_rec.rst — CI build green again
+- **messages-ux**: Message session groups default to collapsed; added refresh button to Messages view title bar
+
+### Tooling & Docs
+
+- **release-agent**: Fixed workflow — change doc archival now happens on develop before squash merge
+- **tree-search-spec-fix**: Aligned REQ/SPEC to implementation (QM MEDIUM-1/2, LOW-3/4)
+- **.mcp.json**: Added Copilot CLI MCP server configuration
+- **doc-traceability-fix**: US_EXP_FEATURETOGGLE + US_EXP_NAMESORT corrections
+- **syspilot v0.5.0**: Agent refactoring, skills, prompts
+
 ## v0.5.0
 
 *2026-04-15*
