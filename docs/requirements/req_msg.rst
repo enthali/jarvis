@@ -232,3 +232,134 @@ Message Queue Requirements
      server is running; the item SHALL be hidden when MCP is disabled
    * AC-8: If ``jarvis.mcpEnabled`` is ``false``, the MCP server SHALL not
      start and the status bar item SHALL not be shown
+
+
+.. req:: Auto-Delivery Configuration Store
+   :id: REQ_MSG_AUTODELIVER_CONFIG
+   :status: approved
+   :priority: optional
+   :links: US_MSG_AUTODELIVERY; REQ_MSG_QUEUE
+
+   **Description:**
+   The extension SHALL maintain a persistent JSON file ``autodelivery.json``
+   co-located with ``messages.json`` that stores the list of session names
+   for which auto-delivery is enabled.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The file SHALL be a JSON array of strings (session destination names)
+   * AC-2: The file SHALL be located in the same directory as ``messages.json``
+     (derived from ``resolveMessagesPath()`` by replacing the filename)
+   * AC-3: If the file does not exist, the extension SHALL treat the auto-delivery
+     list as empty (no error)
+   * AC-4: Adding a session SHALL append its name to the array and persist the
+     updated file
+   * AC-5: Removing a session SHALL filter it out of the array and persist the
+     updated file
+   * AC-6: If the file is malformed, the extension SHALL fall back to an empty
+     list and log a warning
+
+
+.. req:: Auto-Delivery Poll Loop
+   :id: REQ_MSG_AUTODELIVER_POLL
+   :status: approved
+   :priority: optional
+   :links: US_MSG_AUTODELIVERY; REQ_MSG_AUTODELIVER_CONFIG; REQ_MSG_AUTODELIVER_TAG; REQ_MSG_SEND
+
+   **Description:**
+   The extension SHALL run a background poll loop that automatically sends
+   notifications for sessions listed in ``autodelivery.json``.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A ``setInterval`` timer with a 5 000 ms period SHALL be started during
+     extension activation
+   * AC-2: On each tick the loop SHALL read the current ``messages.json`` and
+     ``autodelivery.json``
+   * AC-3: For each session in the auto-delivery list, if at least one message
+     exists with ``notified !== true``, the loop SHALL execute
+     ``jarvis.sendMessages`` for that session node
+   * AC-4: After notification the loop SHALL set ``notified: true`` on all
+     messages that were just notified for that session and persist the queue
+   * AC-5: The loop SHALL process at most one session per tick (first-found order)
+   * AC-6: The timer SHALL be stopped (``clearInterval``) when the extension is
+     deactivated
+   * AC-7: Errors in a single tick SHALL be caught, logged as warnings, and SHALL
+     NOT stop the poll loop
+
+
+.. req:: Notified Flag on Queued Message
+   :id: REQ_MSG_AUTODELIVER_TAG
+   :status: approved
+   :priority: optional
+   :links: US_MSG_AUTODELIVERY; REQ_MSG_QUEUE
+
+   **Description:**
+   The ``QueuedMessage`` data type SHALL support an optional ``notified`` boolean
+   field to track whether the message has already been auto-delivered.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``QueuedMessage`` SHALL include an optional ``notified?: boolean`` field
+   * AC-2: Messages appended via ``appendMessage`` SHALL have ``notified``
+     absent (``undefined``) by default
+   * AC-3: The ``notified`` flag is not interpreted by ``appendMessage``,
+     ``popMessage``, or ``readMessage`` — only the poll loop reads and writes it
+   * AC-4: The manual ``jarvis.sendMessages`` command SHALL ignore the
+     ``notified`` field — it always delivers regardless of flag state
+   * AC-5: ``popMessage`` and ``readMessage`` behaviour SHALL be unchanged
+     — the flag is irrelevant to message consumption
+
+
+.. req:: Auto-Delivery Message Tree Layout
+   :id: REQ_MSG_AUTODELIVER_TREE
+   :status: approved
+   :priority: optional
+   :links: US_MSG_AUTODELIVERY; REQ_MSG_AUTODELIVER_CONFIG; REQ_MSG_EXPLORER
+
+   **Description:**
+   The Messages tree view SHALL be restructured to show manual and auto-delivery
+   sessions in separate groups.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Sessions NOT in ``autodelivery.json`` SHALL be displayed at root
+     level as today (manual delivery)
+   * AC-2: A collapsible "Auto Delivery" group node SHALL always be present as
+     a root-level node, even when the list is empty
+   * AC-3: The "Auto Delivery" group SHALL contain one child node per session
+     in ``autodelivery.json``; each child shows the pending message count
+     (e.g. ``My Session (2)``) or ``(0)`` when no messages are pending
+   * AC-4: The "Auto Delivery" group node SHALL use a lightning-bolt icon
+     (``$(zap)`` ThemeIcon)
+   * AC-5: Session nodes inside the "Auto Delivery" group SHALL have
+     contextValue ``jarvisSessionAutoDeliver``
+   * AC-6: Session nodes at root level (manual) SHALL have contextValue
+     ``jarvisSessionManual``
+   * AC-7: The manual send button (``$(debug-start)``) SHALL remain on both
+     manual AND auto-delivery session nodes
+
+
+.. req:: Auto-Delivery Context Menu Commands
+   :id: REQ_MSG_AUTODELIVER_CMDS
+   :status: approved
+   :priority: optional
+   :links: US_MSG_AUTODELIVERY; REQ_MSG_AUTODELIVER_CONFIG; REQ_MSG_AUTODELIVER_TREE
+
+   **Description:**
+   The extension SHALL provide commands to move sessions between the manual
+   and auto-delivery groups via context menus.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A command ``jarvis.enableAutoDelivery`` SHALL be available in the
+     context menu of manual session nodes (``jarvisSessionManual``)
+   * AC-2: Invoking ``jarvis.enableAutoDelivery`` SHALL add the session to
+     ``autodelivery.json`` and refresh the Messages tree
+   * AC-3: A command ``jarvis.disableAutoDelivery`` SHALL be available in the
+     context menu of auto-delivery session nodes (``jarvisSessionAutoDeliver``)
+   * AC-4: Invoking ``jarvis.disableAutoDelivery`` SHALL remove the session from
+     ``autodelivery.json`` and refresh the Messages tree
+   * AC-5: Both commands SHALL be registered in ``package.json``
+     ``contributes.commands`` and in ``contributes.menus.view/item/context``
+     with appropriate ``when``-clauses

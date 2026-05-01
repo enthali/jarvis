@@ -149,7 +149,7 @@ Message Queue Design Specifications
 .. spec:: Send Messages Command
    :id: SPEC_MSG_SENDCOMMAND
    :status: implemented
-   :links: REQ_MSG_SEND; REQ_MSG_SESSIONLOOKUP; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_QUEUESTORE
+   :links: REQ_MSG_SEND; REQ_MSG_SESSIONLOOKUP; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_QUEUESTORE; REQ_MSG_AUTODELIVER_TAG
 
    **Description:**
    Register ``jarvis.sendMessages`` in ``extension.ts``. Invoked from the session
@@ -212,6 +212,10 @@ Message Queue Design Specifications
           messageProvider.reload();
         }
       );
+
+   The command delivers ALL pending messages regardless of their ``notified``
+   flag — per ``REQ_MSG_AUTODELIVER_TAG AC-4``, manual delivery is always
+   unconditional.
 
    Also registers ``jarvis.deleteMessage`` for single message deletion.
    The ``jarvis.openSession`` command is specified separately in
@@ -770,3 +774,331 @@ Message Queue Design Specifications
    * LM handlers continue to return ``LanguageModelToolResult`` as before
    * The status bar item is only shown when ``mcpEnabled`` is true
    * Port changes require extension reload (no hot-reconfiguration)
+
+
+.. spec:: Auto-Delivery Config Store
+   :id: SPEC_MSG_AUTODELIVER_STORE
+   :status: approved
+   :links: REQ_MSG_AUTODELIVER_CONFIG; SPEC_MSG_QUEUESTORE
+
+   **Description:**
+   Helper functions in ``src/messageQueue.ts`` (or a dedicated
+   ``src/autoDelivery.ts`` module) manage the ``autodelivery.json`` file.
+   The file is a flat JSON array of destination name strings.
+
+   **Path derivation:**
+
+   .. code-block:: typescript
+
+      function resolveAutoDeliveryPath(messagesPath: string): string {
+        return path.join(path.dirname(messagesPath), 'autodelivery.json');
+      }
+
+   **Public API:**
+
+   .. code-block:: typescript
+
+      function readAutoDelivery(messagesPath: string): string[] {
+        const filePath = resolveAutoDeliveryPath(messagesPath);
+        if (!fs.existsSync(filePath)) { return []; }
+        try {
+          const raw = fs.readFileSync(filePath, 'utf8');
+          return JSON.parse(raw) as string[];
+        } catch {
+          log.warn('[MSG] autodelivery.json malformed — falling back to empty list');
+          return [];
+        }
+      }
+
+      function addAutoDelivery(messagesPath: string, destination: string): void {
+        const list = readAutoDelivery(messagesPath);
+        if (!list.includes(destination)) {
+          list.push(destination);
+          const filePath = resolveAutoDeliveryPath(messagesPath);
+          fs.mkdirSync(path.dirname(filePath), { recursive: true });
+          fs.writeFileSync(filePath, JSON.stringify(list, null, 2));
+        }
+      }
+
+      function removeAutoDelivery(messagesPath: string, destination: string): void {
+        const list = readAutoDelivery(messagesPath).filter(d => d !== destination);
+        const filePath = resolveAutoDeliveryPath(messagesPath);
+        fs.writeFileSync(filePath, JSON.stringify(list, null, 2));
+      }
+
+   **Design notes:**
+
+   * ``resolveAutoDeliveryPath`` is a pure derivation — no new config key needed
+   * All three functions accept the resolved ``messages.json`` path so callers
+     use the same ``resolveMessagesPath()`` source of truth
+   * ``log`` is the shared ``LogOutputChannel`` passed through or accessible
+     via module scope
+
+
+.. spec:: Notified Flag on QueuedMessage
+   :id: SPEC_MSG_AUTODELIVER_TAG
+   :status: approved
+   :links: REQ_MSG_AUTODELIVER_TAG; SPEC_MSG_QUEUESTORE
+
+   **Description:**
+   Extend the ``QueuedMessage`` interface in ``src/messageQueue.ts`` with an
+   optional ``notified`` field. Add a ``writeQueue`` helper so the poll loop
+   can persist the updated queue after tagging.
+
+   **Updated interface:**
+
+   .. code-block:: typescript
+
+      export interface QueuedMessage {
+        destination: string; // target chat tab label
+        sender: string;      // originating session or component
+        text: string;        // message content
+        timestamp: string;   // ISO 8601
+        notified?: boolean;  // true after auto-delivery notification
+      }
+
+   **New helper:**
+
+   .. code-block:: typescript
+
+      export function writeQueue(filePath: string, queue: QueuedMessage[]): void {
+        fs.mkdirSync(path.dirname(filePath), { recursive: true });
+        fs.writeFileSync(filePath, JSON.stringify(queue, null, 2));
+      }
+
+   **Design notes:**
+
+   * ``notified`` is absent on existing messages and on all messages written by
+     ``appendMessage`` — the field is only set by the poll loop
+   * ``writeQueue`` is intentionally minimal; all mutation logic stays in the
+     poll loop so the helper has no side-effects
+   * No change to ``popMessage``, ``deleteMessage``, or ``appendMessage``
+
+
+.. spec:: Auto-Delivery Poll Loop
+   :id: SPEC_MSG_AUTODELIVER_POLL
+   :status: approved
+   :links: REQ_MSG_AUTODELIVER_POLL; SPEC_MSG_AUTODELIVER_STORE; SPEC_MSG_AUTODELIVER_TAG; SPEC_MSG_SENDCOMMAND
+
+   **Description:**
+   A ``setInterval`` poll loop started in ``extension.ts`` during ``activate()``.
+   Each tick finds the first auto-delivery session that has un-notified messages,
+   executes ``jarvis.sendMessages`` for it, and marks those messages as notified.
+
+   **Tick logic:**
+
+   .. code-block:: typescript
+
+      const autoDeliverTimer = setInterval(async () => {
+        try {
+          const messagesPath = resolveMessagesPath();
+          const autoList = readAutoDelivery(messagesPath);
+          if (autoList.length === 0) { return; }
+          const queue = readQueue(messagesPath);
+
+          for (const destination of autoList) {
+            const pending = queue.filter(
+              m => m.destination === destination && !m.notified
+            );
+            if (pending.length === 0) { continue; }
+
+            // Build a synthetic SessionGroupNode for sendMessages
+            const node: SessionGroupNode = {
+              kind: 'session',
+              label: `${destination} (${pending.length})`,
+              destination,
+              children: pending.map((m, i) => ({
+                kind: 'message',
+                destination: m.destination,
+                sender: m.sender,
+                text: m.text,
+                index: queue.indexOf(m),
+              })),
+            };
+            await vscode.commands.executeCommand('jarvis.sendMessages', node);
+
+            // Tag notified messages
+            for (const m of pending) { m.notified = true; }
+            writeQueue(messagesPath, queue);
+            break; // max one session per tick
+          }
+        } catch (err) {
+          log.warn(`[MSG] Auto-delivery tick error: ${err}`);
+        }
+      }, 5000);
+
+      context.subscriptions.push({ dispose: () => clearInterval(autoDeliverTimer) });
+
+   **Design notes:**
+
+   * ``break`` after the first notified session implements the "max 1 per tick"
+     constraint from ``REQ_MSG_AUTODELIVER_POLL AC-5``
+   * The synthetic ``SessionGroupNode`` has ``children`` populated with the
+     pending messages so ``sendMessages`` shows the correct count in the stub
+   * ``queue.indexOf(m)`` gives the flat index required by ``MessageLeafNode``
+   * ``context.subscriptions.push({ dispose: () => clearInterval(...) })``
+     ensures the timer is cleared on deactivation
+   * The ``log`` reference is the shared ``LogOutputChannel`` already created
+     during ``activate()``
+   * ``jarvis.sendMessages`` is called as a registered command so the delivery
+     logic stays in a single place and both manual and automatic paths remain
+     identical
+
+
+.. spec:: Auto-Delivery Message Tree Provider
+   :id: SPEC_MSG_AUTODELIVER_TREE
+   :status: approved
+   :links: REQ_MSG_AUTODELIVER_TREE; REQ_MSG_AUTODELIVER_CMDS; SPEC_MSG_TREEPROVIDER; SPEC_MSG_AUTODELIVER_STORE
+
+   **Description:**
+   Restructure ``MessageTreeProvider`` in ``src/messageTreeProvider.ts`` to
+   separate manual sessions from auto-delivery sessions. A new
+   ``AutoDeliveryGroupNode`` appears as a fixed root entry. The provider
+   receives a ``resolveAutoDeliveryPath`` helper (or the ``messagesPath``
+   resolver) so it can read ``autodelivery.json``.
+
+   **Extended node types:**
+
+   .. code-block:: typescript
+
+      interface AutoDeliveryGroupNode {
+        kind: 'autoDeliveryGroup';
+        children: SessionGroupNode[];
+      }
+
+      // Updated SessionGroupNode — adds contextValue discriminator
+      interface SessionGroupNode {
+        kind: 'session';
+        label: string;
+        destination: string;
+        children: MessageLeafNode[];
+        contextValue: 'jarvisSessionManual' | 'jarvisSessionAutoDeliver';
+      }
+
+      type MessageNode =
+        | AutoDeliveryGroupNode
+        | SessionGroupNode
+        | MessageLeafNode
+        | EmptyNode;
+
+   **getChildren(element?) — root level:**
+
+   1. Read queue via ``readQueue(messagesPath)``.
+   2. Read auto-delivery list via ``readAutoDelivery(messagesPath)``.
+   3. For each destination in the queue NOT in the auto-delivery list → produce
+      a ``SessionGroupNode`` with ``contextValue: 'jarvisSessionManual'``.
+   4. If no manual sessions → return single ``EmptyNode`` followed by the
+      ``AutoDeliveryGroupNode``.
+   5. Always append one ``AutoDeliveryGroupNode`` to the root result.
+
+   **getChildren(AutoDeliveryGroupNode):**
+
+   For each destination in the auto-delivery list, produce a
+   ``SessionGroupNode`` with ``contextValue: 'jarvisSessionAutoDeliver'``.
+   The ``children`` array is populated from the queue for that destination
+   (may be empty — ``(0)`` is shown).
+
+   **getTreeItem updates:**
+
+   * ``AutoDeliveryGroupNode`` → collapsible, label ``"Auto Delivery"``,
+     iconPath ``new vscode.ThemeIcon('zap')``, no contextValue
+   * ``SessionGroupNode`` with ``contextValue: 'jarvisSessionManual'`` →
+     contextValue = ``'jarvisSessionManual'``
+   * ``SessionGroupNode`` with ``contextValue: 'jarvisSessionAutoDeliver'`` →
+     contextValue = ``'jarvisSessionAutoDeliver'``
+
+   **package.json inline actions:**
+
+   .. code-block:: json
+
+      {
+        "view/item/context": [
+          {
+            "command": "jarvis.sendMessages",
+            "when": "viewItem == jarvisSessionManual || viewItem == jarvisSessionAutoDeliver",
+            "group": "inline"
+          },
+          {
+            "command": "jarvis.enableAutoDelivery",
+            "when": "viewItem == jarvisSessionManual",
+            "group": "inline"
+          },
+          {
+            "command": "jarvis.disableAutoDelivery",
+            "when": "viewItem == jarvisSessionAutoDeliver",
+            "group": "inline"
+          },
+          {
+            "command": "jarvis.deleteMessage",
+            "when": "viewItem == messageItem",
+            "group": "inline"
+          }
+        ]
+      }
+
+   **Design notes:**
+
+   * The ``AutoDeliveryGroupNode`` is always returned regardless of list size
+     (satisfies ``REQ_MSG_AUTODELIVER_TREE AC-2``)
+   * Sessions inside the Auto Delivery group still show the manual play button
+     so the user can force an immediate delivery (``REQ_MSG_AUTODELIVER_TREE AC-7``)
+   * The existing ``messageSession`` contextValue is replaced by
+     ``jarvisSessionManual`` and ``jarvisSessionAutoDeliver`` — any existing
+     ``when``-clause using ``messageSession`` must be updated accordingly
+
+
+.. spec:: Enable / Disable Auto-Delivery Commands
+   :id: SPEC_MSG_AUTODELIVER_CMDS
+   :status: approved
+   :links: REQ_MSG_AUTODELIVER_CMDS; SPEC_MSG_AUTODELIVER_STORE; SPEC_MSG_AUTODELIVER_TREE
+
+   **Description:**
+   Register ``jarvis.enableAutoDelivery`` and ``jarvis.disableAutoDelivery`` in
+   ``extension.ts``. Both commands accept a ``SessionGroupNode`` argument from
+   the tree view context menu.
+
+   **Handlers:**
+
+   .. code-block:: typescript
+
+      vscode.commands.registerCommand(
+        'jarvis.enableAutoDelivery',
+        (node?: SessionGroupNode) => {
+          if (!node) { return; }
+          addAutoDelivery(resolveMessagesPath(), node.destination);
+          messageProvider.reload();
+        }
+      );
+
+      vscode.commands.registerCommand(
+        'jarvis.disableAutoDelivery',
+        (node?: SessionGroupNode) => {
+          if (!node) { return; }
+          removeAutoDelivery(resolveMessagesPath(), node.destination);
+          messageProvider.reload();
+        }
+      );
+
+   **package.json ``contributes.commands``:**
+
+   .. code-block:: json
+
+      [
+        {
+          "command": "jarvis.enableAutoDelivery",
+          "title": "Jarvis: Enable Direct Delivery",
+          "icon": "$(zap)"
+        },
+        {
+          "command": "jarvis.disableAutoDelivery",
+          "title": "Jarvis: Disable Direct Delivery",
+          "icon": "$(zap)"
+        }
+      ]
+
+   **Design notes:**
+
+   * Guards against missing node (command-palette invocation returns early)
+   * ``messageProvider.reload()`` is sufficient — no ``vscode.window.showInformationMessage``
+     needed; the tree update itself confirms the action
+   * Disposables pushed to ``context.subscriptions``

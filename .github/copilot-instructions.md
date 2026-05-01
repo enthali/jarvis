@@ -17,7 +17,7 @@ Projects and events are stored as YAML files in configurable folders.
 
 ```
 src/                    — Extension source (TypeScript)
-  extension.ts          — Activation, commands (new-entity, filters, rescan, context-actions, agent sessions, category/task rename/delete/refresh, searchProjects/searchEvents with flattenLeaves() helper), populateDefaultPaths() for workspace-settings bootstrap, 8 LM+MCP tools (sendToSession, readMessage, listSessions, listProjects, registerJob, unregisterJob, jarvis_category, jarvis_task) via registerDualTool(), syncRescanJob()+syncCategoryRefreshJob()+syncTaskRefreshJob() heartbeat bridges, shared LogOutputChannel "Jarvis" (structured logging with levels and module tags)
+  extension.ts          — Activation, commands (new-entity, filters, rescan, context-actions, agent sessions, category/task rename/delete/refresh, searchProjects/searchEvents with flattenLeaves() helper, enableAutoDelivery/disableAutoDelivery), populateDefaultPaths() for workspace-settings bootstrap, 8 LM+MCP tools (sendToSession, readMessage, listSessions, listProjects, registerJob, unregisterJob, jarvis_category, jarvis_task) via registerDualTool(), syncRescanJob()+syncCategoryRefreshJob()+syncTaskRefreshJob() heartbeat bridges, 5-second poll loop for auto-delivery (max 1 msg/tick, marks notified:true), shared LogOutputChannel "Jarvis" (structured logging with levels and module tags)
   pim/ICategoryProvider.ts — Category + ICategoryProvider strategy-pattern interface
   pim/DomainCache.ts    — Generic in-memory cache with refresh callback
   pim/CategoryService.ts — Provider list + DomainCache<Category[]>; getCategories/setCategory/deleteCategory/renameCategory/refresh/hasProviders
@@ -30,9 +30,9 @@ src/                    — Extension source (TypeScript)
   yamlScanner.ts        — Convention-file scanner: folder with project.yaml/event.yaml = leaf; content-change detection; events sorted by datesStart+name, projects by name; no own timer (rescans via heartbeat)
   projectTreeProvider.ts — Tree UI for projects (owns _hiddenFolders filter; contextValue: jarvisProject)
   eventTreeProvider.ts  — Tree UI for events (owns _futureOnly filter; label: "datesStart — name"; contextValue: jarvisEvent)
-  messageTreeProvider.ts — Tree UI for messages (grouped by destination session)
+  messageTreeProvider.ts — Tree UI for messages (manual sessions at root + permanent AutoDeliveryGroupNode with zap icon; contextValues: jarvisSessionManual, jarvisSessionAutoDeliver)
   heartbeatTreeProvider.ts — Tree UI for heartbeat jobs (contextValue: heartbeatJob)
-  messageQueue.ts       — JSON message queue: append, delete, read, popMessage (oldest-first pull for LM tool)
+  messageQueue.ts       — JSON message queue: append, delete, read, popMessage (oldest-first pull for LM tool); QueuedMessage.notified?: boolean; autodelivery.json (sibling, string[] of session names); readAutoDelivery/addAutoDelivery/removeAutoDelivery/writeQueue helpers
   sessionLookup.ts      — Session UUID resolver via state.vscdb (sql.js)
   heartbeat.ts          — Heartbeat scheduler (cron dispatch, step executor, status bar, registerJob/unregisterJob for heartbeat.yaml); exports HeartbeatStep, HeartbeatJob, loadJobs(), executeJob(), notifyFailure()
   updateCheck.ts        — Self-update: GitHub Releases fetch, semver compare, .vsix download + install

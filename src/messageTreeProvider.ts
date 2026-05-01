@@ -2,17 +2,23 @@
 // Requirements: REQ_MSG_EXPLORER, REQ_MSG_DELETE, REQ_EXP_TREEVIEW
 
 import * as vscode from 'vscode';
-import { readQueue } from './messageQueue';
+import { readQueue, readAutoDelivery } from './messageQueue';
 
 // ---------------------------------------------------------------------------
 // Node types
 // ---------------------------------------------------------------------------
+
+export interface AutoDeliveryGroupNode {
+    kind: 'autoDeliveryGroup';
+    sessions: string[];
+}
 
 export interface SessionGroupNode {
     kind: 'session';
     label: string;
     destination: string;
     children: MessageLeafNode[];
+    isAutoDeliver: boolean;
 }
 
 export interface MessageLeafNode {
@@ -27,7 +33,7 @@ interface EmptyNode {
     kind: 'empty';
 }
 
-export type MessageNode = SessionGroupNode | MessageLeafNode | EmptyNode;
+export type MessageNode = AutoDeliveryGroupNode | SessionGroupNode | MessageLeafNode | EmptyNode;
 
 // ---------------------------------------------------------------------------
 // Tree Data Provider
@@ -46,10 +52,9 @@ export class MessageTreeProvider implements vscode.TreeDataProvider<MessageNode>
 
     getChildren(element?: MessageNode): MessageNode[] {
         if (!element) {
-            const messages = readQueue(this._queuePath());
-            if (messages.length === 0) {
-                return [{ kind: 'empty' }];
-            }
+            const messagesPath = this._queuePath();
+            const messages = readQueue(messagesPath);
+            const autoDeliverySessions = readAutoDelivery(messagesPath);
             // Group by destination
             const groups = new Map<string, MessageLeafNode[]>();
             for (let i = 0; i < messages.length; i++) {
@@ -63,16 +68,49 @@ export class MessageTreeProvider implements vscode.TreeDataProvider<MessageNode>
                     index: i,
                 });
             }
-            const result: SessionGroupNode[] = [];
+            const result: MessageNode[] = [];
+            // Manual sessions (not in autoDelivery list)
             for (const [destination, children] of groups) {
-                result.push({
-                    kind: 'session',
-                    label: `${destination} (${children.length})`,
-                    destination,
-                    children,
+                if (!autoDeliverySessions.includes(destination)) {
+                    result.push({
+                        kind: 'session',
+                        label: `${destination} (${children.length})`,
+                        destination,
+                        children,
+                        isAutoDeliver: false,
+                    });
+                }
+            }
+            // AutoDeliveryGroupNode (always shown)
+            result.push({
+                kind: 'autoDeliveryGroup',
+                sessions: autoDeliverySessions,
+            });
+            return result;
+        }
+
+        if (element.kind === 'autoDeliveryGroup') {
+            const messagesPath = this._queuePath();
+            const messages = readQueue(messagesPath);
+            const groups = new Map<string, MessageLeafNode[]>();
+            for (let i = 0; i < messages.length; i++) {
+                const m = messages[i];
+                if (!groups.has(m.destination)) { groups.set(m.destination, []); }
+                groups.get(m.destination)!.push({
+                    kind: 'message',
+                    destination: m.destination,
+                    sender: m.sender || 'unknown',
+                    text: m.text,
+                    index: i,
                 });
             }
-            return result;
+            return element.sessions.map(sessionName => ({
+                kind: 'session' as const,
+                label: `${sessionName} (${(groups.get(sessionName) || []).length})`,
+                destination: sessionName,
+                children: groups.get(sessionName) || [],
+                isAutoDeliver: true,
+            }));
         }
 
         if (element.kind === 'session') {
@@ -83,12 +121,22 @@ export class MessageTreeProvider implements vscode.TreeDataProvider<MessageNode>
     }
 
     getTreeItem(element: MessageNode): vscode.TreeItem {
+        if (element.kind === 'autoDeliveryGroup') {
+            const item = new vscode.TreeItem(
+                'Auto Delivery',
+                vscode.TreeItemCollapsibleState.Expanded
+            );
+            item.iconPath = new vscode.ThemeIcon('zap');
+            item.contextValue = 'autoDeliveryGroup';
+            return item;
+        }
+
         if (element.kind === 'session') {
             const item = new vscode.TreeItem(
                 element.label,
                 vscode.TreeItemCollapsibleState.Collapsed
             );
-            item.contextValue = 'messageSession';
+            item.contextValue = element.isAutoDeliver ? 'jarvisSessionAutoDeliver' : 'jarvisSessionManual';
             return item;
         }
 

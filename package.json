@@ -2,7 +2,7 @@
   "name": "jarvis",
   "displayName": "Jarvis",
   "description": "Personal assistant for managing projects and events in VS Code",
-  "version": "0.5.4",
+  "version": "0.5.0",
   "publisher": "enthali",
   "repository": {
     "type": "git",
@@ -105,6 +105,16 @@
         "command": "jarvis.sendMessages",
         "title": "Jarvis: Send Messages to Chat Session",
         "icon": "$(debug-start)"
+      },
+      {
+        "command": "jarvis.enableAutoDelivery",
+        "title": "Enable Direct Delivery",
+        "icon": "$(zap)"
+      },
+      {
+        "command": "jarvis.disableAutoDelivery",
+        "title": "Disable Direct Delivery",
+        "icon": "$(zap)"
       },
       {
         "command": "jarvis.deleteMessage",
@@ -285,6 +295,14 @@
         {
           "command": "jarvis.searchEvents",
           "when": "false"
+        },
+        {
+          "command": "jarvis.enableAutoDelivery",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.disableAutoDelivery",
+          "when": "false"
         }
       ],
       "view/title": [
@@ -362,7 +380,17 @@
         },
         {
           "command": "jarvis.sendMessages",
-          "when": "viewItem == messageSession",
+          "when": "viewItem == messageSession || viewItem == jarvisSessionManual || viewItem == jarvisSessionAutoDeliver",
+          "group": "inline"
+        },
+        {
+          "command": "jarvis.enableAutoDelivery",
+          "when": "viewItem == jarvisSessionManual",
+          "group": "inline"
+        },
+        {
+          "command": "jarvis.disableAutoDelivery",
+          "when": "viewItem == jarvisSessionAutoDeliver",
           "group": "inline"
         },
         {

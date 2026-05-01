@@ -24,6 +24,7 @@ outcome tables** for each feature's acceptance tests.
    spec_uat_rec
    spec_uat_tree_node_open_file
    spec_uat_treesearch
+   spec_uat_autodelivery
 
 All UAT Specifications
 ----------------------

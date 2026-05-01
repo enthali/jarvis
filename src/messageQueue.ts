@@ -9,6 +9,7 @@ export interface QueuedMessage {
     sender: string;      // originating session or component
     text: string;        // message content
     timestamp: string;   // ISO 8601
+    notified?: boolean;  // true after auto-delivery notification sent
 }
 
 export function readQueue(filePath: string): QueuedMessage[] {
@@ -19,6 +20,43 @@ export function readQueue(filePath: string): QueuedMessage[] {
     } catch {
         return [];
     }
+}
+
+export function writeQueue(messagesPath: string, messages: QueuedMessage[]): void {
+    fs.mkdirSync(path.dirname(messagesPath), { recursive: true });
+    fs.writeFileSync(messagesPath, JSON.stringify(messages, null, 2));
+}
+
+function resolveAutoDeliveryPath(messagesPath: string): string {
+    return path.join(path.dirname(messagesPath), 'autodelivery.json');
+}
+
+export function readAutoDelivery(messagesPath: string): string[] {
+    const adPath = resolveAutoDeliveryPath(messagesPath);
+    if (!fs.existsSync(adPath)) { return []; }
+    try {
+        const raw = fs.readFileSync(adPath, 'utf8');
+        return JSON.parse(raw) as string[];
+    } catch {
+        return [];
+    }
+}
+
+export function addAutoDelivery(messagesPath: string, sessionName: string): void {
+    const adPath = resolveAutoDeliveryPath(messagesPath);
+    const list = readAutoDelivery(messagesPath);
+    if (!list.includes(sessionName)) {
+        list.push(sessionName);
+        fs.mkdirSync(path.dirname(adPath), { recursive: true });
+        fs.writeFileSync(adPath, JSON.stringify(list, null, 2));
+    }
+}
+
+export function removeAutoDelivery(messagesPath: string, sessionName: string): void {
+    const adPath = resolveAutoDeliveryPath(messagesPath);
+    const list = readAutoDelivery(messagesPath).filter(s => s !== sessionName);
+    fs.mkdirSync(path.dirname(adPath), { recursive: true });
+    fs.writeFileSync(adPath, JSON.stringify(list, null, 2));
 }
 
 export function appendMessage(filePath: string, destination: string, sender: string, text: string): void {

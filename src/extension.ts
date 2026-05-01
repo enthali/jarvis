@@ -10,7 +10,7 @@ import { MessageTreeProvider, SessionGroupNode, MessageLeafNode } from './messag
 import { YamlScanner, LeafNode, TreeNode } from './yamlScanner';
 import { activateHeartbeat, HeartbeatScheduler, HeartbeatJob, HeartbeatStep } from './heartbeat';
 import { JobNode } from './heartbeatTreeProvider';
-import { deleteMessage, appendMessage, popMessage } from './messageQueue';
+import { deleteMessage, appendMessage, popMessage, readAutoDelivery, addAutoDelivery, removeAutoDelivery, readQueue, writeQueue } from './messageQueue';
 import { lookupSessionUUID, getAllSessions, initSessionLookup, filterNamedSessions } from './sessionLookup';
 import { checkForUpdates } from './updateCheck';
 import { registerMcpTool, startMcpServer, stopMcpServer } from './mcpServer';
@@ -491,11 +491,6 @@ export function activate(context: vscode.ExtensionContext) {
     const refreshCategoriesCommand = vscode.commands.registerCommand('jarvis.refreshCategories', async () => {
         await categoryTreeProvider.refresh();
         log.info('[PIM] manual categories refresh triggered');
-    });
-
-    const refreshMessagesCommand = vscode.commands.registerCommand('jarvis.refreshMessages', () => {
-        messageProvider.reload();
-        log.info('[MSG] manual messages refresh triggered');
     });
 
     const renameCategoryCommand = vscode.commands.registerCommand(
@@ -1381,6 +1376,74 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Implementation: SPEC_REC_BUTTON
     // Requirements: REQ_REC_BUTTON
+    // Register enableAutoDelivery command (SPEC_MSG_AUTODELIVERY)
+    const enableAutoDeliveryCommand = vscode.commands.registerCommand(
+        'jarvis.enableAutoDelivery',
+        (node: SessionGroupNode) => {
+            addAutoDelivery(resolveMessagesPath(), node.destination);
+            messageProvider.reload();
+        }
+    );
+
+    // Register disableAutoDelivery command (SPEC_MSG_AUTODELIVERY)
+    const disableAutoDeliveryCommand = vscode.commands.registerCommand(
+        'jarvis.disableAutoDelivery',
+        (node: SessionGroupNode) => {
+            removeAutoDelivery(resolveMessagesPath(), node.destination);
+            messageProvider.reload();
+        }
+    );
+
+    // Auto-delivery poll loop (SPEC_MSG_AUTODELIVERY)
+    const pollInterval = setInterval(async () => {
+        const messagesPath = resolveMessagesPath();
+        const autoDeliverySessions = readAutoDelivery(messagesPath);
+        if (autoDeliverySessions.length === 0) { return; }
+        const messages = readQueue(messagesPath);
+        for (const sessionName of autoDeliverySessions) {
+            const pending = messages.filter(m => m.destination === sessionName && !m.notified);
+            if (pending.length === 0) { continue; }
+            // Deliver notification
+            try {
+                const uuid = await lookupSessionUUID(sessionName);
+                if (uuid) {
+                    const b64 = Buffer.from(uuid).toString('base64');
+                    const uri = vscode.Uri.parse(`vscode-chat-session://local/${b64}`);
+                    await vscode.commands.executeCommand('vscode.open', uri);
+                    await new Promise(resolve => setTimeout(resolve, 800));
+                } else {
+                    await vscode.commands.executeCommand('vscode.open',
+                        vscode.Uri.parse('vscode-chat-session://local/new'));
+                    await new Promise(resolve => setTimeout(resolve, 800));
+                }
+                const count = pending.length;
+                const stub =
+                    `[Jarvis Message Service] Du hast ${count} neue Nachrichten in deiner Inbox.\n` +
+                    `Lies sie mit dem Tool jarvis_readMessage (destination: "${sessionName}") bis remaining = 0.`;
+                await vscode.commands.executeCommand(
+                    'workbench.action.chat.open',
+                    { query: stub }
+                );
+                // Mark those messages as notified
+                const updated = readQueue(messagesPath);
+                let changed = false;
+                for (const m of updated) {
+                    if (m.destination === sessionName && !m.notified) {
+                        m.notified = true;
+                        changed = true;
+                    }
+                }
+                if (changed) {
+                    writeQueue(messagesPath, updated);
+                    messageProvider.reload();
+                }
+            } catch (err) {
+                log.warn(`[MSG] autoDelivery: delivery failed for "${sessionName}": ${err}`);
+            }
+            break; // max 1 delivery per tick
+        }
+    }, 5000);
+
     const startRecordingCommand = vscode.commands.registerCommand(
         'jarvis.startRecording',
         async (element: LeafNode) => {
@@ -1427,7 +1490,6 @@ export function activate(context: vscode.ExtensionContext) {
         categoryTool,
         taskTool,
         refreshCategoriesCommand,
-        refreshMessagesCommand,
         renameCategoryCommand,
         deleteCategoryCommand,
         refreshTasksCommand,
@@ -1435,6 +1497,9 @@ export function activate(context: vscode.ExtensionContext) {
         recordingStatusBar,
         startRecordingCommand,
         stopRecordingCommand,
+        enableAutoDeliveryCommand,
+        disableAutoDeliveryCommand,
+        { dispose: () => clearInterval(pollInterval) },
         { dispose: () => { if (recordingTimer) { clearInterval(recordingTimer); } } },
         projectView,
         eventView,

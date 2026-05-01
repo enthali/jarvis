@@ -79,6 +79,35 @@ Messaging User Stories
    * AC-3: Empty or untitled sessions are excluded from the list
 
 
+.. story:: Auto-Delivery for Message Sessions
+   :id: US_MSG_AUTODELIVERY
+   :status: approved
+   :priority: optional
+   :links: US_MSG_CHATQUEUE
+
+   **As a** Jarvis User,
+   **I want** selected chat sessions to receive their queued messages automatically,
+   **so that** I do not need to manually click the Play button for sessions whose
+   delivery should happen in the background without my intervention.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The user can mark any session as "auto-delivery" via a context menu
+     action on the session node in the Messages tree; the session is then
+     delivered to automatically on each poll tick without any manual click
+   * AC-2: Sessions marked for auto-delivery are shown in a dedicated
+     "Auto Delivery" group in the Messages tree (separated from manual sessions),
+     so that the user can see at a glance which sessions are on automatic and
+     how many messages are pending
+   * AC-3: The auto-delivery list persists across extension restarts (stored in
+     a config file co-located with the message queue)
+   * AC-4: The user can remove a session from auto-delivery via a context menu
+     action on the session node inside the "Auto Delivery" group, restoring
+     manual delivery behaviour
+   * AC-5: Auto-delivery does not re-deliver already-notified messages — each
+     message is notified at most once per delivery cycle
+
+
 .. story:: MCP Server for External Tool Access
    :id: US_MSG_MCPSERVER
    :status: approved
