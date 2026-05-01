@@ -236,7 +236,7 @@ Message Queue Requirements
 
 .. req:: Auto-Delivery Configuration Store
    :id: REQ_MSG_AUTODELIVER_CONFIG
-   :status: approved
+   :status: implemented
    :priority: optional
    :links: US_MSG_AUTODELIVERY; REQ_MSG_QUEUE
 
@@ -262,7 +262,7 @@ Message Queue Requirements
 
 .. req:: Auto-Delivery Poll Loop
    :id: REQ_MSG_AUTODELIVER_POLL
-   :status: approved
+   :status: implemented
    :priority: optional
    :links: US_MSG_AUTODELIVERY; REQ_MSG_AUTODELIVER_CONFIG; REQ_MSG_AUTODELIVER_TAG; REQ_MSG_SEND
 
@@ -290,7 +290,7 @@ Message Queue Requirements
 
 .. req:: Notified Flag on Queued Message
    :id: REQ_MSG_AUTODELIVER_TAG
-   :status: approved
+   :status: implemented
    :priority: optional
    :links: US_MSG_AUTODELIVERY; REQ_MSG_QUEUE
 
@@ -313,7 +313,7 @@ Message Queue Requirements
 
 .. req:: Auto-Delivery Message Tree Layout
    :id: REQ_MSG_AUTODELIVER_TREE
-   :status: approved
+   :status: implemented
    :priority: optional
    :links: US_MSG_AUTODELIVERY; REQ_MSG_AUTODELIVER_CONFIG; REQ_MSG_EXPLORER
 
@@ -342,7 +342,7 @@ Message Queue Requirements
 
 .. req:: Auto-Delivery Context Menu Commands
    :id: REQ_MSG_AUTODELIVER_CMDS
-   :status: approved
+   :status: implemented
    :priority: optional
    :links: US_MSG_AUTODELIVERY; REQ_MSG_AUTODELIVER_CONFIG; REQ_MSG_AUTODELIVER_TREE
 

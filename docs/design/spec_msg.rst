@@ -778,7 +778,7 @@ Message Queue Design Specifications
 
 .. spec:: Auto-Delivery Config Store
    :id: SPEC_MSG_AUTODELIVER_STORE
-   :status: approved
+   :status: implemented
    :links: REQ_MSG_AUTODELIVER_CONFIG; SPEC_MSG_QUEUESTORE
 
    **Description:**
@@ -837,7 +837,7 @@ Message Queue Design Specifications
 
 .. spec:: Notified Flag on QueuedMessage
    :id: SPEC_MSG_AUTODELIVER_TAG
-   :status: approved
+   :status: implemented
    :links: REQ_MSG_AUTODELIVER_TAG; SPEC_MSG_QUEUESTORE
 
    **Description:**
@@ -877,7 +877,7 @@ Message Queue Design Specifications
 
 .. spec:: Auto-Delivery Poll Loop
    :id: SPEC_MSG_AUTODELIVER_POLL
-   :status: approved
+   :status: implemented
    :links: REQ_MSG_AUTODELIVER_POLL; SPEC_MSG_AUTODELIVER_STORE; SPEC_MSG_AUTODELIVER_TAG; SPEC_MSG_SENDCOMMAND
 
    **Description:**
@@ -947,7 +947,7 @@ Message Queue Design Specifications
 
 .. spec:: Auto-Delivery Message Tree Provider
    :id: SPEC_MSG_AUTODELIVER_TREE
-   :status: approved
+   :status: implemented
    :links: REQ_MSG_AUTODELIVER_TREE; REQ_MSG_AUTODELIVER_CMDS; SPEC_MSG_TREEPROVIDER; SPEC_MSG_AUTODELIVER_STORE
 
    **Description:**
@@ -1049,7 +1049,7 @@ Message Queue Design Specifications
 
 .. spec:: Enable / Disable Auto-Delivery Commands
    :id: SPEC_MSG_AUTODELIVER_CMDS
-   :status: approved
+   :status: implemented
    :links: REQ_MSG_AUTODELIVER_CMDS; SPEC_MSG_AUTODELIVER_STORE; SPEC_MSG_AUTODELIVER_TREE
 
    **Description:**
