@@ -883,66 +883,61 @@ Message Queue Design Specifications
    **Description:**
    A ``setInterval`` poll loop started in ``extension.ts`` during ``activate()``.
    Each tick finds the first auto-delivery session that has un-notified messages,
-   executes ``jarvis.sendMessages`` for it, and marks those messages as notified.
+   opens the chat session directly, sends the notification stub, and marks those
+   messages as notified.
 
-   **Tick logic:**
+   **Tick logic (inlined in extension.ts):**
 
    .. code-block:: typescript
 
-      const autoDeliverTimer = setInterval(async () => {
-        try {
-          const messagesPath = resolveMessagesPath();
-          const autoList = readAutoDelivery(messagesPath);
-          if (autoList.length === 0) { return; }
-          const queue = readQueue(messagesPath);
+      const pollInterval = setInterval(async () => {
+        const messagesPath = resolveMessagesPath();
+        const autoList = readAutoDelivery(messagesPath);
+        if (autoList.length === 0) { return; }
+        const messages = readQueue(messagesPath);
 
-          for (const destination of autoList) {
-            const pending = queue.filter(
-              m => m.destination === destination && !m.notified
-            );
-            if (pending.length === 0) { continue; }
+        for (const sessionName of autoList) {
+          const pending = messages.filter(
+            m => m.destination === sessionName && !m.notified
+          );
+          if (pending.length === 0) { continue; }
 
-            // Build a synthetic SessionGroupNode for sendMessages
-            const node: SessionGroupNode = {
-              kind: 'session',
-              label: `${destination} (${pending.length})`,
-              destination,
-              children: pending.map((m, i) => ({
-                kind: 'message',
-                destination: m.destination,
-                sender: m.sender,
-                text: m.text,
-                index: queue.indexOf(m),
-              })),
-            };
-            await vscode.commands.executeCommand('jarvis.sendMessages', node);
+          // Open chat session directly via UUID lookup
+          const uuid = await lookupSessionUUID(sessionName);
+          // ... open session tab ...
 
-            // Tag notified messages
-            for (const m of pending) { m.notified = true; }
-            writeQueue(messagesPath, queue);
-            break; // max one session per tick
+          // Send notification stub
+          const stub = `[Jarvis Message Service] Du hast ${pending.length} neue ...`;
+          await vscode.commands.executeCommand(
+            'workbench.action.chat.open', { query: stub }
+          );
+
+          // Mark messages as notified
+          const updated = readQueue(messagesPath);
+          for (const m of updated) {
+            if (m.destination === sessionName && !m.notified) {
+              m.notified = true;
+            }
           }
-        } catch (err) {
-          log.warn(`[MSG] Auto-delivery tick error: ${err}`);
+          writeQueue(messagesPath, updated);
+          messageProvider.reload();
+          break; // max one session per tick
         }
       }, 5000);
 
-      context.subscriptions.push({ dispose: () => clearInterval(autoDeliverTimer) });
+      context.subscriptions.push({ dispose: () => clearInterval(pollInterval) });
 
    **Design notes:**
 
+   * Delivery logic is inlined rather than delegating to ``jarvis.sendMessages``
+     — the poll loop opens the session tab directly via ``lookupSessionUUID`` and
+     ``workbench.action.chat.open``, avoiding the synthetic ``SessionGroupNode``
    * ``break`` after the first notified session implements the "max 1 per tick"
      constraint from ``REQ_MSG_AUTODELIVER_POLL AC-5``
-   * The synthetic ``SessionGroupNode`` has ``children`` populated with the
-     pending messages so ``sendMessages`` shows the correct count in the stub
-   * ``queue.indexOf(m)`` gives the flat index required by ``MessageLeafNode``
    * ``context.subscriptions.push({ dispose: () => clearInterval(...) })``
      ensures the timer is cleared on deactivation
    * The ``log`` reference is the shared ``LogOutputChannel`` already created
      during ``activate()``
-   * ``jarvis.sendMessages`` is called as a registered command so the delivery
-     logic stays in a single place and both manual and automatic paths remain
-     identical
 
 
 .. spec:: Auto-Delivery Message Tree Provider

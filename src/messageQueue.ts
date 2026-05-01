@@ -17,7 +17,8 @@ export function readQueue(filePath: string): QueuedMessage[] {
     try {
         const raw = fs.readFileSync(filePath, 'utf8');
         return JSON.parse(raw) as QueuedMessage[];
-    } catch {
+    } catch (err) {
+        console.warn('[Jarvis] autodelivery.json: failed to parse, returning []', err);
         return [];
     }
 }
@@ -37,7 +38,8 @@ export function readAutoDelivery(messagesPath: string): string[] {
     try {
         const raw = fs.readFileSync(adPath, 'utf8');
         return JSON.parse(raw) as string[];
-    } catch {
+    } catch (err) {
+        console.warn('[Jarvis] autodelivery.json: failed to parse, returning []', err);
         return [];
     }
 }
