@@ -1,5 +1,15 @@
 # Release Notes
 
+## v0.5.5
+
+*2026-05-01*
+
+Direct Delivery mode for message sessions — auto-deliver notifications without manual Play-button clicks.
+
+### New Features
+
+- **auto-delivery**: AutoDeliver-Sessions receive notifications automatically via a 5-second poll loop. New `autodelivery.json` config file (sibling to `messages.json`) stores the list of enabled session names. Messages gain a `notified` flag to prevent duplicate delivery (max 1 message per tick). The Messages tree adds an "Auto Delivery" group (⚡ icon) at root level. Enable/disable via context menu commands (`jarvis.enableAutoDelivery` / `jarvis.disableAutoDelivery`).
+
 ## v0.5.0
 
 *2026-04-15*
