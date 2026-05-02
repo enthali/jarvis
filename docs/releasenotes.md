@@ -1,5 +1,15 @@
 # Release Notes
 
+## v0.5.6
+
+*2026-05-02*
+
+Optional audit logging for the message queue.
+
+### New Features
+
+- **message-logging**: New setting `jarvis.messages.logging` (boolean, default `false`). When enabled, `appendMessage()` also writes each message to an append-only `message-log.json` file (sibling to `messages.json`). The log is never cleaned up by read or delete operations, providing a persistent audit trail.
+
 ## v0.5.5
 
 *2026-05-01*

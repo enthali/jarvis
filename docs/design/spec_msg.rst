@@ -1097,3 +1097,88 @@ Message Queue Design Specifications
    * ``messageProvider.reload()`` is sufficient — no ``vscode.window.showInformationMessage``
      needed; the tree update itself confirms the action
    * Disposables pushed to ``context.subscriptions``
+
+
+.. spec:: Message Logging Setting Configuration
+   :id: SPEC_MSG_LOGSETTING
+   :status: implemented
+   :links: REQ_MSG_LOGSETTING
+
+   **Description:**
+   Add ``jarvis.messages.logging`` to the ``Messages`` configuration group in
+   ``package.json``.
+
+   **package.json ``contributes.configuration``:**
+
+   Add the following property alongside the existing ``jarvis.messagesFile``
+   entry in the ``Messages`` settings group:
+
+   .. code-block:: json
+
+      "jarvis.messages.logging": {
+        "type": "boolean",
+        "default": false,
+        "description": "When enabled, every queued message is also appended to a persistent message-log.json audit file (never cleaned up by read/delete operations)."
+      }
+
+
+.. spec:: Message Audit Log Implementation
+   :id: SPEC_MSG_AUDITLOG
+   :status: implemented
+   :links: REQ_MSG_AUDITLOG; REQ_MSG_LOGSETTING; SPEC_MSG_QUEUESTORE; SPEC_MSG_LOGSETTING
+
+   **Description:**
+   Extend ``appendMessage()`` in ``src/messageQueue.ts`` to optionally append
+   to ``message-log.json`` when ``jarvis.messages.logging`` is ``true``.
+
+   **Log file path helper (module-internal):**
+
+   .. code-block:: typescript
+
+      function resolveLogPath(messagesPath: string): string {
+          return path.join(path.dirname(messagesPath), 'message-log.json');
+      }
+
+   **Updated ``appendMessage()``:**
+
+   .. code-block:: typescript
+
+      export function appendMessage(
+          filePath: string,
+          destination: string,
+          sender: string,
+          text: string
+      ): void {
+          const entry: QueuedMessage = {
+              destination, sender, text,
+              timestamp: new Date().toISOString()
+          };
+          const queue = readQueue(filePath);
+          queue.push(entry);
+          fs.mkdirSync(path.dirname(filePath), { recursive: true });
+          fs.writeFileSync(filePath, JSON.stringify(queue, null, 2));
+
+          const loggingEnabled = vscode.workspace
+              .getConfiguration('jarvis')
+              .get<boolean>('messages.logging', false);
+          if (loggingEnabled) {
+              const logPath = resolveLogPath(filePath);
+              const log = readQueue(logPath);
+              log.push(entry);
+              fs.writeFileSync(logPath, JSON.stringify(log, null, 2));
+          }
+      }
+
+   **Design notes:**
+
+   * ``resolveLogPath`` is not exported — internal to ``messageQueue.ts``
+   * The parent directory already exists at this point (``mkdirSync`` is called
+     above for ``messages.json``), so no additional ``mkdirSync`` is needed for
+     the log file
+   * ``vscode.workspace.getConfiguration()`` is called live inside
+     ``appendMessage()`` — no parameter change to the function signature; the
+     setting is read on every call so hot-changes take effect immediately
+   * ``readQueue(logPath)`` reuses the existing helper; returns ``[]`` safely if
+     the file does not yet exist, creating it on first write
+   * No changes to ``popMessage()``, ``deleteMessage()``, or
+     ``deleteByDestination()`` — audit trail integrity is maintained by omission

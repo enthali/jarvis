@@ -25,6 +25,7 @@ end-to-end verification of each feature.
    req_uat_tree_node_open_file
    req_uat_treesearch
    req_uat_autodelivery
+   req_uat_messagelogging
 
 All UAT Requirements
 --------------------

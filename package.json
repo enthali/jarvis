@@ -2,7 +2,7 @@
   "name": "jarvis",
   "displayName": "Jarvis",
   "description": "Personal assistant for managing projects and events in VS Code",
-  "version": "0.5.5",
+  "version": "0.5.6",
   "publisher": "enthali",
   "repository": {
     "type": "git",
@@ -524,6 +524,11 @@
             "type": "string",
             "default": "",
             "description": "Absolute path to messages.json queue file. Defaults to extension storage if empty."
+          },
+          "jarvis.messages.logging": {
+            "type": "boolean",
+            "default": false,
+            "description": "When enabled, every queued message is also appended to message-log.json (append-only audit log)."
           }
         }
       },
