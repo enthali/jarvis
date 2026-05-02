@@ -3,6 +3,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import * as vscode from 'vscode';
 
 export interface QueuedMessage {
     destination: string; // target chat tab label
@@ -30,6 +31,10 @@ export function writeQueue(messagesPath: string, messages: QueuedMessage[]): voi
 
 function resolveAutoDeliveryPath(messagesPath: string): string {
     return path.join(path.dirname(messagesPath), 'autodelivery.json');
+}
+
+function resolveLogPath(messagesPath: string): string {
+    return path.join(path.dirname(messagesPath), 'message-log.json');
 }
 
 export function readAutoDelivery(messagesPath: string): string[] {
@@ -62,10 +67,17 @@ export function removeAutoDelivery(messagesPath: string, sessionName: string): v
 }
 
 export function appendMessage(filePath: string, destination: string, sender: string, text: string): void {
+    const message: QueuedMessage = { destination, sender, text, timestamp: new Date().toISOString() };
     const queue = readQueue(filePath);
-    queue.push({ destination, sender, text, timestamp: new Date().toISOString() });
+    queue.push(message);
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
     fs.writeFileSync(filePath, JSON.stringify(queue, null, 2));
+    if (vscode.workspace.getConfiguration('jarvis').get<boolean>('messages.logging', false)) {
+        const logPath = resolveLogPath(filePath);
+        const log = readQueue(logPath);
+        log.push(message);
+        fs.writeFileSync(logPath, JSON.stringify(log, null, 2));
+    }
 }
 
 export function deleteMessage(filePath: string, index: number): void {

@@ -363,3 +363,45 @@ Message Queue Requirements
    * AC-5: Both commands SHALL be registered in ``package.json``
      ``contributes.commands`` and in ``contributes.menus.view/item/context``
      with appropriate ``when``-clauses
+
+
+.. req:: Message Logging Setting
+   :id: REQ_MSG_LOGSETTING
+   :status: draft
+   :priority: optional
+   :links: US_MSG_LOGGING; REQ_CFG_MSGPATH
+
+   **Description:**
+   The extension SHALL provide a boolean configuration setting to enable or
+   disable message audit logging.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A setting ``jarvis.messages.logging`` (boolean, default ``false``)
+     SHALL be added to the ``Messages`` settings group in ``package.json``
+   * AC-2: When the setting is ``false`` (default), no audit log file is created
+     or written to
+   * AC-3: When the setting is ``true``, every call to ``appendMessage()`` SHALL
+     also append the message entry to the audit log file
+
+
+.. req:: Message Audit Log File
+   :id: REQ_MSG_AUDITLOG
+   :status: draft
+   :priority: optional
+   :links: US_MSG_LOGGING; REQ_MSG_QUEUE; REQ_MSG_LOGSETTING
+
+   **Description:**
+   The extension SHALL maintain an append-only JSON audit log file for all
+   messages when logging is enabled.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The audit log file SHALL be named ``message-log.json`` and SHALL
+     reside in the same directory as ``messages.json``
+   * AC-2: The audit log file format SHALL be a JSON array of ``QueuedMessage``
+     entries — identical to ``messages.json``
+   * AC-3: Only ``appendMessage()`` writes to the audit log; ``popMessage()``,
+     ``deleteMessage()``, and ``deleteByDestination()`` SHALL NOT modify it
+   * AC-4: If the audit log file does not exist when the first message is
+     written, it SHALL be created automatically

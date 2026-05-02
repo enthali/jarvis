@@ -25,6 +25,7 @@ for each feature. Each file corresponds to one feature or change.
    us_uat_tree_node_open_file
    us_uat_treesearch
    us_uat_autodelivery
+   us_uat_messagelogging
 
 All UAT User Stories
 --------------------

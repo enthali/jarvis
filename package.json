@@ -524,6 +524,11 @@
             "type": "string",
             "default": "",
             "description": "Absolute path to messages.json queue file. Defaults to extension storage if empty."
+          },
+          "jarvis.messages.logging": {
+            "type": "boolean",
+            "default": false,
+            "description": "When enabled, every queued message is also appended to message-log.json (append-only audit log)."
           }
         }
       },

@@ -136,3 +136,24 @@ Messaging User Stories
      during deactivation
    * AC-6: The MCP server SHALL only bind to ``127.0.0.1`` — no external
      network access
+
+
+.. story:: Message Audit Log
+   :id: US_MSG_LOGGING
+   :status: draft
+   :priority: optional
+   :links: US_MSG_CHATQUEUE
+
+   **As a** Jarvis administrator,
+   **I want** an optional append-only audit log of all queued messages,
+   **so that** I can review the full history of messages sent through Jarvis
+   even after they have been consumed or deleted from the active queue.
+
+   **Acceptance Criteria:**
+
+   * AC-1: When message logging is enabled via a setting, every message appended
+     to the queue is also written to a persistent audit log file
+   * AC-2: The audit log is never modified or truncated by read or delete
+     operations — it grows monotonically
+   * AC-3: The audit log file is co-located with ``messages.json``
+   * AC-4: Message logging is disabled by default (opt-in)
