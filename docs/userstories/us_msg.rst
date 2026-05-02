@@ -140,7 +140,7 @@ Messaging User Stories
 
 .. story:: Message Audit Log
    :id: US_MSG_LOGGING
-   :status: draft
+   :status: implemented
    :priority: optional
    :links: US_MSG_CHATQUEUE
 

@@ -367,7 +367,7 @@ Message Queue Requirements
 
 .. req:: Message Logging Setting
    :id: REQ_MSG_LOGSETTING
-   :status: draft
+   :status: implemented
    :priority: optional
    :links: US_MSG_LOGGING; REQ_CFG_MSGPATH
 
@@ -387,7 +387,7 @@ Message Queue Requirements
 
 .. req:: Message Audit Log File
    :id: REQ_MSG_AUDITLOG
-   :status: draft
+   :status: implemented
    :priority: optional
    :links: US_MSG_LOGGING; REQ_MSG_QUEUE; REQ_MSG_LOGSETTING
 

@@ -1101,7 +1101,7 @@ Message Queue Design Specifications
 
 .. spec:: Message Logging Setting Configuration
    :id: SPEC_MSG_LOGSETTING
-   :status: draft
+   :status: implemented
    :links: REQ_MSG_LOGSETTING
 
    **Description:**
@@ -1124,7 +1124,7 @@ Message Queue Design Specifications
 
 .. spec:: Message Audit Log Implementation
    :id: SPEC_MSG_AUDITLOG
-   :status: draft
+   :status: implemented
    :links: REQ_MSG_AUDITLOG; REQ_MSG_LOGSETTING; SPEC_MSG_QUEUESTORE; SPEC_MSG_LOGSETTING
 
    **Description:**
