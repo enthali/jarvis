@@ -905,7 +905,7 @@ Message Queue Design Specifications
           // Send notification stub
           const stub = `[Jarvis Message Service] Du hast ${pending.length} neue ...`;
           await vscode.commands.executeCommand(
-            'workbench.action.chat.open', { query: stub }
+            'workbench.action.chat.open', { query: stub, isPartialQuery: false }
           );
 
           // Mark messages as notified
@@ -927,7 +927,9 @@ Message Queue Design Specifications
 
    * Delivery logic is inlined rather than delegating to ``jarvis.sendMessages``
      — the poll loop opens the session tab directly via ``lookupSessionUUID`` and
-     ``workbench.action.chat.open``, avoiding the synthetic ``SessionGroupNode``
+     ``workbench.action.chat.open`` with ``{ isPartialQuery: false }``, avoiding
+     the synthetic ``SessionGroupNode`` and preserving the session's agent mode
+     (unlike ``sendPromptToFocusedAgentChat`` which uses ``openAgent``)
    * ``break`` after the first notified session implements the "max 1 per tick"
      constraint from ``REQ_MSG_AUTODELIVER_POLL AC-5``
    * ``context.subscriptions.push({ dispose: () => clearInterval(...) })``
@@ -1314,8 +1316,8 @@ Message Queue Design Specifications
       await new Promise(resolve => setTimeout(resolve, 800));
 
       // 3. Send context initialization prompt (D-3)
-      const contextPath =
-          `projects/${entity.name.toLowerCase().replace(/\s+/g, '-')}/context.md`;
+      const entityFolder = path.dirname(element.id);
+      const contextPath = path.join(entityFolder, 'context.md');
       const initPrompt =
           `You are working on the project/event "${entity.name}". ` +
           `Please read the relevant project context from ${contextPath}.`;
@@ -1333,10 +1335,10 @@ Message Queue Design Specifications
    * The 800 ms ``setTimeout`` between steps is a heuristic to allow the VS Code
      Chat UI to complete its tab-open animation before the next command is sent.
      No polling or event-based synchronization is available through the public API.
-   * ``contextPath`` is derived by lower-casing the entity name and replacing
-     spaces with hyphens (``entity.name.toLowerCase().replace(/\s+/g, '-')``),
-     then joining with ``projects/`` and ``/context.md`` (D-3). This matches the
-     convention used by existing Jarvis project folders.
+   * ``contextPath`` is derived from ``path.dirname(element.id)`` — the actual
+     folder containing the entity's YAML file (D-3). This avoids kebab-case
+     derivation errors when entity names contain characters that do not map
+     cleanly to folder names.
 
    **Open edge — title normalization:**
 
@@ -1366,15 +1368,16 @@ Message Queue Design Specifications
    1. Resolve UUID -- not found
    2. `openNewChatEditor()` -- wait 800 ms
    3. `sendPromptToFocusedAgentChat('/rename <entityName>')` -- wait 800 ms
-   4. Build `contextPath`: `projects/<kebab>/context.md` where
-      `<kebab>` = `entity.name.toLowerCase().replace(/\s+/g, '-')`
+   4. Build `contextPath`: `path.dirname(element.id)` (the actual YAML folder)
+      joined with `context.md` via `path.join()`
    5. `sendPromptToFocusedAgentChat(initPrompt)` with `contextPath`
 
    **Design notes:**
 
    * The 800 ms delay is a heuristic to allow the VS Code Chat UI to complete
      its tab-open animation -- no event-based synchronization is available.
-   * `contextPath` uses kebab-case of the entity name, matching the folder
-     naming convention used by existing Jarvis project folders.
+   * `contextPath` is derived from `path.dirname(element.id)` (the actual folder
+     of the entity's YAML file) rather than from the display name, avoiding
+     kebab-case derivation errors.
    * `lookupSessionUUID` uses exact title match; prefix or suffix issues may
      cause a new session to be created instead of reusing an existing one.

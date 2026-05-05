@@ -645,7 +645,8 @@ export function activate(context: vscode.ExtensionContext) {
                 await new Promise(resolve => setTimeout(resolve, 800));
 
                 // Send context initialization prompt
-                const contextPath = `projects/${entity.name.toLowerCase().replace(/\s+/g, '-')}/context.md`;
+                const entityFolder = path.dirname(element.id);
+                const contextPath = path.join(entityFolder, 'context.md');
                 const initPrompt =
                     `You are working on the project/event "${entity.name}". ` +
                     `Please read the relevant project context from ${contextPath}.`;
@@ -1451,7 +1452,10 @@ export function activate(context: vscode.ExtensionContext) {
                 const stub =
                     `[Jarvis Message Service] Du hast ${count} neue Nachrichten in deiner Inbox.\n` +
                     `Lies sie mit dem Tool jarvis_readMessage (destination: "${sessionName}") bis remaining = 0.`;
-                await sendPromptToFocusedAgentChat(stub);
+                await vscode.commands.executeCommand(
+                    'workbench.action.chat.open',
+                    { query: stub, isPartialQuery: false }
+                );
                 // Mark those messages as notified
                 const updated = readQueue(messagesPath);
                 let changed = false;
