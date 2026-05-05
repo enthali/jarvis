@@ -26,6 +26,7 @@ outcome tables** for each feature's acceptance tests.
    spec_uat_treesearch
    spec_uat_autodelivery
    spec_uat_messagelogging
+   spec_uat_stablesessionopen
 
 All UAT Specifications
 ----------------------

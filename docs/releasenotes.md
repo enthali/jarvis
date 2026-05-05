@@ -1,5 +1,15 @@
 # Release Notes
 
+## v0.5.7
+
+*2026-05-05*
+
+Stable session opening and initialization for project/event agent sessions.
+
+### New Features
+
+- **stable-session-open**: Stabilize automatic creation, opening, and initialization of project/event agent sessions. Three new helpers (`openPinnedResource`, `openNewChatEditor`, `sendPromptToFocusedAgentChat`), `/rename` after session creation, context.md initialization prompt. Replaces fragile `vscode-chat-session://local/new` URI approach with robust command-based flow.
+
 ## v0.5.6
 
 *2026-05-02*

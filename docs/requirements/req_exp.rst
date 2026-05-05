@@ -222,11 +222,12 @@ Explorer Requirements
    :id: REQ_EXP_AGENTSESSION
    :status: implemented
    :priority: optional
-   :links: US_EXP_AGENTSESSION; REQ_MSG_SESSIONLOOKUP; REQ_EXP_OPENYAML
+   :links: US_EXP_AGENTSESSION; US_MSG_STABLESESSION; REQ_MSG_SESSIONLOOKUP; REQ_EXP_OPENYAML; REQ_MSG_PINNED; REQ_MSG_OPENCHAT; REQ_MSG_SENDPROMPT
 
    **Description:**
    Every project and event leaf item SHALL provide an inline action button that
-   opens the agent chat session for that item.
+   opens the agent chat session for that item. The session open/create mechanism
+   is specified in ``US_MSG_STABLESESSION`` and its requirements.
 
    **Acceptance Criteria:**
 
@@ -234,14 +235,13 @@ Explorer Requirements
      ``$(comment-discussion)`` button in addition to the existing
      ``$(go-to-file)`` button
    * AC-2: Clicking the button SHALL resolve the session UUID by passing the
-     entity ``name`` to ``REQ_MSG_SESSIONLOOKUP`` and open the session via
-     ``vscode.open(Uri.parse('vscode-chat-session://local/<b64uuid>'))``
-   * AC-3: If no session matching the entity name exists in ``state.vscdb``,
-     a new editor chat SHALL be opened via
-     ``vscode-chat-session://local/new`` and an initialization prompt SHALL be
-     submitted via ``workbench.action.chat.open({ query })`` containing the
-     entity name, instructing the agent to work in the context of that
-     project/event and asking the user to rename the session to match
+     entity ``name`` to ``REQ_MSG_SESSIONLOOKUP``; if a session exists it SHALL
+     be opened pinned (``{ preview: false }``) per ``REQ_MSG_PINNED``; if no
+     session exists a new one SHALL be created per ``REQ_MSG_OPENCHAT`` and
+     initialized per ``REQ_MSG_SENDPROMPT``
+   * AC-3: After creating a new session, a ``/rename <entityName>`` prompt SHALL
+     be submitted automatically, followed by the context initialization prompt
+     containing the path to ``context.md`` in the entity's folder
    * AC-4: Folder nodes SHALL NOT display the button
    * AC-5: The command SHALL NOT appear in the Command Palette (it requires a
      tree element argument and would fail without one)

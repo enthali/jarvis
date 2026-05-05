@@ -69,7 +69,7 @@ Message Queue Requirements
      obtained from ``REQ_MSG_SESSIONLOOKUP``
    * AC-7: If ``REQ_MSG_SESSIONLOOKUP`` returns ``undefined`` for the target
      session, the extension SHALL open a new editor chat via
-     ``vscode-chat-session://local/new`` instead of raising an error
+     ``REQ_MSG_OPENCHAT`` instead of raising an error
 
 .. req:: Delete Individual Message
    :id: REQ_MSG_DELETE
@@ -405,3 +405,104 @@ Message Queue Requirements
      ``deleteMessage()``, and ``deleteByDestination()`` SHALL NOT modify it
    * AC-4: If the audit log file does not exist when the first message is
      written, it SHALL be created automatically
+
+
+.. req:: Pinned Resource Open Helper
+   :id: REQ_MSG_PINNED
+   :status: implemented
+   :priority: optional
+   :links: US_MSG_STABLESESSION; US_MSG_CHATQUEUE; REQ_MSG_SESSIONLOOKUP
+
+   **Description:**
+   The extension SHALL open any ``vscode-chat-session://`` URI in a pinned
+   (non-preview) editor tab so that VS Code does not silently reuse a transient
+   editor slot.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``vscode.commands.executeCommand('vscode.open', uri, { preview: false })``
+     SHALL be used for all chat session URI opens — both when focusing an
+     existing session and when falling back to a new session URI
+   * AC-2: The ``{ preview: false }`` option SHALL be passed as the third argument
+     to every ``vscode.open`` call for chat URIs
+   * AC-3: The helper SHALL be used consistently by all commands that open chat
+     sessions: ``jarvis.sendMessages``, ``jarvis.openSession``, and
+     ``jarvis.openAgentSession``
+
+
+.. req:: New Chat Editor Helper
+   :id: REQ_MSG_OPENCHAT
+   :status: implemented
+   :priority: optional
+   :links: US_MSG_STABLESESSION; REQ_MSG_PINNED
+
+   **Description:**
+   The extension SHALL open a new VS Code Chat editor using the stable
+   ``workbench.action.openChat`` internal command, with a URI-based fallback for
+   older VS Code builds.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The primary mechanism SHALL be
+     ``vscode.commands.executeCommand('workbench.action.openChat')``
+   * AC-2: If ``workbench.action.openChat`` throws, the extension SHALL fall back
+     to ``vscode.open(Uri.parse('vscode-chat-session://local/new'), { preview: false })``
+     via the pinned-open helper (``REQ_MSG_PINNED``)
+   * AC-3: Fallback attempts SHALL be logged at ``warn`` level on the Jarvis
+     output channel with the caught error message and a ``[MSG]`` tag
+   * AC-4: ``workbench.action.openChat`` is a VS Code internal command with no
+     public stability guarantee — the try/catch fallback is mandatory
+
+
+.. req:: Agent Chat Prompt Helper
+   :id: REQ_MSG_SENDPROMPT
+   :status: implemented
+   :priority: optional
+   :links: US_MSG_STABLESESSION; REQ_MSG_OPENCHAT
+
+   **Description:**
+   The extension SHALL submit a query to the currently focused VS Code Chat input
+   in agent mode, using a two-level fallback strategy to tolerate VS Code API
+   differences across builds.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The extension SHALL first attempt to focus the chat input via
+     ``workbench.action.chat.focusInput`` (best-effort; failures are silently
+     swallowed)
+   * AC-2: The primary submission mechanism SHALL be
+     ``workbench.action.chat.openAgent`` with ``{ query, isPartialQuery: false }``
+   * AC-3: If ``workbench.action.chat.openAgent`` throws, the extension SHALL
+     fall back to ``workbench.action.chat.open`` with
+     ``{ query, isPartialQuery: false, mode: 'agent' }``
+   * AC-4: Fallback attempts SHALL be logged at ``warn`` level on the Jarvis
+     output channel with the caught error message and a ``[MSG]`` tag
+   * AC-5: Both ``workbench.action.chat.openAgent`` and
+     ``workbench.action.chat.open`` are VS Code internal commands with no public
+     stability guarantee — the try/catch fallback is mandatory
+
+
+.. req:: Agent Session Init Sequence
+   :id: REQ_MSG_AGENTSESSION
+   :status: implemented
+   :priority: optional
+   :links: US_MSG_STABLESESSION; REQ_EXP_AGENTSESSION; REQ_MSG_OPENCHAT; REQ_MSG_SENDPROMPT
+
+   **Description:**
+   When creating a new agent session for a project or event, the extension SHALL
+   execute a fixed init sequence: open a new chat editor, rename the session,
+   then submit a context initialization prompt.
+
+   **Acceptance Criteria:**
+
+   * AC-1: After ``REQ_MSG_OPENCHAT`` creates the new chat editor, the extension
+     SHALL submit a ``/rename <entityName>`` prompt via ``REQ_MSG_SENDPROMPT``
+     to give the session a stable, recognizable name
+   * AC-2: After a short delay following the rename, the extension SHALL submit a
+     context initialization prompt containing the absolute path to ``context.md``
+     in the entity's folder (derived from the YAML leaf node path, not from the
+     display name)
+   * AC-3: The path to ``context.md`` SHALL be constructed as
+     ``projects/<kebab-name>/context.md`` where ``<kebab-name>`` is the entity
+     name lowercased with spaces replaced by hyphens
+   * AC-4: All prompt submissions SHALL use ``REQ_MSG_SENDPROMPT``
