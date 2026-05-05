@@ -425,14 +425,13 @@ Explorer Design Specifications
 .. spec:: Open Agent Session Command
    :id: SPEC_EXP_AGENTSESSION
    :status: implemented
-   :links: REQ_EXP_AGENTSESSION; SPEC_MSG_SESSIONLOOKUP; SPEC_EXP_PROVIDER; SPEC_EXP_OPENYAML_CMD; SPEC_MSG_PINNED; SPEC_MSG_OPENCHAT; SPEC_MSG_SENDPROMPT; SPEC_MSG_AGENTSESSION
+   :links: REQ_EXP_AGENTSESSION; SPEC_MSG_SESSIONLOOKUP; SPEC_EXP_PROVIDER; SPEC_EXP_OPENYAML_CMD
 
    **Description:**
    Register ``jarvis.openAgentSession`` in ``extension.ts``. Invoked from the
    inline ``$(comment-discussion)`` button on every project and event leaf node.
-   Looks up a chat session whose title matches the entity ``name`` and opens it
-   pinned (``{ preview: false }``); if no session is found, creates a new one,
-   renames it via ``/rename``, and sends a context initialization prompt.
+   Looks up a chat session whose title matches the entity ``name`` and opens it;
+   if no session is found, creates a new one and sends an initialization prompt.
 
    **Handler:**
 
@@ -447,28 +446,33 @@ Explorer Design Specifications
           const uuid = await lookupSessionUUID(entity.name);
 
           if (uuid) {
-            // Open existing session pinned (SPEC_MSG_PINNED)
+            // Open existing session
             const b64 = Buffer.from(uuid).toString('base64');
             const uri = vscode.Uri.parse(
               `vscode-chat-session://local/${b64}`
             );
-            await openPinnedResource(uri);
+            await vscode.commands.executeCommand('vscode.open', uri);
           } else {
-            // Create new session (SPEC_MSG_OPENCHAT)
-            await openNewChatEditor();
+            // Create new session
+            await vscode.commands.executeCommand('vscode.open',
+              vscode.Uri.parse('vscode-chat-session://local/new'));
             await new Promise(resolve => setTimeout(resolve, 800));
 
-            // Rename session (SPEC_MSG_AGENTSESSION)
-            await sendPromptToFocusedAgentChat(`/rename ${entity.name}`);
+            // Rename session via /rename command
+            await vscode.commands.executeCommand(
+              'workbench.action.chat.open',
+              { query: `/rename ${entity.name}` }
+            );
             await new Promise(resolve => setTimeout(resolve, 800));
 
-            // Send context initialization prompt (SPEC_MSG_SENDPROMPT)
-            const contextPath =
-              `projects/${entity.name.toLowerCase().replace(/\s+/g, '-')}/context.md`;
+            // Send initialization prompt
             const initPrompt =
               `You are working on the project/event "${entity.name}". ` +
-              `Please read the relevant project context from ${contextPath}.`;
-            await sendPromptToFocusedAgentChat(initPrompt);
+              `Please read the relevant project context.`;
+            await vscode.commands.executeCommand(
+              'workbench.action.chat.open',
+              { query: initPrompt }
+            );
           }
         }
       );
@@ -524,12 +528,8 @@ Explorer Design Specifications
    * No changes to ``yamlScanner.ts`` — uses existing ``entity.name`` from the
      entity store
    * No changes to ``sessionLookup.ts`` — reuses ``lookupSessionUUID()`` as-is
-   * Session open uses ``openPinnedResource()`` (``SPEC_MSG_PINNED``) so the
-     tab is never in preview mode
-   * New session creation uses ``openNewChatEditor()`` (``SPEC_MSG_OPENCHAT``)
-   * Rename and initialization prompts are submitted via
-     ``sendPromptToFocusedAgentChat()`` (``SPEC_MSG_SENDPROMPT``)
-   * Full session-open orchestration is specified in ``SPEC_MSG_AGENTSESSION``
+   * The initialization prompt is submitted directly via
+     ``workbench.action.chat.open`` (not via the message queue)
    * Disposable pushed to ``context.subscriptions``
 
 

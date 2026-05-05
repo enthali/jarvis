@@ -1,14 +1,25 @@
 # Release Notes
 
+## v0.5.8
+
+*2026-05-05*
+
+Hotfix: auto-delivery notification no longer resets agent/mode selection of target sessions.
+
+### Fixes
+
+- **auto-delivery**: Use `workbench.action.chat.open` instead of `openAgent` for notification delivery — preserves session agent mode
+- **session-rename**: New sessions created by auto-delivery or manual send are `/rename`d to the destination name for future lookup
+
 ## v0.5.7
 
 *2026-05-05*
 
-Stable session opening and initialization for project/event agent sessions.
+Stable session opening and initialization.
 
 ### New Features
 
-- **stable-session-open**: Stabilize automatic creation, opening, and initialization of project/event agent sessions. Three new helpers (`openPinnedResource`, `openNewChatEditor`, `sendPromptToFocusedAgentChat`), `/rename` after session creation, context.md initialization prompt. Replaces fragile `vscode-chat-session://local/new` URI approach with robust command-based flow.
+- **stable-session-open**: Three new helpers (`openPinnedResource`, `openNewChatEditor`, `sendPromptToFocusedAgentChat`), `/rename` after session creation, context.md initialization prompt. Replaces fragile `vscode-chat-session://local/new` approach.
 
 ## v0.5.6
 
