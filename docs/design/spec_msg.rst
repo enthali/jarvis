@@ -189,12 +189,11 @@ Message Queue Design Specifications
             const uri = vscode.Uri.parse(
               `vscode-chat-session://local/${b64}`
             );
-            await vscode.commands.executeCommand('vscode.open', uri);
+            await openPinnedResource(uri);  // SPEC_MSG_PINNED
             await new Promise(resolve => setTimeout(resolve, 800));
           } else {
-            // No existing session — create new editor chat
-            await vscode.commands.executeCommand('vscode.open',
-              vscode.Uri.parse('vscode-chat-session://local/new'));
+            // No existing session — create new pinned chat editor
+            await openNewChatEditor();  // SPEC_MSG_OPENCHAT
             await new Promise(resolve => setTimeout(resolve, 800));
           }
 
@@ -203,10 +202,7 @@ Message Queue Design Specifications
           const stub =
             `[Jarvis Message Service] Du hast ${count} neue Nachrichten in deiner Inbox.\n` +
             `Lies sie mit dem Tool jarvis_readMessage (destination: "${node.destination}") bis remaining = 0.`;
-          await vscode.commands.executeCommand(
-            'workbench.action.chat.open',
-            { query: stub }
-          );
+          await sendPromptToFocusedAgentChat(stub);  // SPEC_MSG_SENDPROMPT
 
           // 4. Refresh tree (messages stay in queue)
           messageProvider.reload();

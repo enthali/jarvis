@@ -69,7 +69,7 @@ Message Queue Requirements
      obtained from ``REQ_MSG_SESSIONLOOKUP``
    * AC-7: If ``REQ_MSG_SESSIONLOOKUP`` returns ``undefined`` for the target
      session, the extension SHALL open a new editor chat via
-     ``vscode-chat-session://local/new`` instead of raising an error
+     ``REQ_MSG_OPENCHAT`` instead of raising an error
 
 .. req:: Delete Individual Message
    :id: REQ_MSG_DELETE
