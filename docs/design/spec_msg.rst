@@ -195,6 +195,13 @@ Message Queue Design Specifications
             // No existing session — create new pinned chat editor
             await openNewChatEditor();  // SPEC_MSG_OPENCHAT
             await new Promise(resolve => setTimeout(resolve, 800));
+
+            // Name the new chat session so future deliveries can resolve it.
+            await vscode.commands.executeCommand(
+              'workbench.action.chat.open',
+              { query: `/rename ${node.destination}` }
+            );
+            await new Promise(resolve => setTimeout(resolve, 800));
           }
 
           // 3. Send single notification stub
@@ -876,11 +883,14 @@ Message Queue Design Specifications
    :status: implemented
    :links: REQ_MSG_AUTODELIVER_POLL; SPEC_MSG_AUTODELIVER_STORE; SPEC_MSG_AUTODELIVER_TAG; SPEC_MSG_SENDCOMMAND
 
-   **Description:**
-   A ``setInterval`` poll loop started in ``extension.ts`` during ``activate()``.
-   Each tick finds the first auto-delivery session that has un-notified messages,
-   opens the chat session directly, sends the notification stub, and marks those
-   messages as notified.
+    **Description:**
+
+    A ``setInterval`` poll loop started in ``extension.ts`` during ``activate()``.
+    Each tick finds the first auto-delivery session that has un-notified messages,
+    opens the chat session directly, sends the notification stub, and marks those
+    messages as notified. If the destination session cannot be found, the poll
+    loop opens a new editor chat and first sends ``/rename <sessionName>`` so
+    future deliveries can resolve the session by name.
 
    **Tick logic (inlined in extension.ts):**
 
@@ -900,7 +910,17 @@ Message Queue Design Specifications
 
           // Open chat session directly via UUID lookup
           const uuid = await lookupSessionUUID(sessionName);
-          // ... open session tab ...
+          if (uuid) {
+            // ... open session tab ...
+          } else {
+            await vscode.commands.executeCommand('vscode.open',
+              vscode.Uri.parse('vscode-chat-session://local/new'));
+            await new Promise(resolve => setTimeout(resolve, 800));
+            await vscode.commands.executeCommand(
+              'workbench.action.chat.open', { query: `/rename ${sessionName}` }
+            );
+            await new Promise(resolve => setTimeout(resolve, 800));
+          }
 
           // Send notification stub
           const stub = `[Jarvis Message Service] Du hast ${pending.length} neue ...`;
