@@ -1182,3 +1182,203 @@ Message Queue Design Specifications
      the file does not yet exist, creating it on first write
    * No changes to ``popMessage()``, ``deleteMessage()``, or
      ``deleteByDestination()`` — audit trail integrity is maintained by omission
+
+
+.. spec:: Pinned Resource Open Helper
+   :id: SPEC_MSG_PINNED
+   :status: implemented
+   :links: REQ_MSG_PINNED; SPEC_MSG_SESSIONLOOKUP
+
+   **Description:**
+   Private async helper ``openPinnedResource`` in ``extension.ts`` opens any
+   ``vscode-chat-session://`` URI in a pinned (non-preview) editor tab. The
+   ``{ preview: false }`` option prevents VS Code from silently reusing a
+   transient editor slot ("ghost editor" issue).
+
+   **Implementation:**
+
+   .. code-block:: typescript
+
+      async function openPinnedResource(uri: vscode.Uri): Promise<void> {
+          await vscode.commands.executeCommand('vscode.open', uri, { preview: false });
+      }
+
+   **Callers:**
+
+   * ``jarvis.sendMessages`` — opens the existing session tab before submitting
+     the notification stub
+   * ``jarvis.openSession`` — opens the selected session from the QuickPick
+   * ``jarvis.openAgentSession`` — opens the existing session tab when a UUID
+     is found; also used as the fallback path in ``SPEC_MSG_OPENCHAT``
+
+   **Design decisions:**
+
+   * ``{ preview: false }`` as the third argument to ``vscode.open`` is the sole
+     purpose of this helper — it ensures the tab is permanently pinned and not
+     recycled by the editor group
+   * Extracted into a named helper (rather than inlined) for consistency across
+     all three callers
+
+
+.. spec:: New Chat Editor Helper
+   :id: SPEC_MSG_OPENCHAT
+   :status: implemented
+   :links: REQ_MSG_OPENCHAT; SPEC_MSG_PINNED
+
+   **Description:**
+   Private async helper ``openNewChatEditor`` in ``extension.ts`` creates a new
+   VS Code Chat editor. Uses ``workbench.action.openChat`` as the primary
+   mechanism, falling back to the ``vscode-chat-session://local/new`` URI via
+   ``openPinnedResource`` if the command is unavailable.
+
+   **Implementation:**
+
+   .. code-block:: typescript
+
+      async function openNewChatEditor(): Promise<void> {
+          try {
+              await vscode.commands.executeCommand('workbench.action.openChat');
+          } catch (error) {
+              const message = error instanceof Error ? error.message : String(error);
+              log.warn(`[MSG] workbench.action.openChat failed, falling back to URI open: ${message}`);
+              await openPinnedResource(vscode.Uri.parse('vscode-chat-session://local/new'));
+          }
+      }
+
+   **Callers:**
+
+   * ``jarvis.sendMessages`` — when no UUID is found for the target session name
+   * ``jarvis.openAgentSession`` — when no UUID is found for the entity name
+
+   **Design decisions:**
+
+   * ``workbench.action.openChat`` is a VS Code internal command with no public
+     stability guarantee. The try/catch + fallback is mandatory (D-1 from
+     ``stable-session-open`` change).
+   * The fallback URI ``vscode-chat-session://local/new`` is passed through
+     ``openPinnedResource`` so it also gets ``{ preview: false }`` treatment.
+   * Failures are logged at ``warn`` (not ``error``) — the fallback is expected
+     to succeed in practice, so this is a degraded-mode warning.
+
+
+.. spec:: Agent Chat Prompt Helper
+   :id: SPEC_MSG_SENDPROMPT
+   :status: implemented
+   :links: REQ_MSG_SENDPROMPT; SPEC_MSG_OPENCHAT
+
+   **Description:**
+   Private async helper ``sendPromptToFocusedAgentChat`` in ``extension.ts``
+   submits a query string to the active VS Code Chat input in agent mode. Uses
+   a two-level fallback to tolerate API differences across VS Code builds.
+
+   **Implementation:**
+
+   .. code-block:: typescript
+
+      async function sendPromptToFocusedAgentChat(query: string): Promise<void> {
+          try {
+              await vscode.commands.executeCommand('workbench.action.chat.focusInput');
+          } catch {
+              // Best effort: older VS Code builds may not expose the focus command.
+          }
+
+          try {
+              await vscode.commands.executeCommand(
+                  'workbench.action.chat.openAgent',
+                  { query, isPartialQuery: false }
+              );
+          } catch (error) {
+              const message = error instanceof Error ? error.message : String(error);
+              log.warn(`[MSG] workbench.action.chat.openAgent failed, falling back to chat.open: ${message}`);
+              await vscode.commands.executeCommand(
+                  'workbench.action.chat.open',
+                  { query, isPartialQuery: false, mode: 'agent' }
+              );
+          }
+      }
+
+   **Callers:**
+
+   * ``jarvis.sendMessages`` — submits the notification stub
+   * ``jarvis.openAgentSession`` (new session path) — submits the ``/rename``
+     command and the context initialization prompt in sequence
+   * Auto-delivery poll loop — submits the notification stub for each
+     auto-delivery session
+
+   **Session initialization sequence in ``jarvis.openAgentSession`` (new session):**
+
+   .. code-block:: typescript
+
+      // 1. Create new session
+      await openNewChatEditor();
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      // 2. Rename session to entity name (D-4)
+      await sendPromptToFocusedAgentChat(`/rename ${entity.name}`);
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      // 3. Send context initialization prompt (D-3)
+      const contextPath =
+          `projects/${entity.name.toLowerCase().replace(/\s+/g, '-')}/context.md`;
+      const initPrompt =
+          `You are working on the project/event "${entity.name}". ` +
+          `Please read the relevant project context from ${contextPath}.`;
+      await sendPromptToFocusedAgentChat(initPrompt);
+
+   **Design decisions:**
+
+   * ``workbench.action.chat.focusInput`` failure is silently swallowed — it is
+     purely a UX hint and the submission step does not depend on it.
+   * ``workbench.action.chat.openAgent`` is the preferred submission command
+     because it targets agent mode explicitly.
+   * The fallback uses ``workbench.action.chat.open`` with ``mode: 'agent'`` —
+     an older API shape that achieves the same effect on pre-1.100 builds.
+   * Both commands are VS Code internals with no public stability guarantee.
+   * The 800 ms ``setTimeout`` between steps is a heuristic to allow the VS Code
+     Chat UI to complete its tab-open animation before the next command is sent.
+     No polling or event-based synchronization is available through the public API.
+   * ``contextPath`` is derived by lower-casing the entity name and replacing
+     spaces with hyphens (``entity.name.toLowerCase().replace(/\s+/g, '-')``),
+     then joining with ``projects/`` and ``/context.md`` (D-3). This matches the
+     convention used by existing Jarvis project folders.
+
+   **Open edge — title normalization:**
+
+   ``lookupSessionUUID`` uses exact-match comparison (``s.title === sessionName``).
+   No trimming or prefix normalization is applied. If VS Code adds a prefix or
+   trailing space to a renamed session title, the lookup will miss the session and
+   a new session will be created instead. This is an accepted limitation until a
+   more robust matching strategy (e.g. ``includes`` or regex) is implemented.
+
+
+.. spec:: Agent Session Init Sequence
+   :id: SPEC_MSG_AGENTSESSION
+   :status: implemented
+   :links: REQ_MSG_AGENTSESSION; REQ_EXP_AGENTSESSION; SPEC_MSG_OPENCHAT; SPEC_MSG_SENDPROMPT; SPEC_MSG_PINNED
+
+   **Description:**
+   The `jarvis.openAgentSession` command orchestrates the full lifecycle of
+   opening or creating an agent chat session for a project or event leaf node.
+
+   **Sequence (existing session):**
+
+   1. Resolve UUID via `lookupSessionUUID(entity.name)`
+   2. Open pinned via `openPinnedResource(chatSessionUri)`
+
+   **Sequence (new session):**
+
+   1. Resolve UUID -- not found
+   2. `openNewChatEditor()` -- wait 800 ms
+   3. `sendPromptToFocusedAgentChat('/rename <entityName>')` -- wait 800 ms
+   4. Build `contextPath`: `projects/<kebab>/context.md` where
+      `<kebab>` = `entity.name.toLowerCase().replace(/\s+/g, '-')`
+   5. `sendPromptToFocusedAgentChat(initPrompt)` with `contextPath`
+
+   **Design notes:**
+
+   * The 800 ms delay is a heuristic to allow the VS Code Chat UI to complete
+     its tab-open animation -- no event-based synchronization is available.
+   * `contextPath` uses kebab-case of the entity name, matching the folder
+     naming convention used by existing Jarvis project folders.
+   * `lookupSessionUUID` uses exact title match; prefix or suffix issues may
+     cause a new session to be created instead of reusing an existing one.

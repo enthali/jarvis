@@ -99,6 +99,42 @@ export function activate(context: vscode.ExtensionContext) {
     const log = vscode.window.createOutputChannel('Jarvis', { log: true });
     context.subscriptions.push(log);
 
+    async function openPinnedResource(uri: vscode.Uri): Promise<void> {
+        await vscode.commands.executeCommand('vscode.open', uri, { preview: false });
+    }
+
+    async function openNewChatEditor(): Promise<void> {
+        try {
+            await vscode.commands.executeCommand('workbench.action.openChat');
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            log.warn(`[MSG] workbench.action.openChat failed, falling back to URI open: ${message}`);
+            await openPinnedResource(vscode.Uri.parse('vscode-chat-session://local/new'));
+        }
+    }
+
+    async function sendPromptToFocusedAgentChat(query: string): Promise<void> {
+        try {
+            await vscode.commands.executeCommand('workbench.action.chat.focusInput');
+        } catch {
+            // Best effort: older VS Code builds may not expose the focus command.
+        }
+
+        try {
+            await vscode.commands.executeCommand(
+                'workbench.action.chat.openAgent',
+                { query, isPartialQuery: false }
+            );
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            log.warn(`[MSG] workbench.action.chat.openAgent failed, falling back to chat.open: ${message}`);
+            await vscode.commands.executeCommand(
+                'workbench.action.chat.open',
+                { query, isPartialQuery: false, mode: 'agent' }
+            );
+        }
+    }
+
     // Activate heartbeat scheduler first (SPEC_EXP_EXTENSION, SPEC_AUT_SCHEDULERLOOP)
     const scheduler = activateHeartbeat(context, messageProvider, resolveMessagesPath, log);
 
@@ -459,9 +495,9 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     // Register open YAML command (SPEC_EXP_OPENYAML_CMD)
-    const openYamlCommand = vscode.commands.registerCommand('jarvis.openYamlFile', (element: LeafNode) => {
+    const openYamlCommand = vscode.commands.registerCommand('jarvis.openYamlFile', async (element: LeafNode) => {
         const uri = vscode.Uri.file(element.id);
-        vscode.commands.executeCommand('vscode.open', uri);
+        await openPinnedResource(uri);
     });
 
     // Register context actions (SPEC_EXP_CONTEXTACTIONS)
@@ -539,13 +575,12 @@ export function activate(context: vscode.ExtensionContext) {
             if (uuid) {
                 const b64 = Buffer.from(uuid).toString('base64');
                 const uri = vscode.Uri.parse(`vscode-chat-session://local/${b64}`);
-                await vscode.commands.executeCommand('vscode.open', uri);
+                await openPinnedResource(uri);
                 // Wait for session tab to be fully focused
                 await new Promise(resolve => setTimeout(resolve, 800));
             } else {
-                // No existing session — create a new editor chat via URI with empty sessionId
-                await vscode.commands.executeCommand('vscode.open',
-                    vscode.Uri.parse('vscode-chat-session://local/new'));
+                // No existing session — create a new pinned chat editor.
+                await openNewChatEditor();
                 await new Promise(resolve => setTimeout(resolve, 800));
             }
 
@@ -554,10 +589,7 @@ export function activate(context: vscode.ExtensionContext) {
             const stub =
                 `[Jarvis Message Service] Du hast ${count} neue Nachrichten in deiner Inbox.\n` +
                 `Lies sie mit dem Tool jarvis_readMessage (destination: "${node.destination}") bis remaining = 0.`;
-            await vscode.commands.executeCommand(
-                'workbench.action.chat.open',
-                { query: stub }
-            );
+            await sendPromptToFocusedAgentChat(stub);
 
             // 4. Refresh tree (messages stay in queue)
             messageProvider.reload();
@@ -582,7 +614,7 @@ export function activate(context: vscode.ExtensionContext) {
             if (!pick) { return; }
             const b64 = Buffer.from(pick.description!).toString('base64');
             const uri = vscode.Uri.parse(`vscode-chat-session://local/${b64}`);
-            await vscode.commands.executeCommand('vscode.open', uri);
+            await openPinnedResource(uri);
         }
     );
 
@@ -602,22 +634,22 @@ export function activate(context: vscode.ExtensionContext) {
                 const uri = vscode.Uri.parse(
                     `vscode-chat-session://local/${b64}`
                 );
-                await vscode.commands.executeCommand('vscode.open', uri);
+                await openPinnedResource(uri);
             } else {
                 // Create new session
-                await vscode.commands.executeCommand('vscode.open',
-                    vscode.Uri.parse('vscode-chat-session://local/new'));
+                await openNewChatEditor();
                 await new Promise(resolve => setTimeout(resolve, 800));
 
-                // Send initialization prompt
+                // Rename session via /rename command
+                await sendPromptToFocusedAgentChat(`/rename ${entity.name}`);
+                await new Promise(resolve => setTimeout(resolve, 800));
+
+                // Send context initialization prompt
+                const contextPath = `projects/${entity.name.toLowerCase().replace(/\s+/g, '-')}/context.md`;
                 const initPrompt =
                     `You are working on the project/event "${entity.name}". ` +
-                    `Please ask the user to rename this session to "${entity.name}" ` +
-                    `and then read the relevant project context.`;
-                await vscode.commands.executeCommand(
-                    'workbench.action.chat.open',
-                    { query: initPrompt }
-                );
+                    `Please read the relevant project context from ${contextPath}.`;
+                await sendPromptToFocusedAgentChat(initPrompt);
             }
         }
     );
@@ -1409,21 +1441,17 @@ export function activate(context: vscode.ExtensionContext) {
                 if (uuid) {
                     const b64 = Buffer.from(uuid).toString('base64');
                     const uri = vscode.Uri.parse(`vscode-chat-session://local/${b64}`);
-                    await vscode.commands.executeCommand('vscode.open', uri);
+                    await openPinnedResource(uri);
                     await new Promise(resolve => setTimeout(resolve, 800));
                 } else {
-                    await vscode.commands.executeCommand('vscode.open',
-                        vscode.Uri.parse('vscode-chat-session://local/new'));
+                    await openNewChatEditor();
                     await new Promise(resolve => setTimeout(resolve, 800));
                 }
                 const count = pending.length;
                 const stub =
                     `[Jarvis Message Service] Du hast ${count} neue Nachrichten in deiner Inbox.\n` +
                     `Lies sie mit dem Tool jarvis_readMessage (destination: "${sessionName}") bis remaining = 0.`;
-                await vscode.commands.executeCommand(
-                    'workbench.action.chat.open',
-                    { query: stub }
-                );
+                await sendPromptToFocusedAgentChat(stub);
                 // Mark those messages as notified
                 const updated = readQueue(messagesPath);
                 let changed = false;

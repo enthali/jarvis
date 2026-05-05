@@ -157,3 +157,35 @@ Messaging User Stories
      operations — it grows monotonically
    * AC-3: The audit log file is co-located with ``messages.json``
    * AC-4: Message logging is disabled by default (opt-in)
+
+
+.. story:: Stable Agent Session Open
+   :id: US_MSG_STABLESESSION
+   :status: approved
+   :priority: optional
+   :links: US_MSG_CHATQUEUE; US_EXP_AGENTSESSION
+
+   **As a** Jarvis User,
+   **I want** project and event agent sessions to open without editor-reuse
+   artifacts and to receive a stable, recognizable name immediately after
+   creation,
+   **so that** I always land in the right chat tab and can locate the session by
+   name in the session list or via the ``jarvis.openSession`` command.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Opening an existing session SHALL use ``vscode.open`` with
+     ``{ preview: false }`` so VS Code does not reuse a transient editor slot
+   * AC-2: Creating a new session SHALL use ``workbench.action.openChat``
+     (stable VS Code internal command) rather than a raw
+     ``vscode-chat-session://local/new`` URI, to prevent editor-reuse bugs
+   * AC-3: Immediately after a new session is created, a ``/rename <entity name>``
+     command SHALL be submitted to give the session a stable, recognizable name
+     that matches the entity name in the Projects or Events tree
+   * AC-4: After the rename, a context initialization prompt SHALL be submitted
+     containing the path to the entity's ``context.md`` file, derived from the
+     entity name (lower-case, spaces replaced with hyphens) under ``projects/``
+   * AC-5: Submitting a prompt to the active chat SHALL use
+     ``workbench.action.chat.openAgent`` (agent mode) as the primary mechanism,
+     with ``workbench.action.chat.open`` (mode: ``'agent'``) as a silent fallback
+     for older VS Code builds
