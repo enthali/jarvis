@@ -2,7 +2,7 @@
   "name": "jarvis",
   "displayName": "Jarvis",
   "description": "Personal assistant for managing projects and events in VS Code",
-  "version": "0.5.6",
+  "version": "0.5.8",
   "publisher": "enthali",
   "repository": {
     "type": "git",
@@ -131,11 +131,6 @@
         "icon": "$(comment-discussion)"
       },
       {
-        "command": "jarvis.openContext",
-        "title": "Jarvis: Open Context",
-        "icon": "$(notebook)"
-      },
-      {
         "command": "jarvis.newProject",
         "title": "Jarvis: New Project",
         "icon": "$(add)"
@@ -227,10 +222,6 @@
       "commandPalette": [
         {
           "command": "jarvis.openAgentSession",
-          "when": "false"
-        },
-        {
-          "command": "jarvis.openContext",
           "when": "false"
         },
         {
@@ -414,16 +405,6 @@
         },
         {
           "command": "jarvis.openAgentSession",
-          "when": "viewItem == jarvisEvent",
-          "group": "inline"
-        },
-        {
-          "command": "jarvis.openContext",
-          "when": "viewItem == jarvisProject",
-          "group": "inline"
-        },
-        {
-          "command": "jarvis.openContext",
           "when": "viewItem == jarvisEvent",
           "group": "inline"
         },
