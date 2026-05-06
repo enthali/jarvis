@@ -633,6 +633,20 @@ export function activate(context: vscode.ExtensionContext) {
         }
     );
 
+    // Register open context.md command
+    const openContextCommand = vscode.commands.registerCommand(
+        'jarvis.openContext',
+        async (element: LeafNode) => {
+            const contextPath = path.join(path.dirname(element.id), 'context.md');
+            if (!fs.existsSync(contextPath)) {
+                vscode.window.showInformationMessage('Jarvis: No context.md found for this entity.');
+                return;
+            }
+            const uri = vscode.Uri.file(contextPath);
+            await vscode.window.showTextDocument(uri);
+        }
+    );
+
     // Register delete message command (SPEC_MSG_SENDCOMMAND)
     const deleteMessageCommand = vscode.commands.registerCommand(
         'jarvis.deleteMessage',
@@ -1490,6 +1504,7 @@ export function activate(context: vscode.ExtensionContext) {
         openMessageFileCommand,
         openSessionCommand,
         openAgentSessionCommand,
+        openContextCommand,
         newProjectCommand,
         newEventCommand,
         checkForUpdatesCommand,
