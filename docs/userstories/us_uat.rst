@@ -27,6 +27,7 @@ for each feature. Each file corresponds to one feature or change.
    us_uat_autodelivery
    us_uat_messagelogging
    us_uat_stablesessionopen
+   us_uat_opencontext
 
 All UAT User Stories
 --------------------

@@ -1378,3 +1378,93 @@ Explorer Design Specifications
    * ``projectTreeView`` and ``eventTreeView`` are ``vscode.TreeView<TreeNode>``
      references already held in ``extension.ts``
    * Both disposables are pushed to ``context.subscriptions``
+
+
+.. spec:: Open Context File Command
+   :id: SPEC_EXP_OPENCONTEXT_CMD
+   :status: draft
+   :links: REQ_EXP_OPENCONTEXT; SPEC_EXP_OPENYAML_CMD; SPEC_EXP_AGENTSESSION; SPEC_EXP_EXTENSION
+
+   **Description:**
+   A command ``jarvis.openContext`` opens the ``context.md`` file associated
+   with a project or event leaf item. If the file does not exist, an
+   information message is shown.
+
+   **Handler:**
+
+   The command receives the selected ``LeafNode`` as its argument (VS Code
+   passes the element from the ``TreeDataProvider`` when the inline action is
+   triggered).
+
+   .. code-block:: typescript
+
+      vscode.commands.registerCommand(
+        'jarvis.openContext',
+        async (element: LeafNode) => {
+          const contextPath = path.join(
+            path.dirname(element.id),
+            'context.md'
+          );
+          const uri = vscode.Uri.file(contextPath);
+
+          if (fs.existsSync(contextPath)) {
+            await vscode.window.showTextDocument(uri);
+          } else {
+            vscode.window.showInformationMessage('context.md not found');
+          }
+        }
+      );
+
+   **Registration in package.json:**
+
+   * ``contributes.commands``: ``jarvis.openContext`` with title
+     "Jarvis: Open Context" and icon ``$(notebook)``
+
+     .. code-block:: json
+
+        {
+          "command": "jarvis.openContext",
+          "title": "Jarvis: Open Context",
+          "icon": "$(notebook)"
+        }
+
+   * ``contributes.menus.view/item/context``: two entries, both with
+     ``group: "inline"``
+
+     .. code-block:: json
+
+        [
+          {
+            "command": "jarvis.openContext",
+            "when": "viewItem == jarvisProject",
+            "group": "inline"
+          },
+          {
+            "command": "jarvis.openContext",
+            "when": "viewItem == jarvisEvent",
+            "group": "inline"
+          }
+        ]
+
+   * ``contributes.menus.commandPalette``: hide from Command Palette (the
+     command requires a ``LeafNode`` argument and would fail without one)
+
+     .. code-block:: json
+
+        [
+          {
+            "command": "jarvis.openContext",
+            "when": "false"
+          }
+        ]
+
+   **Design notes:**
+
+   * Same inline-button pattern as ``SPEC_EXP_OPENYAML_CMD`` and
+     ``SPEC_EXP_AGENTSESSION`` — three icons will be shown on leaf nodes:
+     ``$(go-to-file)``, ``$(comment-discussion)``, and ``$(notebook)``
+   * ``fs.existsSync()`` is used to check file existence before opening — this
+     prevents a VS Code error dialog and provides a friendlier user experience
+   * The ``$(notebook)`` icon visually suggests "documentation" or "notes" and
+     is distinct from the existing icons
+   * No tree provider changes required — purely a command + menu contribution

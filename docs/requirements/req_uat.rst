@@ -27,6 +27,7 @@ end-to-end verification of each feature.
    req_uat_autodelivery
    req_uat_messagelogging
    req_uat_stablesessionopen
+   req_uat_opencontext
 
 All UAT Requirements
 --------------------

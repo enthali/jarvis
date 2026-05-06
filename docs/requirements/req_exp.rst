@@ -593,3 +593,30 @@ Explorer Requirements
      required
    * AC-8: Pressing Escape or clicking outside the QuickPick SHALL dismiss it
      without any side effects on the tree view or scanner state
+
+
+.. req:: Open Context File Command
+   :id: REQ_EXP_OPENCONTEXT
+   :status: draft
+   :priority: optional
+   :links: US_EXP_OPENCONTEXT; REQ_EXP_OPENYAML; REQ_EXP_AGENTSESSION
+
+   **Description:**
+   Every project and event leaf item SHALL provide an inline action button that
+   opens the ``context.md`` file from the entity's folder. If the file does not
+   exist, an information message SHALL be shown.
+
+   **Acceptance Criteria:**
+
+   * AC-1: All project and event leaf items SHALL display an inline
+     ``$(notebook)`` button in addition to the existing ``$(go-to-file)`` and
+     ``$(comment-discussion)`` buttons
+   * AC-2: Clicking the button SHALL resolve the ``context.md`` file path by
+     taking ``path.dirname(element.id)`` and appending ``/context.md``
+   * AC-3: If the file exists, it SHALL be opened in the VS Code text editor
+     using ``vscode.window.showTextDocument()``
+   * AC-4: If the file does not exist, a non-blocking information message SHALL
+     be shown with the text "context.md not found"
+   * AC-5: Folder nodes SHALL NOT display the button
+   * AC-6: The command SHALL NOT appear in the Command Palette (it requires a
+     tree element argument and would fail without one)
