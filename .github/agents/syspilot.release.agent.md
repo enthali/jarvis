@@ -26,22 +26,22 @@ never rewrite history. When in doubt, you stop and ask.
    (root only — do not recurse into subdirectories) and move every found file
    to `docs/changes/<version>/`. The scan is the definitive input set;
    session context is not used to determine which files to archive.
-2. **Version Bump** — Bump the `version:` field in `syspilot/agents/syspilot.setup.agent.md` following semantic versioning (MAJOR.MINOR.PATCH)
+2. **Version Bump** — Bump the `version:` field in `package.json` following semantic versioning (MAJOR.MINOR.PATCH)
 3. **Release Notes** — Generate or update release notes in
    `docs/releasenotes.md` (newest first) using ALL change documents found in
    `docs/changes/<version>/` as the explicit source; every archived document
    MUST have an entry — no document may be omitted due to session context drift.
 4. **Validation** — Run sphinx-build with `-W` flag to catch warnings
-5. **Squash Merge** — Squash-merge `development` → `main`
+5. **Squash Merge** — Squash-merge `develop` → `main`
 6. **Git Tagging** — Create version tag on `main` and push
-7. **Back-Merge** — Merge `main` back into `development` to sync the squash commit
+7. **Back-Merge** — Merge `main` back into `develop` to sync the squash commit
 8. **GitHub Release** — Create GitHub Release from the tag
 
 ## Workflow
 
-1. **Pre-Release** — Confirm all engineers have completed. Stay on `development`.
+1. **Pre-Release** — Confirm all engineers have completed. Stay on `develop`.
 2. **Read Current Version** — Read the `version:` field from
-   `syspilot/agents/syspilot.setup.agent.md` to determine the current
+   `package.json` to determine the current
    version; derive the next version following semantic versioning rules
 3. **Archive** — Scan ALL `*.md` files in `docs/changes/` root
    (`Get-ChildItem docs/changes/ -Filter *.md -File` or equivalent — no
@@ -49,20 +49,20 @@ never rewrite history. When in doubt, you stop and ask.
    `docs/changes/<version>/`. This file-system scan is the authoritative
    input — do NOT rely on session context to determine which files to move.
 4. **Version** — Bump the `version:` field in
-   `syspilot/agents/syspilot.setup.agent.md` to the new version
+   `package.json` to the new version
 5. **Document** — Read ALL files in `docs/changes/<version>/` (the
    just-archived set) and generate release notes from them (newest first in
    `docs/releasenotes.md`). Every file in that directory MUST produce an
    entry. Do NOT rely on session context; use the directory listing as the
    authoritative source.
-6. **Validate** — Run sphinx-build with `-W`, ensure all pass. Commit + push `development`.
-7. **Squash Merge** — `git checkout main && git merge --squash development && git commit`
+6. **Validate** — Run sphinx-build with `-W`, ensure all pass. Commit + push `develop`.
+7. **Squash Merge** — `git checkout main && git merge --squash develop && git commit`
 8. **Tag** — Create Git tag `v{version}`, push `main` + tag to remote
-9. **Back-Merge** — `git checkout development && git merge main` to sync squash commit
+9. **Back-Merge** — `git checkout develop && git merge main` to sync squash commit
 10. **Publish** — Create GitHub Release
 
 **Input:** Trigger from CM (after all engineers complete)
 **Output:** Tagged release on main + GitHub Release + archived change docs
 
 **Conflict Guidance:** If squash-merge produces conflicts, resolve with `-X theirs`
-(development wins — it contains the authoritative content).
+(develop wins — it contains the authoritative content).

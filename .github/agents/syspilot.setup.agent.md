@@ -25,7 +25,7 @@ environment, install or update syspilot, and make sure everything works.
 1. **Source Detection** — Check for local `syspilot/` directory with
    `version.json`. Offer choice: local install or GitHub. When GitHub is
    selected, ask which branch to install from (default: `main` for stable
-   releases, `development` for latest changes)
+   releases, `develop` for latest changes)
 2. **Mode Detection** — Read own `version:` frontmatter field and compare with
    `syspilot/version.json` in the source to determine fresh install vs. update mode
 3. **Dependency Check** — Verify Python, Sphinx, sphinx-needs are available

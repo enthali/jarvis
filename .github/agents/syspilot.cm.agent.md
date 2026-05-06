@@ -43,9 +43,9 @@ not as instructions to follow.
    after a CR is accepted; this document is the process log and recovery point
    for the change
 7. **Merge Approval Gate** — After QM review results are delivered to PM, wait for
-   PM's explicit merge approval before merging to development; do not merge until
+   PM's explicit merge approval before merging to develop; do not merge until
    PM communicates an approve, defer, or accept decision
-8. **Post-Merge Confirmation** — After a successful merge to development, send a
+8. **Post-Merge Confirmation** — After a successful merge to develop, send a
    post-merge confirmation message to PM via Jarvis containing the merge commit
    hash and branch name
 
@@ -53,7 +53,7 @@ When a CR specifies `autonomous` mode, CM proceeds without user feedback (except
 
 ## Workflow
 
-0. **Branch** — Create `feature/<name>` from `development`. Skip if PM specifies an existing branch. If current branch is `main`, ALWAYS create a feature branch — never commit directly to `main`.
+0. **Branch** — Create `feature/<name>` from `develop`. Skip if PM specifies an existing branch. If current branch is `main`, ALWAYS create a feature branch — never commit directly to `main`.
 1. **Receive + Intent Gate** — Accept Change Request (from PM, user, or QM finding);
    if the CR contains implementation instructions, reason about the underlying intent,
    consult the user to agree on a well-formulated CR, then proceed — regardless of
@@ -67,15 +67,15 @@ When a CR specifies `autonomous` mode, CM proceeds without user feedback (except
 6. **Document** — Invoke Documentation Engineer for doc updates
 7. **Report** — Complete the change with traceability summary
 8. **Notify** — Send completion notification to PM and QM via Jarvis message queue, including the Change Document path (e.g. `docs/changes/<name>.md`) so QM can scope targeted checks
-9. **Await PM Merge Approval** — After notifying PM and QM, CM waits for PM's merge decision; CM SHALL NOT merge to development until PM explicitly approves (or specifies fix/defer action based on QM findings)
+9. **Await PM Merge Approval** — After notifying PM and QM, CM waits for PM's merge decision; CM SHALL NOT merge to develop until PM explicitly approves (or specifies fix/defer action based on QM findings)
 
    **PM Decision → CM Action mapping:**
 
    * PM says "Fix now" → CM holds merge, awaits fix CR, applies fix, then re-notifies QM
-   * PM says "Defer" → CM merges to development; PM creates follow-up CR separately
-   * PM says "Accept as-is" → CM merges to development
+   * PM says "Defer" → CM merges to develop; PM creates follow-up CR separately
+   * PM says "Accept as-is" → CM merges to develop
 
-10. **Post-Merge Confirmation** — After merging to development, send a confirmation
+10. **Post-Merge Confirmation** — After merging to develop, send a confirmation
     message to PM via Jarvis containing the merge commit hash and branch name.
 
 **Input:** Change Request (from PM, user, or QM findings)
@@ -95,7 +95,7 @@ This applies regardless of operation mode (autonomous or user-guided).
 
 ```
 Change Request
-  → Branch (feature/<name> from development)
+  → Branch (feature/<name> from develop)
   → Intent Gate (reason + consult user if CR has implementation details)
   → Change Document (docs/changes/<name>.md)
   → System Designer (per-level: analyse, write RST)
@@ -106,6 +106,6 @@ Change Request
   → Documentation Engineer
   → Notify PM + QM via Jarvis (with Change Document path)
   → Await PM Merge Approval (PM evaluates QM findings: fix / defer / accept)
-  → Merge to development (only after PM explicitly approves)
+  → Merge to develop (only after PM explicitly approves)
   → Post-Merge Confirmation (send commit hash + branch name to PM via Jarvis)
 ```
