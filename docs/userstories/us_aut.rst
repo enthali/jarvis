@@ -31,3 +31,6 @@ Automation User Stories
      the tree; the tree also refreshes automatically on each scheduler tick
    * AC-12: Extension modules can programmatically register or remove heartbeat jobs;
      registered jobs appear in the tree view and are persisted in ``heartbeat.yaml``
+   * AC-13: When the user manually triggers a job via the play button, an info toast
+     SHALL immediately appear showing the job name, providing visual confirmation that
+     the click was registered

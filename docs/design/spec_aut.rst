@@ -503,6 +503,9 @@ Automation Design Specifications
 
          context.subscriptions.push(
              vscode.commands.registerCommand('jarvis.runJob', (node: JobNode) => {
+                 vscode.window.showInformationMessage(
+                     `Heartbeat '${node.job.name}' gestartet...`
+                 );
                  executeJob(node.job, outputChannel, configDir, queuePath, messageTreeProvider)
                      .then(result => {
                          if (!result.success) { notifyFailure(node.job, result, outputChannel); }
