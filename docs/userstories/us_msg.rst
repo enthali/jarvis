@@ -189,3 +189,27 @@ Messaging User Stories
      ``workbench.action.chat.openAgent`` (agent mode) as the primary mechanism,
      with ``workbench.action.chat.open`` (mode: ``'agent'``) as a silent fallback
      for older VS Code builds
+
+
+.. story:: Remote / Devcontainer Session Lookup Compatibility
+   :id: US_MSG_REMOTECOMPAT
+   :status: draft
+   :priority: optional
+   :links: US_MSG_CHATQUEUE; US_MSG_OPENSESSION; US_MSG_LISTSESSIONS
+
+   **As a** Jarvis User running VS Code with a Remote or Devcontainer workspace,
+   **I want** session lookup and session listing to work correctly,
+   **so that** ``openAgentSession`` finds existing sessions and ``listSessions``
+   returns accurate results regardless of whether I am working locally or in a
+   remote environment.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``openAgentSession`` finds an existing named session in a devcontainer
+     workspace — no duplicate sessions are created
+   * AC-2: The ``jarvis_listSessions`` MCP/LM Tool returns the correct sessions
+     when the extension runs inside a devcontainer or Remote SSH window
+   * AC-3: Local usage (non-remote workspace) is unaffected — session lookup
+     continues to work as before
+   * AC-4: When ``state.vscdb`` cannot be found, the extension logs a warning
+     and returns an empty list instead of failing silently

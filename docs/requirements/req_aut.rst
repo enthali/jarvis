@@ -177,6 +177,9 @@ Automation Requirements
    * AC-2: Clicking the icon SHALL execute the job immediately using the existing
      job execution pipeline
    * AC-3: The command SHALL work for both scheduled and manual jobs
+   * AC-4: Upon invocation, the command SHALL immediately display an info notification
+     toast with the message ``"Heartbeat '<jobName>' gestartet..."`` before executing
+     the job; the toast SHALL NOT block job execution
 
 
 .. req:: Heartbeat Job Registration API

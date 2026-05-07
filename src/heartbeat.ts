@@ -505,6 +505,7 @@ export function activateHeartbeat(
     // Run single job from tree (SPEC_AUT_RUNJOBCOMMAND)
     context.subscriptions.push(
         vscode.commands.registerCommand('jarvis.runJob', (node: JobNode) => {
+            vscode.window.showInformationMessage(`Heartbeat '${node.job.name}' gestartet...`);
             executeJob(node.job, outputChannel, scheduler.currentConfigDir,
                 scheduler.currentQueuePath, messageTreeProvider)
                 .then(result => {

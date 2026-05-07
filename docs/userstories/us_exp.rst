@@ -322,3 +322,26 @@ Explorer User Stories
    * AC-5: Selecting an item closes the QuickPick and reveals and focuses that
      item in the tree (scroll + highlight)
    * AC-6: Pressing Escape dismisses the QuickPick without any side effects
+
+
+.. story:: Open Context File from Tree Node
+   :id: US_EXP_OPENCONTEXT
+   :status: draft
+   :priority: optional
+   :links: US_EXP_SIDEBAR; US_EXP_OPENYAML; US_EXP_AGENTSESSION
+
+   **As a** Jarvis User,
+   **I want** to open the ``context.md`` file for a project or event directly
+   from its tree node in the Jarvis Explorer,
+   **so that** I can quickly view or edit the context documentation for that
+   item without manually navigating the file system.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Every project and event leaf node shows an inline action button
+     (notebook icon) to open the ``context.md`` file for that item
+   * AC-2: Clicking the button opens the ``context.md`` file from the entity's
+     folder in the VS Code editor
+   * AC-3: If the file does not exist, an information message is shown instead
+     of attempting to open a non-existent file
+   * AC-4: Folder nodes do not show the button

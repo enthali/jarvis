@@ -11,7 +11,7 @@ import { YamlScanner, LeafNode, TreeNode } from './yamlScanner';
 import { activateHeartbeat, HeartbeatScheduler, HeartbeatJob, HeartbeatStep } from './heartbeat';
 import { JobNode } from './heartbeatTreeProvider';
 import { deleteMessage, appendMessage, popMessage, readAutoDelivery, addAutoDelivery, removeAutoDelivery, readQueue, writeQueue } from './messageQueue';
-import { lookupSessionUUID, getAllSessions, initSessionLookup, filterNamedSessions } from './sessionLookup';
+import { lookupSessionUUID, getAllSessions, initSessionLookup, setSessionLookupLogger, filterNamedSessions } from './sessionLookup';
 import { checkForUpdates } from './updateCheck';
 import { registerMcpTool, startMcpServer, stopMcpServer } from './mcpServer';
 import { z } from 'zod';
@@ -63,7 +63,7 @@ function flattenLeaves(nodes: TreeNode[]): LeafNode[] {
 export function activate(context: vscode.ExtensionContext) {
     // Initialize workspace-scoped session lookup (SPEC_MSG_SESSIONLOOKUP)
     if (context.storageUri) {
-        initSessionLookup(context.storageUri);
+        initSessionLookup(context.storageUri, context.globalStorageUri);
     }
 
     // Message queue path resolution (SPEC_CFG_HEARTBEATSETTINGS)
@@ -98,6 +98,7 @@ export function activate(context: vscode.ExtensionContext) {
     // Requirements: REQ_DEV_LOGGING
     const log = vscode.window.createOutputChannel('Jarvis', { log: true });
     context.subscriptions.push(log);
+    setSessionLookupLogger(log);
 
     async function renameFocusedChatSession(sessionName: string): Promise<void> {
         await vscode.commands.executeCommand(
@@ -630,6 +631,23 @@ export function activate(context: vscode.ExtensionContext) {
                     { query: initPrompt }
                 );
             }
+        }
+    );
+
+    // Register open context command (SPEC_EXP_OPENCONTEXT_CMD)
+    // Requirements: REQ_EXP_OPENCONTEXT
+    const openContextCommand = vscode.commands.registerCommand(
+        'jarvis.openContext',
+        async (element: LeafNode) => {
+            const folder = path.dirname(element.id);
+            const contextPath = path.join(folder, 'context.md');
+            if (!fs.existsSync(contextPath)) {
+                vscode.window.showInformationMessage(
+                    'No context.md found for this entity');
+                return;
+            }
+            const uri = vscode.Uri.file(contextPath);
+            await vscode.window.showTextDocument(uri);
         }
     );
 
@@ -1490,6 +1508,7 @@ export function activate(context: vscode.ExtensionContext) {
         openMessageFileCommand,
         openSessionCommand,
         openAgentSessionCommand,
+        openContextCommand,
         newProjectCommand,
         newEventCommand,
         checkForUpdatesCommand,

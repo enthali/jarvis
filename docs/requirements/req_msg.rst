@@ -89,9 +89,9 @@ Message Queue Requirements
 
 .. req:: Session UUID Lookup via state.vscdb
    :id: REQ_MSG_SESSIONLOOKUP
-   :status: implemented
+   :status: draft
    :priority: optional
-   :links: US_MSG_CHATQUEUE
+   :links: US_MSG_CHATQUEUE; US_MSG_REMOTECOMPAT
 
    **Description:**
    The extension SHALL resolve a chat session name to a VS Code Chat session UUID
@@ -113,6 +113,14 @@ Message Queue Requirements
      ``workspaceStorage/<hash>/state.vscdb`` (derived from ``context.storageUri``)
      rather than the global ``state.vscdb``, so only sessions belonging to the
      current VS Code window are visible
+   * AC-7: The ``state.vscdb`` path SHALL be derived using
+     ``context.globalStorageUri`` (always a local path) to remain correct in
+     Remote and Devcontainer environments where ``context.storageUri.fsPath`` may
+     point to a remote filesystem
+   * AC-8: When ``state.vscdb`` is not found at the resolved path, the extension
+     SHALL emit a warning via the Jarvis log channel and return an empty list
+   * AC-9: When the extension runs in a standard (non-remote) workspace, the
+     existing session lookup behavior SHALL be unaffected
 
 
 .. req:: Named Session Filter
