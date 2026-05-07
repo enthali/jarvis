@@ -11,7 +11,7 @@ import { YamlScanner, LeafNode, TreeNode } from './yamlScanner';
 import { activateHeartbeat, HeartbeatScheduler, HeartbeatJob, HeartbeatStep } from './heartbeat';
 import { JobNode } from './heartbeatTreeProvider';
 import { deleteMessage, appendMessage, popMessage, readAutoDelivery, addAutoDelivery, removeAutoDelivery, readQueue, writeQueue } from './messageQueue';
-import { lookupSessionUUID, getAllSessions, initSessionLookup, filterNamedSessions } from './sessionLookup';
+import { lookupSessionUUID, getAllSessions, initSessionLookup, setSessionLookupLogger, filterNamedSessions } from './sessionLookup';
 import { checkForUpdates } from './updateCheck';
 import { registerMcpTool, startMcpServer, stopMcpServer } from './mcpServer';
 import { z } from 'zod';
@@ -63,7 +63,7 @@ function flattenLeaves(nodes: TreeNode[]): LeafNode[] {
 export function activate(context: vscode.ExtensionContext) {
     // Initialize workspace-scoped session lookup (SPEC_MSG_SESSIONLOOKUP)
     if (context.storageUri) {
-        initSessionLookup(context.storageUri);
+        initSessionLookup(context.storageUri, context.globalStorageUri);
     }
 
     // Message queue path resolution (SPEC_CFG_HEARTBEATSETTINGS)
@@ -98,6 +98,7 @@ export function activate(context: vscode.ExtensionContext) {
     // Requirements: REQ_DEV_LOGGING
     const log = vscode.window.createOutputChannel('Jarvis', { log: true });
     context.subscriptions.push(log);
+    setSessionLookupLogger(log);
 
     async function renameFocusedChatSession(sessionName: string): Promise<void> {
         await vscode.commands.executeCommand(

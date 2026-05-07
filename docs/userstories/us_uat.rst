@@ -28,6 +28,7 @@ for each feature. Each file corresponds to one feature or change.
    us_uat_messagelogging
    us_uat_stablesessionopen
    us_uat_opencontext
+   us_uat_devcontainer_sessionlookup
 
 All UAT User Stories
 --------------------

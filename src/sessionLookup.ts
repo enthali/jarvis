@@ -16,15 +16,22 @@ interface SessionStore {
     entries: { [id: string]: SessionStoreEntry };
 }
 
-/**
- * Resolve the workspace-scoped state.vscdb path.
- * context.storageUri points to workspaceStorage/<hash>/<extensionId>/
- * so the parent directory contains the workspace-local state.vscdb.
- */
 let _stateVscdbPath: string | undefined;
+let _log: vscode.LogOutputChannel | undefined;
 
-export function initSessionLookup(storageUri: vscode.Uri): void {
-    _stateVscdbPath = path.join(path.dirname(storageUri.fsPath), 'state.vscdb');
+/**
+ * Initialize session lookup with devcontainer-compatible path resolution.
+ * Uses globalStorageUri (always a local path) to anchor the userDataPath,
+ * then reconstructs workspaceStorage/<hash>/state.vscdb locally.
+ */
+export function initSessionLookup(storageUri: vscode.Uri, globalStorageUri: vscode.Uri): void {
+    const hash = path.basename(path.dirname(storageUri.fsPath));
+    const userDataPath = path.resolve(globalStorageUri.fsPath, '../..');
+    _stateVscdbPath = path.join(userDataPath, 'workspaceStorage', hash, 'state.vscdb');
+}
+
+export function setSessionLookupLogger(log: vscode.LogOutputChannel): void {
+    _log = log;
 }
 
 function getStateVscdbPath(): string {
@@ -53,7 +60,10 @@ export interface SessionInfo {
 
 export async function getAllSessions(): Promise<SessionInfo[]> {
     const dbPath = getStateVscdbPath();
-    if (!fs.existsSync(dbPath)) { return []; }
+    if (!fs.existsSync(dbPath)) {
+        _log?.warn(`[sessionLookup] state.vscdb not found at: ${dbPath}`);
+        return [];
+    }
     const SQL = await initSqlJs();
     const fileBuffer = fs.readFileSync(dbPath);
     const db = new SQL.Database(fileBuffer);

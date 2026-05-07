@@ -289,7 +289,7 @@ Message Queue Design Specifications
 
 .. spec:: Session UUID Resolver
    :id: SPEC_MSG_SESSIONLOOKUP
-   :status: implemented
+   :status: draft
    :links: REQ_MSG_SESSIONLOOKUP
 
    **Description:**
@@ -317,19 +317,32 @@ Message Queue Design Specifications
    ``workspaceStorage/<hash>/<extensionId>/``. The workspace-scoped
    ``state.vscdb`` lives in the parent directory: ``workspaceStorage/<hash>/state.vscdb``.
 
+   In **Remote / Devcontainer** environments ``context.storageUri.fsPath`` may
+   resolve to a remote filesystem path, making a direct ``path.dirname()``
+   derivation invalid on the local machine. The fix uses
+   ``context.globalStorageUri`` — which always resolves to a local path — to
+   anchor the ``userDataPath``, then reconstructs the workspace storage path
+   from there.
+
+   ``context.globalStorageUri`` points to
+   ``<userDataPath>/globalStorage/<extensionId>/``. Two levels up yields the
+   VS Code User Data folder. The workspace hash is extracted as
+   ``path.basename(path.dirname(storageUri.fsPath))``, which is stable even
+   when ``storageUri`` is a remote URI because only the last path segment (the
+   hash) is used.
+
    .. code-block:: typescript
 
       let _stateVscdbPath: string | undefined;
 
-      function initSessionLookup(storageUri: vscode.Uri): void {
-        _stateVscdbPath = path.join(
-          path.dirname(storageUri.fsPath),
-          'state.vscdb'
-        );
+      function initSessionLookup(storageUri: vscode.Uri, globalStorageUri: vscode.Uri): void {
+        const hash = path.basename(path.dirname(storageUri.fsPath));
+        const userDataPath = path.resolve(globalStorageUri.fsPath, '../..');
+        _stateVscdbPath = path.join(userDataPath, 'workspaceStorage', hash, 'state.vscdb');
       }
 
-   ``initSessionLookup`` is called once during ``activate()`` with
-   ``context.storageUri``.
+   ``initSessionLookup`` is called once during ``activate()`` with both
+   ``context.storageUri`` and ``context.globalStorageUri``.
 
    **SessionStore structure:**
 
@@ -357,9 +370,14 @@ Message Queue Design Specifications
         sessionId: string;
       }
 
+      function setSessionLookupLogger(log: vscode.LogOutputChannel): void
+
       async function getAllSessions(): Promise<SessionInfo[]> {
         const dbPath = getStateVscdbPath();
-        if (!fs.existsSync(dbPath)) return [];
+        if (!fs.existsSync(dbPath)) {
+          _log?.warn('[sessionLookup] state.vscdb not found at: ' + dbPath);
+          return [];
+        }
         const SQL = await initSqlJs();
         const fileBuffer = fs.readFileSync(dbPath);
         const db = new SQL.Database(fileBuffer);
@@ -397,8 +415,14 @@ Message Queue Design Specifications
    * **Workspace-scoped, not global** — ``state.vscdb`` from
      ``workspaceStorage/<hash>/`` contains only sessions for the current VS Code
      window, avoiding cross-instance confusion
-   * **``initSessionLookup(storageUri)``** — called once at activation; derives
-     the DB path from ``context.storageUri`` (Parent = workspace storage root)
+   * **``initSessionLookup(storageUri, globalStorageUri)``** — called once at
+     activation; derives the DB path using ``globalStorageUri`` (always a local
+     path) to be compatible with Remote and Devcontainer environments where
+     ``storageUri.fsPath`` may point to a remote filesystem
+   * **Remote/Devcontainer compatibility** — ``globalStorageUri.fsPath`` is
+     always a local path; two levels up yields ``userDataPath``; the workspace
+     hash is extracted from ``storageUri.fsPath`` (basename of parent of
+     extensionId segment) and used to reconstruct the local path
    * **Live read, no caching** — the DB is small and the read is fast; caching
      would introduce staleness bugs when sessions are renamed or deleted
    * **``sql.js``** — pure JavaScript/WASM SQLite implementation. Does not
@@ -406,8 +430,9 @@ Message Queue Design Specifications
      ``better-sqlite3`` which crashed in Electron due to native C++ ABI mismatch
    * **Async API** — ``sql.js`` initialization is async (``initSqlJs()``),
      so ``lookupSessionUUID`` and ``getAllSessions`` return Promises
-   * **Fallback** — if DB is missing or session not found, the caller decides
-     the behaviour (open new chat, show notification, etc.)
+   * **Warning on missing DB** — if ``state.vscdb`` is not found at the
+     resolved path, a warning is emitted via the Jarvis log channel and an empty
+     list is returned; callers are not expected to handle this case specially
    * **Named session filter** — a shared helper
      ``filterNamedSessions(sessions)`` returns only sessions where
      ``s.title && s.title !== 'New Chat'``.  Used by
