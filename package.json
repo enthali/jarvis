@@ -2,7 +2,7 @@
   "name": "jarvis",
   "displayName": "Jarvis",
   "description": "Personal assistant for managing projects and events in VS Code",
-  "version": "0.5.8",
+  "version": "0.5.9",
   "publisher": "enthali",
   "repository": {
     "type": "git",

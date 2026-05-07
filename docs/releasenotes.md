@@ -1,5 +1,20 @@
 # Release Notes
 
+## v0.5.9
+
+*2026-05-07*
+
+Inline context.md button on tree nodes, devcontainer-compatible session lookup, and heartbeat play-button feedback toast.
+
+### New Features
+
+- **open-context**: New `jarvis.openContext` command adds an inline `$(notebook)` button on project and event leaf nodes. Opens `context.md` from the entity's folder directly in the VS Code text editor. Shows an info message when the file does not exist.
+- **heartbeat-feedback-toast**: An info toast is shown immediately when the user manually triggers a heartbeat job via the play button, confirming the job has started.
+
+### Fixes
+
+- **devcontainer-session-lookup**: Session lookup now derives the `state.vscdb` path from `globalStorageUri` instead of a hard-coded relative path. Fixes an off-by-one segment error (`../..` instead of `../../..`) that broke session lookup on Windows and in Remote/Devcontainer environments.
+
 ## v0.5.8
 
 *2026-05-05*
