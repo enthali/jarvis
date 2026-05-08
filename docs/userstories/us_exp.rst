@@ -342,6 +342,12 @@ Explorer User Stories
      (notebook icon) to open the ``context.md`` file for that item
    * AC-2: Clicking the button opens the ``context.md`` file from the entity's
      folder in the VS Code editor
-   * AC-3: If the file does not exist, an information message is shown instead
-     of attempting to open a non-existent file
-   * AC-4: Folder nodes do not show the button
+   * AC-3: If no ``context.md`` exists directly in the folder, the button
+     searches one level deep in subfolders (hidden folders excluded)
+   * AC-4: If exactly one ``context.md`` is found in subfolders, it is opened
+     directly without prompting
+   * AC-5: If multiple ``context.md`` files are found, a QuickPick picker
+     lets the user choose which one to open
+   * AC-6: If no ``context.md`` is found anywhere, an information message is
+     shown instead of attempting to open a non-existent file
+   * AC-7: Folder nodes do not show the button

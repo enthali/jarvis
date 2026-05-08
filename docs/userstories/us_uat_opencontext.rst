@@ -54,3 +54,37 @@ Open Context UAT User Stories
      Action: Hover over the project node.
      Expected: All three inline buttons are visible: ``$(go-to-file)``,
      ``$(comment-discussion)``, and ``$(notebook)``.
+
+   **T-6 — Subfolder discovery (single match)**
+     Setup: ``testdata/projects/withsub/`` has no ``context.md`` at root, but
+     ``testdata/projects/withsub/sub/context.md`` exists.
+     Action: Hover over the ``withsub`` project node; click the ``$(notebook)``
+     inline button.
+     Expected: ``sub/context.md`` opens in the VS Code text editor. No picker
+     or info message is shown.
+
+   **T-7 — Multiple subfolder matches → QuickPick**
+     Setup: ``testdata/projects/multi/`` has no root ``context.md``, but
+     ``testdata/projects/multi/pm/context.md`` and
+     ``testdata/projects/multi/qm/context.md`` both exist.
+     Action: Hover over the ``multi`` project node; click the ``$(notebook)``
+     inline button.
+     Expected: A QuickPick dropdown appears listing at least ``pm/context.md``
+     and ``qm/context.md``. Selecting one opens it in the editor.
+
+   **T-8 — Hidden folders ignored → falls through to info message**
+     Setup: ``testdata/projects/hidden/`` has no root ``context.md`` and no
+     non-hidden subfolder ``context.md``; only
+     ``testdata/projects/hidden/.hidden/context.md`` exists.
+     Action: Hover over the ``hidden`` project node; click the ``$(notebook)``
+     inline button.
+     Expected: An info notification "No context.md found for this entity" is
+     displayed. The hidden file is NOT opened.
+
+   **T-9 — Direct hit takes precedence over subfolder match**
+     Setup: ``testdata/projects/withsub/`` has both
+     ``testdata/projects/withsub/context.md`` AND
+     ``testdata/projects/withsub/sub/context.md``.
+     Action: Hover over the ``withsub`` project node; click the ``$(notebook)``
+     inline button.
+     Expected: The root ``context.md`` opens directly. No picker appears.
