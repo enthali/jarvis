@@ -74,12 +74,14 @@ Constraint: Windows + Outlook Classic (COM), kein Graph/OAuth.
 |---------|-------|-------------|
 | **Outlook Categories Sync** | Pro Projekt/Event Outlook-Kategorie anlegen/sync (COM). Fundament für alle anderen Features. | ja (abschaltbar, default: an — für UAT/Einrichtung nützlich) |
 | **Outlook Tasks** | Task-Tree gefiltert nach Jarvis-Kategorien, Read-Through Cache via Heartbeat | ja |
-| **Outlook Calendar** | Kalendereinträge pro Projekt/Event gefiltert nach Kategorie | ja |
-| **Outlook Contacts** | Personen mit Kategorie-Tag → wer gehört zu welchem Projekt/Event | ja |
-| **Outlook Inbox** | Mails nach Kategorie gruppiert (read-only) | tbd |
+| **Outlook Calendar** | Kalendereinträge pro Projekt/Event — **Script+Skill statt Extension-Code** (Research) | nein |
+| **Outlook Contacts** | Personen mit Kategorie-Tag — **Script+Skill Ansatz** (Research) | nein |
+| **Outlook Inbox** | Mails nach Kategorie — **Script+Skill Ansatz** (Research) | nein |
 
 ## Planned (post v0.5.x)
 
+- **Generic VS Code Command Bridge** — Ein MCP-Tool `jarvis_executeCommand(commandId, args)` + Skill. Agenten können jeden VS Code Command suchen und ausführen — generisch statt pro Feature ein Tool. Ermöglicht Script→MCP→VS Code Loop.
+- **Outlook Script+Skill Library** — PowerShell-Scripts für Outlook COM-Zugriffe (Calendar, Contacts, Inbox) als wiederverwendbare Skill-Bibliothek. Agenten orchestrieren via `run_in_terminal`, kein Extension-Code nötig.
 - **Detail Pages** — Webview für Projekt/Event Details (Felder anzeigen, editieren)
 - **Dashboard** — Übersicht Tasks/Fälligkeiten/Backlog-Trend
 - **Calendar Auto-Recording** — Kalendertermin beginnt → Recorder startet automatisch
