@@ -166,3 +166,4 @@ export class MessageTreeProvider implements vscode.TreeDataProvider<MessageNode>
         return item;
     }
 }
+

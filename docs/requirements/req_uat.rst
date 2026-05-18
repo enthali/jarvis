@@ -31,6 +31,7 @@ end-to-end verification of each feature.
    req_uat_devcontainer_sessionlookup
    req_uat_heartbeat_pause
    req_uat_listjobs
+   req_uat_reminders
 
 All UAT Requirements
 --------------------

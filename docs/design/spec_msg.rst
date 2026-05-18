@@ -1426,3 +1426,463 @@ Message Queue Design Specifications
      kebab-case derivation errors.
    * `lookupSessionUUID` uses exact title match; prefix or suffix issues may
      cause a new session to be created instead of reusing an existing one.
+
+
+.. spec:: Reminder Store Module
+   :id: SPEC_MSG_REMINDERSTORE
+   :status: draft
+   :links: REQ_MSG_REMINDERS_PERSIST; SPEC_MSG_QUEUESTORE
+
+   **Description:**
+   New module ``src/reminders.ts`` provides synchronous file-backed read/write
+   operations for the ``reminders.yaml`` file. The file is co-located with
+   ``messages.json`` and uses YAML for human-readable persistence.
+
+   **File format (reminders.yaml):**
+
+   .. code-block:: yaml
+
+      reminders:
+        - id: "550e8400-e29b-41d4-a716-446655440000"
+          text: "Review PR #42"
+          session: "project-manager"
+          deliverAt: "2026-05-18T15:00:00.000Z"
+          createdAt: "2026-05-18T14:00:00.000Z"
+
+   **Data type:**
+
+   .. code-block:: typescript
+
+      interface Reminder {
+        id: string;          // UUID (crypto.randomUUID())
+        text: string;        // message body
+        session: string;     // target chat tab label
+        deliverAt: string;   // ISO 8601 — delivery time
+        createdAt: string;   // ISO 8601 — registration time
+      }
+
+   **Path derivation:**
+
+   .. code-block:: typescript
+
+      function resolveRemindersPath(messagesPath: string): string {
+        return path.join(path.dirname(messagesPath), 'reminders.yaml');
+      }
+
+   **Public API:**
+
+   .. code-block:: typescript
+
+      function readReminders(filePath: string): Reminder[] {
+        if (!fs.existsSync(filePath)) { return []; }
+        try {
+          const raw = fs.readFileSync(filePath, 'utf8');
+          const parsed = yaml.load(raw) as { reminders?: Reminder[] };
+          return parsed?.reminders ?? [];
+        } catch {
+          log.warn('[MSG] reminders.yaml malformed — falling back to empty list');
+          return [];
+        }
+      }
+
+      function writeReminders(filePath: string, list: Reminder[]): void {
+        fs.mkdirSync(path.dirname(filePath), { recursive: true });
+        fs.writeFileSync(filePath, yaml.dump({ reminders: list }));
+      }
+
+      function addReminder(
+        filePath: string,
+        text: string,
+        session: string,
+        deliverAt: string
+      ): Reminder {
+        const reminder: Reminder = {
+          id: crypto.randomUUID(),
+          text,
+          session,
+          deliverAt,
+          createdAt: new Date().toISOString(),
+        };
+        const list = readReminders(filePath);
+        list.push(reminder);
+        writeReminders(filePath, list);
+        return reminder;
+      }
+
+      function removeReminder(filePath: string, id: string): boolean {
+        const list = readReminders(filePath);
+        const next = list.filter(r => r.id !== id);
+        if (next.length === list.length) { return false; }
+        writeReminders(filePath, next);
+        return true;
+      }
+
+      function popDueReminders(filePath: string, now: Date): Reminder[] {
+        const list = readReminders(filePath);
+        const due = list.filter(r => new Date(r.deliverAt) <= now);
+        if (due.length === 0) { return []; }
+        const remaining = list.filter(r => new Date(r.deliverAt) > now);
+        writeReminders(filePath, remaining);
+        return due;
+      }
+
+   **Dependencies:**
+
+   * ``js-yaml`` (already a runtime dependency via ``yamlScanner.ts``) —
+     ``import * as yaml from 'js-yaml'``
+   * Node.js built-in ``crypto.randomUUID()`` — no new dependency
+
+   **Design notes:**
+
+   * ``resolveRemindersPath`` is exported so ``extension.ts`` can derive the
+     path from the same ``resolveMessagesPath()`` source of truth
+   * ``popDueReminders`` is atomic: it reads, separates due from remaining,
+     writes remaining, then returns due — no separate ``removeReminder`` call
+     needed from the poll loop
+   * ``log`` is the shared ``LogOutputChannel`` set via a module-level setter
+     ``setRemindersLogger(log)`` called once during ``activate()``
+
+
+.. spec:: Reminder Poll Loop Integration
+   :id: SPEC_MSG_REMINDERSLOOP
+   :status: draft
+   :links: REQ_MSG_REMINDERS_DELIVER; SPEC_MSG_AUTODELIVER_POLL; SPEC_MSG_REMINDERSTORE; SPEC_MSG_AUTODELIVER_STORE; SPEC_MSG_QUEUESTORE
+
+   **Description:**
+   Extend the existing 5-second ``setInterval`` poll loop in ``extension.ts``
+   to check for due reminders after the auto-delivery handling block. Due
+   reminders are enqueued as regular messages and their target sessions are
+   automatically added to the auto-delivery list.
+
+   **Extension to the existing tick body (appended after the auto-delivery
+   ``break`` guard):**
+
+   .. code-block:: typescript
+
+      // --- Reminder delivery ---
+      const remindersPath = resolveRemindersPath(messagesPath);
+      const due = popDueReminders(remindersPath, new Date());
+      for (const reminder of due) {
+        try {
+          // 1. Enqueue the reminder as a regular message
+          appendMessage(messagesPath, reminder.session, 'Reminder', reminder.text);
+          // 2. Ensure auto-delivery is enabled for this session
+          addAutoDelivery(messagesPath, reminder.session);
+          log.info(
+            `[MSG] Reminder "${reminder.id}" delivered to session "${reminder.session}"`
+          );
+        } catch (err) {
+          log.warn(`[MSG] Reminder delivery failed for "${reminder.id}": ${err}`);
+        }
+      }
+      if (due.length > 0) {
+        // Refresh both views so the new message and removed reminder are visible
+        remindersProvider.reload();
+        messageProvider.reload();
+      }
+
+   **Design decisions:**
+
+   * **Auto-delivery enablement**: ``addAutoDelivery`` is idempotent — calling
+     it for a session already on the list is a no-op. This ensures the reminder
+     message is picked up on the next tick (within 5 s) even if the session was
+     not previously on the auto-delivery list.
+   * **Append-then-enable order**: The message is appended first, then the
+     session is added to auto-delivery. Both operations are synchronous file
+     writes — no partial-delivery race condition.
+   * **No UI interaction in reminder tick**: The reminder poll block does NOT
+     attempt to open the chat session directly; it delegates entirely to the
+     auto-delivery mechanism on the next tick. This keeps reminder delivery
+     simple and avoids race conditions with the auto-delivery block in the same
+     tick.
+   * **popDueReminders atomicity**: The reminder is removed from ``reminders.yaml``
+     inside ``popDueReminders`` before ``appendMessage`` is called. If
+     ``appendMessage`` fails, the reminder is already gone — this is acceptable
+     (guaranteed at-most-once delivery is preferable to a delivery retry loop).
+   * **Tree refresh**: A single ``remindersProvider.reload()`` plus
+     ``messageProvider.reload()`` after all due reminders in a tick is
+     sufficient — both views update together.
+
+
+.. spec:: Reminder LM and MCP Tools Registration
+   :id: SPEC_MSG_REMINDERSTOOLS
+   :status: draft
+   :links: REQ_MSG_REMINDERS_TOOLS; SPEC_MSG_REMINDERSTORE; SPEC_MSG_DUALREGISTRATION
+
+   **Description:**
+   Register three tools via ``registerDualTool()`` in ``extension.ts``:
+   ``jarvis_setReminder``, ``jarvis_listReminders``, and
+   ``jarvis_cancelReminder``. Each tool is simultaneously available as a VS Code
+   LM Tool and as an MCP Tool.
+
+   **``jarvis_setReminder``:**
+
+   .. code-block:: typescript
+
+      registerDualTool(
+        'jarvis_setReminder',
+        // LM handler
+        async (options, _token) => {
+          const { text, session, deliverAt } = options.input;
+          if (new Date(deliverAt) <= new Date()) {
+            return new vscode.LanguageModelToolResult([
+              new vscode.LanguageModelTextPart(
+                JSON.stringify({ error: 'deliverAt must be in the future' })
+              )
+            ]);
+          }
+          const messagesPath = resolveMessagesPath();
+          const reminder = addReminder(
+            resolveRemindersPath(messagesPath), text, session, deliverAt
+          );
+          messageProvider.reload();
+          return new vscode.LanguageModelToolResult([
+            new vscode.LanguageModelTextPart(
+              JSON.stringify({ id: reminder.id, deliverAt: reminder.deliverAt })
+            )
+          ]);
+        },
+        'Registers a time-scheduled reminder that delivers a message to a named chat session at the specified time.',
+        { text: z.string(), session: z.string(), deliverAt: z.string() },
+        async (args) => {
+          const { text, session, deliverAt } = args as Record<string, string>;
+          if (new Date(deliverAt) <= new Date()) {
+            return { error: 'deliverAt must be in the future' };
+          }
+          const messagesPath = resolveMessagesPath();
+          const reminder = addReminder(
+            resolveRemindersPath(messagesPath), text, session, deliverAt
+          );
+          messageProvider.reload();
+          return { id: reminder.id, deliverAt: reminder.deliverAt };
+        }
+      );
+
+   **``jarvis_listReminders``:**
+
+   .. code-block:: typescript
+
+      registerDualTool(
+        'jarvis_listReminders',
+        async (_options, _token) => {
+          const messagesPath = resolveMessagesPath();
+          const reminders = readReminders(resolveRemindersPath(messagesPath));
+          const now = Date.now();
+          const result = reminders.map(r => ({
+            ...r,
+            remainingMs: new Date(r.deliverAt).getTime() - now,
+          }));
+          return new vscode.LanguageModelToolResult([
+            new vscode.LanguageModelTextPart(JSON.stringify({ reminders: result }))
+          ]);
+        },
+        'Returns all pending reminders with id, text, session, deliverAt, and remainingMs.',
+        {},
+        async (_args) => {
+          const messagesPath = resolveMessagesPath();
+          const reminders = readReminders(resolveRemindersPath(messagesPath));
+          const now = Date.now();
+          return {
+            reminders: reminders.map(r => ({
+              ...r,
+              remainingMs: new Date(r.deliverAt).getTime() - now,
+            })),
+          };
+        }
+      );
+
+   **``jarvis_cancelReminder``:**
+
+   .. code-block:: typescript
+
+      registerDualTool(
+        'jarvis_cancelReminder',
+        async (options, _token) => {
+          const { id } = options.input;
+          const messagesPath = resolveMessagesPath();
+          const removed = removeReminder(resolveRemindersPath(messagesPath), id);
+          messageProvider.reload();
+          return new vscode.LanguageModelToolResult([
+            new vscode.LanguageModelTextPart(
+              JSON.stringify({ status: removed ? 'cancelled' : 'not_found' })
+            )
+          ]);
+        },
+        'Cancels a pending reminder by id. Returns { status: "cancelled" | "not_found" }.',
+        { id: z.string() },
+        async (args) => {
+          const id = args.id as string;
+          const messagesPath = resolveMessagesPath();
+          const removed = removeReminder(resolveRemindersPath(messagesPath), id);
+          messageProvider.reload();
+          return { status: removed ? 'cancelled' : 'not_found' };
+        }
+      );
+
+   **Registration in package.json (``contributes.languageModelTools``):**
+
+   .. code-block:: json
+
+      [
+        {
+          "name": "jarvis_setReminder",
+          "displayName": "Set Reminder",
+          "modelDescription": "Registers a time-scheduled reminder. Delivers a message to the named chat session at deliverAt (ISO 8601). Returns { id, deliverAt }.",
+          "canBeReferencedInPrompt": true,
+          "toolReferenceName": "setReminder",
+          "icon": "$(bell)",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "text":      { "type": "string", "description": "Message to deliver" },
+              "session":   { "type": "string", "description": "Target chat session name" },
+              "deliverAt": { "type": "string", "description": "ISO 8601 delivery timestamp (must be in the future)" }
+            },
+            "required": ["text", "session", "deliverAt"]
+          }
+        },
+        {
+          "name": "jarvis_listReminders",
+          "displayName": "List Reminders",
+          "modelDescription": "Returns all pending reminders: { reminders: [{ id, text, session, deliverAt, remainingMs }] }.",
+          "canBeReferencedInPrompt": true,
+          "toolReferenceName": "listReminders",
+          "icon": "$(bell)",
+          "inputSchema": { "type": "object", "properties": {} }
+        },
+        {
+          "name": "jarvis_cancelReminder",
+          "displayName": "Cancel Reminder",
+          "modelDescription": "Cancels a pending reminder by id. Returns { status: 'cancelled' | 'not_found' }.",
+          "canBeReferencedInPrompt": true,
+          "toolReferenceName": "cancelReminder",
+          "icon": "$(bell-slash)",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string", "description": "Reminder UUID to cancel" }
+            },
+            "required": ["id"]
+          }
+        }
+      ]
+
+   **Design notes:**
+
+   * ``deliverAt`` validation (must be in the future) is enforced in both the
+     LM handler and the MCP handler — both paths return an ``{ error }`` object
+     rather than throwing, for graceful LM tool error surfacing
+   * ``remainingMs`` is computed at call time; negative values indicate an
+     overdue reminder that has not yet been popped by the poll loop
+   * All three tools call ``messageProvider.reload()`` to keep the Reminders
+     tree section in sync after mutations
+
+
+.. spec:: Reminders Tree View
+   :id: SPEC_MSG_REMINDERSVIEW
+   :status: draft
+   :links: REQ_MSG_REMINDERS_VIEW; SPEC_MSG_REMINDERSTORE; REQ_MSG_REMINDERS_PERSIST
+
+   **Description:**
+   Introduce a dedicated ``RemindersTreeProvider`` in
+   ``src/remindersTreeProvider.ts`` that backs a new top-level sidebar view
+   ``jarvisReminders`` (label ``"Reminders"``). The view sits next to
+   ``jarvisMessages`` in the Jarvis Activity Bar container. Reminders no
+   longer appear inside the Messages tree.
+
+   **Node type:**
+
+   .. code-block:: typescript
+
+      interface ReminderNode {
+        kind: 'reminder';
+        reminder: Reminder;   // from src/reminders.ts
+      }
+
+   **TreeDataProvider behaviour:**
+
+   * Root: read ``readReminders(resolveRemindersPath(messagesPath))`` and
+     return one ``ReminderNode`` per entry (flat, no group node).
+   * Leaf nodes have no children.
+
+   **getTreeItem:**
+
+   * ``ReminderNode`` → non-collapsible,
+     label = ``"${truncate(reminder.text, 60)} — ${reminder.session}"``,
+     description = computed countdown string (see below),
+     iconPath ``new vscode.ThemeIcon('bell')``,
+     contextValue = ``'jarvisReminder'``,
+     command = ``jarvis.openReminderFile`` with the node as argument
+     (see SPEC_EXP_REMINDER_OPENFILE).
+
+   **Countdown string computation:**
+
+   .. code-block:: typescript
+
+      function formatCountdown(deliverAt: string): string {
+        const ms = new Date(deliverAt).getTime() - Date.now();
+        if (ms < 0) { return 'overdue'; }
+        if (ms < 60_000) { return `in ${Math.round(ms / 1000)}s`; }
+        return `in ${Math.round(ms / 60_000)} min`;
+      }
+
+   **package.json view registration:**
+
+   .. code-block:: json
+
+      {
+        "id": "jarvisReminders",
+        "name": "Reminders",
+        "when": "config.jarvis.messagesFile != ''"
+      }
+
+   Add ``"onView:jarvisReminders"`` to ``activationEvents``.
+
+   **Inline cancel action (package.json ``view/item/context``):**
+
+   .. code-block:: json
+
+      {
+        "command": "jarvis.cancelReminder",
+        "when": "viewItem == jarvisReminder",
+        "group": "inline"
+      }
+
+   **New command ``jarvis.cancelReminder``:**
+
+   Registered in ``extension.ts``:
+
+   .. code-block:: typescript
+
+      vscode.commands.registerCommand(
+        'jarvis.cancelReminder',
+        (node?: ReminderNode) => {
+          if (!node || node.kind !== 'reminder') { return; }
+          const messagesPath = resolveMessagesPath();
+          removeReminder(resolveRemindersPath(messagesPath), node.reminder.id);
+          remindersProvider.reload();
+        }
+      );
+
+   **package.json ``contributes.commands``:**
+
+   .. code-block:: json
+
+      {
+        "command": "jarvis.cancelReminder",
+        "title": "Jarvis: Cancel Reminder",
+        "icon": "$(trash)"
+      }
+
+   **Design notes:**
+
+   * The Reminders view is gated by the same ``jarvis.messagesFile`` setting
+     as the Messages view — reminders are persisted next to ``messages.json``
+     so the same precondition applies.
+   * Countdown strings are computed fresh on every ``getTreeItem`` call; the
+     tree auto-refreshes on each ``remindersProvider.reload()`` (called by
+     the poll loop and tool handlers), so the displayed time stays
+     reasonably current (within ±5 s).
+   * The ``jarvis.cancelReminder`` tree command is distinct from the
+     ``jarvis_cancelReminder`` LM/MCP tool — the command operates on a
+     ``ReminderNode`` from the tree, the tool accepts a raw ``id`` string.

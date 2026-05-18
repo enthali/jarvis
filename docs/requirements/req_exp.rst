@@ -531,6 +531,32 @@ Explorer Requirements
      command shows a warning notification and returns without opening a file
 
 
+.. req:: Open Reminders File at Reminder Position
+   :id: REQ_EXP_REMINDER_OPENFILE
+   :status: draft
+   :priority: optional
+   :links: US_MSG_REMINDERS; US_EXP_OPENFILE
+
+   **Description:**
+   Clicking a reminder node in the "Reminders" sidebar view SHALL open
+   ``reminders.yaml`` in the VS Code editor and reveal the line of that
+   reminder entry.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The command is triggered by clicking the reminder node
+     (``TreeItem.command``)
+   * AC-2: The file opened is ``reminders.yaml`` resolved by
+     ``resolveRemindersPath(messagesPath)``
+   * AC-3: The revealed line contains the matching ``id: <uuid>`` entry of
+     the clicked reminder
+   * AC-4: If the matching id cannot be found, the file opens at line 0
+     (fail-open)
+   * AC-5: The file is opened read-write (standard editor, no custom editor)
+   * AC-6: If ``reminders.yaml`` is missing the command shows a warning
+     notification and returns without opening a file
+
+
 .. req:: Search Projects via QuickPick
    :id: REQ_EXP_SEARCHPROJECTS
    :status: implemented

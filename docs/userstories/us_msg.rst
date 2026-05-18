@@ -213,3 +213,34 @@ Messaging User Stories
      continues to work as before
    * AC-4: When ``state.vscdb`` cannot be found, the extension logs a warning
      and returns an empty list instead of failing silently
+
+
+.. story:: Time-Scheduled Reminders
+   :id: US_MSG_REMINDERS
+   :status: draft
+   :priority: optional
+   :links: US_MSG_CHATQUEUE; US_MSG_AUTODELIVERY
+
+   **As a** Jarvis User or LM agent,
+   **I want** to register a time-stamped reminder so that a message is
+   automatically delivered to a named chat session at a specified point in time,
+   **so that** I can schedule future notifications without having to monitor the
+   clock myself.
+
+   **Acceptance Criteria:**
+
+   * AC-1: An LM agent (or the user via MCP) can register a reminder by providing
+     ``text``, ``session`` (target chat tab label), and ``deliverAt`` (ISO 8601
+     timestamp); the system returns a unique ``id``
+   * AC-2: At ``deliverAt`` (within ±5 s) the message is delivered to the target
+     session via the auto-delivery pipeline — no manual action required
+   * AC-3: After delivery, the reminder is removed from persistent storage
+   * AC-4: An LM agent can query open reminders to see ``id``, ``text``,
+     ``session``, ``deliverAt``, and remaining time
+   * AC-5: An LM agent can cancel a reminder by ``id`` before it fires
+   * AC-6: A dedicated "Reminders" sidebar view shows all pending reminders
+     with target session, scheduled time, and countdown
+   * AC-7: Reminders survive VS Code restarts — they are read from disk on
+     activation and delivered when due
+   * AC-8: Clicking a reminder node opens ``reminders.yaml`` in the editor
+     and reveals the line of that entry, enabling manual inspection or edit

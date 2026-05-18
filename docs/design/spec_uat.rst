@@ -31,6 +31,7 @@ outcome tables** for each feature's acceptance tests.
    spec_uat_devcontainer_sessionlookup
    spec_uat_heartbeat_pause
    spec_uat_listjobs
+   spec_uat_reminders
 
 All UAT Specifications
 ----------------------

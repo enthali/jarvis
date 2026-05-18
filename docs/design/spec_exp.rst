@@ -1223,6 +1223,89 @@ Explorer Design Specifications
    * Disposable pushed to ``context.subscriptions``
 
 
+.. spec:: Open Reminder File Command
+   :id: SPEC_EXP_REMINDER_OPENFILE
+   :status: draft
+   :links: REQ_EXP_REMINDER_OPENFILE; SPEC_MSG_REMINDERSVIEW; SPEC_MSG_REMINDERSTORE
+
+   **Description:**
+   Register ``jarvis.openReminderFile`` in ``extension.ts``. Set as
+   ``TreeItem.command`` on every ``ReminderNode`` in ``RemindersTreeProvider``.
+   Opens ``reminders.yaml`` and reveals the line with the matching reminder id.
+
+   **Handler:**
+
+   .. code-block:: typescript
+
+      vscode.commands.registerCommand(
+        'jarvis.openReminderFile',
+        async (node: ReminderNode) => {
+          const remindersPath = resolveRemindersPath(resolveMessagesPath());
+          if (!fs.existsSync(remindersPath)) {
+            vscode.window.showWarningMessage(
+              `Jarvis: Cannot open reminders file: ${remindersPath}`
+            );
+            return;
+          }
+          const uri = vscode.Uri.file(remindersPath);
+          let lineIndex = 0;
+          try {
+            const doc = await vscode.workspace.openTextDocument(uri);
+            const target = `id: ${node.reminder.id}`;
+            for (let i = 0; i < doc.lineCount; i++) {
+              if (doc.lineAt(i).text.includes(target)) {
+                lineIndex = i;
+                break;
+              }
+            }
+            const range = new vscode.Range(lineIndex, 0, lineIndex, 0);
+            const editor = await vscode.window.showTextDocument(doc);
+            editor.revealRange(range, vscode.TextEditorRevealType.InCenterIfOutsideViewport);
+            editor.selection = new vscode.Selection(range.start, range.start);
+          } catch {
+            vscode.window.showWarningMessage(`Jarvis: Cannot open reminders file: ${remindersPath}`);
+          }
+        }
+      );
+
+   **RemindersTreeProvider change:**
+
+   In ``getTreeItem``, set ``item.command``:
+
+   .. code-block:: typescript
+
+      item.command = {
+        command: 'jarvis.openReminderFile',
+        title: 'Open in reminders file',
+        arguments: [element]
+      };
+
+   **Registration in package.json:**
+
+   * ``contributes.commands``:
+
+     .. code-block:: json
+
+        {
+          "command": "jarvis.openReminderFile",
+          "title": "Jarvis: Open Reminder File"
+        }
+
+   * ``contributes.menus.commandPalette``: hide from Command Palette:
+
+     .. code-block:: json
+
+        { "command": "jarvis.openReminderFile", "when": "false" }
+
+   **Design notes:**
+
+   * ``TreeItem.command`` fires on single-click, consistent with messages
+     and heartbeat nodes
+   * Line match uses substring contains of ``id: <uuid>`` — fails open to
+     line 0 if the id is not found
+   * Disposable pushed to ``context.subscriptions``
+
+
 .. spec:: Tree Search — Manifest
    :id: SPEC_EXP_SEARCH_MANIFEST
    :status: implemented

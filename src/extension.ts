@@ -7,10 +7,12 @@ import * as path from 'path';
 import { ProjectTreeProvider } from './projectTreeProvider';
 import { EventTreeProvider } from './eventTreeProvider';
 import { MessageTreeProvider, SessionGroupNode, MessageLeafNode } from './messageTreeProvider';
+import { RemindersTreeProvider, ReminderNode } from './remindersTreeProvider';
 import { YamlScanner, LeafNode, TreeNode } from './yamlScanner';
 import { activateHeartbeat, HeartbeatScheduler, HeartbeatJob, HeartbeatStep } from './heartbeat';
 import { JobNode } from './heartbeatTreeProvider';
 import { deleteMessage, appendMessage, popMessage, readAutoDelivery, addAutoDelivery, removeAutoDelivery, readQueue, writeQueue } from './messageQueue';
+import { addReminder, readReminders, removeReminder, popDueReminders, resolveRemindersPath, setRemindersLogger } from './reminders';
 import { lookupSessionUUID, getAllSessions, initSessionLookup, setSessionLookupLogger, filterNamedSessions } from './sessionLookup';
 import { checkForUpdates } from './updateCheck';
 import { registerMcpTool, startMcpServer, stopMcpServer } from './mcpServer';
@@ -100,6 +102,7 @@ export function activate(context: vscode.ExtensionContext) {
     const log = vscode.window.createOutputChannel('Jarvis', { log: true });
     context.subscriptions.push(log);
     setSessionLookupLogger(log);
+    setRemindersLogger(log);
 
     async function renameFocusedChatSession(sessionName: string): Promise<void> {
         await vscode.commands.executeCommand(
@@ -183,6 +186,10 @@ export function activate(context: vscode.ExtensionContext) {
     const projectView = vscode.window.createTreeView('jarvisProjects', { treeDataProvider: projectProvider });
     const eventView = vscode.window.createTreeView('jarvisEvents', { treeDataProvider: eventProvider });
     const messageView = vscode.window.createTreeView('jarvisMessages', { treeDataProvider: messageProvider });
+
+    // SPEC_MSG_REMINDERSVIEW: dedicated Reminders sidebar view
+    const remindersProvider = new RemindersTreeProvider(() => resolveMessagesPath());
+    const remindersView = vscode.window.createTreeView('jarvisReminders', { treeDataProvider: remindersProvider });
 
     // Restore persisted hidden folders (REQ_EXP_FILTERPERSIST AC-2)
     const savedHidden = context.workspaceState.get<string[]>('jarvis.hiddenProjectFolders', []);
@@ -977,6 +984,84 @@ export function activate(context: vscode.ExtensionContext) {
         }
     );
 
+    // Implementation: SPEC_MSG_REMINDERSTOOLS
+    // Requirements: REQ_MSG_REMINDERS_TOOLS
+    const setReminderTool = registerDualTool(
+        'jarvis_setReminder',
+        async (options: vscode.LanguageModelToolInvocationOptions<{ text: string; session: string; deliverAt: string }>, _token: vscode.CancellationToken) => {
+            const { text, session, deliverAt } = options.input;
+            if (new Date(deliverAt) <= new Date()) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart(JSON.stringify({ error: 'deliverAt must be in the future' }))
+                ]);
+            }
+            const reminder = addReminder(resolveRemindersPath(resolveMessagesPath()), text, session, deliverAt);
+            log.info(`[MSG] setReminder: id="${reminder.id}", session="${session}", deliverAt="${deliverAt}"`);
+            remindersProvider.reload();
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(JSON.stringify({ id: reminder.id, deliverAt: reminder.deliverAt }))
+            ]);
+        },
+        'Registers a time-scheduled reminder that delivers a message to a named chat session at the specified time.',
+        { text: z.string().describe('Message to deliver'), session: z.string().describe('Target chat session name'), deliverAt: z.string().describe('ISO 8601 delivery timestamp (must be in the future)') },
+        async (args) => {
+            const text = args.text as string;
+            const session = args.session as string;
+            const deliverAt = args.deliverAt as string;
+            if (new Date(deliverAt) <= new Date()) {
+                return { error: 'deliverAt must be in the future' };
+            }
+            const reminder = addReminder(resolveRemindersPath(resolveMessagesPath()), text, session, deliverAt);
+            log.info(`[MSG] setReminder(MCP): id="${reminder.id}", session="${session}", deliverAt="${deliverAt}"`);
+            remindersProvider.reload();
+            return { id: reminder.id, deliverAt: reminder.deliverAt };
+        }
+    );
+
+    const listRemindersTool = registerDualTool(
+        'jarvis_listReminders',
+        async (
+            _options: vscode.LanguageModelToolInvocationOptions<Record<string, never>>,
+            _token: vscode.CancellationToken
+        ) => {
+            const reminders = readReminders(resolveRemindersPath(resolveMessagesPath()));
+            const now = Date.now();
+            const result = reminders.map(r => ({ ...r, remainingMs: new Date(r.deliverAt).getTime() - now }));
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(JSON.stringify({ reminders: result }))
+            ]);
+        },
+        'Returns all pending reminders with id, text, session, deliverAt, and remainingMs.',
+        {},
+        async () => {
+            const reminders = readReminders(resolveRemindersPath(resolveMessagesPath()));
+            const now = Date.now();
+            return { reminders: reminders.map(r => ({ ...r, remainingMs: new Date(r.deliverAt).getTime() - now })) };
+        }
+    );
+
+    const cancelReminderTool = registerDualTool(
+        'jarvis_cancelReminder',
+        async (options: vscode.LanguageModelToolInvocationOptions<{ id: string }>, _token: vscode.CancellationToken) => {
+            const { id } = options.input;
+            const removed = removeReminder(resolveRemindersPath(resolveMessagesPath()), id);
+            log.info(`[MSG] cancelReminder: id="${id}", removed=${removed}`);
+            remindersProvider.reload();
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(JSON.stringify({ status: removed ? 'cancelled' : 'not_found' }))
+            ]);
+        },
+        'Cancels a pending reminder by id. Returns { status: "cancelled" | "not_found" }.',
+        { id: z.string().describe('Reminder UUID to cancel') },
+        async (args) => {
+            const id = args.id as string;
+            const removed = removeReminder(resolveRemindersPath(resolveMessagesPath()), id);
+            log.info(`[MSG] cancelReminder(MCP): id="${id}", removed=${removed}`);
+            remindersProvider.reload();
+            return { status: removed ? 'cancelled' : 'not_found' };
+        }
+    );
+
     // Implementation: SPEC_EXP_LISTPROJECTS
     // Requirements: REQ_EXP_LISTPROJECTS
     function collectLeaves(nodes: TreeNode[]): LeafNode[] {
@@ -1503,11 +1588,53 @@ export function activate(context: vscode.ExtensionContext) {
         }
     );
 
+    // Register cancelReminder command (SPEC_MSG_REMINDERSVIEW)
+    const cancelReminderCommand = vscode.commands.registerCommand(
+        'jarvis.cancelReminder',
+        (node?: ReminderNode) => {
+            if (!node || node.kind !== 'reminder') { return; }
+            removeReminder(resolveRemindersPath(resolveMessagesPath()), node.reminder.id);
+            log.info(`[MSG] cancelReminder(tree): id="${node.reminder.id}"`);
+            remindersProvider.reload();
+        }
+    );
+
+    // Implementation: SPEC_EXP_REMINDER_OPENFILE
+    // Requirements: REQ_EXP_REMINDER_OPENFILE
+    const openReminderFileCommand = vscode.commands.registerCommand(
+        'jarvis.openReminderFile',
+        async (node: ReminderNode) => {
+            const remindersPath = resolveRemindersPath(resolveMessagesPath());
+            if (!fs.existsSync(remindersPath)) {
+                vscode.window.showWarningMessage(`Jarvis: Cannot open reminders file: ${remindersPath}`);
+                return;
+            }
+            const uri = vscode.Uri.file(remindersPath);
+            let lineIndex = 0;
+            try {
+                const doc = await vscode.workspace.openTextDocument(uri);
+                const target = `id: ${node.reminder.id}`;
+                for (let i = 0; i < doc.lineCount; i++) {
+                    if (doc.lineAt(i).text.includes(target)) {
+                        lineIndex = i;
+                        break;
+                    }
+                }
+                const range = new vscode.Range(lineIndex, 0, lineIndex, 0);
+                const editor = await vscode.window.showTextDocument(doc);
+                editor.revealRange(range, vscode.TextEditorRevealType.InCenterIfOutsideViewport);
+                editor.selection = new vscode.Selection(range.start, range.start);
+            } catch {
+                vscode.window.showWarningMessage(`Jarvis: Cannot open reminders file: ${remindersPath}`);
+            }
+        }
+    );
+
     // Auto-delivery poll loop (SPEC_MSG_AUTODELIVERY)
     const pollInterval = setInterval(async () => {
         const messagesPath = resolveMessagesPath();
         const autoDeliverySessions = readAutoDelivery(messagesPath);
-        if (autoDeliverySessions.length === 0) { return; }
+        if (autoDeliverySessions.length > 0) {
         const messages = readQueue(messagesPath);
         for (const sessionName of autoDeliverySessions) {
             const pending = messages.filter(m => m.destination === sessionName && !m.notified);
@@ -1551,6 +1678,24 @@ export function activate(context: vscode.ExtensionContext) {
                 log.warn(`[MSG] autoDelivery: delivery failed for "${sessionName}": ${err}`);
             }
             break; // max 1 delivery per tick
+        }
+        }
+
+        // --- Reminder delivery (SPEC_MSG_REMINDERSLOOP) ---
+        const remindersPath = resolveRemindersPath(messagesPath);
+        const due = popDueReminders(remindersPath, new Date());
+        for (const reminder of due) {
+            try {
+                appendMessage(messagesPath, reminder.session, 'Reminder', reminder.text);
+                addAutoDelivery(messagesPath, reminder.session);
+                log.info(`[MSG] Reminder "${reminder.id}" delivered to session "${reminder.session}"`);
+            } catch (err) {
+                log.warn(`[MSG] Reminder delivery failed for "${reminder.id}": ${err}`);
+            }
+        }
+        if (due.length > 0) {
+            remindersProvider.reload();
+            messageProvider.reload();
         }
     }, 5000);
 
@@ -1598,6 +1743,11 @@ export function activate(context: vscode.ExtensionContext) {
         registerJobTool,
         unregisterJobTool,
         listJobsTool,
+        setReminderTool,
+        listRemindersTool,
+        cancelReminderTool,
+        cancelReminderCommand,
+        openReminderFileCommand,
         listProjectsTool,
         categoryTool,
         taskTool,
@@ -1616,6 +1766,7 @@ export function activate(context: vscode.ExtensionContext) {
         projectView,
         eventView,
         messageView,
+        remindersView,
         projectView.onDidChangeVisibility(e => {
             if (e.visible) {
                 startScanner();

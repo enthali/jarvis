@@ -31,6 +31,7 @@ for each feature. Each file corresponds to one feature or change.
    us_uat_devcontainer_sessionlookup
    us_uat_heartbeat_pause
    us_uat_listjobs
+   us_uat_reminders
 
 All UAT User Stories
 --------------------

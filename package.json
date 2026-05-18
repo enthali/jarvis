@@ -19,6 +19,7 @@
     "onView:jarvisProjects",
     "onView:jarvisEvents",
     "onView:jarvisMessages",
+    "onView:jarvisReminders",
     "onView:jarvisHeartbeat",
     "onView:jarvisCategories"
   ],
@@ -57,6 +58,11 @@
         {
           "id": "jarvisMessages",
           "name": "Messages",
+          "when": "config.jarvis.messagesFile != ''"
+        },
+        {
+          "id": "jarvisReminders",
+          "name": "Reminders",
           "when": "config.jarvis.messagesFile != ''"
         },
         {
@@ -223,6 +229,10 @@
         "title": "Jarvis: Open Message File"
       },
       {
+        "command": "jarvis.openReminderFile",
+        "title": "Jarvis: Open Reminder File"
+      },
+      {
         "command": "jarvis.searchProjects",
         "title": "Search Projects",
         "icon": "$(search)"
@@ -231,6 +241,11 @@
         "command": "jarvis.searchEvents",
         "title": "Search Events",
         "icon": "$(search)"
+      },
+      {
+        "command": "jarvis.cancelReminder",
+        "title": "Jarvis: Cancel Reminder",
+        "icon": "$(trash)"
       }
     ],
     "menus": {
@@ -316,6 +331,10 @@
           "when": "false"
         },
         {
+          "command": "jarvis.openReminderFile",
+          "when": "false"
+        },
+        {
           "command": "jarvis.searchProjects",
           "when": "false"
         },
@@ -329,6 +348,10 @@
         },
         {
           "command": "jarvis.disableAutoDelivery",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.cancelReminder",
           "when": "false"
         }
       ],
@@ -463,6 +486,11 @@
         {
           "command": "jarvis.resumeHeartbeatJob",
           "when": "viewItem == heartbeatJobPaused",
+          "group": "inline"
+        },
+        {
+          "command": "jarvis.cancelReminder",
+          "when": "viewItem == jarvisReminder",
           "group": "inline"
         },
         {
@@ -824,6 +852,50 @@
         "inputSchema": {
           "type": "object",
           "properties": {}
+        }
+      },
+      {
+        "name": "jarvis_setReminder",
+        "displayName": "Set Reminder",
+        "modelDescription": "Registers a time-scheduled reminder. Delivers a message to the named chat session at deliverAt (ISO 8601). Returns { id, deliverAt }.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "setReminder",
+        "icon": "$(bell)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "text": { "type": "string", "description": "Message to deliver" },
+            "session": { "type": "string", "description": "Target chat session name" },
+            "deliverAt": { "type": "string", "description": "ISO 8601 delivery timestamp (must be in the future)" }
+          },
+          "required": ["text", "session", "deliverAt"]
+        }
+      },
+      {
+        "name": "jarvis_listReminders",
+        "displayName": "List Reminders",
+        "modelDescription": "Returns all pending reminders: { reminders: [{ id, text, session, deliverAt, createdAt, remainingMs }] }.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "listReminders",
+        "icon": "$(bell)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "name": "jarvis_cancelReminder",
+        "displayName": "Cancel Reminder",
+        "modelDescription": "Cancels a pending reminder by id. Returns { status: 'cancelled' | 'not_found' }.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "cancelReminder",
+        "icon": "$(bell-slash)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string", "description": "Reminder UUID to cancel" }
+          },
+          "required": ["id"]
         }
       },
       {

@@ -14,5 +14,15 @@
     "text": "Hello from T-5 (index 1)",
     "timestamp": "2026-04-15T10:01:00.000Z",
     "notified": true
+  },
+  {
+    "sender": "Reminder",
+    "text": "(Reminder) Test notice — this is your scheduled reminder! 🔔",
+    "timestamp": "2026-05-18T15:02:04.598Z"
+  },
+  {
+    "sender": "Reminder",
+    "text": "(Reminder) Test notice — this is your scheduled reminder! 🔔",
+    "timestamp": "2026-05-18T15:03:04.630Z"
   }
 ]

@@ -514,3 +514,120 @@ Message Queue Requirements
      ``projects/<kebab-name>/context.md`` where ``<kebab-name>`` is the entity
      name lowercased with spaces replaced by hyphens
    * AC-4: All prompt submissions SHALL use ``REQ_MSG_SENDPROMPT``
+
+
+.. req:: Reminder Persistence Store
+   :id: REQ_MSG_REMINDERS_PERSIST
+   :status: draft
+   :priority: optional
+   :links: US_MSG_REMINDERS; REQ_MSG_QUEUE; REQ_CFG_MSGPATH
+
+   **Description:**
+   The extension SHALL maintain a persistent YAML file ``reminders.yaml``
+   co-located with ``messages.json`` that stores all pending reminders.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The file SHALL follow the schema
+     ``{ reminders: [{ id, text, session, deliverAt, createdAt }] }``
+     where ``id`` is a UUID string, ``text`` is the message body,
+     ``session`` is the target chat tab label, ``deliverAt`` is an ISO 8601
+     timestamp, and ``createdAt`` is an ISO 8601 timestamp
+   * AC-2: The file SHALL be located in the same directory as ``messages.json``
+     (path derived from ``resolveMessagesPath()`` by replacing the filename)
+   * AC-3: If the file does not exist, the extension SHALL treat the reminder
+     list as empty (no error)
+   * AC-4: If the file is malformed, the extension SHALL fall back to an empty
+     list and log a warning
+   * AC-5: A new module ``src/reminders.ts`` SHALL provide the public API:
+     ``readReminders(path)``, ``writeReminders(path, list)``,
+     ``addReminder(path, text, session, deliverAt)``,
+     ``removeReminder(path, id)``, ``popDueReminders(path, now)``
+   * AC-6: ``popDueReminders`` SHALL return all reminders where
+     ``deliverAt <= now`` and atomically remove them from the file
+
+
+.. req:: Reminder Delivery via Poll Loop
+   :id: REQ_MSG_REMINDERS_DELIVER
+   :status: draft
+   :priority: optional
+   :links: US_MSG_REMINDERS; REQ_MSG_REMINDERS_PERSIST; REQ_MSG_AUTODELIVER_POLL; REQ_MSG_QUEUE; REQ_MSG_AUTODELIVER_CONFIG
+
+   **Description:**
+   The existing 5-second poll loop SHALL be extended to check for due reminders
+   and deliver them automatically via the auto-delivery pipeline.
+
+   **Acceptance Criteria:**
+
+   * AC-1: On each tick, after the existing auto-delivery handling, the loop
+     SHALL call ``popDueReminders(remindersPath, now)`` to retrieve all reminders
+     with ``deliverAt <= now``
+   * AC-2: For each due reminder, the loop SHALL call
+     ``appendMessage(messagesPath, session, 'Reminder', text)`` to enqueue the
+     message for delivery
+   * AC-3: For each due reminder, the loop SHALL call
+     ``addAutoDelivery(messagesPath, session)`` (idempotent) to ensure the target
+     session is on the auto-delivery list so the message is picked up on the
+     next tick
+   * AC-4: After enqueuing, the reminder SHALL be removed from ``reminders.yaml``
+     (handled by ``popDueReminders``) — it MUST NOT be re-delivered
+   * AC-5: The Messages tree SHALL refresh after reminder delivery
+   * AC-6: Errors in reminder processing SHALL be caught, logged as warnings,
+     and SHALL NOT stop the poll loop
+
+
+.. req:: Reminder LM and MCP Tools
+   :id: REQ_MSG_REMINDERS_TOOLS
+   :status: draft
+   :priority: optional
+   :links: US_MSG_REMINDERS; REQ_MSG_REMINDERS_PERSIST; REQ_MSG_MCPSERVER
+
+   **Description:**
+   The extension SHALL register three Language Model Tools (also exposed via MCP)
+   for managing reminders.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A tool ``jarvis_setReminder`` SHALL accept ``text`` (string),
+     ``session`` (string), and ``deliverAt`` (ISO 8601 string) and return
+     ``{ id, deliverAt }``; ``deliverAt`` MUST be in the future, otherwise
+     the tool SHALL return an error
+   * AC-2: A tool ``jarvis_listReminders`` SHALL accept no input and return
+     ``{ reminders: [{ id, text, session, deliverAt, remainingMs }] }``
+     where ``remainingMs`` is the milliseconds until delivery (negative if
+     overdue but not yet fired)
+   * AC-3: A tool ``jarvis_cancelReminder`` SHALL accept ``id`` (string) and
+     return ``{ status: 'cancelled' }`` if the reminder was found and removed,
+     or ``{ status: 'not_found' }`` if no matching reminder exists
+   * AC-4: All three tools SHALL be registered via the ``registerDualTool``
+     pattern so they are simultaneously available as VS Code LM Tools and as
+     MCP Tools
+   * AC-5: All three tools SHALL be declared in ``package.json``
+     ``contributes.languageModelTools`` with appropriate ``inputSchema``
+
+
+.. req:: Reminders Tree View
+   :id: REQ_MSG_REMINDERS_VIEW
+   :status: draft
+   :priority: optional
+   :links: US_MSG_REMINDERS; REQ_MSG_REMINDERS_PERSIST; REQ_EXP_TREEVIEW
+
+   **Description:**
+   A dedicated "Reminders" sidebar view in the Jarvis Activity Bar container
+   SHALL show all pending reminders.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A top-level view ``jarvisReminders`` labelled "Reminders" SHALL be
+     present in the Jarvis Activity Bar container next to the Messages view
+   * AC-2: The view SHALL be visible when ``config.jarvis.messagesFile != ''``
+   * AC-3: Each pending reminder SHALL appear as a non-collapsible node
+     showing the text (truncated to 60 chars), the target session, and a
+     description of either "in X min" (if more than 60 s remaining), "in Xs"
+     (if less than 60 s), or "overdue" (if ``deliverAt`` has passed but not
+     yet popped)
+   * AC-4: Each reminder node SHALL use icon ``$(bell)``
+   * AC-5: Each reminder node SHALL have contextValue ``jarvisReminder`` and
+     display an inline ``$(trash)`` cancel button
+   * AC-6: The view SHALL refresh after any reminder mutation (add, cancel,
+     deliver)
