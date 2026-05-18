@@ -32,6 +32,7 @@ outcome tables** for each feature's acceptance tests.
    spec_uat_heartbeat_pause
    spec_uat_listjobs
    spec_uat_reminders
+   spec_uat_settings_cleanup
 
 All UAT Specifications
 ----------------------

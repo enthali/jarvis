@@ -1,9 +1,10 @@
-// Implementation: SPEC_EXP_EXTENSION, SPEC_EXP_FILTERCOMMAND, SPEC_EXP_EVENTFILTER_CMD, SPEC_EXP_OPENYAML_CMD, SPEC_EXP_CONTEXTACTIONS, SPEC_AUT_MANUALCOMMAND, SPEC_MSG_SENDCOMMAND, SPEC_MSG_OPENSESSION, SPEC_MSG_LISTSESSIONS, SPEC_EXP_AGENTSESSION, SPEC_EXP_NEWPROJECT_CMD, SPEC_EXP_NEWEVENT_CMD, SPEC_REL_UPDATECOMMAND, SPEC_EXP_RESCAN_CMD, SPEC_AUT_JOBREG, SPEC_DEV_LOGCHANNEL, SPEC_MSG_DUALREGISTRATION, SPEC_EXP_LISTPROJECTS, SPEC_CFG_DEFAULTPATHS, SPEC_EXP_FEATURETOGGLE, SPEC_PIM_SERVICE, SPEC_PIM_CATVIEW, SPEC_PIM_CATTOOL, SPEC_OLK_COMBRIDGE, SPEC_OLK_SETTINGS, SPEC_OLK_AUTOCAT_NEWENTITY, SPEC_PIM_TASKSERVICE, SPEC_PIM_TASKEDITOR, SPEC_PIM_TASKTOOL, SPEC_OLK_TASKPROVIDER, SPEC_OLK_TASKENABLE, SPEC_EXP_HEARTBEAT_OPENFILE, SPEC_EXP_MESSAGE_OPENFILE, SPEC_EXP_SEARCH_CMD
-// Requirements: REQ_EXP_ACTIVITYBAR, REQ_EXP_TREEVIEW, REQ_EXP_REACTIVECACHE, REQ_CFG_FOLDERPATHS, REQ_CFG_SCANINTERVAL, REQ_EXP_PROJECTFILTER, REQ_EXP_FILTERPERSIST, REQ_EXP_EVENTFILTER, REQ_EXP_EVENTFILTERPERSIST, REQ_EXP_OPENYAML, REQ_EXP_CONTEXTACTIONS, REQ_AUT_MANUALRUN, REQ_MSG_SEND, REQ_MSG_DELETE, REQ_MSG_OPENSESSION, REQ_MSG_SESSIONFILTER, REQ_MSG_LISTSESSIONS, REQ_EXP_AGENTSESSION, REQ_EXP_NEWPROJECT, REQ_EXP_NEWEVENT, REQ_REL_UPDATECOMMAND, REQ_CFG_UPDATECHECK, REQ_EXP_RESCAN_BTN, REQ_AUT_JOBREG, REQ_DEV_LOGGING, REQ_MSG_MCPSERVER, REQ_CFG_MCPPORT, REQ_EXP_LISTPROJECTS, REQ_CFG_DEFAULTPATHS, REQ_EXP_FEATURETOGGLE, REQ_PIM_SERVICE, REQ_PIM_CATVIEW, REQ_PIM_CATTOOL, REQ_OLK_COMBRIDGE, REQ_OLK_ENABLE, REQ_OLK_AUTOCAT_NEWENTITY, REQ_PIM_TASKSERVICE, REQ_PIM_TASKEDITOR, REQ_PIM_TASKTOOL, REQ_OLK_TASKPROVIDER, REQ_OLK_TASKENABLE
+// Implementation: SPEC_EXP_EXTENSION, SPEC_EXP_FILTERCOMMAND, SPEC_EXP_EVENTFILTER_CMD, SPEC_EXP_OPENYAML_CMD, SPEC_EXP_CONTEXTACTIONS, SPEC_AUT_MANUALCOMMAND, SPEC_MSG_SENDCOMMAND, SPEC_MSG_OPENSESSION, SPEC_MSG_LISTSESSIONS, SPEC_EXP_AGENTSESSION, SPEC_EXP_NEWPROJECT_CMD, SPEC_EXP_NEWEVENT_CMD, SPEC_REL_UPDATECOMMAND, SPEC_EXP_RESCAN_CMD, SPEC_AUT_JOBREG, SPEC_DEV_LOGCHANNEL, SPEC_MSG_DUALREGISTRATION, SPEC_EXP_LISTPROJECTS, SPEC_CFG_TOGGLEGUARDS, SPEC_CFG_PATHRESOLVER, SPEC_EXP_FEATURETOGGLE, SPEC_PIM_SERVICE, SPEC_PIM_CATVIEW, SPEC_PIM_CATTOOL, SPEC_OLK_COMBRIDGE, SPEC_OLK_SETTINGS, SPEC_OLK_AUTOCAT_NEWENTITY, SPEC_PIM_TASKSERVICE, SPEC_PIM_TASKEDITOR, SPEC_PIM_TASKTOOL, SPEC_OLK_TASKPROVIDER, SPEC_OLK_TASKENABLE, SPEC_EXP_HEARTBEAT_OPENFILE, SPEC_EXP_MESSAGE_OPENFILE, SPEC_EXP_SEARCH_CMD
+// Requirements: REQ_EXP_ACTIVITYBAR, REQ_EXP_TREEVIEW, REQ_EXP_REACTIVECACHE, REQ_CFG_FOLDERPATHS, REQ_CFG_SCANINTERVAL, REQ_EXP_PROJECTFILTER, REQ_EXP_FILTERPERSIST, REQ_EXP_EVENTFILTER, REQ_EXP_EVENTFILTERPERSIST, REQ_EXP_OPENYAML, REQ_EXP_CONTEXTACTIONS, REQ_AUT_MANUALRUN, REQ_MSG_SEND, REQ_MSG_DELETE, REQ_MSG_OPENSESSION, REQ_MSG_SESSIONFILTER, REQ_MSG_LISTSESSIONS, REQ_EXP_AGENTSESSION, REQ_EXP_NEWPROJECT, REQ_EXP_NEWEVENT, REQ_REL_UPDATECOMMAND, REQ_CFG_UPDATECHECK, REQ_EXP_RESCAN_BTN, REQ_AUT_JOBREG, REQ_DEV_LOGGING, REQ_MSG_MCPSERVER, REQ_CFG_MCPPORT, REQ_EXP_LISTPROJECTS, REQ_CFG_TOGGLES, REQ_CFG_FIXEDPATHS, REQ_EXP_FEATURETOGGLE, REQ_PIM_SERVICE, REQ_PIM_CATVIEW, REQ_PIM_CATTOOL, REQ_OLK_COMBRIDGE, REQ_OLK_ENABLE, REQ_OLK_AUTOCAT_NEWENTITY, REQ_PIM_TASKSERVICE, REQ_PIM_TASKEDITOR, REQ_PIM_TASKTOOL, REQ_OLK_TASKPROVIDER, REQ_OLK_TASKENABLE
 
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as configPaths from './configPaths';
 import { ProjectTreeProvider } from './projectTreeProvider';
 import { EventTreeProvider } from './eventTreeProvider';
 import { MessageTreeProvider, SessionGroupNode, MessageLeafNode } from './messageTreeProvider';
@@ -12,7 +13,7 @@ import { YamlScanner, LeafNode, TreeNode } from './yamlScanner';
 import { activateHeartbeat, HeartbeatScheduler, HeartbeatJob, HeartbeatStep } from './heartbeat';
 import { JobNode } from './heartbeatTreeProvider';
 import { deleteMessage, appendMessage, popMessage, readAutoDelivery, addAutoDelivery, removeAutoDelivery, readQueue, writeQueue } from './messageQueue';
-import { addReminder, readReminders, removeReminder, popDueReminders, resolveRemindersPath, setRemindersLogger } from './reminders';
+import { addReminder, readReminders, removeReminder, popDueReminders, setRemindersLogger } from './reminders';
 import { lookupSessionUUID, getAllSessions, initSessionLookup, setSessionLookupLogger, filterNamedSessions } from './sessionLookup';
 import { checkForUpdates } from './updateCheck';
 import { registerMcpTool, startMcpServer, stopMcpServer } from './mcpServer';
@@ -69,33 +70,15 @@ export function activate(context: vscode.ExtensionContext) {
         initSessionLookup(context.storageUri, context.globalStorageUri);
     }
 
-    // Message queue path resolution (SPEC_CFG_HEARTBEATSETTINGS)
+    // Implementation: SPEC_CFG_TOGGLEGUARDS, SPEC_CFG_PATHRESOLVER
+    const cfg = vscode.workspace.getConfiguration('jarvis');
+
+    // Message queue path resolution via fixed .jarvis/ directory (SPEC_CFG_PATHRESOLVER)
     function resolveMessagesPath(): string {
-        const override = vscode.workspace
-            .getConfiguration('jarvis')
-            .get<string>('messagesFile', '');
-        if (override) { return override; }
-        return vscode.Uri.joinPath(context.storageUri!, 'messages.json').fsPath;
+        return configPaths.getMessagesPath() ?? '';
     }
 
-    // Implementation: SPEC_CFG_DEFAULTPATHS
-    // Requirements: REQ_CFG_DEFAULTPATHS
-    // Writes heartbeatConfigFile and messagesFile into Workspace settings when empty,
-    // so that the feature-toggle when-clauses become truthy on first activation.
-    function populateDefaultPaths(): void {
-        const cfg = vscode.workspace.getConfiguration('jarvis');
-        if (!cfg.get<string>('messagesFile', '')) {
-            cfg.update('messagesFile', resolveMessagesPath(), vscode.ConfigurationTarget.Workspace);
-        }
-        if (!cfg.get<string>('heartbeatConfigFile', '')) {
-            cfg.update('heartbeatConfigFile', vscode.Uri.joinPath(context.storageUri!, 'heartbeat.yaml').fsPath, vscode.ConfigurationTarget.Workspace);
-        }
-    }
-
-    // Populate default paths early so feature-toggle when-clauses become truthy (SPEC_CFG_DEFAULTPATHS)
-    populateDefaultPaths();
-
-    const messageProvider = new MessageTreeProvider(() => resolveMessagesPath());
+    const messageProvider = new MessageTreeProvider(resolveMessagesPath);
 
     // Implementation: SPEC_DEV_LOGCHANNEL
     // Requirements: REQ_DEV_LOGGING
@@ -112,14 +95,6 @@ export function activate(context: vscode.ExtensionContext) {
         await new Promise(resolve => setTimeout(resolve, 800));
     }
 
-    // Activate heartbeat scheduler first (SPEC_EXP_EXTENSION, SPEC_AUT_SCHEDULERLOOP)
-    const scheduler = activateHeartbeat(context, messageProvider, resolveMessagesPath, log);
-
-    const scanner = new YamlScanner(() => {
-        projectProvider.refresh();
-        eventProvider.refresh();
-    });
-
     // Implementation: SPEC_PIM_TASKSERVICE
     // Requirements: REQ_PIM_TASKSERVICE
     const taskService = new TaskService();
@@ -129,20 +104,29 @@ export function activate(context: vscode.ExtensionContext) {
     _recordingManager = new RecordingManager();
     _recordingManager.setLog(log);
 
-    const projectProvider = new ProjectTreeProvider(scanner, taskService, _recordingManager);
-    const eventProvider = new EventTreeProvider(scanner, taskService, _recordingManager);
+    // Scanner and providers — created conditionally inside feature blocks
+    let scanner: YamlScanner | undefined;
+    let projectProvider: ProjectTreeProvider | undefined;
+    let eventProvider: EventTreeProvider | undefined;
+    let projectView: vscode.TreeView<any> | undefined;
+    let eventView: vscode.TreeView<any> | undefined;
 
     function startScanner(): void {
+        if (!scanner) { return; }
         const config = vscode.workspace.getConfiguration('jarvis');
-        const projectsFolder = config.get<string>('projectsFolder', '');
-        const eventsFolder = config.get<string>('eventsFolder', '');
+        const projectsFolder = config.get<string>('projects.folder', '');
+        const eventsFolder = config.get<string>('events.folder', '');
         scanner.start(projectsFolder, eventsFolder);
         log.info('[Scanner] starting scan');
     }
 
+    // Heartbeat scheduler — created conditionally inside heartbeat block
+    let scheduler: HeartbeatScheduler | undefined;
+
     // Implementation: SPEC_EXP_EXTENSION (syncRescanJob helper)
     // Requirements: REQ_CFG_SCANINTERVAL, REQ_AUT_JOBREG
     function syncRescanJob(): void {
+        if (!scheduler) { return; }
         const interval = vscode.workspace
             .getConfiguration('jarvis')
             .get<number>('scanInterval', 2);
@@ -163,6 +147,7 @@ export function activate(context: vscode.ExtensionContext) {
     // Implementation: SPEC_REC_WATCHERJOB
     // Requirements: REQ_REC_WATCHERJOB
     function syncTranscriptWatcherJob(): void {
+        if (!scheduler) { return; }
         const cfg = vscode.workspace.getConfiguration('jarvis');
         const enabled = cfg.get<boolean>('recording.enabled', false);
         const whisperPath = cfg.get<string>('recording.whisperPath', '');
@@ -183,38 +168,96 @@ export function activate(context: vscode.ExtensionContext) {
         }
     }
 
-    const projectView = vscode.window.createTreeView('jarvisProjects', { treeDataProvider: projectProvider });
-    const eventView = vscode.window.createTreeView('jarvisEvents', { treeDataProvider: eventProvider });
-    const messageView = vscode.window.createTreeView('jarvisMessages', { treeDataProvider: messageProvider });
+    // ------- PROJECTS feature block (SPEC_CFG_TOGGLEGUARDS) -------
+    if (cfg.get<boolean>('projects.enabled', false)) {
+        scanner = scanner ?? new YamlScanner(() => {
+            projectProvider?.refresh();
+            eventProvider?.refresh();
+        });
+        projectProvider = new ProjectTreeProvider(scanner, taskService, _recordingManager);
+        projectView = vscode.window.createTreeView('jarvisProjects', { treeDataProvider: projectProvider });
 
-    // SPEC_MSG_REMINDERSVIEW: dedicated Reminders sidebar view
-    const remindersProvider = new RemindersTreeProvider(() => resolveMessagesPath());
-    const remindersView = vscode.window.createTreeView('jarvisReminders', { treeDataProvider: remindersProvider });
+        // Restore persisted hidden folders (REQ_EXP_FILTERPERSIST AC-2)
+        const savedHidden = context.workspaceState.get<string[]>('jarvis.hiddenProjectFolders', []);
+        projectProvider.setHiddenFolders(new Set(savedHidden));
+        if (savedHidden.length > 0) {
+            projectView!.description = '(filtered)';
+            vscode.commands.executeCommand('setContext', 'jarvis.projectFilterActive', true);
+        }
 
-    // Restore persisted hidden folders (REQ_EXP_FILTERPERSIST AC-2)
-    const savedHidden = context.workspaceState.get<string[]>('jarvis.hiddenProjectFolders', []);
-    projectProvider.setHiddenFolders(new Set(savedHidden));
-    if (savedHidden.length > 0) {
-        projectView.description = '(filtered)';
-        vscode.commands.executeCommand('setContext', 'jarvis.projectFilterActive', true);
+        context.subscriptions.push(
+            projectView!,
+            projectView!.onDidChangeVisibility(e => {
+                if (e.visible) {
+                    startScanner();
+                } else {
+                    scanner?.stop();
+                }
+            })
+        );
+    } else {
+        log.info('[CFG] Projects feature disabled');
     }
 
-    // Restore persisted event filter (REQ_EXP_EVENTFILTERPERSIST AC-2)
-    const savedEventFilter = context.workspaceState.get<boolean>('jarvis.eventFutureFilter', false);
-    eventProvider.setFutureOnly(savedEventFilter);
-    if (savedEventFilter) {
-        eventView.description = '(future only)';
-        vscode.commands.executeCommand('setContext', 'jarvis.eventFilterActive', true);
+    // ------- EVENTS feature block (SPEC_CFG_TOGGLEGUARDS) -------
+    if (cfg.get<boolean>('events.enabled', false)) {
+        if (!scanner) {
+            scanner = new YamlScanner(() => {
+                projectProvider?.refresh();
+                eventProvider?.refresh();
+            });
+        }
+        eventProvider = new EventTreeProvider(scanner, taskService, _recordingManager);
+        eventView = vscode.window.createTreeView('jarvisEvents', { treeDataProvider: eventProvider });
+
+        // Restore persisted event filter (REQ_EXP_EVENTFILTERPERSIST AC-2)
+        const savedEventFilter = context.workspaceState.get<boolean>('jarvis.eventFutureFilter', false);
+        eventProvider.setFutureOnly(savedEventFilter);
+        if (savedEventFilter) {
+            eventView!.description = '(future only)';
+            vscode.commands.executeCommand('setContext', 'jarvis.eventFilterActive', true);
+        }
+
+        context.subscriptions.push(eventView!);
+    } else {
+        log.info('[CFG] Events feature disabled');
     }
 
-    // Start scanner immediately on activation (view may already be visible)
-    startScanner();
+    // Start scanner if either feature is active
+    if (scanner) { startScanner(); }
 
-    // Register rescan heartbeat job (SPEC_EXP_EXTENSION)
-    syncRescanJob();
+    // ------- HEARTBEAT feature block (SPEC_CFG_TOGGLEGUARDS) -------
+    if (cfg.get<boolean>('heartbeat.enabled', true)) {
+        // Activate heartbeat scheduler (creates tree view internally) (SPEC_EXP_EXTENSION, SPEC_AUT_SCHEDULERLOOP)
+        scheduler = activateHeartbeat(context, messageProvider, resolveMessagesPath, log);
 
-    // Register transcript watcher heartbeat job (SPEC_REC_WATCHERJOB)
-    syncTranscriptWatcherJob();
+        // Register rescan heartbeat job (SPEC_EXP_EXTENSION)
+        if (scanner) { syncRescanJob(); }
+
+        // Register transcript watcher heartbeat job (SPEC_REC_WATCHERJOB)
+        syncTranscriptWatcherJob();
+    } else {
+        log.info('[CFG] Heartbeat feature disabled');
+    }
+
+    // ------- MESSAGES feature block (SPEC_CFG_TOGGLEGUARDS) -------
+    let remindersProvider: RemindersTreeProvider | undefined;
+
+    if (cfg.get<boolean>('messages.enabled', true)) {
+        const messageView = vscode.window.createTreeView('jarvisMessages', { treeDataProvider: messageProvider });
+        context.subscriptions.push(messageView);
+
+        // ------- REMINDERS sub-block -------
+        if (cfg.get<boolean>('reminders.enabled', true)) {
+            remindersProvider = new RemindersTreeProvider(resolveMessagesPath);
+            const remindersView = vscode.window.createTreeView('jarvisReminders', { treeDataProvider: remindersProvider });
+            context.subscriptions.push(remindersView);
+        } else {
+            log.info('[CFG] Reminders feature disabled');
+        }
+    } else {
+        log.info('[CFG] Messages feature disabled');
+    }
 
     // Implementation: SPEC_REC_WATCHER
     // Requirements: REQ_REC_DISPATCH, REQ_REC_SIDECAR
@@ -262,7 +305,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     const outlookEnabled = vscode.workspace
         .getConfiguration('jarvis')
-        .get<boolean>('outlookEnabled', false);
+        .get<boolean>('outlook.enabled', false);
 
     if (outlookEnabled) {
         categoryService.addProvider(new OutlookCategoryProvider(log));
@@ -275,9 +318,9 @@ export function activate(context: vscode.ExtensionContext) {
     // Implementation: SPEC_OLK_TASKENABLE, SPEC_PIM_TASKSERVICE
     // Requirements: REQ_OLK_TASKENABLE, REQ_PIM_TASKSERVICE
     try {
-        const cfg = vscode.workspace.getConfiguration('jarvis');
-        if (cfg.get('outlookEnabled') === true
-            && cfg.get('outlook.tasks.enabled') === true) {
+        const cfg2 = vscode.workspace.getConfiguration('jarvis');
+        if (cfg2.get('outlook.enabled') === true
+            && cfg2.get('outlook.tasks.enabled') === true) {
             const outlookTaskProvider = new OutlookTaskProvider(log);
             taskService.addProvider(outlookTaskProvider);
             log.info('[Tasks] OutlookTaskProvider registered');
@@ -297,6 +340,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Implementation: SPEC_PIM_SERVICE (syncCategoryRefreshJob)
     function syncCategoryRefreshJob(): void {
+        if (!scheduler) { return; }
         if (!categoryService.hasProviders()) {
             scheduler.unregisterJob('Jarvis: Category Refresh');
             return;
@@ -323,6 +367,7 @@ export function activate(context: vscode.ExtensionContext) {
     // Implementation: SPEC_PIM_TASKSERVICE (syncTaskRefreshJob)
     // Requirements: REQ_PIM_TASKSERVICE
     function syncTaskRefreshJob(): void {
+        if (!scheduler) { return; }
         if (!taskService.hasProviders()) {
             scheduler.unregisterJob('Jarvis: Task Refresh');
             return;
@@ -363,12 +408,14 @@ export function activate(context: vscode.ExtensionContext) {
     // Register rescan command (SPEC_EXP_RESCAN_CMD)
     // Requirements: REQ_EXP_RESCAN_BTN
     const rescanCommand = vscode.commands.registerCommand('jarvis.rescan', async () => {
+        if (!scanner) { return; }
         await scanner.rescan();
         log.info('[Scanner] manual rescan triggered');
     });
 
     // Register filter command (SPEC_EXP_FILTERCOMMAND)
     const filterHandler = () => {
+        if (!scanner || !projectProvider || !projectView) { return; }
         const allFolders = scanner.getProjectTree()
             .filter(n => n.kind === 'folder')
             .map(n => n.name);
@@ -400,10 +447,10 @@ export function activate(context: vscode.ExtensionContext) {
             renderItems();
 
             // Apply immediately on each toggle
-            projectProvider.setHiddenFolders(new Set(hiddenFolders));
+            projectProvider!.setHiddenFolders(new Set(hiddenFolders));
             context.workspaceState.update('jarvis.hiddenProjectFolders', [...hiddenFolders]);
             const isActive = hiddenFolders.size > 0;
-            projectView.description = isActive ? '(filtered)' : '';
+            projectView!.description = isActive ? '(filtered)' : '';
             vscode.commands.executeCommand('setContext', 'jarvis.projectFilterActive', isActive);
         });
 
@@ -419,6 +466,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Register event future filter commands (SPEC_EXP_EVENTFILTER_CMD)
     const eventFilterHandler = () => {
+        if (!eventProvider || !eventView) { return; }
         const next = !eventProvider.isFutureOnly();
         eventProvider.setFutureOnly(next);
         context.workspaceState.update('jarvis.eventFutureFilter', next);
@@ -434,18 +482,19 @@ export function activate(context: vscode.ExtensionContext) {
     type SearchItem = vscode.QuickPickItem & { leaf: LeafNode };
 
     const searchProjectsCommand = vscode.commands.registerCommand('jarvis.searchProjects', () => {
+        if (!scanner || !projectView) { return; }
         const leaves = flattenLeaves(scanner.getProjectTree());
         const qp = vscode.window.createQuickPick<SearchItem>();
         qp.matchOnDescription = true;
         qp.items = leaves.map(leaf => {
-            const entity = scanner.getEntity(leaf.id);
+            const entity = scanner!.getEntity(leaf.id);
             const name = entity ? entity.name : path.basename(path.dirname(leaf.id));
             return { label: name, description: leaf.id, leaf };
         });
         qp.onDidAccept(() => {
             const [selected] = qp.selectedItems;
             if (selected) {
-                projectView.reveal(selected.leaf, { select: true, focus: true, expand: true });
+                projectView!.reveal(selected.leaf, { select: true, focus: true, expand: true });
             }
             qp.hide();
         });
@@ -456,18 +505,19 @@ export function activate(context: vscode.ExtensionContext) {
     // Implementation: SPEC_EXP_SEARCH_CMD
     // Requirements: REQ_EXP_SEARCHEVENTS
     const searchEventsCommand = vscode.commands.registerCommand('jarvis.searchEvents', () => {
+        if (!scanner || !eventView) { return; }
         const leaves = flattenLeaves(scanner.getEventTree());
         const qp = vscode.window.createQuickPick<SearchItem>();
         qp.matchOnDescription = true;
         qp.items = leaves.map(leaf => {
-            const entity = scanner.getEntity(leaf.id);
+            const entity = scanner!.getEntity(leaf.id);
             const name = entity ? entity.name : path.basename(path.dirname(leaf.id));
             return { label: name, description: entity?.datesStart, leaf };
         });
         qp.onDidAccept(() => {
             const [selected] = qp.selectedItems;
             if (selected) {
-                eventView.reveal(selected.leaf, { select: true, focus: true, expand: true });
+                eventView!.reveal(selected.leaf, { select: true, focus: true, expand: true });
             }
             qp.hide();
         });
@@ -496,8 +546,8 @@ export function activate(context: vscode.ExtensionContext) {
     const refreshTasksCommand = vscode.commands.registerCommand('jarvis.refreshTasks', async () => {
         try {
             await taskService.refresh();
-            projectProvider.refresh();
-            eventProvider.refresh();
+            projectProvider?.refresh();
+            eventProvider?.refresh();
             log.info('[Tasks] manual task refresh triggered');
         } catch (err) {
             log.warn(`[Tasks] refresh failed: ${err}`);
@@ -609,7 +659,7 @@ export function activate(context: vscode.ExtensionContext) {
     const openAgentSessionCommand = vscode.commands.registerCommand(
         'jarvis.openAgentSession',
         async (element: LeafNode) => {
-            const entity = scanner.getEntity(element.id);
+            const entity = scanner?.getEntity(element.id);
             if (!entity) { return; }
 
             const uuid = await lookupSessionUUID(entity.name);
@@ -708,11 +758,9 @@ export function activate(context: vscode.ExtensionContext) {
     const openHeartbeatJobCommand = vscode.commands.registerCommand(
         'jarvis.openHeartbeatJob',
         async (node: JobNode) => {
-            const configPath = vscode.workspace
-                .getConfiguration('jarvis')
-                .get<string>('heartbeatConfigFile', '');
+            const configPath = configPaths.getHeartbeatPath();
             if (!configPath) {
-                vscode.window.showWarningMessage('Jarvis: heartbeatConfigFile is not configured.');
+                vscode.window.showWarningMessage('Jarvis: No workspace folder; cannot open heartbeat config.');
                 return;
             }
             const uri = vscode.Uri.file(configPath);
@@ -880,7 +928,7 @@ export function activate(context: vscode.ExtensionContext) {
         async (options: vscode.LanguageModelToolInvocationOptions<{ name: string; schedule: string; steps: HeartbeatStep[] }>, _token: vscode.CancellationToken) => {
             const { name, schedule, steps } = options.input;
             const job: HeartbeatJob = { name, schedule, steps };
-            await scheduler.registerJob(job);
+            await scheduler!.registerJob(job);
             log.info(`[Heartbeat] registerJob: name="${name}", schedule="${schedule}"`);
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(`Job '${name}' registered with schedule '${schedule}'`)
@@ -906,7 +954,7 @@ export function activate(context: vscode.ExtensionContext) {
             const schedule = args.schedule as string;
             const steps = args.steps as HeartbeatStep[];
             const job: HeartbeatJob = { name, schedule, steps };
-            await scheduler.registerJob(job);
+            await scheduler!.registerJob(job);
             log.info(`[Heartbeat] registerJob(MCP): name="${name}", schedule="${schedule}"`);
             return { status: 'registered', name, schedule };
         }
@@ -918,8 +966,8 @@ export function activate(context: vscode.ExtensionContext) {
         'jarvis_unregisterJob',
         async (options: vscode.LanguageModelToolInvocationOptions<{ name: string }>, _token: vscode.CancellationToken) => {
             const { name } = options.input;
-            const existed = scheduler.currentJobs.some(j => j.name === name);
-            await scheduler.unregisterJob(name);
+            const existed = scheduler!.currentJobs.some(j => j.name === name);
+            await scheduler!.unregisterJob(name);
             log.info(`[Heartbeat] unregisterJob: name="${name}", existed=${existed}`);
             const text = existed ? `Job '${name}' unregistered` : `Job '${name}' not found`;
             return new vscode.LanguageModelToolResult([
@@ -930,8 +978,8 @@ export function activate(context: vscode.ExtensionContext) {
         { name: z.string().describe('The name of the heartbeat job to remove') },
         async (args) => {
             const name = args.name as string;
-            const existed = scheduler.currentJobs.some(j => j.name === name);
-            await scheduler.unregisterJob(name);
+            const existed = scheduler!.currentJobs.some(j => j.name === name);
+            await scheduler!.unregisterJob(name);
             log.info(`[Heartbeat] unregisterJob(MCP): name="${name}", existed=${existed}`);
             return existed
                 ? { status: 'unregistered', name }
@@ -969,7 +1017,7 @@ export function activate(context: vscode.ExtensionContext) {
             _options: vscode.LanguageModelToolInvocationOptions<Record<string, never>>,
             _token: vscode.CancellationToken
         ) => {
-            const jobs = scheduler.currentJobs.map(j => jobDescriptor(j));
+            const jobs = scheduler!.currentJobs.map(j => jobDescriptor(j));
             log.info(`[Heartbeat] listJobs: ${jobs.length} job(s)`);
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(JSON.stringify(jobs))
@@ -978,7 +1026,7 @@ export function activate(context: vscode.ExtensionContext) {
         'Returns all registered heartbeat jobs with name, schedule, enabled state, and next scheduled fire time (ISO 8601 or null for manual/paused jobs).',
         {},
         async () => {
-            const jobs = scheduler.currentJobs.map(j => jobDescriptor(j));
+            const jobs = scheduler!.currentJobs.map(j => jobDescriptor(j));
             log.info(`[Heartbeat] listJobs(MCP): ${jobs.length} job(s)`);
             return { jobs };
         }
@@ -995,9 +1043,9 @@ export function activate(context: vscode.ExtensionContext) {
                     new vscode.LanguageModelTextPart(JSON.stringify({ error: 'deliverAt must be in the future' }))
                 ]);
             }
-            const reminder = addReminder(resolveRemindersPath(resolveMessagesPath()), text, session, deliverAt);
+            const reminder = addReminder(configPaths.getRemindersPath() ?? '', text, session, deliverAt);
             log.info(`[MSG] setReminder: id="${reminder.id}", session="${session}", deliverAt="${deliverAt}"`);
-            remindersProvider.reload();
+            remindersProvider?.reload();
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(JSON.stringify({ id: reminder.id, deliverAt: reminder.deliverAt }))
             ]);
@@ -1011,9 +1059,9 @@ export function activate(context: vscode.ExtensionContext) {
             if (new Date(deliverAt) <= new Date()) {
                 return { error: 'deliverAt must be in the future' };
             }
-            const reminder = addReminder(resolveRemindersPath(resolveMessagesPath()), text, session, deliverAt);
+            const reminder = addReminder(configPaths.getRemindersPath() ?? '', text, session, deliverAt);
             log.info(`[MSG] setReminder(MCP): id="${reminder.id}", session="${session}", deliverAt="${deliverAt}"`);
-            remindersProvider.reload();
+            remindersProvider?.reload();
             return { id: reminder.id, deliverAt: reminder.deliverAt };
         }
     );
@@ -1024,7 +1072,7 @@ export function activate(context: vscode.ExtensionContext) {
             _options: vscode.LanguageModelToolInvocationOptions<Record<string, never>>,
             _token: vscode.CancellationToken
         ) => {
-            const reminders = readReminders(resolveRemindersPath(resolveMessagesPath()));
+            const reminders = readReminders(configPaths.getRemindersPath() ?? '');
             const now = Date.now();
             const result = reminders.map(r => ({ ...r, remainingMs: new Date(r.deliverAt).getTime() - now }));
             return new vscode.LanguageModelToolResult([
@@ -1034,7 +1082,7 @@ export function activate(context: vscode.ExtensionContext) {
         'Returns all pending reminders with id, text, session, deliverAt, and remainingMs.',
         {},
         async () => {
-            const reminders = readReminders(resolveRemindersPath(resolveMessagesPath()));
+            const reminders = readReminders(configPaths.getRemindersPath() ?? '');
             const now = Date.now();
             return { reminders: reminders.map(r => ({ ...r, remainingMs: new Date(r.deliverAt).getTime() - now })) };
         }
@@ -1044,9 +1092,9 @@ export function activate(context: vscode.ExtensionContext) {
         'jarvis_cancelReminder',
         async (options: vscode.LanguageModelToolInvocationOptions<{ id: string }>, _token: vscode.CancellationToken) => {
             const { id } = options.input;
-            const removed = removeReminder(resolveRemindersPath(resolveMessagesPath()), id);
+            const removed = removeReminder(configPaths.getRemindersPath() ?? '', id);
             log.info(`[MSG] cancelReminder: id="${id}", removed=${removed}`);
-            remindersProvider.reload();
+            remindersProvider?.reload();
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(JSON.stringify({ status: removed ? 'cancelled' : 'not_found' }))
             ]);
@@ -1055,9 +1103,9 @@ export function activate(context: vscode.ExtensionContext) {
         { id: z.string().describe('Reminder UUID to cancel') },
         async (args) => {
             const id = args.id as string;
-            const removed = removeReminder(resolveRemindersPath(resolveMessagesPath()), id);
+            const removed = removeReminder(configPaths.getRemindersPath() ?? '', id);
             log.info(`[MSG] cancelReminder(MCP): id="${id}", removed=${removed}`);
-            remindersProvider.reload();
+            remindersProvider?.reload();
             return { status: removed ? 'cancelled' : 'not_found' };
         }
     );
@@ -1084,10 +1132,10 @@ export function activate(context: vscode.ExtensionContext) {
         ) => {
             const projectsFolder = vscode.workspace
                 .getConfiguration('jarvis')
-                .get<string>('projectsFolder', '');
-            const leaves = collectLeaves(scanner.getProjectTree());
+                .get<string>('projects.folder', '');
+            const leaves = collectLeaves(scanner?.getProjectTree() ?? []);
             const projects = leaves.map(leaf => {
-                const entity = scanner.getEntity(leaf.id);
+                const entity = scanner?.getEntity(leaf.id);
                 const absDir = path.dirname(leaf.id);
                 const rel = projectsFolder
                     ? path.relative(projectsFolder, absDir)
@@ -1107,10 +1155,10 @@ export function activate(context: vscode.ExtensionContext) {
         async () => {
             const projectsFolder = vscode.workspace
                 .getConfiguration('jarvis')
-                .get<string>('projectsFolder', '');
-            const leaves = collectLeaves(scanner.getProjectTree());
+                .get<string>('projects.folder', '');
+            const leaves = collectLeaves(scanner?.getProjectTree() ?? []);
             const projects = leaves.map(leaf => {
-                const entity = scanner.getEntity(leaf.id);
+                const entity = scanner?.getEntity(leaf.id);
                 const absDir = path.dirname(leaf.id);
                 const rel = projectsFolder
                     ? path.relative(projectsFolder, absDir)
@@ -1267,8 +1315,8 @@ export function activate(context: vscode.ExtensionContext) {
                 }
                 case 'set': {
                     const newTask = await taskService.setTask(input as any, input.provider);
-                    projectProvider.refresh();
-                    eventProvider.refresh();
+                    projectProvider?.refresh();
+                    eventProvider?.refresh();
                     result = { task: newTask };
                     break;
                 }
@@ -1283,16 +1331,16 @@ export function activate(context: vscode.ExtensionContext) {
                     delete changes.status;
                     delete changes.dueBefore;
                     await taskService.modifyTask(input.id, changes, input.provider);
-                    projectProvider.refresh();
-                    eventProvider.refresh();
+                    projectProvider?.refresh();
+                    eventProvider?.refresh();
                     result = { status: 'ok', id: input.id };
                     break;
                 }
                 case 'delete': {
                     if (!input.id) { throw new Error('id required for delete'); }
                     await taskService.deleteTask(input.id, input.provider);
-                    projectProvider.refresh();
-                    eventProvider.refresh();
+                    projectProvider?.refresh();
+                    eventProvider?.refresh();
                     result = { status: 'ok', id: input.id };
                     break;
                 }
@@ -1341,8 +1389,8 @@ export function activate(context: vscode.ExtensionContext) {
                 }
                 case 'set': {
                     const newTask = await taskService.setTask(args as any, args.provider as string | undefined);
-                    projectProvider.refresh();
-                    eventProvider.refresh();
+                    projectProvider?.refresh();
+                    eventProvider?.refresh();
                     return { task: newTask };
                 }
                 case 'modify': {
@@ -1357,15 +1405,15 @@ export function activate(context: vscode.ExtensionContext) {
                     delete changes.dueBefore;
                     delete changes.completedDate;
                     await taskService.modifyTask(args.id as string, changes, args.provider as string | undefined);
-                    projectProvider.refresh();
-                    eventProvider.refresh();
+                    projectProvider?.refresh();
+                    eventProvider?.refresh();
                     return { status: 'ok', id: args.id };
                 }
                 case 'delete': {
                     if (!args.id) { return { error: 'id is required for delete' }; }
                     await taskService.deleteTask(args.id as string, args.provider as string | undefined);
-                    projectProvider.refresh();
-                    eventProvider.refresh();
+                    projectProvider?.refresh();
+                    eventProvider?.refresh();
                     return { status: 'ok', id: args.id };
                 }
                 default:
@@ -1381,9 +1429,9 @@ export function activate(context: vscode.ExtensionContext) {
         async () => {
             const projectsFolder = vscode.workspace
                 .getConfiguration('jarvis')
-                .get<string>('projectsFolder', '');
+                .get<string>('projects.folder', '');
             if (!projectsFolder) {
-                vscode.window.showWarningMessage('Jarvis: projectsFolder is not configured');
+                vscode.window.showWarningMessage('Jarvis: jarvis.projects.folder is not configured');
                 return;
             }
 
@@ -1410,10 +1458,10 @@ export function activate(context: vscode.ExtensionContext) {
             // Implementation: SPEC_OLK_AUTOCAT_NEWENTITY
             // Requirements: REQ_OLK_AUTOCAT_NEWENTITY
             try {
-                const outlookEnabled = vscode.workspace
+                const olkEnabled = vscode.workspace
                     .getConfiguration('jarvis')
-                    .get<boolean>('outlookEnabled', false);
-                if (outlookEnabled && categoryService.hasProviders()) {
+                    .get<boolean>('outlook.enabled', false);
+                if (olkEnabled && categoryService.hasProviders()) {
                     await categoryService.setCategory(input, 0);
                     log.info(`[NewProject] Outlook category created: "${input}"`);
                 }
@@ -1421,9 +1469,9 @@ export function activate(context: vscode.ExtensionContext) {
                 log.warn(`[NewProject] Failed to create Outlook category: ${err}`);
             }
 
-            await scanner.rescan();
+            await scanner?.rescan();
 
-            const leafNode = findLeafNode(scanner.getProjectTree(), targetPath);
+            const leafNode = scanner ? findLeafNode(scanner.getProjectTree(), targetPath) : undefined;
             if (leafNode) {
                 await vscode.commands.executeCommand(
                     'jarvis.openAgentSession', leafNode);
@@ -1438,9 +1486,9 @@ export function activate(context: vscode.ExtensionContext) {
         async () => {
             const eventsFolder = vscode.workspace
                 .getConfiguration('jarvis')
-                .get<string>('eventsFolder', '');
+                .get<string>('events.folder', '');
             if (!eventsFolder) {
-                vscode.window.showWarningMessage('Jarvis: eventsFolder is not configured');
+                vscode.window.showWarningMessage('Jarvis: jarvis.events.folder is not configured');
                 return;
             }
 
@@ -1492,10 +1540,10 @@ export function activate(context: vscode.ExtensionContext) {
             // Implementation: SPEC_OLK_AUTOCAT_NEWENTITY
             // Requirements: REQ_OLK_AUTOCAT_NEWENTITY
             try {
-                const outlookEnabled = vscode.workspace
+                const olkEnabled = vscode.workspace
                     .getConfiguration('jarvis')
-                    .get<boolean>('outlookEnabled', false);
-                if (outlookEnabled && categoryService.hasProviders()) {
+                    .get<boolean>('outlook.enabled', false);
+                if (olkEnabled && categoryService.hasProviders()) {
                     await categoryService.setCategory(nameInput, 0);
                     log.info(`[NewEvent] Outlook category created: "${nameInput}"`);
                 }
@@ -1503,9 +1551,9 @@ export function activate(context: vscode.ExtensionContext) {
                 log.warn(`[NewEvent] Failed to create Outlook category: ${err}`);
             }
 
-            await scanner.rescan();
+            await scanner?.rescan();
 
-            const leafNode = findLeafNode(scanner.getEventTree(), targetPath);
+            const leafNode = scanner ? findLeafNode(scanner.getEventTree(), targetPath) : undefined;
             if (leafNode) {
                 await vscode.commands.executeCommand(
                     'jarvis.openAgentSession', leafNode);
@@ -1513,22 +1561,22 @@ export function activate(context: vscode.ExtensionContext) {
         }
     );
 
+    // ------- MCP feature block (SPEC_CFG_TOGGLEGUARDS) -------
     // Implementation: SPEC_MSG_DUALREGISTRATION (lifecycle)
     // Requirements: REQ_MSG_MCPSERVER, REQ_CFG_MCPPORT
-    const mcpConfig = vscode.workspace.getConfiguration('jarvis');
-    const mcpEnabled = mcpConfig.get<boolean>('mcpEnabled', true);
-    const mcpPort = mcpConfig.get<number>('mcpPort', 31415);
-
-    const mcpStatusBar = vscode.window.createStatusBarItem(
-        vscode.StatusBarAlignment.Right, 100
-    );
-    mcpStatusBar.text = `Jarvis MCP: ${mcpPort}`;
-    mcpStatusBar.tooltip = 'Jarvis MCP Server';
-
-    if (mcpEnabled) {
+    if (cfg.get<boolean>('mcp.enabled', false)) {
+        const mcpPort = cfg.get<number>('mcpPort', 31415);
+        const mcpStatusBar = vscode.window.createStatusBarItem(
+            vscode.StatusBarAlignment.Right, 100
+        );
+        mcpStatusBar.text = `Jarvis MCP: ${mcpPort}`;
+        mcpStatusBar.tooltip = 'Jarvis MCP Server';
         startMcpServer(mcpPort, log).then(() => {
             mcpStatusBar.show();
         }).catch(() => { /* error already logged */ });
+        context.subscriptions.push(mcpStatusBar);
+    } else {
+        log.info('[CFG] MCP feature disabled');
     }
 
     // Implementation: SPEC_REC_STATUSBAR
@@ -1564,8 +1612,8 @@ export function activate(context: vscode.ExtensionContext) {
             }
             recordingStatusBar.hide();
         }
-        projectProvider.refresh();
-        eventProvider.refresh();
+        projectProvider?.refresh();
+        eventProvider?.refresh();
     });
 
     // Implementation: SPEC_REC_BUTTON
@@ -1593,9 +1641,9 @@ export function activate(context: vscode.ExtensionContext) {
         'jarvis.cancelReminder',
         (node?: ReminderNode) => {
             if (!node || node.kind !== 'reminder') { return; }
-            removeReminder(resolveRemindersPath(resolveMessagesPath()), node.reminder.id);
+            removeReminder(configPaths.getRemindersPath() ?? '', node.reminder.id);
             log.info(`[MSG] cancelReminder(tree): id="${node.reminder.id}"`);
-            remindersProvider.reload();
+            remindersProvider?.reload();
         }
     );
 
@@ -1604,7 +1652,7 @@ export function activate(context: vscode.ExtensionContext) {
     const openReminderFileCommand = vscode.commands.registerCommand(
         'jarvis.openReminderFile',
         async (node: ReminderNode) => {
-            const remindersPath = resolveRemindersPath(resolveMessagesPath());
+            const remindersPath = configPaths.getRemindersPath() ?? '';
             if (!fs.existsSync(remindersPath)) {
                 vscode.window.showWarningMessage(`Jarvis: Cannot open reminders file: ${remindersPath}`);
                 return;
@@ -1682,7 +1730,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         // --- Reminder delivery (SPEC_MSG_REMINDERSLOOP) ---
-        const remindersPath = resolveRemindersPath(messagesPath);
+        const remindersPath = configPaths.getRemindersPath() ?? '';
         const due = popDueReminders(remindersPath, new Date());
         for (const reminder of due) {
             try {
@@ -1694,7 +1742,7 @@ export function activate(context: vscode.ExtensionContext) {
             }
         }
         if (due.length > 0) {
-            remindersProvider.reload();
+            remindersProvider?.reload();
             messageProvider.reload();
         }
     }, 5000);
@@ -1702,7 +1750,7 @@ export function activate(context: vscode.ExtensionContext) {
     const startRecordingCommand = vscode.commands.registerCommand(
         'jarvis.startRecording',
         async (element: LeafNode) => {
-            const entity = scanner.getEntity(element.id);
+            const entity = scanner?.getEntity(element.id);
             const name = entity?.name ?? path.basename(path.dirname(element.id));
             await _recordingManager!.start(name, context);
         }
@@ -1755,7 +1803,6 @@ export function activate(context: vscode.ExtensionContext) {
         renameCategoryCommand,
         deleteCategoryCommand,
         refreshTasksCommand,
-        mcpStatusBar,
         recordingStatusBar,
         startRecordingCommand,
         stopRecordingCommand,
@@ -1763,20 +1810,9 @@ export function activate(context: vscode.ExtensionContext) {
         disableAutoDeliveryCommand,
         { dispose: () => clearInterval(pollInterval) },
         { dispose: () => { if (recordingTimer) { clearInterval(recordingTimer); } } },
-        projectView,
-        eventView,
-        messageView,
-        remindersView,
-        projectView.onDidChangeVisibility(e => {
-            if (e.visible) {
-                startScanner();
-            } else {
-                scanner.stop();
-            }
-        }),
         vscode.workspace.onDidChangeConfiguration(e => {
-            if (e.affectsConfiguration('jarvis.projectsFolder') ||
-                e.affectsConfiguration('jarvis.eventsFolder')) {
+            if (e.affectsConfiguration('jarvis.projects.folder') ||
+                e.affectsConfiguration('jarvis.events.folder')) {
                 startScanner();
             }
             if (e.affectsConfiguration('jarvis.scanInterval')) {
@@ -1788,7 +1824,7 @@ export function activate(context: vscode.ExtensionContext) {
                 e.affectsConfiguration('jarvis.recording.whisperPath')) {
                 syncTranscriptWatcherJob();
             }
-            if (e.affectsConfiguration('jarvis.outlookEnabled')
+            if (e.affectsConfiguration('jarvis.outlook.enabled')
                 || e.affectsConfiguration('jarvis.outlook.tasks.enabled')) {
                 vscode.window.showInformationMessage(
                     'Jarvis: Outlook toggle changed. Reload window to apply.',
@@ -1800,7 +1836,7 @@ export function activate(context: vscode.ExtensionContext) {
                 });
             }
         }),
-        { dispose: () => scanner.stop() }
+        { dispose: () => scanner?.stop() }
     );
 }
 

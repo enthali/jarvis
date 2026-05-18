@@ -4,13 +4,15 @@ Message Queue Design Specifications
 .. spec:: Message Queue File Store
    :id: SPEC_MSG_QUEUESTORE
    :status: implemented
-   :links: REQ_MSG_QUEUE; REQ_MSG_READ; REQ_CFG_MSGPATH
+   :links: REQ_MSG_QUEUE; REQ_MSG_READ; REQ_CFG_MSGPATH; REQ_CFG_FIXEDPATHS
 
    **Description:**
    Module ``src/messageQueue.ts`` provides synchronous file-backed read/write/delete
-   operations on the JSON message queue. All functions accept the resolved file path
-   (from ``SPEC_CFG_HEARTBEATSETTINGS``). The parent directory is created on first
-   write if it does not exist.
+   operations on the JSON message queue. The file path is resolved by
+   ``configPaths.getMessagesPath()`` (see ``SPEC_CFG_PATHRESOLVER``). If that
+   function returns ``undefined`` (no workspace open), reads return an empty list
+   and writes are silently skipped. The ``.jarvis/`` parent directory is created on
+   first write via ``configPaths.ensureJarvisDir()``.
 
    **Data type:**
 
@@ -1153,8 +1155,7 @@ Message Queue Design Specifications
 
    **package.json ``contributes.configuration``:**
 
-   Add the following property alongside the existing ``jarvis.messagesFile``
-   entry in the ``Messages`` settings group:
+   Add the following property to the ``Messages`` settings group:
 
    .. code-block:: json
 
@@ -1431,12 +1432,15 @@ Message Queue Design Specifications
 .. spec:: Reminder Store Module
    :id: SPEC_MSG_REMINDERSTORE
    :status: draft
-   :links: REQ_MSG_REMINDERS_PERSIST; SPEC_MSG_QUEUESTORE
+   :links: REQ_MSG_REMINDERS_PERSIST; SPEC_MSG_QUEUESTORE; REQ_CFG_FIXEDPATHS
 
    **Description:**
    New module ``src/reminders.ts`` provides synchronous file-backed read/write
-   operations for the ``reminders.yaml`` file. The file is co-located with
-   ``messages.json`` and uses YAML for human-readable persistence.
+   operations for the ``reminders.yaml`` file. The file path is resolved by
+   ``configPaths.getRemindersPath()`` (see ``SPEC_CFG_PATHRESOLVER``). The file
+   lives at ``<workspaceRoot>/.jarvis/reminders.yaml``; it is not co-located by
+   path derivation from ``messages.json`` — both paths are independently resolved
+   by the central path resolver.
 
    **File format (reminders.yaml):**
 
@@ -1461,12 +1465,14 @@ Message Queue Design Specifications
         createdAt: string;   // ISO 8601 — registration time
       }
 
-   **Path derivation:**
+   **Path resolution:**
 
    .. code-block:: typescript
 
-      function resolveRemindersPath(messagesPath: string): string {
-        return path.join(path.dirname(messagesPath), 'reminders.yaml');
+      import * as configPaths from './configPaths';
+
+      function getRemindersFilePath(): string | undefined {
+        return configPaths.getRemindersPath();
       }
 
    **Public API:**
@@ -1534,8 +1540,10 @@ Message Queue Design Specifications
 
    **Design notes:**
 
-   * ``resolveRemindersPath`` is exported so ``extension.ts`` can derive the
-     path from the same ``resolveMessagesPath()`` source of truth
+   * Path resolution is delegated to ``configPaths.getRemindersPath()``; the
+     old ``resolveRemindersPath(messagesPath)`` helper (which derived the path
+     from ``messages.json``'s directory) is replaced by this delegation.
+     ``extension.ts`` calls ``configPaths.getRemindersPath()`` directly.
    * ``popDueReminders`` is atomic: it reads, separates due from remaining,
      writes remaining, then returns due — no separate ``removeReminder`` call
      needed from the poll loop
@@ -1833,7 +1841,7 @@ Message Queue Design Specifications
       {
         "id": "jarvisReminders",
         "name": "Reminders",
-        "when": "config.jarvis.messagesFile != ''"
+        "when": "config.jarvis.messages.enabled == true && config.jarvis.reminders.enabled == true"
       }
 
    Add ``"onView:jarvisReminders"`` to ``activationEvents``.
@@ -1858,8 +1866,9 @@ Message Queue Design Specifications
         'jarvis.cancelReminder',
         (node?: ReminderNode) => {
           if (!node || node.kind !== 'reminder') { return; }
-          const messagesPath = resolveMessagesPath();
-          removeReminder(resolveRemindersPath(messagesPath), node.reminder.id);
+          const remindersPath = configPaths.getRemindersPath();
+          if (!remindersPath) { return; }
+          removeReminder(remindersPath, node.reminder.id);
           remindersProvider.reload();
         }
       );
@@ -1876,9 +1885,10 @@ Message Queue Design Specifications
 
    **Design notes:**
 
-   * The Reminders view is gated by the same ``jarvis.messagesFile`` setting
-     as the Messages view — reminders are persisted next to ``messages.json``
-     so the same precondition applies.
+   * The Reminders view is gated by ``config.jarvis.messages.enabled == true &&
+     config.jarvis.reminders.enabled == true`` (see SPEC_CFG_VIEWGATING).
+     The old ``jarvis.messagesFile != ''`` precondition is superseded by the
+     toggle-based gating introduced in this CR.
    * Countdown strings are computed fresh on every ``getTreeItem`` call; the
      tree auto-refreshes on each ``remindersProvider.reload()`` (called by
      the poll loop and tool handlers), so the displayed time stays

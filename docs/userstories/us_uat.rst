@@ -32,6 +32,7 @@ for each feature. Each file corresponds to one feature or change.
    us_uat_heartbeat_pause
    us_uat_listjobs
    us_uat_reminders
+   us_uat_settings_cleanup
 
 All UAT User Stories
 --------------------

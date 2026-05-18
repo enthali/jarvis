@@ -48,32 +48,33 @@
       "jarvis-explorer": [
         {
           "id": "jarvisProjects",
-          "name": "Projects"
+          "name": "Projects",
+          "when": "config.jarvis.projects.enabled == true"
         },
         {
           "id": "jarvisEvents",
           "name": "Events",
-          "when": "config.jarvis.eventsFolder != ''"
+          "when": "config.jarvis.events.enabled == true"
         },
         {
           "id": "jarvisMessages",
           "name": "Messages",
-          "when": "config.jarvis.messagesFile != ''"
+          "when": "config.jarvis.messages.enabled == true"
         },
         {
           "id": "jarvisReminders",
           "name": "Reminders",
-          "when": "config.jarvis.messagesFile != ''"
+          "when": "config.jarvis.messages.enabled == true && config.jarvis.reminders.enabled == true"
         },
         {
           "id": "jarvisHeartbeat",
           "name": "Heartbeat",
-          "when": "config.jarvis.heartbeatConfigFile != ''"
+          "when": "config.jarvis.heartbeat.enabled == true"
         },
         {
           "id": "jarvisCategories",
           "name": "Categories",
-          "when": "config.jarvis.pim.showCategories == true"
+          "when": "config.jarvis.pim.showCategories == true && config.jarvis.outlook.enabled == true"
         }
       ]
     },
@@ -558,7 +559,12 @@
       {
         "title": "Projects",
         "properties": {
-          "jarvis.projectsFolder": {
+          "jarvis.projects.enabled": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable the Projects feature. When false, no Projects tree view, commands, or tools are registered."
+          },
+          "jarvis.projects.folder": {
             "type": "string",
             "default": "",
             "description": "Absolute path to the folder containing project YAML files."
@@ -574,7 +580,12 @@
       {
         "title": "Events",
         "properties": {
-          "jarvis.eventsFolder": {
+          "jarvis.events.enabled": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable the Events feature. When false, no Events tree view, commands, or tools are registered."
+          },
+          "jarvis.events.folder": {
             "type": "string",
             "default": "",
             "description": "Absolute path to the folder containing event YAML files."
@@ -582,12 +593,31 @@
         }
       },
       {
+        "title": "Sessions",
+        "properties": {}
+      },
+      {
+        "title": "Messages",
+        "properties": {
+          "jarvis.messages.enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable the Messages feature. When false, no Messages tree view, commands, or tools are registered."
+          },
+          "jarvis.messages.logging": {
+            "type": "boolean",
+            "default": true,
+            "description": "When enabled, every queued message is also appended to .jarvis/message-log.json (append-only audit log)."
+          }
+        }
+      },
+      {
         "title": "Heartbeat",
         "properties": {
-          "jarvis.heartbeatConfigFile": {
-            "type": "string",
-            "default": "",
-            "description": "Absolute path to heartbeat.yaml. Defaults to workspace storage if empty."
+          "jarvis.heartbeat.enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable the Heartbeat scheduler. When false, no Heartbeat tree view, scheduler, or tools are registered."
           },
           "jarvis.heartbeatInterval": {
             "type": "number",
@@ -598,57 +628,52 @@
         }
       },
       {
-        "title": "Messages",
+        "title": "Reminders",
         "properties": {
-          "jarvis.messagesFile": {
-            "type": "string",
-            "default": "",
-            "description": "Absolute path to messages.json queue file. Defaults to extension storage if empty."
-          },
-          "jarvis.messages.logging": {
+          "jarvis.reminders.enabled": {
             "type": "boolean",
-            "default": false,
-            "description": "When enabled, every queued message is also appended to message-log.json (append-only audit log)."
+            "default": true,
+            "description": "Enable the Reminders sub-feature. Only effective when jarvis.messages.enabled is true. When false, no Reminders tree view or tools are registered."
           }
         }
       },
       {
-        "title": "MCP Server",
+        "title": "MCP",
         "properties": {
+          "jarvis.mcp.enabled": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable the embedded MCP server (localhost only). When false, the server does not start."
+          },
           "jarvis.mcpPort": {
             "type": "number",
             "default": 31415,
             "description": "Port for the embedded MCP server (localhost only)."
-          },
-          "jarvis.mcpEnabled": {
-            "type": "boolean",
-            "default": true,
-            "description": "Enable or disable the embedded MCP server."
-          }
-        }
-      },
-      {
-        "title": "Updates",
-        "properties": {
-          "jarvis.checkForUpdates": {
-            "type": "boolean",
-            "default": true,
-            "description": "Check for new Jarvis releases on GitHub when the extension activates."
           }
         }
       },
       {
         "title": "PIM",
         "properties": {
-          "jarvis.outlookEnabled": {
-            "type": "boolean",
-            "default": false,
-            "description": "Enable Outlook COM integration (Windows + Outlook Classic). When disabled, no Outlook COM calls are made."
-          },
           "jarvis.pim.showCategories": {
             "type": "boolean",
             "default": true,
             "description": "Show the Categories view in the Jarvis sidebar."
+          }
+        }
+      },
+      {
+        "title": "Outlook",
+        "properties": {
+          "jarvis.outlook.enabled": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable Outlook COM integration (Windows + Outlook Classic). When disabled, no Outlook COM calls are made."
+          },
+          "jarvis.outlook.tasks.enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable the Outlook Tasks integration. Only effective when jarvis.outlook.enabled is true."
           }
         }
       },
@@ -668,12 +693,12 @@
         }
       },
       {
-        "title": "Outlook",
+        "title": "Updates",
         "properties": {
-          "jarvis.outlook.tasks.enabled": {
+          "jarvis.checkForUpdates": {
             "type": "boolean",
             "default": true,
-            "description": "Enable the Outlook Tasks integration. Only effective when jarvis.outlookEnabled is true."
+            "description": "Check for new Jarvis releases on GitHub when the extension activates."
           }
         }
       }

@@ -56,9 +56,14 @@ Configuration User Stories
 
 .. story:: Grouped Settings Categories
    :id: US_CFG_SETTINGSGROUPS
-   :status: approved
+   :status: deprecated
    :priority: mandatory
    :links: US_CFG_PROJECTPATH; US_CFG_HEARTBEAT; US_CFG_MSG
+
+   **Superseded by:** ``US_CFG_GROUPS`` (settings-cleanup CR, 2026-05-18).
+   The original "presentation-only" guarantee no longer holds: the
+   settings-cleanup CR explicitly renames keys and removes path settings.
+   Retained for historical traceability.
 
    **As a** Jarvis User,
    **I want** the Jarvis settings to be organized in named sub-categories
@@ -75,3 +80,83 @@ Configuration User Stories
      Outlook)
    * AC-3: No setting changes its key name, type, or default value — this is a
      presentation-only change
+
+
+.. story:: Per-Feature Enable Toggles
+   :id: US_CFG_FEATURETOGGLES
+   :status: implemented
+   :priority: required
+
+   **As a** Jarvis user,
+   **I want** one on/off toggle per feature
+   **so that** I can disable features I don't use without removing configuration.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A boolean setting ``jarvis.projects.enabled`` (default: ``false``) enables
+     or disables the Projects feature. When disabled, no Projects tree view, commands,
+     or tools are registered.
+   * AC-2: A boolean setting ``jarvis.events.enabled`` (default: ``false``) enables
+     or disables the Events feature. When disabled, no Events tree view, commands,
+     or tools are registered.
+   * AC-3: A boolean setting ``jarvis.heartbeat.enabled`` (default: ``true``) enables
+     or disables the Heartbeat feature. When disabled, no Heartbeat tree view,
+     scheduler, or tools are registered.
+   * AC-4: A boolean setting ``jarvis.messages.enabled`` (default: ``true``) enables
+     or disables the Messages feature. When disabled, no Messages tree view, commands,
+     or tools are registered.
+   * AC-5: A boolean setting ``jarvis.reminders.enabled`` (default: ``true``) enables
+     or disables the Reminders feature. When disabled, no Reminders tree view or tools
+     are registered. Reminders is a sub-feature of Messages (only available when
+     Messages is also enabled).
+   * AC-6: A boolean setting ``jarvis.mcp.enabled`` (default: ``false``) enables or
+     disables the MCP server. When disabled, the embedded MCP server does not start.
+   * When a feature is disabled, none of that feature's tree views, commands, tools,
+     or timers are registered during extension activation.
+   * Changing a toggle requires "Developer: Reload Window" to take effect (hot toggling
+     is deferred to a future CR).
+
+
+.. story:: Fixed Runtime File Paths
+   :id: US_CFG_FIXEDPATHS
+   :status: implemented
+   :priority: required
+
+   **As a** Jarvis user,
+   **I want** the runtime files (heartbeat.yaml, messages.json, reminders.yaml,
+   message-log.json, autodelivery.json) to live at fixed paths under ``.jarvis/``
+   in my workspace root
+   **so that** Jarvis works out of the box without any manual path configuration.
+
+   **Acceptance Criteria:**
+
+   * AC-3: ``heartbeat.yaml`` is always resolved as
+     ``<workspaceRoot>/.jarvis/heartbeat.yaml`` and is not configurable.
+   * AC-4: ``messages.json`` is always resolved as
+     ``<workspaceRoot>/.jarvis/messages.json`` and is not configurable.
+   * AC-5: ``reminders.yaml`` is always resolved as
+     ``<workspaceRoot>/.jarvis/reminders.yaml`` and is not configurable.
+   * AC-7: ``message-log.json`` and ``autodelivery.json`` are also stored under
+     ``<workspaceRoot>/.jarvis/`` and are not configurable.
+   * The ``.jarvis/`` directory is created lazily on first write; Jarvis does not
+     create it at activation time.
+   * When no workspace folder is open, features that require ``.jarvis/`` log a
+     one-time warning and short-circuit gracefully — no errors are thrown.
+
+
+.. story:: Grouped Settings Organization
+   :id: US_CFG_GROUPS
+   :status: implemented
+   :priority: required
+
+   **As a** Jarvis user,
+   **I want** settings organized into clearly named groups (Projects, Events,
+   Sessions, Messages, Heartbeat, Reminders, MCP, PIM, Outlook, Recording,
+   Updates)
+   **so that** settings are discoverable without scrolling through a flat list.
+
+   **Acceptance Criteria:**
+
+   * AC-8: The VS Code Settings UI shows exactly those eleven groups in that
+     order, each containing only its own feature's settings. The ``Sessions``
+     group may be empty in this CR (filled by CR ``sessions-feature``).

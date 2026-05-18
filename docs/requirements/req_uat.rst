@@ -32,6 +32,7 @@ end-to-end verification of each feature.
    req_uat_heartbeat_pause
    req_uat_listjobs
    req_uat_reminders
+   req_uat_settings_cleanup
 
 All UAT Requirements
 --------------------
