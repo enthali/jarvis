@@ -34,3 +34,17 @@ Automation User Stories
    * AC-13: When the user manually triggers a job via the play button, an info toast
      SHALL immediately appear showing the job name, providing visual confirmation that
      the click was registered
+   * AC-14: An active (enabled) job node SHALL show a ``$(debug-pause)`` inline button;
+     clicking it pauses the job — the scheduler stops dispatching it and the tree
+     reflects the paused state
+   * AC-15: A paused job node SHALL show a ``$(debug-continue)`` (resume) inline
+     button (visually distinct from the active-mode play button); clicking it
+     resumes the job (re-enables scheduling) **and** immediately executes
+     it once; the pause state is persisted in ``heartbeat.yaml`` as ``enabled: false``
+     and survives an extension restart
+   * AC-16: The existing manual Play button (``$(play)``) on an active (non-paused)
+     job node SHALL remain functional and unchanged by the pause/resume feature
+   * AC-17: The manual Play button (``$(play)``) SHALL also be available on paused
+     job nodes, so that the user can trigger a one-shot run independently of the
+     pause state; a paused job thus shows two buttons: Resume (``$(debug-continue)``)
+     and Play (``$(play)``)

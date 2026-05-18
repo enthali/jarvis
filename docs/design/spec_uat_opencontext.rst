@@ -18,6 +18,13 @@ Open Context UAT Design Specifications
      (happy path event)
    * All other testdata project/event folders have no ``context.md`` — T-3
      (missing file) can be executed against any of them
+   * ``testdata/projects/withsub/sub/context.md`` — used for T-6 (single subfolder
+     match); no root ``context.md`` in ``withsub/`` (add one temporarily for T-9)
+   * ``testdata/projects/multi/pm/context.md`` and
+     ``testdata/projects/multi/qm/context.md`` — used for T-7 (multiple matches);
+     no root ``context.md`` in ``multi/``
+   * ``testdata/projects/hidden/.hidden/context.md`` — used for T-8 (hidden folder
+     ignored); no non-hidden subfolder ``context.md`` in ``hidden/``
 
    **Expected test outcomes (documented in test protocol):**
 
@@ -45,3 +52,17 @@ Open Context UAT Design Specifications
         - Hover over a project or event leaf node
         - ``$(go-to-file)``, ``$(comment-discussion)``, and ``$(notebook)``
           buttons are all visible
+      * - T-6 (subfolder single match)
+        - Click ``$(notebook)`` on ``withsub`` project node (no root context.md)
+        - ``sub/context.md`` opens in editor; no picker or notification
+      * - T-7 (multiple subfolder matches)
+        - Click ``$(notebook)`` on ``multi`` project node
+        - QuickPick shows ``pm/context.md`` and ``qm/context.md``; selected file
+          opens in editor
+      * - T-8 (hidden folder ignored)
+        - Click ``$(notebook)`` on ``hidden`` project node
+        - Info notification "No context.md found for this entity" shown; hidden
+          file is NOT opened
+      * - T-9 (direct hit precedence)
+        - Add root ``context.md`` to ``withsub/``; click ``$(notebook)`` on node
+        - Root ``context.md`` opens directly; no picker appears

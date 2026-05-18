@@ -201,3 +201,31 @@ Automation Requirements
    * AC-3: Both methods SHALL write to the YAML file immediately, reload the
      in-memory job list, and refresh the Heartbeat tree view
    * AC-4: The YAML file is the single source of truth — no RAM-only jobs
+
+
+.. req:: Pause and Resume Heartbeat Jobs
+   :id: REQ_AUT_PAUSE
+   :status: approved
+   :priority: optional
+   :links: US_AUT_HEARTBEAT
+
+   **Description:**
+   The extension SHALL allow the user to temporarily disable ("pause") a heartbeat
+   job and re-enable ("resume") it without removing the job from ``heartbeat.yaml``.
+
+   **Acceptance Criteria:**
+
+   * AC-1: An active job node in the Heartbeat tree SHALL display a ``$(debug-pause)``
+     inline button; clicking it pauses the job
+   * AC-2: When paused, the scheduler SHALL skip the job on every tick (no dispatch,
+     no cron evaluation)
+   * AC-3: The paused state SHALL be persisted in ``heartbeat.yaml`` as
+     ``enabled: false``; it survives an extension restart
+   * AC-4: A paused job node SHALL display a ``$(debug-continue)`` (resume) inline
+     button; clicking it SHALL re-enable the job (set ``enabled: true`` or remove
+     the field) **and** immediately execute the job once via the existing execution
+     pipeline
+   * AC-5: The existing ``$(play)`` manual-run button SHALL remain visible on
+     active job nodes AND on paused job nodes (independent of pause state); on
+     paused nodes the Pause button SHALL NOT be shown (it is replaced by the
+     Resume button)

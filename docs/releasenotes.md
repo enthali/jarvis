@@ -1,5 +1,16 @@
 # Release Notes
 
+## v0.5.10
+
+*2026-05-18*
+
+Context-file auto-discovery with QuickPick, and heartbeat job pause/resume.
+
+### New Features
+
+- **context-file-discovery**: `jarvis.openContext` now auto-discovers `context.md` one level deep when none exists at the entity root. If multiple matches are found, a QuickPick lets the user choose. Direct hits take precedence (no picker). Hidden folders are ignored.
+- **heartbeat-pause-resume**: Heartbeat jobs can be paused and resumed without removing them from `heartbeat.yaml`. Active jobs show a `$(debug-pause)` inline button; paused jobs show `$(debug-continue)` (resume + immediate run). Pause state is persisted as `enabled: false` in YAML and survives restarts. The manual `$(play)` trigger works on both active and paused jobs independently of pause state.
+
 ## v0.5.9
 
 *2026-05-07*

@@ -29,6 +29,7 @@ Automation Design Specifications
         name: string;
         schedule: string;   // 5-field cron string or "manual"
         steps: HeartbeatStep[];
+        enabled?: boolean;  // default true; false = paused (scheduler skips this job)
       }
 
    **Job loader**:
@@ -99,6 +100,7 @@ Automation Design Specifications
           const now = new Date();
           const minuteKey = Math.floor(now.getTime() / 60000);
           for (const job of jobs) {
+            if (job.enabled === false) continue;  // paused — skip entirely
             if (job.schedule === 'manual') continue;
             if (!matchesCron(job.schedule, now)) continue;
             if (this.lastFired.get(job.name) === minuteKey) continue;
@@ -445,7 +447,10 @@ Automation Design Specifications
      fire time formatted as short weekday + time (e.g. ``Mo 08:00``,
      ``13.04. 08:00``) using ``cron-parser``'s ``parseExpression(schedule).next().toDate()``.
      For ``schedule === 'manual'``: description = ``manuell``.
-     ``contextValue = 'heartbeatJob'``.
+     ``contextValue = 'heartbeatJob'`` when ``job.enabled !== false``;
+     ``contextValue = 'heartbeatJobPaused'`` when ``job.enabled === false``.
+     Paused jobs MAY additionally set ``description`` to include a ``⏸`` indicator
+     (e.g. prepend ``⏸`` + space to the formatted next-run string).
    - **StepNode**: label = ``<type>: <run>`` or ``agent → <prompt>``.
      ``TreeItemCollapsibleState.None``. No context value.
 
@@ -549,8 +554,110 @@ Automation Design Specifications
 
      - ``view/title``: ``jarvis.refreshHeartbeat`` when ``view == jarvisHeartbeat``
      - ``view/item/context``: ``jarvis.runJob`` inline when ``viewItem == heartbeatJob``
+       or ``viewItem == heartbeatJobPaused`` (manual one-shot run available
+       independent of pause state)
    - Activation event: ``onView:jarvisHeartbeat``
 
+.. spec:: Pause and Resume Heartbeat Job Commands
+   :id: SPEC_AUT_PAUSECOMMAND
+   :status: implemented
+   :links: REQ_AUT_PAUSE; SPEC_AUT_HEARTBEATPROVIDER; SPEC_AUT_RUNJOBCOMMAND; SPEC_AUT_JOBSCHEMA
+
+   **Description:**
+   Two new VS Code commands registered via ``activateHeartbeat()`` in
+   ``src/heartbeat.ts`` and wired in ``extension.ts``. Both commands call
+   ``HeartbeatScheduler.setJobEnabled()`` which atomically read–modifies–writes
+   ``heartbeat.yaml`` (same pattern as ``SPEC_AUT_JOBREG``), reloads the
+   scheduler, and refreshes the tree.
+
+   **Commands:**
+
+   1. ``jarvis.pauseHeartbeatJob`` — invoked by the ``$(debug-pause)`` inline button
+      on active job nodes (``contextValue == heartbeatJob``).
+
+      .. code-block:: typescript
+
+         context.subscriptions.push(
+             vscode.commands.registerCommand('jarvis.pauseHeartbeatJob', async (node: JobNode) => {
+                 await scheduler.setJobEnabled(node.job.name, false);
+                 heartbeatTreeProvider.setJobs(scheduler.currentJobs);
+                 vscode.window.showInformationMessage(`Heartbeat '${node.job.name}' pausiert.`);
+             })
+         );
+
+   2. ``jarvis.resumeHeartbeatJob`` — invoked by the ``$(debug-continue)`` inline button
+      on paused job nodes (``contextValue == heartbeatJobPaused``). Resume **and** run.
+
+      .. code-block:: typescript
+
+         context.subscriptions.push(
+             vscode.commands.registerCommand('jarvis.resumeHeartbeatJob', async (node: JobNode) => {
+                 await scheduler.setJobEnabled(node.job.name, true);
+                 heartbeatTreeProvider.setJobs(scheduler.currentJobs);
+                 const resumed = scheduler.currentJobs.find(j => j.name === node.job.name);
+                 if (resumed) {
+                     vscode.window.showInformationMessage(
+                         `Heartbeat '${resumed.name}' fortgesetzt und gestartet.`
+                     );
+                     executeJob(resumed, outputChannel, scheduler.currentConfigDir,
+                         scheduler.currentQueuePath, messageTreeProvider)
+                         .then(result => {
+                             if (!result.success) { notifyFailure(resumed, result, outputChannel); }
+                         });
+                 }
+             })
+         );
+
+   **Helper** ``HeartbeatScheduler.setJobEnabled`` (method on the scheduler,
+   in ``src/heartbeat.ts``):
+
+   .. code-block:: typescript
+
+      async setJobEnabled(name: string, enabled: boolean): Promise<void> {
+          if (!this.context) { return; }
+          const configPath = resolveConfigPath(this.context);
+          let data: { jobs: HeartbeatJob[] };
+          try {
+              const raw = fs.readFileSync(configPath, 'utf8');
+              data = (yaml.load(raw) as { jobs: HeartbeatJob[] }) ?? { jobs: [] };
+              if (!data.jobs) { return; }
+          } catch { return; }
+
+          const job = data.jobs.find(j => j.name === name);
+          if (!job) { return; }
+          if (enabled) {
+              delete job.enabled;   // omit field → default true (clean YAML)
+          } else {
+              job.enabled = false;
+          }
+
+          fs.writeFileSync(configPath, yaml.dump(data), 'utf8');
+          this.reload();
+          this.heartbeatTreeProvider?.setJobs(this.jobs);
+      }
+
+   **package.json contributions:**
+
+   - Commands: ``jarvis.pauseHeartbeatJob`` (icon ``$(debug-pause)``, title "Pause
+     Heartbeat Job"), ``jarvis.resumeHeartbeatJob`` (icon ``$(debug-continue)``,
+     title "Resume Heartbeat Job"). The resume icon ``$(debug-continue)`` is
+     visually distinct from the active-mode ``$(play)`` button used by
+     ``jarvis.runJob`` so that Resume and one-shot Run remain distinguishable
+     on a paused node.
+   - Both commands SHALL be hidden from the Command Palette
+     (``"commandPalette": [{ "command": "jarvis.pauseHeartbeatJob", "when": "false" }, ...]``)
+   - Menus ``view/item/context`` — additions owned by this spec:
+
+     - ``jarvis.pauseHeartbeatJob`` inline when ``viewItem == heartbeatJob``
+     - ``jarvis.resumeHeartbeatJob`` inline when ``viewItem == heartbeatJobPaused``
+
+   The ``jarvis.runJob`` inline menu (owned by ``SPEC_AUT_RUNJOBCOMMAND``)
+   SHALL be declared for **both** ``viewItem == heartbeatJob`` and
+   ``viewItem == heartbeatJobPaused`` so the manual one-shot trigger is
+   available independent of pause state. Resulting button layout:
+
+   - Active node: ``[play] [pause]`` (runJob + pauseHeartbeatJob)
+   - Paused node: ``[play] [continue]`` (runJob + resumeHeartbeatJob)
 
 .. spec:: Job Registration and Unregistration
    :id: SPEC_AUT_JOBREG

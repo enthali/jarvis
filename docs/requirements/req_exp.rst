@@ -603,20 +603,33 @@ Explorer Requirements
 
    **Description:**
    Every project and event leaf item SHALL provide an inline action button that
-   opens the ``context.md`` file from the entity's folder. If the file does not
-   exist, an information message SHALL be shown.
+   resolves and opens a ``context.md`` file using a 3-step discovery process.
+   If no file is found, an information message SHALL be shown.
 
    **Acceptance Criteria:**
 
    * AC-1: All project and event leaf items SHALL display an inline
      ``$(notebook)`` button in addition to the existing ``$(go-to-file)`` and
      ``$(comment-discussion)`` buttons
-   * AC-2: Clicking the button SHALL resolve the ``context.md`` file path by
-     taking ``path.dirname(element.id)`` and appending ``/context.md``
-   * AC-3: If the file exists, it SHALL be opened in the VS Code text editor
-     using ``vscode.window.showTextDocument()``
-   * AC-4: If the file does not exist, a non-blocking information message SHALL
-     be shown with the text "context.md not found"
-   * AC-5: Folder nodes SHALL NOT display the button
-   * AC-6: The command SHALL NOT appear in the Command Palette (it requires a
+   * AC-2: The resolution order SHALL be:
+
+     1. Direct: ``<entityFolder>/context.md`` exists → open it
+     2. Subfolder search: scan immediate subfolders (1 level deep) for
+        ``context.md``; hidden folders (names starting with ``.``) SHALL be
+        excluded
+     3. Picker: if multiple matches are found in step 2, show
+        ``vscode.window.showQuickPick`` with labels as relative paths
+        (e.g. ``pm/context.md``); open the user's selection
+     4. None found: show a non-blocking information message
+
+   * AC-3: If exactly one subfolder match is found it SHALL be opened without
+     showing a picker
+   * AC-4: Hidden subfolders (names starting with ``.``) SHALL be excluded from
+     the subfolder search
+   * AC-5: The picker label SHALL be the relative path from the entity folder
+     (e.g. ``pm/context.md``)
+   * AC-6: If the file exists (step 1 or selected), it SHALL be opened using
+     ``vscode.window.showTextDocument()``
+   * AC-7: Folder nodes SHALL NOT display the button
+   * AC-8: The command SHALL NOT appear in the Command Palette (it requires a
      tree element argument and would fail without one)

@@ -68,8 +68,11 @@ export class HeartbeatTreeProvider implements vscode.TreeDataProvider<HeartbeatT
                 element.job.name,
                 vscode.TreeItemCollapsibleState.Collapsed
             );
-            item.description = formatNextRun(element.job.schedule);
-            item.contextValue = 'heartbeatJob';
+            // SPEC_AUT_HEARTBEATPROVIDER \u2014 pause indicator + contextValue switch
+            const paused = element.job.enabled === false;
+            const next = formatNextRun(element.job.schedule);
+            item.description = paused ? `\u23F8 pausiert` : next;
+            item.contextValue = paused ? 'heartbeatJobPaused' : 'heartbeatJob';
             // Implementation: SPEC_EXP_HEARTBEAT_OPENFILE
             item.command = {
                 command: 'jarvis.openHeartbeatJob',

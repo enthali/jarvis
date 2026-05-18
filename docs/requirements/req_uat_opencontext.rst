@@ -22,3 +22,15 @@ Open Context UAT Requirements
    * AC-4: Test instructions SHALL specify that ``jarvis.projectsFolder`` is
      pointed at the ``testdata/projects/`` directory in the Extension
      Development Host
+   * AC-5: A project testdata folder SHALL exist where ``context.md`` is absent
+     at root but present in exactly one non-hidden subfolder, to support T-6
+     (e.g. ``testdata/projects/withsub/sub/context.md``)
+   * AC-6: A project testdata folder SHALL exist where ``context.md`` is absent
+     at root but present in two or more non-hidden subfolders, to support T-7
+     (e.g. ``testdata/projects/multi/pm/context.md`` and
+     ``testdata/projects/multi/qm/context.md``)
+   * AC-7: A project testdata folder SHALL exist where ``context.md`` only
+     appears inside a hidden subfolder (name starts with ``.``), to support
+     T-8 (e.g. ``testdata/projects/hidden/.hidden/context.md``)
+   * AC-8: The ``withsub`` project MAY also contain a root ``context.md`` so
+     that T-9 (direct-hit precedence) can be executed by adding that file

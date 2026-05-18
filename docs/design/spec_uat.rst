@@ -29,6 +29,7 @@ outcome tables** for each feature's acceptance tests.
    spec_uat_stablesessionopen
    spec_uat_opencontext
    spec_uat_devcontainer_sessionlookup
+   spec_uat_heartbeat_pause
 
 All UAT Specifications
 ----------------------

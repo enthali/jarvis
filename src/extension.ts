@@ -640,14 +640,48 @@ export function activate(context: vscode.ExtensionContext) {
         'jarvis.openContext',
         async (element: LeafNode) => {
             const folder = path.dirname(element.id);
-            const contextPath = path.join(folder, 'context.md');
-            if (!fs.existsSync(contextPath)) {
-                vscode.window.showInformationMessage(
-                    'No context.md found for this entity');
+            const direct = path.join(folder, 'context.md');
+
+            // 1. Direct hit: <folder>/context.md
+            if (fs.existsSync(direct)) {
+                await vscode.window.showTextDocument(vscode.Uri.file(direct));
                 return;
             }
-            const uri = vscode.Uri.file(contextPath);
-            await vscode.window.showTextDocument(uri);
+
+            // 2. Search one level deep in subfolders (skip hidden)
+            const found: string[] = [];
+            try {
+                for (const entry of fs.readdirSync(folder, { withFileTypes: true })) {
+                    if (!entry.isDirectory() || entry.name.startsWith('.')) { continue; }
+                    const candidate = path.join(folder, entry.name, 'context.md');
+                    if (fs.existsSync(candidate)) { found.push(candidate); }
+                }
+            } catch {
+                // folder unreadable — fall through to "not found"
+            }
+
+            if (found.length === 1) {
+                await vscode.window.showTextDocument(vscode.Uri.file(found[0]));
+                return;
+            }
+
+            if (found.length > 1) {
+                const picked = await vscode.window.showQuickPick(
+                    found.map(p => ({
+                        label: path.relative(folder, p).replace(/\\/g, '/'),
+                        fullPath: p,
+                    })),
+                    { placeHolder: 'Multiple context.md found — pick one' }
+                );
+                if (picked) {
+                    await vscode.window.showTextDocument(vscode.Uri.file(picked.fullPath));
+                }
+                return;
+            }
+
+            // 3. Nothing found
+            vscode.window.showInformationMessage(
+                'No context.md found for this entity');
         }
     );
 

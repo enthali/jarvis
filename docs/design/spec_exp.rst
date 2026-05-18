@@ -1386,9 +1386,9 @@ Explorer Design Specifications
    :links: REQ_EXP_OPENCONTEXT; SPEC_EXP_OPENYAML_CMD; SPEC_EXP_AGENTSESSION; SPEC_EXP_EXTENSION
 
    **Description:**
-   A command ``jarvis.openContext`` opens the ``context.md`` file associated
-   with a project or event leaf item. If the file does not exist, an
-   information message is shown.
+   A command ``jarvis.openContext`` resolves and opens the ``context.md`` file
+   associated with a project or event leaf item using a 3-step discovery
+   process. If no file is found, an information message is shown.
 
    **Handler:**
 
@@ -1401,17 +1401,52 @@ Explorer Design Specifications
       vscode.commands.registerCommand(
         'jarvis.openContext',
         async (element: LeafNode) => {
-          const contextPath = path.join(
-            path.dirname(element.id),
-            'context.md'
-          );
-          const uri = vscode.Uri.file(contextPath);
+          const folder = path.dirname(element.id);
 
-          if (fs.existsSync(contextPath)) {
-            await vscode.window.showTextDocument(uri);
-          } else {
-            vscode.window.showInformationMessage('context.md not found');
+          // Step 1: direct hit
+          const direct = path.join(folder, 'context.md');
+          if (fs.existsSync(direct)) {
+            await vscode.window.showTextDocument(vscode.Uri.file(direct));
+            return;
           }
+
+          // Step 2: one-level subfolder search (hidden folders excluded)
+          const candidates: string[] = [];
+          try {
+            for (const entry of fs.readdirSync(folder, { withFileTypes: true })) {
+              if (!entry.isDirectory() || entry.name.startsWith('.')) { continue; }
+              const candidate = path.join(folder, entry.name, 'context.md');
+              if (fs.existsSync(candidate)) {
+                candidates.push(candidate);
+              }
+            }
+          } catch {
+            // entity folder unreadable — fall through to "not found"
+          }
+
+          if (candidates.length === 1) {
+            // Step 2a: exactly one match — open without prompting
+            await vscode.window.showTextDocument(vscode.Uri.file(candidates[0]));
+            return;
+          }
+
+          if (candidates.length > 1) {
+            // Step 3: multiple matches — let user pick
+            const items = candidates.map(c => ({
+              label: path.relative(folder, c).replace(/\\/g, '/'),
+              fullPath: c
+            }));
+            const pick = await vscode.window.showQuickPick(items, {
+              placeHolder: 'Multiple context.md found — pick one'
+            });
+            if (pick) {
+              await vscode.window.showTextDocument(vscode.Uri.file(pick.fullPath));
+            }
+            return;
+          }
+
+          // Step 4: nothing found
+          vscode.window.showInformationMessage('No context.md found for this entity');
         }
       );
 
@@ -1463,8 +1498,20 @@ Explorer Design Specifications
    * Same inline-button pattern as ``SPEC_EXP_OPENYAML_CMD`` and
      ``SPEC_EXP_AGENTSESSION`` — three icons will be shown on leaf nodes:
      ``$(go-to-file)``, ``$(comment-discussion)``, and ``$(notebook)``
-   * ``fs.existsSync()`` is used to check file existence before opening — this
-     prevents a VS Code error dialog and provides a friendlier user experience
+   * ``fs.existsSync()`` is used synchronously for all existence checks — this
+     is acceptable because the subfolder count is small (project/event folders
+     typically contain fewer than 20 entries)
+   * ``fs.readdirSync`` with ``{ withFileTypes: true }`` avoids a second stat
+     call to determine whether an entry is a directory
+   * Hidden subfolders (names starting with ``.``) are excluded to avoid
+     scanning ``.git``, ``.vscode``, and similar tool directories
+   * Discovery is limited to exactly one level of depth — no recursion — to
+     keep the search predictable and fast
+   * The QuickPick label uses a forward-slash-normalised relative path so it
+     looks consistent on Windows and macOS (e.g. ``pm/context.md``)
+   * If the entity folder itself cannot be read (permissions, missing dir),
+     the ``readdirSync`` error is silently swallowed and the "not found"
+     info message is shown — no error dialog is raised
    * The ``$(notebook)`` icon visually suggests "documentation" or "notes" and
      is distinct from the existing icons
    * No tree provider changes required — purely a command + menu contribution
