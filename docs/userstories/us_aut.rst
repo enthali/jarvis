@@ -48,3 +48,6 @@ Automation User Stories
      job nodes, so that the user can trigger a one-shot run independently of the
      pause state; a paused job thus shows two buttons: Resume (``$(debug-continue)``)
      and Play (``$(play)``)
+   * AC-18: An LM and MCP tool ``jarvis_listJobs`` SHALL allow agents to retrieve
+     all registered heartbeat jobs including their name, schedule, enabled state,
+     and next scheduled fire time

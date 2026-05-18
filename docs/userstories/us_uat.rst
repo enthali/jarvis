@@ -30,6 +30,7 @@ for each feature. Each file corresponds to one feature or change.
    us_uat_opencontext
    us_uat_devcontainer_sessionlookup
    us_uat_heartbeat_pause
+   us_uat_listjobs
 
 All UAT User Stories
 --------------------

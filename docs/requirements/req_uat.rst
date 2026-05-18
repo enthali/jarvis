@@ -30,6 +30,7 @@ end-to-end verification of each feature.
    req_uat_opencontext
    req_uat_devcontainer_sessionlookup
    req_uat_heartbeat_pause
+   req_uat_listjobs
 
 All UAT Requirements
 --------------------

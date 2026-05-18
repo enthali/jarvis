@@ -15,6 +15,7 @@ import { lookupSessionUUID, getAllSessions, initSessionLookup, setSessionLookupL
 import { checkForUpdates } from './updateCheck';
 import { registerMcpTool, startMcpServer, stopMcpServer } from './mcpServer';
 import { z } from 'zod';
+import { CronExpressionParser } from 'cron-parser';
 import { CategoryService } from './pim/CategoryService';
 import { CategoryTreeProvider } from './pim/CategoryTreeProvider';
 import { OutlookCategoryProvider } from './outlookIntegration/OutlookCategoryProvider';
@@ -931,6 +932,51 @@ export function activate(context: vscode.ExtensionContext) {
         }
     );
 
+    // Implementation: SPEC_AUT_LISTJOBS_TOOL
+    // Requirements: REQ_AUT_LISTJOBS_TOOL
+    function jobDescriptor(job: HeartbeatJob): {
+        name: string;
+        schedule: string;
+        enabled: boolean;
+        nextFire: string | null;
+    } {
+        const enabled = job.enabled !== false;
+        let nextFire: string | null = null;
+        if (enabled && job.schedule !== 'manual') {
+            try {
+                nextFire = CronExpressionParser
+                    .parse(job.schedule)
+                    .next()
+                    .toDate()
+                    .toISOString();
+            } catch {
+                nextFire = null;
+            }
+        }
+        return { name: job.name, schedule: job.schedule, enabled, nextFire };
+    }
+
+    const listJobsTool = registerDualTool(
+        'jarvis_listJobs',
+        async (
+            _options: vscode.LanguageModelToolInvocationOptions<Record<string, never>>,
+            _token: vscode.CancellationToken
+        ) => {
+            const jobs = scheduler.currentJobs.map(j => jobDescriptor(j));
+            log.info(`[Heartbeat] listJobs: ${jobs.length} job(s)`);
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(JSON.stringify(jobs))
+            ]);
+        },
+        'Returns all registered heartbeat jobs with name, schedule, enabled state, and next scheduled fire time (ISO 8601 or null for manual/paused jobs).',
+        {},
+        async () => {
+            const jobs = scheduler.currentJobs.map(j => jobDescriptor(j));
+            log.info(`[Heartbeat] listJobs(MCP): ${jobs.length} job(s)`);
+            return { jobs };
+        }
+    );
+
     // Implementation: SPEC_EXP_LISTPROJECTS
     // Requirements: REQ_EXP_LISTPROJECTS
     function collectLeaves(nodes: TreeNode[]): LeafNode[] {
@@ -1551,6 +1597,7 @@ export function activate(context: vscode.ExtensionContext) {
         listSessionsTool,
         registerJobTool,
         unregisterJobTool,
+        listJobsTool,
         listProjectsTool,
         categoryTool,
         taskTool,

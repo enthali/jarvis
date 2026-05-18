@@ -4,6 +4,12 @@ jobs:
     steps:
       - type: powershell
         run: scripts/write-sentinel.ps1
+  - name: t-listjobs-paused
+    schedule: '*/10 * * * *'
+    enabled: false
+    steps:
+      - type: powershell
+        run: scripts/write-sentinel.ps1
   - name: t2-manual-show-output
     schedule: manual
     steps:

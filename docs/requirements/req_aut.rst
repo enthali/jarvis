@@ -229,3 +229,41 @@ Automation Requirements
      active job nodes AND on paused job nodes (independent of pause state); on
      paused nodes the Pause button SHALL NOT be shown (it is replaced by the
      Resume button)
+
+
+.. req:: List Jobs LM+MCP Tool
+   :id: REQ_AUT_LISTJOBS_TOOL
+   :status: approved
+   :priority: optional
+   :links: US_AUT_HEARTBEAT; REQ_AUT_JOBREG
+
+   **Description:**
+   The extension SHALL expose a ``jarvis_listJobs`` tool (available via both the
+   VS Code Language Model Tool API and the embedded MCP server) that returns a
+   snapshot of all currently registered heartbeat jobs.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The tool SHALL accept no input parameters
+   * AC-2: The tool SHALL return an array of job descriptors, each containing:
+
+     - ``name`` (string): the job's unique name
+     - ``schedule`` (string): the cron expression or ``"manual"``
+     - ``enabled`` (boolean): ``true`` if ``job.enabled !== false``, otherwise ``false``
+     - ``nextFire`` (string | null): ISO 8601 timestamp of the next scheduled
+       execution, or ``null`` for paused jobs (``enabled === false``) or
+       jobs with ``schedule === "manual"``
+
+   * AC-3: The tool SHALL be registered via the shared ``registerDualTool()``
+     helper so that it is available over both the LM API and MCP simultaneously
+   * AC-4: The ``nextFire`` timestamp SHALL be computed using ``cron-parser``
+     (``CronExpressionParser.parse(schedule).next().toDate().toISOString()``) —
+     the same library already used in ``heartbeatTreeProvider.ts``
+   * AC-5: If ``cron-parser`` throws (invalid expression), ``nextFire`` SHALL be
+     ``null`` rather than propagating an exception
+
+   .. note::
+      AC-5 is covered by code inspection only (try/catch around the cron parse
+      in ``jobDescriptor``). No dynamic UAT exists because injecting an invalid
+      cron expression into ``heartbeat.yaml`` would also break the scheduler
+      tick loop, which is out of scope for this change.

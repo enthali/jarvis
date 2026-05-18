@@ -815,6 +815,18 @@
         }
       },
       {
+        "name": "jarvis_listJobs",
+        "displayName": "List Heartbeat Jobs",
+        "modelDescription": "Returns all registered heartbeat jobs with name, schedule, enabled state, and next scheduled fire time (ISO 8601 or null for manual/paused jobs).",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "listJobs",
+        "icon": "$(list-unordered)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
         "name": "jarvis_category",
         "displayName": "Manage Categories",
         "modelDescription": "Manage categories from all configured PIM providers. Actions: get (list/filter categories from cache), set (create/update a category), delete (remove a category), rename (rename a category). When no providers are configured, returns an error.",
