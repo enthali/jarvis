@@ -59,3 +59,17 @@ export function getAutoDeliveryPath(): string | undefined {
     const dir = getJarvisDir();
     return dir ? path.join(dir, 'autodelivery.json') : undefined;
 }
+
+/** Returns <workspaceRoot>/.jarvis/sessions, or undefined when no workspace is open. */
+export function getSessionsDir(): string | undefined {
+    const dir = getJarvisDir();
+    return dir ? path.join(dir, 'sessions') : undefined;
+}
+
+/** Ensures <workspaceRoot>/.jarvis/sessions exists (mkdir -p) and returns its path, or undefined. */
+export function ensureSessionsDir(): string | undefined {
+    const dir = getSessionsDir();
+    if (!dir) { return undefined; }
+    fs.mkdirSync(dir, { recursive: true });
+    return dir;
+}

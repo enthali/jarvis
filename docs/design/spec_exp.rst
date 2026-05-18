@@ -469,6 +469,7 @@ Explorer Design Specifications
             const initPrompt =
               `You are working on the project/event "${entity.name}". ` +
               `Please read the relevant project context.`;
+            // NOTE: This hardcoded prompt is superseded by SPEC_EXP_AGENTSESSION_INITPROMPT.
             await vscode.commands.executeCommand(
               'workbench.action.chat.open',
               { query: initPrompt }
@@ -531,6 +532,64 @@ Explorer Design Specifications
    * The initialization prompt is submitted directly via
      ``workbench.action.chat.open`` (not via the message queue)
    * Disposable pushed to ``context.subscriptions``
+   * **The verbatim prompt template is specified in
+     ``SPEC_EXP_AGENTSESSION_INITPROMPT``.** The old hardcoded wording shown
+     above is retained for historical reference only.
+
+
+.. spec:: Agent-Session Identity Prompt Template
+   :id: SPEC_EXP_AGENTSESSION_INITPROMPT
+   :status: implemented
+   :links: REQ_SES_AGENTPROMPT
+
+   **Description:**
+   When ``jarvis.openAgentSession`` creates a **new** chat session (no existing
+   UUID found), it sends a kind-aware identity prompt that instructs the agent to
+   adopt the entity's identity and maintain ``context.md`` as persistent memory.
+   This applies to all entity kinds: ``project``, ``event``, and ``session``.
+
+   **Implementation** (``src/extension.ts`` ``openAgentSessionCommand``):
+
+   .. code-block:: typescript
+
+      const kind = entity.kind ?? 'project';
+      const contextPath = path.join(
+          entity.folder ?? path.dirname(element.id),
+          'context.md'
+      );
+      const initPrompt =
+          `You are the ${kind} "${entity.name}". ` +
+          `Your persistent memory lives at \`${contextPath}\`. ` +
+          `Read it now to load prior context, and update it with ` +
+          `important decisions, plans, and findings as we work so ` +
+          `future sessions can pick up where you left off.`;
+
+   **Verbatim prompt template:**
+
+   .. code-block:: text
+
+      You are the ${kind} "${entity.name}". Your persistent memory lives at
+      `${contextPath}`. Read it now to load prior context, and update it with
+      important decisions, plans, and findings as we work so future sessions
+      can pick up where you left off.
+
+   **Field derivation:**
+
+   * ``kind`` — ``entity.kind`` (``'project' | 'event' | 'session'``), defaulting
+     to ``'project'`` when the field is absent (backwards compatibility with
+     entities loaded before the ``kind`` field was added to ``EntityEntry``).
+   * ``entity.name`` — the display name from ``session.yaml`` / ``project.yaml`` /
+     ``event.yaml``.
+   * ``contextPath`` — ``path.join(entity.folder ?? path.dirname(element.id),
+     'context.md')`` — absolute filesystem path so the agent can open the file
+     directly without resolving workspace-relative paths.
+
+   **Scope:** Cross-entity — benefits projects, events, and sessions. The spec
+   lives here (``spec_exp.rst``) because ``jarvis.openAgentSession`` is an EXP
+   command; the triggering requirement lives in ``REQ_SES_AGENTPROMPT`` as part
+   of the sessions-feature CR.
+
+   **File touchpoint:** ``src/extension.ts`` ``openAgentSessionCommand``.
 
 
 .. spec:: New Project Command

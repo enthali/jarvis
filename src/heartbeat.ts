@@ -576,16 +576,10 @@ export function activateHeartbeat(
     // Config change handler — restart scheduler (SPEC_CFG_HEARTBEATSETTINGS)
     context.subscriptions.push(
         vscode.workspace.onDidChangeConfiguration(e => {
-            if (
-                e.affectsConfiguration('jarvis.heartbeatInterval') ||
-                e.affectsConfiguration('jarvis.heartbeatConfigFile')
-            ) {
+            if (e.affectsConfiguration('jarvis.heartbeatInterval')) {
                 scheduler.dispose();
                 scheduler.start(context, outputChannel, statusBarItem, resolveMessagesPath(), messageTreeProvider);
                 heartbeatTreeProvider.setJobs(scheduler.currentJobs);
-            }
-            if (e.affectsConfiguration('jarvis.messagesFile')) {
-                messageTreeProvider.reload();
             }
         })
     );

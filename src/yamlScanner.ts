@@ -7,8 +7,11 @@ import * as yaml from 'js-yaml';
 
 export interface EntityEntry {
     name: string;
+    summary?: string;    // session/project summary; undefined if absent
     datesStart?: string; // event start date YYYY-MM-DD; undefined for projects or if absent
     datesEnd?: string;   // event end date YYYY-MM-DD; undefined for projects or if absent
+    kind?: 'project' | 'event' | 'session'; // entity kind; set by scanner
+    folder?: string;     // absolute path to the containing directory
 }
 
 export interface FolderNode {
@@ -27,25 +30,28 @@ export type TreeNode = FolderNode | LeafNode;
 export class YamlScanner {
     private _projectTree: TreeNode[] = [];
     private _eventTree: TreeNode[] = [];
+    private _sessionTree: TreeNode[] = [];
     private _entities: Map<string, EntityEntry> = new Map();
     private _onCacheChanged: () => void;
     private _projectsFolder = '';
     private _eventsFolder = '';
+    private _sessionsFolder = '';
 
     constructor(onCacheChanged: () => void) {
         this._onCacheChanged = onCacheChanged;
     }
 
-    start(projectsFolder: string, eventsFolder: string): void {
+    start(projectsFolder: string, eventsFolder: string, sessionsFolder?: string): void {
         this.stop();
         this._projectsFolder = projectsFolder;
         this._eventsFolder = eventsFolder;
-        this._scan(projectsFolder, eventsFolder);
+        this._sessionsFolder = sessionsFolder ?? '';
+        this._scan(projectsFolder, eventsFolder, this._sessionsFolder);
     }
 
     async rescan(): Promise<void> {
-        if (!this._projectsFolder && !this._eventsFolder) { return; }
-        await this._scan(this._projectsFolder, this._eventsFolder);
+        if (!this._projectsFolder && !this._eventsFolder && !this._sessionsFolder) { return; }
+        await this._scan(this._projectsFolder, this._eventsFolder, this._sessionsFolder);
     }
 
     stop(): void {
@@ -60,31 +66,48 @@ export class YamlScanner {
         return this._eventTree;
     }
 
+    getSessionTree(): TreeNode[] {
+        return this._sessionTree;
+    }
+
     getEntity(id: string): EntityEntry | undefined {
         return this._entities.get(id);
     }
 
-    private async _scan(projectsFolder: string, eventsFolder: string): Promise<void> {
+    get entities(): (EntityEntry & { id: string; kind: 'project' | 'event' | 'session'; folder: string })[] {
+        return [...this._entities.entries()].map(([id, entry]) => ({
+            ...entry,
+            id,
+            kind: entry.kind ?? 'project',
+            folder: entry.folder ?? path.dirname(id),
+        }));
+    }
+
+    private async _scan(projectsFolder: string, eventsFolder: string, sessionsFolder: string): Promise<void> {
         const newEntities = new Map<string, EntityEntry>();
-        const newProjectTree = await this._buildTree(projectsFolder, newEntities, 'project.yaml');
-        const newEventTree = await this._buildTree(eventsFolder, newEntities, 'event.yaml');
+        const newProjectTree = await this._buildTree(projectsFolder, newEntities, 'project.yaml', 'project');
+        const newEventTree = await this._buildTree(eventsFolder, newEntities, 'event.yaml', 'event');
+
+        const newSessionTree = await this._buildTree(sessionsFolder, newEntities, 'session.yaml', 'session');
 
         // Entity-map comparison (scanner-refresh change): detect YAML content changes
         // even when tree structure is unchanged
         const changed =
             !this._treesEqual(newProjectTree, this._projectTree) ||
             !this._treesEqual(newEventTree, this._eventTree) ||
+            !this._treesEqual(newSessionTree, this._sessionTree) ||
             !this._entitiesEqual(newEntities, this._entities);
 
         if (changed) {
             this._projectTree = newProjectTree;
             this._eventTree = newEventTree;
+            this._sessionTree = newSessionTree;
             this._entities = newEntities;
             this._onCacheChanged();
         }
     }
 
-    private async _buildTree(folder: string, entities: Map<string, EntityEntry>, conventionFile: string): Promise<TreeNode[]> {
+    private async _buildTree(folder: string, entities: Map<string, EntityEntry>, conventionFile: string, kind: 'project' | 'event' | 'session'): Promise<TreeNode[]> {
         if (!folder) {
             return [];
         }
@@ -122,23 +145,27 @@ export class YamlScanner {
                             const datesStart = rawStart instanceof Date
                                 ? rawStart.toISOString().slice(0, 10)
                                 : typeof rawStart === 'string' ? rawStart : undefined;
+                            const summary = typeof doc['summary'] === 'string' ? doc['summary'] : undefined;
                             entities.set(conventionPath, {
                                 name: doc['name'],
+                                ...(summary ? { summary } : {}),
                                 ...(datesStart ? { datesStart } : {}),
-                                ...(typeof datesEnd === 'string' ? { datesEnd } : {})
+                                ...(typeof datesEnd === 'string' ? { datesEnd } : {}),
+                                kind,
+                                folder: fullPath,
                             });
                         } else {
                             // Fallback: convention file present but missing/invalid name
-                            entities.set(conventionPath, { name: entry.name });
+                            entities.set(conventionPath, { name: entry.name, kind, folder: fullPath });
                         }
                     } catch {
                         // Fallback: convention file present but unparseable
-                        entities.set(conventionPath, { name: entry.name });
+                        entities.set(conventionPath, { name: entry.name, kind, folder: fullPath });
                     }
                     nodes.push({ kind: 'leaf', id: conventionPath });
                 } else {
                     // Grouping folder — recurse, only include if non-empty
-                    const children = await this._buildTree(fullPath, entities, conventionFile);
+                    const children = await this._buildTree(fullPath, entities, conventionFile, kind);
                     if (children.length > 0) {
                         nodes.push({ kind: 'folder', name: entry.name, children });
                     }

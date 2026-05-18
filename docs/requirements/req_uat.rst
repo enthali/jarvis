@@ -33,6 +33,7 @@ end-to-end verification of each feature.
    req_uat_listjobs
    req_uat_reminders
    req_uat_settings_cleanup
+   req_uat_sessions_feature
 
 All UAT Requirements
 --------------------

@@ -21,10 +21,14 @@
     "onView:jarvisMessages",
     "onView:jarvisReminders",
     "onView:jarvisHeartbeat",
-    "onView:jarvisCategories"
+    "onView:jarvisCategories",
+    "onView:jarvisSessions"
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "yamlValidation": [
+      { "fileMatch": "session.yaml", "url": "./schemas/session.schema.json" }
+    ],
     "customEditors": [
       {
         "viewType": "jarvis.taskEditor",
@@ -50,6 +54,11 @@
           "id": "jarvisProjects",
           "name": "Projects",
           "when": "config.jarvis.projects.enabled == true"
+        },
+        {
+          "id": "jarvisSessions",
+          "name": "Sessions",
+          "when": "config.jarvis.sessions.enabled == true"
         },
         {
           "id": "jarvisEvents",
@@ -150,6 +159,16 @@
       {
         "command": "jarvis.newEvent",
         "title": "Jarvis: New Event",
+        "icon": "$(add)"
+      },
+      {
+        "command": "jarvis.newEntity",
+        "title": "Jarvis: New Entity",
+        "icon": "$(add)"
+      },
+      {
+        "command": "jarvis.newSession",
+        "title": "Jarvis: New Session",
         "icon": "$(add)"
       },
       {
@@ -265,6 +284,14 @@
         },
         {
           "command": "jarvis.newEvent",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.newEntity",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.newSession",
           "when": "false"
         },
         {
@@ -408,6 +435,16 @@
           "group": "navigation"
         },
         {
+          "command": "jarvis.newSession",
+          "when": "view == jarvisSessions",
+          "group": "navigation@1"
+        },
+        {
+          "command": "jarvis.rescan",
+          "when": "view == jarvisSessions",
+          "group": "navigation@3"
+        },
+        {
           "command": "jarvis.refreshHeartbeat",
           "when": "view == jarvisHeartbeat",
           "group": "navigation@1"
@@ -470,6 +507,16 @@
           "group": "inline"
         },
         {
+          "command": "jarvis.openContext",
+          "when": "viewItem == jarvisSession",
+          "group": "inline"
+        },
+        {
+          "command": "jarvis.openAgentSession",
+          "when": "viewItem == jarvisSession",
+          "group": "inline"
+        },
+        {
           "command": "jarvis.runJob",
           "when": "viewItem == heartbeatJob",
           "group": "inline"
@@ -505,6 +552,11 @@
           "group": "context-actions"
         },
         {
+          "command": "jarvis.revealInExplorer",
+          "when": "viewItem == jarvisSession",
+          "group": "context-actions"
+        },
+        {
           "command": "jarvis.revealInOS",
           "when": "viewItem == jarvisProject",
           "group": "context-actions"
@@ -515,6 +567,11 @@
           "group": "context-actions"
         },
         {
+          "command": "jarvis.revealInOS",
+          "when": "viewItem == jarvisSession",
+          "group": "context-actions"
+        },
+        {
           "command": "jarvis.openInTerminal",
           "when": "viewItem == jarvisProject",
           "group": "context-actions"
@@ -522,6 +579,11 @@
         {
           "command": "jarvis.openInTerminal",
           "when": "viewItem == jarvisEvent",
+          "group": "context-actions"
+        },
+        {
+          "command": "jarvis.openInTerminal",
+          "when": "viewItem == jarvisSession",
           "group": "context-actions"
         },
         {
@@ -594,7 +656,13 @@
       },
       {
         "title": "Sessions",
-        "properties": {}
+        "properties": {
+          "jarvis.sessions.enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable the Sessions feature (lightweight project entities)."
+          }
+        }
       },
       {
         "title": "Messages",
@@ -704,6 +772,20 @@
       }
     ],
     "languageModelTools": [
+      {
+        "name": "jarvis_listSessionEntities",
+        "displayName": "List Session Entities",
+        "modelDescription": "Lists all Jarvis session entities (lightweight projects) discovered under <workspace>/.jarvis/sessions/. Each entry has name, summary, and folder. Distinct from jarvis_listSessions which lists chat sessions.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "listSessionEntities",
+        "icon": "$(folder)",
+        "tags": ["jarvis"],
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        }
+      },
       {
         "name": "jarvis_sendToSession",
         "displayName": "Send Message to Chat Session",

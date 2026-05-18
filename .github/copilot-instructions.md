@@ -17,7 +17,7 @@ Projects and events are stored as YAML files in configurable folders.
 
 ```
 src/                    — Extension source (TypeScript)
-  extension.ts          — Activation, commands (new-entity, filters, rescan, context-actions, agent sessions, category/task rename/delete/refresh, searchProjects/searchEvents with flattenLeaves() helper, enableAutoDelivery/disableAutoDelivery), populateDefaultPaths() for workspace-settings bootstrap, 8 LM+MCP tools (sendToSession, readMessage, listSessions, listProjects, registerJob, unregisterJob, jarvis_category, jarvis_task) via registerDualTool(), syncRescanJob()+syncCategoryRefreshJob()+syncTaskRefreshJob() heartbeat bridges, 5-second poll loop for auto-delivery (max 1 msg/tick, marks notified:true), shared LogOutputChannel "Jarvis" (structured logging with levels and module tags); stable session helpers: openPinnedResource() (vscode.open preview:false), openNewChatEditor() (workbench.action.openChat + fallback), sendPromptToFocusedAgentChat() (openAgent + fallback); openAgentSession: /rename then context.md init prompt
+  extension.ts          — Activation, commands (new-entity, new-session, filters, rescan, context-actions, agent sessions, category/task rename/delete/refresh, searchProjects/searchEvents with flattenLeaves() helper, enableAutoDelivery/disableAutoDelivery), populateDefaultPaths() for workspace-settings bootstrap, 9 LM+MCP tools (sendToSession, readMessage, listSessions, listProjects, jarvis_listSessionEntities, registerJob, unregisterJob, jarvis_category, jarvis_task) via registerDualTool(), syncRescanJob()+syncCategoryRefreshJob()+syncTaskRefreshJob() heartbeat bridges, 5-second poll loop for auto-delivery (max 1 msg/tick, marks notified:true), shared LogOutputChannel "Jarvis" (structured logging with levels and module tags); stable session helpers: openPinnedResource() (vscode.open preview:false), openNewChatEditor() (workbench.action.openChat + fallback), sendPromptToFocusedAgentChat() (openAgent + fallback); openAgentSession: /rename then identity-style context.md init prompt (kind-aware, absolute path in backticks); newSession: creates session folder + rescan + auto-opens agent chat
   pim/ICategoryProvider.ts — Category + ICategoryProvider strategy-pattern interface
   pim/DomainCache.ts    — Generic in-memory cache with refresh callback
   pim/CategoryService.ts — Provider list + DomainCache<Category[]>; getCategories/setCategory/deleteCategory/renameCategory/refresh/hasProviders
@@ -29,6 +29,7 @@ src/                    — Extension source (TypeScript)
   outlookIntegration/OutlookTaskProvider.ts — ITaskProvider via PowerShell COM; JSON sanitization (strips U+0000–U+001F before JSON.parse)
   yamlScanner.ts        — Convention-file scanner: folder with project.yaml/event.yaml = leaf; content-change detection; events sorted by datesStart+name, projects by name; no own timer (rescans via heartbeat)
   projectTreeProvider.ts — Tree UI for projects (owns _hiddenFolders filter; contextValue: jarvisProject)
+  sessionTreeProvider.ts — Tree UI for sessions (lightweight project alternative; contextValue: jarvisSession)
   eventTreeProvider.ts  — Tree UI for events (owns _futureOnly filter; label: "datesStart — name"; contextValue: jarvisEvent)
   messageTreeProvider.ts — Tree UI for messages (manual sessions at root + permanent AutoDeliveryGroupNode with zap icon; contextValues: jarvisSessionManual, jarvisSessionAutoDeliver)
   heartbeatTreeProvider.ts — Tree UI for heartbeat jobs (contextValue: heartbeatJob)
@@ -64,7 +65,7 @@ This is a single-project repo — **no family prefix**.
 Format: `<TYPE>_<THEME>_<SHORT_SLUG>`
 
 - `US_` = User Story, `REQ_` = Requirement, `SPEC_` = Design Spec
-- Themes: `EXP` (Explorer UI), `DEV` (Developer Tooling), `CFG` (Config), `PRJ` (Projects), `EVT` (Events), `MSG` (Message Queue / Chat Sessions), `PIM` (Personal Information Manager — categories), `OLK` (Outlook integration), `REL` (Release), `UAT` (User Acceptance Tests), `AUT` (Automation/Scheduling)
+- Themes: `EXP` (Explorer UI), `DEV` (Developer Tooling), `CFG` (Config), `PRJ` (Projects), `EVT` (Events), `MSG` (Message Queue / Chat Sessions), `PIM` (Personal Information Manager — categories), `OLK` (Outlook integration), `REL` (Release), `UAT` (User Acceptance Tests), `AUT` (Automation/Scheduling), `SES` (Sessions — work/dev session folders)
 - Example: `US_EXP_SIDEBAR`, `REQ_DEV_LAUNCHCONFIG`, `SPEC_REL_RELEASEACTION`, `US_AUT_HEARTBEAT`
 
 Full conventions: `docs/namingconventions.rst`

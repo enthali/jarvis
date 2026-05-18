@@ -26,6 +26,7 @@ import { TaskService } from './pim/TaskService';
 import { TaskEditorProvider } from './pim/TaskEditorProvider';
 import { OutlookTaskProvider } from './outlookIntegration/OutlookTaskProvider';
 import { RecordingManager } from './recording';
+import { SessionTreeProvider } from './sessionTreeProvider';
 
 // Module-level reference so deactivate() can call recordingManager.deactivate() (SPEC_REC_SUBPROCESS)
 let _recordingManager: RecordingManager | undefined;
@@ -108,6 +109,7 @@ export function activate(context: vscode.ExtensionContext) {
     let scanner: YamlScanner | undefined;
     let projectProvider: ProjectTreeProvider | undefined;
     let eventProvider: EventTreeProvider | undefined;
+    let sessionProvider: SessionTreeProvider | undefined;
     let projectView: vscode.TreeView<any> | undefined;
     let eventView: vscode.TreeView<any> | undefined;
 
@@ -116,7 +118,8 @@ export function activate(context: vscode.ExtensionContext) {
         const config = vscode.workspace.getConfiguration('jarvis');
         const projectsFolder = config.get<string>('projects.folder', '');
         const eventsFolder = config.get<string>('events.folder', '');
-        scanner.start(projectsFolder, eventsFolder);
+        const sessionsFolder = configPaths.getSessionsDir() ?? '';
+        scanner.start(projectsFolder, eventsFolder, sessionsFolder);
         log.info('[Scanner] starting scan');
     }
 
@@ -173,6 +176,7 @@ export function activate(context: vscode.ExtensionContext) {
         scanner = scanner ?? new YamlScanner(() => {
             projectProvider?.refresh();
             eventProvider?.refresh();
+            sessionProvider?.refresh();
         });
         projectProvider = new ProjectTreeProvider(scanner, taskService, _recordingManager);
         projectView = vscode.window.createTreeView('jarvisProjects', { treeDataProvider: projectProvider });
@@ -205,6 +209,7 @@ export function activate(context: vscode.ExtensionContext) {
             scanner = new YamlScanner(() => {
                 projectProvider?.refresh();
                 eventProvider?.refresh();
+                sessionProvider?.refresh();
             });
         }
         eventProvider = new EventTreeProvider(scanner, taskService, _recordingManager);
@@ -223,7 +228,29 @@ export function activate(context: vscode.ExtensionContext) {
         log.info('[CFG] Events feature disabled');
     }
 
-    // Start scanner if either feature is active
+    // ------- SESSIONS feature block (SPEC_SES_MANIFEST, SPEC_SES_TREE) -------
+    // Implementation: SPEC_SES_TREE, SPEC_SES_TOOLS, SPEC_SES_MANIFEST
+    // Requirements: REQ_SES_TOGGLE, REQ_SES_TREE, REQ_SES_LISTTOOL
+    if (cfg.get<boolean>('sessions.enabled', true)) {
+        if (!scanner) {
+            scanner = new YamlScanner(() => {
+                projectProvider?.refresh();
+                eventProvider?.refresh();
+                sessionProvider?.refresh();
+            });
+        }
+        sessionProvider = new SessionTreeProvider(scanner);
+        const sessionView = vscode.window.createTreeView('jarvisSessions', {
+            treeDataProvider: sessionProvider,
+            canSelectMany: false,
+        });
+        context.subscriptions.push(sessionView);
+        log.info('[CFG] Sessions feature enabled');
+    } else {
+        log.info('[CFG] Sessions feature disabled');
+    }
+
+    // Start scanner if any entity feature is active
     if (scanner) { startScanner(); }
 
     // ------- HEARTBEAT feature block (SPEC_CFG_TOGGLEGUARDS) -------
@@ -680,10 +707,15 @@ export function activate(context: vscode.ExtensionContext) {
                 // Rename session via /rename command
                 await renameFocusedChatSession(entity.name);
 
-                // Send initialization prompt
+                // Send initialization prompt (SPEC_EXP_AGENTSESSION_INITPROMPT)
+                const kind = entity.kind ?? 'project';
+                const folder = entity.folder ?? path.dirname(element.id);
+                const contextPath = path.join(folder, 'context.md');
                 const initPrompt =
-                    `You are working on the project/event "${entity.name}". ` +
-                    `Please read the relevant project context.`;
+                    `You are the ${kind} "${entity.name}". ` +
+                    `Your persistent memory lives at \`${contextPath}\`. ` +
+                    `Read it now to load prior context, and update it with important decisions, ` +
+                    `plans, and findings as we work so future sessions can pick up where you left off.`;
                 await vscode.commands.executeCommand(
                     'workbench.action.chat.open',
                     { query: initPrompt }
@@ -791,7 +823,7 @@ export function activate(context: vscode.ExtensionContext) {
         async (node: MessageLeafNode) => {
             const messagesPath = resolveMessagesPath();
             if (!messagesPath) {
-                vscode.window.showWarningMessage('Jarvis: messagesFile is not configured.');
+                vscode.window.showWarningMessage('Jarvis: No workspace open (cannot resolve messages path).');
                 return;
             }
             const uri = vscode.Uri.file(messagesPath);
@@ -1170,6 +1202,33 @@ export function activate(context: vscode.ExtensionContext) {
             });
             log.info(`[EXP] listProjects(MCP): ${projects.length} project(s)`);
             return { projects };
+        }
+    );
+
+    // Implementation: SPEC_SES_TOOLS
+    // Requirements: REQ_SES_LISTTOOL
+    const listSessionEntitiesTool = registerDualTool(
+        'jarvis_listSessionEntities',
+        async (
+            _options: vscode.LanguageModelToolInvocationOptions<Record<string, never>>,
+            _token: vscode.CancellationToken
+        ) => {
+            const sessions = scanner?.entities
+                .filter(e => e.kind === 'session')
+                .map(e => ({ name: e.name, summary: e.summary ?? '', folder: e.folder })) ?? [];
+            log.info(`[SES] listSessionEntities: ${sessions.length} session(s)`);
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(JSON.stringify({ sessions }))
+            ]);
+        },
+        'Lists all Jarvis session entities (lightweight projects) discovered under <workspace>/.jarvis/sessions/.',
+        {},
+        async () => {
+            const sessions = scanner?.entities
+                .filter(e => e.kind === 'session')
+                .map(e => ({ name: e.name, summary: e.summary ?? '', folder: e.folder })) ?? [];
+            log.info(`[SES] listSessionEntities(MCP): ${sessions.length} session(s)`);
+            return { sessions };
         }
     );
 
@@ -1561,6 +1620,89 @@ export function activate(context: vscode.ExtensionContext) {
         }
     );
 
+    // Implementation: SPEC_SES_MANIFEST (newEntity Session option)
+    // Requirements: REQ_SES_NEWENTITY
+    // Implementation: SPEC_SES_NEWENTITY (Session branch)
+    // Requirements: REQ_SES_NEWENTITY
+    const newSessionCommand = vscode.commands.registerCommand(
+        'jarvis.newSession',
+        async () => {
+            const targetFolder = configPaths.ensureSessionsDir();
+            if (!targetFolder) {
+                vscode.window.showWarningMessage('Jarvis: No workspace open.');
+                return;
+            }
+
+            const nameInput = await vscode.window.showInputBox({
+                prompt: 'Session name',
+                placeHolder: 'My Session',
+                validateInput: v => v?.trim() ? null : 'Name cannot be empty',
+            });
+            if (!nameInput) { return; }
+
+            const summaryInput = await vscode.window.showInputBox({
+                prompt: 'Session summary (optional)',
+                placeHolder: 'Short description',
+            });
+
+            const kebabName = toKebabCase(nameInput);
+            const targetPath = path.join(targetFolder, kebabName);
+
+            if (fs.existsSync(targetPath)) {
+                vscode.window.showErrorMessage(`Folder '${kebabName}' already exists in sessions folder`);
+                return;
+            }
+
+            await fs.promises.mkdir(targetPath, { recursive: true });
+
+            const yamlLines = [`name: "${nameInput}"`];
+            if (summaryInput) {
+                yamlLines.push(`summary: "${summaryInput.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`);
+            }
+            yamlLines.push('');
+            await fs.promises.writeFile(
+                path.join(targetPath, 'session.yaml'),
+                yamlLines.join('\n'),
+                'utf-8'
+            );
+
+            const contextContent = `# ${nameInput}\n\n${summaryInput ?? ''}\n`;
+            await fs.promises.writeFile(
+                path.join(targetPath, 'context.md'),
+                contextContent,
+                'utf-8'
+            );
+
+            await scanner?.rescan();
+            log.info(`[NewSession] created session "${nameInput}" at ${targetPath}`);
+
+            // Auto-open the new session as an agent session (SPEC_SES_NEWENTITY_AUTOOPEN)
+            const sessionYamlPath = path.join(targetPath, 'session.yaml');
+            const leaf: LeafNode = { kind: 'leaf', id: sessionYamlPath };
+            await vscode.commands.executeCommand('jarvis.openAgentSession', leaf);
+        }
+    );
+
+    const newEntityCommand = vscode.commands.registerCommand(
+        'jarvis.newEntity',
+        async () => {
+            const pick = await vscode.window.showQuickPick([
+                { label: 'Project', description: 'Full project entity (name, status, stakeholders)' },
+                { label: 'Event', description: 'Calendar event entity (name, dates)' },
+                { label: 'Session', description: 'Lightweight project entity (name + summary)' },
+            ], { placeHolder: 'Select entity type to create' });
+            if (!pick) { return; }
+
+            if (pick.label === 'Project') {
+                await vscode.commands.executeCommand('jarvis.newProject');
+            } else if (pick.label === 'Event') {
+                await vscode.commands.executeCommand('jarvis.newEvent');
+            } else if (pick.label === 'Session') {
+                await vscode.commands.executeCommand('jarvis.newSession');
+            }
+        }
+    );
+
     // ------- MCP feature block (SPEC_CFG_TOGGLEGUARDS) -------
     // Implementation: SPEC_MSG_DUALREGISTRATION (lifecycle)
     // Requirements: REQ_MSG_MCPSERVER, REQ_CFG_MCPPORT
@@ -1784,6 +1926,8 @@ export function activate(context: vscode.ExtensionContext) {
         openContextCommand,
         newProjectCommand,
         newEventCommand,
+        newEntityCommand,
+        newSessionCommand,
         checkForUpdatesCommand,
         sendToSessionTool,
         readMessageTool,

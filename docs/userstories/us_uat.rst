@@ -33,6 +33,7 @@ for each feature. Each file corresponds to one feature or change.
    us_uat_listjobs
    us_uat_reminders
    us_uat_settings_cleanup
+   us_uat_sessions_feature
 
 All UAT User Stories
 --------------------
