@@ -35,6 +35,8 @@ export interface HeartbeatJob {
     name: string;
     schedule: string; // 5-field cron string or "manual"
     steps: HeartbeatStep[];
+    // SPEC_AUT_JOBSCHEMA — pause flag, omitted means enabled
+    enabled?: boolean;
 }
 
 interface ExecResult {
@@ -390,6 +392,31 @@ export class HeartbeatScheduler {
         this.jobs = loadJobs(configPath, this.outputChannel);
     }
 
+    // Implementation: SPEC_AUT_PAUSECOMMAND
+    // Requirements: REQ_AUT_PAUSE
+    async setJobEnabled(name: string, enabled: boolean): Promise<void> {
+        if (!this.context) { return; }
+        const configPath = resolveConfigPath(this.context);
+        let data: { jobs: HeartbeatJob[] };
+        try {
+            const raw = fs.readFileSync(configPath, 'utf8');
+            data = (yaml.load(raw) as { jobs: HeartbeatJob[] }) ?? { jobs: [] };
+            if (!data.jobs) { return; }
+        } catch { return; }
+
+        const job = data.jobs.find(j => j.name === name);
+        if (!job) { return; }
+        if (enabled) {
+            delete job.enabled; // omit field \u2192 default true (clean YAML)
+        } else {
+            job.enabled = false;
+        }
+
+        fs.writeFileSync(configPath, yaml.dump(data), 'utf8');
+        this.reload();
+        this.heartbeatTreeProvider?.setJobs(this.jobs);
+    }
+
     start(
         context: vscode.ExtensionContext,
         outputChannel: vscode.LogOutputChannel,
@@ -430,6 +457,7 @@ export class HeartbeatScheduler {
         const minuteKey = Math.floor(now.getTime() / 60000);
 
         for (const job of this.jobs) {
+            if (job.enabled === false) { continue; } // SPEC_AUT_SCHEDULERLOOP — skip paused
             if (job.schedule === 'manual') { continue; }
             if (!matchesCron(job.schedule, now)) { continue; }
             if (this.lastFired.get(job.name) === minuteKey) { continue; }
@@ -511,6 +539,34 @@ export function activateHeartbeat(
                 .then(result => {
                     if (!result.success) { notifyFailure(node.job, result, outputChannel); }
                 });
+        })
+    );
+
+    // Pause job (SPEC_AUT_PAUSECOMMAND)
+    context.subscriptions.push(
+        vscode.commands.registerCommand('jarvis.pauseHeartbeatJob', async (node: JobNode) => {
+            await scheduler.setJobEnabled(node.job.name, false);
+            heartbeatTreeProvider.setJobs(scheduler.currentJobs);
+            vscode.window.showInformationMessage(`Heartbeat '${node.job.name}' pausiert.`);
+        })
+    );
+
+    // Resume job and run once (SPEC_AUT_PAUSECOMMAND)
+    context.subscriptions.push(
+        vscode.commands.registerCommand('jarvis.resumeHeartbeatJob', async (node: JobNode) => {
+            await scheduler.setJobEnabled(node.job.name, true);
+            heartbeatTreeProvider.setJobs(scheduler.currentJobs);
+            const resumed = scheduler.currentJobs.find(j => j.name === node.job.name);
+            if (resumed) {
+                vscode.window.showInformationMessage(
+                    `Heartbeat '${resumed.name}' fortgesetzt und gestartet.`
+                );
+                executeJob(resumed, outputChannel, scheduler.currentConfigDir,
+                    scheduler.currentQueuePath, messageTreeProvider)
+                    .then(result => {
+                        if (!result.success) { notifyFailure(resumed, result, outputChannel); }
+                    });
+            }
         })
     );
 

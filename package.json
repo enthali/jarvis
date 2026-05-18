@@ -160,6 +160,16 @@
         "icon": "$(play)"
       },
       {
+        "command": "jarvis.pauseHeartbeatJob",
+        "title": "Jarvis: Pause Heartbeat Job",
+        "icon": "$(debug-pause)"
+      },
+      {
+        "command": "jarvis.resumeHeartbeatJob",
+        "title": "Jarvis: Resume Heartbeat Job",
+        "icon": "$(debug-continue)"
+      },
+      {
         "command": "jarvis.refreshHeartbeat",
         "title": "Jarvis: Refresh Heartbeat",
         "icon": "$(refresh)"
@@ -247,6 +257,14 @@
         },
         {
           "command": "jarvis.runJob",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.pauseHeartbeatJob",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.resumeHeartbeatJob",
           "when": "false"
         },
         {
@@ -430,6 +448,21 @@
         {
           "command": "jarvis.runJob",
           "when": "viewItem == heartbeatJob",
+          "group": "inline"
+        },
+        {
+          "command": "jarvis.runJob",
+          "when": "viewItem == heartbeatJobPaused",
+          "group": "inline"
+        },
+        {
+          "command": "jarvis.pauseHeartbeatJob",
+          "when": "viewItem == heartbeatJob",
+          "group": "inline"
+        },
+        {
+          "command": "jarvis.resumeHeartbeatJob",
+          "when": "viewItem == heartbeatJobPaused",
           "group": "inline"
         },
         {
