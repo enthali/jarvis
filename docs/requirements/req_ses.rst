@@ -203,3 +203,69 @@ Sessions Requirements
      argument identically to a project node, dispatching on the ``folder``
      property (verifiable by inspecting the tree item's
      ``command.arguments[0]`` shape).
+
+
+.. req:: jarvis_createSession LM+MCP Tool
+   :id: REQ_SES_CREATETOOL
+   :status: implemented
+   :priority: required
+   :links: US_SES_CREATETOOL
+
+   **Description:**
+   A new Language Model and MCP tool ``jarvis_createSession`` SHALL
+   programmatically create a session entity under the fixed path
+   ``<workspaceRoot>/.jarvis/sessions/<name>/``.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The tool SHALL be registered via ``registerDualTool()`` inside the
+     ``if (sessions.enabled)`` activation block, and SHALL be absent when
+     ``jarvis.sessions.enabled`` is ``false``.
+   * AC-2: On a successful create, the tool SHALL:
+
+     a. Create the directory ``<workspaceRoot>/.jarvis/sessions/<name>/`` where
+        the folder name is the verbatim ``name`` parameter — no slug transformation.
+     b. Write ``session.yaml`` containing the ``name`` field (always) and the
+        ``summary`` field (only when the supplied summary is non-blank).
+     c. Write an empty ``context.md`` containing only ``# <name>\n\n``.
+
+   * AC-3: After creation, the tool SHALL call ``scanner.rescan()`` so the
+     Sessions Tree refreshes within 2 seconds without a manual action.
+   * AC-4: When ``initialMessage`` is provided, the tool SHALL enqueue it via
+     ``appendMessage()`` using the session ``name`` as the destination and
+     ``"jarvis_createSession"`` as the sender, after the folder is created and
+     before the response is returned.  The message SHALL NOT be enqueued when
+     the session already existed (idempotency guard).
+   * AC-5: When a folder ``<workspaceRoot>/.jarvis/sessions/<name>/`` already
+     exists, the tool SHALL return
+     ``{ created: false, reason: "session \"<name>\" already exists; no action taken",
+     path: ".jarvis/sessions/<name>" }`` without modifying any file or enqueuing
+     any message.
+   * AC-6: The tool SHALL validate ``name`` before attempting any filesystem
+     operation.  An empty string or a string containing any of the characters
+     ``/ \ : * ? " < > |`` or a null/control character SHALL result in a thrown
+     error with message ``"invalid session name: <reason>"``; this error SHALL
+     surface as an LM tool error for the LM path and as an MCP error for the
+     MCP path.
+   * AC-7: The tool SHALL appear in the VS Code Chat tool picker with
+     ``toolReferenceName`` ``createSession``.
+   * AC-8: The ``name`` MUST NOT be ``.`` or ``..``; on Windows it MUST NOT be
+     a reserved device name (``CON``, ``PRN``, ``AUX``, ``NUL``,
+     ``COM1``–``COM9``, ``LPT1``–``LPT9``, case-insensitive).
+   * AC-9: If no workspace folder is open when the tool is invoked, the tool
+     MUST raise an error whose message begins with
+     ``"jarvis_createSession: no workspace open"``.
+     This prefix MUST be distinct from ``"invalid session name:"`` so that
+     LLM callers can unambiguously distinguish precondition failures
+     (no workspace) from input-validation failures (bad name).
+   * AC-10: Auto-open — After successful creation (``created: true``) the tool
+     MUST trigger opening of the new session's agent chat via the
+     ``jarvis.openAgentSession`` command, passing a ``LeafNode`` constructed as
+     ``{ kind: 'leaf', id: path.join(targetPath, 'session.yaml') }``.
+     The auto-delivery heartbeat loop (existing 5 s poll) is responsible for
+     subsequently delivering any queued ``initialMessage`` into that chat.
+     On idempotent skip (``created: false``), the tool MUST also trigger the
+     same auto-open command so that the caller always receives an opened-session
+     end-state regardless of which path was taken.
+     Errors from the ``openAgentSession`` call MUST be logged at ``warn`` level
+     and MUST NOT cause the tool to return an error (best-effort).

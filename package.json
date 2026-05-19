@@ -788,6 +788,33 @@
     ],
     "languageModelTools": [
       {
+        "name": "jarvis_createSession",
+        "displayName": "Create Session",
+        "modelDescription": "Creates a new Jarvis session folder with session.yaml and context.md under <workspace>/.jarvis/sessions/<name>/. Idempotent: safe to call if the session already exists.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "createSession",
+        "icon": "$(add)",
+        "tags": ["jarvis"],
+        "inputSchema": {
+          "type": "object",
+          "required": ["name"],
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Session name; used verbatim as the folder name."
+            },
+            "summary": {
+              "type": "string",
+              "description": "Optional short description written to session.yaml."
+            },
+            "initialMessage": {
+              "type": "string",
+              "description": "Optional first message to enqueue in the new session's inbox."
+            }
+          }
+        }
+      },
+      {
         "name": "jarvis_listSessionEntities",
         "displayName": "List Session Entities",
         "modelDescription": "Lists all Jarvis session entities (lightweight projects) discovered under <workspace>/.jarvis/sessions/. Each entry has name, summary, and folder. Distinct from jarvis_listSessions which lists chat sessions.",

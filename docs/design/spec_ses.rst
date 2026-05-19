@@ -227,6 +227,14 @@ Sessions Design Specifications
      ``newEntityCommand`` delegating), ``package.json`` (commands + view/title +
      commandPalette hide).
 
+   .. note::
+
+      ``jarvis_createSession`` (``SPEC_SES_CREATETOOL``) uses the supplied name
+      verbatim as the folder name — no slug transformation — to preserve
+      round-trip consistency with ``jarvis_sendToSession``.  The two creation
+      paths are intentionally asymmetric; see CR Decision 1 in
+      ``docs/changes/create-session-tool.md``.
+
 
 .. spec:: sessions-feature: session.schema.json and yamlValidation Entry
    :id: SPEC_SES_SCHEMA
@@ -470,3 +478,259 @@ Sessions Design Specifications
      ``openInTerminal``) bring Sessions to full parity with the EXP context-actions
      feature (``SPEC_EXP_CONTEXTACTIONS``).
    * File touchpoint: ``package.json`` ``contributes.menus.view/item/context``.
+
+
+.. spec:: jarvis_createSession: LM+MCP Tool Registration
+   :id: SPEC_SES_CREATETOOL
+   :status: implemented
+   :links: REQ_SES_CREATETOOL
+
+   **Description:**
+   Register ``jarvis_createSession`` via ``registerDualTool()`` in
+   ``src/extension.ts``, inside a dedicated
+   ``if (cfg.get<boolean>('sessions.enabled', true))`` guard so the tool is
+   absent when sessions are disabled at activation time.  No runtime mutation
+   per ADR ``tool-deregistration.md``.  After creating the session (or on
+   idempotent skip), the tool auto-opens the new session's agent chat via
+   ``jarvis.openAgentSession`` (best-effort; errors are logged at warn and
+   do not cause the tool to fail).
+
+   **Rationale for no slug-ification:**
+   The folder name equals the ``name`` parameter verbatim.  If the tool
+   silently transformed the name (e.g. kebab-casing), the caller could not
+   address the new session with ``jarvis_sendToSession`` using the original
+   value.  Rejecting invalid names instead of transforming them preserves
+   round-trip consistency.
+
+   **Tool input schema**
+
+   .. list-table::
+      :header-rows: 1
+      :widths: 20 12 12 56
+
+      * - Parameter
+        - Type
+        - Required
+        - Purpose
+      * - ``name``
+        - ``string``
+        - yes
+        - Session name; used verbatim as folder name.
+      * - ``summary``
+        - ``string``
+        - no
+        - Short description written to ``session.yaml``
+          (omitted from the file when blank or absent).
+      * - ``initialMessage``
+        - ``string``
+        - no
+        - First message enqueued in the new session's
+          message queue; skipped on idempotent return.
+
+   **Name validation** (performed before any filesystem operation):
+
+   * The name MUST NOT be empty (``""``).
+   * The name MUST NOT contain any of: ``/ \\ : * ? " < > |``, null bytes, or
+     ASCII control characters (U+0000–U+001F).
+   * The name MUST NOT be ``.`` or ``..``.
+   * On Windows, the name MUST NOT be a reserved device name (``CON``, ``PRN``,
+     ``AUX``, ``NUL``, ``COM1``–``COM9``, ``LPT1``–``LPT9``), case-insensitive.
+
+   Violation → throw ``Error("invalid session name: <reason>")``.  For the LM
+   path this propagates as a tool invocation error; for the MCP path it
+   propagates as an MCP error response.
+
+   **Idempotency check** (after validation, before writes):
+
+   .. code-block:: typescript
+
+      const sessionsDir = configPaths.ensureSessionsDir();
+      if (!sessionsDir) { throw new Error('jarvis_createSession: no workspace open'); }
+      const targetPath = path.join(sessionsDir, name);
+      if (fs.existsSync(targetPath)) {
+          // Auto-open even on idempotent skip (AC-10)
+          const leaf: LeafNode = { kind: 'leaf', id: path.join(targetPath, 'session.yaml') };
+          try { await vscode.commands.executeCommand('jarvis.openAgentSession', leaf); }
+          catch (e) { log.warn(`[SES] createSession: auto-open failed (idempotent): ${e}`); }
+          return {
+              created: false,
+              reason: `session "${name}" already exists; no action taken`,
+              path: `.jarvis/sessions/${name}`,
+          };
+      }
+
+   **File layout after creation:**
+
+   .. code-block:: text
+
+      <workspaceRoot>/
+        .jarvis/
+          sessions/
+            <name>/
+              session.yaml    ← name field always; summary field when non-blank
+              context.md      ← always; starts with "# <name>\n\n"
+
+   **``session.yaml`` format** (mirrors ``jarvis.newSession`` command):
+
+   .. code-block:: yaml
+
+      name: "<name>"
+      summary: "<summary>"    # only present when summary is non-blank
+
+   Serialisation uses ``"name: \"<name>\""`` with double-quote wrapping and
+   escaping of ``\`` and ``"`` in values — identical to the ``newSessionCommand``
+   write logic.  (``name`` values do not require escaping because ``\`` and
+   ``"`` are rejected by the name validator; the escape rule applies to
+   ``summary`` only.)
+
+   **``context.md`` initial content:**
+
+   .. code-block:: markdown
+
+      # <name>
+
+      <summary>
+
+   When ``summary`` is blank or absent, the line after the blank line is empty
+   (``# <name>\n\n``).
+
+   **``initialMessage`` enqueue** (only when session was newly created):
+
+   .. code-block:: typescript
+
+      if (initialMessage) {
+          appendMessage(resolveMessagesPath(), name, 'jarvis_createSession', initialMessage);
+          messageProvider.reload();
+      }
+
+   ``destination`` = verbatim ``name``; ``sender`` = ``"jarvis_createSession"``.
+   This is consistent with how ``jarvis_sendToSession`` targets sessions by name.
+
+   **Rescan trigger:**
+
+   .. code-block:: typescript
+
+      await scanner?.rescan();
+
+   Called unconditionally after successful creation (satisfies AC-3 / 2-second
+   tree refresh requirement).
+
+   **Auto-open** (AC-10, after rescan):
+
+   .. code-block:: typescript
+
+      const leaf: LeafNode = { kind: 'leaf', id: path.join(targetPath, 'session.yaml') };
+      try { await vscode.commands.executeCommand('jarvis.openAgentSession', leaf); }
+      catch (e) { log.warn(`[SES] createSession: auto-open failed: ${e}`); }
+
+   Errors from ``openAgentSession`` MUST be caught and logged at ``warn`` level;
+   they MUST NOT propagate as a tool failure.  The session folder already exists
+   at this point; auto-open is best-effort.  The existing 5 s auto-delivery poll
+   will subsequently deliver any queued ``initialMessage`` into the newly opened
+   chat (satisfies AC-4 delivery path).
+
+   **Response shapes:**
+
+   *Created:*
+
+   .. code-block:: json
+
+      { "created": true, "path": ".jarvis/sessions/<name>" }
+
+   *Already existed (idempotent):*
+
+   .. code-block:: json
+
+      {
+        "created": false,
+        "reason": "session \"<name>\" already exists; no action taken",
+        "path": ".jarvis/sessions/<name>"
+      }
+
+   *Invalid name / no workspace:* thrown ``Error`` — surfaces as LM tool error
+   or MCP error response; no JSON result object.
+
+   **Registration sketch** (``src/extension.ts``, inside ``if (sessions.enabled)``):
+
+   .. code-block:: typescript
+
+      // Implementation: SPEC_SES_CREATETOOL
+      // Requirements: REQ_SES_CREATETOOL
+      const createSessionTool = registerDualTool(
+          'jarvis_createSession',
+          async (
+              options: vscode.LanguageModelToolInvocationOptions<{
+                  name: string;
+                  summary?: string;
+                  initialMessage?: string;
+              }>,
+              _token: vscode.CancellationToken
+          ) => {
+              const result = await createSession(options.input);
+              log.info(`[SES] createSession: created=${result.created}, path=${result.path}`);
+              return new vscode.LanguageModelToolResult([
+                  new vscode.LanguageModelTextPart(JSON.stringify(result))
+              ]);
+          },
+          'Creates a new Jarvis session folder with session.yaml and context.md under <workspace>/.jarvis/sessions/<name>/. Idempotent: returns success if session already exists.',
+          {
+              name: z.string().describe('Session name; used verbatim as the folder name'),
+              summary: z.string().optional().describe('Optional short description'),
+              initialMessage: z.string().optional().describe('Optional first message to enqueue in the new session\'s inbox'),
+          },
+          async (args) => {
+              const result = await createSession({
+                  name: args.name as string,
+                  summary: args.summary as string | undefined,
+                  initialMessage: args.initialMessage as string | undefined,
+              });
+              log.info(`[SES] createSession(MCP): created=${result.created}, path=${result.path}`);
+              return result;
+          }
+      );
+
+   The ``createSession`` helper encapsulates validation, idempotency check,
+   file writes, ``initialMessage`` enqueue, and rescan trigger so the LM and MCP
+   handler bodies share no duplicated logic.
+
+   **``package.json`` ``contributes.languageModelTools`` entry:**
+
+   .. code-block:: json
+
+      {
+        "name": "jarvis_createSession",
+        "displayName": "Create Session",
+        "modelDescription": "Creates a new Jarvis session folder with session.yaml and context.md. Idempotent: safe to call if the session already exists.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "createSession",
+        "icon": "$(add)",
+        "inputSchema": {
+          "type": "object",
+          "required": ["name"],
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Session name; used verbatim as the folder name."
+            },
+            "summary": {
+              "type": "string",
+              "description": "Optional short description written to session.yaml."
+            },
+            "initialMessage": {
+              "type": "string",
+              "description": "Optional first message to enqueue in the new session's inbox."
+            }
+          }
+        }
+      }
+
+   **File touchpoints for the Dev Engineer:**
+
+   * ``src/extension.ts`` — add ``createSession`` helper + ``registerDualTool``
+     call inside ``if (sessions.enabled)`` block; add ``createSessionTool`` to
+     the ``context.subscriptions.push(...)`` aggregate.  The ``createSession``
+     helper must import / reference the ``LeafNode`` type and call
+     ``vscode.commands.executeCommand('jarvis.openAgentSession', leaf)`` on both
+     creation and idempotent-skip paths (AC-10).
+   * ``package.json`` — add ``jarvis_createSession`` entry under
+     ``contributes.languageModelTools``.

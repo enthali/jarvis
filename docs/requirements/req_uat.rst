@@ -35,6 +35,7 @@ end-to-end verification of each feature.
    req_uat_settings_cleanup
    req_uat_sessions_feature
    req_uat_agent_prompt_tuning
+   req_uat_createsessiontool
 
 All UAT Requirements
 --------------------

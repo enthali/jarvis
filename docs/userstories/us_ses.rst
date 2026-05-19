@@ -40,3 +40,39 @@ Sessions User Stories
      Reveal in OS, Open in Terminal).
    * AC-9: Opening a new agent session for any entity kind sends a kind-aware
      identity prompt naming the entity and its ``context.md`` path.
+
+
+.. story:: Programmatic Session Creation Tool
+   :id: US_SES_CREATETOOL
+   :status: implemented
+   :priority: required
+
+   **As an** LLM operating within an active Jarvis session,
+   **I want** a tool ``jarvis_createSession`` that programmatically creates a
+   new session folder with ``session.yaml`` and ``context.md``,
+   **so that** I can orchestrate multi-session workflows (e.g. "spawn a
+   research sub-session", "create a QualityManager session") without requiring
+   the human to click through the Sessions Tree UI.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The tool ``jarvis_createSession`` is registered via LM and MCP when
+     ``jarvis.sessions.enabled=true``; it is absent when the setting is ``false``.
+   * AC-2: A successful call creates ``<workspace>/.jarvis/sessions/<name>/``,
+     ``session.yaml`` (with ``name`` and optional ``summary``), and an empty
+     ``context.md``.
+   * AC-3: The Sessions Tree reflects the new session within 2 seconds of
+     creation, without any manual rescan.
+   * AC-4: An optional ``initialMessage`` parameter, when provided, is enqueued
+     in the new session's message queue immediately after creation so it is
+     returned on the next inbox poll.
+   * AC-5: If a session with the given ``name`` already exists, the tool returns
+     a success response with ``created: false`` and the reason
+     ``"session \"<name>\" already exists; no action taken"``; no file is
+     overwritten and no ``initialMessage`` is enqueued.
+   * AC-6: A ``name`` value that is empty, contains filesystem-illegal
+     characters, is ``.`` or ``..``, or is a Windows reserved device name
+     (``CON``, ``PRN``, ``AUX``, ``NUL``, ``COM1``–``COM9``, ``LPT1``–``LPT9``)
+     results in an error ``"invalid session name: <reason>"`` — the folder name
+     is used verbatim (no slug-ification) to preserve round-trip consistency
+     with ``jarvis_sendToSession``.

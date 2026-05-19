@@ -1,5 +1,5 @@
-// Implementation: SPEC_EXP_EXTENSION, SPEC_EXP_FILTERCOMMAND, SPEC_EXP_EVENTFILTER_CMD, SPEC_EXP_OPENYAML_CMD, SPEC_EXP_CONTEXTACTIONS, SPEC_AUT_MANUALCOMMAND, SPEC_MSG_SENDCOMMAND, SPEC_MSG_OPENSESSION, SPEC_MSG_LISTSESSIONS, SPEC_EXP_AGENTSESSION, SPEC_EXP_NEWPROJECT_CMD, SPEC_EXP_NEWEVENT_CMD, SPEC_REL_UPDATECOMMAND, SPEC_EXP_RESCAN_CMD, SPEC_AUT_JOBREG, SPEC_DEV_LOGCHANNEL, SPEC_MSG_DUALREGISTRATION, SPEC_EXP_LISTPROJECTS, SPEC_CFG_TOGGLEGUARDS, SPEC_CFG_PATHRESOLVER, SPEC_EXP_FEATURETOGGLE, SPEC_PIM_SERVICE, SPEC_PIM_CATVIEW, SPEC_PIM_CATTOOL, SPEC_OLK_COMBRIDGE, SPEC_OLK_SETTINGS, SPEC_OLK_AUTOCAT_NEWENTITY, SPEC_PIM_TASKSERVICE, SPEC_PIM_TASKEDITOR, SPEC_PIM_TASKTOOL, SPEC_OLK_TASKPROVIDER, SPEC_OLK_TASKENABLE, SPEC_EXP_HEARTBEAT_OPENFILE, SPEC_EXP_MESSAGE_OPENFILE, SPEC_EXP_SEARCH_CMD
-// Requirements: REQ_EXP_ACTIVITYBAR, REQ_EXP_TREEVIEW, REQ_EXP_REACTIVECACHE, REQ_CFG_FOLDERPATHS, REQ_CFG_SCANINTERVAL, REQ_EXP_PROJECTFILTER, REQ_EXP_FILTERPERSIST, REQ_EXP_EVENTFILTER, REQ_EXP_EVENTFILTERPERSIST, REQ_EXP_OPENYAML, REQ_EXP_CONTEXTACTIONS, REQ_AUT_MANUALRUN, REQ_MSG_SEND, REQ_MSG_DELETE, REQ_MSG_OPENSESSION, REQ_MSG_SESSIONFILTER, REQ_MSG_LISTSESSIONS, REQ_EXP_AGENTSESSION, REQ_EXP_NEWPROJECT, REQ_EXP_NEWEVENT, REQ_REL_UPDATECOMMAND, REQ_CFG_UPDATECHECK, REQ_EXP_RESCAN_BTN, REQ_AUT_JOBREG, REQ_DEV_LOGGING, REQ_MSG_MCPSERVER, REQ_CFG_MCPPORT, REQ_EXP_LISTPROJECTS, REQ_CFG_TOGGLES, REQ_CFG_FIXEDPATHS, REQ_EXP_FEATURETOGGLE, REQ_PIM_SERVICE, REQ_PIM_CATVIEW, REQ_PIM_CATTOOL, REQ_OLK_COMBRIDGE, REQ_OLK_ENABLE, REQ_OLK_AUTOCAT_NEWENTITY, REQ_PIM_TASKSERVICE, REQ_PIM_TASKEDITOR, REQ_PIM_TASKTOOL, REQ_OLK_TASKPROVIDER, REQ_OLK_TASKENABLE
+// Implementation: SPEC_EXP_EXTENSION, SPEC_EXP_FILTERCOMMAND, SPEC_EXP_EVENTFILTER_CMD, SPEC_EXP_OPENYAML_CMD, SPEC_EXP_CONTEXTACTIONS, SPEC_AUT_MANUALCOMMAND, SPEC_MSG_SENDCOMMAND, SPEC_MSG_OPENSESSION, SPEC_MSG_LISTSESSIONS, SPEC_EXP_AGENTSESSION, SPEC_EXP_NEWPROJECT_CMD, SPEC_EXP_NEWEVENT_CMD, SPEC_REL_UPDATECOMMAND, SPEC_EXP_RESCAN_CMD, SPEC_AUT_JOBREG, SPEC_DEV_LOGCHANNEL, SPEC_MSG_DUALREGISTRATION, SPEC_EXP_LISTPROJECTS, SPEC_CFG_TOGGLEGUARDS, SPEC_CFG_PATHRESOLVER, SPEC_EXP_FEATURETOGGLE, SPEC_PIM_SERVICE, SPEC_PIM_CATVIEW, SPEC_PIM_CATTOOL, SPEC_OLK_COMBRIDGE, SPEC_OLK_SETTINGS, SPEC_OLK_AUTOCAT_NEWENTITY, SPEC_PIM_TASKSERVICE, SPEC_PIM_TASKEDITOR, SPEC_PIM_TASKTOOL, SPEC_OLK_TASKPROVIDER, SPEC_OLK_TASKENABLE, SPEC_EXP_HEARTBEAT_OPENFILE, SPEC_EXP_MESSAGE_OPENFILE, SPEC_EXP_SEARCH_CMD, SPEC_SES_CREATETOOL
+// Requirements: REQ_EXP_ACTIVITYBAR, REQ_EXP_TREEVIEW, REQ_EXP_REACTIVECACHE, REQ_CFG_FOLDERPATHS, REQ_CFG_SCANINTERVAL, REQ_EXP_PROJECTFILTER, REQ_EXP_FILTERPERSIST, REQ_EXP_EVENTFILTER, REQ_EXP_EVENTFILTERPERSIST, REQ_EXP_OPENYAML, REQ_EXP_CONTEXTACTIONS, REQ_AUT_MANUALRUN, REQ_MSG_SEND, REQ_MSG_DELETE, REQ_MSG_OPENSESSION, REQ_MSG_SESSIONFILTER, REQ_MSG_LISTSESSIONS, REQ_EXP_AGENTSESSION, REQ_EXP_NEWPROJECT, REQ_EXP_NEWEVENT, REQ_REL_UPDATECOMMAND, REQ_CFG_UPDATECHECK, REQ_EXP_RESCAN_BTN, REQ_AUT_JOBREG, REQ_DEV_LOGGING, REQ_MSG_MCPSERVER, REQ_CFG_MCPPORT, REQ_EXP_LISTPROJECTS, REQ_CFG_TOGGLES, REQ_CFG_FIXEDPATHS, REQ_EXP_FEATURETOGGLE, REQ_PIM_SERVICE, REQ_PIM_CATVIEW, REQ_PIM_CATTOOL, REQ_OLK_COMBRIDGE, REQ_OLK_ENABLE, REQ_OLK_AUTOCAT_NEWENTITY, REQ_PIM_TASKSERVICE, REQ_PIM_TASKEDITOR, REQ_PIM_TASKTOOL, REQ_OLK_TASKPROVIDER, REQ_OLK_TASKENABLE, REQ_SES_CREATETOOL
 
 import * as vscode from 'vscode';
 import * as fs from 'fs';
@@ -1248,6 +1248,141 @@ export function activate(context: vscode.ExtensionContext) {
         }
     );
 
+    // Implementation: SPEC_SES_CREATETOOL
+    // Requirements: REQ_SES_CREATETOOL
+    let createSessionTool: vscode.Disposable | undefined;
+    if (cfg.get<boolean>('sessions.enabled', true)) {
+        const createSession = async (args: {
+            name: string;
+            summary?: string;
+            initialMessage?: string;
+        }): Promise<{ created: boolean; reason?: string; path: string }> => {
+        const { name, summary, initialMessage } = args;
+
+        // Name validation (before any filesystem operation)
+        if (!name) {
+            throw new Error('invalid session name: name must not be empty');
+        }
+        if (/[/\\:*?"<>|]/.test(name)) {
+            throw new Error('invalid session name: contains forbidden character (/ \\ : * ? " < > |)');
+        }
+        if (/[\x00-\x1F]/.test(name)) {
+            throw new Error('invalid session name: contains null or control character');
+        }
+        if (name === '.' || name === '..') {
+            throw new Error('invalid session name: must not be "." or ".."');
+        }
+        if (/^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i.test(name)) {
+            throw new Error('invalid session name: reserved device name');
+        }
+
+        // Workspace check
+        const sessionsDir = configPaths.ensureSessionsDir();
+        if (!sessionsDir) {
+            throw new Error('jarvis_createSession: no workspace open');
+        }
+
+        const targetPath = path.join(sessionsDir, name);
+        const relPath = `.jarvis/sessions/${name}`;
+
+        // Idempotency check
+        if (fs.existsSync(targetPath)) {
+            log.info(`[SES] createSession: idempotent skip for "${name}"`);
+            try {
+                const sessionYamlPath = path.join(targetPath, 'session.yaml');
+                const leaf: LeafNode = { kind: 'leaf', id: sessionYamlPath };
+                await vscode.commands.executeCommand('jarvis.openAgentSession', leaf);
+                log.info(`[SES] createSession: idempotent skip but auto-opened session "${name}"`);
+            } catch (err) {
+                log.warn(`[SES] createSession: auto-open failed for "${name}": ${err}`);
+            }
+            return {
+                created: false,
+                reason: `session "${name}" already exists; no action taken`,
+                path: relPath,
+            };
+        }
+
+        // Create directory
+        await fs.promises.mkdir(targetPath, { recursive: true });
+
+        // Write session.yaml (mirrors newSessionCommand serialisation)
+        const yamlLines = [`name: "${name}"`];
+        if (summary) {
+            yamlLines.push(`summary: "${summary.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`);
+        }
+        yamlLines.push('');
+        await fs.promises.writeFile(
+            path.join(targetPath, 'session.yaml'),
+            yamlLines.join('\n'),
+            'utf-8'
+        );
+
+        // Write context.md
+        const contextContent = summary ? `# ${name}\n\n${summary}\n` : `# ${name}\n\n`;
+        await fs.promises.writeFile(
+            path.join(targetPath, 'context.md'),
+            contextContent,
+            'utf-8'
+        );
+
+        // Enqueue initial message if provided
+        if (initialMessage) {
+            appendMessage(resolveMessagesPath(), name, 'jarvis_createSession', initialMessage);
+            messageProvider.reload();
+        }
+
+        // Trigger rescan so Sessions Tree refreshes within 2 s (AC-3)
+        await scanner?.rescan();
+
+        // Auto-open the new session as an agent session (REQ AC-10)
+        try {
+            const sessionYamlPath = path.join(targetPath, 'session.yaml');
+            const leaf: LeafNode = { kind: 'leaf', id: sessionYamlPath };
+            await vscode.commands.executeCommand('jarvis.openAgentSession', leaf);
+            log.info(`[SES] createSession: auto-opened new session "${name}"`);
+        } catch (err) {
+            log.warn(`[SES] createSession: auto-open failed for "${name}": ${err}`);
+        }
+
+        log.info(`[SES] createSession: created "${name}" at ${targetPath}`);
+        return { created: true, path: relPath };
+        };
+
+        createSessionTool = registerDualTool(
+        'jarvis_createSession',
+        async (
+            options: vscode.LanguageModelToolInvocationOptions<{
+                name: string;
+                summary?: string;
+                initialMessage?: string;
+            }>,
+            _token: vscode.CancellationToken
+        ) => {
+            const result = await createSession(options.input);
+            log.info(`[SES] createSession: created=${result.created}, path=${result.path}`);
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(JSON.stringify(result))
+            ]);
+        },
+        'Creates a new Jarvis session folder with session.yaml and context.md under <workspace>/.jarvis/sessions/<name>/. Idempotent: returns success if session already exists.',
+        {
+            name: z.string().describe('Session name; used verbatim as the folder name'),
+            summary: z.string().optional().describe('Optional short description written to session.yaml'),
+            initialMessage: z.string().optional().describe("Optional first message to enqueue in the new session's inbox"),
+        },
+        async (args) => {
+            const result = await createSession({
+                name: args.name as string,
+                summary: args.summary as string | undefined,
+                initialMessage: args.initialMessage as string | undefined,
+            });
+            log.info(`[SES] createSession(MCP): created=${result.created}, path=${result.path}`);
+            return result;
+        }
+    );
+    } // end if (sessions.enabled) — SPEC_SES_CREATETOOL
+
     // Implementation: SPEC_PIM_CATTOOL
     // Requirements: REQ_PIM_CATTOOL
     const categoryTool = registerDualTool(
@@ -1951,6 +2086,7 @@ export function activate(context: vscode.ExtensionContext) {
         sendToSessionTool,
         readMessageTool,
         listSessionsTool,
+        ...(createSessionTool ? [createSessionTool] : []),
         registerJobTool,
         unregisterJobTool,
         listJobsTool,
