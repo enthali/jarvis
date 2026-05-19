@@ -123,7 +123,10 @@ Sessions Requirements
      ``folder`` (absolute filesystem path to the session directory, forward
      slashes).
    * AC-2: The tool SHALL be registered only when ``jarvis.sessions.enabled``
-     is ``true``.
+     is ``true`` at activation time.  When the setting is ``false``, the tool
+     SHALL be absent from both the LM tool catalog and the MCP tool catalog
+     after extension reload.  Gating is static (activation-time only) per
+     ADR ``tool-deregistration.md`` — no runtime add/remove.
    * AC-3: The tool SHALL be distinct from ``jarvis_listSessions`` (which lists
      VS Code chat sessions). Both MAY be active simultaneously.
    * AC-4: The tool SHALL appear in the VS Code Chat tool picker with

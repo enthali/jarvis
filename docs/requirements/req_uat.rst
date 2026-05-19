@@ -37,6 +37,7 @@ end-to-end verification of each feature.
    req_uat_agent_prompt_tuning
    req_uat_createsessiontool
    req_uat_sessiontreeclick
+   req_uat_listsessionentitiesgating
 
 All UAT Requirements
 --------------------

@@ -298,7 +298,15 @@ Sessions Design Specifications
 
    **Description:**
    Register ``jarvis_listSessionEntities`` via ``registerDualTool()`` in
-   ``src/extension.ts``, inside the ``if (sessions.enabled)`` activation block.
+   ``src/extension.ts``, inside the ``if (cfg.get<boolean>('sessions.enabled', true))``
+   activation block, mirroring the gating pattern of ``jarvis_createSession``
+   (``SPEC_SES_CREATETOOL``).
+
+   **Gating:**
+   The tool is registered only when ``jarvis.sessions.enabled`` is ``true`` at
+   activation time.  Disabling the feature removes the tool from both the LM
+   tool catalog and the MCP tool catalog after extension reload.  Statically
+   gated per ADR ``tool-deregistration.md`` — no runtime add/remove.
 
    **Handler sketch** (``extension.ts``):
 

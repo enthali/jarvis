@@ -1264,9 +1264,12 @@ export function activate(context: vscode.ExtensionContext) {
         }
     );
 
-    // Implementation: SPEC_SES_TOOLS
-    // Requirements: REQ_SES_LISTTOOL
-    const listSessionEntitiesTool = registerDualTool(
+    // Implementation: SPEC_SES_TOOLS + SPEC_SES_CREATETOOL
+    // Requirements: REQ_SES_LISTTOOL + REQ_SES_CREATETOOL
+    let listSessionEntitiesTool: vscode.Disposable | undefined;
+    let createSessionTool: vscode.Disposable | undefined;
+    if (cfg.get<boolean>('sessions.enabled', true)) {
+        listSessionEntitiesTool = registerDualTool(
         'jarvis_listSessionEntities',
         async (
             _options: vscode.LanguageModelToolInvocationOptions<Record<string, never>>,
@@ -1291,10 +1294,6 @@ export function activate(context: vscode.ExtensionContext) {
         }
     );
 
-    // Implementation: SPEC_SES_CREATETOOL
-    // Requirements: REQ_SES_CREATETOOL
-    let createSessionTool: vscode.Disposable | undefined;
-    if (cfg.get<boolean>('sessions.enabled', true)) {
         const createSession = async (args: {
             name: string;
             summary?: string;
@@ -1424,7 +1423,7 @@ export function activate(context: vscode.ExtensionContext) {
             return result;
         }
     );
-    } // end if (sessions.enabled) — SPEC_SES_CREATETOOL
+    } // end if (sessions.enabled) — SPEC_SES_CREATETOOL + SPEC_SES_TOOLS
 
     // Implementation: SPEC_PIM_CATTOOL
     // Requirements: REQ_PIM_CATTOOL
@@ -2129,6 +2128,7 @@ export function activate(context: vscode.ExtensionContext) {
         sendToSessionTool,
         readMessageTool,
         listSessionsTool,
+        ...(listSessionEntitiesTool ? [listSessionEntitiesTool] : []),
         ...(createSessionTool ? [createSessionTool] : []),
         registerJobTool,
         unregisterJobTool,

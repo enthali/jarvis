@@ -29,7 +29,7 @@ Cron-based job scheduling configured via YAML:
 - Messages from heartbeat jobs (or any source) are queued and displayed in the Messages tree
 - **Send to Chat**: Deliver messages to named VS Code chat sessions
 - **Open Session**: Browse and open named sessions via QuickPick (`Jarvis: Open Chat Session`)
-- **LM Tools**: `#listSessions` for session discovery, `#sendToSession` for inter-session messaging, `#jarvis_createSession` to programmatically create a new session folder (idempotent, headless; requires `jarvis.sessions.enabled`)
+- **LM Tools**: `#listSessions` for session discovery, `#sendToSession` for inter-session messaging, `#jarvis_listSessionEntities` to list entities in a session, `#jarvis_createSession` to programmatically create a new session folder (idempotent, headless; both require `jarvis.sessions.enabled`)
 
 ## Configuration
 
