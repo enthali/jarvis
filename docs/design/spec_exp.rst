@@ -540,56 +540,77 @@ Explorer Design Specifications
 .. spec:: Agent-Session Identity Prompt Template
    :id: SPEC_EXP_AGENTSESSION_INITPROMPT
    :status: implemented
-   :links: REQ_SES_AGENTPROMPT
+   :links: REQ_SES_AGENTPROMPT; REQ_EXP_AGENTPROMPT_TEMPLATE
 
    **Description:**
-   When ``jarvis.openAgentSession`` creates a **new** chat session (no existing
-   UUID found), it sends a kind-aware identity prompt that instructs the agent to
-   adopt the entity's identity and maintain ``context.md`` as persistent memory.
-   This applies to all entity kinds: ``project``, ``event``, and ``session``.
+   When ``jarvis.openAgentSession`` or ``jarvis.newSession`` opens a **new** chat
+   session, it sends a kind-aware initialization prompt that instructs the agent
+   to adopt the entity's identity and maintain ``context.md`` as a minimal,
+   action-oriented persistent memory. The prompt text is read from the VS Code
+   setting ``jarvis.agentSession.initPromptTemplate``; three placeholders are
+   substituted at send-time. This applies to all entity kinds: ``project``,
+   ``event``, and ``session``.
 
-   **Implementation** (``src/extension.ts`` ``openAgentSessionCommand``):
+   **Template substitution** (``src/extension.ts``, shared private helper ``applyTemplate``):
 
    .. code-block:: typescript
 
-      const kind = entity.kind ?? 'project';
-      const contextPath = path.join(
-          entity.folder ?? path.dirname(element.id),
-          'context.md'
-      );
-      const initPrompt =
-          `You are the ${kind} "${entity.name}". ` +
-          `Your persistent memory lives at \`${contextPath}\`. ` +
-          `Read it now to load prior context, and update it with ` +
-          `important decisions, plans, and findings as we work so ` +
-          `future sessions can pick up where you left off.`;
+      // Shared helper — also used by SPEC_MSG_SENDCOMMAND and SPEC_MSG_AUTODELIVER_POLL.
+      function applyTemplate(template: string, vars: Record<string, string>): string {
+          return template.replace(/\$\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m));
+          // Unknown placeholders are left as-is.
+      }
 
-   **Verbatim prompt template:**
+   **Call site (init prompt):**
+
+   .. code-block:: typescript
+
+      const rawInitTemplate = vscode.workspace.getConfiguration('jarvis')
+          .get<string>('agentSession.initPromptTemplate') ?? '';
+      const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : DEFAULT_INIT_PROMPT;
+      const initPrompt = applyTemplate(initTemplate, { kind, name: entity.name, contextPath });
+
+   **Default prompt** (``DEFAULT_INIT_PROMPT`` constant in ``extension.ts``):
 
    .. code-block:: text
 
-      You are the ${kind} "${entity.name}". Your persistent memory lives at
-      `${contextPath}`. Read it now to load prior context, and update it with
-      important decisions, plans, and findings as we work so future sessions
-      can pick up where you left off.
+      You are the ${kind} "${name}".
 
-   **Field derivation:**
+      Use only `${contextPath}` as your persistent memory. Read it now.
 
-   * ``kind`` — ``entity.kind`` (``'project' | 'event' | 'session'``), defaulting
-     to ``'project'`` when the field is absent (backwards compatibility with
-     entities loaded before the ``kind`` field was added to ``EntityEntry``).
-   * ``entity.name`` — the display name from ``session.yaml`` / ``project.yaml`` /
+      Keep it minimal and action-oriented:
+      - Store only long-lived items under Decision / Finding / Next.
+      - One concise line per bullet. Prune aggressively.
+      - Replace outdated bullets — never append logs.
+      - Never store retries, raw tool output, or transient chatter.
+      - Before writing, ask: "Will this still matter in 2 weeks?" If no, skip.
+
+   **Fallback rule:** If ``jarvis.agentSession.initPromptTemplate`` is empty or
+   not set, the built-in ``DEFAULT_INIT_PROMPT`` is used. Unknown placeholders in
+   a custom template are passed through unchanged.
+
+   **Placeholder definitions:**
+
+   * ``${kind}`` — ``entity.kind`` (``'project' | 'event' | 'session'``), defaulting
+     to ``'project'`` when the field is absent (backwards compatibility).
+   * ``${name}`` — the display name from ``session.yaml`` / ``project.yaml`` /
      ``event.yaml``.
-   * ``contextPath`` — ``path.join(entity.folder ?? path.dirname(element.id),
+   * ``${contextPath}`` — ``path.join(entity.folder ?? path.dirname(element.id),
      'context.md')`` — absolute filesystem path so the agent can open the file
      directly without resolving workspace-relative paths.
 
+   **Trigger points:**
+
+   * ``jarvis.openAgentSession`` — new-session branch only (no existing UUID found).
+   * ``jarvis.newSession`` — always (a new session folder is always created).
+
    **Scope:** Cross-entity — benefits projects, events, and sessions. The spec
    lives here (``spec_exp.rst``) because ``jarvis.openAgentSession`` is an EXP
-   command; the triggering requirement lives in ``REQ_SES_AGENTPROMPT`` as part
-   of the sessions-feature CR.
+   command; the triggering requirements live in ``REQ_SES_AGENTPROMPT`` (sessions
+   CR) and ``REQ_EXP_AGENTPROMPT_TEMPLATE`` (this CR).
 
-   **File touchpoint:** ``src/extension.ts`` ``openAgentSessionCommand``.
+   **File touchpoint:** ``src/extension.ts`` — ``openAgentSessionCommand`` and
+   ``newSessionCommand``.
 
 
 .. spec:: New Project Command

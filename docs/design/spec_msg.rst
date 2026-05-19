@@ -151,7 +151,7 @@ Message Queue Design Specifications
 .. spec:: Send Messages Command
    :id: SPEC_MSG_SENDCOMMAND
    :status: implemented
-   :links: REQ_MSG_SEND; REQ_MSG_SESSIONLOOKUP; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_QUEUESTORE; REQ_MSG_AUTODELIVER_TAG
+   :links: REQ_MSG_SEND; REQ_MSG_SESSIONLOOKUP; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_QUEUESTORE; REQ_MSG_AUTODELIVER_TAG; REQ_MSG_NOTIFICATION_TEMPLATE
 
    **Description:**
    Register ``jarvis.sendMessages`` in ``extension.ts``. Invoked from the session
@@ -165,10 +165,17 @@ Message Queue Design Specifications
 
    **Stub format:**
 
-   The notification stub is sent as a single ``workbench.action.chat.open`` query::
+   The notification stub is sent as a single ``workbench.action.chat.open`` query.
+   The text is produced by calling ``applyTemplate(template, vars)`` (see
+   ``SPEC_EXP_AGENTSESSION_INITPROMPT`` for the shared helper definition), where
+   ``template`` is the value of ``jarvis.messages.notificationTemplate`` (falling
+   back to the built-in English default from ``REQ_MSG_NOTIFICATION_TEMPLATE``
+   when empty/whitespace), and ``vars`` is ``{ count, destination }``.
 
-      [Jarvis Message Service] Du hast {N} neue Nachrichten in deiner Inbox.
-      Lies sie mit dem Tool jarvis_readMessage (destination: "{sessionName}") bis remaining = 0.
+   Built-in default after substitution (example, count=2, destination="Atlas")::
+
+      [Jarvis Message Service] You have 2 new message(s) in your inbox.
+      Read them with the jarvis_readMessage tool (destination: "Atlas") until remaining = 0.
 
    .. code-block:: typescript
 
@@ -208,9 +215,11 @@ Message Queue Design Specifications
 
           // 3. Send single notification stub
           const count = node.children.length;
-          const stub =
-            `[Jarvis Message Service] Du hast ${count} neue Nachrichten in deiner Inbox.\n` +
-            `Lies sie mit dem Tool jarvis_readMessage (destination: "${node.destination}") bis remaining = 0.`;
+          const cfg = vscode.workspace.getConfiguration('jarvis');
+          const stub = applyTemplate(
+            cfg.get<string>('messages.notificationTemplate', ''),
+            { count: String(count), destination: node.destination }
+          );  // REQ_MSG_NOTIFICATION_TEMPLATE, SPEC_EXP_AGENTSESSION_INITPROMPT
           await sendPromptToFocusedAgentChat(stub);  // SPEC_MSG_SENDPROMPT
 
           // 4. Refresh tree (messages stay in queue)
@@ -908,7 +917,7 @@ Message Queue Design Specifications
 .. spec:: Auto-Delivery Poll Loop
    :id: SPEC_MSG_AUTODELIVER_POLL
    :status: implemented
-   :links: REQ_MSG_AUTODELIVER_POLL; SPEC_MSG_AUTODELIVER_STORE; SPEC_MSG_AUTODELIVER_TAG; SPEC_MSG_SENDCOMMAND
+   :links: REQ_MSG_AUTODELIVER_POLL; SPEC_MSG_AUTODELIVER_STORE; SPEC_MSG_AUTODELIVER_TAG; SPEC_MSG_SENDCOMMAND; REQ_MSG_NOTIFICATION_TEMPLATE
 
     **Description:**
 
@@ -950,7 +959,11 @@ Message Queue Design Specifications
           }
 
           // Send notification stub
-          const stub = `[Jarvis Message Service] Du hast ${pending.length} neue ...`;
+          const cfg = vscode.workspace.getConfiguration('jarvis');
+          const stub = applyTemplate(
+            cfg.get<string>('messages.notificationTemplate', ''),
+            { count: String(pending.length), destination: sessionName }
+          );  // REQ_MSG_NOTIFICATION_TEMPLATE, SPEC_EXP_AGENTSESSION_INITPROMPT
           await vscode.commands.executeCommand(
             'workbench.action.chat.open', { query: stub, isPartialQuery: false }
           );

@@ -351,3 +351,31 @@ Explorer User Stories
    * AC-6: If no ``context.md`` is found anywhere, an information message is
      shown instead of attempting to open a non-existent file
    * AC-7: Folder nodes do not show the button
+
+
+.. story:: Disciplined & Configurable Agent-Session Init Prompt
+   :id: US_EXP_AGENTSESSION_PROMPT
+   :status: implemented
+   :priority: optional
+   :links: US_EXP_AGENTSESSION
+
+   **As a** Jarvis User,
+   **I want** the agent-session initialization prompt to enforce disciplined
+   ``context.md`` authoring and to be overridable in VS Code settings,
+   **so that** agent sessions maintain a lean, action-oriented persistent memory
+   instead of growing into an unbounded log, and advanced users can adapt the
+   prompt to their conventions.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The default prompt enforces a Decision / Finding / Next structure with
+     one concise line per bullet, aggressive pruning, and no append-only logs,
+     raw tool output, or transient chatter.
+   * AC-2: The default prompt includes a "Will this still matter in 2 weeks?" gate
+     before writing to ``context.md``.
+   * AC-3: A VS Code setting ``jarvis.agentSession.initPromptTemplate`` (string)
+     lets the user replace the default prompt with a custom template.
+   * AC-4: The template supports three placeholders: ``${kind}``, ``${name}``, and
+     ``${contextPath}``; these are substituted at session-open time.
+   * AC-5: The configured prompt is sent on both ``jarvis.openAgentSession`` and
+     ``jarvis.newSession``.

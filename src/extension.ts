@@ -52,6 +52,12 @@ function findLeafNode(nodes: TreeNode[], targetFolder: string): LeafNode | undef
     return undefined;
 }
 
+// Shared substitution helper (SPEC_EXP_AGENTSESSION_INITPROMPT, SPEC_MSG_SENDCOMMAND)
+// Substitutes ${key} tokens; unknown tokens are left as-is.
+function applyTemplate(template: string, vars: Record<string, string>): string {
+    return template.replace(/\$\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m));
+}
+
 // Implementation: SPEC_EXP_SEARCH_CMD
 function flattenLeaves(nodes: TreeNode[]): LeafNode[] {
     const result: LeafNode[] = [];
@@ -646,9 +652,12 @@ export function activate(context: vscode.ExtensionContext) {
 
             // 3. Send single notification stub
             const count = node.children.length;
-            const stub =
-                `[Jarvis Message Service] Du hast ${count} neue Nachrichten in deiner Inbox.\n` +
-                `Lies sie mit dem Tool jarvis_readMessage (destination: "${node.destination}") bis remaining = 0.`;
+            const defaultNotifTemplate =
+                `[Jarvis Message Service] You have \${count} new message(s) in your inbox.\n` +
+                `Read them with the jarvis_readMessage tool (destination: "\${destination}") until remaining = 0.`;
+            const rawNotifTemplate = vscode.workspace.getConfiguration('jarvis').get<string>('messages.notificationTemplate') ?? '';
+            const notifTemplate = rawNotifTemplate.trim() ? rawNotifTemplate : defaultNotifTemplate;
+            const stub = applyTemplate(notifTemplate, { count: String(count), destination: node.destination });
             await vscode.commands.executeCommand(
                 'workbench.action.chat.open',
                 { query: stub }
@@ -711,11 +720,18 @@ export function activate(context: vscode.ExtensionContext) {
                 const kind = entity.kind ?? 'project';
                 const folder = entity.folder ?? path.dirname(element.id);
                 const contextPath = path.join(folder, 'context.md');
-                const initPrompt =
-                    `You are the ${kind} "${entity.name}". ` +
-                    `Your persistent memory lives at \`${contextPath}\`. ` +
-                    `Read it now to load prior context, and update it with important decisions, ` +
-                    `plans, and findings as we work so future sessions can pick up where you left off.`;
+                const defaultInitPrompt =
+                    `You are the \${kind} "\${name}".\n\n` +
+                    `Use only \`\${contextPath}\` as your persistent memory. Read it now.\n\n` +
+                    `Keep it minimal and action-oriented:\n` +
+                    `- Store only long-lived items under Decision / Finding / Next.\n` +
+                    `- One concise line per bullet. Prune aggressively.\n` +
+                    `- Replace outdated bullets — never append logs.\n` +
+                    `- Never store retries, raw tool output, or transient chatter.\n` +
+                    `- Before writing, ask: "Will this still matter in 2 weeks?" If no, skip.`;
+                const rawInitTemplate = vscode.workspace.getConfiguration('jarvis').get<string>('agentSession.initPromptTemplate') ?? '';
+                const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : defaultInitPrompt;
+                const initPrompt = applyTemplate(initTemplate, { kind, name: entity.name, contextPath });
                 await vscode.commands.executeCommand(
                     'workbench.action.chat.open',
                     { query: initPrompt }
@@ -1844,9 +1860,12 @@ export function activate(context: vscode.ExtensionContext) {
                     await renameFocusedChatSession(sessionName);
                 }
                 const count = pending.length;
-                const stub =
-                    `[Jarvis Message Service] Du hast ${count} neue Nachrichten in deiner Inbox.\n` +
-                    `Lies sie mit dem Tool jarvis_readMessage (destination: "${sessionName}") bis remaining = 0.`;
+                const defaultNotifTemplate =
+                    `[Jarvis Message Service] You have \${count} new message(s) in your inbox.\n` +
+                    `Read them with the jarvis_readMessage tool (destination: "\${destination}") until remaining = 0.`;
+                const rawNotifTemplate = vscode.workspace.getConfiguration('jarvis').get<string>('messages.notificationTemplate') ?? '';
+                const notifTemplate = rawNotifTemplate.trim() ? rawNotifTemplate : defaultNotifTemplate;
+                const stub = applyTemplate(notifTemplate, { count: String(count), destination: sessionName });
                 await vscode.commands.executeCommand(
                     'workbench.action.chat.open',
                     { query: stub }

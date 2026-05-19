@@ -244,3 +244,33 @@ Messaging User Stories
      activation and delivered when due
    * AC-8: Clicking a reminder node opens ``reminders.yaml`` in the editor
      and reveals the line of that entry, enabling manual inspection or edit
+
+
+.. story:: Configurable Auto-Delivery Notification Template
+   :id: US_MSG_NOTIFICATION_TEMPLATE
+   :status: implemented
+   :priority: optional
+   :links: US_MSG_CHATQUEUE; US_MSG_AUTODELIVERY
+
+   **As a** Jarvis User,
+   **I want** the auto-delivery notification message to be in English by default
+   and to be customisable via a VS Code setting,
+   **so that** agents in English-language sessions receive an actionable inbox
+   notification and I can tailor the wording to my project's conventions.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The built-in default notification text is in English (not German) so
+     that English-language agent sessions understand the message out of the box
+   * AC-2: A setting ``jarvis.messages.notificationTemplate`` (string, scope:
+     window, group: Messages) allows the user to override the default text;
+     when the setting is empty or contains only whitespace, the built-in default
+     is used
+   * AC-3: The template supports two placeholders — ``${count}`` (number of
+     pending messages) and ``${destination}`` (target session name) — which are
+     substituted at delivery time; unknown placeholders are left as-is
+   * AC-4: The customised (or default) notification text is applied consistently
+     by both the manual deliver-now path (``jarvis.sendMessages`` command) and
+     the 5-second auto-delivery poll loop
+   * AC-5: Leaving the setting empty restores the built-in English default
+     without requiring an extension restart

@@ -279,7 +279,7 @@ Configuration Design Specifications
 .. spec:: settings-cleanup: Full Configuration Manifest (package.json)
    :id: SPEC_CFG_MANIFEST
    :status: implemented
-   :links: REQ_CFG_TOGGLES; REQ_CFG_GROUPS; REQ_CFG_MCPDEFAULTOFF; REQ_CFG_RENAMES
+   :links: REQ_CFG_TOGGLES; REQ_CFG_GROUPS; REQ_CFG_MCPDEFAULTOFF; REQ_CFG_RENAMES; REQ_EXP_AGENTPROMPT_TEMPLATE; REQ_MSG_NOTIFICATION_TEMPLATE
 
    **Description:**
    The complete ``contributes.configuration`` array in ``package.json`` after
@@ -336,6 +336,11 @@ Configuration Design Specifications
               "type": "boolean",
               "default": true,
               "description": "Enable the Sessions feature. When false, no Sessions tree view, commands, or tools are registered."
+            },
+            "jarvis.agentSession.initPromptTemplate": {
+              "type": "string",
+              "default": "",
+              "description": "Template for the agent-session initialization prompt. Placeholders: ${kind}, ${name}, ${contextPath}. If empty, the built-in disciplined-memory default is used. Scope: window."
             }
           }
         },
@@ -351,6 +356,11 @@ Configuration Design Specifications
               "type": "boolean",
               "default": true,
               "description": "When enabled, every queued message is also appended to .jarvis/message-log.json (append-only audit log)."
+            },
+            "jarvis.messages.notificationTemplate": {
+              "type": "string",
+              "default": "",
+              "description": "Template for the auto-delivery notification stub. Placeholders: ${count}, ${destination}. If empty, the built-in English default is used. Scope: window."
             }
           }
         },
@@ -436,6 +446,16 @@ Configuration Design Specifications
           }
         }
       ]
+
+   .. note::
+      Both ``jarvis.agentSession.initPromptTemplate`` and
+      ``jarvis.messages.notificationTemplate`` ship with the full verbatim
+      template text as their ``"default"`` in ``package.json`` (not empty
+      string), so users see and edit the default directly in the Settings UI.
+      The ``"default": ""`` shown above is a documentation shorthand. An empty
+      or whitespace-only value falls back to the built-in constant in
+      ``src/extension.ts`` (see ``SPEC_EXP_AGENTSESSION_INITPROMPT`` and
+      ``REQ_MSG_NOTIFICATION_TEMPLATE``).
 
    **Updates group:** The ``jarvis.checkForUpdates`` setting lives in the
    Updates group (the 11th group). This was the CM’s autonomous decision

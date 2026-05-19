@@ -606,6 +606,50 @@ Message Queue Requirements
      ``contributes.languageModelTools`` with appropriate ``inputSchema``
 
 
+.. req:: Notification Template Setting
+   :id: REQ_MSG_NOTIFICATION_TEMPLATE
+   :status: implemented
+   :priority: optional
+   :links: US_MSG_NOTIFICATION_TEMPLATE; REQ_MSG_SEND; REQ_MSG_AUTODELIVER_POLL
+
+   **Description:**
+   The extension SHALL expose a configurable string setting for the auto-delivery
+   notification stub text, with a built-in English default and support for
+   placeholder substitution.
+
+   **Setting:**
+
+   * Name: ``jarvis.messages.notificationTemplate``
+   * Type: ``string``
+   * Default: the built-in English notification text (verbatim below); ``package.json`` ships the full text so users see it in the Settings UI; an empty or whitespace-only value falls back to the built-in default
+   * Scope: ``window``
+   * Group: Messages
+
+   **Built-in default text (verbatim):**
+
+   .. code-block:: text
+
+      [Jarvis Message Service] You have ${count} new message(s) in your inbox.
+      Read them with the jarvis_readMessage tool (destination: "${destination}") until remaining = 0.
+
+   **Acceptance Criteria:**
+
+   * AC-1: When ``jarvis.messages.notificationTemplate`` is empty or whitespace,
+     the built-in default text above SHALL be used as the notification stub
+   * AC-2: When the setting contains a non-empty string, that string SHALL be
+     used as the template instead of the built-in default
+   * AC-3: Before submission, the template SHALL have ``${count}`` replaced with
+     the number of pending messages and ``${destination}`` replaced with the
+     target session name
+   * AC-4: Unknown placeholder tokens (i.e. ``${...}`` patterns not listed above)
+     SHALL be left as-is in the final text — no error is raised
+   * AC-5: The substitution SHALL be applied by a shared private helper
+     ``applyTemplate(template, vars)`` in ``src/extension.ts`` so that both the
+     deliver-now command and the auto-delivery poll loop use identical logic
+   * AC-6: The setting SHALL be read from VS Code configuration on each delivery
+     call — no caching — so changes take effect without an extension restart
+
+
 .. req:: Reminders Tree View
    :id: REQ_MSG_REMINDERS_VIEW
    :status: draft
