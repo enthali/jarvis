@@ -269,3 +269,41 @@ Sessions Requirements
      end-state regardless of which path was taken.
      Errors from the ``openAgentSession`` call MUST be logged at ``warn`` level
      and MUST NOT cause the tool to return an error (best-effort).
+
+
+.. req:: Session Tree Inverted Click Semantics
+   :id: REQ_SES_TREECLICK
+   :status: implemented
+   :priority: required
+   :links: US_SES_TREECLICK
+
+   **Description:**
+   The `jarvisSession` tree leaf node's primary action (single click) SHALL
+   open the agent-chat editor. Opening `context.md` SHALL be exposed via a
+   dedicated inline icon command.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The `command` property of every `jarvisSession` `TreeItem` SHALL
+     be bound to `jarvis.openAgentSession` (replacing the previous binding to
+     `jarvis.openContext`).
+   * AC-2: A new command `jarvis.openSessionContext` SHALL be registered. Its
+     handler SHALL open the session's `context.md` in the editor
+     (`preview: false`).
+   * AC-3: The `jarvis.openSessionContext` command SHALL be exposed as an
+     inline icon on `jarvisSession` tree items via
+     `contributes.menus.view/item/context` (`inline` group), with a tooltip of
+     `"Open context.md"`.
+   * AC-4: Double-click on a session node SHALL exhibit the same behaviour as
+     single click. This is satisfied by VS Code's default TreeView mapping and
+     requires no explicit implementation; it SHALL be verified in UAT only.
+   * AC-5: All existing `view/item/context` menu entries for
+     `viewItem == jarvisSession` SHALL remain unchanged (`jarvis.openContext`,
+     `jarvis.openAgentSession`, `jarvis.revealInExplorer`,
+     `jarvis.revealInOS`, `jarvis.openInTerminal`).
+   * AC-6: When `jarvis.openSessionContext` is invoked and `context.md` does
+     not exist in the session folder, the command SHALL create the file with the
+     template `# <session-name>\n\n` before opening it. The session name is
+     derived from the entity entry; if unavailable, it falls back to the folder
+     basename. Errors during file creation SHALL be shown via
+     `vscode.window.showErrorMessage` and SHALL NOT silently discard them.

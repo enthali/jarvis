@@ -36,6 +36,7 @@ outcome tables** for each feature's acceptance tests.
    spec_uat_sessions_feature
    spec_uat_agent_prompt_tuning
    spec_uat_createsessiontool
+   spec_uat_sessiontreeclick
 
 All UAT Specifications
 ----------------------

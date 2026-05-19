@@ -90,6 +90,14 @@ Sessions Design Specifications
 
    **Skeleton** (``src/sessionTreeProvider.ts``):
 
+   .. note::
+
+      The ``item.command`` binding shown below is superseded by
+      ``SPEC_SES_TREECLICK`` for ``jarvisSession`` items: the primary action is
+      now ``jarvis.openAgentSession`` (open the agent chat), and ``context.md``
+      access moves to an inline-icon menu entry. See ``SPEC_SES_TREECLICK`` for
+      the current assignment.
+
    .. code-block:: typescript
 
       // Implementation: SPEC_SES_TREE
@@ -469,9 +477,11 @@ Sessions Design Specifications
 
    **Notes:**
 
-   * ``jarvis.openContext`` was already wired for ``jarvisSession`` (via the leaf
-     node's default ``command``). The explicit ``view/item/context`` inline entry
-     makes the inline icon appear like Projects/Events.
+   * ``jarvis.openContext`` was already wired for ``jarvisSession`` (previously
+     via the leaf node's default command; now via the inline
+     ``view/item/context`` entry — see ``SPEC_SES_TREECLICK``). The explicit
+     ``view/item/context`` inline entry makes the inline icon appear like
+     Projects/Events.
    * ``jarvis.openAgentSession`` is the new addition that enables one-click agent
      chat opening from a session node, analogous to project and event nodes.
    * The three context-actions entries (``revealInExplorer``, ``revealInOS``,
@@ -734,3 +744,164 @@ Sessions Design Specifications
      creation and idempotent-skip paths (AC-10).
    * ``package.json`` — add ``jarvis_createSession`` entry under
      ``contributes.languageModelTools``.
+
+
+.. spec:: session-tree-click-behavior: Inverted Click Semantics and Inline Context Icon
+   :id: SPEC_SES_TREECLICK
+   :status: implemented
+   :links: REQ_SES_TREECLICK; REQ_SES_TREE; REQ_SES_OPENCONTEXT
+
+   **Description:**
+   Change the default click action on ``jarvisSession`` tree items from
+   ``jarvis.openContext`` to ``jarvis.openAgentSession``, and introduce a new
+   command ``jarvis.openSessionContext`` exposed as an inline icon so the
+   ``context.md`` open action remains one click away.
+
+   **1. ``src/sessionTreeProvider.ts`` --- ``getTreeItem()`` change**
+
+   Replace the ``command`` binding on the session leaf ``TreeItem``:
+
+   .. code-block:: typescript
+
+      // Before (SPEC_SES_TREE -- implemented):
+      item.command = {
+          command: 'jarvis.openContext',
+          title: 'Open Context',
+          arguments: [element],
+      };
+
+      // After (SPEC_SES_TREECLICK):
+      item.command = {
+          command: 'jarvis.openAgentSession',
+          title: 'Open Agent Session',
+          arguments: [element],
+      };
+
+   No other changes to ``SessionTreeProvider``.
+
+   **2. ``src/extension.ts`` --- new ``jarvis.openSessionContext`` command**
+
+   Register a new command (inside the sessions-enabled activation block,
+   adjacent to the existing ``jarvis.openContext`` registration):
+
+   .. code-block:: typescript
+
+      // Implementation: SPEC_SES_TREECLICK
+      // Requirements: REQ_SES_TREECLICK
+      const openSessionContextCommand = vscode.commands.registerCommand(
+          'jarvis.openSessionContext',
+          async (element: LeafNode) => {
+              const sessionDir = path.dirname(element.id);
+              const contextPath = path.join(sessionDir, 'context.md');
+
+              if (!fs.existsSync(contextPath)) {
+                  // Resilience: create context.md on the fly (AC-6)
+                  const entity = scanner?.getEntity(element.id);
+                  const sessionName = entity?.name ?? path.basename(sessionDir);
+                  try {
+                      await fs.promises.writeFile(
+                          contextPath,
+                          '# ' + sessionName + '\n\n',
+                          'utf-8'
+                      );
+                      log.info('[OpenSessionContext] created missing context.md for "' + sessionName + '"');
+                  } catch (err) {
+                      vscode.window.showErrorMessage(
+                          'Jarvis: Could not create context.md -- ' + err
+                      );
+                      return;
+                  }
+              }
+
+              await vscode.window.showTextDocument(
+                  vscode.Uri.file(contextPath),
+                  { preview: false }
+              );
+          }
+      );
+
+   Add ``openSessionContextCommand`` to the ``context.subscriptions.push(...)``
+   call alongside the other session commands.
+
+   **Rationale:** A new command id is introduced rather than reusing the previous
+   ``jarvis.openContext`` binding. The previous binding's default semantics (the
+   TreeView item primary action) is exactly what this CR reverts; keeping it for
+   the inline icon would invite confusion about which behaviour belongs to which
+   trigger. A dedicated command also gives the menu wiring a stable, named target
+   if future CRs evolve either action independently.
+
+   **3. ``package.json`` --- command registration and menu wiring**
+
+   Add to ``contributes.commands``:
+
+   .. code-block:: json
+
+      {
+        "command": "jarvis.openSessionContext",
+        "title": "Jarvis: Open Session Context",
+        "shortTitle": "Open context.md",
+        "icon": "$(book)"
+      }
+
+   VS Code uses ``shortTitle`` (when present) as the inline-icon tooltip on
+   ``view/item/context`` menu entries, falling back to ``title`` when absent.
+   This is what makes ``REQ_SES_TREECLICK`` AC-3 verifiable.
+
+   Add to ``contributes.menus.commandPalette`` (hide from palette; icon-only
+   action):
+
+   .. code-block:: json
+
+      { "command": "jarvis.openSessionContext", "when": "false" }
+
+   Add to ``contributes.menus.view/item/context`` (renders as inline icon button
+   on each ``jarvisSession`` tree item):
+
+   .. code-block:: json
+
+      {
+        "command": "jarvis.openSessionContext",
+        "when": "view == jarvisSessions && viewItem == jarvisSession",
+        "group": "inline"
+      }
+
+   The ``view ==`` segment defensively scopes the inline icon to the Sessions
+   Tree only, preventing accidental rendering if the ``jarvisSession``
+   contextValue is ever reused elsewhere.
+
+   ``view/item/context`` with ``group: "inline"`` is the only valid VS Code
+   contribution point for per-item inline tree actions; ``view/item/title`` is
+   silently ignored by VS Code in this position.
+
+   **4. Codicon choice: ``$(book)``**
+
+   ``$(book)`` (notebook/memory feel) was selected per PM preference.
+   ``context.md`` is the session's persistent memory file, so a book/notebook
+   glyph is semantically accurate and immediately recognisable. It is visually
+   distinct from ``$(file)`` (generic file) and from ``$(comment-discussion)``
+   (chat), and requires no custom SVG asset.
+
+   **5. Legacy resilience (AC-6)**
+
+   The defensive ``context.md`` creation pattern mirrors ``newSessionCommand``
+   in ``src/extension.ts``. The file is created only on demand (when the inline
+   icon is clicked), not eagerly on tree load, so legacy sessions remain
+   unmodified until the user actively opens the context.
+
+   **6. Existing context-menu entries --- no change**
+
+   ``SPEC_SES_CONTEXTMENU`` is not touched. The five existing
+   ``view/item/context`` entries (``jarvis.openContext``,
+   ``jarvis.openAgentSession``, ``jarvis.revealInExplorer``,
+   ``jarvis.revealInOS``, ``jarvis.openInTerminal``) are preserved as-is.
+   The inline ``jarvis.openContext`` context-menu entry continues to work,
+   giving power users two paths to ``context.md``.
+
+   **File touchpoints:**
+
+   * ``src/sessionTreeProvider.ts`` --- ``item.command`` in ``getTreeItem()``.
+   * ``src/extension.ts`` --- new ``openSessionContextCommand`` registration
+     (inside the ``if (sessions.enabled)`` activation block).
+   * ``package.json`` --- ``contributes.commands``,
+     ``contributes.menus.commandPalette``, ``contributes.menus.view/item/context``.
+   * No new SVG files required.

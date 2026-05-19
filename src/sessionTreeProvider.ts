@@ -34,8 +34,8 @@ export class SessionTreeProvider implements vscode.TreeDataProvider<TreeNode> {
         item.tooltip = entity?.summary;
         item.contextValue = 'jarvisSession';
         item.command = {
-            command: 'jarvis.openContext',
-            title: 'Open Context',
+            command: 'jarvis.openAgentSession',
+            title: 'Open Agent Session',
             arguments: [element],
         };
         return item;

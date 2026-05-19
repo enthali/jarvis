@@ -76,3 +76,36 @@ Sessions User Stories
      results in an error ``"invalid session name: <reason>"`` — the folder name
      is used verbatim (no slug-ification) to preserve round-trip consistency
      with ``jarvis_sendToSession``.
+
+
+.. story:: Session Tree Primary Action
+   :id: US_SES_TREECLICK
+   :status: implemented
+   :priority: required
+
+   **As a** Jarvis user,
+   **I want** clicking a session name in the Sessions Tree to immediately open
+   the agent-chat editor for that session,
+   **so that** entering a session feels natural and frictionless — the agent
+   chat is the primary destination, not a text file.
+
+   **Context:**
+   The previous default click behaviour opened ``context.md``. This contradicts
+   user expectation built during the ``create-session-tool`` UAT: after
+   programmatic session creation the reflex is to click the session name and
+   land in the chat, not in the memory file. The memory file remains reachable
+   via a dedicated inline icon on the tree item.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A single click on a session leaf node opens / activates the
+     agent-chat editor (identical to ``jarvis.openAgentSession``).
+   * AC-2: A dedicated inline icon on the session tree item opens
+     ``context.md`` in the editor when clicked.
+   * AC-3: The inline icon has a tooltip so the user understands its purpose.
+   * AC-4: Double-click on a session node behaves identically to single click
+     (VS Code default behaviour; no explicit code required).
+   * AC-5: Existing context-menu entries for session nodes remain unaffected.
+   * AC-6: If ``context.md`` is absent in the session folder (legacy session),
+     the inline icon action creates the file with the standard template before
+     opening it.

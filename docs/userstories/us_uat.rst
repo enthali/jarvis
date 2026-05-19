@@ -36,6 +36,7 @@ for each feature. Each file corresponds to one feature or change.
    us_uat_sessions_feature
    us_uat_agent_prompt_tuning
    us_uat_createsessiontool
+   us_uat_sessiontreeclick
 
 All UAT User Stories
 --------------------

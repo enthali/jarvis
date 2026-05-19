@@ -791,6 +791,49 @@ export function activate(context: vscode.ExtensionContext) {
         }
     );
 
+    // Implementation: SPEC_SES_TREECLICK
+    // Requirements: REQ_SES_TREECLICK
+    let openSessionContextCommand: vscode.Disposable | undefined;
+    if (cfg.get<boolean>('sessions.enabled', true)) {
+        openSessionContextCommand = vscode.commands.registerCommand(
+            'jarvis.openSessionContext',
+            async (element: LeafNode) => {
+                const sessionDir = path.dirname(element.id);
+                const contextPath = path.join(sessionDir, 'context.md');
+
+                if (!fs.existsSync(contextPath)) {
+                    // Resilience: create context.md on the fly (AC-6)
+                    const entity = scanner?.getEntity(element.id);
+                    const sessionName = entity?.name ?? path.basename(sessionDir);
+                    try {
+                        await fs.promises.writeFile(
+                            contextPath,
+                            '# ' + sessionName + '\n\n',
+                            'utf-8'
+                        );
+                        log.info('[OpenSessionContext] created missing context.md for "' + sessionName + '"');
+                    } catch (err) {
+                        vscode.window.showErrorMessage(
+                            'Jarvis: Could not create context.md -- ' + err
+                        );
+                        return;
+                    }
+                }
+
+                try {
+                    await vscode.window.showTextDocument(
+                        vscode.Uri.file(contextPath),
+                        { preview: false }
+                    );
+                } catch (err) {
+                    log.warn(`[SES] openSessionContext: showTextDocument failed for ${contextPath}: ${err}`);
+                    vscode.window.showWarningMessage(`Jarvis: could not open context.md: ${err}`);
+                }
+            }
+        );
+        context.subscriptions.push(openSessionContextCommand);
+    } // end if (sessions.enabled) — SPEC_SES_TREECLICK
+
     // Register delete message command (SPEC_MSG_SENDCOMMAND)
     const deleteMessageCommand = vscode.commands.registerCommand(
         'jarvis.deleteMessage',
