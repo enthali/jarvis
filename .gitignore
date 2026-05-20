@@ -7,10 +7,7 @@ __pycache__/
 *.pyc
 .env
 .venv/
-.jarvis/autodelivery.json
-.jarvis/messages.json
-.jarvis/message-log.json
-.jarvis/heartbeat.yaml
+.jarvis/
 _build/
 
 # syspilot build artifacts
