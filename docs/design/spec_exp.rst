@@ -425,13 +425,25 @@ Explorer Design Specifications
 .. spec:: Open Agent Session Command
    :id: SPEC_EXP_AGENTSESSION
    :status: implemented
-   :links: REQ_EXP_AGENTSESSION; SPEC_MSG_SESSIONLOOKUP; SPEC_EXP_PROVIDER; SPEC_EXP_OPENYAML_CMD
+   :links: REQ_EXP_AGENTSESSION; SPEC_MSG_SESSIONLOOKUP; SPEC_EXP_PROVIDER; SPEC_EXP_OPENYAML_CMD; SPEC_MSG_OPENCHAT; SPEC_MSG_PINNED; SPEC_MSG_AGENTSESSION
 
    **Description:**
    Register ``jarvis.openAgentSession`` in ``extension.ts``. Invoked from the
    inline ``$(comment-discussion)`` button on every project and event leaf node.
    Looks up a chat session whose title matches the entity ``name`` and opens it;
-   if no session is found, creates a new one and sends an initialization prompt.
+   if no session is found, creates a **fresh** chat editor via
+   ``openNewChatEditor()`` (``SPEC_MSG_OPENCHAT``) and sends an initialization
+   prompt. The full lifecycle sequence is specified in ``SPEC_MSG_AGENTSESSION``.
+
+   **Rationale — URI-reuse bug fix:**
+   The previous implementation used the constant URI
+   ``vscode-chat-session://local/new`` for every new-session open. VS Code
+   treats this as a navigation to the same resource; subsequent calls reuse the
+   already-open editor instead of creating a fresh one. This caused init-prompts
+   and conversation to land in the wrong chat when two sessions were opened in
+   quick succession. Replacing the ``vscode.open`` call with
+   ``workbench.action.openChat`` (via ``openNewChatEditor()``) generates a
+   unique session URI per invocation and always produces a dedicated editor.
 
    **Handler:**
 
@@ -446,34 +458,29 @@ Explorer Design Specifications
           const uuid = await lookupSessionUUID(entity.name);
 
           if (uuid) {
-            // Open existing session
+            // Open existing session pinned
             const b64 = Buffer.from(uuid).toString('base64');
             const uri = vscode.Uri.parse(
               `vscode-chat-session://local/${b64}`
             );
-            await vscode.commands.executeCommand('vscode.open', uri);
+            await openPinnedResource(uri);  // SPEC_MSG_PINNED
           } else {
-            // Create new session
-            await vscode.commands.executeCommand('vscode.open',
-              vscode.Uri.parse('vscode-chat-session://local/new'));
+            // Create a fresh chat editor — never reuses an existing one
+            await openNewChatEditor();  // SPEC_MSG_OPENCHAT
             await new Promise(resolve => setTimeout(resolve, 800));
 
-            // Rename session via /rename command
-            await vscode.commands.executeCommand(
-              'workbench.action.chat.open',
-              { query: `/rename ${entity.name}` }
-            );
-            await new Promise(resolve => setTimeout(resolve, 800));
+            // Rename session so future lookups can resolve it by name
+            await renameFocusedChatSession(entity.name);
 
-            // Send initialization prompt
-            const initPrompt =
-              `You are working on the project/event "${entity.name}". ` +
-              `Please read the relevant project context.`;
-            // NOTE: This hardcoded prompt is superseded by SPEC_EXP_AGENTSESSION_INITPROMPT.
-            await vscode.commands.executeCommand(
-              'workbench.action.chat.open',
-              { query: initPrompt }
-            );
+            // Send initialization prompt (SPEC_EXP_AGENTSESSION_INITPROMPT)
+            const kind = entity.kind ?? 'project';
+            const folder = entity.folder ?? path.dirname(element.id);
+            const contextPath = path.join(folder, 'context.md');
+            const rawInitTemplate = vscode.workspace.getConfiguration('jarvis')
+                .get<string>('agentSession.initPromptTemplate') ?? '';
+            const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : DEFAULT_INIT_PROMPT;
+            const initPrompt = applyTemplate(initTemplate, { kind, name: entity.name, contextPath });
+            await sendPromptToFocusedAgentChat(initPrompt);  // SPEC_MSG_SENDPROMPT
           }
         }
       );

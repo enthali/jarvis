@@ -38,6 +38,7 @@ outcome tables** for each feature's acceptance tests.
    spec_uat_createsessiontool
    spec_uat_sessiontreeclick
    spec_uat_listsessionentitiesgating
+   spec_uat_chateditorreuse
 
 All UAT Specifications
 ----------------------

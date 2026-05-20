@@ -102,6 +102,11 @@ export function activate(context: vscode.ExtensionContext) {
         await new Promise(resolve => setTimeout(resolve, 800));
     }
 
+    async function openNewChatEditor(): Promise<void> {
+        await vscode.commands.executeCommand('workbench.action.openChat');
+        await new Promise(resolve => setTimeout(resolve, 800));
+    }
+
     // Implementation: SPEC_PIM_TASKSERVICE
     // Requirements: REQ_PIM_TASKSERVICE
     const taskService = new TaskService();
@@ -643,10 +648,8 @@ export function activate(context: vscode.ExtensionContext) {
                 // Wait for session tab to be fully focused
                 await new Promise(resolve => setTimeout(resolve, 800));
             } else {
-                // No existing session — create a new editor chat via URI with empty sessionId
-                await vscode.commands.executeCommand('vscode.open',
-                    vscode.Uri.parse('vscode-chat-session://local/new'));
-                await new Promise(resolve => setTimeout(resolve, 800));
+                // No existing session — create a new chat editor
+                await openNewChatEditor();
                 await renameFocusedChatSession(node.destination);
             }
 
@@ -709,9 +712,7 @@ export function activate(context: vscode.ExtensionContext) {
                 await vscode.commands.executeCommand('vscode.open', uri);
             } else {
                 // Create new session
-                await vscode.commands.executeCommand('vscode.open',
-                    vscode.Uri.parse('vscode-chat-session://local/new'));
-                await new Promise(resolve => setTimeout(resolve, 800));
+                await openNewChatEditor();
 
                 // Rename session via /rename command
                 await renameFocusedChatSession(entity.name);
@@ -2031,9 +2032,7 @@ export function activate(context: vscode.ExtensionContext) {
                     await vscode.commands.executeCommand('vscode.open', uri);
                     await new Promise(resolve => setTimeout(resolve, 800));
                 } else {
-                    await vscode.commands.executeCommand('vscode.open',
-                        vscode.Uri.parse('vscode-chat-session://local/new'));
-                    await new Promise(resolve => setTimeout(resolve, 800));
+                    await openNewChatEditor();
                     await renameFocusedChatSession(sessionName);
                 }
                 const count = pending.length;

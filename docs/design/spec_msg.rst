@@ -917,16 +917,26 @@ Message Queue Design Specifications
 .. spec:: Auto-Delivery Poll Loop
    :id: SPEC_MSG_AUTODELIVER_POLL
    :status: implemented
-   :links: REQ_MSG_AUTODELIVER_POLL; SPEC_MSG_AUTODELIVER_STORE; SPEC_MSG_AUTODELIVER_TAG; SPEC_MSG_SENDCOMMAND; REQ_MSG_NOTIFICATION_TEMPLATE
+   :links: REQ_MSG_AUTODELIVER_POLL; SPEC_MSG_AUTODELIVER_STORE; SPEC_MSG_AUTODELIVER_TAG; SPEC_MSG_SENDCOMMAND; REQ_MSG_NOTIFICATION_TEMPLATE; SPEC_MSG_OPENCHAT
 
-    **Description:**
+   **Description:**
 
-    A ``setInterval`` poll loop started in ``extension.ts`` during ``activate()``.
-    Each tick finds the first auto-delivery session that has un-notified messages,
-    opens the chat session directly, sends the notification stub, and marks those
-    messages as notified. If the destination session cannot be found, the poll
-    loop opens a new editor chat and first sends ``/rename <sessionName>`` so
-    future deliveries can resolve the session by name.
+   A ``setInterval`` poll loop started in ``extension.ts`` during ``activate()``.
+   Each tick finds the first auto-delivery session that has un-notified messages,
+   opens the chat session directly, sends the notification stub, and marks those
+   messages as notified. If the destination session cannot be found, the poll
+   loop opens a **fresh** chat editor via ``openNewChatEditor()``
+   (``SPEC_MSG_OPENCHAT``) and first sends ``/rename <sessionName>`` so future
+   deliveries can resolve the session by name.
+
+   **Rationale — URI-reuse bug fix:**
+   The previous implementation used ``vscode.open(vscode-chat-session://local/new)``
+   for the no-UUID path. Because the URI is constant, VS Code navigates within
+   the same existing editor on every tick instead of creating a new one, causing
+   successive auto-delivery notifications to land in the same recycled chat.
+   Replacing with ``openNewChatEditor()`` (``workbench.action.openChat``) produces
+   a unique URI per invocation and ensures each auto-delivered session gets its
+   own dedicated editor.
 
    **Tick logic (inlined in extension.ts):**
 
@@ -949,12 +959,10 @@ Message Queue Design Specifications
           if (uuid) {
             // ... open session tab ...
           } else {
-            await vscode.commands.executeCommand('vscode.open',
-              vscode.Uri.parse('vscode-chat-session://local/new'));
+            // Create a fresh chat editor — never reuses an existing one
+            await openNewChatEditor();  // SPEC_MSG_OPENCHAT
             await new Promise(resolve => setTimeout(resolve, 800));
-            await vscode.commands.executeCommand(
-              'workbench.action.chat.open', { query: `/rename ${sessionName}` }
-            );
+            await renameFocusedChatSession(sessionName);
             await new Promise(resolve => setTimeout(resolve, 800));
           }
 
