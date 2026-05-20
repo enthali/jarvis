@@ -1,5 +1,51 @@
 # Release Notes
 
+## v0.5.11 — Sessions stack v1
+
+*2026-05-20*
+
+Sessions as a first-class entity type, reminders, a suite of new LM/MCP tools, and a disciplined agent init-prompt. Includes a **breaking settings reorganisation** — see migration notes below.
+
+### ⚠ Breaking Changes — Settings Migration Required
+
+The `settings-cleanup` change reorganised all Jarvis settings into logical feature groups. The following settings have been **removed or renamed**:
+
+| Old setting | Replacement | Notes |
+|---|---|---|
+| `jarvis.heartbeatConfigFile` | *(removed)* | Fixed path: `.jarvis/heartbeat.yaml` in workspace root |
+| `jarvis.messagesFile` | *(removed)* | Fixed path: `.jarvis/messages.json` in workspace root |
+| `jarvis.mcpEnabled` | `jarvis.mcp.enabled` | Consistent dotted-group naming |
+| `jarvis.outlookEnabled` | `jarvis.outlook.enabled` | Consistent dotted-group naming |
+| `jarvis.projectsFolder` | `jarvis.projects.folder` | Consistent dotted-group naming |
+| `jarvis.eventsFolder` | `jarvis.events.folder` | Consistent dotted-group naming |
+
+**Default changes:**
+- `jarvis.messages.logging` default flips from `false` → `true` (opt-out, not opt-in).
+- `jarvis.projects.enabled` defaults to **off** (was implicitly on via empty path).
+- `jarvis.events.enabled` defaults to **off** (was implicitly on via empty path).
+
+**Action required:** Open VS Code Settings (`Ctrl+,`), search for `jarvis`, and verify your configured values. All runtime files now live under `.jarvis/` in the workspace root — add `.jarvis/` to `.gitignore` if desired.
+
+### New Features
+
+- **sessions-feature**: New entity type **Sessions** — a lightweight alternative to Projects for Copilot-agent and dev-session workflows. `session.yaml` schema (`name` + `summary`), `SessionTreeProvider` in the sidebar, `jarvis.sessions.enabled` toggle (default on), fixed path `.jarvis/sessions/`, `jarvis.newSession` command, and full context-menu parity. Sessions are independent of the Projects/Events toggles.
+- **reminders**: New Reminders feature. `jarvis_setReminder({ text, session, deliverAt })` schedules a future message delivery via the auto-delivery pipeline. `jarvis_listReminders()` lists open reminders with remaining time. `jarvis_cancelReminder({ id })` cancels before delivery. A dedicated **Reminders** sidebar view shows open reminders. Reminders persist across restarts via `.jarvis/reminders.yaml`.
+- **list-jobs-tool**: New LM/MCP tool `jarvis_listJobs()` — returns all registered heartbeat jobs with `name`, `schedule`, `enabled`, and `nextFire` (ISO timestamp or `null` for manual/paused jobs). Registered via the standard `registerDualTool` pattern.
+- **agent-prompt-tuning**: Disciplined default init-prompt for new agent sessions: forces `context.md` read on open, restricts entries to Decision/Finding/Next bullets, enforces a 2-week relevance gate, and prohibits raw tool output/transient chatter. Prompt is user-configurable via `jarvis.agentSession.initPromptTemplate` (`${kind}`, `${name}`, `${contextPath}` placeholders). Auto-delivery notification is now English by default and user-configurable via `jarvis.messages.notificationTemplate` (`${count}`, `${destination}` placeholders).
+- **create-session-tool**: New LM/MCP tool `jarvis_createSession` — programmatically creates a session folder with `session.yaml` and `context.md`, optionally seeds an initial message, and auto-opens the agent chat. Idempotent: existing sessions are detected and returned as success without overwriting. Gated by `jarvis.sessions.enabled`.
+- **session-tree-click-behavior**: Sessions Tree default click now opens the agent-chat editor (not `context.md`). A dedicated inline `$(book)` icon on each session item opens `context.md` directly. Aligns click semantics with primary session purpose.
+
+### Bug Fixes
+
+- **list-session-entities-gating-bug**: `jarvis_listSessionEntities` was registered unconditionally even when `jarvis.sessions.enabled=false`. It is now gated inside the same `if (sessions.enabled)` block as `jarvis_createSession`, consistent with the static-gating ADR.
+- **chat-editor-reuse-on-session-open**: Opening a new Jarvis session now always produces a fresh, dedicated chat editor. Previously `vscode-chat-session://local/new` was reused across calls, causing init-prompt and conversation to land in the wrong chat. Fixed by replacing all three call sites with `workbench.action.openChat`.
+
+### Internal / Notes
+
+- **tool-deregistration (rejected)**: Runtime LM tool add/remove is not achievable with the current VS Code API — `dispose()` on a tool registration does not remove it from the Tool Picker. Retained as an ADR. Static gating at activation (with reload) remains the project standard.
+- **Pre-existing ESLint issue**: `ESLint couldn't find an eslint.config.(js|mjs|cjs) file` — ESLint v9 vs `.eslintrc.*` config mismatch. Pre-existing, not introduced in this release. Deferred.
+- **6 deferred MECE advisories** from `chat-editor-reuse-on-session-open`: minor spec/wording improvements noted during MECE final pass; deferred to a future maintenance CR.
+
 ## v0.5.10
 
 *2026-05-18*
