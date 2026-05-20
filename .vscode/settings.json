@@ -7,5 +7,6 @@
     "jarvis.scanInterval": 20,
     "jarvis.heartbeatInterval": 300,
     "jarvis.pim.showCategories": false,
-    "jarvis.outlook.tasks.enabled": false
+    "jarvis.outlook.tasks.enabled": false,
+    "jarvis.projects.enabled": false
 }
