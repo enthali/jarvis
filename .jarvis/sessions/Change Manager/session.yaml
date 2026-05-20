@@ -1,0 +1,9 @@
+name: "Change Manager"
+summary: >-
+  Central orchestrator of the Jarvis change workflow. Receives Change Requests
+  from the Project Manager, invokes engineer subagents (design, uat, implement,
+  mece, trace, release, docu), enforces quality gates, and reports completion
+  with full traceability. Aligned with .github/agents/syspilot.cm.agent.md.
+externalStatus: 'active'
+internalStatus: 'aligned with v0.5.11'
+lastUpdated: '2026-05-20'

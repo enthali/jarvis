@@ -7,6 +7,10 @@ __pycache__/
 *.pyc
 .env
 .venv/
+.jarvis/autodelivery.json
+.jarvis/messages.json
+.jarvis/message-log.json
+.jarvis/heartbeat.yaml
 _build/
 
 # syspilot build artifacts
@@ -19,7 +23,6 @@ Thumbs.db
 # Test data
 test-projects/
 test-events/
-.jarvis/
 build.log
 
 # Workspace (machine-specific)
