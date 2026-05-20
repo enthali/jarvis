@@ -425,13 +425,25 @@ Explorer Design Specifications
 .. spec:: Open Agent Session Command
    :id: SPEC_EXP_AGENTSESSION
    :status: implemented
-   :links: REQ_EXP_AGENTSESSION; SPEC_MSG_SESSIONLOOKUP; SPEC_EXP_PROVIDER; SPEC_EXP_OPENYAML_CMD
+   :links: REQ_EXP_AGENTSESSION; SPEC_MSG_SESSIONLOOKUP; SPEC_EXP_PROVIDER; SPEC_EXP_OPENYAML_CMD; SPEC_MSG_OPENCHAT; SPEC_MSG_PINNED; SPEC_MSG_AGENTSESSION
 
    **Description:**
    Register ``jarvis.openAgentSession`` in ``extension.ts``. Invoked from the
    inline ``$(comment-discussion)`` button on every project and event leaf node.
    Looks up a chat session whose title matches the entity ``name`` and opens it;
-   if no session is found, creates a new one and sends an initialization prompt.
+   if no session is found, creates a **fresh** chat editor via
+   ``openNewChatEditor()`` (``SPEC_MSG_OPENCHAT``) and sends an initialization
+   prompt. The full lifecycle sequence is specified in ``SPEC_MSG_AGENTSESSION``.
+
+   **Rationale — URI-reuse bug fix:**
+   The previous implementation used the constant URI
+   ``vscode-chat-session://local/new`` for every new-session open. VS Code
+   treats this as a navigation to the same resource; subsequent calls reuse the
+   already-open editor instead of creating a fresh one. This caused init-prompts
+   and conversation to land in the wrong chat when two sessions were opened in
+   quick succession. Replacing the ``vscode.open`` call with
+   ``workbench.action.openChat`` (via ``openNewChatEditor()``) generates a
+   unique session URI per invocation and always produces a dedicated editor.
 
    **Handler:**
 
@@ -446,33 +458,29 @@ Explorer Design Specifications
           const uuid = await lookupSessionUUID(entity.name);
 
           if (uuid) {
-            // Open existing session
+            // Open existing session pinned
             const b64 = Buffer.from(uuid).toString('base64');
             const uri = vscode.Uri.parse(
               `vscode-chat-session://local/${b64}`
             );
-            await vscode.commands.executeCommand('vscode.open', uri);
+            await openPinnedResource(uri);  // SPEC_MSG_PINNED
           } else {
-            // Create new session
-            await vscode.commands.executeCommand('vscode.open',
-              vscode.Uri.parse('vscode-chat-session://local/new'));
+            // Create a fresh chat editor — never reuses an existing one
+            await openNewChatEditor();  // SPEC_MSG_OPENCHAT
             await new Promise(resolve => setTimeout(resolve, 800));
 
-            // Rename session via /rename command
-            await vscode.commands.executeCommand(
-              'workbench.action.chat.open',
-              { query: `/rename ${entity.name}` }
-            );
-            await new Promise(resolve => setTimeout(resolve, 800));
+            // Rename session so future lookups can resolve it by name
+            await renameFocusedChatSession(entity.name);
 
-            // Send initialization prompt
-            const initPrompt =
-              `You are working on the project/event "${entity.name}". ` +
-              `Please read the relevant project context.`;
-            await vscode.commands.executeCommand(
-              'workbench.action.chat.open',
-              { query: initPrompt }
-            );
+            // Send initialization prompt (SPEC_EXP_AGENTSESSION_INITPROMPT)
+            const kind = entity.kind ?? 'project';
+            const folder = entity.folder ?? path.dirname(element.id);
+            const contextPath = path.join(folder, 'context.md');
+            const rawInitTemplate = vscode.workspace.getConfiguration('jarvis')
+                .get<string>('agentSession.initPromptTemplate') ?? '';
+            const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : DEFAULT_INIT_PROMPT;
+            const initPrompt = applyTemplate(initTemplate, { kind, name: entity.name, contextPath });
+            await sendPromptToFocusedAgentChat(initPrompt);  // SPEC_MSG_SENDPROMPT
           }
         }
       );
@@ -531,6 +539,85 @@ Explorer Design Specifications
    * The initialization prompt is submitted directly via
      ``workbench.action.chat.open`` (not via the message queue)
    * Disposable pushed to ``context.subscriptions``
+   * **The verbatim prompt template is specified in
+     ``SPEC_EXP_AGENTSESSION_INITPROMPT``.** The old hardcoded wording shown
+     above is retained for historical reference only.
+
+
+.. spec:: Agent-Session Identity Prompt Template
+   :id: SPEC_EXP_AGENTSESSION_INITPROMPT
+   :status: implemented
+   :links: REQ_SES_AGENTPROMPT; REQ_EXP_AGENTPROMPT_TEMPLATE
+
+   **Description:**
+   When ``jarvis.openAgentSession`` or ``jarvis.newSession`` opens a **new** chat
+   session, it sends a kind-aware initialization prompt that instructs the agent
+   to adopt the entity's identity and maintain ``context.md`` as a minimal,
+   action-oriented persistent memory. The prompt text is read from the VS Code
+   setting ``jarvis.agentSession.initPromptTemplate``; three placeholders are
+   substituted at send-time. This applies to all entity kinds: ``project``,
+   ``event``, and ``session``.
+
+   **Template substitution** (``src/extension.ts``, shared private helper ``applyTemplate``):
+
+   .. code-block:: typescript
+
+      // Shared helper — also used by SPEC_MSG_SENDCOMMAND and SPEC_MSG_AUTODELIVER_POLL.
+      function applyTemplate(template: string, vars: Record<string, string>): string {
+          return template.replace(/\$\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m));
+          // Unknown placeholders are left as-is.
+      }
+
+   **Call site (init prompt):**
+
+   .. code-block:: typescript
+
+      const rawInitTemplate = vscode.workspace.getConfiguration('jarvis')
+          .get<string>('agentSession.initPromptTemplate') ?? '';
+      const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : DEFAULT_INIT_PROMPT;
+      const initPrompt = applyTemplate(initTemplate, { kind, name: entity.name, contextPath });
+
+   **Default prompt** (``DEFAULT_INIT_PROMPT`` constant in ``extension.ts``):
+
+   .. code-block:: text
+
+      You are the ${kind} "${name}".
+
+      Use only `${contextPath}` as your persistent memory. Read it now.
+
+      Keep it minimal and action-oriented:
+      - Store only long-lived items under Decision / Finding / Next.
+      - One concise line per bullet. Prune aggressively.
+      - Replace outdated bullets — never append logs.
+      - Never store retries, raw tool output, or transient chatter.
+      - Before writing, ask: "Will this still matter in 2 weeks?" If no, skip.
+
+   **Fallback rule:** If ``jarvis.agentSession.initPromptTemplate`` is empty or
+   not set, the built-in ``DEFAULT_INIT_PROMPT`` is used. Unknown placeholders in
+   a custom template are passed through unchanged.
+
+   **Placeholder definitions:**
+
+   * ``${kind}`` — ``entity.kind`` (``'project' | 'event' | 'session'``), defaulting
+     to ``'project'`` when the field is absent (backwards compatibility).
+   * ``${name}`` — the display name from ``session.yaml`` / ``project.yaml`` /
+     ``event.yaml``.
+   * ``${contextPath}`` — ``path.join(entity.folder ?? path.dirname(element.id),
+     'context.md')`` — absolute filesystem path so the agent can open the file
+     directly without resolving workspace-relative paths.
+
+   **Trigger points:**
+
+   * ``jarvis.openAgentSession`` — new-session branch only (no existing UUID found).
+   * ``jarvis.newSession`` — always (a new session folder is always created).
+
+   **Scope:** Cross-entity — benefits projects, events, and sessions. The spec
+   lives here (``spec_exp.rst``) because ``jarvis.openAgentSession`` is an EXP
+   command; the triggering requirements live in ``REQ_SES_AGENTPROMPT`` (sessions
+   CR) and ``REQ_EXP_AGENTPROMPT_TEMPLATE`` (this CR).
+
+   **File touchpoint:** ``src/extension.ts`` — ``openAgentSessionCommand`` and
+   ``newSessionCommand``.
 
 
 .. spec:: New Project Command
@@ -1220,6 +1307,89 @@ Explorer Design Specifications
      during ``getChildren``
    * Falls back to ``lineIndex = 0`` if the index exceeds the number of ``"text":``
      lines found (fail-open)
+   * Disposable pushed to ``context.subscriptions``
+
+
+.. spec:: Open Reminder File Command
+   :id: SPEC_EXP_REMINDER_OPENFILE
+   :status: draft
+   :links: REQ_EXP_REMINDER_OPENFILE; SPEC_MSG_REMINDERSVIEW; SPEC_MSG_REMINDERSTORE
+
+   **Description:**
+   Register ``jarvis.openReminderFile`` in ``extension.ts``. Set as
+   ``TreeItem.command`` on every ``ReminderNode`` in ``RemindersTreeProvider``.
+   Opens ``reminders.yaml`` and reveals the line with the matching reminder id.
+
+   **Handler:**
+
+   .. code-block:: typescript
+
+      vscode.commands.registerCommand(
+        'jarvis.openReminderFile',
+        async (node: ReminderNode) => {
+          const remindersPath = resolveRemindersPath(resolveMessagesPath());
+          if (!fs.existsSync(remindersPath)) {
+            vscode.window.showWarningMessage(
+              `Jarvis: Cannot open reminders file: ${remindersPath}`
+            );
+            return;
+          }
+          const uri = vscode.Uri.file(remindersPath);
+          let lineIndex = 0;
+          try {
+            const doc = await vscode.workspace.openTextDocument(uri);
+            const target = `id: ${node.reminder.id}`;
+            for (let i = 0; i < doc.lineCount; i++) {
+              if (doc.lineAt(i).text.includes(target)) {
+                lineIndex = i;
+                break;
+              }
+            }
+            const range = new vscode.Range(lineIndex, 0, lineIndex, 0);
+            const editor = await vscode.window.showTextDocument(doc);
+            editor.revealRange(range, vscode.TextEditorRevealType.InCenterIfOutsideViewport);
+            editor.selection = new vscode.Selection(range.start, range.start);
+          } catch {
+            vscode.window.showWarningMessage(`Jarvis: Cannot open reminders file: ${remindersPath}`);
+          }
+        }
+      );
+
+   **RemindersTreeProvider change:**
+
+   In ``getTreeItem``, set ``item.command``:
+
+   .. code-block:: typescript
+
+      item.command = {
+        command: 'jarvis.openReminderFile',
+        title: 'Open in reminders file',
+        arguments: [element]
+      };
+
+   **Registration in package.json:**
+
+   * ``contributes.commands``:
+
+     .. code-block:: json
+
+        {
+          "command": "jarvis.openReminderFile",
+          "title": "Jarvis: Open Reminder File"
+        }
+
+   * ``contributes.menus.commandPalette``: hide from Command Palette:
+
+     .. code-block:: json
+
+        { "command": "jarvis.openReminderFile", "when": "false" }
+
+   **Design notes:**
+
+   * ``TreeItem.command`` fires on single-click, consistent with messages
+     and heartbeat nodes
+   * Line match uses substring contains of ``id: <uuid>`` — fails open to
+     line 0 if the id is not found
    * Disposable pushed to ``context.subscriptions``
 
 

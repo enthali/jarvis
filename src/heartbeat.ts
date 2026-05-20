@@ -1,16 +1,17 @@
 // Implementation: SPEC_AUT_JOBSCHEMA, SPEC_AUT_SCHEDULERLOOP, SPEC_AUT_EXECUTOR,
 //                 SPEC_AUT_MANUALCOMMAND, SPEC_AUT_STATUSBARITEM, SPEC_AUT_OUTPUTCHANNEL,
-//                 SPEC_AUT_AGENTEXEC, SPEC_AUT_QUEUEEXEC, SPEC_CFG_HEARTBEATSETTINGS,
+//                 SPEC_AUT_AGENTEXEC, SPEC_AUT_QUEUEEXEC, SPEC_CFG_PATHRESOLVER,
 //                 SPEC_AUT_JOBREG
 // Requirements:   REQ_AUT_JOBCONFIG, REQ_AUT_SCHEDULER, REQ_AUT_JOBEXEC,
 //                 REQ_AUT_MANUALRUN, REQ_AUT_STATUSBAR, REQ_AUT_OUTPUT,
-//                 REQ_CFG_HEARTBEATPATH, REQ_CFG_HEARTBEATINTERVAL, REQ_MSG_QUEUE,
+//                 REQ_CFG_FIXEDPATHS, REQ_CFG_HEARTBEATINTERVAL, REQ_MSG_QUEUE,
 //                 REQ_AUT_JOBREG
 
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as cp from 'child_process';
 import * as path from 'path';
+import * as configPaths from './configPaths';
 import * as yaml from 'js-yaml';
 import { appendMessage } from './messageQueue';
 import { MessageTreeProvider } from './messageTreeProvider';
@@ -61,17 +62,11 @@ export function loadJobs(filePath: string, outputChannel: vscode.LogOutputChanne
 }
 
 // ---------------------------------------------------------------------------
-// Config path resolution (SPEC_CFG_HEARTBEATSETTINGS)
+// Config path resolution (SPEC_CFG_PATHRESOLVER)
 // ---------------------------------------------------------------------------
 
-function resolveConfigPath(context: vscode.ExtensionContext): string {
-    const override = vscode.workspace
-        .getConfiguration('jarvis')
-        .get<string>('heartbeatConfigFile', '');
-    if (override) {
-        return override;
-    }
-    return vscode.Uri.joinPath(context.storageUri!, 'heartbeat.yaml').fsPath;
+function resolveConfigPath(): string {
+    return configPaths.getHeartbeatPath() ?? '';
 }
 
 // ---------------------------------------------------------------------------
@@ -348,7 +343,7 @@ export class HeartbeatScheduler {
     // Implementation: SPEC_AUT_JOBREG
     // Requirements: REQ_AUT_JOBREG
     async registerJob(job: HeartbeatJob): Promise<void> {
-        const configPath = resolveConfigPath(this.context!);
+        const configPath = resolveConfigPath();
         let data: { jobs: HeartbeatJob[] } = { jobs: [] };
         try {
             const raw = fs.readFileSync(configPath, 'utf8');
@@ -368,7 +363,7 @@ export class HeartbeatScheduler {
     // Implementation: SPEC_AUT_JOBREG
     // Requirements: REQ_AUT_JOBREG
     async unregisterJob(name: string): Promise<void> {
-        const configPath = resolveConfigPath(this.context!);
+        const configPath = resolveConfigPath();
         let data: { jobs: HeartbeatJob[] };
         try {
             const raw = fs.readFileSync(configPath, 'utf8');
@@ -387,7 +382,7 @@ export class HeartbeatScheduler {
 
     reload(): void {
         if (!this.context || !this.outputChannel) { return; }
-        const configPath = resolveConfigPath(this.context);
+        const configPath = resolveConfigPath();
         this.configDir = path.dirname(configPath);
         this.jobs = loadJobs(configPath, this.outputChannel);
     }
@@ -396,7 +391,7 @@ export class HeartbeatScheduler {
     // Requirements: REQ_AUT_PAUSE
     async setJobEnabled(name: string, enabled: boolean): Promise<void> {
         if (!this.context) { return; }
-        const configPath = resolveConfigPath(this.context);
+        const configPath = resolveConfigPath();
         let data: { jobs: HeartbeatJob[] };
         try {
             const raw = fs.readFileSync(configPath, 'utf8');
@@ -430,7 +425,7 @@ export class HeartbeatScheduler {
         this.queuePath = queuePath;
         this.messageTreeProvider = messageTreeProvider;
 
-        const configPath = resolveConfigPath(context);
+        const configPath = resolveConfigPath();
         this.configDir = path.dirname(configPath);
         this.jobs = loadJobs(configPath, outputChannel);
 
@@ -449,7 +444,7 @@ export class HeartbeatScheduler {
         if (!this.outputChannel || !this.statusBarItem || !this.context || !this.messageTreeProvider) { return; }
 
         // Reload config on each tick (picks up file changes)
-        const configPath = resolveConfigPath(this.context);
+        const configPath = resolveConfigPath();
         this.configDir = path.dirname(configPath);
         this.jobs = loadJobs(configPath, this.outputChannel);
 
@@ -581,16 +576,10 @@ export function activateHeartbeat(
     // Config change handler — restart scheduler (SPEC_CFG_HEARTBEATSETTINGS)
     context.subscriptions.push(
         vscode.workspace.onDidChangeConfiguration(e => {
-            if (
-                e.affectsConfiguration('jarvis.heartbeatInterval') ||
-                e.affectsConfiguration('jarvis.heartbeatConfigFile')
-            ) {
+            if (e.affectsConfiguration('jarvis.heartbeatInterval')) {
                 scheduler.dispose();
                 scheduler.start(context, outputChannel, statusBarItem, resolveMessagesPath(), messageTreeProvider);
                 heartbeatTreeProvider.setJobs(scheduler.currentJobs);
-            }
-            if (e.affectsConfiguration('jarvis.messagesFile')) {
-                messageTreeProvider.reload();
             }
         })
     );

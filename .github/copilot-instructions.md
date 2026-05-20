@@ -17,7 +17,7 @@ Projects and events are stored as YAML files in configurable folders.
 
 ```
 src/                    — Extension source (TypeScript)
-  extension.ts          — Activation, commands (new-entity, filters, rescan, context-actions, agent sessions, category/task rename/delete/refresh, searchProjects/searchEvents with flattenLeaves() helper, enableAutoDelivery/disableAutoDelivery), populateDefaultPaths() for workspace-settings bootstrap, 8 LM+MCP tools (sendToSession, readMessage, listSessions, listProjects, registerJob, unregisterJob, jarvis_category, jarvis_task) via registerDualTool(), syncRescanJob()+syncCategoryRefreshJob()+syncTaskRefreshJob() heartbeat bridges, 5-second poll loop for auto-delivery (max 1 msg/tick, marks notified:true), shared LogOutputChannel "Jarvis" (structured logging with levels and module tags); stable session helpers: openPinnedResource() (vscode.open preview:false), openNewChatEditor() (workbench.action.openChat + fallback), sendPromptToFocusedAgentChat() (openAgent + fallback); openAgentSession: /rename then context.md init prompt
+  extension.ts          — Activation, commands (new-entity, new-session, filters, rescan, context-actions, agent sessions, category/task rename/delete/refresh, searchProjects/searchEvents with flattenLeaves() helper, enableAutoDelivery/disableAutoDelivery), populateDefaultPaths() for workspace-settings bootstrap, 14 LM+MCP tools via registerDualTool(): sendToSession, readMessage, listSessions, listProjects, registerJob, unregisterJob, jarvis_listJobs, jarvis_setReminder, jarvis_listReminders, jarvis_cancelReminder, jarvis_listSessionEntities, jarvis_createSession (both gated: registered only when jarvis.sessions.enabled===true at activation; no runtime add/remove per ADR tool-deregistration.md), jarvis_category, jarvis_task; syncRescanJob()+syncCategoryRefreshJob()+syncTaskRefreshJob() heartbeat bridges, 5-second poll loop for auto-delivery (max 1 msg/tick, marks notified:true), shared LogOutputChannel "Jarvis" (structured logging with levels and module tags); stable session helpers: openPinnedResource() (vscode.open preview:false), openNewChatEditor() (workbench.action.openChat + fallback), sendPromptToFocusedAgentChat() (openAgent + fallback); openAgentSession: /rename then init prompt from applyTemplate() with jarvis.agentSession.initPromptTemplate setting (disciplined default: kind/name/contextPath, Decision/Finding/Next rules, 2-week gate); auto-delivery notification via applyTemplate() with jarvis.messages.notificationTemplate setting (English default, ${count}/${destination}); newSession: creates session folder + rescan + auto-opens agent chat
   pim/ICategoryProvider.ts — Category + ICategoryProvider strategy-pattern interface
   pim/DomainCache.ts    — Generic in-memory cache with refresh callback
   pim/CategoryService.ts — Provider list + DomainCache<Category[]>; getCategories/setCategory/deleteCategory/renameCategory/refresh/hasProviders
@@ -29,6 +29,7 @@ src/                    — Extension source (TypeScript)
   outlookIntegration/OutlookTaskProvider.ts — ITaskProvider via PowerShell COM; JSON sanitization (strips U+0000–U+001F before JSON.parse)
   yamlScanner.ts        — Convention-file scanner: folder with project.yaml/event.yaml = leaf; content-change detection; events sorted by datesStart+name, projects by name; no own timer (rescans via heartbeat)
   projectTreeProvider.ts — Tree UI for projects (owns _hiddenFolders filter; contextValue: jarvisProject)
+  sessionTreeProvider.ts — Tree UI for sessions (lightweight project alternative; contextValue: jarvisSession); default tree-item action is jarvis.openAgentSession (opens agent chat); companion command jarvis.openSessionContext opens context.md via inline $(book) icon (view/item/context inline group, on-the-fly creation if missing); both gated inside if (sessions.enabled) activation block
   eventTreeProvider.ts  — Tree UI for events (owns _futureOnly filter; label: "datesStart — name"; contextValue: jarvisEvent)
   messageTreeProvider.ts — Tree UI for messages (manual sessions at root + permanent AutoDeliveryGroupNode with zap icon; contextValues: jarvisSessionManual, jarvisSessionAutoDeliver)
   heartbeatTreeProvider.ts — Tree UI for heartbeat jobs (contextValue: heartbeatJob)
@@ -64,7 +65,7 @@ This is a single-project repo — **no family prefix**.
 Format: `<TYPE>_<THEME>_<SHORT_SLUG>`
 
 - `US_` = User Story, `REQ_` = Requirement, `SPEC_` = Design Spec
-- Themes: `EXP` (Explorer UI), `DEV` (Developer Tooling), `CFG` (Config), `PRJ` (Projects), `EVT` (Events), `MSG` (Message Queue / Chat Sessions), `PIM` (Personal Information Manager — categories), `OLK` (Outlook integration), `REL` (Release), `UAT` (User Acceptance Tests), `AUT` (Automation/Scheduling)
+- Themes: `EXP` (Explorer UI), `DEV` (Developer Tooling), `CFG` (Config), `PRJ` (Projects), `EVT` (Events), `MSG` (Message Queue / Chat Sessions), `PIM` (Personal Information Manager — categories), `OLK` (Outlook integration), `REL` (Release), `UAT` (User Acceptance Tests), `AUT` (Automation/Scheduling), `SES` (Sessions — work/dev session folders)
 - Example: `US_EXP_SIDEBAR`, `REQ_DEV_LAUNCHCONFIG`, `SPEC_REL_RELEASEACTION`, `US_AUT_HEARTBEAT`
 
 Full conventions: `docs/namingconventions.rst`
@@ -126,6 +127,7 @@ JSON Schemas: `schemas/project.schema.json`, `schemas/event.schema.json`
 - **DomainCache population**: Fire-and-forget `refresh()` after provider registration — `DomainCache.get()` returns `undefined` synchronously until first refresh completes.
 - **Heartbeat command registration**: If `syncXxxJob()` references a command name, that command MUST be registered via `vscode.commands.registerCommand()` — otherwise heartbeat jobs fail silently with "command not found".
 - **TreeView.reveal()**: Pass the exact item object from the provider (not a reconstructed copy). The `TreeView` must be created with `canSelectMany: false` and the provider must implement `getParent()` for reveal to work correctly.
+- **Inline tree-item icons:** `view/item/title` is NOT a valid per-item contribution point in VS Code — use `view/item/context` with `"group": "inline"` for inline tree-item actions. VS Code silently ignores `view/item/title` for per-item bindings.
 
 ## Session–Project Binding
 

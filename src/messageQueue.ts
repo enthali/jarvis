@@ -72,7 +72,7 @@ export function appendMessage(filePath: string, destination: string, sender: str
     queue.push(message);
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
     fs.writeFileSync(filePath, JSON.stringify(queue, null, 2));
-    if (vscode.workspace.getConfiguration('jarvis').get<boolean>('messages.logging', false)) {
+    if (vscode.workspace.getConfiguration('jarvis').get<boolean>('messages.logging', true)) {
         const logPath = resolveLogPath(filePath);
         const log = readQueue(logPath);
         log.push(message);

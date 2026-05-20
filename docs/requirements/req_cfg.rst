@@ -133,9 +133,14 @@ Configuration Requirements
 
 .. req:: Grouped Settings Categories
    :id: REQ_CFG_SETTINGSGROUPS
-   :status: implemented
+   :status: deprecated
    :priority: mandatory
    :links: US_CFG_SETTINGSGROUPS; REQ_EXP_FEATURETOGGLE
+
+   **Superseded by:** ``REQ_CFG_GROUPS`` (settings-cleanup CR, 2026-05-18).
+   The "no setting key, type, or default value SHALL change" guarantee is
+   explicitly broken by ``REQ_CFG_RENAMES``. Retained for historical
+   traceability.
 
    **Description:**
    The extension SHALL organize its VS Code settings into named sub-categories
@@ -172,3 +177,159 @@ Configuration Requirements
      as fallback — no behavioral change
    * AC-4: The write SHALL use ``ConfigurationTarget.Workspace`` so the value is
      scoped to the current workspace
+
+
+.. req:: Per-Feature Enable Toggles
+   :id: REQ_CFG_TOGGLES
+   :status: implemented
+   :priority: required
+   :links: US_CFG_FEATURETOGGLES
+
+   **Description:**
+   Each Jarvis feature SHALL have a single boolean setting
+   ``jarvis.<feature>.enabled`` that gates all activation work for that feature.
+
+   **Settings, names, and defaults:**
+
+   * ``jarvis.projects.enabled`` — boolean, default: ``false``
+   * ``jarvis.events.enabled`` — boolean, default: ``false``
+   * ``jarvis.heartbeat.enabled`` — boolean, default: ``true``
+   * ``jarvis.messages.enabled`` — boolean, default: ``true``
+   * ``jarvis.reminders.enabled`` — boolean, default: ``true``
+   * ``jarvis.mcp.enabled`` — boolean, default: ``false``
+
+   **Acceptance Criteria:**
+
+   * AC-1: When ``jarvis.projects.enabled`` is ``false``, no Projects tree view,
+     no project-related commands, and no ``listProjects`` tool are registered.
+   * AC-2: When ``jarvis.events.enabled`` is ``false``, no Events tree view,
+     no event-related commands, and no event tools are registered.
+   * AC-3: When ``jarvis.heartbeat.enabled`` is ``false``, no Heartbeat tree view,
+     no heartbeat scheduler, and no heartbeat tools are registered.
+   * AC-4: When ``jarvis.messages.enabled`` is ``false``, no Messages tree view,
+     no message commands, and no ``sendToSession`` / ``readMessage`` /
+     ``listSessions`` tools are registered.
+   * AC-5: When ``jarvis.reminders.enabled`` is ``false`` (or ``messages.enabled``
+     is ``false``), no Reminders tree view and no reminder tools are registered.
+   * AC-6: When ``jarvis.mcp.enabled`` is ``false``, the embedded MCP server SHALL
+     NOT start.
+   * When ``enabled=false``, the feature's entire activation block SHALL be
+     skipped — no tree views registered, no commands registered, no tools
+     registered, no timers started.
+   * Runtime toggle (changing the setting without reload) is **not** required in
+     this CR; "Developer: Reload Window" is the documented path.
+
+
+.. req:: Fixed Runtime File Paths Under .jarvis/
+   :id: REQ_CFG_FIXEDPATHS
+   :status: implemented
+   :priority: required
+   :links: US_CFG_FIXEDPATHS
+
+   **Description:**
+   All Jarvis runtime files SHALL be stored at fixed paths under
+   ``<workspaceRoot>/.jarvis/``. These paths are not user-configurable.
+
+   **Fixed file paths:**
+
+   * ``<workspaceRoot>/.jarvis/heartbeat.yaml``
+   * ``<workspaceRoot>/.jarvis/messages.json``
+   * ``<workspaceRoot>/.jarvis/reminders.yaml``
+   * ``<workspaceRoot>/.jarvis/message-log.json``
+   * ``<workspaceRoot>/.jarvis/autodelivery.json``
+
+   **Acceptance Criteria:**
+
+   * AC-1: The ``.jarvis/`` directory is created lazily on first write; it SHALL
+     NOT be created at extension activation.
+   * AC-2: Read operations (e.g., ``readQueue``) SHALL return an empty result if
+     the file does not yet exist — no error thrown.
+   * AC-3: When no workspace folder is open, affected features SHALL log a
+     one-time ``warn``-level message and short-circuit; no exception is thrown.
+   * AC-4: The paths are not exposed as VS Code settings — no user override
+     is possible.
+
+
+.. req:: Settings Group Structure
+   :id: REQ_CFG_GROUPS
+   :status: implemented
+   :priority: required
+   :links: US_CFG_GROUPS
+
+   **Description:**
+   The ``contributes.configuration`` array in ``package.json`` SHALL contain
+   exactly the following groups in this order:
+   Projects, Events, Sessions, Messages, Heartbeat, Reminders, MCP, PIM,
+   Outlook, Recording, Updates.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The ``contributes.configuration`` value is a JSON array.
+   * AC-2: Each element has a distinct ``title`` matching one of the eleven
+     group names listed above.
+   * AC-3: The order of groups matches the list above.
+   * AC-4: Each setting appears in exactly one group.
+   * AC-5: The Sessions group MAY be empty in this CR (it is reserved for the
+     ``sessions-feature`` CR).
+   * AC-6: The Updates group contains ``jarvis.checkForUpdates`` (self-update
+     flag); it has no natural home in the other ten groups.
+
+
+.. req:: MCP Default Off
+   :id: REQ_CFG_MCPDEFAULTOFF
+   :status: implemented
+   :priority: required
+   :links: US_CFG_FEATURETOGGLES
+
+   **Description:**
+   The MCP server feature SHALL default to disabled. The legacy setting key
+   ``jarvis.mcpEnabled`` is removed in favour of the dotted-group key
+   ``jarvis.mcp.enabled``.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``jarvis.mcp.enabled`` is a boolean setting with default ``false``.
+   * AC-2: The old setting key ``jarvis.mcpEnabled`` SHALL be removed from
+     ``contributes.configuration``; any user value stored under the old key
+     is ignored.
+   * AC-3: When ``jarvis.mcp.enabled`` is ``false`` (the default), the MCP
+     server SHALL NOT start during activation and no MCP tools are registered.
+
+
+.. req:: Setting Key Renames for Group Consistency
+   :id: REQ_CFG_RENAMES
+   :status: implemented
+   :priority: required
+   :links: US_CFG_GROUPS
+
+   **Description:**
+   The following settings SHALL be renamed to use the
+   ``jarvis.<group>.<property>`` dotted-group convention. Old keys are removed
+   (breaking change; documented in release notes).
+
+   **Renamed keys:**
+
+   * ``jarvis.projectsFolder`` → ``jarvis.projects.folder``
+   * ``jarvis.eventsFolder`` → ``jarvis.events.folder``
+   * ``jarvis.mcpEnabled`` → ``jarvis.mcp.enabled`` (see also REQ_CFG_MCPDEFAULTOFF)
+   * ``jarvis.outlookEnabled`` → ``jarvis.outlook.enabled``
+
+   **Removed keys (fixed paths, no replacement):**
+
+   * ``jarvis.heartbeatConfigFile`` — replaced by fixed path
+     ``<workspaceRoot>/.jarvis/heartbeat.yaml``
+   * ``jarvis.messagesFile`` — replaced by fixed path
+     ``<workspaceRoot>/.jarvis/messages.json``
+
+   **Default value change:**
+
+   * ``jarvis.messages.logging`` default flips from ``false`` to ``true``
+     (message logging is on by default; users may disable explicitly)
+
+   **Acceptance Criteria:**
+
+   * AC-1: All old keys listed above SHALL NOT appear in ``contributes.configuration``
+     after this CR.
+   * AC-2: Extension code SHALL reference only the new key names.
+   * AC-3: The release notes SHALL include a migration note for each renamed/removed
+     key.

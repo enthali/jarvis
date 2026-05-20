@@ -19,11 +19,16 @@
     "onView:jarvisProjects",
     "onView:jarvisEvents",
     "onView:jarvisMessages",
+    "onView:jarvisReminders",
     "onView:jarvisHeartbeat",
-    "onView:jarvisCategories"
+    "onView:jarvisCategories",
+    "onView:jarvisSessions"
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "yamlValidation": [
+      { "fileMatch": "session.yaml", "url": "./schemas/session.schema.json" }
+    ],
     "customEditors": [
       {
         "viewType": "jarvis.taskEditor",
@@ -47,27 +52,38 @@
       "jarvis-explorer": [
         {
           "id": "jarvisProjects",
-          "name": "Projects"
+          "name": "Projects",
+          "when": "config.jarvis.projects.enabled == true"
+        },
+        {
+          "id": "jarvisSessions",
+          "name": "Sessions",
+          "when": "config.jarvis.sessions.enabled == true"
         },
         {
           "id": "jarvisEvents",
           "name": "Events",
-          "when": "config.jarvis.eventsFolder != ''"
+          "when": "config.jarvis.events.enabled == true"
         },
         {
           "id": "jarvisMessages",
           "name": "Messages",
-          "when": "config.jarvis.messagesFile != ''"
+          "when": "config.jarvis.messages.enabled == true"
+        },
+        {
+          "id": "jarvisReminders",
+          "name": "Reminders",
+          "when": "config.jarvis.messages.enabled == true && config.jarvis.reminders.enabled == true"
         },
         {
           "id": "jarvisHeartbeat",
           "name": "Heartbeat",
-          "when": "config.jarvis.heartbeatConfigFile != ''"
+          "when": "config.jarvis.heartbeat.enabled == true"
         },
         {
           "id": "jarvisCategories",
           "name": "Categories",
-          "when": "config.jarvis.pim.showCategories == true"
+          "when": "config.jarvis.pim.showCategories == true && config.jarvis.outlook.enabled == true"
         }
       ]
     },
@@ -143,6 +159,16 @@
       {
         "command": "jarvis.newEvent",
         "title": "Jarvis: New Event",
+        "icon": "$(add)"
+      },
+      {
+        "command": "jarvis.newEntity",
+        "title": "Jarvis: New Entity",
+        "icon": "$(add)"
+      },
+      {
+        "command": "jarvis.newSession",
+        "title": "Jarvis: New Session",
         "icon": "$(add)"
       },
       {
@@ -223,6 +249,10 @@
         "title": "Jarvis: Open Message File"
       },
       {
+        "command": "jarvis.openReminderFile",
+        "title": "Jarvis: Open Reminder File"
+      },
+      {
         "command": "jarvis.searchProjects",
         "title": "Search Projects",
         "icon": "$(search)"
@@ -231,10 +261,26 @@
         "command": "jarvis.searchEvents",
         "title": "Search Events",
         "icon": "$(search)"
+      },
+      {
+        "command": "jarvis.cancelReminder",
+        "title": "Jarvis: Cancel Reminder",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "jarvis.openSessionContext",
+        "title": "Jarvis: Open Session Context",
+        "shortTitle": "Open context.md",
+        "icon": "$(book)",
+        "category": "Jarvis"
       }
     ],
     "menus": {
       "commandPalette": [
+        {
+          "command": "jarvis.openSessionContext",
+          "when": "false"
+        },
         {
           "command": "jarvis.openAgentSession",
           "when": "false"
@@ -249,6 +295,14 @@
         },
         {
           "command": "jarvis.newEvent",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.newEntity",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.newSession",
           "when": "false"
         },
         {
@@ -316,6 +370,10 @@
           "when": "false"
         },
         {
+          "command": "jarvis.openReminderFile",
+          "when": "false"
+        },
+        {
           "command": "jarvis.searchProjects",
           "when": "false"
         },
@@ -329,6 +387,10 @@
         },
         {
           "command": "jarvis.disableAutoDelivery",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.cancelReminder",
           "when": "false"
         }
       ],
@@ -384,6 +446,16 @@
           "group": "navigation"
         },
         {
+          "command": "jarvis.newSession",
+          "when": "view == jarvisSessions",
+          "group": "navigation@1"
+        },
+        {
+          "command": "jarvis.rescan",
+          "when": "view == jarvisSessions",
+          "group": "navigation@3"
+        },
+        {
           "command": "jarvis.refreshHeartbeat",
           "when": "view == jarvisHeartbeat",
           "group": "navigation@1"
@@ -395,6 +467,11 @@
         }
       ],
       "view/item/context": [
+        {
+          "command": "jarvis.openSessionContext",
+          "when": "view == jarvisSessions && viewItem == jarvisSession",
+          "group": "inline"
+        },
         {
           "command": "jarvis.openYamlFile",
           "when": "viewItem == jarvisProject",
@@ -446,6 +523,14 @@
           "group": "inline"
         },
         {
+          "command": "jarvis.openContext",
+          "when": "viewItem == jarvisSession"
+        },
+        {
+          "command": "jarvis.openAgentSession",
+          "when": "viewItem == jarvisSession"
+        },
+        {
           "command": "jarvis.runJob",
           "when": "viewItem == heartbeatJob",
           "group": "inline"
@@ -466,6 +551,11 @@
           "group": "inline"
         },
         {
+          "command": "jarvis.cancelReminder",
+          "when": "viewItem == jarvisReminder",
+          "group": "inline"
+        },
+        {
           "command": "jarvis.revealInExplorer",
           "when": "viewItem == jarvisProject",
           "group": "context-actions"
@@ -473,6 +563,11 @@
         {
           "command": "jarvis.revealInExplorer",
           "when": "viewItem == jarvisEvent",
+          "group": "context-actions"
+        },
+        {
+          "command": "jarvis.revealInExplorer",
+          "when": "viewItem == jarvisSession",
           "group": "context-actions"
         },
         {
@@ -486,6 +581,11 @@
           "group": "context-actions"
         },
         {
+          "command": "jarvis.revealInOS",
+          "when": "viewItem == jarvisSession",
+          "group": "context-actions"
+        },
+        {
           "command": "jarvis.openInTerminal",
           "when": "viewItem == jarvisProject",
           "group": "context-actions"
@@ -493,6 +593,11 @@
         {
           "command": "jarvis.openInTerminal",
           "when": "viewItem == jarvisEvent",
+          "group": "context-actions"
+        },
+        {
+          "command": "jarvis.openInTerminal",
+          "when": "viewItem == jarvisSession",
           "group": "context-actions"
         },
         {
@@ -530,7 +635,12 @@
       {
         "title": "Projects",
         "properties": {
-          "jarvis.projectsFolder": {
+          "jarvis.projects.enabled": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable the Projects feature. When false, no Projects tree view, commands, or tools are registered."
+          },
+          "jarvis.projects.folder": {
             "type": "string",
             "default": "",
             "description": "Absolute path to the folder containing project YAML files."
@@ -546,7 +656,12 @@
       {
         "title": "Events",
         "properties": {
-          "jarvis.eventsFolder": {
+          "jarvis.events.enabled": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable the Events feature. When false, no Events tree view, commands, or tools are registered."
+          },
+          "jarvis.events.folder": {
             "type": "string",
             "default": "",
             "description": "Absolute path to the folder containing event YAML files."
@@ -554,12 +669,52 @@
         }
       },
       {
+        "title": "Sessions",
+        "properties": {
+          "jarvis.sessions.enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable the Sessions feature (lightweight project entities)."
+          },
+          "jarvis.agentSession.initPromptTemplate": {
+            "type": "string",
+            "default": "You are the ${kind} \"${name}\".\n\nUse only `${contextPath}` as your persistent memory. Read it now.\n\nKeep it minimal and action-oriented:\n- Store only long-lived items under Decision / Finding / Next.\n- One concise line per bullet. Prune aggressively.\n- Replace outdated bullets — never append logs.\n- Never store retries, raw tool output, or transient chatter.\n- Before writing, ask: \"Will this still matter in 2 weeks?\" If no, skip.",
+            "editPresentation": "multilineText",
+            "scope": "window",
+            "description": "Template for the initialization prompt sent to a new agent chat session. Placeholders: ${kind} (entity kind), ${name} (entity name), ${contextPath} (absolute path to context.md). Leave empty to use the built-in disciplined default.",
+            "markdownDescription": "Template for the initialization prompt sent to a new agent chat session.\n\nPlaceholders: `${kind}`, `${name}`, `${contextPath}` (absolute path to `context.md`).\n\nLeave empty or whitespace-only to use the built-in disciplined default."
+          }
+        }
+      },
+      {
+        "title": "Messages",
+        "properties": {
+          "jarvis.messages.enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable the Messages feature. When false, no Messages tree view, commands, or tools are registered."
+          },
+          "jarvis.messages.logging": {
+            "type": "boolean",
+            "default": true,
+            "description": "When enabled, every queued message is also appended to .jarvis/message-log.json (append-only audit log)."
+          },
+          "jarvis.messages.notificationTemplate": {
+            "type": "string",
+            "default": "[Jarvis Message Service] You have ${count} new message(s) in your inbox.\nRead them with the jarvis_readMessage tool (destination: \"${destination}\") until remaining = 0.",
+            "editPresentation": "multilineText",
+            "scope": "window",
+            "description": "Template for the auto-delivery notification sent to an agent session. Placeholders: ${count} (number of pending messages), ${destination} (target session name). Leave empty to use the built-in English default."
+          }
+        }
+      },
+      {
         "title": "Heartbeat",
         "properties": {
-          "jarvis.heartbeatConfigFile": {
-            "type": "string",
-            "default": "",
-            "description": "Absolute path to heartbeat.yaml. Defaults to workspace storage if empty."
+          "jarvis.heartbeat.enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable the Heartbeat scheduler. When false, no Heartbeat tree view, scheduler, or tools are registered."
           },
           "jarvis.heartbeatInterval": {
             "type": "number",
@@ -570,57 +725,52 @@
         }
       },
       {
-        "title": "Messages",
+        "title": "Reminders",
         "properties": {
-          "jarvis.messagesFile": {
-            "type": "string",
-            "default": "",
-            "description": "Absolute path to messages.json queue file. Defaults to extension storage if empty."
-          },
-          "jarvis.messages.logging": {
+          "jarvis.reminders.enabled": {
             "type": "boolean",
-            "default": false,
-            "description": "When enabled, every queued message is also appended to message-log.json (append-only audit log)."
+            "default": true,
+            "description": "Enable the Reminders sub-feature. Only effective when jarvis.messages.enabled is true. When false, no Reminders tree view or tools are registered."
           }
         }
       },
       {
-        "title": "MCP Server",
+        "title": "MCP",
         "properties": {
+          "jarvis.mcp.enabled": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable the embedded MCP server (localhost only). When false, the server does not start."
+          },
           "jarvis.mcpPort": {
             "type": "number",
             "default": 31415,
             "description": "Port for the embedded MCP server (localhost only)."
-          },
-          "jarvis.mcpEnabled": {
-            "type": "boolean",
-            "default": true,
-            "description": "Enable or disable the embedded MCP server."
-          }
-        }
-      },
-      {
-        "title": "Updates",
-        "properties": {
-          "jarvis.checkForUpdates": {
-            "type": "boolean",
-            "default": true,
-            "description": "Check for new Jarvis releases on GitHub when the extension activates."
           }
         }
       },
       {
         "title": "PIM",
         "properties": {
-          "jarvis.outlookEnabled": {
-            "type": "boolean",
-            "default": false,
-            "description": "Enable Outlook COM integration (Windows + Outlook Classic). When disabled, no Outlook COM calls are made."
-          },
           "jarvis.pim.showCategories": {
             "type": "boolean",
             "default": true,
             "description": "Show the Categories view in the Jarvis sidebar."
+          }
+        }
+      },
+      {
+        "title": "Outlook",
+        "properties": {
+          "jarvis.outlook.enabled": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable Outlook COM integration (Windows + Outlook Classic). When disabled, no Outlook COM calls are made."
+          },
+          "jarvis.outlook.tasks.enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable the Outlook Tasks integration. Only effective when jarvis.outlook.enabled is true."
           }
         }
       },
@@ -640,17 +790,58 @@
         }
       },
       {
-        "title": "Outlook",
+        "title": "Updates",
         "properties": {
-          "jarvis.outlook.tasks.enabled": {
+          "jarvis.checkForUpdates": {
             "type": "boolean",
             "default": true,
-            "description": "Enable the Outlook Tasks integration. Only effective when jarvis.outlookEnabled is true."
+            "description": "Check for new Jarvis releases on GitHub when the extension activates."
           }
         }
       }
     ],
     "languageModelTools": [
+      {
+        "name": "jarvis_createSession",
+        "displayName": "Create Session",
+        "modelDescription": "Creates a new Jarvis session folder with session.yaml and context.md under <workspace>/.jarvis/sessions/<name>/. Idempotent: safe to call if the session already exists.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "createSession",
+        "icon": "$(add)",
+        "tags": ["jarvis"],
+        "inputSchema": {
+          "type": "object",
+          "required": ["name"],
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Session name; used verbatim as the folder name."
+            },
+            "summary": {
+              "type": "string",
+              "description": "Optional short description written to session.yaml."
+            },
+            "initialMessage": {
+              "type": "string",
+              "description": "Optional first message to enqueue in the new session's inbox."
+            }
+          }
+        }
+      },
+      {
+        "name": "jarvis_listSessionEntities",
+        "displayName": "List Session Entities",
+        "modelDescription": "Lists all Jarvis session entities (lightweight projects) discovered under <workspace>/.jarvis/sessions/. Each entry has name, summary, and folder. Distinct from jarvis_listSessions which lists chat sessions.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "listSessionEntities",
+        "icon": "$(folder)",
+        "tags": ["jarvis"],
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        }
+      },
       {
         "name": "jarvis_sendToSession",
         "displayName": "Send Message to Chat Session",
@@ -812,6 +1003,62 @@
           "required": [
             "name"
           ]
+        }
+      },
+      {
+        "name": "jarvis_listJobs",
+        "displayName": "List Heartbeat Jobs",
+        "modelDescription": "Returns all registered heartbeat jobs with name, schedule, enabled state, and next scheduled fire time (ISO 8601 or null for manual/paused jobs).",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "listJobs",
+        "icon": "$(list-unordered)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "name": "jarvis_setReminder",
+        "displayName": "Set Reminder",
+        "modelDescription": "Registers a time-scheduled reminder. Delivers a message to the named chat session at deliverAt (ISO 8601). Returns { id, deliverAt }.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "setReminder",
+        "icon": "$(bell)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "text": { "type": "string", "description": "Message to deliver" },
+            "session": { "type": "string", "description": "Target chat session name" },
+            "deliverAt": { "type": "string", "description": "ISO 8601 delivery timestamp (must be in the future)" }
+          },
+          "required": ["text", "session", "deliverAt"]
+        }
+      },
+      {
+        "name": "jarvis_listReminders",
+        "displayName": "List Reminders",
+        "modelDescription": "Returns all pending reminders: { reminders: [{ id, text, session, deliverAt, createdAt, remainingMs }] }.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "listReminders",
+        "icon": "$(bell)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "name": "jarvis_cancelReminder",
+        "displayName": "Cancel Reminder",
+        "modelDescription": "Cancels a pending reminder by id. Returns { status: 'cancelled' | 'not_found' }.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "cancelReminder",
+        "icon": "$(bell-slash)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string", "description": "Reminder UUID to cancel" }
+          },
+          "required": ["id"]
         }
       },
       {

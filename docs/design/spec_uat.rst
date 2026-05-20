@@ -30,6 +30,15 @@ outcome tables** for each feature's acceptance tests.
    spec_uat_opencontext
    spec_uat_devcontainer_sessionlookup
    spec_uat_heartbeat_pause
+   spec_uat_listjobs
+   spec_uat_reminders
+   spec_uat_settings_cleanup
+   spec_uat_sessions_feature
+   spec_uat_agent_prompt_tuning
+   spec_uat_createsessiontool
+   spec_uat_sessiontreeclick
+   spec_uat_listsessionentitiesgating
+   spec_uat_chateditorreuse
 
 All UAT Specifications
 ----------------------

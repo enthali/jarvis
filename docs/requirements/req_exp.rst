@@ -531,6 +531,32 @@ Explorer Requirements
      command shows a warning notification and returns without opening a file
 
 
+.. req:: Open Reminders File at Reminder Position
+   :id: REQ_EXP_REMINDER_OPENFILE
+   :status: draft
+   :priority: optional
+   :links: US_MSG_REMINDERS; US_EXP_OPENFILE
+
+   **Description:**
+   Clicking a reminder node in the "Reminders" sidebar view SHALL open
+   ``reminders.yaml`` in the VS Code editor and reveal the line of that
+   reminder entry.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The command is triggered by clicking the reminder node
+     (``TreeItem.command``)
+   * AC-2: The file opened is ``reminders.yaml`` resolved by
+     ``resolveRemindersPath(messagesPath)``
+   * AC-3: The revealed line contains the matching ``id: <uuid>`` entry of
+     the clicked reminder
+   * AC-4: If the matching id cannot be found, the file opens at line 0
+     (fail-open)
+   * AC-5: The file is opened read-write (standard editor, no custom editor)
+   * AC-6: If ``reminders.yaml`` is missing the command shows a warning
+     notification and returns without opening a file
+
+
 .. req:: Search Projects via QuickPick
    :id: REQ_EXP_SEARCHPROJECTS
    :status: implemented
@@ -633,3 +659,38 @@ Explorer Requirements
    * AC-7: Folder nodes SHALL NOT display the button
    * AC-8: The command SHALL NOT appear in the Command Palette (it requires a
      tree element argument and would fail without one)
+
+
+.. req:: Agent-Session Init Prompt Template Setting
+   :id: REQ_EXP_AGENTPROMPT_TEMPLATE
+   :status: implemented
+   :priority: optional
+   :links: US_EXP_AGENTSESSION_PROMPT
+
+   **Description:**
+   The extension SHALL read the agent-session initialization prompt from the VS
+   Code setting ``jarvis.agentSession.initPromptTemplate`` and perform placeholder
+   substitution before sending it to the chat.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Setting ``jarvis.agentSession.initPromptTemplate``:
+
+     - Type: ``string``
+     - Default: the tuned disciplined-memory prompt (verbatim in
+       ``SPEC_EXP_AGENTSESSION_INITPROMPT``)
+     - Scope: ``window``
+     - Group: Sessions (inside the Sessions configuration group)
+
+   * AC-2: Three placeholders SHALL be substituted at send-time:
+
+     - ``${kind}`` → entity kind (``'project' | 'event' | 'session'``)
+     - ``${name}`` → entity display name (from YAML ``name`` field)
+     - ``${contextPath}`` → absolute filesystem path to ``context.md``
+
+   * AC-3: If the setting value is empty or absent, the built-in default prompt
+     SHALL be used (fall back to default, not to empty string).
+   * AC-4: Unknown placeholders (not in the list above) SHALL be left as-is in
+     the output (no error, no substitution).
+   * AC-5: The substituted prompt SHALL be sent on both ``jarvis.openAgentSession``
+     (new-session branch only) and ``jarvis.newSession``.

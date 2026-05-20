@@ -719,3 +719,103 @@ Automation Design Specifications
 
    **No-op semantics**: ``unregisterJob`` returns silently if the name is not
    found or the file cannot be read (safe to call unconditionally).
+
+
+.. spec:: List Jobs LM+MCP Tool
+   :id: SPEC_AUT_LISTJOBS_TOOL
+   :status: implemented
+   :links: REQ_AUT_LISTJOBS_TOOL; SPEC_AUT_JOBREG; SPEC_AUT_SCHEDULERLOOP
+
+   **Description:**
+   Register ``jarvis_listJobs`` via ``registerDualTool()`` in ``extension.ts``
+   (next to the existing ``registerJobTool`` / ``unregisterJobTool`` blocks).
+   The tool reads ``scheduler.currentJobs`` and returns a JSON array of job
+   descriptors.
+
+   **LM handler:**
+
+   .. code-block:: typescript
+
+      // Implementation: SPEC_AUT_LISTJOBS_TOOL
+      // Requirements: REQ_AUT_LISTJOBS_TOOL
+      const listJobsTool = registerDualTool(
+          'jarvis_listJobs',
+          async (
+              _options: vscode.LanguageModelToolInvocationOptions<Record<string, never>>,
+              _token: vscode.CancellationToken
+          ) => {
+              const jobs = scheduler.currentJobs.map(j => jobDescriptor(j));
+              log.info(`[Heartbeat] listJobs: ${jobs.length} job(s)`);
+              return new vscode.LanguageModelToolResult([
+                  new vscode.LanguageModelTextPart(JSON.stringify(jobs))
+              ]);
+          },
+          'Returns all registered heartbeat jobs with name, schedule, enabled state, and next fire time.',
+          {},
+          async () => {
+              const jobs = scheduler.currentJobs.map(j => jobDescriptor(j));
+              log.info(`[Heartbeat] listJobs(MCP): ${jobs.length} job(s)`);
+              return { jobs };
+          }
+      );
+
+   **Helper ``jobDescriptor``** (inline closure in ``extension.ts``):
+
+   .. code-block:: typescript
+
+      function jobDescriptor(job: HeartbeatJob): {
+          name: string;
+          schedule: string;
+          enabled: boolean;
+          nextFire: string | null;
+      } {
+          const enabled = job.enabled !== false;
+          let nextFire: string | null = null;
+          if (enabled && job.schedule !== 'manual') {
+              try {
+                  nextFire = CronExpressionParser
+                      .parse(job.schedule)
+                      .next()
+                      .toDate()
+                      .toISOString();
+              } catch {
+                  nextFire = null;
+              }
+          }
+          return { name: job.name, schedule: job.schedule, enabled, nextFire };
+      }
+
+   **Import** (already present in ``heartbeatTreeProvider.ts``; add to
+   ``extension.ts`` if not already imported):
+
+   .. code-block:: typescript
+
+      import { CronExpressionParser } from 'cron-parser';
+
+   **Registration in package.json:**
+
+   .. code-block:: json
+
+      {
+        "name": "jarvis_listJobs",
+        "displayName": "List Heartbeat Jobs",
+        "modelDescription": "Returns all registered heartbeat jobs with name, schedule, enabled state, and next scheduled fire time (ISO 8601 or null for manual/paused jobs).",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "listJobs",
+        "icon": "$(list-unordered)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+
+   **Design notes:**
+
+   * No input parameters — returns all jobs unconditionally
+   * ``enabled`` normalises the optional ``job.enabled`` field: ``undefined``
+     and ``true`` both map to ``true``; only explicit ``false`` maps to ``false``
+   * ``nextFire`` is ``null`` for paused jobs and for ``"manual"`` schedules;
+     a try/catch guards against malformed cron expressions without surfacing
+     an error to the caller
+   * Uses the same ``cron-parser`` import already present in
+     ``heartbeatTreeProvider.ts`` — no new dependency required

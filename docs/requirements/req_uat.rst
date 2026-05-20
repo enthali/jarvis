@@ -30,6 +30,15 @@ end-to-end verification of each feature.
    req_uat_opencontext
    req_uat_devcontainer_sessionlookup
    req_uat_heartbeat_pause
+   req_uat_listjobs
+   req_uat_reminders
+   req_uat_settings_cleanup
+   req_uat_sessions_feature
+   req_uat_agent_prompt_tuning
+   req_uat_createsessiontool
+   req_uat_sessiontreeclick
+   req_uat_listsessionentitiesgating
+   req_uat_chateditorreuse
 
 All UAT Requirements
 --------------------

@@ -3,8 +3,10 @@ Configuration Design Specifications
 
 .. spec:: VS Code Settings for Folder Paths and Scan Interval
    :id: SPEC_CFG_SETTINGS
-   :status: implemented
+   :status: deprecated
    :links: REQ_CFG_FOLDERPATHS, REQ_CFG_SCANINTERVAL
+
+   **Superseded by:** ``SPEC_CFG_MANIFEST`` (settings-cleanup CR).
 
    **Description:**
    Add a ``contributes.configuration`` block to ``package.json``:
@@ -36,8 +38,10 @@ Configuration Design Specifications
 
 .. spec:: Heartbeat Settings in package.json
    :id: SPEC_CFG_HEARTBEATSETTINGS
-   :status: implemented
+   :status: deprecated
    :links: REQ_CFG_HEARTBEATPATH; REQ_CFG_HEARTBEATINTERVAL; REQ_CFG_MSGPATH
+
+   **Superseded by:** SPEC_CFG_MANIFEST, SPEC_CFG_PATHRESOLVER
 
    **Description:**
    Add configuration entries to the ``contributes.configuration`` block in
@@ -118,8 +122,12 @@ Configuration Design Specifications
 
 .. spec:: Update Check Setting in package.json
    :id: SPEC_CFG_UPDATECHECK
-   :status: implemented
+   :status: deprecated
    :links: REQ_CFG_UPDATECHECK
+
+   **Superseded by:** ``SPEC_CFG_MANIFEST`` (settings-cleanup CR —
+   ``jarvis.checkForUpdates`` now lives in the Updates group of the unified
+   manifest).
 
    **Description:**
    Add a boolean configuration entry to the ``contributes.configuration`` block
@@ -143,8 +151,10 @@ Configuration Design Specifications
 
 .. spec:: Grouped Settings Configuration in package.json
    :id: SPEC_CFG_SETTINGSGROUPS
-   :status: implemented
+   :status: deprecated
    :links: REQ_CFG_SETTINGSGROUPS; SPEC_EXP_FEATURETOGGLE
+
+   **Superseded by:** ``SPEC_CFG_MANIFEST`` (settings-cleanup CR).
 
    **Description:**
    The ``contributes.configuration`` field in ``package.json`` SHALL be converted
@@ -206,8 +216,10 @@ Configuration Design Specifications
 
 .. spec:: Default Path Population at Activation
    :id: SPEC_CFG_DEFAULTPATHS
-   :status: implemented
+   :status: deprecated
    :links: REQ_CFG_DEFAULTPATHS; SPEC_CFG_HEARTBEATSETTINGS
+
+   **Superseded by:** SPEC_CFG_PATHRESOLVER
 
    **Description:**
    During ``activate()``, before any other initialization, write the resolved
@@ -262,3 +274,423 @@ Configuration Design Specifications
    * The existing ``resolveConfigPath()`` / ``resolveMessagesPath()`` functions
      continue to work as before — the setting is now populated, so the
      ``if (override)`` branch fires. No functional change.
+
+
+.. spec:: settings-cleanup: Full Configuration Manifest (package.json)
+   :id: SPEC_CFG_MANIFEST
+   :status: implemented
+   :links: REQ_CFG_TOGGLES; REQ_CFG_GROUPS; REQ_CFG_MCPDEFAULTOFF; REQ_CFG_RENAMES; REQ_EXP_AGENTPROMPT_TEMPLATE; REQ_MSG_NOTIFICATION_TEMPLATE
+
+   **Description:**
+   The complete ``contributes.configuration`` array in ``package.json`` after
+   this CR. Eleven named groups in the order mandated by REQ_CFG_GROUPS:
+   Projects, Events, Sessions, Messages, Heartbeat, Reminders, MCP, PIM,
+   Outlook, Recording, Updates. CR ``sessions-feature`` populated the
+   Sessions group with ``jarvis.sessions.enabled`` only — paths are fixed
+   under ``.jarvis/sessions/`` (no folder setting; see ``SPEC_SES_MANIFEST``). The Updates group
+   houses ``jarvis.checkForUpdates``.
+
+   .. code-block:: json
+
+      [
+        {
+          "title": "Projects",
+          "properties": {
+            "jarvis.projects.enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Enable the Projects feature. When false, no Projects tree view, commands, or tools are registered."
+            },
+            "jarvis.projects.folder": {
+              "type": "string",
+              "default": "",
+              "description": "Absolute path to the folder containing project YAML files."
+            },
+            "jarvis.scanInterval": {
+              "type": "number",
+              "default": 2,
+              "minimum": 0,
+              "description": "Background rescan interval in minutes (0 = disabled, registers via heartbeat)."
+            }
+          }
+        },
+        {
+          "title": "Events",
+          "properties": {
+            "jarvis.events.enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Enable the Events feature. When false, no Events tree view, commands, or tools are registered."
+            },
+            "jarvis.events.folder": {
+              "type": "string",
+              "default": "",
+              "description": "Absolute path to the folder containing event YAML files."
+            }
+          }
+        },
+        {
+          "title": "Sessions",
+          "properties": {
+            "jarvis.sessions.enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable the Sessions feature. When false, no Sessions tree view, commands, or tools are registered."
+            },
+            "jarvis.agentSession.initPromptTemplate": {
+              "type": "string",
+              "default": "",
+              "description": "Template for the agent-session initialization prompt. Placeholders: ${kind}, ${name}, ${contextPath}. If empty, the built-in disciplined-memory default is used. Scope: window."
+            }
+          }
+        },
+        {
+          "title": "Messages",
+          "properties": {
+            "jarvis.messages.enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable the Messages feature. When false, no Messages tree view, commands, or tools are registered."
+            },
+            "jarvis.messages.logging": {
+              "type": "boolean",
+              "default": true,
+              "description": "When enabled, every queued message is also appended to .jarvis/message-log.json (append-only audit log)."
+            },
+            "jarvis.messages.notificationTemplate": {
+              "type": "string",
+              "default": "",
+              "description": "Template for the auto-delivery notification stub. Placeholders: ${count}, ${destination}. If empty, the built-in English default is used. Scope: window."
+            }
+          }
+        },
+        {
+          "title": "Heartbeat",
+          "properties": {
+            "jarvis.heartbeat.enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable the Heartbeat scheduler. When false, no Heartbeat tree view, scheduler, or tools are registered."
+            },
+            "jarvis.heartbeatInterval": {
+              "type": "number",
+              "default": 60,
+              "minimum": 10,
+              "description": "Heartbeat scheduler tick interval in seconds (minimum 10)."
+            }
+          }
+        },
+        {
+          "title": "Reminders",
+          "properties": {
+            "jarvis.reminders.enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable the Reminders sub-feature. Only effective when jarvis.messages.enabled is true. When false, no Reminders tree view or tools are registered."
+            }
+          }
+        },
+        {
+          "title": "MCP",
+          "properties": {
+            "jarvis.mcp.enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Enable the embedded MCP server (localhost only). When false, the server does not start."
+            },
+            "jarvis.mcpPort": {
+              "type": "number",
+              "default": 31415,
+              "description": "Port for the embedded MCP server (localhost only)."
+            }
+          }
+        },
+        {
+          "title": "PIM",
+          "properties": {
+            "jarvis.pim.showCategories": {
+              "type": "boolean",
+              "default": true,
+              "description": "Show the Categories view in the Jarvis sidebar."
+            }
+          }
+        },
+        {
+          "title": "Outlook",
+          "properties": {
+            "jarvis.outlook.enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Enable Outlook COM integration (Windows + Outlook Classic). When disabled, no Outlook COM calls are made."
+            },
+            "jarvis.outlook.tasks.enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable the Outlook Tasks integration. Only effective when jarvis.outlook.enabled is true."
+            }
+          }
+        },
+        {
+          "title": "Recording",
+          "properties": {
+            "jarvis.recording.enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Enable the Session Recording feature. When true, Start/Stop Recording buttons appear on Project and Event nodes."
+            },
+            "jarvis.recording.whisperPath": {
+              "type": "string",
+              "default": "",
+              "description": "Absolute path to the Whisper project folder containing recorder.py and the input/ subfolder."
+            }
+          }
+        }
+      ]
+
+   .. note::
+      Both ``jarvis.agentSession.initPromptTemplate`` and
+      ``jarvis.messages.notificationTemplate`` ship with the full verbatim
+      template text as their ``"default"`` in ``package.json`` (not empty
+      string), so users see and edit the default directly in the Settings UI.
+      The ``"default": ""`` shown above is a documentation shorthand. An empty
+      or whitespace-only value falls back to the built-in constant in
+      ``src/extension.ts`` (see ``SPEC_EXP_AGENTSESSION_INITPROMPT`` and
+      ``REQ_MSG_NOTIFICATION_TEMPLATE``).
+
+   **Updates group:** The ``jarvis.checkForUpdates`` setting lives in the
+   Updates group (the 11th group). This was the CM’s autonomous decision
+   during design: it has no natural home in the other ten groups, and the
+   group title is already user-meaningful.
+
+   **Removed settings (must be absent from the final manifest):**
+
+   * ``jarvis.projectsFolder`` (replaced by ``jarvis.projects.folder``)
+   * ``jarvis.eventsFolder`` (replaced by ``jarvis.events.folder``)
+   * ``jarvis.mcpEnabled`` (replaced by ``jarvis.mcp.enabled``)
+   * ``jarvis.outlookEnabled`` (replaced by ``jarvis.outlook.enabled``)
+   * ``jarvis.heartbeatConfigFile`` (replaced by fixed path; see SPEC_CFG_PATHRESOLVER)
+   * ``jarvis.messagesFile`` (replaced by fixed path; see SPEC_CFG_PATHRESOLVER)
+
+   **Supersedes:** SPEC_CFG_SETTINGS, SPEC_CFG_HEARTBEATSETTINGS,
+   SPEC_CFG_UPDATECHECK, SPEC_CFG_SETTINGSGROUPS, SPEC_CFG_DEFAULTPATHS
+   (those specs document the pre-CR state; they remain in the file as historical
+   record with ``status: implemented``).
+
+
+.. spec:: settings-cleanup: Central Path Resolver Module (configPaths.ts)
+   :id: SPEC_CFG_PATHRESOLVER
+   :status: implemented
+   :links: REQ_CFG_FIXEDPATHS
+
+   **Description:**
+   New module ``src/configPaths.ts`` provides all runtime file-path resolution
+   for Jarvis. It is the single source of truth for the ``.jarvis/`` directory
+   and all files within it.
+
+   **Public API:**
+
+   .. code-block:: typescript
+
+      import * as vscode from 'vscode';
+      import * as path from 'path';
+      import * as fs from 'fs';
+
+      /** Returns <workspaceRoot>/.jarvis, or undefined when no workspace is open. */
+      export function getJarvisDir(): string | undefined {
+        const folders = vscode.workspace.workspaceFolders;
+        if (!folders || folders.length === 0) { return undefined; }
+        return path.join(folders[0].uri.fsPath, '.jarvis');
+      }
+
+      /**
+       * Ensures the .jarvis/ directory exists (mkdir -p) and returns its path,
+       * or undefined when no workspace is open.
+       * Called on first write inside each persistence module — never at activation.
+       */
+      export function ensureJarvisDir(): string | undefined {
+        const dir = getJarvisDir();
+        if (!dir) { return undefined; }
+        fs.mkdirSync(dir, { recursive: true });
+        return dir;
+      }
+
+      /** Returns <workspaceRoot>/.jarvis/heartbeat.yaml, or undefined. */
+      export function getHeartbeatPath(): string | undefined {
+        const dir = getJarvisDir();
+        return dir ? path.join(dir, 'heartbeat.yaml') : undefined;
+      }
+
+      /** Returns <workspaceRoot>/.jarvis/messages.json, or undefined. */
+      export function getMessagesPath(): string | undefined {
+        const dir = getJarvisDir();
+        return dir ? path.join(dir, 'messages.json') : undefined;
+      }
+
+      /** Returns <workspaceRoot>/.jarvis/reminders.yaml, or undefined. */
+      export function getRemindersPath(): string | undefined {
+        const dir = getJarvisDir();
+        return dir ? path.join(dir, 'reminders.yaml') : undefined;
+      }
+
+      /** Returns <workspaceRoot>/.jarvis/message-log.json, or undefined. */
+      export function getMessageLogPath(): string | undefined {
+        const dir = getJarvisDir();
+        return dir ? path.join(dir, 'message-log.json') : undefined;
+      }
+
+      /** Returns <workspaceRoot>/.jarvis/autodelivery.json, or undefined. */
+      export function getAutoDeliveryPath(): string | undefined {
+        const dir = getJarvisDir();
+        return dir ? path.join(dir, 'autodelivery.json') : undefined;
+      }
+
+      /** Returns <workspaceRoot>/.jarvis/sessions, or undefined when no workspace is open. */
+      export function getSessionsDir(): string | undefined {
+        const dir = getJarvisDir();
+        return dir ? path.join(dir, 'sessions') : undefined;
+      }
+
+      /** Ensures <workspaceRoot>/.jarvis/sessions exists (mkdir -p) and returns its path, or undefined. */
+      export function ensureSessionsDir(): string | undefined {
+        const dir = getSessionsDir();
+        if (!dir) { return undefined; }
+        fs.mkdirSync(dir, { recursive: true });
+        return dir;
+      }
+
+   **Usage contract for persistence modules:**
+
+   Each persistence module (``messageQueue.ts``, ``reminders.ts``,
+   ``heartbeat.ts``) SHALL:
+
+   1. Call the appropriate getter on every read/write operation (not cached at
+      activation time).
+   2. On reads: if the getter returns ``undefined`` (no workspace), return empty
+      / no-op silently.
+   3. On writes: call ``ensureJarvisDir()`` once before the first
+      ``fs.writeFileSync`` to guarantee the directory exists.
+
+   **Design notes:**
+
+   * ``ensureJarvisDir()`` is intentionally NOT called at extension activation —
+     the ``.jarvis/`` directory is created only on first write.
+   * When no workspace is open, all getters return ``undefined`` and persistence
+     modules short-circuit. A one-time ``log.warn`` is emitted (not an error).
+   * The module has no runtime state; it is safe to call functions multiple times.
+
+
+.. spec:: settings-cleanup: Feature Toggle Guards in activate()
+   :id: SPEC_CFG_TOGGLEGUARDS
+   :status: implemented
+   :links: REQ_CFG_TOGGLES
+
+   **Description:**
+   In ``src/extension.ts`` ``activate()``, each feature's setup block is
+   wrapped in a boolean check against the corresponding ``jarvis.<feature>.enabled``
+   setting. Disabled features leave zero activation side-effects.
+
+   **Activation skeleton (relevant excerpt):**
+
+   .. code-block:: typescript
+
+      export function activate(context: vscode.ExtensionContext): void {
+        const cfg = vscode.workspace.getConfiguration('jarvis');
+
+        if (cfg.get<boolean>('projects.enabled', false)) {
+          // register Projects tree view
+          // register jarvis.newProject, jarvis.rescan, jarvis.filterProjectFolders commands
+          // register listProjects LM/MCP tool
+        }
+
+        if (cfg.get<boolean>('events.enabled', false)) {
+          // register Events tree view
+          // register jarvis.newEvent, jarvis.filterFutureEvents commands
+        }
+
+        if (cfg.get<boolean>('heartbeat.enabled', true)) {
+          // create HeartbeatScheduler, register Heartbeat tree view
+          // register jarvis.runHeartbeatJob, jarvis.pauseHeartbeatJob,
+          //   jarvis.resumeHeartbeatJob, jarvis.runJob commands
+          // register registerJob / unregisterJob LM/MCP tools
+        }
+
+        if (cfg.get<boolean>('messages.enabled', true)) {
+          // register Messages tree view
+          // register jarvis.sendMessages, jarvis.deleteMessage,
+          //   jarvis.enableAutoDelivery, jarvis.disableAutoDelivery commands
+          // register sendToSession / readMessage / listSessions LM/MCP tools
+          // start auto-delivery poll loop
+
+          if (cfg.get<boolean>('reminders.enabled', true)) {
+            // register Reminders tree view
+            // register jarvis.cancelReminder command
+            // register jarvis_setReminder / jarvis_listReminders /
+            //   jarvis_cancelReminder LM/MCP tools
+          }
+        }
+
+        if (cfg.get<boolean>('mcp.enabled', false)) {
+          // start embedded MCP server on jarvis.mcpPort
+        }
+
+        // PIM, Outlook, Recording are always activated (they carry their own
+        // internal enabled-checks); no top-level toggle guard required by this CR
+      }
+
+   **Constraints:**
+
+   * Changing any toggle requires "Developer: Reload Window" to take effect.
+     Hot toggling (runtime de-registration) is deferred to CR 3
+     (``tool-deregistration``).
+   * The ``when``-clauses in ``contributes.views`` and ``contributes.menus``
+     SHALL also reflect the toggle state (see SPEC_CFG_VIEWGATING) so the UI
+     hides views and menu items even before the next reload.
+   * The PIM feature (Categories, Tasks) and Outlook / Recording features are
+     not governed by this spec's toggle guards; they retain their existing
+     ``jarvis.pim.showCategories`` and ``jarvis.recording.enabled`` guards.
+
+
+.. spec:: settings-cleanup: View Gating via when-clauses
+   :id: SPEC_CFG_VIEWGATING
+   :status: implemented
+   :links: REQ_CFG_TOGGLES
+
+   **Description:**
+   The ``contributes.views`` and ``contributes.menus`` blocks in ``package.json``
+   SHALL use ``when``-clauses based on the new ``jarvis.<feature>.enabled``
+   settings to hide views and menu items when the corresponding feature is off.
+
+   **Updated ``contributes.views.jarvis-explorer`` entries:**
+
+   .. list-table::
+      :header-rows: 1
+      :widths: 30 70
+
+      * - View id
+        - ``when`` clause
+      * - ``jarvisProjects``
+        - ``config.jarvis.projects.enabled == true``
+      * - ``jarvisEvents``
+        - ``config.jarvis.events.enabled == true``
+      * - ``jarvisMessages``
+        - ``config.jarvis.messages.enabled == true``
+      * - ``jarvisReminders``
+        - ``config.jarvis.messages.enabled == true && config.jarvis.reminders.enabled == true``
+      * - ``jarvisHeartbeat``
+        - ``config.jarvis.heartbeat.enabled == true``
+      * - ``jarvisCategories``
+        - ``config.jarvis.pim.showCategories == true && config.jarvis.outlook.enabled == true`` *(Categories currently has only Outlook as backend; gating on Outlook hides the view when no backend is available)*
+
+   **``contributes.menus`` items to update:**
+
+   * Any menu item currently gated on ``config.jarvis.messagesFile != ''`` SHALL
+     change its ``when`` clause to ``config.jarvis.messages.enabled == true``.
+   * Any menu item currently gated on ``config.jarvis.heartbeatConfigFile != ''``
+     SHALL change its ``when`` clause to ``config.jarvis.heartbeat.enabled == true``.
+   * Any menu item currently gated on ``config.jarvis.eventsFolder != ''`` SHALL
+     change its ``when`` clause to ``config.jarvis.events.enabled == true``.
+
+   **Supersedes:** The ``when``-clause behaviour described in SPEC_EXP_FEATURETOGGLE
+   (that spec used ``config.jarvis.heartbeatConfigFile != ''`` and
+   ``config.jarvis.messagesFile != ''``; those conditions no longer apply after
+   the configurable paths are removed).

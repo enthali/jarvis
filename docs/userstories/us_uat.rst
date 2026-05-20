@@ -30,6 +30,15 @@ for each feature. Each file corresponds to one feature or change.
    us_uat_opencontext
    us_uat_devcontainer_sessionlookup
    us_uat_heartbeat_pause
+   us_uat_listjobs
+   us_uat_reminders
+   us_uat_settings_cleanup
+   us_uat_sessions_feature
+   us_uat_agent_prompt_tuning
+   us_uat_createsessiontool
+   us_uat_sessiontreeclick
+   us_uat_listsessionentitiesgating
+   us_uat_chateditorreuse
 
 All UAT User Stories
 --------------------

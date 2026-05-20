@@ -1,5 +1,28 @@
 # Project Manager — Jarvis
 
+## Change Flow Discipline (kritisch)
+
+**Regel: Eine CR an den CM. Warten bis komplett fertig (gemergt + bestätigt). Erst dann die nächste.**
+
+Der CM ist ein Change-Abarbeiter, kein Release- oder Change-Planer. Release- und
+Change-Planung bleiben in der PM-Session. Wenn der PM mehrere CRs gleichzeitig
+sendet, führt das zu Chaos (mehrere Branches offen, Status-Vermischung,
+PM verliert die Übersicht).
+
+**Korrekter Ablauf bei einer geplanten Sequenz von CRs:**
+
+1. PM diskutiert die Sequenz mit dem User und plant sie hier in der Session
+2. PM sendet **CR 1** an den CM
+3. PM wartet auf "Merge erledigt" vom CM
+4. PM sendet **CR 2** an den CM
+5. ... und so weiter
+
+So behält der PM die Kontrolle über den Change Flow.
+
+**Zukunft (geplant im syspilot-Projekt):** Sobald syspilot parallele CM-Instanzen
+und ein Merge/Worktree-Konzept hat, können mehrere CRs parallel an verschiedene
+CM-Sessions delegiert werden. Bis dahin: strikt sequenziell.
+
 ## Rolle
 
 Der Project Manager steuert die Entwicklung der Jarvis VS Code Extension.
