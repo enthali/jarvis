@@ -675,3 +675,80 @@ Message Queue Requirements
      display an inline ``$(trash)`` cancel button
    * AC-6: The view SHALL refresh after any reminder mutation (add, cancel,
      deliver)
+
+
+.. req:: Send-to-Session LM / MCP Tool
+   :id: REQ_MSG_SENDTOSESSION
+   :status: implemented
+   :priority: mandatory
+   :links: US_MSG_SAFE_SEND; REQ_MSG_QUEUE; REQ_MSG_SESSIONLOOKUP; REQ_MSG_SESSIONFILTER
+
+   **Description:**
+   The extension SHALL register a Language Model Tool (and corresponding MCP
+   Tool) named ``jarvis_sendToSession`` that queues a text message for delivery
+   to a named VS Code chat session.  Before writing to the queue the tool SHALL
+   validate that the destination session exists; if it does not, the tool SHALL
+   fail with a descriptive error and MUST NOT write any message.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A Language Model Tool named ``jarvis_sendToSession`` SHALL be
+     registered via ``vscode.lm.registerTool`` (dual-registered as an MCP tool
+     via ``registerDualTool``) with ``canBeReferencedInPrompt: true``
+   * AC-2: The tool SHALL accept three input parameters: ``session`` (string,
+     required — the exact title of the target VS Code chat session),
+     ``text`` (string, required — the message body), and
+     ``senderSession`` (string, optional — name of the originating session)
+   * AC-3: Before appending to the queue, the tool SHALL verify that
+     ``session`` is a member of the **valid destination set** (see AC-5)
+   * AC-4: If ``session`` is not in the valid destination set, the tool SHALL
+     throw an error (not return a success response); no message SHALL be
+     appended to the queue; the error message SHALL satisfy
+     ``REQ_MSG_DEST_ERROR``
+   * AC-5: The **valid destination set** is the set of named chat sessions
+     currently present in the workspace, as returned by
+     ``getAllSessions()`` filtered through ``filterNamedSessions()``
+     (i.e. the same set exposed by ``jarvis_listSessions``)
+   * AC-6: If ``session`` is in the valid destination set, the tool SHALL
+     append the message to the queue via ``appendMessage`` and return a
+     success response; all existing queuing behaviour (auto-delivery, audit
+     log, tree refresh) SHALL be unaffected
+   * AC-7a: (LM path) The ``senderSession`` parameter is optional; when absent
+     the sender is resolved from the active VS Code tab label
+     (``activeTab?.label``), falling back to ``'unknown'``
+   * AC-7b: (MCP path) When ``senderSession`` is absent, the sender defaults to
+     ``'mcp-client'``
+
+
+.. req:: Destination Validation Error Contract
+   :id: REQ_MSG_DEST_ERROR
+   :status: implemented
+   :priority: mandatory
+   :links: US_MSG_SAFE_SEND; REQ_MSG_SENDTOSESSION; REQ_MSG_SESSIONFILTER
+
+   **Description:**
+   The error thrown by ``jarvis_sendToSession`` when the destination session
+   does not exist SHALL be self-contained enough for the calling agent to
+   correct the invocation immediately.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The error message SHALL state that the supplied destination does
+     not exist, quoting the supplied name verbatim
+   * AC-2: The error message SHALL list all currently valid destination names
+     in a deterministic, human-readable order (alphabetically sorted)
+   * AC-3: If the valid destination set is empty (no named sessions in the
+     workspace), the error message SHALL indicate this explicitly rather than
+     showing an empty list
+   * AC-4: The error message template SHALL be::
+
+        Destination session "${session}" does not exist.
+        Valid destinations: ${names}
+
+     where ``${session}`` is replaced by the supplied (invalid) name,
+     and ``${names}`` is replaced by the alphabetically sorted list of valid
+     session titles joined with ``", "``; if the set is empty
+     ``${names}`` is replaced by the literal string ``"(none)"``
+   * AC-5: The error SHALL be raised as a JavaScript ``Error`` object so that
+     both the VS Code LM tool invocation and the MCP handler surface the
+     message text to the caller unchanged

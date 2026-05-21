@@ -274,3 +274,31 @@ Messaging User Stories
      the 5-second auto-delivery poll loop
    * AC-5: Leaving the setting empty restores the built-in English default
      without requiring an extension restart
+
+
+.. story:: Safe Send-to-Session (Destination Validation)
+   :id: US_MSG_SAFE_SEND
+   :status: implemented
+   :priority: mandatory
+   :links: US_MSG_CHATQUEUE; US_MSG_LISTSESSIONS
+
+   **As a** LLM agent or Jarvis User,
+   **I want** the ``jarvis_sendToSession`` tool to fail immediately with a
+   descriptive error when the destination session name is unknown,
+   **so that** I am never silently misled into believing a message was delivered
+   when it was in fact lost in an unmonitored queue slot.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Invoking ``jarvis_sendToSession`` with a destination that does not
+     exist causes the tool call to end in an error, not a success response
+   * AC-2: The error message names the supplied destination and lists the
+     currently valid destination names so the caller can immediately correct
+     the invocation without a separate discovery step
+   * AC-3: When the destination is invalid, no message is appended to the queue
+     (no side effect)
+   * AC-4: When the destination is valid, all existing behaviour is unchanged —
+     the message is queued, auto-delivery continues to work, and the tool
+     returns a success response as before
+   * AC-5: No regression in adjacent workflows (auto-delivery poll loop,
+     heartbeat queue steps, MCP access)

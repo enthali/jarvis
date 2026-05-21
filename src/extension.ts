@@ -929,6 +929,21 @@ export function activate(context: vscode.ExtensionContext) {
         'jarvis_sendToSession',
         async (options: vscode.LanguageModelToolInvocationOptions<{ session: string; senderSession?: string; text: string }>, _token: vscode.CancellationToken) => {
             const { session, text } = options.input;
+
+            // Destination validation (REQ_MSG_SENDTOSESSION AC-3/4, REQ_MSG_DEST_ERROR)
+            const allSessions = await getAllSessions();
+            const validNames = filterNamedSessions(allSessions).map(s => s.title);
+            if (!validNames.includes(session)) {
+                const sorted = [...validNames].sort((a, b) =>
+                    a.localeCompare(b, undefined, { sensitivity: 'base' })
+                );
+                const listStr = sorted.length > 0 ? sorted.join(', ') : '(none)';
+                throw new Error(
+                    `Destination session "${session}" does not exist.\n` +
+                    `Valid destinations: ${listStr}`
+                );
+            }
+
             const activeTab = vscode.window.tabGroups.activeTabGroup.activeTab;
             const sender = options.input.senderSession || activeTab?.label || 'unknown';
             appendMessage(resolveMessagesPath(), session, sender, text);
@@ -938,11 +953,26 @@ export function activate(context: vscode.ExtensionContext) {
                 new vscode.LanguageModelTextPart(`Message queued for destination "${session}" from "${sender}"`)
             ]);
         },
-        'Queues a message for delivery to another VS Code chat session identified by name.',
+        'Queues a message for delivery to another VS Code chat session identified by name. Fails with an error if the destination session does not exist.',
         { session: z.string().describe('Target chat session name'), senderSession: z.string().optional().describe('Sender session name'), text: z.string().describe('Message text') },
         async (args) => {
             const session = args.session as string;
             const text = args.text as string;
+
+            // Destination validation (REQ_MSG_SENDTOSESSION AC-3/4, REQ_MSG_DEST_ERROR)
+            const allSessions = await getAllSessions();
+            const validNames = filterNamedSessions(allSessions).map(s => s.title);
+            if (!validNames.includes(session)) {
+                const sorted = [...validNames].sort((a, b) =>
+                    a.localeCompare(b, undefined, { sensitivity: 'base' })
+                );
+                const listStr = sorted.length > 0 ? sorted.join(', ') : '(none)';
+                throw new Error(
+                    `Destination session "${session}" does not exist.\n` +
+                    `Valid destinations: ${listStr}`
+                );
+            }
+
             const sender = (args.senderSession as string) || 'mcp-client';
             appendMessage(resolveMessagesPath(), session, sender, text);
             log.info(`[MSG] sendToSession(MCP): destination="${session}", sender="${sender}"`);
