@@ -138,3 +138,7 @@ Every chat session should be aware of which project it belongs to.
 1. At session start, read your project's `context.md` from the project folder (e.g. `projects/project-manager/context.md`).
 2. If you don't know which project this session belongs to, ask the user.
 3. The `context.md` describes the role, tasks, and boundaries for this session's project. Follow it.
+
+## Memory Considerations
+
+In syspilot projects, workflow knowledge is part of the project and must be treated as code. Do not store workflow rules, roles, responsibilities, project decisions, or project-specific findings in Copilot Memory; keep them in the repository as they are part of the project and are versioned, reviewable, and branch-aware. User memory may only contain personal preferences that are independent of any project.
