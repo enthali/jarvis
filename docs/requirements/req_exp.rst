@@ -220,9 +220,9 @@ Explorer Requirements
 
 .. req:: Open Agent Session from Tree
    :id: REQ_EXP_AGENTSESSION
-   :status: implemented
+   :status: draft
    :priority: optional
-   :links: US_EXP_AGENTSESSION; US_MSG_STABLESESSION; REQ_MSG_SESSIONLOOKUP; REQ_EXP_OPENYAML; REQ_MSG_PINNED; REQ_MSG_OPENCHAT; REQ_MSG_SENDPROMPT
+   :links: US_EXP_AGENTSESSION; US_MSG_STABLESESSION; REQ_MSG_SESSIONLOOKUP; REQ_EXP_OPENYAML; REQ_MSG_PINNED; REQ_MSG_OPENCHAT; REQ_EXP_AGENTPROMPT_TEMPLATE
 
    **Description:**
    Every project and event leaf item SHALL provide an inline action button that
@@ -237,8 +237,9 @@ Explorer Requirements
    * AC-2: Clicking the button SHALL resolve the session UUID by passing the
      entity ``name`` to ``REQ_MSG_SESSIONLOOKUP``; if a session exists it SHALL
      be opened pinned (``{ preview: false }``) per ``REQ_MSG_PINNED``; if no
-     session exists a new one SHALL be created per ``REQ_MSG_OPENCHAT`` and
-     initialized per ``REQ_MSG_SENDPROMPT``
+     session exists a new one SHALL be opened using the mode-primed creation
+     pattern per ``REQ_EXP_AGENTPROMPT_TEMPLATE`` AC-6, and SHALL be initialized
+     with the init prompt per ``REQ_EXP_AGENTPROMPT_TEMPLATE``
    * AC-3: After creating a new session, a ``/rename <entityName>`` prompt SHALL
      be submitted automatically, followed by the context initialization prompt
      containing the path to ``context.md`` in the entity's folder
@@ -663,7 +664,7 @@ Explorer Requirements
 
 .. req:: Agent-Session Init Prompt Template Setting
    :id: REQ_EXP_AGENTPROMPT_TEMPLATE
-   :status: implemented
+   :status: draft
    :priority: optional
    :links: US_EXP_AGENTSESSION_PROMPT
 
@@ -692,5 +693,15 @@ Explorer Requirements
      SHALL be used (fall back to default, not to empty string).
    * AC-4: Unknown placeholders (not in the list above) SHALL be left as-is in
      the output (no error, no substitution).
-   * AC-5: The substituted prompt SHALL be sent on both ``jarvis.openAgentSession``
-     (new-session branch only) and ``jarvis.newSession``.
+   * AC-5: The substituted prompt SHALL be sent on ``jarvis.openAgentSession``
+     (new-session branch only), ``jarvis.newSession``, and — when the destination
+     name matches a known entity in the scanner store — the new-session branch of
+     ``jarvis.sendMessages`` and the auto-delivery poll loop. All four paths use
+     the same template, placeholder substitution, and agent-mode binding.
+   * AC-6: When ``entity.agent`` is set, the bound mode SHALL be applied at
+     session creation time using the mode-primed creation pattern: the extension
+     SHALL call ``workbench.action.chat.open { mode: entity.agent }`` + 300 ms
+     settle **before** ``openNewChatEditor()``, so the new session inherits the
+     mode from the VS Code Chat mode selector. The extension SHALL NOT attempt to
+     set or change the mode of an already-active session via a post-creation
+     ``workbench.action.chat.open`` call.

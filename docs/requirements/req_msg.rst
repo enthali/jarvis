@@ -43,9 +43,9 @@ Message Queue Requirements
 
 .. req:: Send Messages to Chat Session
    :id: REQ_MSG_SEND
-   :status: implemented
+   :status: draft
    :priority: optional
-   :links: US_MSG_CHATQUEUE; REQ_MSG_SESSIONLOOKUP; REQ_MSG_QUEUE
+   :links: US_MSG_CHATQUEUE; REQ_MSG_SESSIONLOOKUP; REQ_MSG_QUEUE; REQ_EXP_AGENTPROMPT_TEMPLATE
 
    **Description:**
    The extension SHALL provide a command to notify a VS Code Chat session about
@@ -70,6 +70,18 @@ Message Queue Requirements
    * AC-7: If ``REQ_MSG_SESSIONLOOKUP`` returns ``undefined`` for the target
      session, the extension SHALL open a new editor chat via
      ``REQ_MSG_OPENCHAT`` instead of raising an error
+   * AC-8: In the new-session branch (AC-7): if the matched entity has an
+     ``agent`` field, the extension SHALL prime the VS Code Chat mode selector
+     to ``entity.agent`` (via ``workbench.action.chat.open { mode }`` + 300 ms
+     settle) **before** ``REQ_MSG_OPENCHAT`` creates the chat editor, so the new
+     session inherits the bound mode at creation time. After ``REQ_MSG_OPENCHAT``
+     creates the chat editor and the session is renamed to ``node.destination``,
+     the extension SHALL look up the entity whose display name equals
+     ``node.destination`` in the scanner entity store. If an entity is found, the
+     extension SHALL send a context initialization prompt using the same template,
+     placeholder substitution, and agent-mode binding as
+     ``REQ_EXP_AGENTPROMPT_TEMPLATE`` — **before** sending the notification stub
+     (AC-3). If no entity matches the destination name, the init prompt is skipped.
 
 .. req:: Delete Individual Message
    :id: REQ_MSG_DELETE
@@ -270,9 +282,9 @@ Message Queue Requirements
 
 .. req:: Auto-Delivery Poll Loop
    :id: REQ_MSG_AUTODELIVER_POLL
-   :status: implemented
+   :status: draft
    :priority: optional
-   :links: US_MSG_AUTODELIVERY; REQ_MSG_AUTODELIVER_CONFIG; REQ_MSG_AUTODELIVER_TAG; REQ_MSG_SEND
+   :links: US_MSG_AUTODELIVERY; REQ_MSG_AUTODELIVER_CONFIG; REQ_MSG_AUTODELIVER_TAG; REQ_MSG_SEND; REQ_EXP_AGENTPROMPT_TEMPLATE
 
    **Description:**
    The extension SHALL run a background poll loop that automatically sends
@@ -294,6 +306,17 @@ Message Queue Requirements
      deactivated
    * AC-7: Errors in a single tick SHALL be caught, logged as warnings, and SHALL
      NOT stop the poll loop
+   * AC-8: In the new-session branch (no UUID found): if the matched entity has
+     an ``agent`` field, the poll loop SHALL prime the VS Code Chat mode selector
+     to ``entity.agent`` (via ``workbench.action.chat.open { mode }`` + 300 ms
+     settle) **before** ``REQ_MSG_OPENCHAT`` creates the chat editor, so the new
+     session inherits the bound mode at creation time. After ``REQ_MSG_OPENCHAT``
+     creates the chat editor and the session is renamed to the session name, the
+     poll loop SHALL look up the entity whose display name equals the session name
+     in the scanner entity store. If an entity is found, the poll loop SHALL send
+     a context initialization prompt per ``REQ_EXP_AGENTPROMPT_TEMPLATE`` —
+     **before** sending the notification stub. If no entity matches the session
+     name, the init prompt is skipped.
 
 
 .. req:: Notified Flag on Queued Message

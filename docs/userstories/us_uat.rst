@@ -39,6 +39,7 @@ for each feature. Each file corresponds to one feature or change.
    us_uat_sessiontreeclick
    us_uat_listsessionentitiesgating
    us_uat_chateditorreuse
+   us_uat_sessioninitprompt
 
 All UAT User Stories
 --------------------
