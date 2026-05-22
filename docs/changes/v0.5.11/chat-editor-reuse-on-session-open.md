@@ -185,3 +185,14 @@ Status bumped: US/REQ/SPEC_UAT_CHATEDITORREUSE → implemented. Change Document 
 ### Decision
 
 No blockers. All advisories are spec/doc drift (some pre-existing) — can be cleaned up opportunistically in a later editorial pass. Functional behavior is correct and validated by PM via research-branch.
+
+## Advisory Closure (CR spec-timing-cleanup, 2026-05-22)
+
+| Advisory | Action | Notes |
+|----------|--------|-------|
+| C-A1 | closed | Rationale sections in `SPEC_EXP_AGENTSESSION` and `SPEC_MSG_AUTODELIVER_POLL` reduced to 1–2 sentence summaries cross-linking to canonical `SPEC_MSG_OPENCHAT`; full rationale consolidated into `SPEC_MSG_OPENCHAT` Rationale section (`docs/design/spec_msg.rst`). |
+| C-A2 | closed | `SPEC_UAT_CHATEDITORREUSE` T-5 label changed from `*CR AC: 5*` to `*CR AC: auto-delivery (SPEC_MSG_AUTODELIVER_POLL)*` (`docs/design/spec_uat_chateditorreuse.rst`). |
+| C-A3 | closed | Auto-delivery poll loop added as third callsite in `SPEC_MSG_OPENCHAT` Callers list (`docs/design/spec_msg.rst`). |
+| C-A4 | closed | `SPEC_MSG_OPENCHAT` Description, Implementation block, and Design decisions updated to match actual `openNewChatEditor()`: no try/catch, no fallback, 800 ms settle delay inside helper (`docs/design/spec_msg.rst`). |
+| C-A5 | closed | Extra `await new Promise(...800)` after `openNewChatEditor()` removed from `SPEC_EXP_AGENTSESSION` code block (`docs/design/spec_exp.rst`); comment updated to note the delay is helper-internal. |
+| C-A6 | closed | Both spurious 800 ms delays (before and after `renameFocusedChatSession`) removed from `SPEC_MSG_AUTODELIVER_POLL` code block (`docs/design/spec_msg.rst`); comment updated to note helper-internal delay. |

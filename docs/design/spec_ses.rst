@@ -21,6 +21,7 @@ Sessions Design Specifications
       export interface EntityEntry {
           name: string;
           summary?: string;           // NEW — populated from session.yaml
+          agent?: string;             // NEW — optional chat-mode binding for sessions
           kind?: 'project' | 'event' | 'session';  // NEW
           datesStart?: string;
           datesEnd?: string;
@@ -320,18 +321,18 @@ Sessions Design Specifications
           ) => {
               const sessions = scanner?.entities
                   .filter(e => e.kind === 'session')
-                  .map(e => ({ name: e.name, summary: e.summary ?? '', folder: e.folder })) ?? [];
+                  .map(e => ({ name: e.name, summary: e.summary ?? '', folder: e.folder, agent: e.agent ?? '' })) ?? [];
               log.info(`[SES] listSessionEntities: ${sessions.length} session(s)`);
               return new vscode.LanguageModelToolResult([
                   new vscode.LanguageModelTextPart(JSON.stringify({ sessions }))
               ]);
           },
-          'Returns the list of session entities configured in the current Jarvis workspace. Each session has a name, summary, and folder path.',
+          'Lists all Jarvis session entities (lightweight projects) discovered under <workspace>/.jarvis/sessions/. Each entry has name, summary, folder, and agent (empty string when no binding set). Distinct from jarvis_listSessions which lists chat sessions.',
           {},
           async () => {
               const sessions = scanner?.entities
                   .filter(e => e.kind === 'session')
-                  .map(e => ({ name: e.name, summary: e.summary ?? '', folder: e.folder })) ?? [];
+                  .map(e => ({ name: e.name, summary: e.summary ?? '', folder: e.folder, agent: e.agent ?? '' })) ?? [];
               log.info(`[SES] listSessionEntities(MCP): ${sessions.length} session(s)`);
               return { sessions };
           }
@@ -344,7 +345,7 @@ Sessions Design Specifications
       {
         "name": "jarvis_listSessionEntities",
         "displayName": "List Session Entities",
-        "modelDescription": "Returns the list of session entities configured in the current Jarvis workspace. Each session has a name, summary, and folder path.",
+        "modelDescription": "Lists all Jarvis session entities (lightweight projects) discovered under <workspace>/.jarvis/sessions/. Each entry has name, summary, folder, and agent (empty string when no binding set). Distinct from jarvis_listSessions which lists chat sessions.",
         "canBeReferencedInPrompt": true,
         "toolReferenceName": "listSessionEntities",
         "icon": "$(list-unordered)",
@@ -913,3 +914,470 @@ Sessions Design Specifications
    * ``package.json`` --- ``contributes.commands``,
      ``contributes.menus.commandPalette``, ``contributes.menus.view/item/context``.
    * No new SVG files required.
+
+
+.. spec:: session-agent-binding: Agent Discovery Function
+   :id: SPEC_SES_AGENT_DISCOVERY
+   :status: implemented
+   :links: REQ_SES_AGENT_DISCOVERY; REQ_SES_AGENT_PICKER; REQ_SES_AGENT_CREATETOOL
+
+   **Description:**
+   A new module-level helper function ``discoverAgentModes()`` in
+   ``src/extension.ts`` scans ``.github/agents/*.agent.md`` across all workspace
+   folders and returns the list of user-invocable agents.
+
+   **Discovery rule decision — rationale:**
+
+   The valid set is defined as all ``*.agent.md`` files in
+   ``<workspaceRoot>/.github/agents/`` whose YAML frontmatter contains
+   ``user-invocable: true``.
+
+   * *File-based* — avoids runtime dependencies on live VS Code state (no DB,
+     no chat API).  Agents are static configuration; a file-per-agent model is
+     already the established convention in this repository.
+   * *``.github/agents/`` path* — the canonical home for Jarvis-managed agent
+     definitions already in use; no new convention is introduced.
+   * *``user-invocable: true`` gate* — excludes internal/orchestration agents
+     (``syspilot.implement``, ``syspilot.uat``, etc.) that should not be
+     directly bound to user sessions.  In the current repository, the four
+     user-invocable agents are ``syspilot.cm``, ``syspilot.pm``,
+     ``syspilot.qm``, and ``syspilot.setup``.
+   * *Basename-without-extension as identifier* — ``syspilot.cm.agent.md``
+     → ``syspilot.cm``.  This matches the VS Code ``mode`` parameter used by
+     ``workbench.action.chat.open`` to select a custom chat agent.
+
+   **Interface:**
+
+   .. code-block:: typescript
+
+      interface AgentModeEntry {
+          name: string;       // e.g. "syspilot.cm"
+          filePath: string;   // workspace-relative, e.g. ".github/agents/syspilot.cm.agent.md"
+      }
+
+      async function discoverAgentModes(): Promise<AgentModeEntry[]>
+
+   **Algorithm** (``src/extension.ts``):
+
+   .. code-block:: typescript
+
+      async function discoverAgentModes(): Promise<AgentModeEntry[]> {
+          const workspaceFolders = vscode.workspace.workspaceFolders ?? [];
+          const agents: AgentModeEntry[] = [];
+
+          for (const workspaceFolder of workspaceFolders) {
+              const agentsDir = path.join(workspaceFolder.uri.fsPath, '.github', 'agents');
+              let entries: import('fs').Dirent[];
+              try {
+                  entries = await fs.promises.readdir(agentsDir, { withFileTypes: true });
+              } catch {
+                  continue; // directory absent or unreadable — skip silently
+              }
+
+              for (const entry of entries) {
+                  if (!entry.isFile()) { continue; }
+                  const lower = entry.name.toLowerCase();
+                  if (!lower.endsWith('.agent.md')) { continue; }
+
+                  const agentPath = path.join(agentsDir, entry.name);
+                  let userInvocable = false;
+                  try {
+                      const content = await fs.promises.readFile(agentPath, 'utf8');
+                      userInvocable = readFrontmatterBool(content, 'user-invocable');
+                  } catch {
+                      continue;
+                  }
+                  if (!userInvocable) { continue; }
+
+                  const agentName = entry.name.slice(0, -'.agent.md'.length);
+                  agents.push({
+                      name: agentName,
+                      filePath: path.relative(workspaceFolder.uri.fsPath, agentPath),
+                  });
+              }
+          }
+
+          return agents.sort((a, b) => a.name.localeCompare(b.name));
+      }
+
+   **Frontmatter helper** (module-private, ``src/extension.ts``):
+
+   .. code-block:: typescript
+
+      function readFrontmatterBool(content: string, key: string): boolean {
+          if (!content.startsWith('---')) { return false; }
+          const closeIdx = content.indexOf('\n---', 3);
+          if (closeIdx < 0) { return false; }
+          const header = content.slice(3, closeIdx);
+          // Simple line-by-line match — avoids full YAML parse dependency
+          const re = new RegExp(`^${key}:\\s*true\\s*$`, 'm');
+          return re.test(header);
+      }
+
+   **Design decisions:**
+
+   * ``readFrontmatterBool`` uses a simple regex rather than a full YAML parse.
+     The ``user-invocable`` key is always a boolean literal in agent files;
+     a regex match is sufficient and avoids adding a new import or dependency.
+   * The function iterates all workspace folders, deduplicated by agent name
+     is implicitly handled: two folders providing the same agent name will both
+     appear; the first match wins alphabetically.  In practice, the workspace
+     has one folder.
+   * ``discoverAgentModes()`` is called on-demand (at picker open and at
+     validation time) — no caching, no file watcher.
+
+   **File touchpoint:** ``src/extension.ts`` — add ``AgentModeEntry``
+   interface, ``readFrontmatterBool()`` helper, and ``discoverAgentModes()``
+   function in the module preamble (before ``activate()``).
+
+
+.. spec:: session-agent-binding: Schema and EntityEntry Extension
+   :id: SPEC_SES_AGENT_SCHEMA
+   :status: implemented
+   :links: REQ_SES_AGENT_FIELD; REQ_SES_AGENT_COMPAT; SPEC_SES_SCANNER; SPEC_SES_SCHEMA; SPEC_SES_TOOLS
+
+   **Description:**
+   Three coordinated changes add the optional ``agent`` field to the data model:
+   ``schemas/session.schema.json``, ``src/yamlScanner.ts`` ``EntityEntry``, and
+   the ``jarvis_listSessionEntities`` tool output.
+
+   **1. ``schemas/session.schema.json`` — add ``agent`` property:**
+
+   .. code-block:: json
+
+      {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "Jarvis Session",
+        "type": "object",
+        "required": ["name"],
+        "additionalProperties": false,
+        "properties": {
+          "name":    { "type": "string", "description": "Short display name for this session.", "minLength": 1 },
+          "summary": { "type": "string", "description": "One-sentence description of the session's purpose." },
+          "agent":   { "type": "string", "description": "VS Code chat-mode name bound to this session (e.g. 'syspilot.cm'). When set, opening the session activates that chat agent automatically." }
+        }
+      }
+
+   No other schema fields change.  The ``additionalProperties: false`` constraint
+   continues to hold; the new ``agent`` property is explicitly listed.
+
+   **2. ``src/yamlScanner.ts`` — extend ``EntityEntry``:**
+
+   Add ``agent?: string`` to the interface (after ``summary``):
+
+   .. code-block:: typescript
+
+      export interface EntityEntry {
+          name: string;
+          summary?: string;
+          agent?: string;      // NEW — optional chat-mode binding for sessions
+          datesStart?: string;
+          datesEnd?: string;
+          kind?: 'project' | 'event' | 'session';
+          folder?: string;
+      }
+
+   In ``_buildTree()`` (the session-reading branch), read the ``agent`` field:
+
+   .. code-block:: typescript
+
+      const agent = typeof doc['agent'] === 'string' && doc['agent']
+          ? doc['agent']
+          : undefined;
+      entities.set(conventionPath, {
+          name: doc['name'],
+          kind: 'session',
+          ...(summary ? { summary } : {}),
+          ...(agent   ? { agent }   : {}),
+          // ... datesStart etc. unchanged
+      });
+
+   Only string values that are non-empty are stored; absent or
+   non-string ``agent`` fields result in ``undefined``.
+
+   **3. ``jarvis_listSessionEntities`` tool — expose ``agent`` in output:**
+
+   Amend both the LM and MCP handler bodies in ``SPEC_SES_TOOLS`` to include
+   ``agent``:
+
+   .. code-block:: typescript
+
+      .map(e => ({
+          name:    e.name,
+          summary: e.summary ?? '',
+          agent:   e.agent   ?? '',   // NEW — empty string when no binding
+          folder:  e.folder,
+      }))
+
+   Callers MUST treat ``""`` as "no binding" (``REQ_SES_AGENT_COMPAT AC-3``).
+
+   **File touchpoints:**
+
+   * ``schemas/session.schema.json`` — add ``agent`` property.
+   * ``src/yamlScanner.ts`` — ``EntityEntry`` interface + ``_buildTree()``
+     session branch.
+   * ``src/extension.ts`` — ``listSessionEntities`` LM and MCP handler
+     ``.map()`` call.
+
+
+.. spec:: session-agent-binding: Agent Picker and newSession Update
+   :id: SPEC_SES_AGENT_PICKER
+   :status: implemented
+   :links: REQ_SES_AGENT_PICKER; REQ_SES_AGENT_DISCOVERY; SPEC_SES_NEWENTITY; SPEC_SES_AGENT_DISCOVERY
+
+   **Description:**
+   A new helper ``pickAgentMode()`` presents the agent picker QuickPick.
+   ``newSessionCommand`` in ``src/extension.ts`` calls it after the ``summary``
+   prompt and writes the result to ``session.yaml``.
+
+   **``pickAgentMode()`` implementation** (``src/extension.ts``):
+
+   .. code-block:: typescript
+
+      async function pickAgentMode(): Promise<string | undefined> {
+          const agents = await discoverAgentModes();
+
+          const items: (vscode.QuickPickItem & { mode: string })[] = [
+              {
+                  label:       'No agent',
+                  description: 'Use the default VS Code chat mode',
+                  mode:        '',
+              },
+              ...agents.map(a => ({
+                  label:       a.name,
+                  description: a.filePath,
+                  mode:        a.name,
+              })),
+          ];
+
+          const pick = await vscode.window.showQuickPick(items, {
+              placeHolder: 'Select the agent for this session (Escape = cancel creation)',
+              matchOnDescription: true,
+          });
+
+          // undefined → user dismissed (Escape) → caller aborts creation
+          return pick === undefined ? undefined : pick.mode;
+      }
+
+   **Return semantics:**
+
+   * ``undefined`` — user dismissed (Escape); ``newSessionCommand`` MUST abort.
+   * ``""`` (empty string) — "No agent" was selected; omit ``agent`` field from
+     ``session.yaml``.
+   * ``"<name>"`` (non-empty) — write ``agent: "<name>"`` to ``session.yaml``.
+
+   **``newSessionCommand`` change** (``src/extension.ts``):
+
+   After the ``summary`` prompt (step 4 in ``SPEC_SES_NEWENTITY``) and before
+   slug + folder creation (steps 5–6), insert:
+
+   .. code-block:: typescript
+
+      // Implementation: SPEC_SES_AGENT_PICKER
+      const agentInput = await pickAgentMode();
+      if (agentInput === undefined) { return; }  // user cancelled
+
+   And after the ``summary`` write line in the ``yamlLines`` construction
+   (step 7), add:
+
+   .. code-block:: typescript
+
+      if (agentInput) {
+          yamlLines.push(`agent: ${yamlString(agentInput)}`);
+      }
+
+   The existing ``yamlString()`` helper (already used for ``name`` and
+   ``summary``) handles escaping.
+
+   **No change to ``jarvis.newEntity`` delegation path** — it continues to
+   call ``vscode.commands.executeCommand('jarvis.newSession')``; the picker
+   is invoked inside ``newSessionCommand``.
+
+   **File touchpoints:**
+
+   * ``src/extension.ts`` — add ``pickAgentMode()`` function; amend
+     ``newSessionCommand`` to call it and write the result.
+
+
+.. spec:: session-agent-binding: jarvis_createSession Agent Parameter
+   :id: SPEC_SES_AGENT_CREATETOOL
+   :status: implemented
+   :links: REQ_SES_AGENT_CREATETOOL; REQ_SES_AGENT_VALIDATION; SPEC_SES_CREATETOOL; SPEC_SES_AGENT_DISCOVERY
+
+   **Description:**
+   Extend ``jarvis_createSession`` to accept an optional ``agent`` parameter,
+   validate it against the discovered agent set, and write it to
+   ``session.yaml`` when valid.
+
+   **Updated ``createSession`` helper signature** (``src/extension.ts``):
+
+   .. code-block:: typescript
+
+      const createSession = async (args: {
+          name: string;
+          summary?: string;
+          agent?: string;        // NEW
+          initialMessage?: string;
+      }): Promise<{ created: boolean; reason?: string; path: string }>
+
+   **Agent validation step** (inserted after name validation, before
+   idempotency check):
+
+   .. code-block:: typescript
+
+      // Implementation: SPEC_SES_AGENT_CREATETOOL
+      if (agent) {
+          const available = await discoverAgentModes();
+          const validNames = available.map(a => a.name);
+          if (!validNames.includes(agent)) {
+              const names = validNames.length > 0
+                  ? validNames.sort().join(', ')
+                  : '(none)';
+              throw new Error(
+                  `Agent "${agent}" is not available.\nAvailable agents: ${names}`
+              );
+          }
+      }
+
+   **YAML write** (in the file-construction block after ``summary``):
+
+   .. code-block:: typescript
+
+      if (agent) {
+          yamlLines.push(`agent: ${yamlString(agent)}`);
+      }
+
+   **Updated tool input schema** (LM handler ``options`` type):
+
+   .. code-block:: typescript
+
+      options: vscode.LanguageModelToolInvocationOptions<{
+          name: string;
+          summary?: string;
+          agent?: string;        // NEW
+          initialMessage?: string;
+      }>
+
+   **Updated ``package.json`` input schema** for ``jarvis_createSession``:
+
+   .. code-block:: json
+
+      "agent": {
+        "type": "string",
+        "description": "Optional VS Code chat-mode name (e.g. 'syspilot.cm'). When set, opening the session activates that agent automatically. Must match a user-invocable agent file in .github/agents/."
+      }
+
+   (Added to the existing ``properties`` object; not added to ``required``.)
+
+   **Updated MCP handler** — pass ``agent`` through to ``createSession()``:
+
+   .. code-block:: typescript
+
+      async (args) => {
+          const result = await createSession({
+              name:           args.name as string,
+              summary:        args.summary as string | undefined,
+              agent:          args.agent as string | undefined,  // NEW
+              initialMessage: args.initialMessage as string | undefined,
+          });
+          // ...
+      }
+
+   **Error contract (REQ_SES_AGENT_VALIDATION):**
+
+   *Example — unknown agent, two available:*
+
+   .. code-block:: text
+
+      Agent "syspilot.design" is not available.
+      Available agents: syspilot.cm, syspilot.pm
+
+   *Example — unknown agent, no agents discoverable:*
+
+   .. code-block:: text
+
+      Agent "my-custom" is not available.
+      Available agents: (none)
+
+   **File touchpoints:**
+
+   * ``src/extension.ts`` — ``createSession`` helper: add ``agent`` destructure,
+     validation block, and ``yamlLines`` push; update LM options type; update
+     MCP handler ``args`` passthrough.
+   * ``package.json`` — add ``agent`` to ``jarvis_createSession``
+     ``inputSchema.properties``.
+   * ``src/extension.ts`` — Zod schema for MCP: add
+     ``agent: z.string().optional().describe('...')``.
+
+
+.. spec:: session-agent-binding: openAgentSession Agent Mode Binding
+   :id: SPEC_SES_AGENT_OPEN
+   :status: implemented
+   :links: REQ_SES_AGENT_OPEN; REQ_SES_AGENT_COMPAT; SPEC_EXP_AGENTSESSION; SPEC_SES_AGENT_SCHEMA
+
+   **Description:**
+   Amend ``jarvis.openAgentSession`` so that when creating a **new** chat session
+   for a session entity with a bound ``agent``, the VS Code chat editor is opened
+   in that agent mode.
+
+   **Mechanism — spike validation:**
+
+   The VS Code ``workbench.action.chat.open`` command accepts an optional
+   ``mode`` property alongside ``query``.  When ``mode`` is set to an agent
+   name (e.g. ``"syspilot.cm"``), VS Code opens the chat editor pre-configured
+   in that custom chat mode.  The spike (``experiment/agent-mode-spike@acd46bb``)
+   confirmed this API works end-to-end with the existing agent file convention.
+
+   **Handler change** (in the new-session branch of ``openAgentSession``,
+   ``src/extension.ts``):
+
+   Replace the ``workbench.action.chat.open`` invocation that sends the init
+   prompt with a conditional mode option:
+
+   .. code-block:: typescript
+
+      // Implementation: SPEC_SES_AGENT_OPEN
+      // Requirements: REQ_SES_AGENT_OPEN
+      const chatOpenOptions: { query: string; mode?: string } = { query: initPrompt };
+      if (entity.agent) {
+          chatOpenOptions.mode = entity.agent;
+      }
+      await vscode.commands.executeCommand(
+          'workbench.action.chat.open',
+          chatOpenOptions
+      );
+
+   This replaces the current unconditional:
+
+   .. code-block:: typescript
+
+      await vscode.commands.executeCommand(
+          'workbench.action.chat.open',
+          { query: initPrompt }
+      );
+
+   **Existing-session path — no change:**
+
+   When a UUID is found, the command opens the pinned tab via
+   ``openPinnedResource()``.  The ``agent`` binding is not re-applied —
+   the session was already initialized in the correct mode on first open.
+
+   **Backward compatibility (REQ_SES_AGENT_COMPAT):**
+
+   When ``entity.agent`` is ``undefined`` (existing sessions, or sessions
+   created without a binding), ``chatOpenOptions.mode`` is never set.
+   The call to ``workbench.action.chat.open`` receives
+   ``{ query: initPrompt }`` — identical to the pre-change behavior.
+
+   **Unrecognised ``mode`` value:**
+
+   If the agent was removed after the session was created (``user-invocable``
+   revoked, file deleted), VS Code silently falls back to its default chat
+   mode.  Jarvis does not detect or surface this degradation; it is an
+   accepted out-of-scope edge case.
+
+   **File touchpoints:**
+
+   * ``src/extension.ts`` — ``openAgentSessionCommand`` handler: replace the
+     single ``workbench.action.chat.open`` call in the new-session branch with
+     the conditional ``chatOpenOptions`` construction shown above.

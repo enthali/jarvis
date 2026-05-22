@@ -436,14 +436,9 @@ Explorer Design Specifications
    prompt. The full lifecycle sequence is specified in ``SPEC_MSG_AGENTSESSION``.
 
    **Rationale — URI-reuse bug fix:**
-   The previous implementation used the constant URI
-   ``vscode-chat-session://local/new`` for every new-session open. VS Code
-   treats this as a navigation to the same resource; subsequent calls reuse the
-   already-open editor instead of creating a fresh one. This caused init-prompts
-   and conversation to land in the wrong chat when two sessions were opened in
-   quick succession. Replacing the ``vscode.open`` call with
-   ``workbench.action.openChat`` (via ``openNewChatEditor()``) generates a
-   unique session URI per invocation and always produces a dedicated editor.
+   ``openNewChatEditor()`` (``SPEC_MSG_OPENCHAT``) ensures each invocation
+   produces a unique session URI and a dedicated editor; see
+   ``SPEC_MSG_OPENCHAT`` for the canonical rationale.
 
    **Handler:**
 
@@ -466,8 +461,7 @@ Explorer Design Specifications
             await openPinnedResource(uri);  // SPEC_MSG_PINNED
           } else {
             // Create a fresh chat editor — never reuses an existing one
-            await openNewChatEditor();  // SPEC_MSG_OPENCHAT
-            await new Promise(resolve => setTimeout(resolve, 800));
+            await openNewChatEditor();  // SPEC_MSG_OPENCHAT (includes 800 ms settle delay)
 
             // Rename session so future lookups can resolve it by name
             await renameFocusedChatSession(entity.name);
@@ -480,7 +474,15 @@ Explorer Design Specifications
                 .get<string>('agentSession.initPromptTemplate') ?? '';
             const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : DEFAULT_INIT_PROMPT;
             const initPrompt = applyTemplate(initTemplate, { kind, name: entity.name, contextPath });
-            await sendPromptToFocusedAgentChat(initPrompt);  // SPEC_MSG_SENDPROMPT
+            // Open chat in bound agent mode when set (SPEC_SES_AGENT_OPEN)
+            const chatOpenOptions: { query: string; mode?: string } = { query: initPrompt };
+            if (entity.agent) {
+                chatOpenOptions.mode = entity.agent;
+            }
+            await vscode.commands.executeCommand(
+                'workbench.action.chat.open',
+                chatOpenOptions
+            );
           }
         }
       );

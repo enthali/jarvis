@@ -177,7 +177,7 @@ Chat Editor Reuse — Session Open UAT Design Specifications
 
           Auto-delivery — new editor opened
 
-          *CR AC: 5*
+          *CR AC: auto-delivery (SPEC_MSG_AUTODELIVER_POLL)*
 
           *Spec under test:* ``SPEC_MSG_AUTODELIVER_POLL``
         - Precondition: Session ``dev-feature-x`` exists in test data.

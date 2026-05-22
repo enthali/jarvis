@@ -359,7 +359,12 @@ Automation Design Specifications
 .. spec:: Queue Step Executor
    :id: SPEC_AUT_QUEUEEXEC
    :status: implemented
-   :links: REQ_AUT_JOBEXEC; REQ_MSG_QUEUE; SPEC_AUT_EXECUTOR; SPEC_MSG_QUEUESTORE; SPEC_DEV_LOGCHANNEL
+   :links: REQ_AUT_JOBEXEC; REQ_MSG_QUEUE; SPEC_AUT_EXECUTOR; SPEC_MSG_QUEUESTORE; SPEC_DEV_LOGCHANNEL; SPEC_AUT_HEARTBEAT_INVALID_STEP_BEHAVIOR
+
+   .. note::
+      As of CR ``validate-heartbeat-queue-destination``, the queue-step executor
+      includes a destination-validity guard — see
+      ``SPEC_AUT_HEARTBEAT_INVALID_STEP_BEHAVIOR`` for the updated implementation.
 
    **Description:**
    ``executeQueueStep`` appends a message to the queue file and refreshes the
@@ -819,3 +824,221 @@ Automation Design Specifications
      an error to the caller
    * Uses the same ``cron-parser`` import already present in
      ``heartbeatTreeProvider.ts`` — no new dependency required
+
+
+.. spec:: Heartbeat Load-Time Destination Validation
+   :id: SPEC_AUT_HEARTBEAT_LOAD_VALIDATION
+   :status: implemented
+   :links: REQ_AUT_HEARTBEAT_LOAD_VALIDATION; REQ_AUT_HEARTBEAT_RESOLVER_REUSE; REQ_AUT_HEARTBEAT_VALIDATION_NOREGRESSION; SPEC_AUT_JOBSCHEMA; SPEC_MSG_SENDTOSESSION
+
+   **Description:**
+   Extend ``HeartbeatScheduler.reload()`` in ``src/heartbeat.ts`` to call an
+   async validation helper immediately after ``this.jobs = loadJobs(...)``, using
+   the shared session resolver.
+
+   **Validation helper (new function in ``heartbeat.ts``):**
+
+   .. code-block:: typescript
+
+      async function validateLoadedJobs(
+        jobs: HeartbeatJob[],
+        outputChannel: vscode.LogOutputChannel
+      ): Promise<void> {
+        const allSessions = await getAllSessions();
+        const validNames = filterNamedSessions(allSessions).map(s => s.title);
+        for (const job of jobs) {
+          job.steps.forEach((step, idx) => {
+            if (step.type === 'queue' && step.destination) {
+              if (!validNames.includes(step.destination)) {
+                const msg =
+                  `[Heartbeat] Invalid queue destination: ` +
+                  `job="${job.name}" step=${idx} destination="${step.destination}"`;
+                outputChannel.warn(msg);
+                vscode.window.showWarningMessage(`Jarvis: ${msg}`);
+              }
+            }
+          });
+        }
+      }
+
+   **Call site in ``reload()``** (fire-and-forget — warning MUST NOT block tick):
+
+   .. code-block:: typescript
+
+      reload(): void {
+        if (!this.context || !this.outputChannel) { return; }
+        const configPath = resolveConfigPath();
+        this.configDir = path.dirname(configPath);
+        this.jobs = loadJobs(configPath, this.outputChannel);
+        // Fire-and-forget load-time validation (SPEC_AUT_HEARTBEAT_LOAD_VALIDATION)
+        validateLoadedJobs(this.jobs, this.outputChannel).catch(() => { /* silent */ });
+      }
+
+   **Import required in ``heartbeat.ts``:**
+
+   .. code-block:: typescript
+
+      import { getAllSessions, filterNamedSessions } from './sessionLookup';
+
+   **No side effects on job list:** ``validateLoadedJobs`` only emits warnings;
+   it does not mutate, filter, or pause any job object.
+
+
+.. spec:: Queue Step Fire-Time Skip Behavior (D-1)
+   :id: SPEC_AUT_HEARTBEAT_INVALID_STEP_BEHAVIOR
+   :status: implemented
+   :links: REQ_AUT_HEARTBEAT_INVALID_STEP_BEHAVIOR; SPEC_AUT_QUEUEEXEC; SPEC_AUT_HEARTBEAT_RESOLVER_REUSE
+
+   **Description:**
+   Modify ``executeQueueStep()`` in ``src/heartbeat.ts`` to re-validate the
+   destination immediately before appending.  If the destination is no longer
+   valid at fire time, skip the step softly and let the job continue.
+
+   **UX Decision D-1: skip step, continue job (Option C — hybrid)**
+
+   At fire time a queue step with an invalid destination is skipped (no message
+   appended, warning logged, ``{ success: true }`` returned).  The job is NOT
+   marked as failed and subsequent steps execute normally.
+
+   *Rationale:* Pausing or failing the whole job (Option B) would block all
+   other steps in a multi-step job — a Python script or agent step would also
+   stop even though the destination misconfiguration is unrelated to them.
+   Background automation jobs should maximise useful work.  The load-time
+   notification (``SPEC_AUT_HEARTBEAT_LOAD_VALIDATION``) provides earliest
+   possible user feedback; the fire-time skip is a defensive safety net
+   consistent with the fail-soft character of the existing heartbeat executor.
+   This also parallels how ``validate-session-destination`` behaves for the
+   interactive ``jarvis_sendToSession`` tool — validation is surfaced early and
+   loudly, but the background automation path favours continuity over hard abort.
+
+   **Updated ``executeQueueStep`` (replaces current implementation in
+   ``SPEC_AUT_QUEUEEXEC``):**
+
+   .. code-block:: typescript
+
+      async function executeQueueStep(
+        step: HeartbeatStep,
+        outputChannel: vscode.LogOutputChannel,
+        queuePath: string,
+        messageTreeProvider: MessageTreeProvider
+      ): Promise<ExecResult> {
+        // Fire-time destination re-validation (REQ_AUT_HEARTBEAT_INVALID_STEP_BEHAVIOR)
+        const allSessions = await getAllSessions();
+        const validNames = filterNamedSessions(allSessions).map(s => s.title);
+        if (step.destination && !validNames.includes(step.destination)) {
+          outputChannel.warn(
+            `[Heartbeat] queue step skipped — invalid destination: "${step.destination}"`
+          );
+          return { success: true };  // soft skip: job continues
+        }
+        try {
+          appendMessage(queuePath, step.destination!, step.sender || 'heartbeat', step.text!);
+          messageTreeProvider.reload();
+          outputChannel.info(
+            `[Heartbeat] queue: destination="${step.destination}" ` +
+            `sender="${step.sender || 'heartbeat'}" text="${step.text}"`
+          );
+          return { success: true };
+        } catch (e) {
+          return {
+            success: false,
+            stepType: 'queue',
+            error: (e as Error).message
+          };
+        }
+      }
+
+
+.. spec:: ``jarvis_registerJob`` Destination Validation
+   :id: SPEC_AUT_REGISTERJOB_VALIDATION
+   :status: implemented
+   :links: REQ_AUT_REGISTERJOB_VALIDATION; REQ_MSG_DEST_ERROR; SPEC_AUT_JOBREG; SPEC_AUT_HEARTBEAT_RESOLVER_REUSE; SPEC_MSG_SENDTOSESSION
+
+   **Description:**
+   Add a pre-persistence validation call to both the LM and MCP handlers of
+   ``jarvis_registerJob`` in ``src/extension.ts``.  The shared resolver is used;
+   on first invalid destination the tool throws a formatted ``Error`` without
+   persisting the job.
+
+   **Validation helper (inline closure in ``extension.ts``):**
+
+   .. code-block:: typescript
+
+      async function validateJobDestinations(
+        steps: HeartbeatStep[]
+      ): Promise<void> {
+        const allSessions = await getAllSessions();
+        const validNames = filterNamedSessions(allSessions).map(s => s.title);
+        for (const step of steps) {
+          if (step.type === 'queue' && step.destination) {
+            if (!validNames.includes(step.destination)) {
+              const sorted = [...validNames].sort((a, b) =>
+                a.localeCompare(b, undefined, { sensitivity: 'base' })
+              );
+              const listStr = sorted.length > 0 ? sorted.join(', ') : '(none)';
+              throw new Error(
+                `Destination session "${step.destination}" does not exist.\n` +
+                `Valid destinations: ${listStr}`
+              );
+            }
+          }
+        }
+      }
+
+   **Integration in LM handler** (inserted before ``scheduler!.registerJob(job)``):
+
+   .. code-block:: typescript
+
+      await validateJobDestinations(steps);
+      await scheduler!.registerJob(job);
+
+   **Integration in MCP handler** (same position):
+
+   .. code-block:: typescript
+
+      await validateJobDestinations(steps);
+      await scheduler!.registerJob(job);
+
+   **Error format:** matches ``REQ_MSG_DEST_ERROR`` exactly — the same template
+   used in ``SPEC_MSG_SENDTOSESSION``.  The first invalid destination encountered
+   causes immediate rejection; subsequent steps are not checked.
+
+   **No persistence on error:** ``scheduler!.registerJob()`` is only reached
+   after ``validateJobDestinations`` resolves without throwing.
+
+   **Imports (already present in ``extension.ts`` via SPEC_MSG_SENDTOSESSION):**
+   ``getAllSessions`` and ``filterNamedSessions`` are already imported; no new
+   import line is required.
+
+
+.. spec:: Shared Resolver Reuse for Heartbeat Validation
+   :id: SPEC_AUT_HEARTBEAT_RESOLVER_REUSE
+   :status: implemented
+   :links: REQ_AUT_HEARTBEAT_RESOLVER_REUSE; SPEC_MSG_SENDTOSESSION; SPEC_MSG_SESSIONLOOKUP
+
+   **Description:**
+   All heartbeat destination validation sites (load-time, fire-time,
+   ``jarvis_registerJob`` tool) reuse ``getAllSessions()`` and
+   ``filterNamedSessions()`` from ``src/sessionLookup.ts`` — the same module
+   and functions used by ``SPEC_MSG_SENDTOSESSION``.  No parallel
+   session-enumeration logic is introduced.
+
+   **Import in ``heartbeat.ts`` (new):**
+
+   .. code-block:: typescript
+
+      import { getAllSessions, filterNamedSessions } from './sessionLookup';
+
+   **Import in ``extension.ts`` (already present):**
+   ``getAllSessions`` and ``filterNamedSessions`` are imported by
+   ``SPEC_MSG_SENDTOSESSION``; no additional import is needed.
+
+   **Valid destination set definition:**
+   Identical to ``SPEC_MSG_SENDTOSESSION``: named VS Code chat session titles
+   currently present in the workspace, as returned by ``getAllSessions()``
+   filtered through ``filterNamedSessions()`` (excludes sessions with empty or
+   ``'New Chat'`` titles).
+
+   **Consistency guarantee:** any future change to the resolver (e.g. new
+   filtering rules in ``filterNamedSessions``) propagates automatically to all
+   three validation sites without further code changes.

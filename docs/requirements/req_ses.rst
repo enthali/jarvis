@@ -42,7 +42,7 @@ Sessions Requirements
    **Acceptance Criteria:**
 
    * AC-1: The schema SHALL require exactly one field: ``name`` (string).
-   * AC-2: The schema SHALL allow one optional field: ``summary`` (string).
+   * AC-2: The schema SHALL allow optional fields: ``summary`` (string) and ``agent`` (string).
    * AC-3: No additional properties SHALL be permitted (``additionalProperties:
      false``).
    * AC-4: A JSON Schema file at ``schemas/session.schema.json`` (draft-07)
@@ -119,7 +119,8 @@ Sessions Requirements
    **Acceptance Criteria:**
 
    * AC-1: The tool SHALL return a JSON object ``{ "sessions": [...] }`` where
-     each element has ``name``, ``summary`` (may be empty string), and
+     each element has ``name``, ``summary`` (may be empty string),
+     ``agent`` (may be empty string when no binding is set), and
      ``folder`` (absolute filesystem path to the session directory, forward
      slashes).
    * AC-2: The tool SHALL be registered only when ``jarvis.sessions.enabled``
@@ -310,3 +311,199 @@ Sessions Requirements
      derived from the entity entry; if unavailable, it falls back to the folder
      basename. Errors during file creation SHALL be shown via
      `vscode.window.showErrorMessage` and SHALL NOT silently discard them.
+
+
+.. req:: Session Agent Field
+   :id: REQ_SES_AGENT_FIELD
+   :status: implemented
+   :priority: required
+   :links: US_SES_AGENTBIND
+
+   **Description:**
+   The session entity schema, YAML scanner, and tool output SHALL support an
+   optional ``agent`` field that records the VS Code chat-mode name bound to a
+   session.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``schemas/session.schema.json`` SHALL declare an optional
+     ``agent`` property (type ``string``) so YAML editors provide
+     completion and inline documentation.
+   * AC-2: ``src/yamlScanner.ts`` ``EntityEntry`` interface SHALL gain an
+     optional ``agent?: string`` field.  The scanner SHALL read the ``agent``
+     field from ``session.yaml`` and store it in the entity when the value is
+     a non-empty string.  A missing or non-string value SHALL result in
+     ``undefined`` (no error).
+   * AC-3: The ``jarvis_listSessionEntities`` tool output SHALL include
+     ``agent`` (as ``""`` when absent) alongside the existing ``name``,
+     ``summary``, and ``folder`` fields, so that LLM callers can inspect
+     existing bindings.
+
+
+.. req:: Agent Picker at Session Creation
+   :id: REQ_SES_AGENT_PICKER
+   :status: implemented
+   :priority: required
+   :links: US_SES_AGENTBIND; REQ_SES_NEWENTITY
+
+   **Description:**
+   The ``jarvis.newSession`` command SHALL present an optional agent picker after
+   the summary prompt.
+
+   **Acceptance Criteria:**
+
+   * AC-1: After prompting for ``name`` and ``summary``, the command SHALL
+     display a QuickPick populated with: a "No agent" entry (yields no
+     ``agent`` field in ``session.yaml``) and one entry per user-invocable
+     agent discovered under ``.github/agents/`` (see ``REQ_SES_AGENT_DISCOVERY``).
+   * AC-2: If the user dismisses the picker (Escape / window close), the
+     command SHALL abort; no folder, ``session.yaml``, or ``context.md`` SHALL
+     be created.
+   * AC-3: If the user selects "No agent", the ``agent`` field SHALL be omitted
+     entirely from the written ``session.yaml``.
+   * AC-4: If the user selects a named agent, that agent name SHALL be written
+     to ``session.yaml`` as ``agent: "<name>"``.
+   * AC-5: The picker SHALL show agent names alphabetically, with "No agent"
+     always first.
+
+
+.. req:: Agent Discovery Mechanism
+   :id: REQ_SES_AGENT_DISCOVERY
+   :status: implemented
+   :priority: required
+   :links: US_SES_AGENTBIND; REQ_SES_AGENT_PICKER; REQ_SES_AGENT_CREATETOOL
+
+   **Description:**
+   The set of available agents SHALL be determined at runtime by scanning
+   ``.github/agents/`` in the current workspace for agent definition files.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The discovery function SHALL scan all ``*.agent.md`` files in
+     ``<workspaceRoot>/.github/agents/``.
+   * AC-2: A file is included in the valid set only if its YAML frontmatter
+     (between the opening and closing ``---`` delimiters) contains the key
+     ``user-invocable: true``.  Files without valid frontmatter or with
+     ``user-invocable: false`` SHALL be excluded.
+   * AC-3: The agent identifier (used as the ``agent`` field value and as the
+     ``mode`` parameter) SHALL be the file basename without the ``.agent.md``
+     suffix (e.g., ``syspilot.cm.agent.md`` → ``syspilot.cm``).
+   * AC-4: If the ``.github/agents/`` directory does not exist or is unreadable,
+     the function SHALL return an empty list without error.
+   * AC-5: The returned list SHALL be sorted alphabetically by agent identifier.
+   * AC-6: Discovery is performed on-demand (at picker-open time and at
+     validation time); no persistent cache is maintained.
+
+
+.. req:: jarvis_createSession Agent Parameter
+   :id: REQ_SES_AGENT_CREATETOOL
+   :status: implemented
+   :priority: required
+   :links: US_SES_AGENTBIND; REQ_SES_CREATETOOL
+
+   **Description:**
+   The ``jarvis_createSession`` tool SHALL accept an optional ``agent``
+   parameter and write it to ``session.yaml`` when provided and valid.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The tool input schema SHALL include an optional ``agent`` parameter
+     (type ``string``).
+   * AC-2: When ``agent`` is blank or absent, the tool SHALL behave exactly as
+     before (no ``agent`` field in ``session.yaml``); no validation runs.
+   * AC-3: When ``agent`` is non-blank, the tool SHALL validate it against the
+     set of available agents (per ``REQ_SES_AGENT_DISCOVERY``) **before** any
+     filesystem operation.  If the value is unknown, the tool SHALL throw an
+     error (see ``REQ_SES_AGENT_VALIDATION``); the session folder SHALL NOT be
+     created.
+   * AC-4: When ``agent`` is non-blank and valid, the tool SHALL write
+     ``agent: "<name>"`` to ``session.yaml`` after ``summary`` (if present).
+   * AC-5: Both the LM and MCP handler paths SHALL enforce AC-3 identically.
+   * AC-6: The ``package.json`` ``contributes.languageModelTools`` input schema
+     for ``jarvis_createSession`` SHALL be updated to include the ``agent``
+     field with a clear description.
+
+
+.. req:: Agent Validation Error Contract
+   :id: REQ_SES_AGENT_VALIDATION
+   :status: implemented
+   :priority: required
+   :links: US_SES_AGENTBIND; REQ_SES_AGENT_CREATETOOL
+
+   **Description:**
+   The error thrown by ``jarvis_createSession`` when an unknown agent name is
+   supplied SHALL be self-contained enough for the calling agent to correct
+   the invocation immediately.  The contract mirrors ``REQ_MSG_DEST_ERROR``.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The error message SHALL state that the supplied agent is not
+     available, quoting the supplied name verbatim.
+   * AC-2: The error message SHALL list all currently available agent names
+     in alphabetically sorted order.
+   * AC-3: If the available set is empty (no user-invocable agents discovered),
+     the error SHALL indicate this explicitly rather than showing an empty list.
+   * AC-4: The error message template SHALL be::
+
+        Agent "${agent}" is not available.
+        Available agents: ${names}
+
+     where ``${agent}`` is the supplied (invalid) value and ``${names}`` is the
+     alphabetically sorted list of available agent names joined with ``", "``; if
+     the set is empty ``${names}`` is the literal ``"(none)"``.
+   * AC-5: The error SHALL be raised as a JavaScript ``Error`` object so that
+     both the VS Code LM tool invocation path and the MCP handler surface the
+     message text to the caller unchanged.
+
+
+.. req:: Open Session with Bound Agent
+   :id: REQ_SES_AGENT_OPEN
+   :status: implemented
+   :priority: required
+   :links: US_SES_AGENTBIND; REQ_EXP_AGENTSESSION
+
+   **Description:**
+   When ``jarvis.openAgentSession`` creates a new chat session for a session
+   entity that has an ``agent`` binding, the chat editor SHALL open in that
+   agent mode.
+
+   **Acceptance Criteria:**
+
+   * AC-1: On the new-session path (no existing UUID found), when
+     ``entity.agent`` is set and non-empty, the ``workbench.action.chat.open``
+     command SHALL be invoked with ``{ query: <initPrompt>, mode: entity.agent }``
+     instead of ``{ query: <initPrompt> }``.
+   * AC-2: When ``entity.agent`` is absent or empty, the existing behavior SHALL
+     be preserved (no ``mode`` parameter).
+   * AC-3: On the existing-session path (UUID found), the command opens the
+     existing pinned tab unchanged; the ``agent`` binding is NOT re-applied
+     (the chat mode was already set when the session was first created).
+   * AC-4: If the ``mode`` value is unrecognised by VS Code (e.g. the agent was
+     removed after binding), VS Code falls back to its default chat mode; no
+     error is surfaced to the user by Jarvis.
+
+
+.. req:: Session Agent Backward Compatibility
+   :id: REQ_SES_AGENT_COMPAT
+   :status: implemented
+   :priority: required
+   :links: US_SES_AGENTBIND; REQ_SES_AGENT_FIELD; REQ_SES_AGENT_OPEN
+
+   **Description:**
+   All existing ``session.yaml`` files that do not contain an ``agent`` field
+   SHALL continue to work without any change in behaviour.
+
+   **Acceptance Criteria:**
+
+   * AC-1: When the scanner reads a ``session.yaml`` without an ``agent``
+     field, ``EntityEntry.agent`` SHALL be ``undefined`` — no error, no default
+     value inserted.
+   * AC-2: When ``jarvis.openAgentSession`` is invoked for an entity with
+     ``agent === undefined``, the command SHALL follow the existing path
+     unchanged (no ``mode`` passed to ``workbench.action.chat.open``).
+   * AC-3: The ``jarvis_listSessionEntities`` tool SHALL return ``agent: ""``
+     for entities without an ``agent`` field (empty-string sentinel for
+     forward compatibility) — callers MUST treat ``""`` as "no binding".
+   * AC-4: No migration step is required; the ``additionalProperties: false``
+     constraint in the schema is relaxed by adding ``agent`` as an explicitly
+     permitted property — existing files without the field remain valid.

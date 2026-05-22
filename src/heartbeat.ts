@@ -1,11 +1,13 @@
 // Implementation: SPEC_AUT_JOBSCHEMA, SPEC_AUT_SCHEDULERLOOP, SPEC_AUT_EXECUTOR,
 //                 SPEC_AUT_MANUALCOMMAND, SPEC_AUT_STATUSBARITEM, SPEC_AUT_OUTPUTCHANNEL,
 //                 SPEC_AUT_AGENTEXEC, SPEC_AUT_QUEUEEXEC, SPEC_CFG_PATHRESOLVER,
-//                 SPEC_AUT_JOBREG
+//                 SPEC_AUT_JOBREG, SPEC_AUT_HEARTBEAT_LOAD_VALIDATION,
+//                 SPEC_AUT_HEARTBEAT_INVALID_STEP_BEHAVIOR, SPEC_AUT_HEARTBEAT_RESOLVER_REUSE
 // Requirements:   REQ_AUT_JOBCONFIG, REQ_AUT_SCHEDULER, REQ_AUT_JOBEXEC,
 //                 REQ_AUT_MANUALRUN, REQ_AUT_STATUSBAR, REQ_AUT_OUTPUT,
 //                 REQ_CFG_FIXEDPATHS, REQ_CFG_HEARTBEATINTERVAL, REQ_MSG_QUEUE,
-//                 REQ_AUT_JOBREG
+//                 REQ_AUT_JOBREG, REQ_AUT_HEARTBEAT_LOAD_VALIDATION,
+//                 REQ_AUT_HEARTBEAT_INVALID_STEP_BEHAVIOR, REQ_AUT_HEARTBEAT_RESOLVER_REUSE
 
 import * as vscode from 'vscode';
 import * as fs from 'fs';
@@ -16,6 +18,7 @@ import * as yaml from 'js-yaml';
 import { appendMessage } from './messageQueue';
 import { MessageTreeProvider } from './messageTreeProvider';
 import { HeartbeatTreeProvider, JobNode } from './heartbeatTreeProvider';
+import { getAllSessions, filterNamedSessions } from './sessionLookup';
 
 // ---------------------------------------------------------------------------
 // Types (SPEC_AUT_JOBSCHEMA)
@@ -201,7 +204,32 @@ async function executeAgentStep(
 }
 
 // ---------------------------------------------------------------------------
-// Queue step executor (SPEC_AUT_QUEUEEXEC)
+// Load-time destination validation (SPEC_AUT_HEARTBEAT_LOAD_VALIDATION)
+// ---------------------------------------------------------------------------
+
+async function validateLoadedJobs(
+    jobs: HeartbeatJob[],
+    outputChannel: vscode.LogOutputChannel
+): Promise<void> {
+    const allSessions = await getAllSessions();
+    const validNames = filterNamedSessions(allSessions).map(s => s.title);
+    for (const job of jobs) {
+        job.steps.forEach((step, idx) => {
+            if (step.type === 'queue' && step.destination) {
+                if (!validNames.includes(step.destination)) {
+                    const msg =
+                        `[Heartbeat] Invalid queue destination: ` +
+                        `job="${job.name}" step=${idx} destination="${step.destination}"`;
+                    outputChannel.warn(msg);
+                    vscode.window.showWarningMessage(`Jarvis: ${msg}`);
+                }
+            }
+        });
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Queue step executor (SPEC_AUT_QUEUEEXEC, SPEC_AUT_HEARTBEAT_INVALID_STEP_BEHAVIOR)
 // ---------------------------------------------------------------------------
 
 async function executeQueueStep(
@@ -210,6 +238,15 @@ async function executeQueueStep(
     queuePath: string,
     messageTreeProvider: MessageTreeProvider
 ): Promise<ExecResult> {
+    // Fire-time destination re-validation (REQ_AUT_HEARTBEAT_INVALID_STEP_BEHAVIOR)
+    const allSessions = await getAllSessions();
+    const validNames = filterNamedSessions(allSessions).map(s => s.title);
+    if (step.destination && !validNames.includes(step.destination)) {
+        outputChannel.warn(
+            `[Heartbeat] queue step skipped — invalid destination: "${step.destination}"`
+        );
+        return { success: true }; // soft skip: job continues
+    }
     try {
         appendMessage(queuePath, step.destination!, step.sender || 'heartbeat', step.text!);
         messageTreeProvider.reload();
@@ -385,6 +422,8 @@ export class HeartbeatScheduler {
         const configPath = resolveConfigPath();
         this.configDir = path.dirname(configPath);
         this.jobs = loadJobs(configPath, this.outputChannel);
+        // Fire-and-forget load-time validation (SPEC_AUT_HEARTBEAT_LOAD_VALIDATION)
+        validateLoadedJobs(this.jobs, this.outputChannel).catch(() => { /* silent */ });
     }
 
     // Implementation: SPEC_AUT_PAUSECOMMAND

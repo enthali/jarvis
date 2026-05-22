@@ -2,7 +2,7 @@
   "name": "jarvis",
   "displayName": "Jarvis",
   "description": "Personal assistant for managing projects and events in VS Code",
-  "version": "0.5.11",
+  "version": "0.6.0",
   "publisher": "enthali",
   "repository": {
     "type": "git",
@@ -804,7 +804,7 @@
       {
         "name": "jarvis_createSession",
         "displayName": "Create Session",
-        "modelDescription": "Creates a new Jarvis session folder with session.yaml and context.md under <workspace>/.jarvis/sessions/<name>/. Idempotent: safe to call if the session already exists.",
+        "modelDescription": "Creates a new Jarvis session folder with session.yaml and context.md under <workspace>/.jarvis/sessions/<name>/. Idempotent: safe to call if the session already exists. When agent is specified, it must match one of the discoverable user-invocable agents under .github/agents/.",
         "canBeReferencedInPrompt": true,
         "toolReferenceName": "createSession",
         "icon": "$(add)",
@@ -821,6 +821,10 @@
               "type": "string",
               "description": "Optional short description written to session.yaml."
             },
+            "agent": {
+              "type": "string",
+              "description": "Optional VS Code chat-mode name (e.g. 'syspilot.cm'). When set, opening the session activates that agent automatically. Must match a user-invocable agent file in .github/agents/."
+            },
             "initialMessage": {
               "type": "string",
               "description": "Optional first message to enqueue in the new session's inbox."
@@ -831,7 +835,7 @@
       {
         "name": "jarvis_listSessionEntities",
         "displayName": "List Session Entities",
-        "modelDescription": "Lists all Jarvis session entities (lightweight projects) discovered under <workspace>/.jarvis/sessions/. Each entry has name, summary, and folder. Distinct from jarvis_listSessions which lists chat sessions.",
+        "modelDescription": "Lists all Jarvis session entities (lightweight projects) discovered under <workspace>/.jarvis/sessions/. Each entry has name, summary, folder, and agent (empty string when no binding set). Distinct from jarvis_listSessions which lists chat sessions.",
         "canBeReferencedInPrompt": true,
         "toolReferenceName": "listSessionEntities",
         "icon": "$(folder)",

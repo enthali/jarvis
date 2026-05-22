@@ -202,15 +202,10 @@ Message Queue Design Specifications
             await new Promise(resolve => setTimeout(resolve, 800));
           } else {
             // No existing session — create new pinned chat editor
-            await openNewChatEditor();  // SPEC_MSG_OPENCHAT
-            await new Promise(resolve => setTimeout(resolve, 800));
+            await openNewChatEditor();  // SPEC_MSG_OPENCHAT (includes 800 ms settle delay)
 
             // Name the new chat session so future deliveries can resolve it.
-            await vscode.commands.executeCommand(
-              'workbench.action.chat.open',
-              { query: `/rename ${node.destination}` }
-            );
-            await new Promise(resolve => setTimeout(resolve, 800));
+            await renameFocusedChatSession(node.destination);
           }
 
           // 3. Send single notification stub
@@ -719,39 +714,8 @@ Message Queue Design Specifications
    ``mcpInputSchema`` uses Zod types (``z.string()``, ``z.string().optional()``)
    as required by the MCP SDK.
 
-   Example for ``jarvis_sendToSession``:
-
-   .. code-block:: typescript
-
-      const sendToSessionTool = registerDualTool(
-        'jarvis_sendToSession',
-        // LM handler
-        async (options, _token) => {
-          const { session, text } = options.input;
-          const activeTab = vscode.window.tabGroups.activeTabGroup.activeTab;
-          const sender = activeTab?.label || options.input.senderSession || 'unknown';
-          appendMessage(resolveMessagesPath(), session, sender, text);
-          messageProvider.reload();
-          return new vscode.LanguageModelToolResult([
-            new vscode.LanguageModelTextPart(
-              `Message queued for destination "${session}" from "${sender}"`
-            )
-          ]);
-        },
-        // MCP description
-        'Queues a message for delivery to another VS Code chat session identified by name.',
-        // MCP input schema (Zod types)
-        { session: z.string(), senderSession: z.string().optional(), text: z.string() },
-        // MCP handler
-        async (args) => {
-          const session = args.session as string;
-          const text = args.text as string;
-          const sender = (args.senderSession as string) || 'mcp-client';
-          appendMessage(resolveMessagesPath(), session, sender, text);
-          messageProvider.reload();
-          return { status: 'queued', destination: session, sender };
-        }
-      );
+   See ``SPEC_MSG_SENDTOSESSION`` for the destination-validating implementation
+   of ``jarvis_sendToSession``.
 
    **Lifecycle in activate():**
 
@@ -926,17 +890,13 @@ Message Queue Design Specifications
    opens the chat session directly, sends the notification stub, and marks those
    messages as notified. If the destination session cannot be found, the poll
    loop opens a **fresh** chat editor via ``openNewChatEditor()``
-   (``SPEC_MSG_OPENCHAT``) and first sends ``/rename <sessionName>`` so future
+   (``SPEC_MSG_OPENCHAT``) and first calls ``renameFocusedChatSession(sessionName)`` so future
    deliveries can resolve the session by name.
 
    **Rationale — URI-reuse bug fix:**
-   The previous implementation used ``vscode.open(vscode-chat-session://local/new)``
-   for the no-UUID path. Because the URI is constant, VS Code navigates within
-   the same existing editor on every tick instead of creating a new one, causing
-   successive auto-delivery notifications to land in the same recycled chat.
-   Replacing with ``openNewChatEditor()`` (``workbench.action.openChat``) produces
-   a unique URI per invocation and ensures each auto-delivered session gets its
-   own dedicated editor.
+   ``openNewChatEditor()`` (``SPEC_MSG_OPENCHAT``) ensures each auto-delivery
+   tick opens a unique editor; see ``SPEC_MSG_OPENCHAT`` for the canonical
+   rationale.
 
    **Tick logic (inlined in extension.ts):**
 
@@ -960,10 +920,8 @@ Message Queue Design Specifications
             // ... open session tab ...
           } else {
             // Create a fresh chat editor — never reuses an existing one
-            await openNewChatEditor();  // SPEC_MSG_OPENCHAT
-            await new Promise(resolve => setTimeout(resolve, 800));
+            await openNewChatEditor();  // SPEC_MSG_OPENCHAT (includes 800 ms settle delay)
             await renameFocusedChatSession(sessionName);
-            await new Promise(resolve => setTimeout(resolve, 800));
           }
 
           // Send notification stub
@@ -1292,38 +1250,41 @@ Message Queue Design Specifications
 
    **Description:**
    Private async helper ``openNewChatEditor`` in ``extension.ts`` creates a new
-   VS Code Chat editor. Uses ``workbench.action.openChat`` as the primary
-   mechanism, falling back to the ``vscode-chat-session://local/new`` URI via
-   ``openPinnedResource`` if the command is unavailable.
+   VS Code Chat editor. Executes ``workbench.action.openChat`` and waits 800 ms
+   for the editor to settle.
+
+   **Rationale — URI-reuse bug fix (canonical):**
+   The previous implementation used the constant URI
+   ``vscode-chat-session://local/new``. VS Code treats this as navigation to the
+   same resource; subsequent calls reuse the already-open editor. Replacing with
+   ``workbench.action.openChat`` generates a unique session URI per invocation
+   and always produces a dedicated editor. The try/catch + fallback path from the
+   original design was unreachable in observed behavior (PM-validated); the
+   simplified implementation was adopted.
 
    **Implementation:**
 
    .. code-block:: typescript
 
       async function openNewChatEditor(): Promise<void> {
-          try {
-              await vscode.commands.executeCommand('workbench.action.openChat');
-          } catch (error) {
-              const message = error instanceof Error ? error.message : String(error);
-              log.warn(`[MSG] workbench.action.openChat failed, falling back to URI open: ${message}`);
-              await openPinnedResource(vscode.Uri.parse('vscode-chat-session://local/new'));
-          }
+          await vscode.commands.executeCommand('workbench.action.openChat');
+          await new Promise(resolve => setTimeout(resolve, 800));
       }
 
    **Callers:**
 
    * ``jarvis.sendMessages`` — when no UUID is found for the target session name
    * ``jarvis.openAgentSession`` — when no UUID is found for the entity name
+   * Auto-delivery poll loop — when no UUID is found for the auto-delivery session name
 
    **Design decisions:**
 
    * ``workbench.action.openChat`` is a VS Code internal command with no public
-     stability guarantee. The try/catch + fallback is mandatory (D-1 from
-     ``stable-session-open`` change).
-   * The fallback URI ``vscode-chat-session://local/new`` is passed through
-     ``openPinnedResource`` so it also gets ``{ preview: false }`` treatment.
-   * Failures are logged at ``warn`` (not ``error``) — the fallback is expected
-     to succeed in practice, so this is a degraded-mode warning.
+     stability guarantee; however, the try/catch + fallback path was unreachable
+     in observed behavior (PM-validated simplified implementation).
+   * The 800 ms ``setTimeout`` after the command is a heuristic settle delay so
+     the VS Code Chat UI completes its tab-open animation before the next command
+     (e.g. ``renameFocusedChatSession``) is sent.
 
 
 .. spec:: Agent Chat Prompt Helper
@@ -1375,8 +1336,7 @@ Message Queue Design Specifications
    .. code-block:: typescript
 
       // 1. Create new session
-      await openNewChatEditor();
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await openNewChatEditor(); // SPEC_MSG_OPENCHAT (includes 800 ms settle delay)
 
       // 2. Rename session to entity name (D-4)
       await sendPromptToFocusedAgentChat(`/rename ${entity.name}`);
@@ -1399,9 +1359,10 @@ Message Queue Design Specifications
    * The fallback uses ``workbench.action.chat.open`` with ``mode: 'agent'`` —
      an older API shape that achieves the same effect on pre-1.100 builds.
    * Both commands are VS Code internals with no public stability guarantee.
-   * The 800 ms ``setTimeout`` between steps is a heuristic to allow the VS Code
-     Chat UI to complete its tab-open animation before the next command is sent.
-     No polling or event-based synchronization is available through the public API.
+   * The 800 ms ``setTimeout`` between the two ``sendPromptToFocusedAgentChat``
+     calls is a heuristic to allow the VS Code Chat input to settle between prompt
+     submissions. The tab-open settle delay is handled internally by
+     ``openNewChatEditor()`` (see ``SPEC_MSG_OPENCHAT``).
    * ``contextPath`` is derived from ``path.dirname(element.id)`` — the actual
      folder containing the entity's YAML file (D-3). This avoids kebab-case
      derivation errors when entity names contain characters that do not map
@@ -1433,7 +1394,7 @@ Message Queue Design Specifications
    **Sequence (new session):**
 
    1. Resolve UUID -- not found
-   2. `openNewChatEditor()` -- wait 800 ms
+   2. `openNewChatEditor()` (includes 800 ms settle delay -- SPEC_MSG_OPENCHAT)
    3. `sendPromptToFocusedAgentChat('/rename <entityName>')` -- wait 800 ms
    4. Build `contextPath`: `path.dirname(element.id)` (the actual YAML folder)
       joined with `context.md` via `path.join()`
@@ -1441,8 +1402,10 @@ Message Queue Design Specifications
 
    **Design notes:**
 
-   * The 800 ms delay is a heuristic to allow the VS Code Chat UI to complete
-     its tab-open animation -- no event-based synchronization is available.
+   * The 800 ms delay between successive ``sendPromptToFocusedAgentChat`` calls
+     (step 3) is a heuristic to allow the VS Code Chat input to settle between
+     prompt submissions. The tab-open settle delay is handled internally by
+     ``openNewChatEditor()`` (see ``SPEC_MSG_OPENCHAT``).
    * `contextPath` is derived from `path.dirname(element.id)` (the actual folder
      of the entity's YAML file) rather than from the display name, avoiding
      kebab-case derivation errors.
@@ -1731,8 +1694,8 @@ Message Queue Design Specifications
           const messagesPath = resolveMessagesPath();
           const removed = removeReminder(resolveRemindersPath(messagesPath), id);
           messageProvider.reload();
-          return new vscode.LanguageModelToolResult([
-            new vscode.LanguageModelTextPart(
+
+
               JSON.stringify({ status: removed ? 'cancelled' : 'not_found' })
             )
           ]);
@@ -1917,3 +1880,193 @@ Message Queue Design Specifications
    * The ``jarvis.cancelReminder`` tree command is distinct from the
      ``jarvis_cancelReminder`` LM/MCP tool — the command operates on a
      ``ReminderNode`` from the tree, the tool accepts a raw ``id`` string.
+
+
+.. spec:: Send-to-Session LM / MCP Tool
+   :id: SPEC_MSG_SENDTOSESSION
+   :status: implemented
+   :links: REQ_MSG_SENDTOSESSION; REQ_MSG_DEST_ERROR; SPEC_MSG_DUALREGISTRATION; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_QUEUESTORE
+
+   **Description:**
+   Implements the ``jarvis_sendToSession`` Language Model and MCP Tool in
+   ``src/extension.ts`` via ``registerDualTool()``.  Adds a pre-write
+   destination validation step: the tool resolves the current valid destination
+   set, checks membership, and throws a formatted ``Error`` if the session is
+   unknown — leaving the queue untouched.  For a valid destination the message
+   is appended as before.
+
+   **Valid destination set — design decision:**
+
+   The valid destination set is defined as the set of *named VS Code chat
+   session titles* currently present in the workspace, as returned by
+   ``getAllSessions()`` filtered through ``filterNamedSessions()``.  This is
+   identical to the set exposed by ``jarvis_listSessions``.
+
+   *Rationale for this choice (over alternatives):*
+
+   - ``jarvis_sendToSession`` targets a VS Code chat session tab by its display
+     title.  The only authoritative, live source of such titles is
+     ``state.vscdb``; using any other source would introduce a second definition
+     of "valid destination" inconsistent with the addressing model.
+   - Folder-based alternatives (`.jarvis/sessions/` presence check) would
+     conflate workspace-entity folders with live chat tabs — a folder can exist
+     without a corresponding chat tab and vice-versa.
+   - A configured allowlist would require user maintenance and is over-engineered
+     for the use case.
+   - The union with ``jarvis_listSessionEntities`` was considered but rejected:
+     session-entity names are workspace identifiers, not live chat-tab titles.
+     An agent should be able to send to any open tab (e.g. a manually created
+     project chat), not only to entity-backed sessions.
+   - Using the same set as ``jarvis_listSessions`` means a single discovery
+     step (call ``jarvis_listSessions``) is sufficient to find valid targets —
+     no additional tool call needed.
+
+   **Error message format (REQ_MSG_DEST_ERROR):**
+
+   .. code-block:: text
+
+      Destination session "${session}" does not exist.
+      Valid destinations: ${names}
+
+   Where ``${names}`` is the alphabetically sorted list of valid session titles
+   joined with ``", "``, or ``"(none)"`` when the set is empty.
+
+   *Example (invalid destination, two valid sessions exist):*
+
+   .. code-block:: text
+
+      Destination session "ProjectX" does not exist.
+      Valid destinations: Atlas, Research
+
+   *Example (no sessions exist at all):*
+
+   .. code-block:: text
+
+      Destination session "ProjectX" does not exist.
+      Valid destinations: (none)
+
+   **Updated handler (replaces the sendToSession example in
+   SPEC_MSG_DUALREGISTRATION):**
+
+   .. code-block:: typescript
+
+      const sendToSessionTool = registerDualTool(
+        'jarvis_sendToSession',
+        // LM handler
+        async (options, _token) => {
+          const { session, text } = options.input as {
+            session: string; text: string; senderSession?: string;
+          };
+
+          // Destination validation (REQ_MSG_SENDTOSESSION AC-3/4)
+          const allSessions = await getAllSessions();
+          const validNames = filterNamedSessions(allSessions).map(s => s.title);
+          if (!validNames.includes(session)) {
+            const sorted = [...validNames].sort((a, b) =>
+              a.localeCompare(b, undefined, { sensitivity: 'base' })
+            );
+            const listStr = sorted.length > 0 ? sorted.join(', ') : '(none)';
+            throw new Error(
+              `Destination session "${session}" does not exist.\n` +
+              `Valid destinations: ${listStr}`
+            );
+          }
+
+          // Valid destination — queue the message (REQ_MSG_SENDTOSESSION AC-6)
+          const activeTab = vscode.window.tabGroups.activeTabGroup.activeTab;
+          const sender = (options.input as any).senderSession
+            || activeTab?.label
+            || 'unknown';
+          appendMessage(resolveMessagesPath(), session, sender, text);
+          messageProvider.reload();
+          log.info(`[MSG] sendToSession: destination="${session}", sender="${sender}"`);
+          return new vscode.LanguageModelToolResult([
+            new vscode.LanguageModelTextPart(
+              `Message queued for destination "${session}" from "${sender}"`
+            )
+          ]);
+        },
+        // MCP description
+        'Queues a message for delivery to another VS Code chat session identified by name. Fails with an error if the destination session does not exist.',
+        // MCP input schema (Zod)
+        { session: z.string(), senderSession: z.string().optional(), text: z.string() },
+        // MCP handler
+        async (args) => {
+          const session = args.session as string;
+          const text = args.text as string;
+
+          // Destination validation
+          const allSessions = await getAllSessions();
+          const validNames = filterNamedSessions(allSessions).map(s => s.title);
+          if (!validNames.includes(session)) {
+            const sorted = [...validNames].sort((a, b) =>
+              a.localeCompare(b, undefined, { sensitivity: 'base' })
+            );
+            const listStr = sorted.length > 0 ? sorted.join(', ') : '(none)';
+            throw new Error(
+              `Destination session "${session}" does not exist.\n` +
+              `Valid destinations: ${listStr}`
+            );
+          }
+
+          const sender = (args.senderSession as string) || 'mcp-client';
+          appendMessage(resolveMessagesPath(), session, sender, text);
+          messageProvider.reload();
+          return { status: 'queued', destination: session, sender };
+        }
+      );
+
+   **Registration in package.json (unchanged from current):**
+
+   .. code-block:: json
+
+      {
+        "name": "jarvis_sendToSession",
+        "displayName": "Send Message to Session",
+        "modelDescription": "Queues a text message for delivery to another VS Code chat session identified by its exact title. Fails immediately with an error if the destination does not exist — call jarvis_listSessions first to discover valid names.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "sendToSession",
+        "icon": "$(mail)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "session": {
+              "type": "string",
+              "description": "The exact title of the target VS Code chat session"
+            },
+            "text": {
+              "type": "string",
+              "description": "The message text to queue"
+            },
+            "senderSession": {
+              "type": "string",
+              "description": "Optional: name of the sending session (defaults to active tab label)"
+            }
+          },
+          "required": ["session", "text"]
+        }
+      }
+
+   **Design notes:**
+
+   * ``getAllSessions()`` + ``filterNamedSessions()`` is an async live DB read
+     on each invocation — same cost as the existing path for ``listSessions``.
+     For typical workspaces (single-digit to low tens of sessions) this is
+     negligible.
+   * The validation uses an exact case-sensitive title match (``includes``),
+     consistent with the existing addressing model: session names are
+     case-sensitive VS Code tab titles.
+   * The sorted name list in the error message is alphabetically sorted using
+     locale-insensitive base comparison (``sensitivity: 'base'``) so that
+     case variants sort together and the output is stable across runs.
+   * Throwing ``new Error(...)`` from both the LM and MCP handlers causes the
+     tool invocation to surface the message text to the caller:
+     VS Code LM surfaces it as a tool-call failure; MCP returns an error
+     response body.
+   * The ``modelDescription`` is updated to hint that callers should use
+     ``jarvis_listSessions`` first — improving agent self-correction without
+     requiring a schema change.
+   * Backward compatibility: the handler code path for valid destinations is
+     identical to the previous implementation; no queue-file format changes.
+
+
