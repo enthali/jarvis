@@ -1,5 +1,24 @@
 # Release Notes
 
+## v0.6.0 — Agent-aware Sessions
+
+*2026-05-22*
+
+Session–agent binding, heartbeat destination validation, and a spec-debt cleanup round.
+
+### New Features
+
+- **session-agent-binding**: Sessions can now be bound to a specific agent (chat mode) at creation time. An optional agent picker — populated from `.github/agents/*.agent.md` files with `user-invocable: true` in frontmatter — appears in the `jarvis.newSession` UI. The chosen agent is persisted as an optional `agent` field in `session.yaml`. When the session is opened, the chat editor switches directly to that agent mode. `jarvis_createSession` accepts an optional `agent` parameter; unknown agent names produce an error listing available agents. Existing `session.yaml` files without an `agent` field continue to work unchanged. Schema updated with optional `agent` field.
+
+### Bug Fixes / Improvements
+
+- **validate-session-destination**: `jarvis_sendToSession` now validates the destination session name before writing to the queue. Calling it with an unknown session name fails immediately with an error that includes the supplied name and the list of currently valid destination names. Valid destinations behave as before.
+- **validate-heartbeat-queue-destination**: Heartbeat `queue` steps are now validated at `heartbeat.yaml` load time and at `jarvis_registerJob` invocation. Invalid destinations surface a visible notification and log warning containing job name, step index, and the invalid value. At fire time the invalid step is skipped (soft skip — remaining steps continue). `jarvis_registerJob` returns an error and refuses to persist a job with an invalid destination.
+
+### Internal / Notes
+
+- **spec-timing-cleanup**: Doc-only. Closed all 9 deferred MECE advisories from `chat-editor-reuse-on-session-open` (6) and `list-session-entities-gating-bug` (3). Sphinx build clean. No source changes.
+
 ## v0.5.11 — Sessions stack v1
 
 *2026-05-20*
