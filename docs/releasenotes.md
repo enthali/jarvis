@@ -2,7 +2,7 @@
 
 ## v0.6.1 — Agent-mode and init-prompt reliability hotfix
 
-*Pending release (feature/session-init-prompt-on-autoopen)*
+*2026-05-23*
 
 Fix: agent-mode and init-prompt now applied reliably on all session-open paths.
 Agent picker now uses **default-include opt-out** policy for agent discovery.
