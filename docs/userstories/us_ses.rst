@@ -78,6 +78,48 @@ Sessions User Stories
      with ``jarvis_sendToSession``.
 
 
+.. story:: Session Agent Binding
+   :id: US_SES_AGENTBIND
+   :status: implemented
+   :priority: required
+
+   **As a** Jarvis user,
+   **I want** each new session to optionally declare which agent (chat mode) it
+   is designed for, so that opening the session activates the correct agent
+   automatically — without me having to select it from the VS Code chat picker
+   every time.
+
+   **Context:**
+   Every Jarvis session typically has a designated role: a Project Manager
+   session runs in ``syspilot.pm`` mode, a Change Manager session in
+   ``syspilot.cm`` mode, and so on.  Without binding, the user must re-select
+   the correct chat mode every time they reopen a session, which is both
+   friction and an error source.  Persisting the choice in ``session.yaml`` and
+   applying it on open removes that friction for the entire lifetime of the
+   session.
+
+   **Acceptance Criteria:**
+
+   * AC-1: When creating a new session via the UI (``jarvis.newSession`` or
+     ``jarvis.newEntity``), the user is presented with an agent picker that
+     lists all user-invocable agents discovered from the workspace plus a
+     "No agent" option.  Dismissing the picker (Escape) cancels the creation.
+   * AC-2: The chosen agent (or no-agent, i.e. empty string) is persisted in
+     ``session.yaml`` as an optional ``agent`` field; the field is omitted
+     entirely when "No agent" was selected.
+   * AC-3: Opening a session with a bound agent (via ``jarvis.openAgentSession``
+     on a new-session path) opens the chat editor in that agent mode.
+   * AC-4: The tool ``jarvis_createSession`` accepts an optional ``agent``
+     parameter.  When absent or blank, no binding is set.
+   * AC-5: If ``agent`` is provided to ``jarvis_createSession`` but is not a
+     known agent, the call fails with a self-contained error message listing
+     available agents; the session folder is NOT created.
+   * AC-6: Existing ``session.yaml`` files without an ``agent`` field continue
+     to work without error (open in default chat mode).
+   * AC-7: ``session.schema.json`` is extended with an optional ``agent`` field
+     so YAML editors provide completion and validation.
+
+
 .. story:: Session Tree Primary Action
    :id: US_SES_TREECLICK
    :status: implemented

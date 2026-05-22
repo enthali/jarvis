@@ -8,6 +8,7 @@ import * as yaml from 'js-yaml';
 export interface EntityEntry {
     name: string;
     summary?: string;    // session/project summary; undefined if absent
+    agent?: string;      // NEW — optional chat-mode binding for sessions
     datesStart?: string; // event start date YYYY-MM-DD; undefined for projects or if absent
     datesEnd?: string;   // event end date YYYY-MM-DD; undefined for projects or if absent
     kind?: 'project' | 'event' | 'session'; // entity kind; set by scanner
@@ -146,9 +147,13 @@ export class YamlScanner {
                                 ? rawStart.toISOString().slice(0, 10)
                                 : typeof rawStart === 'string' ? rawStart : undefined;
                             const summary = typeof doc['summary'] === 'string' ? doc['summary'] : undefined;
+                            const agent = typeof doc['agent'] === 'string' && doc['agent']
+                                ? doc['agent']
+                                : undefined;
                             entities.set(conventionPath, {
                                 name: doc['name'],
                                 ...(summary ? { summary } : {}),
+                                ...(agent   ? { agent }   : {}),
                                 ...(datesStart ? { datesStart } : {}),
                                 ...(typeof datesEnd === 'string' ? { datesEnd } : {}),
                                 kind,

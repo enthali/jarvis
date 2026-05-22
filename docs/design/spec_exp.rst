@@ -480,7 +480,15 @@ Explorer Design Specifications
                 .get<string>('agentSession.initPromptTemplate') ?? '';
             const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : DEFAULT_INIT_PROMPT;
             const initPrompt = applyTemplate(initTemplate, { kind, name: entity.name, contextPath });
-            await sendPromptToFocusedAgentChat(initPrompt);  // SPEC_MSG_SENDPROMPT
+            // Open chat in bound agent mode when set (SPEC_SES_AGENT_OPEN)
+            const chatOpenOptions: { query: string; mode?: string } = { query: initPrompt };
+            if (entity.agent) {
+                chatOpenOptions.mode = entity.agent;
+            }
+            await vscode.commands.executeCommand(
+                'workbench.action.chat.open',
+                chatOpenOptions
+            );
           }
         }
       );

@@ -1,5 +1,5 @@
-// Implementation: SPEC_EXP_EXTENSION, SPEC_EXP_FILTERCOMMAND, SPEC_EXP_EVENTFILTER_CMD, SPEC_EXP_OPENYAML_CMD, SPEC_EXP_CONTEXTACTIONS, SPEC_AUT_MANUALCOMMAND, SPEC_MSG_SENDCOMMAND, SPEC_MSG_OPENSESSION, SPEC_MSG_LISTSESSIONS, SPEC_EXP_AGENTSESSION, SPEC_EXP_NEWPROJECT_CMD, SPEC_EXP_NEWEVENT_CMD, SPEC_REL_UPDATECOMMAND, SPEC_EXP_RESCAN_CMD, SPEC_AUT_JOBREG, SPEC_DEV_LOGCHANNEL, SPEC_MSG_DUALREGISTRATION, SPEC_EXP_LISTPROJECTS, SPEC_CFG_TOGGLEGUARDS, SPEC_CFG_PATHRESOLVER, SPEC_EXP_FEATURETOGGLE, SPEC_PIM_SERVICE, SPEC_PIM_CATVIEW, SPEC_PIM_CATTOOL, SPEC_OLK_COMBRIDGE, SPEC_OLK_SETTINGS, SPEC_OLK_AUTOCAT_NEWENTITY, SPEC_PIM_TASKSERVICE, SPEC_PIM_TASKEDITOR, SPEC_PIM_TASKTOOL, SPEC_OLK_TASKPROVIDER, SPEC_OLK_TASKENABLE, SPEC_EXP_HEARTBEAT_OPENFILE, SPEC_EXP_MESSAGE_OPENFILE, SPEC_EXP_SEARCH_CMD, SPEC_SES_CREATETOOL
-// Requirements: REQ_EXP_ACTIVITYBAR, REQ_EXP_TREEVIEW, REQ_EXP_REACTIVECACHE, REQ_CFG_FOLDERPATHS, REQ_CFG_SCANINTERVAL, REQ_EXP_PROJECTFILTER, REQ_EXP_FILTERPERSIST, REQ_EXP_EVENTFILTER, REQ_EXP_EVENTFILTERPERSIST, REQ_EXP_OPENYAML, REQ_EXP_CONTEXTACTIONS, REQ_AUT_MANUALRUN, REQ_MSG_SEND, REQ_MSG_DELETE, REQ_MSG_OPENSESSION, REQ_MSG_SESSIONFILTER, REQ_MSG_LISTSESSIONS, REQ_EXP_AGENTSESSION, REQ_EXP_NEWPROJECT, REQ_EXP_NEWEVENT, REQ_REL_UPDATECOMMAND, REQ_CFG_UPDATECHECK, REQ_EXP_RESCAN_BTN, REQ_AUT_JOBREG, REQ_DEV_LOGGING, REQ_MSG_MCPSERVER, REQ_CFG_MCPPORT, REQ_EXP_LISTPROJECTS, REQ_CFG_TOGGLES, REQ_CFG_FIXEDPATHS, REQ_EXP_FEATURETOGGLE, REQ_PIM_SERVICE, REQ_PIM_CATVIEW, REQ_PIM_CATTOOL, REQ_OLK_COMBRIDGE, REQ_OLK_ENABLE, REQ_OLK_AUTOCAT_NEWENTITY, REQ_PIM_TASKSERVICE, REQ_PIM_TASKEDITOR, REQ_PIM_TASKTOOL, REQ_OLK_TASKPROVIDER, REQ_OLK_TASKENABLE, REQ_SES_CREATETOOL
+// Implementation: SPEC_EXP_EXTENSION, SPEC_EXP_FILTERCOMMAND, SPEC_EXP_EVENTFILTER_CMD, SPEC_EXP_OPENYAML_CMD, SPEC_EXP_CONTEXTACTIONS, SPEC_AUT_MANUALCOMMAND, SPEC_MSG_SENDCOMMAND, SPEC_MSG_OPENSESSION, SPEC_MSG_LISTSESSIONS, SPEC_EXP_AGENTSESSION, SPEC_EXP_NEWPROJECT_CMD, SPEC_EXP_NEWEVENT_CMD, SPEC_REL_UPDATECOMMAND, SPEC_EXP_RESCAN_CMD, SPEC_AUT_JOBREG, SPEC_DEV_LOGCHANNEL, SPEC_MSG_DUALREGISTRATION, SPEC_EXP_LISTPROJECTS, SPEC_CFG_TOGGLEGUARDS, SPEC_CFG_PATHRESOLVER, SPEC_EXP_FEATURETOGGLE, SPEC_PIM_SERVICE, SPEC_PIM_CATVIEW, SPEC_PIM_CATTOOL, SPEC_OLK_COMBRIDGE, SPEC_OLK_SETTINGS, SPEC_OLK_AUTOCAT_NEWENTITY, SPEC_PIM_TASKSERVICE, SPEC_PIM_TASKEDITOR, SPEC_PIM_TASKTOOL, SPEC_OLK_TASKPROVIDER, SPEC_OLK_TASKENABLE, SPEC_EXP_HEARTBEAT_OPENFILE, SPEC_EXP_MESSAGE_OPENFILE, SPEC_EXP_SEARCH_CMD, SPEC_SES_CREATETOOL, SPEC_SES_AGENT_DISCOVERY, SPEC_SES_AGENT_SCHEMA, SPEC_SES_AGENT_PICKER, SPEC_SES_AGENT_CREATETOOL, SPEC_SES_AGENT_OPEN
+// Requirements: REQ_EXP_ACTIVITYBAR, REQ_EXP_TREEVIEW, REQ_EXP_REACTIVECACHE, REQ_CFG_FOLDERPATHS, REQ_CFG_SCANINTERVAL, REQ_EXP_PROJECTFILTER, REQ_EXP_FILTERPERSIST, REQ_EXP_EVENTFILTER, REQ_EXP_EVENTFILTERPERSIST, REQ_EXP_OPENYAML, REQ_EXP_CONTEXTACTIONS, REQ_AUT_MANUALRUN, REQ_MSG_SEND, REQ_MSG_DELETE, REQ_MSG_OPENSESSION, REQ_MSG_SESSIONFILTER, REQ_MSG_LISTSESSIONS, REQ_EXP_AGENTSESSION, REQ_EXP_NEWPROJECT, REQ_EXP_NEWEVENT, REQ_REL_UPDATECOMMAND, REQ_CFG_UPDATECHECK, REQ_EXP_RESCAN_BTN, REQ_AUT_JOBREG, REQ_DEV_LOGGING, REQ_MSG_MCPSERVER, REQ_CFG_MCPPORT, REQ_EXP_LISTPROJECTS, REQ_CFG_TOGGLES, REQ_CFG_FIXEDPATHS, REQ_EXP_FEATURETOGGLE, REQ_PIM_SERVICE, REQ_PIM_CATVIEW, REQ_PIM_CATTOOL, REQ_OLK_COMBRIDGE, REQ_OLK_ENABLE, REQ_OLK_AUTOCAT_NEWENTITY, REQ_PIM_TASKSERVICE, REQ_PIM_TASKEDITOR, REQ_PIM_TASKTOOL, REQ_OLK_TASKPROVIDER, REQ_OLK_TASKENABLE, REQ_SES_CREATETOOL, REQ_SES_AGENT_FIELD, REQ_SES_AGENT_PICKER, REQ_SES_AGENT_DISCOVERY, REQ_SES_AGENT_CREATETOOL, REQ_SES_AGENT_VALIDATION, REQ_SES_AGENT_OPEN, REQ_SES_AGENT_COMPAT
 
 import * as vscode from 'vscode';
 import * as fs from 'fs';
@@ -56,6 +56,93 @@ function findLeafNode(nodes: TreeNode[], targetFolder: string): LeafNode | undef
 // Substitutes ${key} tokens; unknown tokens are left as-is.
 function applyTemplate(template: string, vars: Record<string, string>): string {
     return template.replace(/\$\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m));
+}
+
+// YAML string serialisation helper (escapes \ and " for double-quoted YAML values)
+function yamlString(value: string): string {
+    return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+}
+
+// Implementation: SPEC_SES_AGENT_DISCOVERY
+// Requirements: REQ_SES_AGENT_DISCOVERY
+interface AgentModeEntry {
+    name: string;
+    filePath: string;
+}
+
+function readFrontmatterBool(content: string, key: string): boolean {
+    if (!content.startsWith('---')) { return false; }
+    const closeIdx = content.indexOf('\n---', 3);
+    if (closeIdx < 0) { return false; }
+    const header = content.slice(3, closeIdx);
+    const re = new RegExp(`^${key}:\\s*true\\s*$`, 'm');
+    return re.test(header);
+}
+
+async function discoverAgentModes(): Promise<AgentModeEntry[]> {
+    const workspaceFolders = vscode.workspace.workspaceFolders ?? [];
+    const agents: AgentModeEntry[] = [];
+
+    for (const workspaceFolder of workspaceFolders) {
+        const agentsDir = path.join(workspaceFolder.uri.fsPath, '.github', 'agents');
+        let entries: fs.Dirent[];
+        try {
+            entries = await fs.promises.readdir(agentsDir, { withFileTypes: true });
+        } catch {
+            continue; // directory absent or unreadable — skip silently
+        }
+
+        for (const entry of entries) {
+            if (!entry.isFile()) { continue; }
+            const lower = entry.name.toLowerCase();
+            if (!lower.endsWith('.agent.md')) { continue; }
+
+            const agentPath = path.join(agentsDir, entry.name);
+            let userInvocable = false;
+            try {
+                const content = await fs.promises.readFile(agentPath, 'utf8');
+                userInvocable = readFrontmatterBool(content, 'user-invocable');
+            } catch {
+                continue;
+            }
+            if (!userInvocable) { continue; }
+
+            const agentName = entry.name.slice(0, -'.agent.md'.length);
+            agents.push({
+                name: agentName,
+                filePath: path.relative(workspaceFolder.uri.fsPath, agentPath),
+            });
+        }
+    }
+
+    return agents.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+// Implementation: SPEC_SES_AGENT_PICKER
+// Requirements: REQ_SES_AGENT_PICKER
+async function pickAgentMode(): Promise<string | undefined> {
+    const agents = await discoverAgentModes();
+
+    const items: (vscode.QuickPickItem & { mode: string })[] = [
+        {
+            label:       'No agent',
+            description: 'Use the default VS Code chat mode',
+            mode:        '',
+        },
+        ...agents.map(a => ({
+            label:       a.name,
+            description: a.filePath,
+            mode:        a.name,
+        })),
+    ];
+
+    const pick = await vscode.window.showQuickPick(items, {
+        placeHolder: 'Select the agent for this session (Escape = cancel creation)',
+        matchOnDescription: true,
+    });
+
+    // undefined → user dismissed (Escape) → caller aborts creation
+    return pick === undefined ? undefined : pick.mode;
 }
 
 // Implementation: SPEC_EXP_SEARCH_CMD
@@ -733,9 +820,15 @@ export function activate(context: vscode.ExtensionContext) {
                 const rawInitTemplate = vscode.workspace.getConfiguration('jarvis').get<string>('agentSession.initPromptTemplate') ?? '';
                 const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : defaultInitPrompt;
                 const initPrompt = applyTemplate(initTemplate, { kind, name: entity.name, contextPath });
+                // Implementation: SPEC_SES_AGENT_OPEN
+                // Requirements: REQ_SES_AGENT_OPEN
+                const chatOpenOptions: { query: string; mode?: string } = { query: initPrompt };
+                if (entity.agent) {
+                    chatOpenOptions.mode = entity.agent;
+                }
                 await vscode.commands.executeCommand(
                     'workbench.action.chat.open',
-                    { query: initPrompt }
+                    chatOpenOptions
                 );
             }
         }
@@ -1308,7 +1401,7 @@ export function activate(context: vscode.ExtensionContext) {
         ) => {
             const sessions = scanner?.entities
                 .filter(e => e.kind === 'session')
-                .map(e => ({ name: e.name, summary: e.summary ?? '', folder: e.folder })) ?? [];
+                .map(e => ({ name: e.name, summary: e.summary ?? '', agent: e.agent ?? '', folder: e.folder })) ?? [];
             log.info(`[SES] listSessionEntities: ${sessions.length} session(s)`);
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(JSON.stringify({ sessions }))
@@ -1319,7 +1412,7 @@ export function activate(context: vscode.ExtensionContext) {
         async () => {
             const sessions = scanner?.entities
                 .filter(e => e.kind === 'session')
-                .map(e => ({ name: e.name, summary: e.summary ?? '', folder: e.folder })) ?? [];
+                .map(e => ({ name: e.name, summary: e.summary ?? '', agent: e.agent ?? '', folder: e.folder })) ?? [];
             log.info(`[SES] listSessionEntities(MCP): ${sessions.length} session(s)`);
             return { sessions };
         }
@@ -1328,9 +1421,10 @@ export function activate(context: vscode.ExtensionContext) {
         const createSession = async (args: {
             name: string;
             summary?: string;
+            agent?: string;
             initialMessage?: string;
         }): Promise<{ created: boolean; reason?: string; path: string }> => {
-        const { name, summary, initialMessage } = args;
+        const { name, summary, agent, initialMessage } = args;
 
         // Name validation (before any filesystem operation)
         if (!name) {
@@ -1347,6 +1441,22 @@ export function activate(context: vscode.ExtensionContext) {
         }
         if (/^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i.test(name)) {
             throw new Error('invalid session name: reserved device name');
+        }
+
+        // Agent validation (after name validation, before filesystem operations)
+        // Implementation: SPEC_SES_AGENT_CREATETOOL
+        // Requirements: REQ_SES_AGENT_CREATETOOL, REQ_SES_AGENT_VALIDATION
+        if (agent) {
+            const available = await discoverAgentModes();
+            const validNames = available.map(a => a.name);
+            if (!validNames.includes(agent)) {
+                const names = validNames.length > 0
+                    ? validNames.sort().join(', ')
+                    : '(none)';
+                throw new Error(
+                    `Agent "${agent}" is not available.\nAvailable agents: ${names}`
+                );
+            }
         }
 
         // Workspace check
@@ -1380,9 +1490,12 @@ export function activate(context: vscode.ExtensionContext) {
         await fs.promises.mkdir(targetPath, { recursive: true });
 
         // Write session.yaml (mirrors newSessionCommand serialisation)
-        const yamlLines = [`name: "${name}"`];
+        const yamlLines = [`name: ${yamlString(name)}`];
         if (summary) {
-            yamlLines.push(`summary: "${summary.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`);
+            yamlLines.push(`summary: ${yamlString(summary)}`);
+        }
+        if (agent) {
+            yamlLines.push(`agent: ${yamlString(agent)}`);
         }
         yamlLines.push('');
         await fs.promises.writeFile(
@@ -1428,6 +1541,7 @@ export function activate(context: vscode.ExtensionContext) {
             options: vscode.LanguageModelToolInvocationOptions<{
                 name: string;
                 summary?: string;
+                agent?: string;
                 initialMessage?: string;
             }>,
             _token: vscode.CancellationToken
@@ -1438,16 +1552,18 @@ export function activate(context: vscode.ExtensionContext) {
                 new vscode.LanguageModelTextPart(JSON.stringify(result))
             ]);
         },
-        'Creates a new Jarvis session folder with session.yaml and context.md under <workspace>/.jarvis/sessions/<name>/. Idempotent: returns success if session already exists.',
+        'Creates a new Jarvis session folder with session.yaml and context.md under <workspace>/.jarvis/sessions/<name>/. Optional agent selects the VS Code chat mode used when auto-opening. Idempotent: returns success if session already exists.',
         {
             name: z.string().describe('Session name; used verbatim as the folder name'),
             summary: z.string().optional().describe('Optional short description written to session.yaml'),
+            agent: z.string().optional().describe("Optional VS Code chat-mode name (e.g. 'syspilot.cm'). When set, opening the session activates that agent automatically. Must match a user-invocable agent in .github/agents/."),
             initialMessage: z.string().optional().describe("Optional first message to enqueue in the new session's inbox"),
         },
         async (args) => {
             const result = await createSession({
                 name: args.name as string,
                 summary: args.summary as string | undefined,
+                agent: args.agent as string | undefined,
                 initialMessage: args.initialMessage as string | undefined,
             });
             log.info(`[SES] createSession(MCP): created=${result.created}, path=${result.path}`);
@@ -1869,6 +1985,11 @@ export function activate(context: vscode.ExtensionContext) {
                 placeHolder: 'Short description',
             });
 
+            // Implementation: SPEC_SES_AGENT_PICKER
+            // Requirements: REQ_SES_AGENT_PICKER
+            const agentInput = await pickAgentMode();
+            if (agentInput === undefined) { return; } // user cancelled (Escape)
+
             const kebabName = toKebabCase(nameInput);
             const targetPath = path.join(targetFolder, kebabName);
 
@@ -1879,9 +2000,12 @@ export function activate(context: vscode.ExtensionContext) {
 
             await fs.promises.mkdir(targetPath, { recursive: true });
 
-            const yamlLines = [`name: "${nameInput}"`];
+            const yamlLines = [`name: ${yamlString(nameInput)}`];
             if (summaryInput) {
-                yamlLines.push(`summary: "${summaryInput.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`);
+                yamlLines.push(`summary: ${yamlString(summaryInput)}`);
+            }
+            if (agentInput) {
+                yamlLines.push(`agent: ${yamlString(agentInput)}`);
             }
             yamlLines.push('');
             await fs.promises.writeFile(

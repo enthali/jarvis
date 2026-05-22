@@ -5,7 +5,8 @@
   "required": ["name"],
   "additionalProperties": false,
   "properties": {
-    "name": { "type": "string", "description": "Session name (display label)." },
-    "summary": { "type": "string", "description": "Short description of this session." }
+    "name": { "type": "string", "description": "Short display name for this session.", "minLength": 1 },
+    "summary": { "type": "string", "description": "One-sentence description of the session's purpose." },
+    "agent": { "type": "string", "description": "VS Code chat-mode name bound to this session (e.g. 'syspilot.cm'). When set, opening the session activates that chat agent automatically." }
   }
 }
