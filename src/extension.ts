@@ -1138,10 +1138,32 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Implementation: SPEC_AUT_JOBREG_TOOLS
     // Requirements: REQ_AUT_JOBREG_TOOLS
+
+    // Validation helper (SPEC_AUT_REGISTERJOB_VALIDATION)
+    async function validateJobDestinations(steps: HeartbeatStep[]): Promise<void> {
+        const allSessions = await getAllSessions();
+        const validNames = filterNamedSessions(allSessions).map(s => s.title);
+        for (const step of steps) {
+            if (step.type === 'queue' && step.destination) {
+                if (!validNames.includes(step.destination)) {
+                    const sorted = [...validNames].sort((a, b) =>
+                        a.localeCompare(b, undefined, { sensitivity: 'base' })
+                    );
+                    const listStr = sorted.length > 0 ? sorted.join(', ') : '(none)';
+                    throw new Error(
+                        `Destination session "${step.destination}" does not exist.\n` +
+                        `Valid destinations: ${listStr}`
+                    );
+                }
+            }
+        }
+    }
+
     const registerJobTool = registerDualTool(
         'jarvis_registerJob',
         async (options: vscode.LanguageModelToolInvocationOptions<{ name: string; schedule: string; steps: HeartbeatStep[] }>, _token: vscode.CancellationToken) => {
             const { name, schedule, steps } = options.input;
+            await validateJobDestinations(steps);
             const job: HeartbeatJob = { name, schedule, steps };
             await scheduler!.registerJob(job);
             log.info(`[Heartbeat] registerJob: name="${name}", schedule="${schedule}"`);
@@ -1168,6 +1190,7 @@ export function activate(context: vscode.ExtensionContext) {
             const name = args.name as string;
             const schedule = args.schedule as string;
             const steps = args.steps as HeartbeatStep[];
+            await validateJobDestinations(steps);
             const job: HeartbeatJob = { name, schedule, steps };
             await scheduler!.registerJob(job);
             log.info(`[Heartbeat] registerJob(MCP): name="${name}", schedule="${schedule}"`);

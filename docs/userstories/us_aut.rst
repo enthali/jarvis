@@ -51,3 +51,35 @@ Automation User Stories
    * AC-18: An LM and MCP tool ``jarvis_listJobs`` SHALL allow agents to retrieve
      all registered heartbeat jobs including their name, schedule, enabled state,
      and next scheduled fire time
+
+
+.. story:: Queue Step Destination Validation
+   :id: US_AUT_HEARTBEAT_VALIDATION
+   :status: implemented
+   :priority: optional
+   :links: US_AUT_HEARTBEAT
+
+   **As a** Jarvis User,
+   **I want** invalid queue-step destinations in heartbeat jobs to be detected and
+   reported immediately — at load time and when registering a new job — rather than
+   silently failing at 3 AM,
+   **so that** I can fix misconfigurations before they cause undelivered messages.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Loading ``heartbeat.yaml`` validates every ``queue`` step's ``destination``
+     against the list of known named sessions; invalid destinations raise a visible
+     warning notification and a log entry containing job name, step index, and the
+     invalid destination value
+   * AC-2: A job with an invalid queue-step destination is still loaded and scheduled;
+     only the invalid step is affected — valid steps in the same job run normally
+   * AC-3: At fire time, a queue step whose destination is (still) invalid is
+     **skipped** (soft skip — the step is not executed, a warning is logged, but the
+     job is not marked as failed and remaining steps continue)
+   * AC-4: The ``jarvis_registerJob`` LM/MCP tool rejects a job with an invalid
+     queue-step destination — the tool returns an error and the job is NOT persisted
+   * AC-5: Valid-destination queue steps are unaffected — no behavior change for
+     correctly configured jobs
+   * AC-6: Destination validation uses the same resolver as ``jarvis_sendToSession``
+     (``getAllSessions`` + ``filterNamedSessions`` from ``src/sessionLookup.ts``) —
+     no separate implementation

@@ -267,3 +267,116 @@ Automation Requirements
       in ``jobDescriptor``). No dynamic UAT exists because injecting an invalid
       cron expression into ``heartbeat.yaml`` would also break the scheduler
       tick loop, which is out of scope for this change.
+
+
+.. req:: Heartbeat Queue-Step Destination Validation at Load Time
+   :id: REQ_AUT_HEARTBEAT_LOAD_VALIDATION
+   :status: implemented
+   :priority: optional
+   :links: US_AUT_HEARTBEAT_VALIDATION; REQ_AUT_JOBCONFIG; REQ_MSG_DEST_ERROR
+
+   **Description:**
+   The extension SHALL validate the ``destination`` field of every ``queue`` step
+   when loading ``heartbeat.yaml``, and surface any invalid destinations immediately
+   to the user.
+
+   **Acceptance Criteria:**
+
+   * AC-1: After parsing ``heartbeat.yaml``, the extension SHALL check each
+     ``queue`` step's ``destination`` against the valid destination set (see
+     ``REQ_AUT_HEARTBEAT_RESOLVER_REUSE``); an invalid destination SHALL trigger
+     a ``vscode.window.showWarningMessage`` notification and a ``log.warn`` entry
+   * AC-2: The warning entry SHALL contain: job name, step index (0-based), and
+     the invalid destination value verbatim
+   * AC-3: A job containing an invalid destination SHALL still be loaded into the
+     scheduler — the warning is informational; the job is NOT paused or removed
+
+
+.. req:: Queue Step Behavior on Invalid Destination at Fire Time
+   :id: REQ_AUT_HEARTBEAT_INVALID_STEP_BEHAVIOR
+   :status: implemented
+   :priority: optional
+   :links: US_AUT_HEARTBEAT_VALIDATION; REQ_AUT_JOBEXEC
+
+   **Description:**
+   When a scheduled heartbeat job fires and a ``queue`` step has an invalid
+   (or since-deleted) destination, the extension SHALL skip that step rather
+   than aborting the entire job.
+
+   **Acceptance Criteria:**
+
+   * AC-1: At fire time, ``executeQueueStep`` SHALL re-validate the destination
+     against the current valid destination set before appending to the queue
+   * AC-2: If the destination is not in the valid set, the step SHALL be skipped:
+     no message appended, a ``log.warn`` emitted, and the executor returns
+     ``{ success: true }`` so that subsequent steps in the job continue executing
+   * AC-3: The skip log entry SHALL contain the invalid destination value and be
+     identifiable as a queue-step skip (distinct from a queue-step write success)
+
+
+.. req:: ``jarvis_registerJob`` Destination Validation
+   :id: REQ_AUT_REGISTERJOB_VALIDATION
+   :status: implemented
+   :priority: optional
+   :links: US_AUT_HEARTBEAT_VALIDATION; REQ_AUT_JOBREG; REQ_MSG_DEST_ERROR
+
+   **Description:**
+   The ``jarvis_registerJob`` LM/MCP tool SHALL reject any job that contains a
+   ``queue`` step with a non-existent destination session, returning a descriptive
+   error without persisting the job.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Before calling ``scheduler.registerJob()``, the LM and MCP handlers of
+     ``jarvis_registerJob`` SHALL inspect all steps; for each step of type ``queue``,
+     the ``destination`` value SHALL be validated against the valid destination set
+   * AC-2: If any queue step has an invalid destination, the tool SHALL throw an
+     ``Error`` with a message satisfying ``REQ_MSG_DEST_ERROR`` (quoting the invalid
+     destination value and listing valid destinations); the job SHALL NOT be written
+     to ``heartbeat.yaml``
+   * AC-3: If all queue-step destinations are valid (or the job has no queue steps),
+     the tool SHALL proceed with registration as before
+
+
+.. req:: No Regression for Valid Queue-Step Destinations
+   :id: REQ_AUT_HEARTBEAT_VALIDATION_NOREGRESSION
+   :status: implemented
+   :priority: optional
+   :links: US_AUT_HEARTBEAT_VALIDATION; REQ_AUT_JOBEXEC; REQ_AUT_JOBREG
+
+   **Description:**
+   Validation logic SHALL leave the observable behavior of heartbeat jobs with
+   valid ``queue``-step destinations completely unchanged.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A job whose every ``queue`` step has a valid destination SHALL be loaded,
+     scheduled, and executed identically to the pre-validation behavior
+   * AC-2: ``jarvis_registerJob`` with no invalid queue steps SHALL register the job
+     without error or delay
+   * AC-3: No additional round-trip delays SHALL be introduced for non-queue steps
+     (python, powershell, command, agent)
+
+
+.. req:: Shared Resolver for Heartbeat Destination Validation
+   :id: REQ_AUT_HEARTBEAT_RESOLVER_REUSE
+   :status: implemented
+   :priority: optional
+   :links: US_AUT_HEARTBEAT_VALIDATION; REQ_MSG_SESSIONLOOKUP; REQ_MSG_SESSIONFILTER
+
+   **Description:**
+   The valid destination set for heartbeat queue-step validation SHALL be derived
+   from the same resolver used by ``jarvis_sendToSession``, with no parallel
+   implementation.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Heartbeat validation SHALL call ``getAllSessions()`` and
+     ``filterNamedSessions()`` from ``src/sessionLookup.ts`` — the same functions
+     used by ``SPEC_MSG_SENDTOSESSION``
+   * AC-2: No new session-enumeration logic SHALL be introduced; if the resolver
+     changes (e.g. new filtering rules), both ``jarvis_sendToSession`` and heartbeat
+     validation automatically inherit the change
+   * AC-3: The valid destination set is defined as the named VS Code chat session
+     titles currently present in the workspace as returned by ``getAllSessions()``
+     filtered through ``filterNamedSessions()``
