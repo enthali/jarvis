@@ -424,8 +424,8 @@ Explorer Design Specifications
 
 .. spec:: Open Agent Session Command
    :id: SPEC_EXP_AGENTSESSION
-   :status: implemented
-   :links: REQ_EXP_AGENTSESSION; SPEC_MSG_SESSIONLOOKUP; SPEC_EXP_PROVIDER; SPEC_EXP_OPENYAML_CMD; SPEC_MSG_OPENCHAT; SPEC_MSG_PINNED; SPEC_MSG_AGENTSESSION
+   :status: draft
+   :links: REQ_EXP_AGENTSESSION; SPEC_MSG_SESSIONLOOKUP; SPEC_EXP_PROVIDER; SPEC_EXP_OPENYAML_CMD; SPEC_MSG_OPENCHAT; SPEC_MSG_PINNED; SPEC_MSG_AGENTSESSION; SPEC_EXP_AGENTSESSION_INITPROMPT
 
    **Description:**
    Register ``jarvis.openAgentSession`` in ``extension.ts``. Invoked from the
@@ -460,7 +460,18 @@ Explorer Design Specifications
             );
             await openPinnedResource(uri);  // SPEC_MSG_PINNED
           } else {
-            // Create a fresh chat editor — never reuses an existing one
+            // Mode-primed creation: set the mode selector BEFORE openNewChatEditor()
+            // so the new session is born in the bound agent mode (SPEC_MSG_OPENCHAT
+            // mode-prime note). workbench.action.chat.open with mode does NOT
+            // retroactively change an already-active session's mode.
+            if (entity.agent) {
+                await vscode.commands.executeCommand(
+                    'workbench.action.chat.open', { mode: entity.agent }
+                );
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
+
+            // Create a fresh chat editor — opens in the primed mode
             await openNewChatEditor();  // SPEC_MSG_OPENCHAT (includes 800 ms settle delay)
 
             // Rename session so future lookups can resolve it by name
@@ -474,14 +485,9 @@ Explorer Design Specifications
                 .get<string>('agentSession.initPromptTemplate') ?? '';
             const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : DEFAULT_INIT_PROMPT;
             const initPrompt = applyTemplate(initTemplate, { kind, name: entity.name, contextPath });
-            // Open chat in bound agent mode when set (SPEC_SES_AGENT_OPEN)
-            const chatOpenOptions: { query: string; mode?: string } = { query: initPrompt };
-            if (entity.agent) {
-                chatOpenOptions.mode = entity.agent;
-            }
+            // Mode is already set at creation time — submit prompt without mode param
             await vscode.commands.executeCommand(
-                'workbench.action.chat.open',
-                chatOpenOptions
+                'workbench.action.chat.open', { query: initPrompt }
             );
           }
         }
@@ -548,7 +554,7 @@ Explorer Design Specifications
 
 .. spec:: Agent-Session Identity Prompt Template
    :id: SPEC_EXP_AGENTSESSION_INITPROMPT
-   :status: implemented
+   :status: draft
    :links: REQ_SES_AGENTPROMPT; REQ_EXP_AGENTPROMPT_TEMPLATE
 
    **Description:**
@@ -612,6 +618,22 @@ Explorer Design Specifications
 
    * ``jarvis.openAgentSession`` — new-session branch only (no existing UUID found).
    * ``jarvis.newSession`` — always (a new session folder is always created).
+   * ``jarvis.sendMessages`` — new-session branch only (no UUID found) AND the
+     scanner entity store contains an entity whose ``name`` matches
+     ``node.destination``. If no entity matches, the init prompt is skipped.
+   * Auto-delivery poll loop — new-session branch only (no UUID found) AND the
+     scanner entity store contains an entity whose ``name`` matches the session
+     name being delivered to. If no entity matches, the init prompt is skipped.
+
+   **Mode-apply sequencing (delta — mode-prime pattern):**
+   For all trigger points, when ``entity.agent`` is set the bound mode must be
+   applied at session creation time, not post-creation. The caller primes the VS
+   Code Chat mode selector with ``workbench.action.chat.open { mode: entity.agent }``
+   + 300 ms settle *before* calling ``openNewChatEditor()``. The subsequently
+   created session inherits the primed mode. The final init-prompt submission uses
+   ``workbench.action.chat.open { query: initPrompt }`` without a ``mode``
+   parameter — the mode is already set. See ``SPEC_MSG_OPENCHAT`` mode-prime note
+   for the design rationale.
 
    **Scope:** Cross-entity — benefits projects, events, and sessions. The spec
    lives here (``spec_exp.rst``) because ``jarvis.openAgentSession`` is an EXP

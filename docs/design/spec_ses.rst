@@ -178,7 +178,7 @@ Sessions Design Specifications
 
 .. spec:: sessions-feature: newEntity Command — Session Branch
    :id: SPEC_SES_NEWENTITY
-   :status: implemented
+   :status: draft
    :links: REQ_SES_NEWENTITY
 
    **Description:**
@@ -194,17 +194,27 @@ Sessions Design Specifications
    3. Prompt for ``name`` (required, non-empty). Abort if the user cancels or
       provides an empty string.
    4. Prompt for ``summary`` (optional). Empty string is valid.
-   5. Slug the name: convert to lowercase, replace every run of non-alphanumeric
-      characters with a single ``-``, trim leading/trailing ``-``.
-   6. Construct ``<ensureSessionsDir()>/<slug>/``.
+   5. Validate the ``name`` via the showInputBox ``validateInput`` callback
+      (real-time inline validation).  The validator rejects any of:
+      empty/whitespace-only; ``.`` or ``..``; characters
+      ``/ \ : * ? " < > |``; null byte (``\0``) or ASCII control characters
+      U+0000–U+001F; case-insensitive reserved Windows device names
+      (``CON``, ``PRN``, ``AUX``, ``NUL``, ``COM1``–``COM9``,
+      ``LPT1``–``LPT9``) — enforced on all platforms for portability.  On
+      rejection, the inline error message is shown in the InputBox and the OK
+      button is disabled until the user enters a valid name; pressing Escape
+      cancels creation.  Do NOT silently sanitize and do NOT show a separate
+      ``showErrorMessage`` notification.
+   6. Construct ``<ensureSessionsDir()>/<name>/`` (``name`` used verbatim—no
+      transformation).
    7. Write ``session.yaml``::
 
-          name: <original name>
+          name: <name>
           summary: <summary>
 
    8. Write ``context.md``::
 
-          # <original name>
+          # <name>
 
           <summary>
 
@@ -238,11 +248,12 @@ Sessions Design Specifications
 
    .. note::
 
-      ``jarvis_createSession`` (``SPEC_SES_CREATETOOL``) uses the supplied name
-      verbatim as the folder name — no slug transformation — to preserve
-      round-trip consistency with ``jarvis_sendToSession``.  The two creation
-      paths are intentionally asymmetric; see CR Decision 1 in
-      ``docs/changes/create-session-tool.md``.
+      Both ``jarvis.newSession`` and ``jarvis_createSession``
+      (``SPEC_SES_CREATETOOL``) now use the session name verbatim as the folder
+      name — no slug transformation.  The previously-documented asymmetry
+      between the two creation paths is resolved by this CR.  The folder name is
+      storage only; session identity is the ``name:`` field inside
+      ``session.yaml``.
 
 
 .. spec:: sessions-feature: session.schema.json and yamlValidation Entry
@@ -918,7 +929,7 @@ Sessions Design Specifications
 
 .. spec:: session-agent-binding: Agent Discovery Function
    :id: SPEC_SES_AGENT_DISCOVERY
-   :status: implemented
+   :status: draft
    :links: REQ_SES_AGENT_DISCOVERY; REQ_SES_AGENT_PICKER; REQ_SES_AGENT_CREATETOOL
 
    **Description:**
@@ -929,29 +940,44 @@ Sessions Design Specifications
    **Discovery rule decision — rationale:**
 
    The valid set is defined as all ``*.agent.md`` files in
-   ``<workspaceRoot>/.github/agents/`` whose YAML frontmatter contains
-   ``user-invocable: true``.
+   ``<workspaceRoot>/.github/agents/`` **except** those whose YAML frontmatter
+   explicitly contains ``user-invocable: false`` (default-include, opt-out).
 
    * *File-based* — avoids runtime dependencies on live VS Code state (no DB,
      no chat API).  Agents are static configuration; a file-per-agent model is
      already the established convention in this repository.
    * *``.github/agents/`` path* — the canonical home for Jarvis-managed agent
      definitions already in use; no new convention is introduced.
-   * *``user-invocable: true`` gate* — excludes internal/orchestration agents
-     (``syspilot.implement``, ``syspilot.uat``, etc.) that should not be
-     directly bound to user sessions.  In the current repository, the four
-     user-invocable agents are ``syspilot.cm``, ``syspilot.pm``,
-     ``syspilot.qm``, and ``syspilot.setup``.
-   * *Basename-without-extension as identifier* — ``syspilot.cm.agent.md``
-     → ``syspilot.cm``.  This matches the VS Code ``mode`` parameter used by
-     ``workbench.action.chat.open`` to select a custom chat agent.
+   * *Default-include, explicit opt-out* — a new ``*.agent.md`` file is
+     user-invocable by default, matching User expectation.  Internal
+     orchestration agents that must not be directly bound to user sessions
+     (``syspilot.implement``, ``syspilot.mece``, ``syspilot.docu``,
+     ``syspilot.uat``, ``syspilot.trace``, ``syspilot.verify``,
+     ``syspilot.release``, ``syspilot.design``) opt out by explicitly setting
+     ``user-invocable: false`` in their frontmatter.  All such existing
+     orchestration agents in this repository already carry the explicit
+     ``user-invocable: false`` line, so this policy change has **zero behavior
+     change** for existing files — only newly-added files without the key are
+     affected (they appear in the picker, as expected).  The four
+     currently-visible agents (``syspilot.cm``, ``syspilot.pm``,
+     ``syspilot.qm``, ``syspilot.setup``) are unaffected.
+   * *Identity-first naming* — the agent's identity is its frontmatter ``name``
+     field (trimmed) when present and non-empty; otherwise the filename basename
+     without the ``.agent.md`` suffix (e.g., ``syspilot.cm.agent.md`` →
+     ``syspilot.cm``).  This mirrors VS Code's own chat-mode picker logic:
+     ``workbench.action.chat.open { mode: X }`` accepts both space-containing
+     names (e.g., ``"Change Manager"``) and filename-stem strings
+     (e.g., ``"syspilot.cm"``).  Backward compatibility: existing
+     ``session.yaml`` files that store the filename stem continue to resolve
+     correctly because agents without a ``name:`` key keep the same identity.
 
    **Interface:**
 
    .. code-block:: typescript
 
       interface AgentModeEntry {
-          name: string;       // e.g. "syspilot.cm"
+          name: string;       // identity: frontmatter name (if set+non-empty) or filename stem
+                              // e.g. "Change Manager" or "syspilot.cm"
           filePath: string;   // workspace-relative, e.g. ".github/agents/syspilot.cm.agent.md"
       }
 
@@ -980,18 +1006,16 @@ Sessions Design Specifications
                   if (!lower.endsWith('.agent.md')) { continue; }
 
                   const agentPath = path.join(agentsDir, entry.name);
-                  let userInvocable = false;
                   try {
                       const content = await fs.promises.readFile(agentPath, 'utf8');
-                      userInvocable = readFrontmatterBool(content, 'user-invocable');
+                      if (isExplicitlyExcluded(content, 'user-invocable')) { continue; }
                   } catch {
                       continue;
                   }
-                  if (!userInvocable) { continue; }
 
-                  const agentName = entry.name.slice(0, -'.agent.md'.length);
+                  const identity = getAgentIdentity(content, entry.name);
                   agents.push({
-                      name: agentName,
+                      name: identity,
                       filePath: path.relative(workspaceFolder.uri.fsPath, agentPath),
                   });
               }
@@ -1000,10 +1024,21 @@ Sessions Design Specifications
           return agents.sort((a, b) => a.name.localeCompare(b.name));
       }
 
-   **Frontmatter helper** (module-private, ``src/extension.ts``):
+   **Frontmatter helpers** (module-private, ``src/extension.ts``):
 
    .. code-block:: typescript
 
+      /** Returns true only if the key is explicitly set to false in frontmatter. */
+      function isExplicitlyExcluded(content: string, key: string): boolean {
+          if (!content.startsWith('---')) { return false; }
+          const closeIdx = content.indexOf('\n---', 3);
+          if (closeIdx < 0) { return false; }
+          const header = content.slice(3, closeIdx);
+          const re = new RegExp(`^${key}:\\s*false\\s*$`, 'm');
+          return re.test(header);
+      }
+
+      /** Returns true only if the key is explicitly set to true in frontmatter. */
       function readFrontmatterBool(content: string, key: string): boolean {
           if (!content.startsWith('---')) { return false; }
           const closeIdx = content.indexOf('\n---', 3);
@@ -1014,21 +1049,72 @@ Sessions Design Specifications
           return re.test(header);
       }
 
+      /**
+       * Returns the trimmed string value of `key` in YAML frontmatter,
+       * or undefined if the key is absent or produces an empty string.
+       * Handles both bare values (name: Change Manager) and
+       * double- or single-quoted values (name: "Change Manager").
+       * `key` must be a plain identifier (no regex special characters).
+       */
+      function readFrontmatterString(content: string, key: string): string | undefined {
+          if (!content.startsWith('---')) { return undefined; }
+          const closeIdx = content.indexOf('\n---', 3);
+          if (closeIdx < 0) { return undefined; }
+          const header = content.slice(3, closeIdx);
+          const re = new RegExp(`^${key}:\\s*(.+?)\\s*$`, 'm');
+          const m = re.exec(header);
+          if (!m) { return undefined; }
+          let val = m[1].trim();
+          if ((val.startsWith('"') && val.endsWith('"')) ||
+              (val.startsWith("'") && val.endsWith("'"))) {
+              val = val.slice(1, -1).trim();
+          }
+          return val.length > 0 ? val : undefined;
+      }
+
+      /** Returns the agent identity: frontmatter `name` (trimmed, non-empty) or filename stem. */
+      function getAgentIdentity(content: string, filename: string): string {
+          const frontmatterName = readFrontmatterString(content, 'name');
+          return frontmatterName ?? filename.slice(0, -'.agent.md'.length);
+      }
+
+   ``isExplicitlyExcluded`` is the primary helper for discovery: it returns
+   ``true`` only when ``user-invocable: false`` is present, implementing the
+   default-include opt-out policy.  ``readFrontmatterBool`` is retained as an
+   explicit-true probe for any future call sites that need affirmative
+   confirmation.
+
    **Design decisions:**
 
-   * ``readFrontmatterBool`` uses a simple regex rather than a full YAML parse.
+   * Both helpers use a simple regex rather than a full YAML parse.
      The ``user-invocable`` key is always a boolean literal in agent files;
      a regex match is sufficient and avoids adding a new import or dependency.
-   * The function iterates all workspace folders, deduplicated by agent name
-     is implicitly handled: two folders providing the same agent name will both
-     appear; the first match wins alphabetically.  In practice, the workspace
-     has one folder.
+   * The function iterates all workspace folders and does **not** deduplicate
+     by agent name: two folders providing the same agent name would both appear
+     in the picker.  Ordering follows per-folder scan order, then alphabetical
+     within each folder.  In single-workspace operation — the normative case
+     for Jarvis — this is moot; only one folder is scanned.
    * ``discoverAgentModes()`` is called on-demand (at picker open and at
      validation time) — no caching, no file watcher.
 
    **File touchpoint:** ``src/extension.ts`` — add ``AgentModeEntry``
-   interface, ``readFrontmatterBool()`` helper, and ``discoverAgentModes()``
-   function in the module preamble (before ``activate()``).
+   interface, ``isExplicitlyExcluded()`` helper, ``readFrontmatterBool()``
+   helper, ``readFrontmatterString()`` helper, ``getAgentIdentity()`` helper,
+   and ``discoverAgentModes()`` function in the module preamble
+   (before ``activate()``).
+
+   **Identity drift edge case (advisory — out of code scope for this CR):**
+   When a ``*.agent.md`` file's frontmatter ``name`` key is added, removed,
+   or changed after sessions have already been bound using the prior identity,
+   those sessions' ``session.yaml agent:`` fields will no longer match any
+   discovered identity.  Jarvis does **not** auto-migrate existing files.
+   Design proposal for a follow-up CR: at picker-open time, iterate all known
+   session entities and emit a ``warn``-level log entry for each session whose
+   ``agent`` value does not appear in the current ``discoverAgentModes()``
+   result.  The session continues to open; the bound-agent mode is silently
+   ignored (falls through to the default VS Code chat mode).  This risk is
+   acceptable for the current CR scope because no existing
+   ``syspilot.*.agent.md`` file has its identity changed.
 
 
 .. spec:: session-agent-binding: Schema and EntityEntry Extension
@@ -1054,7 +1140,7 @@ Sessions Design Specifications
         "properties": {
           "name":    { "type": "string", "description": "Short display name for this session.", "minLength": 1 },
           "summary": { "type": "string", "description": "One-sentence description of the session's purpose." },
-          "agent":   { "type": "string", "description": "VS Code chat-mode name bound to this session (e.g. 'syspilot.cm'). When set, opening the session activates that chat agent automatically." }
+          "agent":   { "type": "string", "description": "VS Code chat-mode name bound to this session (e.g. 'syspilot.cm' or 'Change Manager' — identity may be filename-stem or frontmatter name with spaces, per SPEC_SES_AGENT_DISCOVERY). When set, opening the session activates that chat agent automatically." }
         }
       }
 
@@ -1122,7 +1208,7 @@ Sessions Design Specifications
 
 .. spec:: session-agent-binding: Agent Picker and newSession Update
    :id: SPEC_SES_AGENT_PICKER
-   :status: implemented
+   :status: draft
    :links: REQ_SES_AGENT_PICKER; REQ_SES_AGENT_DISCOVERY; SPEC_SES_NEWENTITY; SPEC_SES_AGENT_DISCOVERY
 
    **Description:**
@@ -1164,7 +1250,11 @@ Sessions Design Specifications
    * ``undefined`` — user dismissed (Escape); ``newSessionCommand`` MUST abort.
    * ``""`` (empty string) — "No agent" was selected; omit ``agent`` field from
      ``session.yaml``.
-   * ``"<name>"`` (non-empty) — write ``agent: "<name>"`` to ``session.yaml``.
+   * ``"<identity>"`` (non-empty) — write ``agent: "<identity>"`` to
+     ``session.yaml``.  The identity is the string from ``AgentModeEntry.name``
+     (frontmatter ``name`` if present and non-empty, otherwise filename stem)
+     and is used verbatim as the ``mode:`` parameter in
+     ``workbench.action.chat.open``.  Identities may contain spaces.
 
    **``newSessionCommand`` change** (``src/extension.ts``):
 
@@ -1201,7 +1291,7 @@ Sessions Design Specifications
 
 .. spec:: session-agent-binding: jarvis_createSession Agent Parameter
    :id: SPEC_SES_AGENT_CREATETOOL
-   :status: implemented
+   :status: draft
    :links: REQ_SES_AGENT_CREATETOOL; REQ_SES_AGENT_VALIDATION; SPEC_SES_CREATETOOL; SPEC_SES_AGENT_DISCOVERY
 
    **Description:**
@@ -1222,6 +1312,14 @@ Sessions Design Specifications
 
    **Agent validation step** (inserted after name validation, before
    idempotency check):
+
+   .. note::
+
+      ``agent`` is an identity string (see ``SPEC_SES_AGENT_DISCOVERY
+      getAgentIdentity``): it may be a frontmatter name with spaces
+      (e.g. ``"Change Manager"``) or a filename stem (e.g. ``"syspilot.cm"``).
+      The validation checks the supplied value against the identity strings
+      from ``discoverAgentModes()`` exactly.
 
    .. code-block:: typescript
 

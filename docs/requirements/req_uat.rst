@@ -39,6 +39,7 @@ end-to-end verification of each feature.
    req_uat_sessiontreeclick
    req_uat_listsessionentitiesgating
    req_uat_chateditorreuse
+   req_uat_sessioninitprompt
 
 All UAT Requirements
 --------------------

@@ -1,5 +1,49 @@
 # Release Notes
 
+## v0.6.1 — Agent-mode and init-prompt reliability hotfix
+
+*Pending release (feature/session-init-prompt-on-autoopen)*
+
+Fix: agent-mode and init-prompt now applied reliably on all session-open paths.
+Agent picker now uses **default-include opt-out** policy for agent discovery.
+
+### Bug Fixes
+
+- **session-init-prompt-on-autoopen**: Regression in v0.6.0 where auto-delivered
+  sessions and tree-click-opened sessions did not pick up the agent-mode bound in
+  `session.yaml`. Root cause: `workbench.action.openChat` creates a session using
+  the user's currently-active mode; the post-creation `chat.open { mode }` call
+  cannot retroactively change a session's mode. Fixed with the **mode-primed
+  creation pattern**: the caller primes `workbench.action.chat.open { mode:
+  entity.agent }` + 300 ms settle before `openNewChatEditor()`, so the new session
+  is born in the bound agent mode. All three call sites patched: `openAgentSession`,
+  `sendMessages` (new-session branch), and the auto-delivery poll loop (new-session
+  branch). Init-prompt submission unchanged.
+
+- **agent-discovery-default-include**: Agent picker (`pickAgentMode`) previously
+  excluded any `*.agent.md` file that did not have `user-invocable: true` explicitly
+  set — silently hiding newly created agent files. Policy changed to **default-include
+  opt-out**: a file is included unless `user-invocable: false` is explicitly present.
+  Orchestration agents (`syspilot.*` with `user-invocable: false`) are unaffected.
+  Implemented via `isExplicitlyExcluded()` helper in `src/extension.ts`.
+
+- **agent-identity-unification**: Agent identity is now resolved as
+  `name?.trim() || filename-stem`, where `name` comes from the YAML frontmatter of
+  the `*.agent.md` file. The picker displays and stores the frontmatter name (e.g.
+  `Change Manager`) rather than the filename stem (e.g. `syspilot.cm`) when a
+  `name:` key is present. Existing `session.yaml` files that store a filename-stem
+  value continue to resolve correctly (backward compatible).
+
+- **session-folder-verbatim-naming**: Session folders are now created with the
+  exact name entered by the user — no slug or kebab-case transformation is applied.
+  Names containing spaces (e.g. `Change Manager`) produce a folder with a literal
+  embedded space. Invalid names (containing path separators, control characters, or
+  Windows reserved device names) are rejected via real-time inline validation in the
+  name InputBox; the OK button is disabled until a valid name is entered.
+
+
+---
+
 ## v0.6.0 — Agent-aware Sessions
 
 *2026-05-22*

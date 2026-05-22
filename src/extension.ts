@@ -79,6 +79,36 @@ function readFrontmatterBool(content: string, key: string): boolean {
     return re.test(header);
 }
 
+function isExplicitlyExcluded(content: string, key: string): boolean {
+    if (!content.startsWith('---')) { return false; }
+    const closeIdx = content.indexOf('\n---', 3);
+    if (closeIdx < 0) { return false; }
+    const header = content.slice(3, closeIdx);
+    const re = new RegExp(`^${key}:\\s*false\\s*$`, 'm');
+    return re.test(header);
+}
+
+function readFrontmatterString(content: string, key: string): string | undefined {
+    if (!content.startsWith('---')) { return undefined; }
+    const closeIdx = content.indexOf('\n---', 3);
+    if (closeIdx < 0) { return undefined; }
+    const header = content.slice(3, closeIdx);
+    // Match: key: value | key: "value" | key: 'value'
+    const re = new RegExp(`^${key}:\\s*(?:"([^"]*)"|'([^']*)'|(.+?))\\s*$`, 'm');
+    const m = re.exec(header);
+    if (!m) { return undefined; }
+    const value = m[1] ?? m[2] ?? m[3] ?? '';
+    return value.trim() || undefined;
+}
+
+function getAgentIdentity(content: string, filename: string): string {
+    const name = readFrontmatterString(content, 'name');
+    if (name) { return name; }
+    return filename.endsWith('.agent.md')
+        ? filename.slice(0, -'.agent.md'.length)
+        : filename;
+}
+
 async function discoverAgentModes(): Promise<AgentModeEntry[]> {
     const workspaceFolders = vscode.workspace.workspaceFolders ?? [];
     const agents: AgentModeEntry[] = [];
@@ -98,16 +128,18 @@ async function discoverAgentModes(): Promise<AgentModeEntry[]> {
             if (!lower.endsWith('.agent.md')) { continue; }
 
             const agentPath = path.join(agentsDir, entry.name);
-            let userInvocable = false;
+            let content: string;
             try {
-                const content = await fs.promises.readFile(agentPath, 'utf8');
-                userInvocable = readFrontmatterBool(content, 'user-invocable');
+                content = await fs.promises.readFile(agentPath, 'utf8');
             } catch {
-                continue;
+                continue; // unreadable → skip
             }
-            if (!userInvocable) { continue; }
+            if (isExplicitlyExcluded(content, 'user-invocable')) {
+                continue; // explicit opt-out
+            }
+            // else: INCLUDED (default-include policy per SPEC_SES_AGENT_DISCOVERY)
 
-            const agentName = entry.name.slice(0, -'.agent.md'.length);
+            const agentName = getAgentIdentity(content, entry.name);
             agents.push({
                 name: agentName,
                 filePath: path.relative(workspaceFolder.uri.fsPath, agentPath),
@@ -735,9 +767,38 @@ export function activate(context: vscode.ExtensionContext) {
                 // Wait for session tab to be fully focused
                 await new Promise(resolve => setTimeout(resolve, 800));
             } else {
-                // No existing session — create a new chat editor
-                await openNewChatEditor();
+                // No existing session — create new chat editor
+                // Implementation: SPEC_MSG_SENDCOMMAND, SPEC_EXP_AGENTSESSION_INITPROMPT
+                // Requirements: REQ_MSG_SEND, REQ_EXP_AGENTPROMPT_TEMPLATE
+                const entityForSend = scanner?.entities?.find(e => e.name === node.destination);
+                if (entityForSend?.agent) {
+                    try {
+                        await vscode.commands.executeCommand('workbench.action.chat.open', { mode: entityForSend.agent });
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                    } catch (err) {
+                        log.warn(`[MSG] sendMessages: failed to prime agent mode "${entityForSend.agent}": ${err}`);
+                    }
+                }
+                await openNewChatEditor();  // SPEC_MSG_OPENCHAT (includes 800 ms settle delay)
                 await renameFocusedChatSession(node.destination);
+                if (entityForSend) {
+                    const kind = entityForSend.kind ?? 'project';
+                    const folder = entityForSend.folder ?? '';
+                    const contextPath = path.join(folder, 'context.md');
+                    const rawInitTemplate = vscode.workspace.getConfiguration('jarvis').get<string>('agentSession.initPromptTemplate') ?? '';
+                    const defaultInitPrompt =
+                        `You are the ${kind} "${entityForSend.name}".\n\n` +
+                        `Use only \`${contextPath}\` as your persistent memory. Read it now.\n\n` +
+                        `Keep it minimal and action-oriented:\n` +
+                        `- Store only long-lived items under Decision / Finding / Next.\n` +
+                        `- One concise line per bullet. Prune aggressively.\n` +
+                        `- Replace outdated bullets — never append logs.\n` +
+                        `- Never store retries, raw tool output, or transient chatter.\n` +
+                        `- Before writing, ask: "Will this still matter in 2 weeks?" If no, skip.`;
+                    const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : defaultInitPrompt;
+                    const initPrompt = applyTemplate(initTemplate, { kind, name: entityForSend.name, contextPath });
+                    await vscode.commands.executeCommand('workbench.action.chat.open', { query: initPrompt });
+                }
             }
 
             // 3. Send single notification stub
@@ -798,8 +859,18 @@ export function activate(context: vscode.ExtensionContext) {
                 );
                 await vscode.commands.executeCommand('vscode.open', uri);
             } else {
-                // Create new session
-                await openNewChatEditor();
+                // Create new session — mode-prime first so new chat inherits agent mode
+                // Implementation: SPEC_EXP_AGENTSESSION, SPEC_EXP_AGENTSESSION_INITPROMPT
+                // Requirements: REQ_EXP_AGENTSESSION, REQ_EXP_AGENTPROMPT_TEMPLATE
+                if (entity.agent) {
+                    try {
+                        await vscode.commands.executeCommand('workbench.action.chat.open', { mode: entity.agent });
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                    } catch (err) {
+                        log.warn(`[MSG] openAgentSession: failed to prime agent mode "${entity.agent}": ${err}`);
+                    }
+                }
+                await openNewChatEditor();  // SPEC_MSG_OPENCHAT (includes 800 ms settle delay)
 
                 // Rename session via /rename command
                 await renameFocusedChatSession(entity.name);
@@ -820,16 +891,7 @@ export function activate(context: vscode.ExtensionContext) {
                 const rawInitTemplate = vscode.workspace.getConfiguration('jarvis').get<string>('agentSession.initPromptTemplate') ?? '';
                 const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : defaultInitPrompt;
                 const initPrompt = applyTemplate(initTemplate, { kind, name: entity.name, contextPath });
-                // Implementation: SPEC_SES_AGENT_OPEN
-                // Requirements: REQ_SES_AGENT_OPEN
-                const chatOpenOptions: { query: string; mode?: string } = { query: initPrompt };
-                if (entity.agent) {
-                    chatOpenOptions.mode = entity.agent;
-                }
-                await vscode.commands.executeCommand(
-                    'workbench.action.chat.open',
-                    chatOpenOptions
-                );
+                await vscode.commands.executeCommand('workbench.action.chat.open', { query: initPrompt });
             }
         }
     );
@@ -1983,10 +2045,36 @@ export function activate(context: vscode.ExtensionContext) {
         }
     );
 
+    // Implementation: SPEC_SES_NEWENTITY (path validation)
+    // Requirements: REQ_SES_NEWENTITY
+    const INVALID_PATH_CHARS = /[/\\:*?"<>|]/;
+    const CONTROL_CHARS = /[\x00-\x1F]/;
+    const WINDOWS_RESERVED = /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i;
+
+    function validateSessionName(name: string): string | null {
+        const trimmed = name.trim();
+        if (!trimmed) {
+            return 'Name cannot be empty';
+        }
+        if (trimmed === '.' || trimmed === '..') {
+            return "Name cannot be '.' or '..'";
+        }
+        if (INVALID_PATH_CHARS.test(trimmed)) {
+            return 'Name contains invalid characters (/, \\, :, *, ?, ", <, >, |)';
+        }
+        if (CONTROL_CHARS.test(trimmed)) {
+            return 'Name contains control characters (not allowed)';
+        }
+        if (WINDOWS_RESERVED.test(trimmed)) {
+            return `Name '${trimmed}' is a reserved Windows device name`;
+        }
+        return null;
+    }
+
     // Implementation: SPEC_SES_MANIFEST (newEntity Session option)
     // Requirements: REQ_SES_NEWENTITY
     // Implementation: SPEC_SES_NEWENTITY (Session branch)
-    // Requirements: REQ_SES_NEWENTITY
+    // Requirements: REQ_SES_NEWENTITY, REQ_SES_AGENT_DISCOVERY
     const newSessionCommand = vscode.commands.registerCommand(
         'jarvis.newSession',
         async () => {
@@ -1999,7 +2087,7 @@ export function activate(context: vscode.ExtensionContext) {
             const nameInput = await vscode.window.showInputBox({
                 prompt: 'Session name',
                 placeHolder: 'My Session',
-                validateInput: v => v?.trim() ? null : 'Name cannot be empty',
+                validateInput: validateSessionName,
             });
             if (!nameInput) { return; }
 
@@ -2013,11 +2101,11 @@ export function activate(context: vscode.ExtensionContext) {
             const agentInput = await pickAgentMode();
             if (agentInput === undefined) { return; } // user cancelled (Escape)
 
-            const kebabName = toKebabCase(nameInput);
-            const targetPath = path.join(targetFolder, kebabName);
+            const sessionName = nameInput.trim();
+            const targetPath = path.join(targetFolder, sessionName);
 
             if (fs.existsSync(targetPath)) {
-                vscode.window.showErrorMessage(`Folder '${kebabName}' already exists in sessions folder`);
+                vscode.window.showErrorMessage(`Folder '${sessionName}' already exists in sessions folder`);
                 return;
             }
 
@@ -2209,8 +2297,38 @@ export function activate(context: vscode.ExtensionContext) {
                     await vscode.commands.executeCommand('vscode.open', uri);
                     await new Promise(resolve => setTimeout(resolve, 800));
                 } else {
-                    await openNewChatEditor();
+                    // Create a fresh chat editor — never reuses an existing one
+                    // Implementation: SPEC_MSG_AUTODELIVER_POLL, SPEC_EXP_AGENTSESSION_INITPROMPT
+                    // Requirements: REQ_MSG_AUTODELIVER_POLL, REQ_EXP_AGENTPROMPT_TEMPLATE
+                    const entityForPoll = scanner?.entities?.find(e => e.name === sessionName);
+                    if (entityForPoll?.agent) {
+                        try {
+                            await vscode.commands.executeCommand('workbench.action.chat.open', { mode: entityForPoll.agent });
+                            await new Promise(resolve => setTimeout(resolve, 300));
+                        } catch (err) {
+                            log.warn(`[MSG] autoDelivery: failed to prime agent mode "${entityForPoll.agent}": ${err}`);
+                        }
+                    }
+                    await openNewChatEditor();  // SPEC_MSG_OPENCHAT (includes 800 ms settle delay)
                     await renameFocusedChatSession(sessionName);
+                    if (entityForPoll) {
+                        const kind = entityForPoll.kind ?? 'project';
+                        const folder = entityForPoll.folder ?? '';
+                        const contextPath = path.join(folder, 'context.md');
+                        const rawInitTemplate = vscode.workspace.getConfiguration('jarvis').get<string>('agentSession.initPromptTemplate') ?? '';
+                        const defaultInitPrompt =
+                            `You are the ${kind} "${entityForPoll.name}".\n\n` +
+                            `Use only \`${contextPath}\` as your persistent memory. Read it now.\n\n` +
+                            `Keep it minimal and action-oriented:\n` +
+                            `- Store only long-lived items under Decision / Finding / Next.\n` +
+                            `- One concise line per bullet. Prune aggressively.\n` +
+                            `- Replace outdated bullets — never append logs.\n` +
+                            `- Never store retries, raw tool output, or transient chatter.\n` +
+                            `- Before writing, ask: "Will this still matter in 2 weeks?" If no, skip.`;
+                        const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : defaultInitPrompt;
+                        const initPrompt = applyTemplate(initTemplate, { kind, name: entityForPoll.name, contextPath });
+                        await vscode.commands.executeCommand('workbench.action.chat.open', { query: initPrompt });
+                    }
                 }
                 const count = pending.length;
                 const defaultNotifTemplate =

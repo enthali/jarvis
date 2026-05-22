@@ -355,7 +355,7 @@ Explorer User Stories
 
 .. story:: Disciplined & Configurable Agent-Session Init Prompt
    :id: US_EXP_AGENTSESSION_PROMPT
-   :status: implemented
+   :status: draft
    :priority: optional
    :links: US_EXP_AGENTSESSION
 
@@ -379,3 +379,14 @@ Explorer User Stories
      ``${contextPath}``; these are substituted at session-open time.
    * AC-5: The configured prompt is sent on both ``jarvis.openAgentSession`` and
      ``jarvis.newSession``.
+   * AC-6: The configured prompt is also sent when ``jarvis.sendMessages`` or the
+     auto-delivery poll loop opens a **new** session (no matching UUID found) and
+     the destination name matches a known project, event, or session entity in the
+     scanner store; both paths use the same template and placeholder substitution
+     as AC-4. If no entity matches the destination name, the init prompt is skipped
+     and the new session receives only the notification stub.
+   * AC-7: When a session is opened via tree-click, ``jarvis.sendMessages``, or
+     the auto-delivery poll loop and the entity has a bound ``agent`` field, the
+     session SHALL open in that agent mode — regardless of the user's currently
+     active VS Code Chat mode setting at the time of opening. Mode is applied at
+     session birth, not via post-creation switching.

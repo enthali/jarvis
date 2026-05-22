@@ -76,7 +76,7 @@ Sessions Requirements
 
 .. req:: newEntity Command — Session Support
    :id: REQ_SES_NEWENTITY
-   :status: implemented
+   :status: draft
    :priority: required
    :links: US_SES_SESSIONS
 
@@ -88,9 +88,12 @@ Sessions Requirements
 
    * AC-1: When the user selects "Session", a prompt SHALL ask for the session
      name.
-   * AC-2: The extension SHALL create a new folder named after the session under
-     the fixed path ``<workspaceRoot>/.jarvis/sessions/``, creating it on demand
-     if absent.
+   * AC-2: The extension SHALL create a new folder using the session name
+     **verbatim** (no lowercase transformation, no slug, no character
+     substitution) under the fixed path ``<workspaceRoot>/.jarvis/sessions/``,
+     creating the parent directory on demand if absent.  The folder name is
+     storage only; session identity is the ``name:`` field inside
+     ``session.yaml``.
    * AC-3: Inside the new folder, the extension SHALL create ``session.yaml``
      with ``name`` and ``summary`` (empty) fields, and an empty ``context.md``.
    * AC-4: If no workspace is open, the command SHALL show a warning and abort.
@@ -104,6 +107,12 @@ Sessions Requirements
      ``jarvis.rescan`` (``navigation@3`` group).
    * AC-8: On successful creation the new Session SHALL be auto-opened as an agent
      chat session via ``jarvis.openAgentSession`` (no manual action required).
+   * AC-9: Invalid session names (per the character set and dot-only and
+     Windows reserved-name rules defined in ``SPEC_SES_NEWENTITY`` step 5)
+     SHALL be rejected via real-time inline validation in the name input box
+     (``showInputBox`` ``validateInput`` callback).  The user SHALL receive
+     immediate feedback and SHALL NOT be able to confirm an invalid name.  The
+     name SHALL NOT be silently sanitized.
 
 
 .. req:: jarvis_listSessionEntities LM+MCP Tool
@@ -342,7 +351,7 @@ Sessions Requirements
 
 .. req:: Agent Picker at Session Creation
    :id: REQ_SES_AGENT_PICKER
-   :status: implemented
+   :status: draft
    :priority: required
    :links: US_SES_AGENTBIND; REQ_SES_NEWENTITY
 
@@ -361,15 +370,17 @@ Sessions Requirements
      be created.
    * AC-3: If the user selects "No agent", the ``agent`` field SHALL be omitted
      entirely from the written ``session.yaml``.
-   * AC-4: If the user selects a named agent, that agent name SHALL be written
-     to ``session.yaml`` as ``agent: "<name>"``.
+   * AC-4: If the user selects a named agent, that agent's identity (per
+     ``REQ_SES_AGENT_DISCOVERY`` AC-7) SHALL be written to ``session.yaml``
+     as ``agent: "<identity>"``.  The identity is used verbatim; it may
+     contain spaces (e.g., ``"Change Manager"``).
    * AC-5: The picker SHALL show agent names alphabetically, with "No agent"
      always first.
 
 
 .. req:: Agent Discovery Mechanism
    :id: REQ_SES_AGENT_DISCOVERY
-   :status: implemented
+   :status: draft
    :priority: required
    :links: US_SES_AGENTBIND; REQ_SES_AGENT_PICKER; REQ_SES_AGENT_CREATETOOL
 
@@ -381,23 +392,32 @@ Sessions Requirements
 
    * AC-1: The discovery function SHALL scan all ``*.agent.md`` files in
      ``<workspaceRoot>/.github/agents/``.
-   * AC-2: A file is included in the valid set only if its YAML frontmatter
-     (between the opening and closing ``---`` delimiters) contains the key
-     ``user-invocable: true``.  Files without valid frontmatter or with
-     ``user-invocable: false`` SHALL be excluded.
-   * AC-3: The agent identifier (used as the ``agent`` field value and as the
-     ``mode`` parameter) SHALL be the file basename without the ``.agent.md``
-     suffix (e.g., ``syspilot.cm.agent.md`` → ``syspilot.cm``).
+   * AC-2: A file is INCLUDED in the valid set UNLESS its YAML frontmatter
+     explicitly contains ``user-invocable: false``.
+     Files without a ``user-invocable`` key, files without frontmatter at all,
+     and files with ``user-invocable: true`` SHALL all be INCLUDED.
+     Only an explicit ``user-invocable: false`` SHALL exclude the file.
+   * AC-3: When no frontmatter ``name`` key is set (or the value is blank),
+     the agent identifier SHALL be the file basename without the ``.agent.md``
+     suffix (e.g., ``syspilot.cm.agent.md`` → ``syspilot.cm``).  See AC-7 for
+     the complete identity rule.
    * AC-4: If the ``.github/agents/`` directory does not exist or is unreadable,
      the function SHALL return an empty list without error.
    * AC-5: The returned list SHALL be sorted alphabetically by agent identifier.
    * AC-6: Discovery is performed on-demand (at picker-open time and at
      validation time); no persistent cache is maintained.
+   * AC-7: The agent identifier SHALL be determined as follows: if the agent
+     file's YAML frontmatter contains a ``name`` key whose value is a non-empty
+     string, the identifier is that value trimmed of leading and trailing
+     whitespace; otherwise, the identifier is the filename basename without the
+     ``.agent.md`` suffix.  This identifier is used for picker labels,
+     ``session.yaml agent:`` field values, and the ``mode:`` parameter of
+     ``workbench.action.chat.open``.
 
 
 .. req:: jarvis_createSession Agent Parameter
    :id: REQ_SES_AGENT_CREATETOOL
-   :status: implemented
+   :status: draft
    :priority: required
    :links: US_SES_AGENTBIND; REQ_SES_CREATETOOL
 
@@ -412,8 +432,10 @@ Sessions Requirements
    * AC-2: When ``agent`` is blank or absent, the tool SHALL behave exactly as
      before (no ``agent`` field in ``session.yaml``); no validation runs.
    * AC-3: When ``agent`` is non-blank, the tool SHALL validate it against the
-     set of available agents (per ``REQ_SES_AGENT_DISCOVERY``) **before** any
-     filesystem operation.  If the value is unknown, the tool SHALL throw an
+     set of available agent identities (per ``REQ_SES_AGENT_DISCOVERY`` AC-7)
+     **before** any filesystem operation.  The supplied value must exactly match
+     an identity string from the discovery result (frontmatter name or filename
+     stem, as applicable).  If the value is unknown, the tool SHALL throw an
      error (see ``REQ_SES_AGENT_VALIDATION``); the session folder SHALL NOT be
      created.
    * AC-4: When ``agent`` is non-blank and valid, the tool SHALL write
@@ -507,3 +529,14 @@ Sessions Requirements
    * AC-4: No migration step is required; the ``additionalProperties: false``
      constraint in the schema is relaxed by adding ``agent`` as an explicitly
      permitted property — existing files without the field remain valid.
+
+   .. note::
+
+      **Backward-compat note (v0.6.0 filename-stem values):** Existing
+      ``session.yaml`` files written by v0.6.0 that store a filename-stem
+      value in the ``agent`` field (e.g. ``agent: syspilot.cm``) continue to
+      resolve correctly when the corresponding agent file has no ``name:``
+      frontmatter key, because per ``SPEC_SES_AGENT_DISCOVERY`` the effective
+      identity is ``name?.trim() || filename-stem``.  See
+      ``SPEC_SES_AGENT_DISCOVERY`` for the identity-drift edge case (out of
+      scope for this CR).
