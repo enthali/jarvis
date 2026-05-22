@@ -321,18 +321,18 @@ Sessions Design Specifications
           ) => {
               const sessions = scanner?.entities
                   .filter(e => e.kind === 'session')
-                  .map(e => ({ name: e.name, summary: e.summary ?? '', folder: e.folder })) ?? [];
+                  .map(e => ({ name: e.name, summary: e.summary ?? '', folder: e.folder, agent: e.agent ?? '' })) ?? [];
               log.info(`[SES] listSessionEntities: ${sessions.length} session(s)`);
               return new vscode.LanguageModelToolResult([
                   new vscode.LanguageModelTextPart(JSON.stringify({ sessions }))
               ]);
           },
-          'Returns the list of session entities configured in the current Jarvis workspace. Each session has a name, summary, and folder path.',
+          'Lists all Jarvis session entities (lightweight projects) discovered under <workspace>/.jarvis/sessions/. Each entry has name, summary, folder, and agent (empty string when no binding set). Distinct from jarvis_listSessions which lists chat sessions.',
           {},
           async () => {
               const sessions = scanner?.entities
                   .filter(e => e.kind === 'session')
-                  .map(e => ({ name: e.name, summary: e.summary ?? '', folder: e.folder })) ?? [];
+                  .map(e => ({ name: e.name, summary: e.summary ?? '', folder: e.folder, agent: e.agent ?? '' })) ?? [];
               log.info(`[SES] listSessionEntities(MCP): ${sessions.length} session(s)`);
               return { sessions };
           }
@@ -345,7 +345,7 @@ Sessions Design Specifications
       {
         "name": "jarvis_listSessionEntities",
         "displayName": "List Session Entities",
-        "modelDescription": "Returns the list of session entities configured in the current Jarvis workspace. Each session has a name, summary, and folder path.",
+        "modelDescription": "Lists all Jarvis session entities (lightweight projects) discovered under <workspace>/.jarvis/sessions/. Each entry has name, summary, folder, and agent (empty string when no binding set). Distinct from jarvis_listSessions which lists chat sessions.",
         "canBeReferencedInPrompt": true,
         "toolReferenceName": "listSessionEntities",
         "icon": "$(list-unordered)",

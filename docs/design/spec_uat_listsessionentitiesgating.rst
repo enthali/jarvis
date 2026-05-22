@@ -44,7 +44,7 @@
 
           Feature ENABLED
 
-          *CR AC: 1, 2*
+          *CR AC: 1*
         - Precondition: ``jarvis.sessions.enabled=true`` (default). Restart
           Extension Host.
 
@@ -70,7 +70,7 @@
 
           Feature DISABLED
 
-          *CR AC: 1*
+          *CR AC: 2*
         - Precondition: set ``jarvis.sessions.enabled=false`` in VS Code
           Settings UI. Run **Developer: Restart Extension Host**. Reopen
           Chat panel.
@@ -96,7 +96,7 @@
 
           Symmetry — both tools absent
 
-          *CR AC: 3, 4*
+          *CR AC: 3*
         - Precondition: ``jarvis.sessions.enabled=false`` (same reload state
           as T-2 — no additional reload required if T-2 was run immediately
           before).

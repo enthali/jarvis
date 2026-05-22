@@ -202,15 +202,10 @@ Message Queue Design Specifications
             await new Promise(resolve => setTimeout(resolve, 800));
           } else {
             // No existing session — create new pinned chat editor
-            await openNewChatEditor();  // SPEC_MSG_OPENCHAT
-            await new Promise(resolve => setTimeout(resolve, 800));
+            await openNewChatEditor();  // SPEC_MSG_OPENCHAT (includes 800 ms settle delay)
 
             // Name the new chat session so future deliveries can resolve it.
-            await vscode.commands.executeCommand(
-              'workbench.action.chat.open',
-              { query: `/rename ${node.destination}` }
-            );
-            await new Promise(resolve => setTimeout(resolve, 800));
+            await renameFocusedChatSession(node.destination);
           }
 
           // 3. Send single notification stub
@@ -895,17 +890,13 @@ Message Queue Design Specifications
    opens the chat session directly, sends the notification stub, and marks those
    messages as notified. If the destination session cannot be found, the poll
    loop opens a **fresh** chat editor via ``openNewChatEditor()``
-   (``SPEC_MSG_OPENCHAT``) and first sends ``/rename <sessionName>`` so future
+   (``SPEC_MSG_OPENCHAT``) and first calls ``renameFocusedChatSession(sessionName)`` so future
    deliveries can resolve the session by name.
 
    **Rationale — URI-reuse bug fix:**
-   The previous implementation used ``vscode.open(vscode-chat-session://local/new)``
-   for the no-UUID path. Because the URI is constant, VS Code navigates within
-   the same existing editor on every tick instead of creating a new one, causing
-   successive auto-delivery notifications to land in the same recycled chat.
-   Replacing with ``openNewChatEditor()`` (``workbench.action.openChat``) produces
-   a unique URI per invocation and ensures each auto-delivered session gets its
-   own dedicated editor.
+   ``openNewChatEditor()`` (``SPEC_MSG_OPENCHAT``) ensures each auto-delivery
+   tick opens a unique editor; see ``SPEC_MSG_OPENCHAT`` for the canonical
+   rationale.
 
    **Tick logic (inlined in extension.ts):**
 
@@ -929,10 +920,8 @@ Message Queue Design Specifications
             // ... open session tab ...
           } else {
             // Create a fresh chat editor — never reuses an existing one
-            await openNewChatEditor();  // SPEC_MSG_OPENCHAT
-            await new Promise(resolve => setTimeout(resolve, 800));
+            await openNewChatEditor();  // SPEC_MSG_OPENCHAT (includes 800 ms settle delay)
             await renameFocusedChatSession(sessionName);
-            await new Promise(resolve => setTimeout(resolve, 800));
           }
 
           // Send notification stub
@@ -1261,38 +1250,41 @@ Message Queue Design Specifications
 
    **Description:**
    Private async helper ``openNewChatEditor`` in ``extension.ts`` creates a new
-   VS Code Chat editor. Uses ``workbench.action.openChat`` as the primary
-   mechanism, falling back to the ``vscode-chat-session://local/new`` URI via
-   ``openPinnedResource`` if the command is unavailable.
+   VS Code Chat editor. Executes ``workbench.action.openChat`` and waits 800 ms
+   for the editor to settle.
+
+   **Rationale — URI-reuse bug fix (canonical):**
+   The previous implementation used the constant URI
+   ``vscode-chat-session://local/new``. VS Code treats this as navigation to the
+   same resource; subsequent calls reuse the already-open editor. Replacing with
+   ``workbench.action.openChat`` generates a unique session URI per invocation
+   and always produces a dedicated editor. The try/catch + fallback path from the
+   original design was unreachable in observed behavior (PM-validated); the
+   simplified implementation was adopted.
 
    **Implementation:**
 
    .. code-block:: typescript
 
       async function openNewChatEditor(): Promise<void> {
-          try {
-              await vscode.commands.executeCommand('workbench.action.openChat');
-          } catch (error) {
-              const message = error instanceof Error ? error.message : String(error);
-              log.warn(`[MSG] workbench.action.openChat failed, falling back to URI open: ${message}`);
-              await openPinnedResource(vscode.Uri.parse('vscode-chat-session://local/new'));
-          }
+          await vscode.commands.executeCommand('workbench.action.openChat');
+          await new Promise(resolve => setTimeout(resolve, 800));
       }
 
    **Callers:**
 
    * ``jarvis.sendMessages`` — when no UUID is found for the target session name
    * ``jarvis.openAgentSession`` — when no UUID is found for the entity name
+   * Auto-delivery poll loop — when no UUID is found for the auto-delivery session name
 
    **Design decisions:**
 
    * ``workbench.action.openChat`` is a VS Code internal command with no public
-     stability guarantee. The try/catch + fallback is mandatory (D-1 from
-     ``stable-session-open`` change).
-   * The fallback URI ``vscode-chat-session://local/new`` is passed through
-     ``openPinnedResource`` so it also gets ``{ preview: false }`` treatment.
-   * Failures are logged at ``warn`` (not ``error``) — the fallback is expected
-     to succeed in practice, so this is a degraded-mode warning.
+     stability guarantee; however, the try/catch + fallback path was unreachable
+     in observed behavior (PM-validated simplified implementation).
+   * The 800 ms ``setTimeout`` after the command is a heuristic settle delay so
+     the VS Code Chat UI completes its tab-open animation before the next command
+     (e.g. ``renameFocusedChatSession``) is sent.
 
 
 .. spec:: Agent Chat Prompt Helper
@@ -1344,8 +1336,7 @@ Message Queue Design Specifications
    .. code-block:: typescript
 
       // 1. Create new session
-      await openNewChatEditor();
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await openNewChatEditor(); // SPEC_MSG_OPENCHAT (includes 800 ms settle delay)
 
       // 2. Rename session to entity name (D-4)
       await sendPromptToFocusedAgentChat(`/rename ${entity.name}`);
@@ -1368,9 +1359,10 @@ Message Queue Design Specifications
    * The fallback uses ``workbench.action.chat.open`` with ``mode: 'agent'`` —
      an older API shape that achieves the same effect on pre-1.100 builds.
    * Both commands are VS Code internals with no public stability guarantee.
-   * The 800 ms ``setTimeout`` between steps is a heuristic to allow the VS Code
-     Chat UI to complete its tab-open animation before the next command is sent.
-     No polling or event-based synchronization is available through the public API.
+   * The 800 ms ``setTimeout`` between the two ``sendPromptToFocusedAgentChat``
+     calls is a heuristic to allow the VS Code Chat input to settle between prompt
+     submissions. The tab-open settle delay is handled internally by
+     ``openNewChatEditor()`` (see ``SPEC_MSG_OPENCHAT``).
    * ``contextPath`` is derived from ``path.dirname(element.id)`` — the actual
      folder containing the entity's YAML file (D-3). This avoids kebab-case
      derivation errors when entity names contain characters that do not map
@@ -1402,7 +1394,7 @@ Message Queue Design Specifications
    **Sequence (new session):**
 
    1. Resolve UUID -- not found
-   2. `openNewChatEditor()` -- wait 800 ms
+   2. `openNewChatEditor()` (includes 800 ms settle delay -- SPEC_MSG_OPENCHAT)
    3. `sendPromptToFocusedAgentChat('/rename <entityName>')` -- wait 800 ms
    4. Build `contextPath`: `path.dirname(element.id)` (the actual YAML folder)
       joined with `context.md` via `path.join()`
@@ -1410,8 +1402,10 @@ Message Queue Design Specifications
 
    **Design notes:**
 
-   * The 800 ms delay is a heuristic to allow the VS Code Chat UI to complete
-     its tab-open animation -- no event-based synchronization is available.
+   * The 800 ms delay between successive ``sendPromptToFocusedAgentChat`` calls
+     (step 3) is a heuristic to allow the VS Code Chat input to settle between
+     prompt submissions. The tab-open settle delay is handled internally by
+     ``openNewChatEditor()`` (see ``SPEC_MSG_OPENCHAT``).
    * `contextPath` is derived from `path.dirname(element.id)` (the actual folder
      of the entity's YAML file) rather than from the display name, avoiding
      kebab-case derivation errors.

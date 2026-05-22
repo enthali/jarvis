@@ -122,6 +122,14 @@ Note: CR referenced `REQ_SES_LISTENTITIES` / `SPEC_SES_LISTENTITIES` — these I
 
 No blockers. All three advisories are cosmetic (one stale sketch string, two table labeling typos) and may be deferred without impacting test execution or verification.
 
+## Advisory Closure (CR spec-timing-cleanup, 2026-05-22)
+
+| Advisory | Action | Notes |
+|----------|--------|-------|
+| L-A1 | closed | `SPEC_SES_TOOLS` handler-sketch description string and `package.json` `modelDescription` in code block updated to match actual `package.json`: "Lists all Jarvis session entities (lightweight projects) discovered under `<workspace>/.jarvis/sessions/`. Each entry has name, summary, folder, and agent (empty string when no binding set). Distinct from jarvis_listSessions which lists chat sessions." (`docs/design/spec_ses.rst`). |
+| L-A2 | closed | `SPEC_UAT_LISTSESSIONENTITIESGATING` T-2 label corrected from `*CR AC: 1*` to `*CR AC: 2*` (`docs/design/spec_uat_listsessionentitiesgating.rst`). |
+| L-A3 | closed | `SPEC_UAT_LISTSESSIONENTITIESGATING` T-3 label corrected from `*CR AC: 3, 4*` to `*CR AC: 3*` (`docs/design/spec_uat_listsessionentitiesgating.rst`). |
+
 ## Process Log — PM Merge Approval
 
 **Date:** 2026-05-19
