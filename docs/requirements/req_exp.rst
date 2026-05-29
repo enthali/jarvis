@@ -269,8 +269,9 @@ Explorer Requirements
    * AC-4: The folder ``<name>/`` is created inside ``jarvis.projectsFolder``
      with ``project.yaml`` containing ``name: "<input>"``
    * AC-5: After file creation, an immediate scanner rescan is triggered
-   * AC-6: After the rescan, the new entity appears in the tree. No chat
-     editor is opened (creation-only command).
+   * AC-6: After the rescan, the new entity appears in the tree. The chat
+     editor is opened per the agent-picker chat-open gate:
+     concrete agent → ``chat.open({ mode })``; default agent → ``chat.open({})``.
    * AC-7: If the user cancels the InputBox, the command exits without side effects
    * AC-8: The command SHALL NOT appear in the Command Palette
    * AC-9: If a folder with the given name already exists, the command SHALL
@@ -283,7 +284,7 @@ Explorer Requirements
      the command SHALL abort without side effects.
    * AC-12: The selected agent SHALL be written to ``project.yaml`` as the
      ``agent`` field. If "default agent" is chosen, ``agent: ""`` SHALL be
-     written (not omitted). No chat editor is opened regardless of selection.
+     written (not omitted). Chat editor opens per chat-open gate.
 
 
 .. req:: New Event Command
@@ -314,8 +315,9 @@ Explorer Requirements
    * AC-6: ``event.yaml`` contains ``name``, ``summary`` (empty string),
      ``dates.start``, ``dates.end`` (start = end = input date)
    * AC-7: After file creation, an immediate scanner rescan is triggered
-   * AC-8: After the rescan, the new entity appears in the tree. No chat
-     editor is opened (creation-only command).
+   * AC-8: After the rescan, the new entity appears in the tree. The chat
+     editor is opened per the agent-picker chat-open gate:
+     concrete agent → ``chat.open({ mode })``; default agent → ``chat.open({})``.
    * AC-9: If the user cancels any InputBox, the command exits without side effects
    * AC-10: The command SHALL NOT appear in the Command Palette
    * AC-11: If a folder with the derived name already exists, the command SHALL
@@ -328,7 +330,7 @@ Explorer Requirements
      the command SHALL abort without side effects.
    * AC-14: The selected agent SHALL be written to ``event.yaml`` as the
      ``agent`` field. If "default agent" is chosen, ``agent: ""`` SHALL be
-     written (not omitted). No chat editor is opened regardless of selection.
+     written (not omitted). Chat editor opens per chat-open gate.
 
 
 .. req:: Rescan Button in Title Bar
@@ -935,4 +937,5 @@ Explorer Requirements
      mutation SHALL occur.
    * AC-5: If "default agent" is selected (picker returns ``""``), the system
      SHALL write ``agent: ""`` to the entity's YAML (idempotent: skip write if
-     already ``""``). No chat editor SHALL be opened.
+     already ``""``). Chat editor SHALL be opened with ``chat.open({})`` (no
+     mode parameter — VS Code default mode).

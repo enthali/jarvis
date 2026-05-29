@@ -652,9 +652,8 @@ Explorer Design Specifications
    **Description:**
    Register ``jarvis.newProject`` in ``extension.ts``. Triggered by the ``$(add)``
    icon in the Projects view title bar. Creates a new project folder with
-   ``project.yaml``. newProject is creation-only by design; the user opens the
-   entity later via tree-click (which may trigger lazy-bind per
-   ``SPEC_EXP_ENTITY_LAZYBIND`` if no concrete agent was picked at creation).
+   ``project.yaml`` and opens the new entity's chat editor (same new-session
+   pattern used by ``jarvis.newSession``).
 
    **Handler flow:**
 
@@ -693,6 +692,12 @@ Explorer Design Specifications
               path.join(targetPath, 'project.yaml'), content, 'utf-8');
 
    11. Trigger scanner rescan: ``await scanner.rescan()``.
+   12. Open chat editor (per ``SPEC_EXP_AGENT_PICKER`` chat-open gate):
+
+       - If ``pickerResult`` is a non-empty string (concrete agent):
+         ``chat.open({ mode: pickerResult })``
+       - If ``pickerResult`` is ``""`` (default agent):
+         ``chat.open({})`` — no ``mode`` parameter.
 
    **Disposable** pushed to ``context.subscriptions``.
 
@@ -707,9 +712,8 @@ Explorer Design Specifications
    **Description:**
    Register ``jarvis.newEvent`` in ``extension.ts``. Triggered by the ``$(add)``
    icon in the Events view title bar. Creates a new event folder with
-   ``event.yaml``. newEvent is creation-only by design; the user opens the
-   entity later via tree-click (which may trigger lazy-bind per
-   ``SPEC_EXP_ENTITY_LAZYBIND`` if no concrete agent was picked at creation).
+   ``event.yaml`` and opens the new entity's chat editor (same new-session
+   pattern used by ``jarvis.newSession``).
 
    **Handler flow:**
 
@@ -776,6 +780,12 @@ Explorer Design Specifications
               path.join(targetPath, 'event.yaml'), content, 'utf-8');
 
    13. Trigger scanner rescan: ``await scanner.rescan()``.
+   14. Open chat editor (per ``SPEC_EXP_AGENT_PICKER`` chat-open gate):
+
+       - If ``pickerResult`` is a non-empty string (concrete agent):
+         ``chat.open({ mode: pickerResult })``
+       - If ``pickerResult`` is ``""`` (default agent):
+         ``chat.open({})`` — no ``mode`` parameter.
 
    **Disposable** pushed to ``context.subscriptions``.
 
@@ -823,9 +833,12 @@ Explorer Design Specifications
    (per ``SPEC_SES_AGENT_DISCOVERY``), no picker invocation. Anti-drift rule
    does NOT apply here (different mechanism by design).
 
-   **Chat-open gate (cross-cutting rule):** "Chat-open SHALL occur only if the
-   picker returned a non-empty string." Consumers reference this rule rather
-   than re-deriving it.
+   **Chat-open gate (cross-cutting rule):** Chat-open SHALL occur on **all
+   non-cancel** picker returns. When picker returns ``undefined`` (cancel) →
+   no chat-open. When picker returns ``""`` ("default agent") → chat opens
+   in VS Code's default mode (no ``mode`` parameter passed to ``chat.open``).
+   When picker returns a concrete ``"<name>"`` → chat opens with
+   ``mode: <name>``. Consumers reference this rule rather than re-deriving it.
 
    **Acceptance Criteria:**
 
@@ -838,7 +851,8 @@ Explorer Design Specifications
       their own QuickPick.
    5. Programmatic LM-tool consumers use ``discoverAgents()`` for validation
       without invoking the picker.
-   6. Chat-open occurs only when the picker returned a non-empty string.
+   6. Chat-open occurs on all non-cancel returns: ``""`` → ``chat.open({})``
+      (no mode param); ``"<name>"`` → ``chat.open({ mode: <name> })``.
    7. "default agent" entry returns ``""`` (empty string) when selected.
    8. Escape / dismiss returns ``undefined``.
 
@@ -868,7 +882,8 @@ Explorer Design Specifications
         early.
       - ``""`` (default agent): write ``agent: ""`` to the entity's YAML
         (read-modify-write). **Idempotency:** if the YAML already has
-        ``agent: ""``, skip the file write (no-op). Then return — no chat-open.
+        ``agent: ""``, skip the file write (no-op). Then open the chat editor:
+        ``chat.open({})`` (no ``mode`` parameter — VS Code's default mode).
       - ``"<a>"`` (concrete agent): write ``agent: "<a>"`` to the entity's
         YAML, trigger scanner rescan, then open the chat editor in ``<a>``
         mode (per ``SPEC_SES_AGENT_OPEN`` / existing open-flow). Init prompt
@@ -893,7 +908,8 @@ Explorer Design Specifications
    2. Picker cancel (``undefined``) results in no YAML mutation and no
       chat-open.
    3. Picker returns ``""`` (default agent): ``agent: ""`` is written to entity
-      YAML (idempotent — skip write if already ``""``). No chat-open.
+      YAML (idempotent — skip write if already ``""``). Chat editor opens with
+      ``chat.open({})`` (no mode param — VS Code default mode).
    4. Picker returns concrete agent: ``agent: "<a>"`` written, scanner rescan
       triggered, chat editor opened in ``<a>`` mode with init prompt.
    5. ``writeFileSync()`` failure is caught: warn log emitted, command aborted,

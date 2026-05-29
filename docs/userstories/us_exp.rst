@@ -512,9 +512,10 @@ Explorer User Stories
      opens the agent-picker first. The user selects an agent or "default
      agent". If a concrete agent is selected, the ``agent`` field is written
      into the YAML and the normal open-flow proceeds. If "default agent" is
-     selected, ``agent: ""`` is written (idempotent) and no chat is opened.
-     Cancel aborts — no YAML mutation.
+     selected, ``agent: ""`` is written (idempotent) and the chat editor opens
+     in VS Code's default mode (no mode param). Cancel aborts — no YAML mutation.
    * AC-8: ``jarvis.newProject`` and ``jarvis.newEvent`` invoke the
      agent-picker after the name/date prompts — same shared picker component
-     as ``jarvis.newSession``. These are creation-only commands: no chat
-     editor is opened regardless of the picker result.
+     as ``jarvis.newSession``. After creation, the chat editor opens per
+     the agent-picker chat-open gate (concrete agent → mode; default agent →
+     no mode param; cancel → abort).

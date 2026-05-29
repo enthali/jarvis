@@ -14,7 +14,7 @@ New Entity Picker and KISS Naming User Acceptance Tests
    commands and (b) the KISS folder-naming rule (verbatim raw name for
    projects/sessions, ``<date>_<rawName>`` for events),
    **so that** I can verify picker cancel semantics, "default agent" and
-   concrete-agent branches, creation-only behaviour for projects/events, and
+   concrete-agent branches, chat-open behaviour for all entity types, and
    that folder names are no longer kebab-cased.
 
    **Acceptance Criteria:**

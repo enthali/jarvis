@@ -554,6 +554,61 @@ escalation limit applies.
 | 3 | `SPEC_EXP_CREATEEVENT` | `REQ_EXP_CREATEEVENT`; `SPEC_EXP_SCANNER`; `SPEC_MSG_DUALREGISTRATION`; `SPEC_SES_CREATETOOL`; `SPEC_EXP_AGENT_PICKER` | 10 | Yes — req_exp.rst:788 |
 | 4 | `SPEC_EXP_ENTITY_AGENT` | `REQ_EXP_ENTITY_AGENT`; `SPEC_EXP_SCANNER` | 6 | Yes — req_exp.rst:817 |
 | 5 | `SPEC_EXP_ENTITY_TREECLICK` | `REQ_EXP_ENTITY_TREECLICK`; `SPEC_EXP_AGENTSESSION`; `SPEC_EXP_ENTITY_LAZYBIND`; `SPEC_EXP_ENTITY_AGENT` | 6 | Yes — req_exp.rst:871 |
+
+---
+
+## Design Fix-Pass v6 Report (2026-05-29)
+
+**Trigger:** UAT Group E found T-20/T-21 FAIL — picker "default agent" selection
+did not open a chat editor for `newProject`/`newEvent`. PM root-cause analysis:
+the v0.6.1 "kein Mode = kein Open" rule was over-generalized during spec
+authoring. It applies only to **existing-editor mode-switching**, not to
+**new-editor creation** flows. PM has issued a corrected matrix (binding).
+
+### Corrected PM Matrix
+
+| Flow | Cancel | "default agent" (`""`) | Concrete Agent (`"<name>"`) |
+|------|--------|------------------------------|------------------------------------|
+| `newProject` | no folder, no chat | folder + `agent: ""` + **chat opens (no mode param)** | folder + `agent: <name>` + chat opens with mode |
+| `newEvent` | dito | dito | dito |
+| `newSession` | dito | dito | dito (already PASS in UAT for concrete) |
+| Lazy-Bind | abort, no YAML, no chat | write `agent: ""` (idempotent) + **chat opens (no mode param)** | write `agent: <name>` + chat opens with mode |
+
+**Root rule:** "default agent" = user explicitly chose VS Code's default mode.
+`chat.open` is called WITHOUT `mode` parameter. Only `cancel` (`undefined`)
+suppresses chat-open.
+
+**PM lesson:** "v0.6.1 'kein Mode = kein Open' rule was overcorrected; applies
+only to existing-editor mode-switch, not new-editor creation."
+
+### Edits applied
+
+| # | Element | Change |
+|---|---------|--------|
+| 1 | `SPEC_EXP_AGENT_PICKER` | Chat-open gate rewritten: all non-cancel → chat-open; `""` → no mode param; AC-6 updated |
+| 2 | `SPEC_EXP_NEWPROJECT_CMD` | Removed "creation-only" language; added step 12 (chat-open with conditional mode) |
+| 3 | `SPEC_EXP_NEWEVENT_CMD` | Same as newProject — removed "creation-only", added step 14 (chat-open) |
+| 4 | `SPEC_EXP_ENTITY_LAZYBIND` | Default-agent case now opens chat with `chat.open({})`; AC-3 updated |
+| 5 | `REQ_EXP_NEWPROJECT` | AC-6, AC-12 revised — chat-open per gate instead of "no chat editor" |
+| 6 | `REQ_EXP_NEWEVENT` | AC-8, AC-14 revised — same |
+| 7 | `REQ_EXP_ENTITY_LAZYBIND` | AC-5 revised — chat-open on default-agent |
+| 8 | `US_EXP_ENTITYPARITY` (us_exp.rst) | AC-7, AC-8 — removed "creation-only" / "no chat" language |
+| 9 | `US_UAT_NEWENTITY_PICKER` | Narrative updated ("chat-open behaviour" replaces "creation-only") |
+
+### Files touched
+
+- `docs/design/spec_exp.rst` — 4 SPEC edits
+- `docs/requirements/req_exp.rst` — 3 REQ edits (5 ACs total)
+- `docs/userstories/us_exp.rst` — 1 US, 2 ACs
+- `docs/userstories/us_uat_newentity_picker.rst` — narrative
+- `docs/changes/v0.7.0/entity-parity.md` — this report
+
+### Confirmation
+
+- All 4 SPEC IDs remain as `:id:` directives ✓
+- All edited IDs remain `:status: draft` ✓
+- No schema/testdata/src changes ✓
+- Chat-open gate rule is consistent across all 4 SPECs ✓
 | 6 | `SPEC_EXP_ENTITY_ICONS` | `REQ_EXP_ENTITY_ICONS`; `SPEC_EXP_EXTENSION`; `SPEC_EXP_PROVIDER`; `SPEC_EXP_CONTEXTACTIONS` | 8 | Yes — req_exp.rst:892 |
 
 ### Grep evidence
