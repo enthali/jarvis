@@ -18,7 +18,7 @@ import * as yaml from 'js-yaml';
 import { appendMessage } from './messageQueue';
 import { MessageTreeProvider } from './messageTreeProvider';
 import { HeartbeatTreeProvider, JobNode } from './heartbeatTreeProvider';
-import { getAllSessions, filterNamedSessions } from './sessionLookup';
+import { getAllSessions, filterNamedSessions, getValidDestinations } from './sessionLookup';
 
 // ---------------------------------------------------------------------------
 // Types (SPEC_AUT_JOBSCHEMA)
@@ -211,8 +211,7 @@ async function validateLoadedJobs(
     jobs: HeartbeatJob[],
     outputChannel: vscode.LogOutputChannel
 ): Promise<void> {
-    const allSessions = await getAllSessions();
-    const validNames = filterNamedSessions(allSessions).map(s => s.title);
+    const validNames = await getValidDestinations();
     for (const job of jobs) {
         job.steps.forEach((step, idx) => {
             if (step.type === 'queue' && step.destination) {
@@ -239,8 +238,7 @@ async function executeQueueStep(
     messageTreeProvider: MessageTreeProvider
 ): Promise<ExecResult> {
     // Fire-time destination re-validation (REQ_AUT_HEARTBEAT_INVALID_STEP_BEHAVIOR)
-    const allSessions = await getAllSessions();
-    const validNames = filterNamedSessions(allSessions).map(s => s.title);
+    const validNames = await getValidDestinations();
     if (step.destination && !validNames.includes(step.destination)) {
         outputChannel.warn(
             `[Heartbeat] queue step skipped — invalid destination: "${step.destination}"`
