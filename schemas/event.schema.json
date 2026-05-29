@@ -3,7 +3,7 @@
   "title": "ProjectManager Event",
   "description": "Schema for ProjectManager event.yaml files",
   "type": "object",
-  "required": ["name", "location", "status", "dates"],
+  "required": ["name", "location", "status", "dates", "summary"],
   "properties": {
     "name": {
       "type": "string",
@@ -26,6 +26,10 @@
     "summary": {
       "type": "string",
       "description": "Brief description of the event"
+    },
+    "agent": {
+      "type": "string",
+      "description": "VS Code chat-mode name bound to this event. When set, opening the event activates that chat agent automatically."
     },
     "lastUpdated": {
       "type": "string",

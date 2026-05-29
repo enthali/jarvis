@@ -537,19 +537,20 @@ Message Queue Design Specifications
 
 .. spec:: List Sessions LM Tool
    :id: SPEC_MSG_LISTSESSIONS
-   :status: implemented
+   :status: draft
    :links: REQ_MSG_LISTSESSIONS; REQ_MSG_SESSIONFILTER; SPEC_MSG_SESSIONLOOKUP
 
    **Description:**
-   Register ``jarvis_listSessions`` as a Language Model Tool in ``extension.ts``.
-   Returns the list of named chat session titles from the current workspace so
-   that LLM agents can discover valid destination names for ``sendToSession``.
+   Register ``jarvis_listChatSessions`` as a Language Model Tool in
+   ``extension.ts`` (renamed from ``jarvis_listSessions``).
+   Returns the list of named VS Code chat session tab titles from the current
+   workspace so that LLM agents can discover active chat tabs.
 
    **Handler:**
 
    .. code-block:: typescript
 
-      vscode.lm.registerTool('jarvis_listSessions', {
+      vscode.lm.registerTool('jarvis_listChatSessions', {
         async invoke(
           _options: vscode.LanguageModelToolInvocationOptions<Record<string, never>>,
           _token: vscode.CancellationToken
@@ -568,11 +569,11 @@ Message Queue Design Specifications
    .. code-block:: json
 
       {
-        "name": "jarvis_listSessions",
+        "name": "jarvis_listChatSessions",
         "displayName": "List Chat Sessions",
-        "modelDescription": "Returns the list of named chat session titles in the current workspace. Use this to discover valid session names before sending messages via sendToSession.",
+        "modelDescription": "Returns the list of named VS Code chat session tab titles in the current workspace. Use this to discover active chat tabs. Distinct from jarvis_listSessions which lists YAML session entities.",
         "canBeReferencedInPrompt": true,
-        "toolReferenceName": "listSessions",
+        "toolReferenceName": "listChatSessions",
         "icon": "$(list-unordered)",
         "inputSchema": {
           "type": "object",
@@ -582,7 +583,7 @@ Message Queue Design Specifications
 
    **Design notes:**
 
-   * No input parameters — the tool returns all named sessions
+   * No input parameters — the tool returns all named chat sessions
    * Uses the same filter as ``SPEC_MSG_OPENSESSION``: non-empty title,
      not ``'New Chat'``
    * Returns JSON array of title strings
@@ -1958,42 +1959,55 @@ Message Queue Design Specifications
 
 .. spec:: Send-to-Session LM / MCP Tool
    :id: SPEC_MSG_SENDTOSESSION
-   :status: implemented
+   :status: draft
    :links: REQ_MSG_SENDTOSESSION; REQ_MSG_DEST_ERROR; SPEC_MSG_DUALREGISTRATION; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_QUEUESTORE
 
    **Description:**
    Implements the ``jarvis_sendToSession`` Language Model and MCP Tool in
    ``src/extension.ts`` via ``registerDualTool()``.  Adds a pre-write
    destination validation step: the tool resolves the current valid destination
-   set, checks membership, and throws a formatted ``Error`` if the session is
-   unknown — leaving the queue untouched.  For a valid destination the message
-   is appended as before.
+   set, checks membership, and throws a formatted ``Error`` if the destination
+   is unknown — leaving the queue untouched.  For a valid destination the
+   message is appended as before.
 
-   **Valid destination set — design decision:**
+   **Valid destination set — design decision (v0.7.0 BREAKING):**
 
-   The valid destination set is defined as the set of *named VS Code chat
-   session titles* currently present in the workspace, as returned by
-   ``getAllSessions()`` filtered through ``filterNamedSessions()``.  This is
-   identical to the set exposed by ``jarvis_listSessions``.
+   The valid destination set is the **union** of:
 
-   *Rationale for this choice (over alternatives):*
+   1. Named VS Code chat session titles from ``state.vscdb`` (via
+      ``getAllSessions()`` + ``filterNamedSessions()``)
+   2. YAML entity names from the scanner store (sessions, projects, events —
+      via ``scanner.entities.map(e => e.name)``)
 
-   - ``jarvis_sendToSession`` targets a VS Code chat session tab by its display
-     title.  The only authoritative, live source of such titles is
-     ``state.vscdb``; using any other source would introduce a second definition
-     of "valid destination" inconsistent with the addressing model.
-   - Folder-based alternatives (`.jarvis/sessions/` presence check) would
-     conflate workspace-entity folders with live chat tabs — a folder can exist
-     without a corresponding chat tab and vice-versa.
-   - A configured allowlist would require user maintenance and is over-engineered
-     for the use case.
-   - The union with ``jarvis_listSessionEntities`` was considered but rejected:
-     session-entity names are workspace identifiers, not live chat-tab titles.
-     An agent should be able to send to any open tab (e.g. a manually created
-     project chat), not only to entity-backed sessions.
-   - Using the same set as ``jarvis_listSessions`` means a single discovery
-     step (call ``jarvis_listSessions``) is sufficient to find valid targets —
-     no additional tool call needed.
+   A destination is valid if it appears in **either** subset.
+
+   *Rationale for the union approach:*
+
+   - ``jarvis_sendToSession`` addresses destinations by display name.  A message
+     to a project or event entity may arrive before its chat session exists —
+     using only chat tabs would reject valid entity-targeted messages.
+   - The union ensures that any YAML-defined entity (session, project, event)
+     is always a valid destination, whether or not a corresponding VS Code chat
+     tab is currently open.
+   - Auto-delivery (v0.6.1) already opens a new chat session on first delivery
+     when no tab matches; expanding the valid set makes this path reachable.
+   - The consolidation with heartbeat validation (AC-6) is achieved by
+     extracting a shared ``getValidDestinations()`` function in
+     ``src/sessionLookup.ts`` that both ``sendToSession`` and heartbeat call.
+
+   **New shared function in ``src/sessionLookup.ts``:**
+
+   .. code-block:: typescript
+
+      export async function getValidDestinations(
+          scanner: YamlScanner | undefined
+      ): Promise<string[]> {
+          const chatSessions = await getAllSessions();
+          const chatNames = filterNamedSessions(chatSessions).map(s => s.title);
+          const entityNames = (scanner?.entities ?? []).map(e => e.name);
+          // Deduplicate
+          return [...new Set([...chatNames, ...entityNames])];
+      }
 
    **Error message format (REQ_MSG_DEST_ERROR):**
 
@@ -2032,9 +2046,8 @@ Message Queue Design Specifications
             session: string; text: string; senderSession?: string;
           };
 
-          // Destination validation (REQ_MSG_SENDTOSESSION AC-3/4)
-          const allSessions = await getAllSessions();
-          const validNames = filterNamedSessions(allSessions).map(s => s.title);
+          // Destination validation (REQ_MSG_SENDTOSESSION AC-3/4/5)
+          const validNames = await getValidDestinations(scanner);
           if (!validNames.includes(session)) {
             const sorted = [...validNames].sort((a, b) =>
               a.localeCompare(b, undefined, { sensitivity: 'base' })
@@ -2069,9 +2082,8 @@ Message Queue Design Specifications
           const session = args.session as string;
           const text = args.text as string;
 
-          // Destination validation
-          const allSessions = await getAllSessions();
-          const validNames = filterNamedSessions(allSessions).map(s => s.title);
+          // Destination validation (uses same shared resolver)
+          const validNames = await getValidDestinations(scanner);
           if (!validNames.includes(session)) {
             const sorted = [...validNames].sort((a, b) =>
               a.localeCompare(b, undefined, { sensitivity: 'base' })
@@ -2090,14 +2102,14 @@ Message Queue Design Specifications
         }
       );
 
-   **Registration in package.json (unchanged from current):**
+   **Registration in package.json (updated description):**
 
    .. code-block:: json
 
       {
         "name": "jarvis_sendToSession",
         "displayName": "Send Message to Session",
-        "modelDescription": "Queues a text message for delivery to another VS Code chat session identified by its exact title. Fails immediately with an error if the destination does not exist — call jarvis_listSessions first to discover valid names.",
+        "modelDescription": "Queues a text message for delivery to a destination identified by name. Valid destinations are VS Code chat session tabs AND YAML entity names (sessions, projects, events). Fails immediately with an error if the destination does not exist — call jarvis_listSessions or jarvis_listChatSessions to discover valid names.",
         "canBeReferencedInPrompt": true,
         "toolReferenceName": "sendToSession",
         "icon": "$(mail)",
@@ -2106,7 +2118,7 @@ Message Queue Design Specifications
           "properties": {
             "session": {
               "type": "string",
-              "description": "The exact title of the target VS Code chat session"
+              "description": "The exact name of the target (VS Code chat session title or YAML entity name)"
             },
             "text": {
               "type": "string",

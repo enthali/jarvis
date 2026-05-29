@@ -3,7 +3,7 @@ Sessions User Stories
 
 .. story:: Sessions Entity Type
    :id: US_SES_SESSIONS
-   :status: implemented
+   :status: draft
    :priority: required
 
    **As a** Jarvis user,
@@ -26,9 +26,9 @@ Sessions User Stories
      Schema is provided for editor validation.
    * AC-4: The existing ``jarvis.openContext`` command works on session tree
      nodes and opens the ``context.md`` file adjacent to ``session.yaml``.
-   * AC-5: A new LM+MCP tool ``jarvis_listSessionEntities`` returns the list of
+   * AC-5: A new LM+MCP tool ``jarvis_listSessions`` returns the list of
      session entities (``name``, ``summary``, ``folder``). It is distinct from
-     ``jarvis_listSessions``, which lists chat sessions.
+     ``jarvis_listChatSessions``, which lists VS Code chat tab titles.
    * AC-6: The existing ``jarvis.newEntity`` command supports session creation
      as a third option alongside Project and Event. It creates a folder with
      ``session.yaml`` and an empty ``context.md`` under the fixed path

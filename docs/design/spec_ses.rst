@@ -305,13 +305,14 @@ Sessions Design Specifications
 
 .. spec:: sessions-feature: jarvis_listSessionEntities Tool Registration
    :id: SPEC_SES_TOOLS
-   :status: implemented
+   :status: draft
    :links: REQ_SES_LISTTOOL
 
    **Description:**
-   Register ``jarvis_listSessionEntities`` via ``registerDualTool()`` in
-   ``src/extension.ts``, inside the ``if (cfg.get<boolean>('sessions.enabled', true))``
-   activation block, mirroring the gating pattern of ``jarvis_createSession``
+   Register ``jarvis_listSessions`` (renamed from ``jarvis_listSessionEntities``)
+   via ``registerDualTool()`` in ``src/extension.ts``, inside the
+   ``if (cfg.get<boolean>('sessions.enabled', true))`` activation block,
+   mirroring the gating pattern of ``jarvis_createSession``
    (``SPEC_SES_CREATETOOL``).
 
    **Gating:**
@@ -324,8 +325,8 @@ Sessions Design Specifications
 
    .. code-block:: typescript
 
-      const listSessionEntitiesTool = registerDualTool(
-          'jarvis_listSessionEntities',
+      const listSessionsTool = registerDualTool(
+          'jarvis_listSessions',
           async (
               _options: vscode.LanguageModelToolInvocationOptions<Record<string, never>>,
               _token: vscode.CancellationToken
@@ -333,18 +334,18 @@ Sessions Design Specifications
               const sessions = scanner?.entities
                   .filter(e => e.kind === 'session')
                   .map(e => ({ name: e.name, summary: e.summary ?? '', folder: e.folder, agent: e.agent ?? '' })) ?? [];
-              log.info(`[SES] listSessionEntities: ${sessions.length} session(s)`);
+              log.info(`[SES] listSessions: ${sessions.length} session(s)`);
               return new vscode.LanguageModelToolResult([
                   new vscode.LanguageModelTextPart(JSON.stringify({ sessions }))
               ]);
           },
-          'Lists all Jarvis session entities (lightweight projects) discovered under <workspace>/.jarvis/sessions/. Each entry has name, summary, folder, and agent (empty string when no binding set). Distinct from jarvis_listSessions which lists chat sessions.',
+          'Lists all Jarvis session entities (lightweight projects) discovered under <workspace>/.jarvis/sessions/. Each entry has name, summary, folder, and agent (empty string when no binding set). Distinct from jarvis_listChatSessions which lists VS Code chat tab titles.',
           {},
           async () => {
               const sessions = scanner?.entities
                   .filter(e => e.kind === 'session')
                   .map(e => ({ name: e.name, summary: e.summary ?? '', folder: e.folder, agent: e.agent ?? '' })) ?? [];
-              log.info(`[SES] listSessionEntities(MCP): ${sessions.length} session(s)`);
+              log.info(`[SES] listSessions(MCP): ${sessions.length} session(s)`);
               return { sessions };
           }
       );
@@ -354,11 +355,11 @@ Sessions Design Specifications
    .. code-block:: json
 
       {
-        "name": "jarvis_listSessionEntities",
+        "name": "jarvis_listSessions",
         "displayName": "List Session Entities",
-        "modelDescription": "Lists all Jarvis session entities (lightweight projects) discovered under <workspace>/.jarvis/sessions/. Each entry has name, summary, folder, and agent (empty string when no binding set). Distinct from jarvis_listSessions which lists chat sessions.",
+        "modelDescription": "Lists all Jarvis session entities (lightweight projects) discovered under <workspace>/.jarvis/sessions/. Each entry has name, summary, folder, and agent (empty string when no binding set). Distinct from jarvis_listChatSessions which lists VS Code chat tab titles.",
         "canBeReferencedInPrompt": true,
-        "toolReferenceName": "listSessionEntities",
+        "toolReferenceName": "listSessions",
         "icon": "$(list-unordered)",
         "inputSchema": {
           "type": "object",

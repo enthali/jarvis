@@ -1013,32 +1013,31 @@ Automation Design Specifications
 
 .. spec:: Shared Resolver Reuse for Heartbeat Validation
    :id: SPEC_AUT_HEARTBEAT_RESOLVER_REUSE
-   :status: implemented
+   :status: draft
    :links: REQ_AUT_HEARTBEAT_RESOLVER_REUSE; SPEC_MSG_SENDTOSESSION; SPEC_MSG_SESSIONLOOKUP
 
    **Description:**
    All heartbeat destination validation sites (load-time, fire-time,
-   ``jarvis_registerJob`` tool) reuse ``getAllSessions()`` and
-   ``filterNamedSessions()`` from ``src/sessionLookup.ts`` — the same module
-   and functions used by ``SPEC_MSG_SENDTOSESSION``.  No parallel
-   session-enumeration logic is introduced.
+   ``jarvis_registerJob`` tool) reuse the shared ``getValidDestinations()``
+   function from ``src/sessionLookup.ts`` — the same function used by
+   ``SPEC_MSG_SENDTOSESSION``.  No parallel session-enumeration logic is
+   introduced.
 
-   **Import in ``heartbeat.ts`` (new):**
+   **Import in ``heartbeat.ts`` (updated):**
 
    .. code-block:: typescript
 
-      import { getAllSessions, filterNamedSessions } from './sessionLookup';
+      import { getValidDestinations } from './sessionLookup';
 
-   **Import in ``extension.ts`` (already present):**
-   ``getAllSessions`` and ``filterNamedSessions`` are imported by
-   ``SPEC_MSG_SENDTOSESSION``; no additional import is needed.
+   **Import in ``extension.ts`` (updated):**
+   ``getValidDestinations`` replaces direct ``getAllSessions`` +
+   ``filterNamedSessions`` usage in the sendToSession handler.
 
    **Valid destination set definition:**
-   Identical to ``SPEC_MSG_SENDTOSESSION``: named VS Code chat session titles
-   currently present in the workspace, as returned by ``getAllSessions()``
-   filtered through ``filterNamedSessions()`` (excludes sessions with empty or
-   ``'New Chat'`` titles).
+   The union of {named VS Code chat session titles from ``state.vscdb``} ∪
+   {YAML entity names from the scanner store (sessions, projects, events)},
+   as computed by ``getValidDestinations(scanner)``.
 
-   **Consistency guarantee:** any future change to the resolver (e.g. new
-   filtering rules in ``filterNamedSessions``) propagates automatically to all
-   three validation sites without further code changes.
+   **Consistency guarantee:** any future change to the resolver propagates
+   automatically to all validation sites (``sendToSession``, heartbeat load,
+   heartbeat fire, ``registerJob``) without further code changes.

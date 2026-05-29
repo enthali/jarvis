@@ -115,15 +115,16 @@ Sessions Requirements
      name SHALL NOT be silently sanitized.
 
 
-.. req:: jarvis_listSessionEntities LM+MCP Tool
+.. req:: jarvis_listSessions LM+MCP Tool
    :id: REQ_SES_LISTTOOL
-   :status: implemented
+   :status: draft
    :priority: required
    :links: US_SES_SESSIONS
 
    **Description:**
-   A new Language Model and MCP tool ``jarvis_listSessionEntities`` SHALL return
-   the array of session entities known to the scanner.
+   A Language Model and MCP tool ``jarvis_listSessions`` SHALL return
+   the array of session entities known to the scanner (renamed from
+   ``jarvis_listSessionEntities``).
 
    **Acceptance Criteria:**
 
@@ -137,10 +138,10 @@ Sessions Requirements
      SHALL be absent from both the LM tool catalog and the MCP tool catalog
      after extension reload.  Gating is static (activation-time only) per
      ADR ``tool-deregistration.md`` — no runtime add/remove.
-   * AC-3: The tool SHALL be distinct from ``jarvis_listSessions`` (which lists
-     VS Code chat sessions). Both MAY be active simultaneously.
+   * AC-3: The tool SHALL be distinct from ``jarvis_listChatSessions`` (which
+     lists VS Code chat tab titles). Both MAY be active simultaneously.
    * AC-4: The tool SHALL appear in the VS Code Chat tool picker with
-     ``toolReferenceName`` ``listSessionEntities``.
+     ``toolReferenceName`` ``listSessions``.
 
 
 .. req:: Session Tree-Node Context Menu Parity

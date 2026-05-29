@@ -182,7 +182,58 @@ Run via `syspilot.impact-python` skill against `docs/_build/html/needs.json`
 
 ## Engineer Reports
 
-(populated by engineers as they complete their steps)
+### System Designer Report (2026-05-29)
+
+**Decisions made (agreed with PM via askQuestions):**
+
+1. **Schema backward-compat (AC-3):** Option (b) — graceful default at load.
+   `agent` is added to project/event schemas as **optional**. Existing YAMLs
+   without `agent` load fine; `EntityEntry.agent` is `undefined` at runtime
+   (same semantics as sessions). No migration required.
+
+2. **Event `summary` required:** Yes — added to `event.schema.json` `required`
+   array. Test data updated. Scanner still loads events without `summary`
+   (fail-open at runtime; schema is for editor-time validation only).
+
+3. **Folder naming:** Projects + Sessions = verbatim raw name (no slug).
+   Events = `<date>_<raw name>` (underscore separator, raw name verbatim).
+   Old kebab-case folders remain readable (no migration).
+
+4. **Inline icons:** `$(go-to-file)` for YAML, `$(notebook)` for context.md,
+   `$(record)` for recording (conditional). Consistent across all entity types.
+
+**New IDs created:**
+
+| Level | IDs |
+|-------|-----|
+| US | `US_EXP_LISTEVENTS`, `US_EXP_CREATEPROJECT`, `US_EXP_CREATEEVENT`, `US_EXP_ENTITYPARITY` |
+| REQ | `REQ_EXP_LISTEVENTS`, `REQ_EXP_CREATEPROJECT`, `REQ_EXP_CREATEEVENT`, `REQ_EXP_ENTITY_AGENT`, `REQ_EXP_EVENT_SUMMARY`, `REQ_EXP_ENTITY_TREECLICK`, `REQ_EXP_ENTITY_ICONS` |
+| SPEC | `SPEC_EXP_LISTEVENTS`, `SPEC_EXP_CREATEPROJECT`, `SPEC_EXP_CREATEEVENT`, `SPEC_EXP_ENTITY_AGENT`, `SPEC_EXP_ENTITY_TREECLICK`, `SPEC_EXP_ENTITY_ICONS` |
+
+**Extended IDs (status → draft):**
+
+| Level | IDs |
+|-------|-----|
+| US | `US_MSG_LISTSESSIONS`, `US_SES_SESSIONS`, `US_MSG_SAFE_SEND`, `US_EXP_NEWENTITY`, `US_AUT_HEARTBEAT_VALIDATION` |
+| REQ | `REQ_MSG_LISTSESSIONS`, `REQ_MSG_SENDTOSESSION`, `REQ_SES_LISTTOOL`, `REQ_EXP_NEWPROJECT`, `REQ_EXP_NEWEVENT`, `REQ_AUT_HEARTBEAT_RESOLVER_REUSE` |
+| SPEC | `SPEC_MSG_LISTSESSIONS`, `SPEC_MSG_SENDTOSESSION`, `SPEC_SES_TOOLS`, `SPEC_AUT_HEARTBEAT_RESOLVER_REUSE`, `SPEC_EXP_NEWPROJECT_CMD`, `SPEC_EXP_NEWEVENT_CMD` |
+
+**MECE advisory:** (deferred — to be run by CM after commit)
+
+**Open issues / risks:**
+
+1. `SPEC_EXP_ENTITY_ICONS` recording icon conditional visibility: exact
+   mechanism (per-item context key vs. `getTreeItem()` check) is left to
+   dev engineer — both approaches are valid.
+2. `getValidDestinations()` takes `scanner` as parameter — requires wiring
+   change in extension.ts (minor, but dev engineer should note).
+3. The `jarvis.openYaml` command currently exists as an inline action only
+   for projects/events. Sessions use `jarvis.openSessionContext` for
+   context.md but may not have an explicit YAML open command yet — dev
+   engineer should verify.
+
+**Recommendation:** UAT engineer can proceed. Design is complete and
+cross-level consistent. No design fix-pass needed.
 
 ---
 
@@ -193,7 +244,7 @@ Run via `syspilot.impact-python` skill against `docs/_build/html/needs.json`
 | 0. Branch | done | CM | `feature/entity-parity` from `develop@7ec65b0` |
 | 1. Change Document | in-progress | CM | this file |
 | 2. Impact Analysis | done | CM | clusters A-F above; needs.json @ 2026-05-23 (no doc changes since) |
-| 3. System Designer | pending | syspilot.design | per-level + checkpoint after each |
+| 3. System Designer | done | syspilot.design | US/REQ/SPEC complete, see Engineer Report above |
 | 4. Test Engineer | pending | syspilot.uat | `tst-entity-parity.md` |
 | 5. Dev Engineer | pending | syspilot.implement | code + tests |
 | 6. MECE final | pending | syspilot.mece | |

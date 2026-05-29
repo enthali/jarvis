@@ -61,20 +61,21 @@ Messaging User Stories
 
 .. story:: List Available Chat Sessions (LM Tool)
    :id: US_MSG_LISTSESSIONS
-   :status: approved
+   :status: draft
    :priority: optional
    :links: US_MSG_CHATQUEUE; US_MSG_OPENSESSION
 
    **As a** LLM agent working in a Jarvis workspace,
-   **I want** a tool that lists all available chat sessions by name,
-   **so that** I can discover valid session names before sending messages via
+   **I want** a tool that lists all available VS Code chat sessions by name,
+   **so that** I can discover active chat tab titles before sending messages via
    ``sendToSession``.
 
    **Acceptance Criteria:**
 
-   * AC-1: A Language Model Tool ``jarvis_listSessions`` is available in the
-     Chat tool picker
-   * AC-2: The tool returns a list of session names (titles) from the current
+   * AC-1: A Language Model Tool ``jarvis_listChatSessions`` is available in the
+     Chat tool picker (renamed from ``jarvis_listSessions`` which now refers to
+     YAML session entities)
+   * AC-2: The tool returns a list of chat session names (titles) from the current
      workspace's ``state.vscdb``
    * AC-3: Empty or untitled sessions are excluded from the list
 
@@ -278,7 +279,7 @@ Messaging User Stories
 
 .. story:: Safe Send-to-Session (Destination Validation)
    :id: US_MSG_SAFE_SEND
-   :status: implemented
+   :status: draft
    :priority: mandatory
    :links: US_MSG_CHATQUEUE; US_MSG_LISTSESSIONS
 
@@ -302,3 +303,7 @@ Messaging User Stories
      returns a success response as before
    * AC-5: No regression in adjacent workflows (auto-delivery poll loop,
      heartbeat queue steps, MCP access)
+   * AC-6: The **valid destination set** is the union of {named VS Code chat
+     session titles from ``state.vscdb``} ∪ {YAML entity names from the scanner
+     (sessions, projects, events)}. A destination is valid if it appears in
+     either subset.

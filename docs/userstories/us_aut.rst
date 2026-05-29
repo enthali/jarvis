@@ -55,7 +55,7 @@ Automation User Stories
 
 .. story:: Queue Step Destination Validation
    :id: US_AUT_HEARTBEAT_VALIDATION
-   :status: implemented
+   :status: draft
    :priority: optional
    :links: US_AUT_HEARTBEAT
 
@@ -81,5 +81,5 @@ Automation User Stories
    * AC-5: Valid-destination queue steps are unaffected — no behavior change for
      correctly configured jobs
    * AC-6: Destination validation uses the same resolver as ``jarvis_sendToSession``
-     (``getAllSessions`` + ``filterNamedSessions`` from ``src/sessionLookup.ts``) —
-     no separate implementation
+     (unified valid destination set: chat session titles ∪ YAML entity names from
+     ``src/sessionLookup.ts``) — no separate implementation
