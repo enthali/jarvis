@@ -245,6 +245,7 @@ cross-level consistent. No design fix-pass needed.
 | 1. Change Document | in-progress | CM | this file |
 | 2. Impact Analysis | done | CM | clusters A-F above; needs.json @ 2026-05-23 (no doc changes since) |
 | 3. System Designer | done | syspilot.design | US/REQ/SPEC complete, see Engineer Report above |
+| 3a. Design fix-pass | done | syspilot.design | PM checkpoint resolutions encoded — see Fix-Pass Report below |
 | 4. Test Engineer | pending | syspilot.uat | `tst-entity-parity.md` |
 | 5. Dev Engineer | pending | syspilot.implement | code + tests |
 | 6. MECE final | pending | syspilot.mece | |
@@ -283,3 +284,84 @@ cross-level consistent. No design fix-pass needed.
 - Finding 1 (icons mechanism): defer to dev engineer to formalize as `jarvis.hasRecording` context-key wiring in implementation. SPEC AC update can ride along in dev commit. **Not blocking UAT** if test plan explicitly covers recording-icon visibility.
 - Finding 2 (agent required vs. optional): **blocks PM checkpoint** — escalating now.
 - Findings 3, 4: accepted as advisories; finding 3 may be addressed in docu phase, finding 4 goes to backlog.
+
+---
+
+## Design Fix-Pass Report (2026-05-29)
+
+**Trigger:** PM checkpoint resolved MECE findings #2 and #3; CM invoked
+designer fix-pass to encode PM decisions.
+
+### Changes summary
+
+**PM decision #1 — Schema strictness (Option C):**
+- `agent` added to `"required"` arrays in `schemas/project.schema.json` and
+  `schemas/event.schema.json`.
+- `REQ_EXP_ENTITY_AGENT` rewritten: ACs now cover (a) schema required,
+  (b) scanner fail-open, (c) unbound marker (`undefined`), (d) warn log line.
+- `SPEC_EXP_ENTITY_AGENT` rewritten: specifies `console.warn()` log line,
+  unbound semantics in `EntityEntry`, backward-compat via fail-open scanner +
+  lazy-bind.
+
+**PM decision #2 — Lazy-on-demand migration (Option i + Lazy):**
+- New `REQ_EXP_ENTITY_LAZYBIND` — lazy-bind requirement for unbound entities.
+- New `SPEC_EXP_ENTITY_LAZYBIND` — flow: detect unbound → invoke picker →
+  write YAML → rescan → continue open. Cancel and "No agent" semantics
+  specified.
+- `SPEC_EXP_ENTITY_TREECLICK` extended with unbound delegation paragraph.
+- `US_EXP_ENTITYPARITY` AC-7 added for lazy-bind UX.
+
+**PM decision #3 — Agent-picker consolidation (mandatory):**
+- New `SPEC_EXP_AGENT_PICKER` — formalizes `pickAgentMode()` as shared
+  component with anti-drift rule; enumerates all 5 consumers.
+- `SPEC_EXP_NEWPROJECT_CMD` — agent-picker step 4 added after name prompt.
+- `SPEC_EXP_NEWEVENT_CMD` — agent-picker step 6 added after date prompt.
+- `REQ_EXP_NEWPROJECT` AC-11/AC-12 added for picker + YAML write.
+- `REQ_EXP_NEWEVENT` AC-13/AC-14 added for picker + YAML write.
+- `US_EXP_ENTITYPARITY` AC-8 added for newProject/newEvent picker.
+
+**Testdata:** Added `agent` field to 7 valid project fixtures and 4 valid
+event fixtures. Invalid fixtures (`invalid-bad-name`, `invalid-no-name`,
+`invalid-empty`, `invalid-bad-status`) left without `agent` — they are
+intentional "invalid" fixtures and also test scanner fail-open behavior.
+
+### New IDs
+
+| Level | ID | Status |
+|-------|----|--------|
+| REQ | `REQ_EXP_ENTITY_LAZYBIND` | draft |
+| SPEC | `SPEC_EXP_AGENT_PICKER` | draft |
+| SPEC | `SPEC_EXP_ENTITY_LAZYBIND` | draft |
+
+### Extended IDs (status unchanged, content updated)
+
+| Level | ID | Change |
+|-------|----|--------|
+| US | `US_EXP_ENTITYPARITY` | AC-7, AC-8 added |
+| REQ | `REQ_EXP_ENTITY_AGENT` | Rewritten: required + fail-open + unbound + warn log |
+| REQ | `REQ_EXP_NEWPROJECT` | AC-11, AC-12 added (agent-picker) |
+| REQ | `REQ_EXP_NEWEVENT` | AC-13, AC-14 added (agent-picker) |
+| SPEC | `SPEC_EXP_ENTITY_AGENT` | Rewritten: required schema + warn log + unbound semantics |
+| SPEC | `SPEC_EXP_NEWPROJECT_CMD` | Steps renumbered; agent-picker at step 4 |
+| SPEC | `SPEC_EXP_NEWEVENT_CMD` | Steps renumbered; agent-picker at step 6 |
+| SPEC | `SPEC_EXP_ENTITY_TREECLICK` | Unbound delegation added |
+
+### Schema diff
+
+- `schemas/project.schema.json`: `"required": ["name", "summary"]` → `["name", "summary", "agent"]`
+- `schemas/event.schema.json`: `"required": ["name", "location", "status", "dates", "summary"]` → `["name", "location", "status", "dates", "summary", "agent"]`
+
+### Picker-component extraction decision
+
+Decided to **reuse existing** `pickAgentMode()` from `SPEC_SES_AGENT_PICKER`
+rather than extracting a new `SPEC_EXP_AGENT_PICKER_COMPONENT`. The new
+`SPEC_EXP_AGENT_PICKER` spec is a consolidation/linkage spec that formalizes
+the shared nature and enumerates all 5 consumers with an anti-drift rule.
+No code duplication.
+
+### askQuestions process note
+
+PM confirmed retrospectively: subagents cannot write into other sessions'
+message queues. The designer correctly consulted the user directly via
+`vscode_askQuestions` during the first design pass. No process correction
+needed — this is documented here for the record.

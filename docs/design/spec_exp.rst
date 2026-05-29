@@ -647,7 +647,7 @@ Explorer Design Specifications
 .. spec:: New Project Command
    :id: SPEC_EXP_NEWPROJECT_CMD
    :status: draft
-   :links: REQ_EXP_NEWPROJECT; REQ_EXP_REACTIVECACHE; REQ_EXP_AGENTSESSION; SPEC_EXP_SCANNER; SPEC_EXP_EXTENSION; SPEC_EXP_AGENTSESSION
+   :links: REQ_EXP_NEWPROJECT; REQ_EXP_REACTIVECACHE; REQ_EXP_AGENTSESSION; SPEC_EXP_SCANNER; SPEC_EXP_EXTENSION; SPEC_EXP_AGENTSESSION; SPEC_EXP_AGENT_PICKER
 
    **Description:**
    Register ``jarvis.newProject`` in ``extension.ts``. Triggered by the ``$(add)``
@@ -685,30 +685,38 @@ Explorer Design Specifications
          }
 
    3. If user cancels (``undefined``), return.
-   4. Use the input verbatim as folder name (no transformation).
-   5. Compute target path: ``path.join(projectsFolder, name)``.
-   6. If target path already exists (``fs.existsSync``), show error notification
-      ``"Folder '<name>' already exists in projects folder"`` and return.
-   7. Create directory: ``await fs.promises.mkdir(targetPath)``.
-   8. Write ``project.yaml``:
+   4. **Agent-picker** (``SPEC_EXP_AGENT_PICKER``):
 
       .. code-block:: typescript
 
-         const content = `name: "${input}"\nsummary: ""\n`;
+         const agentInput = await pickAgentMode();
+         if (agentInput === undefined) { return; }  // user cancelled
+
+   5. Use the input verbatim as folder name (no transformation).
+   6. Compute target path: ``path.join(projectsFolder, name)``.
+   7. If target path already exists (``fs.existsSync``), show error notification
+      ``"Folder '<name>' already exists in projects folder"`` and return.
+   8. Create directory: ``await fs.promises.mkdir(targetPath)``.
+   9. Write ``project.yaml``:
+
+      .. code-block:: typescript
+
+         let content = `name: "${input}"\nsummary: ""\n`;
+         if (agentInput) { content += `agent: "${agentInput}"\n`; }
          await fs.promises.writeFile(
              path.join(targetPath, 'project.yaml'), content, 'utf-8');
 
-   9. Write ``context.md``:
+   10. Write ``context.md``:
 
-      .. code-block:: typescript
+       .. code-block:: typescript
 
-         await fs.promises.writeFile(
-             path.join(targetPath, 'context.md'), `# ${input}\n\n`, 'utf-8');
+          await fs.promises.writeFile(
+              path.join(targetPath, 'context.md'), `# ${input}\n\n`, 'utf-8');
 
-   10. Trigger scanner rescan: ``await scanner.rescan()``.
-   11. Find the new entity's ``LeafNode`` in ``scanner.getProjectTree()``
+   11. Trigger scanner rescan: ``await scanner.rescan()``.
+   12. Find the new entity's ``LeafNode`` in ``scanner.getProjectTree()``
        (search for leaf whose ``id`` contains the new folder path).
-   12. Execute ``jarvis.openAgentSession`` with the found ``LeafNode``:
+   13. Execute ``jarvis.openAgentSession`` with the found ``LeafNode``:
 
        .. code-block:: typescript
 
@@ -723,7 +731,7 @@ Explorer Design Specifications
 .. spec:: New Event Command
    :id: SPEC_EXP_NEWEVENT_CMD
    :status: draft
-   :links: REQ_EXP_NEWEVENT; REQ_EXP_REACTIVECACHE; REQ_EXP_AGENTSESSION; SPEC_EXP_SCANNER; SPEC_EXP_EXTENSION; SPEC_EXP_AGENTSESSION
+   :links: REQ_EXP_NEWEVENT; REQ_EXP_REACTIVECACHE; REQ_EXP_AGENTSESSION; SPEC_EXP_SCANNER; SPEC_EXP_EXTENSION; SPEC_EXP_AGENTSESSION; SPEC_EXP_AGENT_PICKER
 
    **Description:**
    Register ``jarvis.newEvent`` in ``extension.ts``. Triggered by the ``$(add)``
@@ -764,37 +772,43 @@ Explorer Design Specifications
          }
 
    5. If user cancels (``undefined``), return.
-   6. Derive folder name: ```${dateInput}_${nameInput}```.
-   7. Compute target path: ``path.join(eventsFolder, folderName)``.
-   8. If target path already exists (``fs.existsSync``), show error notification
+   6. **Agent-picker** (``SPEC_EXP_AGENT_PICKER``):
+
+      .. code-block:: typescript
+
+         const agentInput = await pickAgentMode();
+         if (agentInput === undefined) { return; }  // user cancelled
+
+   7. Derive folder name: ```${dateInput}_${nameInput}```.
+   8. Compute target path: ``path.join(eventsFolder, folderName)``.
+   9. If target path already exists (``fs.existsSync``), show error notification
       ``"Folder '<folderName>' already exists in events folder"`` and return.
-   9. Create directory: ``await fs.promises.mkdir(targetPath)``.
-   10. Write ``event.yaml``:
+   10. Create directory: ``await fs.promises.mkdir(targetPath)``.
+   11. Write ``event.yaml``:
 
        .. code-block:: typescript
 
-          const content = [
+          const lines = [
               `name: "${nameInput}"`,
               `summary: ""`,
-              `dates:`,
-              `  start: "${dateInput}"`,
-              `  end: "${dateInput}"`,
-              ''
-          ].join('\n');
+          ];
+          if (agentInput) { lines.push(`agent: "${agentInput}"`); }
+          lines.push(`dates:`, `  start: "${dateInput}"`, `  end: "${dateInput}"`, '');
+          const content = lines.join('\n');
           await fs.promises.writeFile(
               path.join(targetPath, 'event.yaml'), content, 'utf-8');
 
-   11. Write ``context.md``:
+   12. Write ``context.md``:
 
        .. code-block:: typescript
 
           await fs.promises.writeFile(
               path.join(targetPath, 'context.md'), `# ${nameInput}\n\n`, 'utf-8');
 
-   12. Trigger scanner rescan: ``await scanner.rescan()``.
-   13. Find the new entity's ``LeafNode`` in ``scanner.getEventTree()``
+   13. Trigger scanner rescan: ``await scanner.rescan()``.
+   14. Find the new entity's ``LeafNode`` in ``scanner.getEventTree()``
        (search for leaf whose ``id`` contains the new folder path).
-   14. Execute ``jarvis.openAgentSession`` with the found ``LeafNode``.
+   15. Execute ``jarvis.openAgentSession`` with the found ``LeafNode``.
 
    **Disposable** pushed to ``context.subscriptions``.
 
@@ -1533,50 +1547,59 @@ Explorer Design Specifications
    :links: REQ_EXP_ENTITY_AGENT; SPEC_EXP_SCANNER; SPEC_SES_AGENT_SCHEMA
 
    **Description:**
-   Extend ``schemas/project.schema.json`` and ``schemas/event.schema.json`` with
-   an optional ``agent`` field. Extend the scanner to read ``agent`` from project
-   and event YAMLs.
+   Make ``agent`` a **required** schema field in ``project.schema.json`` and
+   ``event.schema.json``. The scanner remains fail-open: missing ``agent`` does
+   not prevent loading, but the entity is considered **unbound**.
 
-   **Schema change (project.schema.json) — add property:**
+   **Schema change (project.schema.json):**
 
-   .. code-block:: json
+   Add ``"agent"`` to the ``"required"`` array (making it
+   ``["name", "summary", "agent"]``). The ``agent`` property definition is
+   unchanged (type ``string``).
 
-      "agent": {
-        "type": "string",
-        "description": "VS Code chat-mode name bound to this project. When set, opening the project activates that chat agent automatically."
-      }
+   **Schema change (event.schema.json):**
 
-   **Schema change (event.schema.json) — add property + update required:**
-
-   .. code-block:: json
-
-      "agent": {
-        "type": "string",
-        "description": "VS Code chat-mode name bound to this event."
-      }
-
-   Add ``"summary"`` to the ``"required"`` array (making it
-   ``["name", "location", "status", "dates", "summary"]``).
+   Add ``"agent"`` to the ``"required"`` array (making it
+   ``["name", "location", "status", "dates", "summary", "agent"]``). The
+   ``agent`` property definition is unchanged.
 
    **Scanner change (``yamlScanner.ts``):**
 
-   In the ``scanFolder()`` method, when reading ``project.yaml`` or
-   ``event.yaml``, read ``data.agent`` and assign to ``entry.agent`` if it is
-   a non-empty string. This is the same pattern already used for
-   ``session.yaml`` (see ``SPEC_SES_AGENT_SCHEMA``).
+   In ``_buildTree()``, when reading ``project.yaml`` or ``event.yaml``:
+
+   1. Read ``data.agent`` and assign to ``entry.agent`` if it is a non-empty
+      string. Same pattern as ``session.yaml`` (see ``SPEC_SES_AGENT_SCHEMA``).
+   2. If ``data.agent`` is missing, ``undefined``, or non-string, set
+      ``entry.agent = undefined`` (entity is **unbound**) and emit a
+      warning-level log line via ``console.warn()``:
+
+      .. code-block:: typescript
+
+         console.warn(
+             `${conventionFile === 'project.yaml' ? 'Project' : 'Event'} ` +
+             `${entry.name} at ${filePath} is missing required 'agent' ` +
+             `field — marked unbound`
+         );
+
+   **Unbound semantics in data model:**
+
+   ``EntityEntry.agent`` is ``string | undefined``. Consumers check
+   ``entity.agent === undefined`` to detect unbound state. No separate boolean
+   flag is introduced — this keeps the data model minimal.
 
    **Backward compatibility:**
 
-   Existing YAMLs without ``agent`` will have ``EntityEntry.agent === undefined``
-   at runtime. ``jarvis.openAgentSession`` already handles
-   ``agent === undefined`` (no mode parameter) per ``SPEC_SES_AGENT_OPEN``.
-   The schema field is optional — no validation error for missing ``agent``.
+   Existing YAMLs without ``agent`` still load at runtime (scanner is
+   fail-open). The ``"required"`` enforcement is for editor-time validation
+   (JSON schema in-editor warnings) and for communicating intent to new
+   entity creators. The lazy-bind flow (``SPEC_EXP_ENTITY_LAZYBIND``)
+   handles retroactive binding on tree-click.
 
 
 .. spec:: Entity Tree-Click-to-Chat
    :id: SPEC_EXP_ENTITY_TREECLICK
    :status: draft
-   :links: REQ_EXP_ENTITY_TREECLICK; SPEC_EXP_EXTENSION; SPEC_EXP_AGENTSESSION
+   :links: REQ_EXP_ENTITY_TREECLICK; SPEC_EXP_EXTENSION; SPEC_EXP_AGENTSESSION; SPEC_EXP_ENTITY_LAZYBIND
 
    **Description:**
    Set ``TreeItem.command`` on project and event leaf nodes to
@@ -1595,6 +1618,13 @@ Explorer Design Specifications
           title: 'Open Agent Session',
           arguments: [element]
       };
+
+   **Unbound entity delegation:**
+
+   When ``jarvis.openAgentSession`` is invoked and the resolved entity has
+   ``agent === undefined`` (unbound), the command SHALL delegate to the
+   lazy-bind flow (``SPEC_EXP_ENTITY_LAZYBIND``) before proceeding with the
+   normal open-flow. See ``SPEC_EXP_ENTITY_LAZYBIND`` for the full flow.
 
    **Impact on ``REQ_EXP_OPENYAML`` AC-4:**
 
@@ -1663,6 +1693,110 @@ Explorer Design Specifications
    **Icon order:** ``$(record)`` @1 (leftmost, conditional),
    ``$(notebook)`` @2, ``$(go-to-file)`` @3 (rightmost).
    * Disposable pushed to ``context.subscriptions``
+
+
+.. spec:: Shared Agent Picker Component
+   :id: SPEC_EXP_AGENT_PICKER
+   :status: draft
+   :links: REQ_EXP_ENTITY_LAZYBIND; REQ_EXP_NEWPROJECT; REQ_EXP_NEWEVENT; SPEC_SES_AGENT_PICKER; SPEC_SES_AGENT_DISCOVERY
+
+   **Description:**
+   The ``pickAgentMode()`` helper defined in ``SPEC_SES_AGENT_PICKER`` is
+   the **single shared agent-picker component** used by all five consumers.
+   This spec formalizes the consolidation — no new function is created; the
+   existing ``pickAgentMode()`` is reused as-is.
+
+   **Consumers (all SHALL call ``pickAgentMode()``):**
+
+   1. ``jarvis.newSession`` — existing (``SPEC_SES_AGENT_PICKER``).
+   2. ``jarvis.newProject`` — added in this CR (``SPEC_EXP_NEWPROJECT_CMD``
+      step 4).
+   3. ``jarvis.newEvent`` — added in this CR (``SPEC_EXP_NEWEVENT_CMD``
+      step 6).
+   4. ``jarvis_createProject`` / ``jarvis_createEvent`` LM tools — agent
+      parameter validated via ``discoverAgents()`` directly (picker is
+      interactive-only; tools receive the value programmatically).
+   5. Lazy-bind flow — added in this CR (``SPEC_EXP_ENTITY_LAZYBIND``).
+
+   **Return semantics (unchanged from ``SPEC_SES_AGENT_PICKER``):**
+
+   * ``undefined`` — user dismissed (Escape); caller MUST abort.
+   * ``""`` (empty string) — "No agent"; omit ``agent`` from YAML.
+   * ``"<identity>"`` — write ``agent: "<identity>"`` to YAML.
+
+   **Anti-drift rule:** No consumer SHALL implement its own agent QuickPick.
+   If the picker UI needs changes (e.g. new options), they are made once in
+   ``pickAgentMode()`` and all consumers inherit them automatically.
+
+   **File touchpoint:** ``src/extension.ts`` — ``pickAgentMode()`` (already
+   exists per ``SPEC_SES_AGENT_PICKER``; no new code needed, only new call
+   sites).
+
+
+.. spec:: Lazy-Bind on Tree-Click for Unbound Entities
+   :id: SPEC_EXP_ENTITY_LAZYBIND
+   :status: draft
+   :links: REQ_EXP_ENTITY_LAZYBIND; SPEC_EXP_ENTITY_TREECLICK; SPEC_EXP_AGENT_PICKER; SPEC_SES_AGENT_OPEN; SPEC_EXP_AGENTSESSION
+
+   **Description:**
+   When ``jarvis.openAgentSession`` is invoked on an entity whose
+   ``EntityEntry.agent`` is ``undefined`` (unbound), the command intercepts
+   the normal open-flow and presents the agent-picker first. On selection,
+   the ``agent`` field is written into the entity's YAML, the scanner is
+   refreshed, and the open-flow continues with the newly bound agent.
+
+   **Handler change in ``openAgentSession`` (``src/extension.ts``):**
+
+   Insert at the top of the new-session branch (before init-prompt
+   construction), after resolving the entity:
+
+   .. code-block:: typescript
+
+      // SPEC_EXP_ENTITY_LAZYBIND: lazy-bind unbound entities
+      if (entity.agent === undefined) {
+          const agentInput = await pickAgentMode();
+          if (agentInput === undefined) { return; }  // cancel → abort
+
+          // Write agent field into YAML
+          const yamlPath = element.id;  // convention file path
+          const raw = fs.readFileSync(yamlPath, 'utf-8');
+          const updatedYaml = raw.trimEnd() + '\n'
+              + (agentInput ? `agent: "${agentInput}"\n` : `agent: ""\n`);
+          fs.writeFileSync(yamlPath, updatedYaml, 'utf-8');
+
+          // Refresh scanner so entity.agent is populated
+          await scanner.rescan();
+
+          // Re-resolve entity with updated agent
+          entity = scanner.getEntity(element.id)!;
+      }
+
+   **Atomicity:**
+
+   The YAML write (``writeFileSync``) completes before the scanner rescan
+   and the chat-open call. This ensures the entity is bound before the chat
+   editor opens in the selected agent mode.
+
+   **Cancel semantics:**
+
+   If the user presses Escape in the picker (``pickAgentMode()`` returns
+   ``undefined``), the command returns immediately. No YAML mutation occurs,
+   and no chat editor is opened.
+
+   **"No agent" semantics:**
+
+   If the user selects "No agent" (``pickAgentMode()`` returns ``""``), the
+   ``agent`` field is written as an empty string. The open-flow proceeds
+   without agent mode (same as ``SPEC_SES_AGENT_OPEN`` with
+   ``entity.agent === ""``).
+
+   **Scope:** Applies to all three entity kinds (project, event, session)
+   because ``openAgentSession`` handles all entity types uniformly.
+
+   **File touchpoints:**
+
+   * ``src/extension.ts`` — ``openAgentSession`` handler: add unbound check +
+     lazy-bind block.
 
 
 .. spec:: Open Reminder File Command

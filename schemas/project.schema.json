@@ -3,7 +3,7 @@
   "title": "ProjectManager Project",
   "description": "Schema for ProjectManager project.yaml files",
   "type": "object",
-  "required": ["name", "summary"],
+  "required": ["name", "summary", "agent"],
   "properties": {
     "name": {
       "type": "string",

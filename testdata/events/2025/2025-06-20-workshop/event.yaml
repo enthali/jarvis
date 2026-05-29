@@ -5,6 +5,7 @@ location: "Online / Virtual"
 status: "attended"
 role: "visitor"
 summary: "Hands-on workshop on building VS Code extensions with TypeScript."
+agent: ""
 lastUpdated: "2025-06-20"
 dates:
   start: "2025-06-20"

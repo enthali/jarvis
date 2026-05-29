@@ -491,9 +491,10 @@ Explorer User Stories
 
    **Acceptance Criteria:**
 
-   * AC-1: Project and Event schemas gain an optional ``agent`` field.
-     Existing YAMLs without ``agent`` load without error (graceful default
-     at runtime: treated as "no agent").
+   * AC-1: Project and Event schemas declare ``agent`` as **required**.
+     The scanner is fail-open: YAMLs missing ``agent`` still load, but the
+     entity is flagged internally as **unbound**. A warning log line is
+     emitted at scan time.
    * AC-2: Event schema makes ``summary`` required. Existing events without
      ``summary`` get a validation warning in editors but still load at runtime.
    * AC-3: Tree-click on a project or event leaf node opens the agent-chat
@@ -507,3 +508,10 @@ Explorer User Stories
      in that mode).
    * AC-6: The YAML scanner reads ``agent`` from ``project.yaml`` and
      ``event.yaml`` — same pattern as ``session.yaml``.
+   * AC-7: Tree-click on an **unbound** entity (project, event, or session)
+     opens the agent-picker first. The user selects an agent, the ``agent``
+     field is written into the YAML, then the normal open-flow proceeds.
+     Cancel aborts — no YAML mutation.
+   * AC-8: ``jarvis.newProject`` and ``jarvis.newEvent`` invoke the
+     agent-picker after the name/date prompts — same shared picker component
+     as ``jarvis.newSession``.

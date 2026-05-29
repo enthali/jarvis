@@ -278,6 +278,12 @@ Explorer Requirements
    * AC-10: Invalid names (filesystem-illegal characters, dot-only, Windows
      reserved device names) SHALL be rejected via ``validateInput`` inline
      feedback in the InputBox — same rules as ``jarvis.newSession``.
+   * AC-11: After the name prompt, the command SHALL invoke the shared
+     agent-picker (``SPEC_EXP_AGENT_PICKER``). If the user cancels the picker,
+     the command SHALL abort without side effects.
+   * AC-12: The selected agent SHALL be written to ``project.yaml`` as the
+     ``agent`` field. If "No agent" is chosen, the ``agent`` field SHALL be
+     omitted.
 
 
 .. req:: New Event Command
@@ -316,6 +322,12 @@ Explorer Requirements
    * AC-12: Invalid names (filesystem-illegal characters, dot-only, Windows
      reserved device names) SHALL be rejected via ``validateInput`` inline
      feedback — same rules as ``jarvis.newSession``.
+   * AC-13: After the date prompt, the command SHALL invoke the shared
+     agent-picker (``SPEC_EXP_AGENT_PICKER``). If the user cancels the picker,
+     the command SHALL abort without side effects.
+   * AC-14: The selected agent SHALL be written to ``event.yaml`` as the
+     ``agent`` field. If "No agent" is chosen, the ``agent`` field SHALL be
+     omitted.
 
 
 .. req:: Rescan Button in Title Bar
@@ -807,24 +819,30 @@ Explorer Requirements
    :links: US_EXP_ENTITYPARITY; REQ_SES_AGENT_FIELD; REQ_SES_AGENT_OPEN
 
    **Description:**
-   The project and event entity schemas, YAML scanner, and tool outputs SHALL
-   support an optional ``agent`` field — same semantics as sessions.
+   The project and event entity schemas SHALL declare ``agent`` as a
+   **required** field. The YAML scanner SHALL be fail-open: entities missing
+   ``agent`` still load, but are flagged internally as **unbound**.
 
    **Acceptance Criteria:**
 
    * AC-1: ``schemas/project.schema.json`` and ``schemas/event.schema.json``
-     SHALL declare an optional ``agent`` property (type ``string``).
+     SHALL declare ``agent`` in the ``"required"`` array.
    * AC-2: ``src/yamlScanner.ts`` SHALL read the ``agent`` field from
      ``project.yaml`` and ``event.yaml`` and store it in ``EntityEntry.agent``
      when the value is a non-empty string.  A missing or non-string value
-     SHALL result in ``undefined`` (no error).
-   * AC-3: ``jarvis_listProjects`` and ``jarvis_listEvents`` tool outputs SHALL
+     SHALL result in ``EntityEntry.agent === undefined`` and the entity SHALL
+     be considered **unbound**.
+   * AC-3: When the scanner encounters a YAML without an ``agent`` field, it
+     SHALL emit a warning-level log entry:
+     ``"<entity-kind> <name> at <path> is missing required 'agent' field — marked unbound"``.
+   * AC-4: ``jarvis_listProjects`` and ``jarvis_listEvents`` tool outputs SHALL
      include ``agent`` (as ``""`` when absent).
-   * AC-4: Existing project/event YAMLs without ``agent`` SHALL load without
-     error — graceful default at runtime (treated as no binding). No migration.
    * AC-5: ``jarvis.openAgentSession`` SHALL respect ``entity.agent`` on
      project/event entities — same behavior as session entities per
      ``REQ_SES_AGENT_OPEN``.
+   * AC-6: Downstream consumers SHALL check ``EntityEntry.agent`` to determine
+     bound vs. unbound state (no separate boolean flag — ``undefined`` means
+     unbound).
 
 
 .. req:: Event Summary Required
@@ -891,3 +909,28 @@ Explorer Requirements
      ``$(notebook)``, ``$(go-to-file)``.
    * AC-5: Session nodes already have these; this requirement extends the same
      pattern to project and event nodes.
+
+
+.. req:: Lazy-Bind on Tree-Click for Unbound Entities
+   :id: REQ_EXP_ENTITY_LAZYBIND
+   :status: draft
+   :priority: required
+   :links: US_EXP_ENTITYPARITY; REQ_EXP_ENTITY_AGENT; REQ_EXP_ENTITY_TREECLICK; REQ_SES_AGENT_PICKER
+
+   **Description:**
+   When a user tree-clicks an **unbound** entity (one whose YAML lacks
+   ``agent``), the system SHALL prompt for an agent binding before opening
+   the chat session.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Tree-click on an unbound entity (project, event, or session) SHALL
+     open the agent-picker (shared component per ``SPEC_EXP_AGENT_PICKER``).
+   * AC-2: On agent selection, the system SHALL write ``agent: "<selected>"``
+     into the entity's YAML file in place.
+   * AC-3: After the YAML write, the normal open-flow SHALL proceed
+     (open chat in selected agent mode + init prompt).
+   * AC-4: If the user cancels the picker, the open SHALL abort. No YAML
+     mutation SHALL occur.
+   * AC-5: If "No agent" is selected, the ``agent`` field SHALL be written
+     as empty string, and the open-flow proceeds without agent mode.
