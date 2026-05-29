@@ -1,0 +1,11 @@
+# Implementation: SPEC_UAT_TESTDATA_FILES
+# Requirements: REQ_UAT_VALID_SAMPLES
+name: "DevCon 2026"
+location: "Berlin Congress Center, Berlin, Germany"
+status: "registered"
+summary: "Annual developer conference — covering platform extensibility and AI integrations."
+agent: "syspilot.cm"
+lastUpdated: "2026-05-29"
+dates:
+  start: "2026-06-15"
+  end: "2026-06-17"
