@@ -10,7 +10,7 @@ Entity Parity User Acceptance Tests
    **As a** Jarvis Test Engineer,
    **I want** a set of manual acceptance test scenarios for entity feature parity
    (Projects and Events gaining the same agent-binding, tree-click-to-chat,
-   lazy-bind, inline-icons, and schema-strictness capabilities as Sessions),
+   inline-icons, and schema-strictness capabilities as Sessions),
    **so that** I can verify end-to-end that all three entity kinds behave
    consistently before release.
 
@@ -21,9 +21,9 @@ Entity Parity User Acceptance Tests
      entry is emitted — the entity is not dropped (maps to
      ``US_EXP_ENTITYPARITY`` AC-1 / T-15).
    * AC-2: A test verifies that ``agent: ""`` (explicit empty string) in
-     ``project.yaml`` is treated as unbound (same as missing field), causing
-     the lazy-bind picker to fire on tree-click (maps to
-     ``US_EXP_ENTITYPARITY`` AC-1 / T-16).
+     ``project.yaml`` is treated as unbound at runtime: tree-click opens a
+     default chat directly (no picker, no YAML writeback), followed by rename
+     and init-prompt (maps to ``US_EXP_ENTITYPARITY`` AC-1 / T-16).
    * AC-3: A test verifies that ``event.yaml`` without a ``summary`` field loads
      at runtime but triggers an editor schema warning (maps to
      ``US_EXP_ENTITYPARITY`` AC-2 / T-17).
@@ -38,17 +38,18 @@ Entity Parity User Acceptance Tests
    * AC-6: A test verifies that the ``$(record)`` icon is visible only when a
      ``recording/`` subfolder exists under the entity folder (maps to
      ``US_EXP_ENTITYPARITY`` AC-4 / T-36).
-   * AC-7: A test verifies the full lazy-bind flow for an unbound entity:
-     cancel → no mutation, "default agent" → ``agent: ""`` written + no chat,
-     concrete agent → YAML written + chat opened (maps to
-     ``US_EXP_ENTITYPARITY`` AC-7 / T-27–T-30).
-   * AC-8: A test verifies that a second tree-click on an entity whose
-     ``agent`` is ``""`` (after a "default agent" lazy-bind) re-fires the
-     picker, confirming the entity remains unbound (maps to
+   * AC-7: A test verifies the New-Entity agent-picker flow: invoking
+     ``Jarvis: New …`` and pressing Escape in the picker aborts entity
+     creation (no folder/YAML written, no chat) (maps to
+     ``US_EXP_ENTITYPARITY`` AC-7 / T-27).
+   * AC-8: A test verifies that selecting "No agent" during New-Entity
+     creation writes ``agent: ""`` to YAML and opens a default chat
+     (no mode) followed by rename + init-prompt (maps to
      ``US_EXP_ENTITYPARITY`` AC-7 / T-28).
-   * AC-9: A test verifies that a YAML write failure during lazy-bind aborts
-     cleanly: warn-log emitted, no chat opened, no partial file state (maps to
-     ``US_EXP_ENTITYPARITY`` AC-7 / T-30).
+   * AC-9: A test verifies that selecting a concrete agent during New-Entity
+     creation writes ``agent: "<name>"`` and opens chat in that mode
+     followed by rename + init-prompt (maps to
+     ``US_EXP_ENTITYPARITY`` AC-7 / T-29).
    * AC-10: A test verifies that a kind-aware init-prompt fires when a project
      or event is opened via tree-click for the first time, and does NOT fire
      on re-click of an already-open session (maps to ``US_SES_SESSIONS`` AC-9
@@ -57,15 +58,19 @@ Entity Parity User Acceptance Tests
    **Test Scenarios (summary):**
 
    * T-15: Scanner loads project without ``agent`` → unbound + warn-log.
-   * T-16: ``agent: ""`` in project.yaml → entity unbound; picker fires on click.
+   * T-16: ``agent: ""`` in project.yaml → tree-click opens default chat
+     directly (no picker, no writeback) + rename + init-prompt.
    * T-17: Event without ``summary`` → loads at runtime; editor shows schema
      warning.
-   * T-27: Tree-click unbound project → cancel picker → no mutation, no chat.
-   * T-28: Tree-click unbound project → "default agent" → ``agent: ""`` written,
-     no chat; second click re-fires picker.
-   * T-29: Tree-click unbound project → concrete agent → YAML written, chat opens.
-   * T-30: Tree-click unbound project → YAML write fails → warn-log, no chat,
-     no partial state.
+   * T-27: ``New Project/Event/Session`` → Escape in agent picker → entity
+     creation aborted (no folder/YAML, no chat).
+   * T-28: ``New Project/Event/Session`` → select "No agent" → ``agent: ""``
+     written; default chat opens (no mode) + rename + init-prompt.
+   * T-29: ``New Project/Event/Session`` → select concrete agent →
+     ``agent: "<name>"`` written; chat opens in that mode + rename +
+     init-prompt.
+   * T-30: Tree-click entity with ``agent: ""`` → default chat opens (no
+     picker, no YAML mutation) + rename + init-prompt.
    * T-31: Tree-click bound project → no picker, immediate chat in bound agent.
    * T-32: Tree-click bound event → no picker, immediate chat in bound agent.
    * T-33: Project node has 3 inline icons on hover.

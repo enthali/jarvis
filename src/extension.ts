@@ -2391,7 +2391,7 @@ export function activate(context: vscode.ExtensionContext) {
             if (summaryInput) {
                 yamlLines.push(`summary: ${yamlString(summaryInput)}`);
             }
-            // SPEC_SES_AGENT_PICKER: write agent field unconditionally (empty string for default agent)
+            // SPEC_SES_AGENT_PICKER: write agent field unconditionally (empty string for "No agent")
             yamlLines.push(`agent: ${yamlString(agentInput)}`);
             yamlLines.push('');
             await fs.promises.writeFile(

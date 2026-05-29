@@ -9,7 +9,7 @@ Entity Parity UAT Requirements
 
    **Description:**
    Specifies the test data, workspace state, and per-AC verification criteria
-   required to manually validate entity feature parity (agent binding, lazy-bind,
+   required to manually validate entity feature parity (agent binding,
    inline icons, tree-click-to-chat, and schema strictness) in the Extension
    Development Host.
 
@@ -47,10 +47,11 @@ Entity Parity UAT Requirements
      Projects Tree after EDH reload, and that a ``[WARN]`` log line containing
      the folder name is present in the Output Channel.
 
-   * AC-2 (``agent: ""`` treated as unbound):
+   * AC-2 (``agent: ""`` treated as unbound — no picker on tree-click):
      For T-16, the tester SHALL set ``agent: ""`` in ``alpha/project.yaml``,
-     reload the scanner, click ``alpha``, and verify the picker fires (entity is
-     unbound). The tester SHALL then restore the original value.
+     reload the scanner, click ``alpha``, and verify a default chat opens
+     (no picker, no YAML writeback) followed by rename + init-prompt. The
+     tester SHALL then restore the original value.
 
    * AC-3 (event summary schema warning):
      For T-17, the tester SHALL verify VS Code Problems panel shows a schema
@@ -71,23 +72,26 @@ Entity Parity UAT Requirements
      subfolder under an entity folder and verify the ``$(record)`` icon
      appears/disappears after rescan.
 
-   * AC-7 (lazy-bind cancel):
-     For T-27, the tester SHALL click an unbound entity, press Escape, and
-     verify the YAML file is unmodified and no chat is opened.
+   * AC-7 (New-Entity picker cancel):
+     For T-27, the tester SHALL invoke a ``Jarvis: New …`` command, enter a
+     name, then press Escape in the agent picker, and verify entity creation
+     is aborted (no folder/YAML created, no chat opened).
 
-   * AC-8 (lazy-bind "No agent"):
-     For T-28, the tester SHALL select "No agent" in the picker, verify
-     ``agent: ""`` written, verify no chat opened, then click again to confirm
-     the picker re-fires.
+   * AC-8 (New-Entity "No agent" selection):
+     For T-28, the tester SHALL invoke a ``Jarvis: New …`` command, select
+     "No agent" in the picker, and verify: YAML contains ``agent: ""``, a
+     default chat opens (no mode), chat is renamed to the entity name, and the
+     init-prompt is submitted.
 
-   * AC-9 (lazy-bind concrete agent):
-     For T-29, the tester SHALL select a concrete agent, verify the YAML is
-     updated, and verify the chat opens in the correct mode.
+   * AC-9 (New-Entity concrete-agent selection):
+     For T-29, the tester SHALL invoke a ``Jarvis: New …`` command, select a
+     concrete agent, and verify: YAML contains ``agent: "<name>"``, chat
+     opens in that mode, chat is renamed, and the init-prompt is submitted.
 
-   * AC-10 (lazy-bind write failure):
-     For T-30, the tester SHALL make the YAML file read-only, trigger the
-     lazy-bind flow, select an agent, and verify: no chat opened, ``[WARN]``
-     log emitted, YAML unchanged.
+   * AC-10 (Tree-click on default-bound entity opens chat directly):
+     For T-30, the tester SHALL click an entity whose YAML has ``agent: ""``
+     and verify a default chat opens with no picker, no YAML mutation,
+     followed by rename + init-prompt.
 
    * AC-11 (init-prompt for project/event):
      For T-40 and T-41, the tester SHALL verify the init-prompt appears in the

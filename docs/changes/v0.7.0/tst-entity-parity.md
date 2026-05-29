@@ -271,7 +271,7 @@ titled "New Chat".
 | # | Step | Expected | ✓/✗ |
 |---|------|----------|------|
 | 1 | After saving, reload scanner (trigger a rescan or restart EDH). | `alpha` project appears as **unbound** (same treatment as missing field). | |
-| 2 | Click `alpha` in the Projects Tree. | Agent-picker fires (lazy-bind), not direct chat-open. | |
+| 2 | Click `alpha` in the Projects Tree. | **No picker fires.** A default chat editor opens (no mode), is renamed to `alpha`, and the init-prompt is submitted. YAML is **not** mutated. | |
 | 3 | Restore `agent: syspilot.cm` in project.yaml. | Entity becomes bound again on next rescan. | |
 
 ---
@@ -313,20 +313,21 @@ titled "New Chat".
 
 ---
 
-### T-20 — `jarvis.newProject` — pick "default agent" → `agent: ""`, chat opens (default mode)
+### T-20 — `jarvis.newProject` — pick "No agent" → `agent: ""`, default chat opens
 
 *UAT ref: US_UAT_NEWENTITY_PICKER AC-4 / SPEC_UAT_NEWENTITY_PICKER*
 
-> **Updated in fix-pass v6+v7 (29 May 2026):** PM-matrix correction —
-> all non-cancel picker returns open the chat. "default agent" opens chat
-> without a `mode` parameter (VS Code default chat mode).
+> **Updated v11 (29 May 2026):** Picker label renamed from "default agent" to
+> **"No agent"** (detail: "Opens a default chat — pick mode via the chat
+> dropdown"). The non-cancel path opens the chat without a `mode` parameter,
+> renames the chat to the entity name, and submits the init-prompt.
 
 | # | Step | Expected | ✓/✗ |
 |---|------|----------|------|
-| 1 | Click `+` in Projects title bar. Enter `Default Agent Project`. | — | |
-| 2 | In the agent picker, select **"default agent"**. | — | |
-| 3 | Inspect `testdata/projects/Default Agent Project/project.yaml`. | `agent: ""` is written (empty string). Folder and YAML created. | |
-| 4 | Observe VS Code Chat. | A new chat editor opens (no specific mode set — uses VS Code default chat agent). | |
+| 1 | Click `+` in Projects title bar. Enter `No Agent Project`. | — | |
+| 2 | In the agent picker, select **"No agent"**. | — | |
+| 3 | Inspect `testdata/projects/No Agent Project/project.yaml`. | `agent: ""` is written (empty string). Folder and YAML created. | |
+| 4 | Observe VS Code Chat. | A new chat editor opens (no specific mode set — VS Code default). Chat is renamed to `No Agent Project`. Init-prompt is submitted referencing `${kind}=project`. | |
 | 5 | Cleanup: delete the created folder. | Restored. | |
 
 ---
@@ -359,19 +360,19 @@ titled "New Chat".
 
 ---
 
-### T-23 — `jarvis.newEvent` — pick "default agent" → `agent: ""`, chat opens (default mode)
+### T-23 — `jarvis.newEvent` — pick "No agent" → `agent: ""`, default chat opens
 
 *UAT ref: US_UAT_NEWENTITY_PICKER AC-4 / SPEC_UAT_NEWENTITY_PICKER*
 
-> **Updated in fix-pass v6+v7 (29 May 2026):** PM-matrix correction —
-> chat opens in VS Code default chat mode.
+> **Updated v11 (29 May 2026):** Picker label "default agent" → "No agent".
+> Chat opens in VS Code default mode, is renamed, and init-prompt fires.
 
 | # | Step | Expected | ✓/✗ |
 |---|------|----------|------|
-| 1 | Click `+` in Events title bar. Enter name `Default Agent Event`, date `2026-08-02`. | — | |
-| 2 | Select **"default agent"** in picker. | — | |
-| 3 | Inspect `testdata/events/2026-08-02_Default Agent Event/event.yaml`. | `agent: ""` written. | |
-| 4 | Observe VS Code Chat. | A new chat editor opens (no specific mode set). | |
+| 1 | Click `+` in Events title bar. Enter name `No Agent Event`, date `2026-08-02`. | — | |
+| 2 | Select **"No agent"** in picker. | — | |
+| 3 | Inspect `testdata/events/2026-08-02_No Agent Event/event.yaml`. | `agent: ""` written. | |
+| 4 | Observe VS Code Chat. | Chat opens (no mode). Renamed to `No Agent Event`. Init-prompt submitted referencing `${kind}=event`. | |
 | 5 | Cleanup: delete created folder. | Restored. | |
 
 ---
@@ -404,23 +405,23 @@ titled "New Chat".
 
 ---
 
-### T-25b — `jarvis.newSession` — pick "default agent" → `agent: ""`, chat opens (single picker)
+### T-25b — `jarvis.newSession` — pick "No agent" → `agent: ""`, default chat (single picker)
 
 *UAT ref: US_UAT_NEWENTITY_PICKER AC-5 / SPEC_UAT_NEWENTITY_PICKER*
 
-> **Added in fix-pass v8 (29 May 2026):** Regression case for QM F-4.
-> Previously, the picker fired twice (newSession picker → empty-string YAML
-> coerced to undefined by scanner → lazy-bind picker fired again). After v8
-> the agent field is written unconditionally (`agent: ""` persisted) and the
-> chat opens directly without delegating to `jarvis.openAgentSession`.
+> **Updated v11 (29 May 2026):** Picker label "default agent" → "No agent".
+> The agent field is written unconditionally (`agent: ""` persisted) and
+> the chat opens via the unified `openChatForEntity` helper — renamed +
+> init-prompt submitted. No re-prompt on second click (lazy-bind picker
+> was removed in v11; tree-click on `agent: ""` opens default chat directly).
 
 | # | Step | Expected | ✓/✗ |
 |---|------|----------|------|
-| 1 | Run `jarvis.newEntity` (or click `+` in Sessions title bar). Enter session name `Default Session Test`. | Agent picker appears (the **first and only** time). | |
-| 2 | Select **"default agent"** in the picker. | — | |
+| 1 | Run `jarvis.newEntity` (or click `+` in Sessions title bar). Enter session name `No Agent Session Test`. | Agent picker appears (the **first and only** time). | |
+| 2 | Select **"No agent"** in the picker. | — | |
 | 3 | Confirm: the picker does NOT fire a second time. | No re-prompt. | |
 | 4 | Inspect the created `session.yaml`. | `agent: ""` is written explicitly (empty string, not omitted). | |
-| 5 | Observe VS Code Chat. | A new chat editor opens for `Default Session Test` (no specific mode set — VS Code default chat agent). | |
+| 5 | Observe VS Code Chat. | Chat opens (no mode). Renamed to `No Agent Session Test`. Init-prompt submitted referencing `${kind}=session`. | |
 | 6 | Cleanup: delete created session folder. | Restored. | |
 
 ---
@@ -439,86 +440,71 @@ titled "New Chat".
 
 ---
 
-## Group F — Lazy-Bind Flow
+## Group F — Tree-Click Default-Chat Behavior (v11)
 
-### T-27 — Tree-click on unbound project → cancel picker → abort
+> **v11 reinterpretation (29 May 2026):** The lazy-bind picker was removed.
+> Tree-click on an entity whose YAML has `agent: ""` or no `agent` field
+> opens a default chat directly (no picker, no YAML writeback) followed by
+> rename + init-prompt via the unified `openChatForEntity` helper. Previous
+> lazy-bind 3-way flow (cancel / "default agent" / concrete agent) has been
+> migrated to the New-Entity creation picker — see T-19 (cancel), T-20
+> ("No agent"), T-21 (concrete) and their event/session counterparts.
 
-*UAT ref: US_UAT_ENTITY_PARITY AC-7 (cancel branch) / SPEC_UAT_ENTITY_PARITY*
+### T-27 — Tree-click on `agent: ""` project → default chat (no picker)
 
-**Setup:** `testdata/projects/legacy-no-agent/project.yaml` has no `agent` field.
+*UAT ref: US_UAT_ENTITY_PARITY AC-10 / SPEC_UAT_ENTITY_PARITY T-30*
+
+**Setup:** Edit `testdata/projects/alpha/project.yaml` → set `agent: ""`.
+Close any open VS Code chat tab named `alpha`. Trigger a rescan.
 
 | # | Step | Expected | ✓/✗ |
 |---|------|----------|------|
-| 1 | Click `legacy-no-agent` in the Projects Tree. | Agent-picker QuickPick appears (lazy-bind triggered because entity is unbound). | |
-| 2 | Press Escape to cancel. | Picker closes. No VS Code Chat opens. | |
+| 1 | Click `alpha` in Projects Tree. | **No picker.** A default chat editor opens (no `mode` set). | |
+| 2 | Observe the chat tab title. | Renamed to `alpha`. | |
+| 3 | Observe the chat transcript. | Init-prompt submitted referencing `${kind}=project`, `${name}=alpha`, `${contextPath}=testdata/projects/alpha/context.md`. | |
+| 4 | Inspect `alpha/project.yaml`. | File **unchanged** — `agent: ""` still present, no mutation. | |
+| 5 | Restore `agent: syspilot.cm` in `alpha/project.yaml`. | Restored. | |
+
+---
+
+### T-28 — Tree-click on project with **no** `agent` field → default chat + warn-log
+
+*UAT ref: US_UAT_ENTITY_PARITY AC-1 / SPEC_UAT_ENTITY_PARITY T-15*
+
+**Setup:** `testdata/projects/legacy-no-agent/project.yaml` has no `agent`
+field. Close any open chat tab named `legacy-no-agent`. Output Channel open.
+
+| # | Step | Expected | ✓/✗ |
+|---|------|----------|------|
+| 1 | Click `legacy-no-agent` in Projects Tree. | **No picker.** A default chat editor opens (no mode). Output Channel: `[WARN]` for the missing `agent` field (emitted at scan time — already present from T-15). | |
+| 2 | Observe the chat tab. | Renamed to `legacy-no-agent`. Init-prompt submitted. | |
 | 3 | Inspect `legacy-no-agent/project.yaml`. | File **unchanged** — no `agent` field written. | |
-| 4 | Check Output Channel. | No error. | |
 
 ---
 
-### T-28 — Tree-click on unbound project → "default agent" → `agent: ""` written, chat opens; second click re-fires picker
+### T-29 — Tree-click on bound session → mode-prime + rename + init-prompt
 
-*UAT ref: US_UAT_ENTITY_PARITY AC-7 ("default agent" branch) / SPEC_UAT_ENTITY_PARITY*
+*UAT ref: US_UAT_ENTITY_PARITY AC-4 / SPEC_UAT_ENTITY_PARITY T-31, T-32*
 
-> **Updated in fix-pass v6+v7 (29 May 2026):** PM-matrix correction —
-> lazy-bind default agent now writes `agent: ""` AND opens chat in default
-> mode. The empty-string-treated-as-unbound semantic is preserved (scanner
-> still surfaces the entity as unbound on next scan), so a second click does
-> re-fire the picker. The idempotent compare-skip in the write step avoids
-> redundant file I/O on the second click when the value would be identical.
+**Setup:** `testdata/.jarvis/sessions/copilot-cm/session.yaml` has
+`agent: syspilot.cm`. Close any open chat tab named `copilot-cm`.
 
 | # | Step | Expected | ✓/✗ |
 |---|------|----------|------|
-| 1 | Click `legacy-no-agent` in Projects Tree. | Picker fires. | |
-| 2 | Select **"default agent"**. | A new chat editor opens (no specific mode — VS Code default). | |
-| 3 | Inspect `legacy-no-agent/project.yaml`. | `agent: ""` written (entity remains unbound — empty string = unbound for scanner). | |
-| 4 | Click `legacy-no-agent` again. | Picker fires again (entity still unbound; the file write is idempotent — no second YAML mutation, but the picker prompt is by-design until user picks a concrete agent). | |
-| 5 | Press Escape. | Abort. | |
-| 6 | Restore `project.yaml` (remove `agent` field). | Restored. | |
+| 1 | Click `copilot-cm` in the Sessions Tree. | Chat opens in `syspilot.cm` mode (mode-prime fires). Renamed to `copilot-cm`. Init-prompt submitted referencing `${kind}=session`. | |
+| 2 | Check Output Channel. | No errors. | |
 
 ---
 
-### T-29 — Tree-click on unbound project → concrete agent → YAML written, chat opens
+### T-30 — Settings UI: "Prompt Templates" section consolidates both templates
 
-*UAT ref: US_UAT_ENTITY_PARITY AC-7 (concrete agent branch) / SPEC_UAT_ENTITY_PARITY*
-
-> **UAT baseline caveat (QM F-5, pre-existing v0.6.0 D-6 trade-off):**
-> If a chat editor tab with the entity's name already exists (stale UUID in
-> `state.vscdb`), the existing-UUID branch fires and re-uses that tab
-> **without re-applying the mode** — the chat opens in whatever mode the
-> stale tab had. To verify the lazy-bind concrete path cleanly, close any
-> pre-existing chat tabs for the test entity before step 1. Tracked as
-> backlog item `entity-parity-followups` for revisit.
+*UAT ref: SPEC_UAT_AGENT_PROMPT_TUNING T-12, T-13*
 
 | # | Step | Expected | ✓/✗ |
 |---|------|----------|------|
-| 0 | (Baseline) Close any existing VS Code chat tab named `legacy-no-agent`. | — | |
-| 1 | Click `legacy-no-agent` in Projects Tree. | Picker fires. | |
-| 2 | Select `syspilot.cm`. | — | |
-| 3 | Inspect `legacy-no-agent/project.yaml`. | `agent: "syspilot.cm"` written. | |
-| 4 | Observe VS Code Chat. | A new chat session opens for `legacy-no-agent` in `syspilot.cm` mode. | |
-| 5 | Restore `project.yaml` (remove `agent` field). | Restored. | |
-
----
-
-### T-30 — Tree-click on unbound project → YAML write fails → warn-log, no partial state
-
-*UAT ref: US_UAT_ENTITY_PARITY AC-7 (error branch) / SPEC_UAT_ENTITY_PARITY*
-
-> **Testability note:** This scenario requires making the project YAML
-> file temporarily read-only to simulate a write failure.
-
-**Setup:** Make `testdata/projects/legacy-no-agent/project.yaml` read-only
-(right-click → Properties → Read-only, or `attrib +R` on Windows).
-
-| # | Step | Expected | ✓/✗ |
-|---|------|----------|------|
-| 1 | Click `legacy-no-agent` in Projects Tree. | Picker fires. | |
-| 2 | Select `syspilot.cm`. | — | |
-| 3 | Observe VS Code Chat. | **No chat opened**. | |
-| 4 | Check Output Channel. | A `[WARN]` log entry containing "write" and the folder name is present. | |
-| 5 | Inspect `project.yaml`. | File unchanged (no partial write). | |
-| 6 | Remove read-only flag. | Restored. | |
+| 1 | Open VS Code Settings UI (Ctrl+,). Search `jarvis prompt template`. | Setting `jarvis.agentSession.initPromptTemplate` is displayed under a group labelled **Prompt Templates**. Description references `${kind}`, `${name}`, `${contextPath}`. | |
+| 2 | In the same Settings page, search `jarvis notification template`. | Setting `jarvis.messages.notificationTemplate` is displayed under the same **Prompt Templates** group. | |
+| 3 | Reset `jarvis.agentSession.initPromptTemplate` to default. | Default text begins with "You are the agent session for the ${kind} \"${name}\".". | |
 
 ---
 

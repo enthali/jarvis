@@ -8,7 +8,7 @@ Entity Parity UAT Design Specifications
 
    **Description:**
    Step-by-step procedures and expected outcomes for all entity-parity acceptance
-   test scenarios: schema fail-open, unbound semantics, lazy-bind 3-way flow,
+   test scenarios: schema fail-open, unbound semantics, New-Entity agent picker,
    inline icons, tree-click parity, and kind-aware init-prompt.
 
    **Test Setup:**
@@ -42,13 +42,14 @@ Entity Parity UAT Design Specifications
 
       * - T-16
 
-          ``agent: ""`` treated as unbound
+          ``agent: ""`` treated as unbound — default chat on tree-click
 
           *CR AC: 1*
         - Edit ``alpha/project.yaml`` → set ``agent: ""``. Trigger rescan.
           Click ``alpha`` node.
-        - Agent-picker QuickPick fires. Entity is treated as unbound.
-          After test, restore ``agent: syspilot.cm``.
+        - Default chat opens (no mode), no picker, no YAML mutation. Chat is
+          renamed to ``alpha`` and init-prompt is submitted. After test,
+          restore ``agent: syspilot.cm``.
 
       * - T-17
 
@@ -61,43 +62,48 @@ Entity Parity UAT Design Specifications
 
       * - T-27
 
-          Lazy-bind: cancel → no mutation, no chat
+          New-Entity picker: cancel → no entity, no chat
 
-          *CR AC: 7 (cancel)*
-        - Click ``legacy-no-agent`` in Projects Tree. Press Escape in picker.
-        - No VS Code Chat opened. ``project.yaml`` byte-for-byte unchanged.
-          Output Channel: no error.
+          *CR AC: 7*
+        - Run ``Jarvis: New Project``. Enter name ``parity-cancel``. Press
+          Escape in the agent picker.
+        - No folder/YAML created under ``testdata/projects/``. No VS Code
+          Chat opened. Output Channel: no error.
 
       * - T-28
 
-          Lazy-bind: "default agent" → ``agent: ""``, no chat; second
-          click re-fires picker
+          New-Entity picker: "No agent" → ``agent: ""`` + default chat
 
-          *CR AC: 7 ("default agent")*
-        - Click ``legacy-no-agent``. Select "default agent". Observe. Click
-          ``legacy-no-agent`` again.
-        - First click: ``agent: ""`` written to YAML; no chat opened. Second
-          click: picker fires again (empty string = unbound). Restore YAML
-          after test.
+          *CR AC: 8*
+        - Run ``Jarvis: New Project``. Enter name ``parity-noagent``.
+          Select "No agent" in the picker.
+        - ``testdata/projects/parity-noagent/project.yaml`` contains
+          ``agent: ""``. Default chat opens (no mode). Chat is renamed to
+          ``parity-noagent``. Init-prompt is submitted referencing
+          ``${kind}=project``. Remove the folder after test.
 
       * - T-29
 
-          Lazy-bind: concrete agent → YAML written, chat opened
+          New-Entity picker: concrete agent → mode chat
 
-          *CR AC: 7 (concrete)*
-        - Click ``legacy-no-agent``. Select ``syspilot.cm`` in picker.
-        - ``project.yaml`` updated: ``agent: "syspilot.cm"``. VS Code Chat
-          opens for ``legacy-no-agent`` in ``syspilot.cm`` mode. Restore YAML.
+          *CR AC: 9*
+        - Run ``Jarvis: New Project``. Enter name ``parity-bound``.
+          Select ``syspilot.cm`` in the picker.
+        - ``parity-bound/project.yaml`` contains ``agent: "syspilot.cm"``.
+          VS Code Chat opens in ``syspilot.cm`` mode. Chat is renamed to
+          ``parity-bound``. Init-prompt is submitted. Remove folder after
+          test.
 
       * - T-30
 
-          Lazy-bind: YAML write fails → warn-log, no chat
+          Tree-click on ``agent: ""`` entity → default chat (no picker)
 
-          *CR AC: 7 (error path)*
-        - Make ``legacy-no-agent/project.yaml`` read-only. Click node. Select
-          any agent.
-        - No chat opened. Output Channel: ``[WARN]`` entry with folder name
-          and write-failure indication. YAML unchanged. Remove read-only flag.
+          *CR AC: 10*
+        - Set ``alpha/project.yaml`` to ``agent: ""``. Trigger rescan. Close
+          any open chat for ``alpha``. Click ``alpha`` in Projects Tree.
+        - Default chat opens (no mode), no picker, YAML unchanged. Chat is
+          renamed to ``alpha`` and init-prompt is submitted. Restore YAML
+          after test.
 
       * - T-31
 
