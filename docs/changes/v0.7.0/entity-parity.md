@@ -247,6 +247,8 @@ cross-level consistent. No design fix-pass needed.
 | 3. System Designer | done | syspilot.design | US/REQ/SPEC complete, see Engineer Report above |
 | 3a. Design fix-pass | done | syspilot.design | PM checkpoint resolutions encoded — see Fix-Pass Report below |
 | 3b. Design fix-pass v2 | done | syspilot.design | MECE-light consistency fixes (5 findings) — see Fix-Pass v2 Report below |
+| 3c. Design fix-pass v3 | done | syspilot.design | PM picker semantics refinement — see Fix-Pass v3 Report below |
+| 3d. Design fix-pass v4 | done | syspilot.design | Phantom spec bodies written + openAgentSession/toKebabCase removal — see Fix-Pass v4 Report below |
 | 4. Test Engineer | pending | syspilot.uat | `tst-entity-parity.md` |
 | 5. Dev Engineer | pending | syspilot.implement | code + tests |
 | 6. MECE final | pending | syspilot.mece | |
@@ -481,3 +483,54 @@ tree-clicks of "default agent" entities.
 - No new IDs introduced ✓
 - No schema/testdata changes ✓
 - No LM-tool path changes ✓
+
+---
+
+## Design Fix-Pass v4 Report (2026-05-29)
+
+**Trigger:** MECE-light v3 + CM grep verification found that `SPEC_EXP_AGENT_PICKER`
+and `SPEC_EXP_ENTITY_LAZYBIND` were **phantom specs** — referenced by other elements
+but never written as `.. spec::` directive bodies in `docs/design/`. This persisted
+across v1, v2, and v3 without detection because no post-write grep verification was
+performed.
+
+### Why this pass was needed
+
+Across fix-passes v1/v2/v3, the designer claimed to have created these two SPECs and
+reported them in change document tables. However, the actual RST writes were never
+executed — only the *references* to these IDs (in `:links:` fields of other specs and
+in the change document itself) existed. The IDs appeared in grep of link fields but not
+as `.. spec::` directive bodies.
+
+### Fixes applied
+
+| # | Fix | Verification |
+|---|-----|--------------|
+| 1 | Write `SPEC_EXP_AGENT_PICKER` as full `.. spec::` body in `spec_exp.rst` | `:id: SPEC_EXP_AGENT_PICKER` at line 786 |
+| 2 | Write `SPEC_EXP_ENTITY_LAZYBIND` as full `.. spec::` body in `spec_exp.rst` | `:id: SPEC_EXP_ENTITY_LAZYBIND` at line 847 |
+| 3 | Remove `openAgentSession` calls from `SPEC_EXP_NEWPROJECT_CMD` (step 11) and `SPEC_EXP_NEWEVENT_CMD` (step 13); add creation-only rationale | grep `openAgentSession` no longer hits newProject/newEvent steps |
+| 4 | Replace `toKebabCase` with raw name in `SPEC_EXP_NEWPROJECT_CMD` and `SPEC_EXP_NEWEVENT_CMD`; event folder uses `${dateInput}_${nameInput}` (underscore separator); add `validateInput` for filesystem-illegal chars | grep `toKebabCase` returns zero hits in `spec_exp.rst` |
+
+### ID-existence verification (grep evidence)
+
+```
+docs\design\spec_exp.rst:786:   :id: SPEC_EXP_AGENT_PICKER
+docs\design\spec_exp.rst:847:   :id: SPEC_EXP_ENTITY_LAZYBIND
+```
+
+### Self-improvement note
+
+Future passes MUST grep-verify spec body existence (`:id: <ID>` pattern) after
+claiming creation. Checking only link references is insufficient — a referenced ID
+is not the same as a defined ID.
+
+### Files touched
+
+- `docs/design/spec_exp.rst` — 4 fixes
+- `docs/changes/v0.7.0/entity-parity.md` — this report
+
+### Confirmation
+
+- No new IDs introduced ✓
+- All edited IDs remain `:status: draft` ✓
+- No schema/testdata changes ✓

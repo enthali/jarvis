@@ -646,57 +646,53 @@ Explorer Design Specifications
 
 .. spec:: New Project Command
    :id: SPEC_EXP_NEWPROJECT_CMD
-   :status: implemented
-   :links: REQ_EXP_NEWPROJECT; REQ_EXP_REACTIVECACHE; REQ_EXP_AGENTSESSION; SPEC_EXP_SCANNER; SPEC_EXP_EXTENSION; SPEC_EXP_AGENTSESSION
+   :status: draft
+   :links: REQ_EXP_NEWPROJECT; REQ_EXP_REACTIVECACHE; SPEC_EXP_SCANNER; SPEC_EXP_EXTENSION; SPEC_EXP_AGENT_PICKER
 
    **Description:**
    Register ``jarvis.newProject`` in ``extension.ts``. Triggered by the ``$(add)``
    icon in the Projects view title bar. Creates a new project folder with
-   ``project.yaml`` and opens an agent session for the new entity.
-
-   **Helper — kebab-case derivation:**
-
-   A local helper function ``toKebabCase(name: string): string`` is defined in
-   ``extension.ts`` (not exported — only used by the two new commands):
-
-   .. code-block:: typescript
-
-      function toKebabCase(name: string): string {
-          return name
-              .toLowerCase()
-              .replace(/[^a-z0-9]+/g, '-')
-              .replace(/^-|-$/g, '');
-      }
+   ``project.yaml``. newProject is creation-only by design; the user opens the
+   entity later via tree-click (which may trigger lazy-bind per
+   ``SPEC_EXP_ENTITY_LAZYBIND`` if no concrete agent was picked at creation).
 
    **Handler flow:**
 
    1. Read ``jarvis.projectsFolder`` from configuration.
       If empty, show warning notification and return.
    2. Show ``InputBox`` with prompt ``"Project name"``,
-      ``placeHolder: "My Project"``.
-   3. If user cancels (``undefined``), return.
-   4. Derive folder name: ``toKebabCase(input)``.
-   5. Compute target path: ``path.join(projectsFolder, kebabName)``.
-   6. If target path already exists (``fs.existsSync``), show error notification
-      ``"Folder '<kebabName>' already exists in projects folder"`` and return.
-   7. Create directory: ``await fs.promises.mkdir(targetPath)``.
-   8. Write ``project.yaml``:
+      ``placeHolder: "My Project"``, with ``validateInput``:
 
       .. code-block:: typescript
 
-         const content = `name: "${input}"\n`;
-         await fs.promises.writeFile(
-             path.join(targetPath, 'project.yaml'), content, 'utf-8');
+         validateInput: (value: string) => {
+             if (/[<>:"\/\\|?*\x00-\x1f]/.test(value)) {
+                 return 'Name contains characters not allowed in folder names';
+             }
+             if (!value.trim()) {
+                 return 'Name must not be empty';
+             }
+             return undefined;
+         }
 
-   9. Trigger scanner rescan: ``await scanner.rescan()``.
-   10. Find the new entity's ``LeafNode`` in ``scanner.getProjectTree()``
-       (search for leaf whose ``id`` contains the new folder path).
-   11. Execute ``jarvis.openAgentSession`` with the found ``LeafNode``:
+   3. If user cancels (``undefined``), return.
+   4. Invoke ``pickAgentMode()`` (per ``SPEC_EXP_AGENT_PICKER``).
+   5. If picker returns ``undefined`` (cancel), return (creation aborted).
+   6. Use raw input as folder name (verbatim, no transformation).
+   7. Compute target path: ``path.join(projectsFolder, input)``.
+   8. If target path already exists (``fs.existsSync``), show error notification
+      ``"Folder '<input>' already exists in projects folder"`` and return.
+   9. Create directory: ``await fs.promises.mkdir(targetPath)``.
+   10. Write ``project.yaml``:
 
        .. code-block:: typescript
 
-          await vscode.commands.executeCommand(
-              'jarvis.openAgentSession', leafNode);
+          const agent = pickerResult; // "" or "<agent-name>"
+          const content = `name: "${input}"\nagent: "${agent}"\n`;
+          await fs.promises.writeFile(
+              path.join(targetPath, 'project.yaml'), content, 'utf-8');
+
+   11. Trigger scanner rescan: ``await scanner.rescan()``.
 
    **Disposable** pushed to ``context.subscriptions``.
 
@@ -705,20 +701,35 @@ Explorer Design Specifications
 
 .. spec:: New Event Command
    :id: SPEC_EXP_NEWEVENT_CMD
-   :status: implemented
-   :links: REQ_EXP_NEWEVENT; REQ_EXP_REACTIVECACHE; REQ_EXP_AGENTSESSION; SPEC_EXP_SCANNER; SPEC_EXP_EXTENSION; SPEC_EXP_AGENTSESSION
+   :status: draft
+   :links: REQ_EXP_NEWEVENT; REQ_EXP_REACTIVECACHE; SPEC_EXP_SCANNER; SPEC_EXP_EXTENSION; SPEC_EXP_AGENT_PICKER
 
    **Description:**
    Register ``jarvis.newEvent`` in ``extension.ts``. Triggered by the ``$(add)``
    icon in the Events view title bar. Creates a new event folder with
-   ``event.yaml`` and opens an agent session for the new entity.
+   ``event.yaml``. newEvent is creation-only by design; the user opens the
+   entity later via tree-click (which may trigger lazy-bind per
+   ``SPEC_EXP_ENTITY_LAZYBIND`` if no concrete agent was picked at creation).
 
    **Handler flow:**
 
    1. Read ``jarvis.eventsFolder`` from configuration.
       If empty, show warning notification and return.
    2. Show ``InputBox`` with prompt ``"Event name"``,
-      ``placeHolder: "My Event"``.
+      ``placeHolder: "My Event"``, with ``validateInput``:
+
+      .. code-block:: typescript
+
+         validateInput: (value: string) => {
+             if (/[<>:"\/\\|?*\x00-\x1f]/.test(value)) {
+                 return 'Name contains characters not allowed in folder names';
+             }
+             if (!value.trim()) {
+                 return 'Name must not be empty';
+             }
+             return undefined;
+         }
+
    3. If user cancels (``undefined``), return.
    4. Show second ``InputBox`` with prompt ``"Start date (YYYY-MM-DD)"``,
       ``placeHolder: "2026-01-15"``, with ``validateInput``:
@@ -740,17 +751,22 @@ Explorer Design Specifications
          }
 
    5. If user cancels (``undefined``), return.
-   6. Derive folder name: ```${dateInput}-${toKebabCase(nameInput)}``.
-   7. Compute target path: ``path.join(eventsFolder, folderName)``.
-   8. If target path already exists (``fs.existsSync``), show error notification
-      ``"Folder '<folderName>' already exists in events folder"`` and return.
-   9. Create directory: ``await fs.promises.mkdir(targetPath)``.
-   10. Write ``event.yaml``:
+   6. Invoke ``pickAgentMode()`` (per ``SPEC_EXP_AGENT_PICKER``).
+   7. If picker returns ``undefined`` (cancel), return (creation aborted).
+   8. Derive folder name: ```${dateInput}_${nameInput}`` (underscore separator,
+      raw name verbatim).
+   9. Compute target path: ``path.join(eventsFolder, folderName)``.
+   10. If target path already exists (``fs.existsSync``), show error notification
+       ``"Folder '<folderName>' already exists in events folder"`` and return.
+   11. Create directory: ``await fs.promises.mkdir(targetPath)``.
+   12. Write ``event.yaml``:
 
        .. code-block:: typescript
 
+          const agent = pickerResult; // "" or "<agent-name>"
           const content = [
               `name: "${nameInput}"`,
+              `agent: "${agent}"`,
               `dates:`,
               `  start: "${dateInput}"`,
               `  end: "${dateInput}"`,
@@ -759,14 +775,134 @@ Explorer Design Specifications
           await fs.promises.writeFile(
               path.join(targetPath, 'event.yaml'), content, 'utf-8');
 
-   11. Trigger scanner rescan: ``await scanner.rescan()``.
-   12. Find the new entity's ``LeafNode`` in ``scanner.getEventTree()``
-       (search for leaf whose ``id`` contains the new folder path).
-   13. Execute ``jarvis.openAgentSession`` with the found ``LeafNode``.
+   13. Trigger scanner rescan: ``await scanner.rescan()``.
 
    **Disposable** pushed to ``context.subscriptions``.
 
    **Registration in package.json** — see ``SPEC_EXP_EXTENSION``.
+
+
+.. spec:: Shared Agent Picker Component
+   :id: SPEC_EXP_AGENT_PICKER
+   :status: draft
+   :links: REQ_EXP_NEWPROJECT; REQ_EXP_NEWEVENT; REQ_EXP_ENTITY_LAZYBIND; REQ_SES_AGENT_PICKER; SPEC_SES_AGENT_PICKER; SPEC_SES_AGENT_DISCOVERY
+
+   **Description:**
+   Shared agent-picker component — the single source of truth for interactive
+   agent selection across new-entity flows and lazy-bind. Implementation
+   reference: existing ``pickAgentMode()`` function (specced in
+   ``SPEC_SES_AGENT_PICKER``).
+
+   **Return contract (3-way):**
+
+   - ``undefined`` — user cancelled (Escape / dismissed)
+   - ``""`` (empty string) — user selected "default agent" entry
+   - ``"<agent-name>"`` — user selected a concrete agent (non-empty string)
+
+   **Picker UI:**
+
+   - Entry labelled ``"default agent"`` always present at top.
+   - Below it: the list of discoverable agents from
+     ``.github/agents/*.agent.md`` filtered by ``user-invocable``
+     (per ``SPEC_SES_AGENT_DISCOVERY``).
+
+   **Interactive consumer list (5 — anti-drift applies):**
+
+   1. ``jarvis.newSession`` (via ``SPEC_SES_AGENT_PICKER``)
+   2. ``jarvis.newProject`` (via ``SPEC_EXP_NEWPROJECT_CMD``)
+   3. ``jarvis.newEvent`` (via ``SPEC_EXP_NEWEVENT_CMD``)
+   4. Lazy-bind flow (via ``SPEC_EXP_ENTITY_LAZYBIND``)
+   5. (Reserved for future) — agent-edit / re-bind command (not in scope this CR)
+
+   **Anti-drift rule:** No interactive consumer SHALL implement its own agent
+   QuickPick. All SHALL call ``pickAgentMode()``.
+
+   **Programmatic-validation consumer pattern (separate, no picker):**
+   ``jarvis_createProject``, ``jarvis_createEvent``, ``jarvis_createSession``
+   LM tools — receive ``agent`` parameter, validate via ``discoverAgents()``
+   (per ``SPEC_SES_AGENT_DISCOVERY``), no picker invocation. Anti-drift rule
+   does NOT apply here (different mechanism by design).
+
+   **Chat-open gate (cross-cutting rule):** "Chat-open SHALL occur only if the
+   picker returned a non-empty string." Consumers reference this rule rather
+   than re-deriving it.
+
+   **Acceptance Criteria:**
+
+   1. ``pickAgentMode()`` returns one of exactly three values: ``undefined``,
+      ``""``, or a non-empty agent name string.
+   2. The QuickPick shows "default agent" as the first entry.
+   3. Agent list below "default agent" is sourced from ``discoverAgents()``
+      filtered by ``user-invocable``.
+   4. All 5 interactive consumers call ``pickAgentMode()`` — none implement
+      their own QuickPick.
+   5. Programmatic LM-tool consumers use ``discoverAgents()`` for validation
+      without invoking the picker.
+   6. Chat-open occurs only when the picker returned a non-empty string.
+   7. "default agent" entry returns ``""`` (empty string) when selected.
+   8. Escape / dismiss returns ``undefined``.
+
+
+.. spec:: Entity Lazy-Bind Flow
+   :id: SPEC_EXP_ENTITY_LAZYBIND
+   :status: draft
+   :links: REQ_EXP_ENTITY_LAZYBIND; SPEC_EXP_AGENT_PICKER; SPEC_EXP_ENTITY_TREECLICK; SPEC_SES_AGENT_OPEN; SPEC_EXP_AGENTSESSION_INITPROMPT
+
+   **Description:**
+   Lazy-bind flow triggered on tree-click of an unbound entity. Allows the user
+   to assign an agent to an entity that currently has ``agent === undefined``
+   (per ``SPEC_EXP_ENTITY_AGENT`` AC-2).
+
+   **Trigger:** Tree-click on an entity where ``EntityEntry.agent === undefined``
+   (unbound). ``SPEC_EXP_ENTITY_TREECLICK`` delegates to this spec when
+   ``EntityEntry.agent === undefined``. When ``agent`` is defined and non-empty,
+   normal open-flow is used (no lazy-bind detour).
+
+   **Flow:**
+
+   1. Detect unbound (check ``EntityEntry.agent``).
+   2. Invoke ``pickAgentMode()`` (per ``SPEC_EXP_AGENT_PICKER``).
+   3. Handle 3-way return:
+
+      - ``undefined`` (cancel): abort — no YAML mutation, no chat-open. Return
+        early.
+      - ``""`` (default agent): write ``agent: ""`` to the entity's YAML
+        (read-modify-write). **Idempotency:** if the YAML already has
+        ``agent: ""``, skip the file write (no-op). Then return — no chat-open.
+      - ``"<a>"`` (concrete agent): write ``agent: "<a>"`` to the entity's
+        YAML, trigger scanner rescan, then open the chat editor in ``<a>``
+        mode (per ``SPEC_SES_AGENT_OPEN`` / existing open-flow). Init prompt
+        fires per ``SPEC_EXP_AGENTSESSION_INITPROMPT``.
+
+   **Error handling:** Wrap the ``writeFileSync()`` call in try/catch. On
+   failure: ``console.warn("Failed to lazy-bind agent for <entity>: <error>")``,
+   abort the command, no chat editor opened, no scanner rescan, entity remains
+   unbound (no partial state).
+
+   **YAML write mechanism:** Read existing YAML → parse → set/update ``agent``
+   field → serialize → write. Preserve other fields and key order where
+   possible.
+
+   **Tree-click delegation:** ``SPEC_EXP_ENTITY_TREECLICK`` delegates to this
+   spec when ``EntityEntry.agent === undefined``. When ``agent`` is defined and
+   non-empty, normal open-flow is used (no lazy-bind detour).
+
+   **Acceptance Criteria:**
+
+   1. Tree-click on entity with ``agent === undefined`` invokes the picker.
+   2. Picker cancel (``undefined``) results in no YAML mutation and no
+      chat-open.
+   3. Picker returns ``""`` (default agent): ``agent: ""`` is written to entity
+      YAML (idempotent — skip write if already ``""``). No chat-open.
+   4. Picker returns concrete agent: ``agent: "<a>"`` written, scanner rescan
+      triggered, chat editor opened in ``<a>`` mode with init prompt.
+   5. ``writeFileSync()`` failure is caught: warn log emitted, command aborted,
+      no chat editor opened, no scanner rescan, entity remains unbound.
+   6. YAML write preserves existing fields and key order.
+   7. Tree-click on entity with defined non-empty ``agent`` does NOT trigger
+      lazy-bind (normal open-flow used).
+   8. Tree-click on entity with ``agent: ""`` does NOT trigger lazy-bind
+      (entity is bound to default agent, not unbound).
 
 
 .. spec:: Rescan Command
