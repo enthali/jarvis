@@ -395,3 +395,31 @@ picker).
 
 All edits are within-design consistency fixes. No requirements changed, no
 new IDs introduced, no schema changes. All edited IDs remain `:status: draft`.
+
+---
+
+## MECE-Light v2 (fix-pass delta) — 2026-05-29
+
+**Run by:** CM
+**Source:** `syspilot.mece` subagent over `535ab70..a306c4a`
+**Verdict:** **PASS**
+
+### Resolution of v1 findings
+
+| # | v1 severity | Status |
+|---|-------------|--------|
+| 1 | HIGH — "No agent" YAML inconsistency | RESOLVED — lazy-bind now aborts (no write, no open); new-entity flows continue to omit field. End-state agreed across all paths. |
+| 2 | MEDIUM — Scanner empty-string handling | RESOLVED — `SPEC_EXP_ENTITY_AGENT` AC-2 now lists all 4 cases (missing / undefined / empty string / non-string → unbound). |
+| 3 | MEDIUM — Lazy-bind error handling | RESOLVED — try/catch on `writeFileSync` with warn-log + abort + no partial state. |
+| 4 | MEDIUM — `EntityEntry` interface | RESOLVED — `agent?`, `kind?`, `folder?` declared in `SPEC_EXP_SCANNER` with origin comments. |
+| 5 | LOW — Picker consumer split | RESOLVED — `SPEC_EXP_AGENT_PICKER` splits 4 interactive (anti-drift) from 2 programmatic LM-tool consumers (no anti-drift). |
+
+### New (v2) advisory
+
+- **LOW (advisory):** Tree-click on an unbound entity may result in no chat open at all if user picks "No agent" in the lazy-bind picker. Internally consistent, but a UX departure from bound-entity tree-clicks (which always open). Recommend UAT explicitly cover this scenario; optional docu pass may add the rationale to `SPEC_EXP_ENTITY_TREECLICK`.
+
+### CM disposition
+
+- All HIGH/MEDIUM cleared — no further design fix-pass needed.
+- v2 LOW advisory → flag to UAT test plan; consider in docu phase. Not blocking.
+- Proceeding to PM checkpoint before invoking `syspilot.uat`.
