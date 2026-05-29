@@ -209,9 +209,10 @@ async function executeAgentStep(
 
 async function validateLoadedJobs(
     jobs: HeartbeatJob[],
-    outputChannel: vscode.LogOutputChannel
+    outputChannel: vscode.LogOutputChannel,
+    scanner?: { entities: { name: string }[] }
 ): Promise<void> {
-    const validNames = await getValidDestinations();
+    const validNames = await getValidDestinations(scanner);
     for (const job of jobs) {
         job.steps.forEach((step, idx) => {
             if (step.type === 'queue' && step.destination) {
@@ -235,10 +236,11 @@ async function executeQueueStep(
     step: HeartbeatStep,
     outputChannel: vscode.LogOutputChannel,
     queuePath: string,
-    messageTreeProvider: MessageTreeProvider
+    messageTreeProvider: MessageTreeProvider,
+    scanner?: { entities: { name: string }[] }
 ): Promise<ExecResult> {
     // Fire-time destination re-validation (REQ_AUT_HEARTBEAT_INVALID_STEP_BEHAVIOR)
-    const validNames = await getValidDestinations();
+    const validNames = await getValidDestinations(scanner);
     if (step.destination && !validNames.includes(step.destination)) {
         outputChannel.warn(
             `[Heartbeat] queue step skipped — invalid destination: "${step.destination}"`
@@ -266,14 +268,15 @@ async function runStep(
     outputChannel: vscode.LogOutputChannel,
     configDir: string,
     queuePath: string,
-    messageTreeProvider: MessageTreeProvider
+    messageTreeProvider: MessageTreeProvider,
+    scanner?: { entities: { name: string }[] }
 ): Promise<ExecResult> {
     if (step.type === 'agent') {
         return executeAgentStep(step, outputChannel, configDir);
     }
 
     if (step.type === 'queue') {
-        return executeQueueStep(step, outputChannel, queuePath, messageTreeProvider);
+        return executeQueueStep(step, outputChannel, queuePath, messageTreeProvider, scanner);
     }
 
     if (step.type === 'python') {
@@ -302,10 +305,11 @@ export async function executeJob(
     outputChannel: vscode.LogOutputChannel,
     configDir: string,
     queuePath: string,
-    messageTreeProvider: MessageTreeProvider
+    messageTreeProvider: MessageTreeProvider,
+    scanner?: { entities: { name: string }[] }
 ): Promise<ExecResult> {
     for (const step of job.steps) {
-        const result = await runStep(step, outputChannel, configDir, queuePath, messageTreeProvider);
+        const result = await runStep(step, outputChannel, configDir, queuePath, messageTreeProvider, scanner);
         if (!result.success) { return result; }
     }
     return { success: true };
@@ -334,7 +338,8 @@ export async function runManualJob(
     outputChannel: vscode.LogOutputChannel,
     configDir: string,
     queuePath: string,
-    messageTreeProvider: MessageTreeProvider
+    messageTreeProvider: MessageTreeProvider,
+    scanner?: { entities: { name: string }[] }
 ): Promise<void> {
     const manual = jobs.filter(j => j.schedule === 'manual');
     if (manual.length === 0) {
@@ -347,7 +352,7 @@ export async function runManualJob(
     );
     if (!pick) { return; }
     const job = manual.find(j => j.name === pick)!;
-    const result = await executeJob(job, outputChannel, configDir, queuePath, messageTreeProvider);
+    const result = await executeJob(job, outputChannel, configDir, queuePath, messageTreeProvider, scanner);
     if (!result.success) { notifyFailure(job, result, outputChannel); }
 }
 
@@ -366,6 +371,7 @@ export class HeartbeatScheduler {
     private queuePath: string = '';
     private messageTreeProvider: MessageTreeProvider | undefined;
     private heartbeatTreeProvider: HeartbeatTreeProvider | undefined;
+    private scanner: { entities: { name: string }[] } | undefined;
 
     get currentJobs(): HeartbeatJob[] { return this.jobs; }
     get currentConfigDir(): string { return this.configDir; }
@@ -421,7 +427,7 @@ export class HeartbeatScheduler {
         this.configDir = path.dirname(configPath);
         this.jobs = loadJobs(configPath, this.outputChannel);
         // Fire-and-forget load-time validation (SPEC_AUT_HEARTBEAT_LOAD_VALIDATION)
-        validateLoadedJobs(this.jobs, this.outputChannel).catch(() => { /* silent */ });
+        validateLoadedJobs(this.jobs, this.outputChannel, this.scanner).catch(() => { /* silent */ });
     }
 
     // Implementation: SPEC_AUT_PAUSECOMMAND
@@ -454,13 +460,15 @@ export class HeartbeatScheduler {
         outputChannel: vscode.LogOutputChannel,
         statusBarItem: vscode.StatusBarItem,
         queuePath: string,
-        messageTreeProvider: MessageTreeProvider
+        messageTreeProvider: MessageTreeProvider,
+        scanner?: { entities: { name: string }[] }
     ): void {
         this.context = context;
         this.outputChannel = outputChannel;
         this.statusBarItem = statusBarItem;
         this.queuePath = queuePath;
         this.messageTreeProvider = messageTreeProvider;
+        this.scanner = scanner;
 
         const configPath = resolveConfigPath();
         this.configDir = path.dirname(configPath);
@@ -500,7 +508,7 @@ export class HeartbeatScheduler {
             const configDir = this.configDir;
             const qp = this.queuePath;
             const mtp = this.messageTreeProvider;
-            executeJob(job, ch, configDir, qp, mtp).then(result => {
+            executeJob(job, ch, configDir, qp, mtp, this.scanner).then(result => {
                 if (!result.success) { notifyFailure(job, result, ch); }
             });
         }
@@ -529,7 +537,8 @@ export function activateHeartbeat(
     context: vscode.ExtensionContext,
     messageTreeProvider: MessageTreeProvider,
     resolveMessagesPath: () => string,
-    outputChannel: vscode.LogOutputChannel
+    outputChannel: vscode.LogOutputChannel,
+    scanner?: { entities: { name: string }[] }
 ): HeartbeatScheduler {
     // Status bar item (SPEC_AUT_STATUSBARITEM)
     const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
@@ -539,7 +548,7 @@ export function activateHeartbeat(
 
     // Scheduler
     const scheduler = new HeartbeatScheduler();
-    scheduler.start(context, outputChannel, statusBarItem, resolveMessagesPath(), messageTreeProvider);
+    scheduler.start(context, outputChannel, statusBarItem, resolveMessagesPath(), messageTreeProvider, scanner);
     context.subscriptions.push({ dispose: () => scheduler.dispose() });
 
     // Heartbeat tree view (SPEC_AUT_HEARTBEATPROVIDER)
@@ -557,7 +566,7 @@ export function activateHeartbeat(
             scheduler.reload();
             return runManualJob(
                 scheduler.currentJobs, outputChannel, scheduler.currentConfigDir,
-                scheduler.currentQueuePath, messageTreeProvider
+                scheduler.currentQueuePath, messageTreeProvider, scanner
             );
         })
     );
@@ -567,7 +576,7 @@ export function activateHeartbeat(
         vscode.commands.registerCommand('jarvis.runJob', (node: JobNode) => {
             vscode.window.showInformationMessage(`Heartbeat '${node.job.name}' gestartet...`);
             executeJob(node.job, outputChannel, scheduler.currentConfigDir,
-                scheduler.currentQueuePath, messageTreeProvider)
+                scheduler.currentQueuePath, messageTreeProvider, scanner)
                 .then(result => {
                     if (!result.success) { notifyFailure(node.job, result, outputChannel); }
                 });

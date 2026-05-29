@@ -102,4 +102,34 @@ describe('AC-3: heartbeat fire-time destination validation', () => {
         const isValid = validNames.includes(jobDestination);
         expect(isValid).toBe(false);
     });
+
+    it('scanner entities are included in valid set when scanner is passed', () => {
+        // Replicates getValidDestinations logic WITH scanner parameter
+        const chatTitles = ['Chat Tab 1'];
+        const scanner = { entities: [{ name: 'My Project' }, { name: 'My Event' }] };
+
+        // With scanner: union includes entity names
+        const entityNames = scanner.entities.map(e => e.name);
+        const union = new Set([...chatTitles, ...entityNames]);
+        const result = [...union];
+
+        expect(result).toContain('Chat Tab 1');
+        expect(result).toContain('My Project');
+        expect(result).toContain('My Event');
+        expect(result.length).toBe(3);
+    });
+
+    it('without scanner, only chat titles are in valid set (no entity names)', () => {
+        // Replicates getValidDestinations logic WITHOUT scanner parameter
+        const chatTitles = ['Chat Tab 1'];
+        const scanner = undefined;
+
+        const entityNames = scanner?.entities?.map((e: { name: string }) => e.name) ?? [];
+        const union = new Set([...chatTitles, ...entityNames]);
+        const result = [...union];
+
+        expect(result).toContain('Chat Tab 1');
+        expect(result).not.toContain('My Project');
+        expect(result.length).toBe(1);
+    });
 });

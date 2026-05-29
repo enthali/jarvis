@@ -387,7 +387,7 @@ export function activate(context: vscode.ExtensionContext) {
     // ------- HEARTBEAT feature block (SPEC_CFG_TOGGLEGUARDS) -------
     if (cfg.get<boolean>('heartbeat.enabled', true)) {
         // Activate heartbeat scheduler (creates tree view internally) (SPEC_EXP_EXTENSION, SPEC_AUT_SCHEDULERLOOP)
-        scheduler = activateHeartbeat(context, messageProvider, resolveMessagesPath, log);
+        scheduler = activateHeartbeat(context, messageProvider, resolveMessagesPath, log, scanner);
 
         // Register rescan heartbeat job (SPEC_EXP_EXTENSION)
         if (scanner) { syncRescanJob(); }
