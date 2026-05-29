@@ -249,6 +249,7 @@ cross-level consistent. No design fix-pass needed.
 | 3b. Design fix-pass v2 | done | syspilot.design | MECE-light consistency fixes (5 findings) — see Fix-Pass v2 Report below |
 | 3c. Design fix-pass v3 | done | syspilot.design | PM picker semantics refinement — see Fix-Pass v3 Report below |
 | 3d. Design fix-pass v4 | done | syspilot.design | Phantom spec bodies written + openAgentSession/toKebabCase removal — see Fix-Pass v4 Report below |
+| 3e. Design fix-pass v5 | done | syspilot.design | 6 phantom SPEC bodies written — see Fix-Pass v5 Report below |
 | 4. Test Engineer | pending | syspilot.uat | `tst-entity-parity.md` |
 | 5. Dev Engineer | pending | syspilot.implement | code + tests |
 | 6. MECE final | pending | syspilot.mece | |
@@ -534,3 +535,67 @@ is not the same as a defined ID.
 - No new IDs introduced ✓
 - All edited IDs remain `:status: draft` ✓
 - No schema/testdata changes ✓
+
+---
+
+## Design Fix-Pass v5 Report (2026-05-29)
+
+**Trigger:** CM comprehensive audit revealed 6 of 8 claimed SPEC IDs were phantom —
+referenced in `:links:` and change document tables but never written as `.. spec::`
+directive bodies in `docs/design/spec_exp.rst`. This is the final fix-pass; PM
+escalation limit applies.
+
+### SPEC bodies written
+
+| # | SPEC ID | Upward links | # ACs | Source REQ confirmed read |
+|---|---------|-------------|-------|--------------------------|
+| 1 | `SPEC_EXP_LISTEVENTS` | `REQ_EXP_LISTEVENTS`; `SPEC_EXP_SCANNER`; `SPEC_MSG_DUALREGISTRATION`; `SPEC_EXP_LISTPROJECTS` | 8 | Yes — req_exp.rst:733 |
+| 2 | `SPEC_EXP_CREATEPROJECT` | `REQ_EXP_CREATEPROJECT`; `SPEC_EXP_SCANNER`; `SPEC_MSG_DUALREGISTRATION`; `SPEC_SES_CREATETOOL`; `SPEC_EXP_AGENT_PICKER` | 8 | Yes — req_exp.rst:757 |
+| 3 | `SPEC_EXP_CREATEEVENT` | `REQ_EXP_CREATEEVENT`; `SPEC_EXP_SCANNER`; `SPEC_MSG_DUALREGISTRATION`; `SPEC_SES_CREATETOOL`; `SPEC_EXP_AGENT_PICKER` | 10 | Yes — req_exp.rst:788 |
+| 4 | `SPEC_EXP_ENTITY_AGENT` | `REQ_EXP_ENTITY_AGENT`; `SPEC_EXP_SCANNER` | 6 | Yes — req_exp.rst:817 |
+| 5 | `SPEC_EXP_ENTITY_TREECLICK` | `REQ_EXP_ENTITY_TREECLICK`; `SPEC_EXP_AGENTSESSION`; `SPEC_EXP_ENTITY_LAZYBIND`; `SPEC_EXP_ENTITY_AGENT` | 6 | Yes — req_exp.rst:871 |
+| 6 | `SPEC_EXP_ENTITY_ICONS` | `REQ_EXP_ENTITY_ICONS`; `SPEC_EXP_EXTENSION`; `SPEC_EXP_PROVIDER`; `SPEC_EXP_CONTEXTACTIONS` | 8 | Yes — req_exp.rst:892 |
+
+### Grep evidence
+
+**Grep #1 — all 6 `:id:` directives:**
+
+```
+1065: :id: SPEC_EXP_LISTEVENTS
+1174: :id: SPEC_EXP_CREATEPROJECT
+1287: :id: SPEC_EXP_CREATEEVENT
+1413: :id: SPEC_EXP_ENTITY_AGENT
+1502: :id: SPEC_EXP_ENTITY_TREECLICK
+1564: :id: SPEC_EXP_ENTITY_ICONS
+```
+
+**Grep #2 — last 12 `.. spec::` directives:**
+
+```
+1412: .. spec:: Entity Agent Field — Scanner Implementation
+1501: .. spec:: Entity Tree-Click-to-Chat Implementation
+1563: .. spec:: Uniform Inline Icons for All Entities
+1705: .. spec:: Feature-Toggled Sidebar Views
+1752: .. spec:: Context Actions Commands
+1857: .. spec:: Inline Task Nodes + Badge Logic
+1940: .. spec:: Open Heartbeat Job Command
+2023: .. spec:: Open Message File Command
+2114: .. spec:: Open Reminder File Command
+2197: .. spec:: Tree Search — Manifest
+2249: .. spec:: Tree Search — Command Handlers
+2354: .. spec:: Open Context File Command
+```
+
+### Files touched
+
+- `docs/design/spec_exp.rst` — 6 new SPEC bodies inserted
+- `docs/changes/v0.7.0/entity-parity.md` — process log + this report
+
+### Confirmation
+
+- No new IDs beyond the 6 listed above ✓
+- No edits to REQs or USes ✓
+- No edits to JSON schemas or testdata ✓
+- No edits to `src/` code ✓
+- All 6 new SPECs use `:status: draft` ✓
+- All edited IDs remain `:status: draft` ✓
