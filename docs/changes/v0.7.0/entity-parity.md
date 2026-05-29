@@ -811,3 +811,99 @@ picker returned (any non-cancel). Designer corrected 4 SPECs in commit `dd4a708`
 - `npm run compile` — clean
 - `npx vitest run` — 7/7 PASS
 - No new ESLint violations (baseline unchanged)
+
+---
+
+## Fix-Pass v8 — newSession PM-Matrix Alignment (QM F-4, 2026-05-29)
+
+**Trigger:** QM Delta-Review v8 (post v6+v7) found finding F-4 (HIGH) —
+`newSession` violated the PM-matrix that v6+v7 enforced for newProject/newEvent:
+
+1. YAML write of `agent` field was conditional (`if (agentInput) { push }`) —
+   on "default agent" the field was OMITTED instead of written as `agent: ""`.
+2. Open path delegated to `jarvis.openAgentSession`, which in turn called the
+   lazy-bind picker because the scanner coerces empty-string `agent` to
+   `undefined` — causing a **second picker prompt** for users who had just
+   picked "default agent" in newSession.
+
+**PM triage:** fix-now (mechanic-fix class, CR-internal). User-Mandat authorized
+CM↔PM on-the-fly triage during user absence. F-5 (lazy-bind concrete + stale
+chat-tab UUID) deferred to backlog `entity-parity-followups` (pre-existing
+v0.6.0 D-6 trade-off, not introduced by this CR).
+
+### Designer pass (commit `8679042`)
+
+| Spec | Change |
+|------|--------|
+| `SPEC_SES_NEWENTITY` step 10 | Removed `jarvis.openAgentSession` delegation; replaced with direct conditional `chat.open({mode?})` mirroring `SPEC_EXP_NEWPROJECT_CMD` / `SPEC_EXP_NEWEVENT_CMD` from v6 |
+| `SPEC_SES_AGENT_PICKER` chat-open rule | Replaced v0.6.0 "chat-open only on non-empty agent" with PM-matrix rule (all non-cancel → chat opens; empty → no mode param; concrete → with mode) |
+| `REQ_SES_AGENT_PICKER` AC-3 | Aligned with new spec body |
+
+Designer grep-evidence:
+
+```
+grep -n "^.. spec:: SPEC_SES_NEWENTITY"     → docs/design/spec_ses.rst:180
+grep -n "^.. spec:: SPEC_SES_AGENT_PICKER"  → docs/design/spec_ses.rst:1211
+grep -c "jarvis.openAgentSession" spec_ses.rst → 13 before → 11 after (-2 in
+  SPEC_SES_NEWENTITY step 10 + SPEC_SES_AGENT_PICKER chat-open block; remaining
+  11 references are in out-of-scope specs)
+grep "Chat-open only on non-empty" → 0  ✓
+grep "if (agentInput)" → 0  ✓ (only ternary `agentInput ? ... : ...` remains)
+```
+
+Sphinx `build succeeded` (with `-W --keep-going -E`), 0 warnings.
+
+### Dev pass (commit `6166470`)
+
+| Site (lines after) | Change |
+|--------------------|--------|
+| `newSessionCommand` YAML write (2415–2416) | `if (agentInput) { yamlLines.push(...) }` → unconditional `yamlLines.push('agent: ${yamlString(agentInput)}')` (mirrors newProject:2224, newEvent:2317) |
+| `newSessionCommand` chat-open (2434–2439) | Removed `executeCommand('jarvis.openAgentSession', leaf)` delegation + `LeafNode` construction; replaced with direct `chat.open({mode?})` pattern from newProject/newEvent |
+
+CM independent audit:
+
+- `Select-String src\extension.ts -Pattern 'openAgentSession' | Where LineNumber 2376..2442` → 0 functional matches (1 mention inside the explanatory comment, which is intentional)
+- newProject/newEvent/lazy-bind sites unchanged ✓
+- `npm run compile` clean
+- `npx vitest run` — 7/7 PASS
+- `python -m sphinx -b html docs docs/_build/html -W --keep-going -E` → `build succeeded`, 0 warnings
+
+### Test-plan update (this commit)
+
+`docs/changes/v0.7.0/tst-entity-parity.md`:
+
+- **T-20 / T-21** (newProject default + concrete) — expected outcomes updated to "chat opens" per PM matrix
+- **T-23 / T-24** (newEvent default + concrete) — same
+- **T-25b NEW** — newSession + "default agent" — single picker, no re-prompt, YAML written as `agent: ""`, chat opens in default mode (regression case for QM F-4)
+- **T-28** (lazy-bind default) — expected outcome updated: YAML `""` write + chat opens; idempotent compare-skip avoids second YAML mutation on re-click
+- **T-29** (lazy-bind concrete) — caveat-note added for stale chat-tab UUID + step 0 ("close any existing chat tab named X" baseline) — references QM F-5 deferred backlog item
+
+### CM-Light MECE (delta, scope-bounded)
+
+- Spec ↔ code alignment per CM-grep: newSession site now mirrors newProject/newEvent pattern exactly (conditional `mode`, unconditional YAML)
+- No collateral changes outside the 2 PM-specified sites
+- Working tree noise (`testdata/.jarvis/heartbeat.yaml`, untracked `testdata/projects/NewProject/`, `testdata/projects/Neues Projekt/`) is pre-existing UAT scratch state, not introduced by v8 and intentionally not staged
+
+### Quality gates (final)
+
+| Gate | Status |
+|------|--------|
+| `npm run compile` | clean |
+| `npx vitest run` | 7/7 PASS |
+| `python -m sphinx -b html docs docs/_build/html -W --keep-going -E` | `build succeeded`, 0 warnings |
+| CM-grep audit (5 dimensions) | ✓ |
+
+### Deferred to backlog `entity-parity-followups`
+
+- F-2 (lazy-bind rescan after no-op): YAML write is now idempotent (75% solved by v7); rescan call still fires after the no-op write — marginal inefficiency edge
+- F-5 (lazy-bind concrete + stale UUID): mode is not re-applied if a chat tab with the entity name already exists (pre-existing v0.6.0 D-6 trade-off). Options to revisit: tab-close-prompt, force-new-editor, or mode-reapply-policy
+
+### CR status
+
+Branch `feature/entity-parity` @ `6166470` (now `+test-plan-update`) — 21
+commits since develop. HOLD on merge remains until User-UAT-Resume tomorrow.
+
+QM Delta-Mini-Review v9 trigger scope: commit-range `1eeb991..HEAD` (Designer
+`8679042` + Dev `6166470` + test-plan update). Findings → PM.
+
+
