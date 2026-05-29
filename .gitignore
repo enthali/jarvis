@@ -24,3 +24,11 @@ build.log
 
 # Workspace (machine-specific)
 Jarvis.code-workspace
+
+# Vitest compiled artifacts (vitest.config.ts is the source)
+vitest.config.js
+vitest.config.js.map
+
+# Vitest compiled artifacts
+vitest.config.js
+vitest.config.js.map
