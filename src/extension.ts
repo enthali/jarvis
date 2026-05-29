@@ -158,8 +158,8 @@ async function pickAgentMode(): Promise<string | undefined> {
 
     const items: (vscode.QuickPickItem & { mode: string })[] = [
         {
-            label:       'default agent',
-            description: 'Use the default VS Code chat mode',
+            label:       'No agent',
+            detail:      'Opens a default chat \u2014 pick mode via the chat dropdown',
             mode:        '',
         },
         ...agents.map(a => ({
@@ -842,45 +842,13 @@ export function activate(context: vscode.ExtensionContext) {
         }
     );
 
-    // Register open agent session command (SPEC_EXP_AGENTSESSION, SPEC_EXP_ENTITY_LAZYBIND)
+    // Register open agent session command (SPEC_EXP_AGENTSESSION, SPEC_EXP_ENTITY_TREECLICK)
     // Requirements: REQ_EXP_AGENTSESSION
     const openAgentSessionCommand = vscode.commands.registerCommand(
         'jarvis.openAgentSession',
         async (element: LeafNode) => {
             const entity = scanner?.getEntity(element.id);
             if (!entity) { return; }
-
-            // SPEC_EXP_ENTITY_LAZYBIND: if entity is unbound, invoke picker
-            if (entity.agent === undefined) {
-                const pickerResult = await pickAgentMode();
-                if (pickerResult === undefined) { return; } // cancel → abort
-
-                // Write agent to YAML (idempotent: skip write if already matches)
-                const yamlPath = element.id;
-                try {
-                    const rawContent = fs.readFileSync(yamlPath, 'utf-8');
-                    const doc = yaml.load(rawContent) as Record<string, unknown> ?? {};
-                    if (doc['agent'] !== pickerResult) {
-                        doc['agent'] = pickerResult;
-                        const newContent = yaml.dump(doc, { lineWidth: -1, quotingType: '"', forceQuotes: true });
-                        fs.writeFileSync(yamlPath, newContent, 'utf-8');
-                    }
-                } catch (err) {
-                    log.warn(`[LazyBind] Failed to lazy-bind agent for "${entity.name}": ${err}`);
-                    return; // abort — no chat-open, no rescan
-                }
-
-                await scanner?.rescan();
-
-                if (!pickerResult) {
-                    // Default agent ("") → open chat without mode (SPEC_EXP_ENTITY_LAZYBIND AC-3)
-                    await vscode.commands.executeCommand('workbench.action.chat.open', {});
-                    return;
-                }
-
-                // Non-empty agent → proceed with open-flow below using the new agent
-                entity.agent = pickerResult;
-            }
 
             const uuid = await lookupSessionUUID(entity.name);
 
@@ -892,9 +860,9 @@ export function activate(context: vscode.ExtensionContext) {
                 );
                 await vscode.commands.executeCommand('vscode.open', uri);
             } else {
-                // Create new session — mode-prime first so new chat inherits agent mode
-                // Implementation: SPEC_EXP_AGENTSESSION, SPEC_EXP_AGENTSESSION_INITPROMPT
-                // Requirements: REQ_EXP_AGENTSESSION, REQ_EXP_AGENTPROMPT_TEMPLATE
+                // Create new session — SPEC_EXP_ENTITY_TREECLICK:
+                // non-empty agent → mode-prime then openNewChatEditor;
+                // undefined/"" → openNewChatEditor only (no picker, no writeback)
                 if (entity.agent) {
                     try {
                         await vscode.commands.executeCommand('workbench.action.chat.open', { mode: entity.agent });
@@ -2242,9 +2210,12 @@ export function activate(context: vscode.ExtensionContext) {
 
             await scanner?.rescan();
 
-            // SPEC_EXP_NEWPROJECT_CMD step 12: open chat (conditional mode)
-            const chatOpenOptions = agentInput ? { mode: agentInput } : {};
-            await vscode.commands.executeCommand('workbench.action.chat.open', chatOpenOptions);
+            // SPEC_EXP_NEWPROJECT_CMD step 12: open chat via openNewChatEditor
+            if (agentInput) {
+                await vscode.commands.executeCommand('workbench.action.chat.open', { mode: agentInput });
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
+            await openNewChatEditor();
         }
     );
 
@@ -2336,9 +2307,12 @@ export function activate(context: vscode.ExtensionContext) {
 
             await scanner?.rescan();
 
-            // SPEC_EXP_NEWEVENT_CMD step 14: open chat (conditional mode)
-            const chatOpenOptions = agentInput ? { mode: agentInput } : {};
-            await vscode.commands.executeCommand('workbench.action.chat.open', chatOpenOptions);
+            // SPEC_EXP_NEWEVENT_CMD step 14: open chat via openNewChatEditor
+            if (agentInput) {
+                await vscode.commands.executeCommand('workbench.action.chat.open', { mode: agentInput });
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
+            await openNewChatEditor();
         }
     );
 
@@ -2431,12 +2405,12 @@ export function activate(context: vscode.ExtensionContext) {
             await scanner?.rescan();
             log.info(`[NewSession] created session "${nameInput}" at ${targetPath}`);
 
-            // SPEC_SES_NEWENTITY step 10 + SPEC_EXP_AGENT_PICKER matrix:
-            // open chat directly (no delegation to openAgentSession which would trigger
-            // a redundant lazy-bind picker via empty-string-to-undefined scanner coercion).
-            // cancel-path (agentInput === undefined) is already handled by the earlier early-return.
-            const chatOpenOptions: { mode?: string } = agentInput ? { mode: agentInput } : {};
-            await vscode.commands.executeCommand('workbench.action.chat.open', chatOpenOptions);
+            // SPEC_SES_NEWENTITY step 10: open chat via openNewChatEditor
+            if (agentInput) {
+                await vscode.commands.executeCommand('workbench.action.chat.open', { mode: agentInput });
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
+            await openNewChatEditor();
         }
     );
 

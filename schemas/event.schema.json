@@ -3,7 +3,7 @@
   "title": "ProjectManager Event",
   "description": "Schema for ProjectManager event.yaml files",
   "type": "object",
-  "required": ["name", "location", "status", "dates", "summary", "agent"],
+  "required": ["name", "location", "status", "dates", "summary"],
   "properties": {
     "name": {
       "type": "string",

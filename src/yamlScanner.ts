@@ -147,17 +147,21 @@ export class YamlScanner {
                                 ? rawStart.toISOString().slice(0, 10)
                                 : typeof rawStart === 'string' ? rawStart : undefined;
                             const summary = typeof doc['summary'] === 'string' ? doc['summary'] : undefined;
-                            const agent = typeof doc['agent'] === 'string' && doc['agent']
-                                ? doc['agent']
-                                : undefined;
-                            // SPEC_EXP_ENTITY_AGENT: warn-log for unbound project/event entities
-                            if (!agent && (kind === 'project' || kind === 'event')) {
-                                console.warn(`${kind} ${doc['name']} at ${conventionPath} is missing required 'agent' field — marked unbound`);
+                            // SPEC_EXP_ENTITY_AGENT: 3-state agent field
+                            // absent → undefined; string (incl. "") → string; non-string → undefined + warn
+                            let agent: string | undefined;
+                            if ('agent' in doc) {
+                                if (typeof doc['agent'] === 'string') {
+                                    agent = doc['agent'];
+                                } else {
+                                    agent = undefined;
+                                    console.warn(`[YamlScanner] Non-string 'agent' field in ${conventionPath} — treating as undefined`);
+                                }
                             }
                             entities.set(conventionPath, {
                                 name: doc['name'],
                                 ...(summary ? { summary } : {}),
-                                ...(agent   ? { agent }   : {}),
+                                ...(agent !== undefined ? { agent } : {}),
                                 ...(datesStart ? { datesStart } : {}),
                                 ...(typeof datesEnd === 'string' ? { datesEnd } : {}),
                                 kind,
