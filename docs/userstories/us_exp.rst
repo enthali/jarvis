@@ -509,9 +509,12 @@ Explorer User Stories
    * AC-6: The YAML scanner reads ``agent`` from ``project.yaml`` and
      ``event.yaml`` — same pattern as ``session.yaml``.
    * AC-7: Tree-click on an **unbound** entity (project, event, or session)
-     opens the agent-picker first. The user selects an agent, the ``agent``
-     field is written into the YAML, then the normal open-flow proceeds.
+     opens the agent-picker first. The user selects an agent or "default
+     agent". If a concrete agent is selected, the ``agent`` field is written
+     into the YAML and the normal open-flow proceeds. If "default agent" is
+     selected, ``agent: ""`` is written (idempotent) and no chat is opened.
      Cancel aborts — no YAML mutation.
    * AC-8: ``jarvis.newProject`` and ``jarvis.newEvent`` invoke the
      agent-picker after the name/date prompts — same shared picker component
-     as ``jarvis.newSession``.
+     as ``jarvis.newSession``. These are creation-only commands: no chat
+     editor is opened regardless of the picker result.

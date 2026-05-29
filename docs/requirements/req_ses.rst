@@ -363,20 +363,20 @@ Sessions Requirements
    **Acceptance Criteria:**
 
    * AC-1: After prompting for ``name`` and ``summary``, the command SHALL
-     display a QuickPick populated with: a "No agent" entry (yields no
-     ``agent`` field in ``session.yaml``) and one entry per user-invocable
+     display a QuickPick populated with: a "default agent" entry (yields
+     ``agent: ""`` in ``session.yaml``) and one entry per user-invocable
      agent discovered under ``.github/agents/`` (see ``REQ_SES_AGENT_DISCOVERY``).
    * AC-2: If the user dismisses the picker (Escape / window close), the
      command SHALL abort; no folder, ``session.yaml``, or ``context.md`` SHALL
      be created.
-   * AC-3: If the user selects "No agent", the ``agent`` field SHALL be omitted
-     entirely from the written ``session.yaml``.
+   * AC-3: If the user selects "default agent", ``agent: ""`` SHALL be
+     written to ``session.yaml``. No chat editor SHALL be opened.
    * AC-4: If the user selects a named agent, that agent's identity (per
      ``REQ_SES_AGENT_DISCOVERY`` AC-7) SHALL be written to ``session.yaml``
      as ``agent: "<identity>"``.  The identity is used verbatim; it may
      contain spaces (e.g., ``"Change Manager"``).
-   * AC-5: The picker SHALL show agent names alphabetically, with "No agent"
-     always first.
+   * AC-5: The picker SHALL show agent names alphabetically, with "default
+     agent" always first.
 
 
 .. req:: Agent Discovery Mechanism

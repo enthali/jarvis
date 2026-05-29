@@ -269,8 +269,8 @@ Explorer Requirements
    * AC-4: The folder ``<name>/`` is created inside ``jarvis.projectsFolder``
      with ``project.yaml`` containing ``name: "<input>"``
    * AC-5: After file creation, an immediate scanner rescan is triggered
-   * AC-6: After the rescan, the agent session for the new entity is opened
-     (delegated to ``jarvis.openAgentSession`` logic)
+   * AC-6: After the rescan, the new entity appears in the tree. No chat
+     editor is opened (creation-only command).
    * AC-7: If the user cancels the InputBox, the command exits without side effects
    * AC-8: The command SHALL NOT appear in the Command Palette
    * AC-9: If a folder with the given name already exists, the command SHALL
@@ -282,8 +282,8 @@ Explorer Requirements
      agent-picker (``SPEC_EXP_AGENT_PICKER``). If the user cancels the picker,
      the command SHALL abort without side effects.
    * AC-12: The selected agent SHALL be written to ``project.yaml`` as the
-     ``agent`` field. If "No agent" is chosen, the ``agent`` field SHALL be
-     omitted.
+     ``agent`` field. If "default agent" is chosen, ``agent: ""`` SHALL be
+     written (not omitted). No chat editor is opened regardless of selection.
 
 
 .. req:: New Event Command
@@ -314,7 +314,8 @@ Explorer Requirements
    * AC-6: ``event.yaml`` contains ``name``, ``summary`` (empty string),
      ``dates.start``, ``dates.end`` (start = end = input date)
    * AC-7: After file creation, an immediate scanner rescan is triggered
-   * AC-8: After the rescan, the agent session for the new entity is opened
+   * AC-8: After the rescan, the new entity appears in the tree. No chat
+     editor is opened (creation-only command).
    * AC-9: If the user cancels any InputBox, the command exits without side effects
    * AC-10: The command SHALL NOT appear in the Command Palette
    * AC-11: If a folder with the derived name already exists, the command SHALL
@@ -326,8 +327,8 @@ Explorer Requirements
      agent-picker (``SPEC_EXP_AGENT_PICKER``). If the user cancels the picker,
      the command SHALL abort without side effects.
    * AC-14: The selected agent SHALL be written to ``event.yaml`` as the
-     ``agent`` field. If "No agent" is chosen, the ``agent`` field SHALL be
-     omitted.
+     ``agent`` field. If "default agent" is chosen, ``agent: ""`` SHALL be
+     written (not omitted). No chat editor is opened regardless of selection.
 
 
 .. req:: Rescan Button in Title Bar
@@ -932,5 +933,6 @@ Explorer Requirements
      (open chat in selected agent mode + init prompt).
    * AC-4: If the user cancels the picker, the open SHALL abort. No YAML
      mutation SHALL occur.
-   * AC-5: If "No agent" is selected, the ``agent`` field SHALL be written
-     as empty string, and the open-flow proceeds without agent mode.
+   * AC-5: If "default agent" is selected (picker returns ``""``), the system
+     SHALL write ``agent: ""`` to the entity's YAML (idempotent: skip write if
+     already ``""``). No chat editor SHALL be opened.

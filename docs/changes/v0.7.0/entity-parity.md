@@ -423,3 +423,61 @@ new IDs introduced, no schema changes. All edited IDs remain `:status: draft`.
 - All HIGH/MEDIUM cleared — no further design fix-pass needed.
 - v2 LOW advisory → flag to UAT test plan; consider in docu phase. Not blocking.
 - Proceeding to PM checkpoint before invoking `syspilot.uat`.
+
+---
+
+## Design Fix-Pass v3 Report (2026-05-29)
+
+**Trigger:** PM refined picker semantics after v2 MECE pass. Rename "No agent"
+→ "default agent"; change empty-string from "omit field" to "write `agent: ""`";
+add chat-open rule (no mode = no open); make newProject/newEvent creation-only
+(no chat-open); add idempotency rule to lazy-bind.
+
+### Why
+
+PM decision: the picker option formerly named "No agent" is renamed to
+"default agent" to better communicate intent. The return contract becomes a
+strict 3-way: `""` = default agent (explicit no-commit, persisted), `undefined`
+= cancel, `"<name>"` = concrete agent. Chat-open only occurs on non-empty
+string. newProject/newEvent are creation-only — no chat-open in any case.
+Lazy-bind must be idempotent (read-compare-skip-write).
+
+### Behavior matrix (authoritative)
+
+| Flow | Picker returns `""` ("default agent") | Picker returns `undefined` (cancel) | Picker returns `"<agent>"` (concrete) |
+|------|--------------------------------------|-------------------------------------|---------------------------------------|
+| `newSession` | YAML written with `agent: ""`, entity created, **no chat-open** | Creation aborted, no YAML written | YAML written with `agent: "<a>"`, entity created, **chat-open** in `<a>` mode |
+| `newProject` | YAML written with `agent: ""`, entity created, **no chat-open** | Creation aborted, no YAML written | YAML written with `agent: "<a>"`, entity created, **no chat-open** (creation-only) |
+| `newEvent` | Same as newProject | Same as newProject | Same as newProject (creation-only) |
+| Lazy-bind (tree-click on unbound) | YAML write `agent: ""` **idempotent** (skip if already `""`), **no chat-open** | Abort: no YAML mutation, no chat-open | YAML write `agent: "<a>"`, then chat-open in `<a>` mode |
+
+### Specs touched
+
+| ID | Change summary |
+|----|----------------|
+| `SPEC_EXP_AGENT_PICKER` | Renamed "No agent" → "default agent"; 3-way return contract; chat-open rule added |
+| `SPEC_EXP_ENTITY_LAZYBIND` | Idempotent write (read-compare-skip); "default agent" writes `""` + no chat-open; removed old abort-on-empty |
+| `SPEC_EXP_NEWPROJECT_CMD` | Always write `agent: ""`; removed `openAgentSession` call (creation-only) |
+| `SPEC_EXP_NEWEVENT_CMD` | Always write `agent: ""`; removed `openAgentSession` call (creation-only) |
+| `SPEC_SES_AGENT_PICKER` | Renamed "No agent" → "default agent"; always write agent field; chat-open conditional on non-empty |
+| `REQ_EXP_ENTITY_LAZYBIND` | AC-5 updated: write `""` idempotent, no chat-open |
+| `REQ_EXP_NEWPROJECT` | AC-6: creation-only (no chat-open); AC-12: write `""` not omit |
+| `REQ_EXP_NEWEVENT` | AC-8: creation-only (no chat-open); AC-14: write `""` not omit |
+| `REQ_SES_AGENT_PICKER` | AC-1/AC-3/AC-5: "default agent" rename + write-always semantics |
+| `US_EXP_ENTITYPARITY` | AC-7: "default agent" terminology + idempotent write; AC-8: creation-only note |
+| `US_SES_AGENTBIND` | AC-1/AC-2: "default agent" rename + write-always |
+
+### Idempotency rule (lazy-bind)
+
+Tree-click on entity with `agent: ""` → read YAML → compare current `agent`
+against picker result → if equal, skip write (no fs mutation, no rescan).
+Only write + rescan if value differs. This prevents redundant I/O on repeated
+tree-clicks of "default agent" entities.
+
+### Confirmation
+
+- newProject and newEvent are creation-only: **no chat-open** in any picker case ✓
+- All edited IDs remain `:status: draft` ✓
+- No new IDs introduced ✓
+- No schema/testdata changes ✓
+- No LM-tool path changes ✓

@@ -103,13 +103,13 @@ Sessions User Stories
    * AC-1: When creating a new session via the UI (``jarvis.newSession`` or
      ``jarvis.newEntity``), the user is presented with an agent picker that
      lists all user-invocable agents discovered from the workspace (opt-out
-     via ``user-invocable: false`` in frontmatter) plus a "No agent" option.
+     via ``user-invocable: false`` in frontmatter) plus a "default agent" option.
      Each agent is presented under its frontmatter ``name`` field (if set and
      non-empty), otherwise under its filename stem without ``.agent.md``.
      Dismissing the picker (Escape) cancels the creation.
-   * AC-2: The chosen agent (or no-agent, i.e. empty string) is persisted in
-     ``session.yaml`` as an optional ``agent`` field; the field is omitted
-     entirely when "No agent" was selected.
+   * AC-2: The chosen agent (or "default agent", i.e. empty string) is
+     persisted in ``session.yaml`` as ``agent: ""`` or ``agent: "<name>"``.
+     The field is always written.
    * AC-3: Opening a session with a bound agent (via ``jarvis.openAgentSession``
      on a new-session path) opens the chat editor in that agent mode.
    * AC-4: The tool ``jarvis_createSession`` accepts an optional ``agent``
