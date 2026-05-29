@@ -675,3 +675,30 @@ Root cause: `activateHeartbeat()` does not receive the scanner instance, so the 
 ### CM disposition
 
 CR's AC-6 ("Drift ist nicht erlaubt") is unambiguous — this is a dev bug, not a PM-substance question. **Targeted dev fix-pass invoked** to thread scanner through `activateHeartbeat()` → `HeartbeatScheduler` → both call sites. After fix: re-run MECE delta on the heartbeat changes only, then User-UAT (manual 55-scenario).
+
+---
+
+## Dev Fix-Pass v2 — Heartbeat Anti-Drift Resolution (commit `056c7d9`)
+
+**Scope:** thread EntityScanner through `activateHeartbeat()` → `HeartbeatScheduler` → both `getValidDestinations()` call sites in `heartbeat.ts`.
+
+**Files touched (3):** `src/heartbeat.ts`, `src/extension.ts` (call site), `src/tests/entity-parity.test.ts` (+2 tests for scanner-present vs scanner-absent).
+
+### CM independent verification (grep + builds)
+
+| Check | Evidence |
+|-------|----------|
+| Both heartbeat sites pass scanner | `heartbeat.ts:215`, `heartbeat.ts:243` — both `getValidDestinations(scanner)` |
+| `activateHeartbeat()` receives scanner | `extension.ts:390` — `activateHeartbeat(context, messageProvider, resolveMessagesPath, log, scanner)` |
+| Test count | 5 → 7 (added 2 scanner-aware tests) |
+| `npm run compile` | clean |
+| `npx vitest run` | 7/7 PASS |
+| `sphinx -b html -W` | (re-verify in next CM session, no doc changes in this commit) |
+
+### Verdict
+
+**Anti-drift violation RESOLVED.** Both validation sites use the same shared `getValidDestinations()` function with identical scanner input. CR AC-6 ("Drift ist nicht erlaubt") is now satisfied.
+
+**No MECE-invoke needed:** change is purely mechanical parameter-threading + 2 unit tests covering both branches; verified by CM grep + tests.
+
+**Ready for User-UAT (manual 55-scenario run per `tst-entity-parity.md`).**
