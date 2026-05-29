@@ -246,6 +246,7 @@ cross-level consistent. No design fix-pass needed.
 | 2. Impact Analysis | done | CM | clusters A-F above; needs.json @ 2026-05-23 (no doc changes since) |
 | 3. System Designer | done | syspilot.design | US/REQ/SPEC complete, see Engineer Report above |
 | 3a. Design fix-pass | done | syspilot.design | PM checkpoint resolutions encoded — see Fix-Pass Report below |
+| 3b. Design fix-pass v2 | done | syspilot.design | MECE-light consistency fixes (5 findings) — see Fix-Pass v2 Report below |
 | 4. Test Engineer | pending | syspilot.uat | `tst-entity-parity.md` |
 | 5. Dev Engineer | pending | syspilot.implement | code + tests |
 | 6. MECE final | pending | syspilot.mece | |
@@ -365,3 +366,32 @@ PM confirmed retrospectively: subagents cannot write into other sessions'
 message queues. The designer correctly consulted the user directly via
 `vscode_askQuestions` during the first design pass. No process correction
 needed — this is documented here for the record.
+
+---
+
+## Design Fix-Pass v2 Report (2026-05-29)
+
+**Trigger:** MECE-light found 1 HIGH + 3 MEDIUM + 1 LOW consistency issues
+in fix-pass v1. CM invoked designer for within-design consistency fixes only
+(no substance changes — PM already approved Option C + lazy-bind + mandatory
+picker).
+
+### Fixes applied
+
+| # | Severity | Finding | Fix |
+|---|----------|---------|-----|
+| 1 | HIGH | `SPEC_EXP_ENTITY_LAZYBIND` wrote `agent: ""` on "No agent" but all other specs omit | Aligned to omit pattern: "No agent" → entity stays unbound, command aborts, next tree-click re-fires picker |
+| 2 | MEDIUM | `SPEC_EXP_ENTITY_AGENT` AC-2 left empty-string ambiguous between cases | Made explicit: empty string treated as unbound alongside missing/undefined/non-string |
+| 3 | MEDIUM | `SPEC_EXP_ENTITY_LAZYBIND` used `writeFileSync()` without error handling | Added try/catch AC: catch → warn log → abort, no partial state |
+| 4 | MEDIUM | `EntityEntry` in `SPEC_EXP_SCANNER` missing `agent`, `kind`, `folder` fields | Added all three optional fields with origin comments; added union note |
+| 5 | LOW | `SPEC_EXP_AGENT_PICKER` conflated interactive and programmatic consumers under one anti-drift rule | Split into two subsections: interactive (4 consumers, anti-drift applies) and programmatic (2 LM tools, `discoverAgents()`, no anti-drift) |
+
+### Files touched
+
+- `docs/design/spec_exp.rst` — all 5 fixes
+- `docs/changes/v0.7.0/entity-parity.md` — process log + this report
+
+### No substance changed
+
+All edits are within-design consistency fixes. No requirements changed, no
+new IDs introduced, no schema changes. All edited IDs remain `:status: draft`.

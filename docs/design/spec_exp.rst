@@ -209,7 +209,13 @@ Explorer Design Specifications
           name: string;
           datesEnd?: string;         // event end date YYYY-MM-DD; undefined for projects or if absent
           datesStart?: string;       // event start date YYYY-MM-DD; undefined for projects or if absent
+          agent?: string;            // bound agent identity; undefined = unbound (SPEC_EXP_ENTITY_AGENT)
+          kind?: 'project' | 'event' | 'session';  // entity type (SPEC_EXP_AGENTSESSION_INITPROMPT)
+          folder?: string;           // entity folder path (SPEC_EXP_AGENTSESSION_INITPROMPT)
       }
+
+   Fields contributed by other SPECs are documented at their point of
+   introduction; this interface is the union.
 
       interface FolderNode {
           kind: 'folder';
@@ -1569,9 +1575,11 @@ Explorer Design Specifications
 
    1. Read ``data.agent`` and assign to ``entry.agent`` if it is a non-empty
       string. Same pattern as ``session.yaml`` (see ``SPEC_SES_AGENT_SCHEMA``).
-   2. If ``data.agent`` is missing, ``undefined``, or non-string, set
-      ``entry.agent = undefined`` (entity is **unbound**) and emit a
-      warning-level log line via ``console.warn()``:
+   2. If ``data.agent`` is missing, ``undefined``, an empty string, or
+      non-string, set ``entry.agent = undefined`` (entity is **unbound**,
+      treated as not yet bound) and emit a warning-level log line via
+      ``console.warn()``. This also handles legacy YAMLs that may contain
+      ``agent: ""`` — they are silently treated as unbound:
 
       .. code-block:: typescript
 
@@ -1706,27 +1714,31 @@ Explorer Design Specifications
    This spec formalizes the consolidation — no new function is created; the
    existing ``pickAgentMode()`` is reused as-is.
 
-   **Consumers (all SHALL call ``pickAgentMode()``):**
+   **Interactive picker consumers (all SHALL call ``pickAgentMode()``):**
 
    1. ``jarvis.newSession`` — existing (``SPEC_SES_AGENT_PICKER``).
    2. ``jarvis.newProject`` — added in this CR (``SPEC_EXP_NEWPROJECT_CMD``
       step 4).
    3. ``jarvis.newEvent`` — added in this CR (``SPEC_EXP_NEWEVENT_CMD``
       step 6).
-   4. ``jarvis_createProject`` / ``jarvis_createEvent`` LM tools — agent
-      parameter validated via ``discoverAgents()`` directly (picker is
-      interactive-only; tools receive the value programmatically).
-   5. Lazy-bind flow — added in this CR (``SPEC_EXP_ENTITY_LAZYBIND``).
+   4. Lazy-bind flow — added in this CR (``SPEC_EXP_ENTITY_LAZYBIND``).
+
+   **Anti-drift rule:** No interactive consumer SHALL implement its own agent
+   QuickPick. If the picker UI needs changes (e.g. new options), they are made
+   once in ``pickAgentMode()`` and all consumers inherit them automatically.
+
+   **Programmatic validation consumers (no picker invocation):**
+
+   * ``jarvis_createProject`` / ``jarvis_createEvent`` LM tools — agent
+     parameter validated via ``discoverAgents()`` directly. The picker is
+     interactive-only; tools receive the value programmatically. The
+     anti-drift rule does NOT apply here — different mechanism by design.
 
    **Return semantics (unchanged from ``SPEC_SES_AGENT_PICKER``):**
 
    * ``undefined`` — user dismissed (Escape); caller MUST abort.
    * ``""`` (empty string) — "No agent"; omit ``agent`` from YAML.
    * ``"<identity>"`` — write ``agent: "<identity>"`` to YAML.
-
-   **Anti-drift rule:** No consumer SHALL implement its own agent QuickPick.
-   If the picker UI needs changes (e.g. new options), they are made once in
-   ``pickAgentMode()`` and all consumers inherit them automatically.
 
    **File touchpoint:** ``src/extension.ts`` — ``pickAgentMode()`` (already
    exists per ``SPEC_SES_AGENT_PICKER``; no new code needed, only new call
@@ -1756,13 +1768,19 @@ Explorer Design Specifications
       if (entity.agent === undefined) {
           const agentInput = await pickAgentMode();
           if (agentInput === undefined) { return; }  // cancel → abort
+          if (agentInput === '') { return; }           // "No agent" → abort (entity stays unbound)
 
           // Write agent field into YAML
           const yamlPath = element.id;  // convention file path
-          const raw = fs.readFileSync(yamlPath, 'utf-8');
-          const updatedYaml = raw.trimEnd() + '\n'
-              + (agentInput ? `agent: "${agentInput}"\n` : `agent: ""\n`);
-          fs.writeFileSync(yamlPath, updatedYaml, 'utf-8');
+          try {
+              const raw = fs.readFileSync(yamlPath, 'utf-8');
+              const updatedYaml = raw.trimEnd() + '\n'
+                  + `agent: "${agentInput}"\n`;
+              fs.writeFileSync(yamlPath, updatedYaml, 'utf-8');
+          } catch (err) {
+              console.warn(`Failed to lazy-bind agent for ${entity.name}: ${err}`);
+              return;  // abort — no partial state
+          }
 
           // Refresh scanner so entity.agent is populated
           await scanner.rescan();
@@ -1786,9 +1804,22 @@ Explorer Design Specifications
    **"No agent" semantics:**
 
    If the user selects "No agent" (``pickAgentMode()`` returns ``""``), the
-   ``agent`` field is written as an empty string. The open-flow proceeds
-   without agent mode (same as ``SPEC_SES_AGENT_OPEN`` with
-   ``entity.agent === ""``).
+   ``agent`` field is **not written** — the entity remains **unbound**. The
+   command returns immediately; no chat editor is opened. This is consistent
+   with the omit-pattern used by ``SPEC_EXP_NEWPROJECT_CMD``,
+   ``SPEC_EXP_NEWEVENT_CMD``, and ``SPEC_SES_AGENT_PICKER``. The next
+   tree-click will fire the picker again.
+
+   **Design note:** If a future CR needs an "intentionally unbound" state
+   distinct from "not yet bound", a separate field or sentinel should be
+   introduced. This is out of scope for entity-parity.
+
+   **Write-error handling:**
+
+   If ``writeFileSync()`` throws, the error is caught and a warning-level log
+   is emitted (``Failed to lazy-bind agent for <entity>: <error>``). The
+   command aborts — no chat editor is opened, no scanner rescan occurs. The
+   entity remains unbound.
 
    **Scope:** Applies to all three entity kinds (project, event, session)
    because ``openAgentSession`` handles all entity types uniformly.
