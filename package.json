@@ -629,14 +629,6 @@
             "type": "boolean",
             "default": true,
             "description": "Enable the Sessions feature (lightweight project entities)."
-          },
-          "jarvis.agentSession.initPromptTemplate": {
-            "type": "string",
-            "default": "You are the ${kind} \"${name}\".\n\nUse only `${contextPath}` as your persistent memory. Read it now.\n\nKeep it minimal and action-oriented:\n- Store only long-lived items under Decision / Finding / Next.\n- One concise line per bullet. Prune aggressively.\n- Replace outdated bullets — never append logs.\n- Never store retries, raw tool output, or transient chatter.\n- Before writing, ask: \"Will this still matter in 2 weeks?\" If no, skip.",
-            "editPresentation": "multilineText",
-            "scope": "window",
-            "description": "Template for the initialization prompt sent to a new agent chat session. Placeholders: ${kind} (entity kind), ${name} (entity name), ${contextPath} (absolute path to context.md). Leave empty to use the built-in disciplined default.",
-            "markdownDescription": "Template for the initialization prompt sent to a new agent chat session.\n\nPlaceholders: `${kind}`, `${name}`, `${contextPath}` (absolute path to `context.md`).\n\nLeave empty or whitespace-only to use the built-in disciplined default."
           }
         }
       },
@@ -652,13 +644,26 @@
             "type": "boolean",
             "default": true,
             "description": "When enabled, every queued message is also appended to .jarvis/message-log.json (append-only audit log)."
+          }
+        }
+      },
+      {
+        "title": "Prompt Templates",
+        "properties": {
+          "jarvis.agentSession.initPromptTemplate": {
+            "type": "string",
+            "default": "You are the agent session for the ${kind} \"${name}\".\n\nUse only `${contextPath}` as your persistent memory. Read it now.\n\nKeep it minimal and action-oriented:\n- Store only long-lived items under Decision / Finding / Next.\n- One concise line per bullet. Prune aggressively.\n- Replace outdated bullets — never append logs.\n- Never store retries, raw tool output, or transient chatter.\n- Before writing, ask: \"Will this still matter in 2 weeks?\" If no, skip.",
+            "editPresentation": "multilineText",
+            "scope": "window",
+            "description": "Template for the initialization prompt sent to a new agent chat session opened for a Project, Event, or Session entity. Placeholders: ${kind} (entity kind: project|event|session), ${name} (entity name), ${contextPath} (absolute path to context.md). Leave empty to use the built-in disciplined default.",
+            "markdownDescription": "Template for the initialization prompt sent to a new agent chat session opened for a Project, Event, or Session entity.\n\nPlaceholders: `${kind}` (entity kind: `project` | `event` | `session`), `${name}`, `${contextPath}` (absolute path to `context.md`).\n\nLeave empty or whitespace-only to use the built-in disciplined default."
           },
           "jarvis.messages.notificationTemplate": {
             "type": "string",
             "default": "[Jarvis Message Service] You have ${count} new message(s) in your inbox.\nRead them with the jarvis_readMessage tool (destination: \"${destination}\") until remaining = 0.",
             "editPresentation": "multilineText",
             "scope": "window",
-            "description": "Template for the auto-delivery notification sent to an agent session. Placeholders: ${count} (number of pending messages), ${destination} (target session name). Leave empty to use the built-in English default."
+            "description": "Template for the auto-delivery notification sent to an agent session when new messages arrive. Placeholders: ${count} (number of pending messages), ${destination} (target session name). Leave empty to use the built-in English default."
           }
         }
       },

@@ -227,6 +227,48 @@ export function activate(context: vscode.ExtensionContext) {
         await new Promise(resolve => setTimeout(resolve, 800));
     }
 
+    // SPEC_EXP_ENTITY_TREECLICK / SPEC_EXP_NEWPROJECT_CMD / SPEC_EXP_NEWEVENT_CMD /
+    // SPEC_SES_NEWENTITY: single shared entity-chat opener.
+    // agent === non-empty → mode-prime then openNewChatEditor;
+    // agent === ""/undefined → openNewChatEditor only (no picker, no writeback).
+    // Always followed by rename + init-prompt.
+    async function openChatForEntity(
+        name: string,
+        kind: string,
+        folder: string,
+        agent: string | undefined
+    ): Promise<void> {
+        if (agent) {
+            try {
+                await vscode.commands.executeCommand(
+                    'workbench.action.chat.open', { mode: agent });
+                await new Promise(resolve => setTimeout(resolve, 300));
+            } catch (err) {
+                log.warn(`[MSG] openChatForEntity: failed to prime agent mode "${agent}": ${err}`);
+            }
+        }
+        await openNewChatEditor();
+        await renameFocusedChatSession(name);
+
+        // SPEC_EXP_AGENTSESSION_INITPROMPT
+        const contextPath = path.join(folder, 'context.md');
+        const defaultInitPrompt =
+            `You are the agent session for the \${kind} "\${name}".\n\n` +
+            `Use only \`\${contextPath}\` as your persistent memory. Read it now.\n\n` +
+            `Keep it minimal and action-oriented:\n` +
+            `- Store only long-lived items under Decision / Finding / Next.\n` +
+            `- One concise line per bullet. Prune aggressively.\n` +
+            `- Replace outdated bullets — never append logs.\n` +
+            `- Never store retries, raw tool output, or transient chatter.\n` +
+            `- Before writing, ask: "Will this still matter in 2 weeks?" If no, skip.`;
+        const rawInitTemplate = vscode.workspace.getConfiguration('jarvis')
+            .get<string>('agentSession.initPromptTemplate') ?? '';
+        const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : defaultInitPrompt;
+        const initPrompt = applyTemplate(initTemplate, { kind, name, contextPath });
+        await vscode.commands.executeCommand(
+            'workbench.action.chat.open', { query: initPrompt });
+    }
+
     // Implementation: SPEC_PIM_TASKSERVICE
     // Requirements: REQ_PIM_TASKSERVICE
     const taskService = new TaskService();
@@ -860,39 +902,10 @@ export function activate(context: vscode.ExtensionContext) {
                 );
                 await vscode.commands.executeCommand('vscode.open', uri);
             } else {
-                // Create new session — SPEC_EXP_ENTITY_TREECLICK:
-                // non-empty agent → mode-prime then openNewChatEditor;
-                // undefined/"" → openNewChatEditor only (no picker, no writeback)
-                if (entity.agent) {
-                    try {
-                        await vscode.commands.executeCommand('workbench.action.chat.open', { mode: entity.agent });
-                        await new Promise(resolve => setTimeout(resolve, 300));
-                    } catch (err) {
-                        log.warn(`[MSG] openAgentSession: failed to prime agent mode "${entity.agent}": ${err}`);
-                    }
-                }
-                await openNewChatEditor();  // SPEC_MSG_OPENCHAT (includes 800 ms settle delay)
-
-                // Rename session via /rename command
-                await renameFocusedChatSession(entity.name);
-
-                // Send initialization prompt (SPEC_EXP_AGENTSESSION_INITPROMPT)
+                // Create new session — SPEC_EXP_ENTITY_TREECLICK
                 const kind = entity.kind ?? 'project';
                 const folder = entity.folder ?? path.dirname(element.id);
-                const contextPath = path.join(folder, 'context.md');
-                const defaultInitPrompt =
-                    `You are the \${kind} "\${name}".\n\n` +
-                    `Use only \`\${contextPath}\` as your persistent memory. Read it now.\n\n` +
-                    `Keep it minimal and action-oriented:\n` +
-                    `- Store only long-lived items under Decision / Finding / Next.\n` +
-                    `- One concise line per bullet. Prune aggressively.\n` +
-                    `- Replace outdated bullets — never append logs.\n` +
-                    `- Never store retries, raw tool output, or transient chatter.\n` +
-                    `- Before writing, ask: "Will this still matter in 2 weeks?" If no, skip.`;
-                const rawInitTemplate = vscode.workspace.getConfiguration('jarvis').get<string>('agentSession.initPromptTemplate') ?? '';
-                const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : defaultInitPrompt;
-                const initPrompt = applyTemplate(initTemplate, { kind, name: entity.name, contextPath });
-                await vscode.commands.executeCommand('workbench.action.chat.open', { query: initPrompt });
+                await openChatForEntity(entity.name, kind, folder, entity.agent);
             }
         }
     );
@@ -2210,12 +2223,8 @@ export function activate(context: vscode.ExtensionContext) {
 
             await scanner?.rescan();
 
-            // SPEC_EXP_NEWPROJECT_CMD step 12: open chat via openNewChatEditor
-            if (agentInput) {
-                await vscode.commands.executeCommand('workbench.action.chat.open', { mode: agentInput });
-                await new Promise(resolve => setTimeout(resolve, 300));
-            }
-            await openNewChatEditor();
+            // SPEC_EXP_NEWPROJECT_CMD step 12: open chat via shared helper
+            await openChatForEntity(input, 'project', targetPath, agentInput);
         }
     );
 
@@ -2307,12 +2316,8 @@ export function activate(context: vscode.ExtensionContext) {
 
             await scanner?.rescan();
 
-            // SPEC_EXP_NEWEVENT_CMD step 14: open chat via openNewChatEditor
-            if (agentInput) {
-                await vscode.commands.executeCommand('workbench.action.chat.open', { mode: agentInput });
-                await new Promise(resolve => setTimeout(resolve, 300));
-            }
-            await openNewChatEditor();
+            // SPEC_EXP_NEWEVENT_CMD step 14: open chat via shared helper
+            await openChatForEntity(nameInput, 'event', targetPath, agentInput);
         }
     );
 
@@ -2405,12 +2410,8 @@ export function activate(context: vscode.ExtensionContext) {
             await scanner?.rescan();
             log.info(`[NewSession] created session "${nameInput}" at ${targetPath}`);
 
-            // SPEC_SES_NEWENTITY step 10: open chat via openNewChatEditor
-            if (agentInput) {
-                await vscode.commands.executeCommand('workbench.action.chat.open', { mode: agentInput });
-                await new Promise(resolve => setTimeout(resolve, 300));
-            }
-            await openNewChatEditor();
+            // SPEC_SES_NEWENTITY step 10: open chat via shared helper
+            await openChatForEntity(nameInput, 'session', targetPath, agentInput);
         }
     );
 
