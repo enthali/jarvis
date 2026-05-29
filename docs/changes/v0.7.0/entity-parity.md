@@ -253,3 +253,33 @@ cross-level consistent. No design fix-pass needed.
 | 9. PM Merge Approval | pending | PM | explicit "merge jetzt OK?" |
 | 10. Squash-merge | pending | CM | feature → develop |
 | 11. Post-merge | pending | CM | commit hash + branch name to PM |
+
+---
+
+## MECE Advisory — Design Pass (2026-05-29)
+
+**Run by:** CM (designer deferred per agent report)
+**Source:** `syspilot.mece` subagent over commit `db72298`
+**Verdict:** **PASS-WITH-ADVISORIES** — no HIGH blockers, UAT may proceed after PM checkpoint resolves the agent-field decision.
+
+### Findings
+
+| # | Severity | Area | Finding | Action owner |
+|---|----------|------|---------|--------------|
+| 1 | MEDIUM | `SPEC_EXP_ENTITY_ICONS` | Recording icon visibility uses `jarvis.hasRecording` context key, but **when/how** the key is set is not specified. Recommend formalizing folder-scan rule (recording/ subfolder present → true) in SPEC AC. | Designer (fix-pass) or Dev engineer (formalize at implementation). |
+| 2 | MEDIUM | `REQ_EXP_ENTITY_AGENT` | CR text says `agent` **required**; designer made it **optional** in schema with graceful default (per delegated backward-compat decision). PM must confirm. | PM checkpoint (this round). |
+| 3 | LOW | `SPEC_EXP_NEWPROJECT_CMD` / `SPEC_EXP_NEWEVENT_CMD` | Interactive new-Project/Event commands omit the agent picker (which exists for sessions). Asymmetry is intentional but should be documented as design rationale. | Designer (advisory, optional). |
+| 4 | LOW | `REQ_EXP_ENTITY_AGENT` vs. `REQ_SES_AGENT_FIELD` | Agent-field semantics duplicated across two REQs. Future-refactor candidate (consolidate to shared architecture spec). | Backlog. |
+
+### Cross-level MECE checks (PASS)
+
+- Tool surface clarity (listSessions / listChatSessions / listEvents) — no name collision, semantics disambiguated.
+- Create-tool symmetry — one tool per entity type, identical patterns.
+- Tree-click parity — entity-level REQ inherits session behavior cleanly.
+- Destination validation alignment — `REQ_MSG_SENDTOSESSION` and `REQ_AUT_HEARTBEAT_RESOLVER_REUSE` both reference the same shared resolver in `sessionLookup.ts` (drift prevention enforced).
+
+### CM disposition
+
+- Finding 1 (icons mechanism): defer to dev engineer to formalize as `jarvis.hasRecording` context-key wiring in implementation. SPEC AC update can ride along in dev commit. **Not blocking UAT** if test plan explicitly covers recording-icon visibility.
+- Finding 2 (agent required vs. optional): **blocks PM checkpoint** — escalating now.
+- Findings 3, 4: accepted as advisories; finding 3 may be addressed in docu phase, finding 4 goes to backlog.
