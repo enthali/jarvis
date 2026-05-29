@@ -220,13 +220,13 @@ Sessions Design Specifications
 
    9. Call ``scanner.rescan()`` so the new session appears in the tree
       immediately (no window reload required).
-   10. Execute ``jarvis.openAgentSession`` with a synthetic ``LeafNode`` whose
-       ``id`` equals ``<targetPath>/session.yaml``, so the new session chat opens
-       automatically::
+   10. Open the chat editor directly (cancel path is handled by the
+       early-return guard in step after ``pickAgentMode()``, so this code is
+       only reached for ``""`` or a concrete agent)::
 
+          const chatOpenOptions = agentInput ? { mode: agentInput } : {};
           await vscode.commands.executeCommand(
-              'jarvis.openAgentSession',
-              { kind: 'leaf', id: `${targetPath}/session.yaml` }
+              'workbench.action.chat.open', chatOpenOptions
           );
 
    **``jarvis.newEntity`` Session branch** (``src/extension.ts`` newEntityCommand):
@@ -1259,9 +1259,12 @@ Sessions Design Specifications
 
    **Chat-open rule for ``newSession``:**
 
-   After YAML creation, ``newSessionCommand`` SHALL open the chat editor
-   **only if** ``agentInput`` is a non-empty string. If ``agentInput === ""``
-   ("default agent"), the session is created but no chat editor is opened.
+   After YAML creation, ``newSessionCommand`` SHALL always open a chat editor
+   (cancel is handled by the earlier early-return guard).  If ``agentInput``
+   is non-empty, pass ``{ mode: agentInput }``; if ``agentInput === ""``
+   ("default agent"), pass ``{}`` (no mode) — opens in VS Code default chat
+   mode.  This matches the PM-mandated picker matrix enforced for
+   ``newProject`` / ``newEvent`` in v6+v7.
 
    **``newSessionCommand`` change** (``src/extension.ts``):
 
@@ -1285,19 +1288,17 @@ Sessions Design Specifications
    The existing ``yamlString()`` helper (already used for ``name`` and
    ``summary``) handles escaping.
 
-   **Chat-open conditional** (after YAML write + rescan):
+   **Chat-open** (after YAML write + rescan):
 
    .. code-block:: typescript
 
-      // Chat-open only on non-empty agent (per SPEC_EXP_AGENT_PICKER rule)
-      if (agentInput) {
-          await vscode.commands.executeCommand(
-              'workbench.action.chat.open',
-              { query: initPrompt, mode: agentInput }
-          );
-      }
+      // Implementation: SPEC_SES_AGENT_PICKER (chat-open per SPEC_EXP_AGENT_PICKER matrix)
+      const chatOpenOptions = agentInput ? { mode: agentInput } : {};
+      await vscode.commands.executeCommand('workbench.action.chat.open', chatOpenOptions);
 
-   If ``agentInput === ""`` ("default agent"), no chat editor is opened.
+   If ``agentInput === ""`` ("default agent"), the chat opens in VS Code
+   default mode (no mode parameter).  If ``agentInput`` is non-empty, the
+   chat opens in the selected agent mode.
 
    **No change to ``jarvis.newEntity`` delegation path** — it continues to
    call ``vscode.commands.executeCommand('jarvis.newSession')``; the picker
