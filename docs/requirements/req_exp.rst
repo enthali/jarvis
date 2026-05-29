@@ -270,8 +270,9 @@ Explorer Requirements
      with ``project.yaml`` containing ``name: "<input>"``
    * AC-5: After file creation, an immediate scanner rescan is triggered
    * AC-6: After the rescan, the new entity appears in the tree. The chat
-     editor is opened per the agent-picker chat-open gate:
-     concrete agent → ``chat.open({ mode })``; default agent → ``chat.open({})``.
+     editor is opened per the consolidated chat-open primitive
+     (``SPEC_EXP_AGENT_PICKER``): concrete agent → mode-prime +
+     ``openNewChatEditor()``; default agent → ``openNewChatEditor()`` only.
    * AC-7: If the user cancels the InputBox, the command exits without side effects
    * AC-8: The command SHALL NOT appear in the Command Palette
    * AC-9: If a folder with the given name already exists, the command SHALL
@@ -284,7 +285,8 @@ Explorer Requirements
      the command SHALL abort without side effects.
    * AC-12: The selected agent SHALL be written to ``project.yaml`` as the
      ``agent`` field. If "default agent" is chosen, ``agent: ""`` SHALL be
-     written (not omitted). Chat editor opens per chat-open gate.
+     written (not omitted). Chat editor opens via ``openNewChatEditor()``
+     (``SPEC_MSG_OPENCHAT``).
 
 
 .. req:: New Event Command
@@ -316,8 +318,9 @@ Explorer Requirements
      ``dates.start``, ``dates.end`` (start = end = input date)
    * AC-7: After file creation, an immediate scanner rescan is triggered
    * AC-8: After the rescan, the new entity appears in the tree. The chat
-     editor is opened per the agent-picker chat-open gate:
-     concrete agent → ``chat.open({ mode })``; default agent → ``chat.open({})``.
+     editor is opened per the consolidated chat-open primitive
+     (``SPEC_EXP_AGENT_PICKER``): concrete agent → mode-prime +
+     ``openNewChatEditor()``; default agent → ``openNewChatEditor()`` only.
    * AC-9: If the user cancels any InputBox, the command exits without side effects
    * AC-10: The command SHALL NOT appear in the Command Palette
    * AC-11: If a folder with the derived name already exists, the command SHALL
@@ -330,7 +333,8 @@ Explorer Requirements
      the command SHALL abort without side effects.
    * AC-14: The selected agent SHALL be written to ``event.yaml`` as the
      ``agent`` field. If "default agent" is chosen, ``agent: ""`` SHALL be
-     written (not omitted). Chat editor opens per chat-open gate.
+     written (not omitted). Chat editor opens via ``openNewChatEditor()``
+     (``SPEC_MSG_OPENCHAT``).
 
 
 .. req:: Rescan Button in Title Bar
@@ -831,21 +835,24 @@ Explorer Requirements
    * AC-1: ``schemas/project.schema.json`` and ``schemas/event.schema.json``
      SHALL declare ``agent`` in the ``"required"`` array.
    * AC-2: ``src/yamlScanner.ts`` SHALL read the ``agent`` field from
-     ``project.yaml`` and ``event.yaml`` and store it in ``EntityEntry.agent``
-     when the value is a non-empty string.  A missing or non-string value
-     SHALL result in ``EntityEntry.agent === undefined`` and the entity SHALL
-     be considered **unbound**.
-   * AC-3: When the scanner encounters a YAML without an ``agent`` field, it
-     SHALL emit a warning-level log entry:
+     ``project.yaml`` and ``event.yaml`` and store it in ``EntityEntry.agent``:
+     empty string ``""`` is preserved as-is (meaning "default agent chosen"),
+     non-empty string is stored verbatim (concrete-bound). Only a missing field
+     or non-string value SHALL result in ``EntityEntry.agent === undefined``
+     (unbound).
+   * AC-3: When the scanner encounters a YAML without an ``agent`` field
+     (field absent), it SHALL emit a warning-level log entry:
      ``"<entity-kind> <name> at <path> is missing required 'agent' field — marked unbound"``.
+     The warn-log SHALL NOT fire when ``agent: ""`` is present.
    * AC-4: ``jarvis_listProjects`` and ``jarvis_listEvents`` tool outputs SHALL
      include ``agent`` (as ``""`` when absent).
    * AC-5: ``jarvis.openAgentSession`` SHALL respect ``entity.agent`` on
      project/event entities — same behavior as session entities per
      ``REQ_SES_AGENT_OPEN``.
    * AC-6: Downstream consumers SHALL check ``EntityEntry.agent`` to determine
-     bound vs. unbound state (no separate boolean flag — ``undefined`` means
-     unbound).
+     bound vs. unbound state: ``undefined`` means unbound (triggers lazy-bind),
+     ``""`` means default-agent-bound (no picker, no mode-prime),
+     non-empty string means concrete-bound (mode-prime applies).
 
 
 .. req:: Event Summary Required
@@ -937,5 +944,6 @@ Explorer Requirements
      mutation SHALL occur.
    * AC-5: If "default agent" is selected (picker returns ``""``), the system
      SHALL write ``agent: ""`` to the entity's YAML (idempotent: skip write if
-     already ``""``). Chat editor SHALL be opened with ``chat.open({})`` (no
-     mode parameter — VS Code default mode).
+     already ``""``). Chat editor SHALL be opened via ``openNewChatEditor()``
+     without mode-prime (VS Code default mode). ``chat.open({})`` alone is NOT
+     sufficient for editor-creation.

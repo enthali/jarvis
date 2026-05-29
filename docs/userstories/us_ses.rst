@@ -118,7 +118,8 @@ Sessions User Stories
      known agent, the call fails with a self-contained error message listing
      available agents; the session folder is NOT created.
    * AC-6: Existing ``session.yaml`` files without an ``agent`` field continue
-     to work without error (open in default chat mode).
+     to work without error (entity loads as unbound; tree-click triggers
+     lazy-bind picker to assign an agent on first use).
    * AC-7: ``session.schema.json`` is extended with an optional ``agent`` field
      so YAML editors provide completion and validation.
 

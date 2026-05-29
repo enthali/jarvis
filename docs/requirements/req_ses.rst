@@ -370,12 +370,13 @@ Sessions Requirements
      command SHALL abort; no folder, ``session.yaml``, or ``context.md`` SHALL
      be created.
    * AC-3: If the user selects "default agent", ``agent: ""`` SHALL be
-     written to ``session.yaml``.  A chat editor SHALL be opened in VS Code
-     default mode (no mode parameter).
+     written to ``session.yaml``.  A chat editor SHALL be opened via
+     ``openNewChatEditor()`` without mode-prime (VS Code default mode).
    * AC-4: If the user selects a named agent, that agent's identity (per
      ``REQ_SES_AGENT_DISCOVERY`` AC-7) SHALL be written to ``session.yaml``
      as ``agent: "<identity>"``.  The identity is used verbatim; it may
-     contain spaces (e.g., ``"Change Manager"``).
+     contain spaces (e.g., ``"Change Manager"``).  The chat editor SHALL be
+     opened via mode-prime + ``openNewChatEditor()``.
    * AC-5: The picker SHALL show agent names alphabetically, with "default
      agent" always first.
 

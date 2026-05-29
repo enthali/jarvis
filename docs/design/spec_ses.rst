@@ -220,14 +220,24 @@ Sessions Design Specifications
 
    9. Call ``scanner.rescan()`` so the new session appears in the tree
       immediately (no window reload required).
-   10. Open the chat editor directly (cancel path is handled by the
-       early-return guard in step after ``pickAgentMode()``, so this code is
-       only reached for ``""`` or a concrete agent)::
+   10. Open the chat editor using the consolidated chat-open primitive
+       (per ``SPEC_EXP_AGENT_PICKER`` Chat-Open Primitive). Cancel path is
+       handled by the early-return guard after ``pickAgentMode()``, so this
+       code is only reached for ``""`` or a concrete agent::
 
-          const chatOpenOptions = agentInput ? { mode: agentInput } : {};
-          await vscode.commands.executeCommand(
-              'workbench.action.chat.open', chatOpenOptions
-          );
+          // Mode-prime (only for concrete agent)
+          if (agentInput) {
+              try {
+                  await vscode.commands.executeCommand(
+                      'workbench.action.chat.open', { mode: agentInput }
+                  );
+                  await new Promise(resolve => setTimeout(resolve, 300));
+              } catch (err) {
+                  log.warn(`Mode-prime failed: ${err}`);
+              }
+          }
+          // Editor creation (always) — SPEC_MSG_OPENCHAT
+          await openNewChatEditor();
 
    **``jarvis.newEntity`` Session branch** (``src/extension.ts`` newEntityCommand):
 
@@ -1260,11 +1270,13 @@ Sessions Design Specifications
    **Chat-open rule for ``newSession``:**
 
    After YAML creation, ``newSessionCommand`` SHALL always open a chat editor
-   (cancel is handled by the earlier early-return guard).  If ``agentInput``
-   is non-empty, pass ``{ mode: agentInput }``; if ``agentInput === ""``
-   ("default agent"), pass ``{}`` (no mode) — opens in VS Code default chat
-   mode.  This matches the PM-mandated picker matrix enforced for
-   ``newProject`` / ``newEvent`` in v6+v7.
+   (cancel is handled by the earlier early-return guard).  The consolidated
+   chat-open primitive (``SPEC_EXP_AGENT_PICKER``) applies: if ``agentInput``
+   is non-empty, mode-prime with ``workbench.action.chat.open({ mode: agentInput })``
+   + 300 ms settle; then always ``openNewChatEditor()`` (``SPEC_MSG_OPENCHAT``).
+   If ``agentInput === ""`` ("default agent"), skip mode-prime, just
+   ``openNewChatEditor()``. ``chat.open({mode})`` is mode-prime only — NOT
+   editor-creation.
 
    **``newSessionCommand`` change** (``src/extension.ts``):
 
@@ -1292,13 +1304,25 @@ Sessions Design Specifications
 
    .. code-block:: typescript
 
-      // Implementation: SPEC_SES_AGENT_PICKER (chat-open per SPEC_EXP_AGENT_PICKER matrix)
-      const chatOpenOptions = agentInput ? { mode: agentInput } : {};
-      await vscode.commands.executeCommand('workbench.action.chat.open', chatOpenOptions);
+      // Implementation: SPEC_SES_AGENT_PICKER (chat-open per SPEC_EXP_AGENT_PICKER consolidated primitive)
+      if (agentInput) {
+          try {
+              await vscode.commands.executeCommand(
+                  'workbench.action.chat.open', { mode: agentInput }
+              );
+              await new Promise(resolve => setTimeout(resolve, 300));
+          } catch (err) {
+              log.warn(`Mode-prime failed: ${err}`);
+          }
+      }
+      // Editor creation (always) — SPEC_MSG_OPENCHAT
+      await openNewChatEditor();
 
-   If ``agentInput === ""`` ("default agent"), the chat opens in VS Code
-   default mode (no mode parameter).  If ``agentInput`` is non-empty, the
-   chat opens in the selected agent mode.
+   If ``agentInput === ""`` ("default agent"), mode-prime is skipped and
+   the chat opens in VS Code default mode.  If ``agentInput`` is non-empty,
+   mode-prime sets the global mode selector before editor creation.
+   ``chat.open({mode})`` is mode-prime only — NOT a substitute for
+   ``openNewChatEditor()``.
 
    **No change to ``jarvis.newEntity`` delegation path** — it continues to
    call ``vscode.commands.executeCommand('jarvis.newSession')``; the picker
