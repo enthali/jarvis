@@ -633,3 +633,45 @@ All 8 cumulative new-SPECs present. All 11 upward `:links:` targets resolve (SPE
 - **MECE-Light reviews must grep `.. spec::` directives directly, not mirror designer reports.** Established as default discipline.
 - **Hard escalation limit:** if a designer pass leaves >1 promised SPEC body missing, CM switches to CR-split (per PM direction).
 - Backlog items tracked by PM: `spec-body-audit` (post-v0.7.0 cleanup), `designer-subagent-quality` (prompt-tuning or model evaluation).
+
+---
+
+## MECE Final — 2026-05-29
+
+**Run by:** CM
+**Source:** `syspilot.mece` over commit `f981d79` (dev pass)
+**Build status (CM-verified):** `npm run compile` clean, `npx vitest run` 5/5 PASS, `sphinx -b html -W` build succeeded.
+
+### Verdict: PASS-WITH-ADVISORIES
+
+- 8/8 new SPECs have detectable code footprints (grep-verified)
+- 6/6 extended SPECs covered
+- Picker-cancel symmetry across 4 interactive consumers ✓
+- Empty-string scanner treatment ✓ (`agent: ""` → `undefined` = unbound)
+- Recording-icon folder-scan rule wired in all 3 tree providers ✓
+- 5 unit tests present (T-30, AC-3 ×2, T-51 ×2) ✓
+- All 6 new/renamed tools declared in `package.json` `contributes.languageModelTools` ✓
+
+### Known-noted issue (not blocking, no action)
+
+Dev report's SPEC-mapping table swapped two entries: claimed `SPEC_MSG_LISTSESSIONS` → `jarvis_listSessions` and `SPEC_SES_TOOLS` → `jarvis_listChatSessions`. Reality is inverted: `SPEC_MSG_LISTSESSIONS` describes `jarvis_listChatSessions`, `SPEC_SES_TOOLS` describes `jarvis_listSessions`. **Code is correct; specs are correct; only the dev tracing report mis-labeled them.** Noted for audit hygiene.
+
+### Cleanup commit (`39557ae` by CM)
+
+Reverted dev's unstaged contamination:
+- `.mcp.json` had unrelated playwright MCP server entry → reverted
+- `docs/design/spec_msg.rst` had dev's attempt to silently revert the BREAKING swap → reverted (specs are owned by designer, not dev)
+- Added `vitest.config.js` + `.map` to `.gitignore` and removed the compiled artifacts
+
+### NEW MECE finding (MEDIUM) — heartbeat anti-drift incomplete
+
+`getValidDestinations()` is exported from `sessionLookup.ts` and accepts an **optional** scanner parameter:
+
+- `extension.ts` calls it **with** scanner at lines 1129, 1157, 1274 → validates union {chat tabs} ∪ {YAML entities} ✓
+- `heartbeat.ts` calls it **without** scanner at lines 214, 241 → validates **chat tabs only** ✗
+
+Root cause: `activateHeartbeat()` does not receive the scanner instance, so the scheduler cannot pass it through to the validator. Same function, drifting call-site.
+
+### CM disposition
+
+CR's AC-6 ("Drift ist nicht erlaubt") is unambiguous — this is a dev bug, not a PM-substance question. **Targeted dev fix-pass invoked** to thread scanner through `activateHeartbeat()` → `HeartbeatScheduler` → both call sites. After fix: re-run MECE delta on the heartbeat changes only, then User-UAT (manual 55-scenario).
