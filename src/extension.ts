@@ -1212,7 +1212,7 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     // Register LM+MCP tool: listSessions — BREAKING SWAP (SPEC_MSG_LISTSESSIONS, SPEC_SES_TOOLS)
-    // Now returns YAML session entities (previously listSessionEntities)
+    // Returns YAML session entities; legacy chat-tabs behavior moved to jarvis_listChatSessions.
     // Requirements: REQ_MSG_LISTSESSIONS, REQ_SES_LISTTOOL
     const listSessionsTool = registerDualTool(
         'jarvis_listSessions',
