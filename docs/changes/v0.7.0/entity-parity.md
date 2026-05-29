@@ -250,7 +250,7 @@ cross-level consistent. No design fix-pass needed.
 | 3c. Design fix-pass v3 | done | syspilot.design | PM picker semantics refinement — see Fix-Pass v3 Report below |
 | 3d. Design fix-pass v4 | done | syspilot.design | Phantom spec bodies written + openAgentSession/toKebabCase removal — see Fix-Pass v4 Report below |
 | 3e. Design fix-pass v5 | done | syspilot.design | 6 phantom SPEC bodies written — see Fix-Pass v5 Report below |
-| 4. Test Engineer | pending | syspilot.uat | `tst-entity-parity.md` |
+| 4. Test Engineer | done | syspilot.uat | `tst-entity-parity.md` — 55 scenarios (T-1–T-55), 8 UAT chains created, Sphinx PASS |
 | 5. Dev Engineer | pending | syspilot.implement | code + tests |
 | 6. MECE final | pending | syspilot.mece | |
 | 7. Documentation | pending | syspilot.docu | releasenotes v0.7.0 + val-doc |

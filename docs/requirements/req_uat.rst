@@ -40,6 +40,14 @@ end-to-end verification of each feature.
    req_uat_listsessionentitiesgating
    req_uat_chateditorreuse
    req_uat_sessioninitprompt
+   req_uat_entity_parity
+   req_uat_listevents
+   req_uat_createproject
+   req_uat_createevent
+   req_uat_listsessions_swap
+   req_uat_safe_send_union
+   req_uat_newentity_picker
+   req_uat_heartbeat_dest_valid
 
 All UAT Requirements
 --------------------
