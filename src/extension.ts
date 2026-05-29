@@ -2412,9 +2412,8 @@ export function activate(context: vscode.ExtensionContext) {
             if (summaryInput) {
                 yamlLines.push(`summary: ${yamlString(summaryInput)}`);
             }
-            if (agentInput) {
-                yamlLines.push(`agent: ${yamlString(agentInput)}`);
-            }
+            // SPEC_SES_AGENT_PICKER: write agent field unconditionally (empty string for default agent)
+            yamlLines.push(`agent: ${yamlString(agentInput)}`);
             yamlLines.push('');
             await fs.promises.writeFile(
                 path.join(targetPath, 'session.yaml'),
@@ -2432,10 +2431,12 @@ export function activate(context: vscode.ExtensionContext) {
             await scanner?.rescan();
             log.info(`[NewSession] created session "${nameInput}" at ${targetPath}`);
 
-            // Auto-open the new session as an agent session (SPEC_SES_NEWENTITY_AUTOOPEN)
-            const sessionYamlPath = path.join(targetPath, 'session.yaml');
-            const leaf: LeafNode = { kind: 'leaf', id: sessionYamlPath };
-            await vscode.commands.executeCommand('jarvis.openAgentSession', leaf);
+            // SPEC_SES_NEWENTITY step 10 + SPEC_EXP_AGENT_PICKER matrix:
+            // open chat directly (no delegation to openAgentSession which would trigger
+            // a redundant lazy-bind picker via empty-string-to-undefined scanner coercion).
+            // cancel-path (agentInput === undefined) is already handled by the earlier early-return.
+            const chatOpenOptions: { mode?: string } = agentInput ? { mode: agentInput } : {};
+            await vscode.commands.executeCommand('workbench.action.chat.open', chatOpenOptions);
         }
     );
 
