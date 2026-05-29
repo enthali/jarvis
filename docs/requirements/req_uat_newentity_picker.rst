@@ -20,7 +20,7 @@ New Entity Picker and KISS Naming UAT Requirements
    * ``jarvis.eventsFolder`` = ``testdata/events/``.
    * At least one ``.agent.md`` file with a non-empty ``name`` frontmatter field
      must be present in the workspace so the agent picker lists at least one
-     concrete agent plus the "default agent" option.
+     concrete agent plus the "No agent" option.
    * Before each scenario that creates a folder, verify the expected folder does
      NOT already exist. Clean up created folders after each scenario.
    * For T-14 and T-17 (schema tests): open the relevant YAML files in the editor
@@ -43,13 +43,16 @@ New Entity Picker and KISS Naming UAT Requirements
      under ``testdata/projects/`` or ``testdata/events/`` after pressing Escape.
      The Projects/Events Tree SHALL be unchanged.
 
-   * AC-4 (default agent → ``agent: ""``; no chat):
+   * AC-4 ("No agent" → ``agent: ""``; default chat opens):
      For T-20 and T-23, the tester SHALL open the created YAML and verify
-     ``agent: ""`` is present. No VS Code Chat panel SHALL have opened.
+     ``agent: ""`` is present. A default chat editor SHALL open (no mode
+     set), be renamed to the entity name, and the init-prompt SHALL be
+     submitted referencing the entity ``${kind}``.
 
-   * AC-5 (concrete agent written; no chat for project/event):
-     For T-21 and T-24, the tester SHALL verify ``agent: "<name>"`` is written
-     and confirm no VS Code Chat panel opened.
+   * AC-5 (concrete agent written; mode chat opens):
+     For T-21 and T-24, the tester SHALL verify ``agent: "<name>"`` is
+     written, the chat editor opens in that mode, is renamed, and the
+     init-prompt is submitted.
 
    * AC-6 (newSession concrete agent → chat opened):
      For T-26, the tester SHALL verify the agent is written to ``session.yaml``

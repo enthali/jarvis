@@ -18,7 +18,7 @@ New Entity Picker and KISS Naming UAT Design Specifications
    * ``jarvis.projectsFolder = testdata/projects/``;
      ``jarvis.eventsFolder = testdata/events/``.
    * At least one ``.agent.md`` present so the picker lists ≥ 1 concrete agent
-     plus "default agent".
+     plus "No agent".
    * VS Code Problems panel open for schema tests.
    * Clean up created folders after each scenario.
 
@@ -69,22 +69,25 @@ New Entity Picker and KISS Naming UAT Design Specifications
 
       * - T-20
 
-          ``jarvis.newProject`` — "default agent" → ``agent: ""``, no chat
+          ``jarvis.newProject`` — "No agent" → ``agent: ""``, default chat opens
 
-          *CR AC-8 ("default agent")*
-        - Click ``+``. Enter ``"Default Agent Project"``. Select "default
-          agent" in picker.
-        - ``testdata/projects/Default Agent Project/project.yaml`` created
-          with ``agent: ""``. No VS Code Chat panel opened. Delete folder.
+          *CR AC-8 ("No agent")*
+        - Click ``+``. Enter ``"No Agent Project"``. Select "No agent"
+          in picker.
+        - ``testdata/projects/No Agent Project/project.yaml`` created
+          with ``agent: ""``. A default chat editor opens (no mode set), is
+          renamed to ``No Agent Project``, and the init-prompt is submitted
+          referencing ``${kind}=project``. Delete folder.
 
       * - T-21
 
-          ``jarvis.newProject`` — concrete agent → written, no chat
+          ``jarvis.newProject`` — concrete agent → written, mode chat opens
 
           *CR AC-8 (concrete)*
         - Click ``+``. Enter ``"Bound Project"``. Select ``syspilot.uat``.
-        - ``project.yaml`` contains ``agent: "syspilot.uat"``. No chat panel
-          opened. Delete folder.
+        - ``project.yaml`` contains ``agent: "syspilot.uat"``. Chat editor
+          opens in ``syspilot.uat`` mode, renamed to ``Bound Project``,
+          init-prompt submitted. Delete folder.
 
       * - T-22
 
@@ -97,21 +100,24 @@ New Entity Picker and KISS Naming UAT Design Specifications
 
       * - T-23
 
-          ``jarvis.newEvent`` — "default agent" → ``agent: ""``, no chat
+          ``jarvis.newEvent`` — "No agent" → ``agent: ""``, default chat opens
 
-          *CR AC-8 ("default agent")*
-        - Click ``+``. Enter ``"Default Agent Event"``, date ``2026-08-02``.
-          Select "default agent".
-        - ``event.yaml`` contains ``agent: ""``. No chat opened. Delete folder.
+          *CR AC-8 ("No agent")*
+        - Click ``+``. Enter ``"No Agent Event"``, date ``2026-08-02``.
+          Select "No agent".
+        - ``event.yaml`` contains ``agent: ""``. Default chat editor opens
+          (no mode), renamed to ``No Agent Event``, init-prompt submitted
+          referencing ``${kind}=event``. Delete folder.
 
       * - T-24
 
-          ``jarvis.newEvent`` — concrete agent → written, no chat
+          ``jarvis.newEvent`` — concrete agent → written, mode chat opens
 
           *CR AC-8 (concrete)*
         - Enter ``"Bound Event"``, date ``2026-08-03``. Select ``syspilot.cm``.
-        - ``event.yaml`` contains ``agent: "syspilot.cm"``. No chat opened.
-          Delete folder.
+        - ``event.yaml`` contains ``agent: "syspilot.cm"``. Chat editor opens
+          in ``syspilot.cm`` mode, renamed to ``Bound Event``, init-prompt
+          submitted. Delete folder.
 
       * - T-25
 

@@ -508,14 +508,14 @@ Explorer User Stories
      in that mode).
    * AC-6: The YAML scanner reads ``agent`` from ``project.yaml`` and
      ``event.yaml`` — same pattern as ``session.yaml``.
-   * AC-7: Tree-click on an **unbound** entity (project, event, or session)
-     opens the agent-picker first. The user selects an agent or "default
-     agent". If a concrete agent is selected, the ``agent`` field is written
-     into the YAML and the normal open-flow proceeds. If "default agent" is
-     selected, ``agent: ""`` is written (idempotent) and the chat editor opens
-     in VS Code's default mode (no mode param). Cancel aborts — no YAML mutation.
+   * AC-7: Tree-click on an **unbound** entity (project, event, or session —
+     i.e. ``agent`` field missing or ``agent: ""``) opens a default chat
+     editor directly (no picker, no YAML mutation). The chat is renamed to
+     the entity name and the kind-aware init-prompt is submitted. The user
+     may pick a chat-mode via VS Code's native chat-mode dropdown.
    * AC-8: ``jarvis.newProject`` and ``jarvis.newEvent`` invoke the
      agent-picker after the name/date prompts — same shared picker component
      as ``jarvis.newSession``. After creation, the chat editor opens per
-     the agent-picker chat-open gate (concrete agent → mode; default agent →
-     no mode param; cancel → abort).
+     the agent-picker chat-open gate (concrete agent → mode chat; "No agent" →
+     default chat with no mode; cancel → abort). In all non-cancel paths the
+     chat is renamed and the init-prompt is submitted.
