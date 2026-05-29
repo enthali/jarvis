@@ -817,34 +817,37 @@ Explorer Design Specifications
 .. spec:: Shared Agent Picker Component
    :id: SPEC_EXP_AGENT_PICKER
    :status: draft
-   :links: REQ_EXP_NEWPROJECT; REQ_EXP_NEWEVENT; REQ_EXP_ENTITY_LAZYBIND; REQ_SES_AGENT_PICKER; SPEC_SES_AGENT_PICKER; SPEC_SES_AGENT_DISCOVERY
+   :links: REQ_EXP_NEWPROJECT; REQ_EXP_NEWEVENT; REQ_SES_AGENT_PICKER; SPEC_SES_AGENT_PICKER; SPEC_SES_AGENT_DISCOVERY
 
    **Description:**
    Shared agent-picker component — the single source of truth for interactive
-   agent selection across new-entity flows and lazy-bind. Implementation
-   reference: existing ``pickAgentMode()`` function (specced in
-   ``SPEC_SES_AGENT_PICKER``).
+   agent selection across new-entity flows. Implementation reference: existing
+   ``pickAgentMode()`` function (specced in ``SPEC_SES_AGENT_PICKER``).
+
+   **Scope:** This picker is shown ONLY by the 3 New-Entity command flows
+   (``jarvis.newProject``, ``jarvis.newEvent``, ``jarvis.newSession`` /
+   ``jarvis.newEntity``). It is NEVER shown by tree-click,
+   ``jarvis.openAgentSession``, or any post-creation flow.
 
    **Return contract (3-way):**
 
    - ``undefined`` — user cancelled (Escape / dismissed)
-   - ``""`` (empty string) — user selected "default agent" entry
+   - ``""`` (empty string) — user selected "No agent" entry
    - ``"<agent-name>"`` — user selected a concrete agent (non-empty string)
 
    **Picker UI:**
 
-   - Entry labelled ``"default agent"`` always present at top.
+   - Entry labelled ``"No agent"`` always present at top, with detail string
+     ``"Opens a default chat — pick mode via the chat dropdown"``.
    - Below it: the list of discoverable agents from
      ``.github/agents/*.agent.md`` filtered by ``user-invocable``
      (per ``SPEC_SES_AGENT_DISCOVERY``).
 
-   **Interactive consumer list (5 — anti-drift applies):**
+   **Interactive consumer list (3 — anti-drift applies):**
 
    1. ``jarvis.newSession`` (via ``SPEC_SES_AGENT_PICKER``)
    2. ``jarvis.newProject`` (via ``SPEC_EXP_NEWPROJECT_CMD``)
    3. ``jarvis.newEvent`` (via ``SPEC_EXP_NEWEVENT_CMD``)
-   4. Lazy-bind flow (via ``SPEC_EXP_ENTITY_LAZYBIND``)
-   5. (Reserved for future) — agent-edit / re-bind command (not in scope this CR)
 
    **Anti-drift rule:** No interactive consumer SHALL implement its own agent
    QuickPick. All SHALL call ``pickAgentMode()``.
@@ -857,7 +860,7 @@ Explorer Design Specifications
 
    **Chat-open gate (cross-cutting rule):** Chat-open SHALL occur on **all
    non-cancel** picker returns. When picker returns ``undefined`` (cancel) →
-   no chat-open. When picker returns ``""`` ("default agent") → chat opens
+   no chat-open. When picker returns ``""`` ("No agent") → chat opens
    via ``openNewChatEditor()`` without mode-prime (VS Code default mode).
    When picker returns a concrete ``"<name>"`` → mode-prime first, then
    ``openNewChatEditor()``. Consumers reference this rule rather than
@@ -865,10 +868,10 @@ Explorer Design Specifications
 
    **Chat-Open Primitive (consolidated pattern):**
 
-   All 4 picker-driven flows (``newProject``, ``newEvent``, ``newSession``,
-   lazy-bind on missing) SHALL use the following consolidated primitive for
-   chat-editor creation. ``chat.open({mode})`` is NOT a substitute for
-   editor-creation — it is mode-prime only (global mode-selector side-effect).
+   All 3 picker-driven flows (``newProject``, ``newEvent``, ``newSession``)
+   SHALL use the following consolidated primitive for chat-editor creation.
+   ``chat.open({mode})`` is NOT a substitute for editor-creation — it is
+   mode-prime only (global mode-selector side-effect).
    ``openNewChatEditor()`` (``SPEC_MSG_OPENCHAT``) is the editor-creation
    primitive.
 
@@ -896,10 +899,11 @@ Explorer Design Specifications
 
    1. ``pickAgentMode()`` returns one of exactly three values: ``undefined``,
       ``""``, or a non-empty agent name string.
-   2. The QuickPick shows "default agent" as the first entry.
-   3. Agent list below "default agent" is sourced from ``discoverAgents()``
+   2. The QuickPick shows "No agent" as the first entry with detail
+      ``"Opens a default chat — pick mode via the chat dropdown"``.
+   3. Agent list below "No agent" is sourced from ``discoverAgents()``
       filtered by ``user-invocable``.
-   4. All 5 interactive consumers call ``pickAgentMode()`` — none implement
+   4. All 3 interactive consumers call ``pickAgentMode()`` — none implement
       their own QuickPick.
    5. Programmatic LM-tool consumers use ``discoverAgents()`` for validation
       without invoking the picker.
@@ -907,77 +911,9 @@ Explorer Design Specifications
       primitive: ``""`` → ``openNewChatEditor()`` only (no mode-prime);
       ``"<name>"`` → mode-prime + ``openNewChatEditor()``.
       ``chat.open({mode})`` is mode-prime only, NOT editor-creation.
-   7. "default agent" entry returns ``""`` (empty string) when selected.
+   7. "No agent" entry returns ``""`` (empty string) when selected.
    8. Escape / dismiss returns ``undefined``.
 
-
-.. spec:: Entity Lazy-Bind Flow
-   :id: SPEC_EXP_ENTITY_LAZYBIND
-   :status: draft
-   :links: REQ_EXP_ENTITY_LAZYBIND; SPEC_EXP_AGENT_PICKER; SPEC_EXP_ENTITY_TREECLICK; SPEC_SES_AGENT_OPEN; SPEC_EXP_AGENTSESSION_INITPROMPT
-
-   **Description:**
-   Lazy-bind flow triggered on tree-click of an unbound entity. Allows the user
-   to assign an agent to an entity that currently has ``agent === undefined``
-   (per ``SPEC_EXP_ENTITY_AGENT`` AC-2).
-
-   **Trigger:** Tree-click on an entity where ``EntityEntry.agent === undefined``
-   (unbound). ``SPEC_EXP_ENTITY_TREECLICK`` delegates to this spec when
-   ``EntityEntry.agent === undefined``. When ``agent`` is defined (including
-   empty string ``""``) normal open-flow is used (no lazy-bind detour).
-
-   **Flow:**
-
-   1. Detect unbound (check ``EntityEntry.agent === undefined``).
-   2. Invoke ``pickAgentMode()`` (per ``SPEC_EXP_AGENT_PICKER``).
-   3. Handle 3-way return:
-
-      - ``undefined`` (cancel): abort — no YAML mutation, no chat-open. Return
-        early.
-      - ``""`` (default agent): write ``agent: ""`` to the entity's YAML
-        (read-modify-write). **Idempotency:** if the YAML already has
-        ``agent: ""``, skip the file write (no-op). Trigger scanner rescan.
-        Then open the chat editor using the consolidated chat-open primitive:
-        no mode-prime (agent is empty), just ``openNewChatEditor()``
-        (``SPEC_MSG_OPENCHAT``).
-      - ``"<a>"`` (concrete agent): write ``agent: "<a>"`` to the entity's
-        YAML, trigger scanner rescan, then open the chat editor using the
-        consolidated chat-open primitive: mode-prime with
-        ``workbench.action.chat.open({ mode: "<a>" })`` + 300 ms settle, then
-        ``openNewChatEditor()`` (``SPEC_MSG_OPENCHAT``). Init prompt fires per
-        ``SPEC_EXP_AGENTSESSION_INITPROMPT``.
-
-   **Error handling:** Wrap the ``writeFileSync()`` call in try/catch. On
-   failure: ``console.warn("Failed to lazy-bind agent for <entity>: <error>")``,
-   abort the command, no chat editor opened, no scanner rescan, entity remains
-   unbound (no partial state).
-
-   **YAML write mechanism:** Read existing YAML → parse → set/update ``agent``
-   field → serialize → write. Preserve other fields and key order where
-   possible.
-
-   **Tree-click delegation:** ``SPEC_EXP_ENTITY_TREECLICK`` delegates to this
-   spec when ``EntityEntry.agent === undefined``. When ``agent`` is defined
-   (including ``""``) normal open-flow is used (no lazy-bind detour).
-
-   **Acceptance Criteria:**
-
-   1. Tree-click on entity with ``agent === undefined`` invokes the picker.
-   2. Picker cancel (``undefined``) results in no YAML mutation and no
-      chat-open.
-   3. Picker returns ``""`` (default agent): ``agent: ""`` is written to entity
-      YAML (idempotent — skip write if already ``""``). Chat editor opens via
-      ``openNewChatEditor()`` (no mode-prime — VS Code default mode).
-   4. Picker returns concrete agent: ``agent: "<a>"`` written, scanner rescan
-      triggered, chat editor opened via mode-prime +
-      ``openNewChatEditor()`` with init prompt.
-   5. ``writeFileSync()`` failure is caught: warn log emitted, command aborted,
-      no chat editor opened, no scanner rescan, entity remains unbound.
-   6. YAML write preserves existing fields and key order.
-   7. Tree-click on entity with defined non-empty ``agent`` does NOT trigger
-      lazy-bind (normal open-flow used).
-   8. Tree-click on entity with ``agent: ""`` does NOT trigger lazy-bind
-      (entity is bound to default agent, not unbound).
 
 
 .. spec:: Rescan Command
@@ -1521,13 +1457,17 @@ Explorer Design Specifications
         - Meaning
       * - field absent
         - ``undefined``
-        - legacy/unbound — triggers lazy-bind picker on tree-click
+        - legacy/unbound — runtime identical to ``""`` (no mode-prime, no picker)
       * - ``""`` (present, empty string)
         - ``""``
-        - explicit "user chose default agent" — NO picker, opens chat without mode
+        - explicit "user chose No agent" — NO picker, opens chat without mode
       * - ``"<name>"`` (non-empty string)
         - ``"<name>"``
         - concrete-bound — opens chat with mode
+
+   **Note:** The runtime treats ``""`` and ``undefined`` identically as "no
+   agent bound"; the scanner-level distinction exists for schema validation and
+   warn-logging only.
 
    **Additional non-string cases:**
 
@@ -1551,7 +1491,7 @@ Explorer Design Specifications
    ``conventionFile``), and ``filePath`` is the convention file's absolute path.
 
    The warn-log does NOT fire for ``agent: ""`` (that is a valid bound state
-   meaning "default agent chosen").
+   meaning "No agent chosen").
 
    **``EntityEntry`` interface update:**
 
@@ -1565,7 +1505,7 @@ Explorer Design Specifications
           datesEnd?: string;
           datesStart?: string;
           summary?: string;        // entity-parity: event summary; empty string default
-          agent?: string;          // entity-parity: bound agent mode; undefined = unbound, "" = default agent
+          agent?: string;          // entity-parity: bound agent mode; undefined = unbound, "" = No agent
           kind?: string;           // entity-parity: 'project' | 'event' | 'session'
           folder?: string;         // entity-parity: absolute path to entity folder
       }
@@ -1573,22 +1513,23 @@ Explorer Design Specifications
    **Runtime three-state semantic:**
 
    * ``entity.agent === undefined`` — entity is unbound (legacy, field missing).
-     Triggers lazy-bind picker on tree-click. Warn-log emitted at scan time.
-   * ``entity.agent === ""`` — entity is explicitly bound to "default agent".
+     Runtime behavior identical to ``""`` (opens chat without mode-prime, no
+     picker, no YAML writeback). Warn-log emitted at scan time.
+   * ``entity.agent === ""`` — entity is explicitly bound to "No agent".
      No picker on tree-click, opens chat without mode parameter.
    * ``entity.agent === "<name>"`` (non-empty string) — entity is concrete-bound.
      Opens chat with ``mode: <name>``.
 
-   Downstream consumers (``SPEC_EXP_ENTITY_TREECLICK``, ``SPEC_EXP_ENTITY_LAZYBIND``,
+   Downstream consumers (``SPEC_EXP_ENTITY_TREECLICK``,
    ``SPEC_EXP_LISTEVENTS``, ``SPEC_EXP_LISTPROJECTS``) check this property
-   to determine the three states. No separate boolean flag is used.
+   to determine the states. No separate boolean flag is used.
 
    **Acceptance Criteria:**
 
    1. The scanner reads the ``agent`` field from ``project.yaml`` and
       ``event.yaml`` in the ``_buildTree()`` loop.
    2. Three-state semantics: field absent → ``undefined`` (unbound); empty
-      string ``""`` → ``""`` (bound to default agent); non-empty string →
+      string ``""`` → ``""`` (bound to "No agent"); non-empty string →
       stored verbatim (concrete-bound). Non-string values (null, number,
       boolean) → ``undefined`` (unbound).
    3. ``EntityEntry.agent`` can be ``undefined``, ``""``, or a non-empty
@@ -1599,19 +1540,22 @@ Explorer Design Specifications
       marked unbound"``. The warn-log does NOT fire for ``agent: ""``.
    5. ``EntityEntry`` declares ``agent?: string`` as an optional property.
    6. ``entity.agent === undefined`` is the indicator of unbound state;
-      ``entity.agent === ""`` means "default agent chosen" (bound, no picker);
+      ``entity.agent === ""`` means "No agent chosen" (bound, no picker);
       ``entity.agent`` non-empty means concrete-bound.
+   7. Runtime treats ``undefined`` and ``""`` identically (Branch B of
+      ``SPEC_EXP_ENTITY_TREECLICK``): no mode-prime, no picker, no YAML
+      writeback. The distinction is for schema validation and warn-logging only.
 
 
 .. spec:: Entity Tree-Click-to-Chat Implementation
    :id: SPEC_EXP_ENTITY_TREECLICK
    :status: draft
-   :links: REQ_EXP_ENTITY_TREECLICK; SPEC_EXP_AGENTSESSION; SPEC_EXP_ENTITY_LAZYBIND; SPEC_EXP_ENTITY_AGENT
+   :links: REQ_EXP_ENTITY_TREECLICK; SPEC_EXP_AGENTSESSION; SPEC_EXP_ENTITY_AGENT
 
    **Description:**
    Specifies how ``TreeItem.command`` is wired for project, event, and session
-   leaf nodes so that a single click opens the agent-chat editor. Delegates to
-   ``SPEC_EXP_ENTITY_LAZYBIND`` when the entity is unbound.
+   leaf nodes so that a single click opens the agent-chat editor. Exactly two
+   runtime branches exist — no picker is ever shown on tree-click.
 
    **``TreeItem.command`` wiring** (in ``getTreeItem()`` of each
    TreeDataProvider):
@@ -1631,25 +1575,29 @@ Explorer Design Specifications
    This causes a single-click to invoke ``jarvis.openAgentSession``
    (``SPEC_EXP_AGENTSESSION``) with the leaf node.
 
-   **Delegation rule:**
+   **Runtime branches (exactly 2):**
 
    The ``jarvis.openAgentSession`` handler (``SPEC_EXP_AGENTSESSION``) checks
    ``entity.agent``:
 
-   * **``entity.agent`` is a non-empty string** (concrete-bound entity): Normal
-     open-flow proceeds — look up existing chat session by name, open if found,
-     or create new chat editor with mode-prime + ``openNewChatEditor()``
-     (``SPEC_MSG_OPENCHAT``) and init prompt (per ``SPEC_EXP_AGENTSESSION``).
-   * **``entity.agent === ""``** (default-agent-bound entity): No picker, no
-     mode-prime. Open existing session if found, or create new chat editor via
-     ``openNewChatEditor()`` only (no mode-prime) + rename + init prompt.
-   * **``entity.agent === undefined``** (unbound entity): Delegate to
-     ``SPEC_EXP_ENTITY_LAZYBIND`` — invoke the agent picker, write YAML on
-     selection, then proceed with open-flow (or abort on cancel).
+   * **Branch A — ``entity.agent`` is a non-empty string** (concrete-bound):
+     mode-prime (``workbench.action.chat.open({ mode: entity.agent })`` +
+     300 ms settle) → ``openNewChatEditor()`` (``SPEC_MSG_OPENCHAT``) →
+     rename → init prompt (per ``SPEC_EXP_AGENTSESSION_INITPROMPT``).
+   * **Branch B — ``entity.agent`` is ``""`` OR ``undefined``** (no agent
+     bound, or legacy field-missing): ``openNewChatEditor()``
+     (``SPEC_MSG_OPENCHAT``) → rename → init prompt. No mode-prime, no
+     picker, no YAML writeback.
+
+   **Design rationale:** The scanner-level distinction between ``undefined``
+   and ``""`` is preserved for schema validation and warn-logging
+   (``SPEC_EXP_ENTITY_AGENT``), but at runtime both collapse into Branch B.
+   Users who want to switch agent mode do so via VS Code's native chat-mode
+   dropdown inside the chat editor.
 
    **Same behavior for all 3 entity kinds:**
 
-   The ``TreeItem.command`` wiring and the delegation logic apply uniformly to
+   The ``TreeItem.command`` wiring and the branch logic apply uniformly to
    projects, events, and sessions. No entity-kind-specific branching in the
    tree-click path.
 
@@ -1658,13 +1606,12 @@ Explorer Design Specifications
    1. ``TreeItem.command`` for project, event, and session leaf nodes is set
       to ``jarvis.openAgentSession`` with the ``LeafNode`` as argument.
    2. Single-click on any leaf node invokes ``jarvis.openAgentSession``.
-   3. Concrete-bound entities (``entity.agent`` is non-empty string) follow
-      the normal open-flow (``SPEC_EXP_AGENTSESSION``): mode-prime +
-      ``openNewChatEditor()`` for new sessions.
-   4. Default-agent-bound entities (``entity.agent === ""``) skip mode-prime,
-      open via ``openNewChatEditor()`` only + rename + init prompt. No picker.
-   5. Unbound entities (``entity.agent === undefined``) delegate to
-      ``SPEC_EXP_ENTITY_LAZYBIND``.
+   3. Branch A: concrete-bound entities (``entity.agent`` is non-empty string)
+      → mode-prime + ``openNewChatEditor()`` + rename + init prompt.
+   4. Branch B: ``entity.agent === ""`` OR ``entity.agent === undefined`` →
+      ``openNewChatEditor()`` + rename + init prompt. No mode-prime, no
+      picker, no YAML writeback.
+   5. No picker is ever shown on tree-click.
    6. Double-click behaves identically to single-click (VS Code default).
    7. All three entity kinds (project, event, session) use the same
       ``TreeItem.command`` binding — no kind-specific branching.

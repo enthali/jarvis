@@ -5,7 +5,7 @@ Entity Parity UAT Requirements
    :id: REQ_UAT_ENTITY_PARITY
    :status: draft
    :priority: required
-   :links: US_UAT_ENTITY_PARITY; REQ_EXP_ENTITY_AGENT; REQ_EXP_ENTITY_TREECLICK; REQ_EXP_ENTITY_ICONS; REQ_EXP_ENTITY_LAZYBIND
+   :links: US_UAT_ENTITY_PARITY; REQ_EXP_ENTITY_AGENT; REQ_EXP_ENTITY_TREECLICK; REQ_EXP_ENTITY_ICONS
 
    **Description:**
    Specifies the test data, workspace state, and per-AC verification criteria
@@ -75,8 +75,8 @@ Entity Parity UAT Requirements
      For T-27, the tester SHALL click an unbound entity, press Escape, and
      verify the YAML file is unmodified and no chat is opened.
 
-   * AC-8 (lazy-bind "default agent"):
-     For T-28, the tester SHALL select "default agent" in the picker, verify
+   * AC-8 (lazy-bind "No agent"):
+     For T-28, the tester SHALL select "No agent" in the picker, verify
      ``agent: ""`` written, verify no chat opened, then click again to confirm
      the picker re-fires.
 

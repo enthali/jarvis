@@ -363,13 +363,13 @@ Sessions Requirements
    **Acceptance Criteria:**
 
    * AC-1: After prompting for ``name`` and ``summary``, the command SHALL
-     display a QuickPick populated with: a "default agent" entry (yields
+     display a QuickPick populated with: a "No agent" entry (yields
      ``agent: ""`` in ``session.yaml``) and one entry per user-invocable
      agent discovered under ``.github/agents/`` (see ``REQ_SES_AGENT_DISCOVERY``).
    * AC-2: If the user dismisses the picker (Escape / window close), the
      command SHALL abort; no folder, ``session.yaml``, or ``context.md`` SHALL
      be created.
-   * AC-3: If the user selects "default agent", ``agent: ""`` SHALL be
+   * AC-3: If the user selects "No agent", ``agent: ""`` SHALL be
      written to ``session.yaml``.  A chat editor SHALL be opened via
      ``openNewChatEditor()`` without mode-prime (VS Code default mode).
    * AC-4: If the user selects a named agent, that agent's identity (per
@@ -377,8 +377,8 @@ Sessions Requirements
      as ``agent: "<identity>"``.  The identity is used verbatim; it may
      contain spaces (e.g., ``"Change Manager"``).  The chat editor SHALL be
      opened via mode-prime + ``openNewChatEditor()``.
-   * AC-5: The picker SHALL show agent names alphabetically, with "default
-     agent" always first.
+   * AC-5: The picker SHALL show agent names alphabetically, with "No agent"
+     always first.
 
 
 .. req:: Agent Discovery Mechanism

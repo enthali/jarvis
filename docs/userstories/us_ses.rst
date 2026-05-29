@@ -103,11 +103,11 @@ Sessions User Stories
    * AC-1: When creating a new session via the UI (``jarvis.newSession`` or
      ``jarvis.newEntity``), the user is presented with an agent picker that
      lists all user-invocable agents discovered from the workspace (opt-out
-     via ``user-invocable: false`` in frontmatter) plus a "default agent" option.
+     via ``user-invocable: false`` in frontmatter) plus a "No agent" option.
      Each agent is presented under its frontmatter ``name`` field (if set and
      non-empty), otherwise under its filename stem without ``.agent.md``.
      Dismissing the picker (Escape) cancels the creation.
-   * AC-2: The chosen agent (or "default agent", i.e. empty string) is
+   * AC-2: The chosen agent (or "No agent", i.e. empty string) is
      persisted in ``session.yaml`` as ``agent: ""`` or ``agent: "<name>"``.
      The field is always written.
    * AC-3: Opening a session with a bound agent (via ``jarvis.openAgentSession``
@@ -118,8 +118,10 @@ Sessions User Stories
      known agent, the call fails with a self-contained error message listing
      available agents; the session folder is NOT created.
    * AC-6: Existing ``session.yaml`` files without an ``agent`` field continue
-     to work without error (entity loads as unbound; tree-click triggers
-     lazy-bind picker to assign an agent on first use).
+     to work without error and behave identically to ``agent: ""`` at runtime
+     (tree-click opens a default chat without setting a mode; the user may
+     pick a mode via VS Code's native chat-mode dropdown inside the editor).
+     No picker is shown and no YAML writeback occurs on tree-click.
    * AC-7: ``session.schema.json`` is extended with an optional ``agent`` field
      so YAML editors provide completion and validation.
 

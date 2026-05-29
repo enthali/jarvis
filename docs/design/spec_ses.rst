@@ -1236,8 +1236,8 @@ Sessions Design Specifications
 
           const items: (vscode.QuickPickItem & { mode: string })[] = [
               {
-                  label:       'default agent',
-                  description: 'Use the default VS Code chat mode',
+                  label:       'No agent',
+                  description: 'Opens a default chat — pick mode via the chat dropdown',
                   mode:        '',
               },
               ...agents.map(a => ({
@@ -1259,13 +1259,18 @@ Sessions Design Specifications
    **Return semantics:**
 
    * ``undefined`` — user dismissed (Escape); ``newSessionCommand`` MUST abort.
-   * ``""`` (empty string) — "default agent" was selected; write ``agent: ""``
+   * ``""`` (empty string) — "No agent" was selected; write ``agent: ""``
      to ``session.yaml``.
    * ``"<identity>"`` (non-empty) — write ``agent: "<identity>"`` to
      ``session.yaml``.  The identity is the string from ``AgentModeEntry.name``
      (frontmatter ``name`` if present and non-empty, otherwise filename stem)
      and is used verbatim as the ``mode:`` parameter in
      ``workbench.action.chat.open``.  Identities may contain spaces.
+
+   **Scope:** This picker is shown ONLY by the 3 New-Entity command flows
+   (``jarvis.newProject``, ``jarvis.newEvent``, ``jarvis.newSession`` /
+   ``jarvis.newEntity``). It is NEVER shown by tree-click,
+   ``jarvis.openAgentSession``, or any post-creation flow.
 
    **Chat-open rule for ``newSession``:**
 
@@ -1274,7 +1279,7 @@ Sessions Design Specifications
    chat-open primitive (``SPEC_EXP_AGENT_PICKER``) applies: if ``agentInput``
    is non-empty, mode-prime with ``workbench.action.chat.open({ mode: agentInput })``
    + 300 ms settle; then always ``openNewChatEditor()`` (``SPEC_MSG_OPENCHAT``).
-   If ``agentInput === ""`` ("default agent"), skip mode-prime, just
+   If ``agentInput === ""`` ("No agent"), skip mode-prime, just
    ``openNewChatEditor()``. ``chat.open({mode})`` is mode-prime only — NOT
    editor-creation.
 
@@ -1294,7 +1299,7 @@ Sessions Design Specifications
 
    .. code-block:: typescript
 
-      // Always write agent field (empty string for "default agent")
+      // Always write agent field (empty string for "No agent")
       yamlLines.push(`agent: ${yamlString(agentInput)}`);
 
    The existing ``yamlString()`` helper (already used for ``name`` and
@@ -1318,7 +1323,7 @@ Sessions Design Specifications
       // Editor creation (always) — SPEC_MSG_OPENCHAT
       await openNewChatEditor();
 
-   If ``agentInput === ""`` ("default agent"), mode-prime is skipped and
+   If ``agentInput === ""`` ("No agent"), mode-prime is skipped and
    the chat opens in VS Code default mode.  If ``agentInput`` is non-empty,
    mode-prime sets the global mode selector before editor creation.
    ``chat.open({mode})`` is mode-prime only — NOT a substitute for
