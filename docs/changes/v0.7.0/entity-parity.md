@@ -599,3 +599,37 @@ escalation limit applies.
 - No edits to `src/` code ✓
 - All 6 new SPECs use `:status: draft` ✓
 - All edited IDs remain `:status: draft` ✓
+
+---
+
+## CM Audit + MECE-Light v5 — 2026-05-29 (fix-pass v5)
+
+**Pre-MECE CM audit** (file-system grep over claimed IDs):
+
+| SPEC | line |
+|------|------|
+| `SPEC_EXP_LISTEVENTS`        | spec_exp.rst:1065 |
+| `SPEC_EXP_CREATEPROJECT`     | spec_exp.rst:1174 |
+| `SPEC_EXP_CREATEEVENT`       | spec_exp.rst:1287 |
+| `SPEC_EXP_ENTITY_AGENT`      | spec_exp.rst:1413 |
+| `SPEC_EXP_ENTITY_TREECLICK`  | spec_exp.rst:1502 |
+| `SPEC_EXP_ENTITY_ICONS`      | spec_exp.rst:1564 |
+| `SPEC_EXP_AGENT_PICKER`      | spec_exp.rst:786  (from v4) |
+| `SPEC_EXP_ENTITY_LAZYBIND`   | spec_exp.rst:847  (from v4) |
+
+All 8 cumulative new-SPECs present. All 11 upward `:links:` targets resolve (SPEC_EXP_SCANNER, SPEC_MSG_DUALREGISTRATION, SPEC_EXP_LISTPROJECTS, SPEC_SES_CREATETOOL, SPEC_EXP_AGENT_PICKER, SPEC_EXP_AGENTSESSION, SPEC_EXP_ENTITY_LAZYBIND, SPEC_EXP_ENTITY_AGENT, SPEC_EXP_EXTENSION, SPEC_EXP_PROVIDER, SPEC_EXP_CONTEXTACTIONS).
+
+**MECE-Light v5 verdict: PASS-WITH-ADVISORIES**
+
+- 6/6 new SPECs: AC numbering complete, trace-back resolves, contradictions cleared.
+- Cross-spec MECE: list/create tool symmetry confirmed; programmatic agent-validation pattern correctly applied in createProject/createEvent (no picker); tree-click → lazy-bind delegation in place; empty-string-as-unbound consistent; recording-icon `jarvis.hasRecording` folder-scan rule specced (closes MECE-v1 advisory #1).
+- One new **LOW advisory:** EntityEntry interface definition is split between `SPEC_EXP_SCANNER` (baseline) and `SPEC_EXP_ENTITY_AGENT` (agent-field addition). Functionally separated by concern, no contradiction. Future consolidation candidate. Non-blocking.
+
+**CM disposition:** UAT proceedable. v5 LOW advisory queued for docu phase consideration; not gating UAT or merge.
+
+## Lessons Learned (process)
+
+- **CM audits SPEC body existence after every designer pass.** Established as fixed stage; not optional.
+- **MECE-Light reviews must grep `.. spec::` directives directly, not mirror designer reports.** Established as default discipline.
+- **Hard escalation limit:** if a designer pass leaves >1 promised SPEC body missing, CM switches to CR-split (per PM direction).
+- Backlog items tracked by PM: `spec-body-audit` (post-v0.7.0 cleanup), `designer-subagent-quality` (prompt-tuning or model evaluation).
