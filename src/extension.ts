@@ -855,14 +855,16 @@ export function activate(context: vscode.ExtensionContext) {
                 const pickerResult = await pickAgentMode();
                 if (pickerResult === undefined) { return; } // cancel → abort
 
-                // Write agent to YAML
+                // Write agent to YAML (idempotent: skip write if already matches)
                 const yamlPath = element.id;
                 try {
                     const rawContent = fs.readFileSync(yamlPath, 'utf-8');
                     const doc = yaml.load(rawContent) as Record<string, unknown> ?? {};
-                    doc['agent'] = pickerResult;
-                    const newContent = yaml.dump(doc, { lineWidth: -1, quotingType: '"', forceQuotes: true });
-                    fs.writeFileSync(yamlPath, newContent, 'utf-8');
+                    if (doc['agent'] !== pickerResult) {
+                        doc['agent'] = pickerResult;
+                        const newContent = yaml.dump(doc, { lineWidth: -1, quotingType: '"', forceQuotes: true });
+                        fs.writeFileSync(yamlPath, newContent, 'utf-8');
+                    }
                 } catch (err) {
                     log.warn(`[LazyBind] Failed to lazy-bind agent for "${entity.name}": ${err}`);
                     return; // abort — no chat-open, no rescan
@@ -871,7 +873,8 @@ export function activate(context: vscode.ExtensionContext) {
                 await scanner?.rescan();
 
                 if (!pickerResult) {
-                    // Default agent ("") → no chat-open
+                    // Default agent ("") → open chat without mode (SPEC_EXP_ENTITY_LAZYBIND AC-3)
+                    await vscode.commands.executeCommand('workbench.action.chat.open', {});
                     return;
                 }
 
@@ -2238,6 +2241,10 @@ export function activate(context: vscode.ExtensionContext) {
             }
 
             await scanner?.rescan();
+
+            // SPEC_EXP_NEWPROJECT_CMD step 12: open chat (conditional mode)
+            const chatOpenOptions = agentInput ? { mode: agentInput } : {};
+            await vscode.commands.executeCommand('workbench.action.chat.open', chatOpenOptions);
         }
     );
 
@@ -2328,6 +2335,10 @@ export function activate(context: vscode.ExtensionContext) {
             }
 
             await scanner?.rescan();
+
+            // SPEC_EXP_NEWEVENT_CMD step 14: open chat (conditional mode)
+            const chatOpenOptions = agentInput ? { mode: agentInput } : {};
+            await vscode.commands.executeCommand('workbench.action.chat.open', chatOpenOptions);
         }
     );
 

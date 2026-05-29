@@ -790,3 +790,24 @@ Select-String -Path 'package.json' -Pattern 'jarvis_listSessionEntities|listSess
 ### Docu-phase note
 
 F-2 (lazy-bind idempotency) is deferred to backlog item `entity-parity-followups` — record this in val-doc when generated.
+
+---
+
+## Dev Fix-Pass v7 — UAT T-20/T-21 Chat-Open After Creation (2026-05-29)
+
+**Trigger:** UAT T-20/T-21 FAIL — `newProject`/`newEvent` did not open chat when
+picker returned (any non-cancel). Designer corrected 4 SPECs in commit `dd4a708`.
+
+### Changes (1 file: `src/extension.ts`)
+
+| Site | Line | Description |
+|------|------|-------------|
+| `newProject` | 2245–2247 | Added conditional `chat.open` after folder+YAML creation (mode if agent specified) |
+| `newEvent` | 2339–2341 | Same pattern — conditional `chat.open` after event creation |
+| Lazy-bind (`openAgentSession`) | 860–866, 877 | Idempotent YAML write (skip if `agent` already matches); default-agent branch now opens chat without mode |
+
+### Build verification
+
+- `npm run compile` — clean
+- `npx vitest run` — 7/7 PASS
+- No new ESLint violations (baseline unchanged)
