@@ -791,22 +791,6 @@
         }
       },
       {
-        "name": "jarvis_listSessionEntities",
-        "displayName": "List Session Entities",
-        "modelDescription": "Lists all Jarvis session entities (lightweight projects) discovered under <workspace>/.jarvis/sessions/. Each entry has name, summary, folder, and agent (empty string when no binding set). Distinct from jarvis_listSessions which lists chat sessions.",
-        "canBeReferencedInPrompt": true,
-        "toolReferenceName": "listSessionEntities",
-        "icon": "$(folder)",
-        "tags": [
-          "jarvis"
-        ],
-        "inputSchema": {
-          "type": "object",
-          "properties": {},
-          "additionalProperties": false
-        }
-      },
-      {
         "name": "jarvis_sendToSession",
         "displayName": "Send Message to Chat Session",
         "modelDescription": "Queues a message for delivery to another VS Code chat session identified by name. The message appears in the Jarvis Messages explorer and can be delivered to the target session. Always set senderSession to your own session name so the receiver knows who sent the message.",

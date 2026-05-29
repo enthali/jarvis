@@ -1769,36 +1769,10 @@ export function activate(context: vscode.ExtensionContext) {
         }
     );
 
-    // Implementation: SPEC_SES_TOOLS + SPEC_SES_CREATETOOL
-    // Requirements: REQ_SES_LISTTOOL + REQ_SES_CREATETOOL
-    let listSessionEntitiesTool: vscode.Disposable | undefined;
+    // Implementation: SPEC_SES_CREATETOOL
+    // Requirements: REQ_SES_CREATETOOL
     let createSessionTool: vscode.Disposable | undefined;
     if (cfg.get<boolean>('sessions.enabled', true)) {
-        listSessionEntitiesTool = registerDualTool(
-        'jarvis_listSessionEntities',
-        async (
-            _options: vscode.LanguageModelToolInvocationOptions<Record<string, never>>,
-            _token: vscode.CancellationToken
-        ) => {
-            const sessions = scanner?.entities
-                .filter(e => e.kind === 'session')
-                .map(e => ({ name: e.name, summary: e.summary ?? '', agent: e.agent ?? '', folder: e.folder })) ?? [];
-            log.info(`[SES] listSessionEntities: ${sessions.length} session(s)`);
-            return new vscode.LanguageModelToolResult([
-                new vscode.LanguageModelTextPart(JSON.stringify({ sessions }))
-            ]);
-        },
-        'Lists all Jarvis session entities (lightweight projects) discovered under <workspace>/.jarvis/sessions/.',
-        {},
-        async () => {
-            const sessions = scanner?.entities
-                .filter(e => e.kind === 'session')
-                .map(e => ({ name: e.name, summary: e.summary ?? '', agent: e.agent ?? '', folder: e.folder })) ?? [];
-            log.info(`[SES] listSessionEntities(MCP): ${sessions.length} session(s)`);
-            return { sessions };
-        }
-    );
-
         const createSession = async (args: {
             name: string;
             summary?: string;
@@ -2734,7 +2708,6 @@ export function activate(context: vscode.ExtensionContext) {
         sendToSessionTool,
         readMessageTool,
         listSessionsTool,
-        ...(listSessionEntitiesTool ? [listSessionEntitiesTool] : []),
         ...(createSessionTool ? [createSessionTool] : []),
         registerJobTool,
         unregisterJobTool,

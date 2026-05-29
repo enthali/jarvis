@@ -702,3 +702,36 @@ CR's AC-6 ("Drift ist nicht erlaubt") is unambiguous — this is a dev bug, not 
 **No MECE-invoke needed:** change is purely mechanical parameter-threading + 2 unit tests covering both branches; verified by CM grep + tests.
 
 **Ready for User-UAT (manual 55-scenario run per `tst-entity-parity.md`).**
+
+---
+
+## Dev Fix-Pass v3 — F-1 Resolution: Remove Legacy `jarvis_listSessionEntities` (2026-05-29)
+
+**Trigger:** QM finding F-1 (HIGH) — PM triage = Variant A (hard delete).
+CR AC-1 mandates rename, not alias. Two identical tools (`jarvis_listSessions` and
+`jarvis_listSessionEntities`) both filtering `scanner.entities` by `kind === 'session'`
+is an anti-pattern. v0.7.0 is breaking — clean removal.
+
+### Removals
+
+| File | What was removed |
+|------|-----------------|
+| `src/extension.ts` | `registerDualTool('jarvis_listSessionEntities', ...)` block (variable declaration, handler, MCP variant, subscription push) |
+| `package.json` | `{ "name": "jarvis_listSessionEntities", ... }` entry from `contributes.languageModelTools` |
+
+### Grep evidence (zero matches = clean)
+
+```
+Select-String -Path 'src\*.ts' -Pattern 'jarvis_listSessionEntities|listSessionEntities' → (no output)
+Select-String -Path 'package.json' -Pattern 'jarvis_listSessionEntities|listSessionEntities' → (no output)
+```
+
+### Build verification
+
+- `npm run compile` — clean (zero errors)
+- `npx vitest run` — 7/7 PASS
+- `npm run lint` — pre-existing ESLint v9 config-not-found error (baseline, not introduced by this change)
+
+### Docu-phase note
+
+F-2 (lazy-bind idempotency) is deferred to backlog item `entity-parity-followups` — record this in val-doc when generated.
