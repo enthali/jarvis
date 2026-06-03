@@ -89,3 +89,16 @@ export function filterNamedSessions(
 ): SessionInfo[] {
     return sessions.filter(s => s.title && s.title !== 'New Chat');
 }
+
+// Implementation: SPEC_AUT_HEARTBEAT_RESOLVER_REUSE
+// Requirements: REQ_AUT_HEARTBEAT_RESOLVER_REUSE
+// Shared destination validator — union of {chat session titles} ∪ {YAML entity names}
+export async function getValidDestinations(
+    scanner?: { entities: { name: string }[] }
+): Promise<string[]> {
+    const allSessions = await getAllSessions();
+    const chatTitles = filterNamedSessions(allSessions).map(s => s.title);
+    const entityNames = scanner?.entities?.map(e => e.name) ?? [];
+    const union = new Set([...chatTitles, ...entityNames]);
+    return [...union];
+}

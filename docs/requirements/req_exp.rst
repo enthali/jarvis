@@ -250,7 +250,7 @@ Explorer Requirements
 
 .. req:: New Project Command
    :id: REQ_EXP_NEWPROJECT
-   :status: implemented
+   :status: draft
    :priority: optional
    :links: US_EXP_NEWENTITY; REQ_EXP_REACTIVECACHE; REQ_EXP_AGENTSESSION; REQ_EXP_YAMLDATA; REQ_CFG_FOLDERPATHS
 
@@ -263,22 +263,35 @@ Explorer Requirements
    * AC-1: A ``$(add)`` icon in the Projects view title bar triggers the command
      ``jarvis.newProject``
    * AC-2: The command shows an InputBox prompting for the project name
-   * AC-3: The folder name is derived as kebab-case of the input name (lowercase,
-     spaces and special characters replaced by hyphens, consecutive hyphens collapsed)
-   * AC-4: The folder ``<kebab-name>/`` is created inside ``jarvis.projectsFolder``
+   * AC-3: The folder name is the verbatim input name (no lowercase, no slug,
+     no character substitution) — same folder-naming semantics as session
+     creation. Old kebab-case folders remain readable.
+   * AC-4: The folder ``<name>/`` is created inside ``jarvis.projectsFolder``
      with ``project.yaml`` containing ``name: "<input>"``
    * AC-5: After file creation, an immediate scanner rescan is triggered
-   * AC-6: After the rescan, the agent session for the new entity is opened
-     (delegated to ``jarvis.openAgentSession`` logic)
+   * AC-6: After the rescan, the new entity appears in the tree. The chat
+     editor is opened per the consolidated chat-open primitive
+     (``SPEC_EXP_AGENT_PICKER``): concrete agent → mode-prime +
+     ``openNewChatEditor()``; "No agent" → ``openNewChatEditor()`` only.
    * AC-7: If the user cancels the InputBox, the command exits without side effects
    * AC-8: The command SHALL NOT appear in the Command Palette
-   * AC-9: If a folder with the derived name already exists, the command SHALL
+   * AC-9: If a folder with the given name already exists, the command SHALL
      show an error notification and abort without modifying the file system
+   * AC-10: Invalid names (filesystem-illegal characters, dot-only, Windows
+     reserved device names) SHALL be rejected via ``validateInput`` inline
+     feedback in the InputBox — same rules as ``jarvis.newSession``.
+   * AC-11: After the name prompt, the command SHALL invoke the shared
+     agent-picker (``SPEC_EXP_AGENT_PICKER``). If the user cancels the picker,
+     the command SHALL abort without side effects.
+   * AC-12: The selected agent SHALL be written to ``project.yaml`` as the
+     ``agent`` field. If "No agent" is chosen, ``agent: ""`` SHALL be
+     written (not omitted). Chat editor opens via ``openNewChatEditor()``
+     (``SPEC_MSG_OPENCHAT``).
 
 
 .. req:: New Event Command
    :id: REQ_EXP_NEWEVENT
-   :status: implemented
+   :status: draft
    :priority: optional
    :links: US_EXP_NEWENTITY; REQ_EXP_REACTIVECACHE; REQ_EXP_AGENTSESSION; REQ_EXP_YAMLDATA; REQ_CFG_FOLDERPATHS
 
@@ -295,18 +308,33 @@ Explorer Requirements
      (``YYYY-MM-DD``) with validation — if the input does not match the format
      or is not a valid calendar date, the InputBox shows an inline error and
      re-prompts
-   * AC-4: The folder name is derived as ``<date>-<kebab-name>``
-     (e.g. ``2026-06-10-devcon-2026``)
+   * AC-4: The folder name is derived as ``<date>_<raw-name>``
+     (e.g. ``2026-06-10_DevCon 2026``) — underscore separator, raw name
+     verbatim (no kebab transformation). Old hyphen-kebab folders remain
+     readable.
    * AC-5: The folder is created directly in ``jarvis.eventsFolder``
      (not nested in a year subfolder)
-   * AC-6: ``event.yaml`` contains ``name``, ``dates.start``, ``dates.end``
-     (start = end = input date)
+   * AC-6: ``event.yaml`` contains ``name``, ``summary`` (empty string),
+     ``dates.start``, ``dates.end`` (start = end = input date)
    * AC-7: After file creation, an immediate scanner rescan is triggered
-   * AC-8: After the rescan, the agent session for the new entity is opened
+   * AC-8: After the rescan, the new entity appears in the tree. The chat
+     editor is opened per the consolidated chat-open primitive
+     (``SPEC_EXP_AGENT_PICKER``): concrete agent → mode-prime +
+     ``openNewChatEditor()``; "No agent" → ``openNewChatEditor()`` only.
    * AC-9: If the user cancels any InputBox, the command exits without side effects
    * AC-10: The command SHALL NOT appear in the Command Palette
    * AC-11: If a folder with the derived name already exists, the command SHALL
      show an error notification and abort without modifying the file system
+   * AC-12: Invalid names (filesystem-illegal characters, dot-only, Windows
+     reserved device names) SHALL be rejected via ``validateInput`` inline
+     feedback — same rules as ``jarvis.newSession``.
+   * AC-13: After the date prompt, the command SHALL invoke the shared
+     agent-picker (``SPEC_EXP_AGENT_PICKER``). If the user cancels the picker,
+     the command SHALL abort without side effects.
+   * AC-14: The selected agent SHALL be written to ``event.yaml`` as the
+     ``agent`` field. If "No agent" is chosen, ``agent: ""`` SHALL be
+     written (not omitted). Chat editor opens via ``openNewChatEditor()``
+     (``SPEC_MSG_OPENCHAT``).
 
 
 .. req:: Rescan Button in Title Bar
@@ -705,3 +733,193 @@ Explorer Requirements
      mode from the VS Code Chat mode selector. The extension SHALL NOT attempt to
      set or change the mode of an already-active session via a post-creation
      ``workbench.action.chat.open`` call.
+
+
+.. req:: List Events LM+MCP Tool
+   :id: REQ_EXP_LISTEVENTS
+   :status: draft
+   :priority: optional
+   :links: US_EXP_LISTEVENTS; REQ_EXP_YAMLDATA
+
+   **Description:**
+   The extension SHALL register a Language Model Tool that returns the list of
+   events from the configured events folder, enabling LLM agents and MCP
+   clients to discover available events programmatically.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A Language Model Tool named ``jarvis_listEvents`` SHALL be registered
+     via ``registerDualTool()`` with ``canBeReferencedInPrompt: true``
+   * AC-2: The tool SHALL accept no input parameters (empty input schema)
+   * AC-3: The tool SHALL return an array of objects, each containing ``name``
+     (string), ``summary`` (string, may be empty), ``agent`` (string, may be
+     empty), ``datesStart`` (string or empty), ``datesEnd`` (string or empty),
+     and ``folder`` (string, relative path from the configured events folder)
+   * AC-4: If no events exist, the tool SHALL return an empty array
+   * AC-5: The tool SHALL be simultaneously available via the MCP server
+
+
+.. req:: jarvis_createProject LM+MCP Tool
+   :id: REQ_EXP_CREATEPROJECT
+   :status: draft
+   :priority: optional
+   :links: US_EXP_CREATEPROJECT; REQ_EXP_NEWPROJECT; REQ_SES_AGENT_DISCOVERY
+
+   **Description:**
+   A Language Model and MCP tool ``jarvis_createProject`` SHALL programmatically
+   create a project entity under the configured projects folder.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The tool SHALL be registered via ``registerDualTool()`` with
+     ``canBeReferencedInPrompt: true``.
+   * AC-2: Input parameters: ``name`` (string, required), ``summary`` (string,
+     optional), ``agent`` (string, optional).
+   * AC-3: On success, the tool SHALL create
+     ``<projectsFolder>/<name>/project.yaml`` (with ``name``, ``summary`` if
+     non-blank, ``agent`` if non-blank and valid) and
+     ``<projectsFolder>/<name>/context.md`` (with template ``# <name>\n\n``).
+   * AC-4: After creation, ``scanner.rescan()`` SHALL be called.
+   * AC-5: If the folder already exists, return
+     ``{ created: false, reason: "project \"<name>\" already exists" }``.
+   * AC-6: Name validation SHALL use the same rules as
+     ``jarvis_createSession`` (empty, illegal chars, dot-only, Windows
+     reserved names).
+   * AC-7: When ``agent`` is non-blank, validate against
+     ``REQ_SES_AGENT_DISCOVERY``; if invalid, throw error with available
+     agents listed (per ``REQ_SES_AGENT_VALIDATION``).
+
+
+.. req:: jarvis_createEvent LM+MCP Tool
+   :id: REQ_EXP_CREATEEVENT
+   :status: draft
+   :priority: optional
+   :links: US_EXP_CREATEEVENT; REQ_EXP_NEWEVENT; REQ_SES_AGENT_DISCOVERY
+
+   **Description:**
+   A Language Model and MCP tool ``jarvis_createEvent`` SHALL programmatically
+   create an event entity under the configured events folder.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The tool SHALL be registered via ``registerDualTool()`` with
+     ``canBeReferencedInPrompt: true``.
+   * AC-2: Input parameters: ``name`` (string, required), ``startDate``
+     (string YYYY-MM-DD, required), ``endDate`` (string YYYY-MM-DD, optional,
+     defaults to ``startDate``), ``summary`` (string, optional, defaults to
+     empty), ``agent`` (string, optional).
+   * AC-3: On success, the tool SHALL create the folder
+     ``<eventsFolder>/<startDate>_<name>/event.yaml`` and ``context.md``.
+   * AC-4: ``event.yaml`` SHALL contain ``name``, ``summary``, ``dates.start``,
+     ``dates.end``.  ``agent`` SHALL be included only when non-blank and valid.
+   * AC-5: After creation, ``scanner.rescan()`` SHALL be called.
+   * AC-6: If the folder already exists, return ``{ created: false }``.
+   * AC-7: Name validation uses same rules as sessions. Date validation
+     ensures valid ``YYYY-MM-DD`` format and valid calendar date.
+   * AC-8: Agent validation per ``REQ_SES_AGENT_DISCOVERY``.
+
+
+.. req:: Entity Agent Field (Projects & Events)
+   :id: REQ_EXP_ENTITY_AGENT
+   :status: draft
+   :priority: required
+   :links: US_EXP_ENTITYPARITY; REQ_SES_AGENT_FIELD; REQ_SES_AGENT_OPEN
+
+   **Description:**
+   The project and event entity schemas SHALL declare ``agent`` as a
+   **required** field. The YAML scanner SHALL be fail-open: entities missing
+   ``agent`` still load, but are flagged internally as **unbound**.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``schemas/project.schema.json`` and ``schemas/event.schema.json``
+     SHALL declare ``agent`` in the ``"required"`` array.
+   * AC-2: ``src/yamlScanner.ts`` SHALL read the ``agent`` field from
+     ``project.yaml`` and ``event.yaml`` and store it in ``EntityEntry.agent``:
+     empty string ``""`` is preserved as-is (meaning "No agent chosen"),
+     non-empty string is stored verbatim (concrete-bound). Only a missing field
+     or non-string value SHALL result in ``EntityEntry.agent === undefined``
+     (unbound).
+   * AC-3: When the scanner encounters a YAML without an ``agent`` field
+     (field absent), it SHALL emit a warning-level log entry:
+     ``"<entity-kind> <name> at <path> is missing required 'agent' field — marked unbound"``.
+     The warn-log SHALL NOT fire when ``agent: ""`` is present.
+   * AC-4: ``jarvis_listProjects`` and ``jarvis_listEvents`` tool outputs SHALL
+     include ``agent`` (as ``""`` when absent).
+   * AC-5: ``jarvis.openAgentSession`` SHALL respect ``entity.agent`` on
+     project/event entities — same behavior as session entities per
+     ``REQ_SES_AGENT_OPEN``.
+   * AC-6: Downstream consumers SHALL check ``EntityEntry.agent`` to determine
+     bound vs. unbound state: ``undefined`` means unbound (runtime behavior
+     identical to ``""`` — opens default chat, no picker, no YAML writeback),
+     ``""`` means default-agent-bound (no picker, no mode-prime),
+     non-empty string means concrete-bound (mode-prime applies).
+
+
+.. req:: Event Summary Required
+   :id: REQ_EXP_EVENT_SUMMARY
+   :status: draft
+   :priority: required
+   :links: US_EXP_ENTITYPARITY
+
+   **Description:**
+   The event entity schema SHALL make ``summary`` a required field.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``schemas/event.schema.json`` SHALL add ``summary`` to the
+     ``required`` array.
+   * AC-2: The YAML scanner SHALL continue to load events without ``summary``
+     at runtime (fail-open: ``summary`` defaults to empty string in
+     ``EntityEntry``). The schema enforcement is for editor-time validation
+     only.
+   * AC-3: Test data in ``testdata/events/`` that is missing ``summary``
+     SHALL be updated to include the field.
+
+
+.. req:: Entity Tree-Click-to-Chat (Projects & Events)
+   :id: REQ_EXP_ENTITY_TREECLICK
+   :status: draft
+   :priority: required
+   :links: US_EXP_ENTITYPARITY; REQ_SES_TREECLICK; REQ_EXP_AGENTSESSION
+
+   **Description:**
+   Single-clicking a project or event leaf node SHALL open the agent-chat editor
+   (same behavior as ``REQ_SES_TREECLICK`` for sessions). The existing
+   ``$(go-to-file)`` inline button remains for opening the YAML.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The ``command`` property of every project (``contextValue = 'project'``)
+     and event (``contextValue = 'event'``) ``TreeItem`` SHALL be bound to
+     ``jarvis.openAgentSession``.
+   * AC-2: ``REQ_EXP_OPENYAML`` AC-4 is superseded: ``TreeItem.command`` is now
+     set (to open agent session), and the YAML button remains as an inline icon.
+   * AC-3: Double-click behaves identically (VS Code default).
+
+
+.. req:: Uniform Inline Icons (All Entities)
+   :id: REQ_EXP_ENTITY_ICONS
+   :status: draft
+   :priority: optional
+   :links: US_EXP_ENTITYPARITY; REQ_EXP_OPENYAML; US_EXP_OPENCONTEXT
+
+   **Description:**
+   All three entity types (project, event, session) SHALL show uniform inline
+   icons: YAML, context.md, and Recording (when present).
+
+   **Acceptance Criteria:**
+
+   * AC-1: Every leaf node SHALL show a ``$(go-to-file)`` inline icon for opening
+     the entity YAML file.
+   * AC-2: Every leaf node SHALL show a ``$(notebook)`` inline icon for opening
+     ``context.md``.
+   * AC-3: Every leaf node whose folder contains a ``recording/`` subfolder
+     SHALL show a ``$(record)`` inline icon for opening the recording folder.
+   * AC-4: Icon order (left to right): ``$(record)`` (conditional),
+     ``$(notebook)``, ``$(go-to-file)``.
+   * AC-5: Session nodes already have these; this requirement extends the same
+     pattern to project and event nodes.
+
+
+

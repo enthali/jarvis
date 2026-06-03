@@ -1,3 +1,4 @@
 name: WithSub Project
 summary: Project with context.md in a subfolder (used for T-6 and T-9)
+agent: ""
 internalStatus: active

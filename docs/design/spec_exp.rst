@@ -646,57 +646,69 @@ Explorer Design Specifications
 
 .. spec:: New Project Command
    :id: SPEC_EXP_NEWPROJECT_CMD
-   :status: implemented
-   :links: REQ_EXP_NEWPROJECT; REQ_EXP_REACTIVECACHE; REQ_EXP_AGENTSESSION; SPEC_EXP_SCANNER; SPEC_EXP_EXTENSION; SPEC_EXP_AGENTSESSION
+   :status: draft
+   :links: REQ_EXP_NEWPROJECT; REQ_EXP_REACTIVECACHE; SPEC_EXP_SCANNER; SPEC_EXP_EXTENSION; SPEC_EXP_AGENT_PICKER
 
    **Description:**
    Register ``jarvis.newProject`` in ``extension.ts``. Triggered by the ``$(add)``
    icon in the Projects view title bar. Creates a new project folder with
-   ``project.yaml`` and opens an agent session for the new entity.
-
-   **Helper — kebab-case derivation:**
-
-   A local helper function ``toKebabCase(name: string): string`` is defined in
-   ``extension.ts`` (not exported — only used by the two new commands):
-
-   .. code-block:: typescript
-
-      function toKebabCase(name: string): string {
-          return name
-              .toLowerCase()
-              .replace(/[^a-z0-9]+/g, '-')
-              .replace(/^-|-$/g, '');
-      }
+   ``project.yaml`` and opens the new entity's chat editor (same new-session
+   pattern used by ``jarvis.newSession``).
 
    **Handler flow:**
 
    1. Read ``jarvis.projectsFolder`` from configuration.
       If empty, show warning notification and return.
    2. Show ``InputBox`` with prompt ``"Project name"``,
-      ``placeHolder: "My Project"``.
-   3. If user cancels (``undefined``), return.
-   4. Derive folder name: ``toKebabCase(input)``.
-   5. Compute target path: ``path.join(projectsFolder, kebabName)``.
-   6. If target path already exists (``fs.existsSync``), show error notification
-      ``"Folder '<kebabName>' already exists in projects folder"`` and return.
-   7. Create directory: ``await fs.promises.mkdir(targetPath)``.
-   8. Write ``project.yaml``:
+      ``placeHolder: "My Project"``, with ``validateInput``:
 
       .. code-block:: typescript
 
-         const content = `name: "${input}"\n`;
-         await fs.promises.writeFile(
-             path.join(targetPath, 'project.yaml'), content, 'utf-8');
+         validateInput: (value: string) => {
+             if (/[<>:"\/\\|?*\x00-\x1f]/.test(value)) {
+                 return 'Name contains characters not allowed in folder names';
+             }
+             if (!value.trim()) {
+                 return 'Name must not be empty';
+             }
+             return undefined;
+         }
 
-   9. Trigger scanner rescan: ``await scanner.rescan()``.
-   10. Find the new entity's ``LeafNode`` in ``scanner.getProjectTree()``
-       (search for leaf whose ``id`` contains the new folder path).
-   11. Execute ``jarvis.openAgentSession`` with the found ``LeafNode``:
+   3. If user cancels (``undefined``), return.
+   4. Invoke ``pickAgentMode()`` (per ``SPEC_EXP_AGENT_PICKER``).
+   5. If picker returns ``undefined`` (cancel), return (creation aborted).
+   6. Use raw input as folder name (verbatim, no transformation).
+   7. Compute target path: ``path.join(projectsFolder, input)``.
+   8. If target path already exists (``fs.existsSync``), show error notification
+      ``"Folder '<input>' already exists in projects folder"`` and return.
+   9. Create directory: ``await fs.promises.mkdir(targetPath)``.
+   10. Write ``project.yaml``:
 
        .. code-block:: typescript
 
-          await vscode.commands.executeCommand(
-              'jarvis.openAgentSession', leafNode);
+          const agent = pickerResult; // "" or "<agent-name>"
+          const content = `name: "${input}"\nagent: "${agent}"\n`;
+          await fs.promises.writeFile(
+              path.join(targetPath, 'project.yaml'), content, 'utf-8');
+
+   11. Trigger scanner rescan: ``await scanner.rescan()``.
+   12. Open chat editor (per ``SPEC_EXP_AGENT_PICKER`` Chat-Open Primitive):
+
+       .. code-block:: typescript
+
+          // Mode-prime (only for concrete agent)
+          if (pickerResult) {
+              try {
+                  await vscode.commands.executeCommand(
+                      'workbench.action.chat.open', { mode: pickerResult }
+                  );
+                  await new Promise(resolve => setTimeout(resolve, 300));
+              } catch (err) {
+                  log.warn(`Mode-prime failed: ${err}`);
+              }
+          }
+          // Editor creation (always)
+          await openNewChatEditor();  // SPEC_MSG_OPENCHAT
 
    **Disposable** pushed to ``context.subscriptions``.
 
@@ -705,20 +717,34 @@ Explorer Design Specifications
 
 .. spec:: New Event Command
    :id: SPEC_EXP_NEWEVENT_CMD
-   :status: implemented
-   :links: REQ_EXP_NEWEVENT; REQ_EXP_REACTIVECACHE; REQ_EXP_AGENTSESSION; SPEC_EXP_SCANNER; SPEC_EXP_EXTENSION; SPEC_EXP_AGENTSESSION
+   :status: draft
+   :links: REQ_EXP_NEWEVENT; REQ_EXP_REACTIVECACHE; SPEC_EXP_SCANNER; SPEC_EXP_EXTENSION; SPEC_EXP_AGENT_PICKER
 
    **Description:**
    Register ``jarvis.newEvent`` in ``extension.ts``. Triggered by the ``$(add)``
    icon in the Events view title bar. Creates a new event folder with
-   ``event.yaml`` and opens an agent session for the new entity.
+   ``event.yaml`` and opens the new entity's chat editor (same new-session
+   pattern used by ``jarvis.newSession``).
 
    **Handler flow:**
 
    1. Read ``jarvis.eventsFolder`` from configuration.
       If empty, show warning notification and return.
    2. Show ``InputBox`` with prompt ``"Event name"``,
-      ``placeHolder: "My Event"``.
+      ``placeHolder: "My Event"``, with ``validateInput``:
+
+      .. code-block:: typescript
+
+         validateInput: (value: string) => {
+             if (/[<>:"\/\\|?*\x00-\x1f]/.test(value)) {
+                 return 'Name contains characters not allowed in folder names';
+             }
+             if (!value.trim()) {
+                 return 'Name must not be empty';
+             }
+             return undefined;
+         }
+
    3. If user cancels (``undefined``), return.
    4. Show second ``InputBox`` with prompt ``"Start date (YYYY-MM-DD)"``,
       ``placeHolder: "2026-01-15"``, with ``validateInput``:
@@ -740,17 +766,22 @@ Explorer Design Specifications
          }
 
    5. If user cancels (``undefined``), return.
-   6. Derive folder name: ```${dateInput}-${toKebabCase(nameInput)}``.
-   7. Compute target path: ``path.join(eventsFolder, folderName)``.
-   8. If target path already exists (``fs.existsSync``), show error notification
-      ``"Folder '<folderName>' already exists in events folder"`` and return.
-   9. Create directory: ``await fs.promises.mkdir(targetPath)``.
-   10. Write ``event.yaml``:
+   6. Invoke ``pickAgentMode()`` (per ``SPEC_EXP_AGENT_PICKER``).
+   7. If picker returns ``undefined`` (cancel), return (creation aborted).
+   8. Derive folder name: ```${dateInput}_${nameInput}`` (underscore separator,
+      raw name verbatim).
+   9. Compute target path: ``path.join(eventsFolder, folderName)``.
+   10. If target path already exists (``fs.existsSync``), show error notification
+       ``"Folder '<folderName>' already exists in events folder"`` and return.
+   11. Create directory: ``await fs.promises.mkdir(targetPath)``.
+   12. Write ``event.yaml``:
 
        .. code-block:: typescript
 
+          const agent = pickerResult; // "" or "<agent-name>"
           const content = [
               `name: "${nameInput}"`,
+              `agent: "${agent}"`,
               `dates:`,
               `  start: "${dateInput}"`,
               `  end: "${dateInput}"`,
@@ -759,14 +790,130 @@ Explorer Design Specifications
           await fs.promises.writeFile(
               path.join(targetPath, 'event.yaml'), content, 'utf-8');
 
-   11. Trigger scanner rescan: ``await scanner.rescan()``.
-   12. Find the new entity's ``LeafNode`` in ``scanner.getEventTree()``
-       (search for leaf whose ``id`` contains the new folder path).
-   13. Execute ``jarvis.openAgentSession`` with the found ``LeafNode``.
+   13. Trigger scanner rescan: ``await scanner.rescan()``.
+   14. Open chat editor (per ``SPEC_EXP_AGENT_PICKER`` Chat-Open Primitive):
+
+       .. code-block:: typescript
+
+          // Mode-prime (only for concrete agent)
+          if (pickerResult) {
+              try {
+                  await vscode.commands.executeCommand(
+                      'workbench.action.chat.open', { mode: pickerResult }
+                  );
+                  await new Promise(resolve => setTimeout(resolve, 300));
+              } catch (err) {
+                  log.warn(`Mode-prime failed: ${err}`);
+              }
+          }
+          // Editor creation (always)
+          await openNewChatEditor();  // SPEC_MSG_OPENCHAT
 
    **Disposable** pushed to ``context.subscriptions``.
 
    **Registration in package.json** — see ``SPEC_EXP_EXTENSION``.
+
+
+.. spec:: Shared Agent Picker Component
+   :id: SPEC_EXP_AGENT_PICKER
+   :status: draft
+   :links: REQ_EXP_NEWPROJECT; REQ_EXP_NEWEVENT; REQ_SES_AGENT_PICKER; SPEC_SES_AGENT_PICKER; SPEC_SES_AGENT_DISCOVERY
+
+   **Description:**
+   Shared agent-picker component — the single source of truth for interactive
+   agent selection across new-entity flows. Implementation reference: existing
+   ``pickAgentMode()`` function (specced in ``SPEC_SES_AGENT_PICKER``).
+
+   **Scope:** This picker is shown ONLY by the 3 New-Entity command flows
+   (``jarvis.newProject``, ``jarvis.newEvent``, ``jarvis.newSession`` /
+   ``jarvis.newEntity``). It is NEVER shown by tree-click,
+   ``jarvis.openAgentSession``, or any post-creation flow.
+
+   **Return contract (3-way):**
+
+   - ``undefined`` — user cancelled (Escape / dismissed)
+   - ``""`` (empty string) — user selected "No agent" entry
+   - ``"<agent-name>"`` — user selected a concrete agent (non-empty string)
+
+   **Picker UI:**
+
+   - Entry labelled ``"No agent"`` always present at top, with detail string
+     ``"Opens a default chat — pick mode via the chat dropdown"``.
+   - Below it: the list of discoverable agents from
+     ``.github/agents/*.agent.md`` filtered by ``user-invocable``
+     (per ``SPEC_SES_AGENT_DISCOVERY``).
+
+   **Interactive consumer list (3 — anti-drift applies):**
+
+   1. ``jarvis.newSession`` (via ``SPEC_SES_AGENT_PICKER``)
+   2. ``jarvis.newProject`` (via ``SPEC_EXP_NEWPROJECT_CMD``)
+   3. ``jarvis.newEvent`` (via ``SPEC_EXP_NEWEVENT_CMD``)
+
+   **Anti-drift rule:** No interactive consumer SHALL implement its own agent
+   QuickPick. All SHALL call ``pickAgentMode()``.
+
+   **Programmatic-validation consumer pattern (separate, no picker):**
+   ``jarvis_createProject``, ``jarvis_createEvent``, ``jarvis_createSession``
+   LM tools — receive ``agent`` parameter, validate via ``discoverAgents()``
+   (per ``SPEC_SES_AGENT_DISCOVERY``), no picker invocation. Anti-drift rule
+   does NOT apply here (different mechanism by design).
+
+   **Chat-open gate (cross-cutting rule):** Chat-open SHALL occur on **all
+   non-cancel** picker returns. When picker returns ``undefined`` (cancel) →
+   no chat-open. When picker returns ``""`` ("No agent") → chat opens
+   via ``openNewChatEditor()`` without mode-prime (VS Code default mode).
+   When picker returns a concrete ``"<name>"`` → mode-prime first, then
+   ``openNewChatEditor()``. Consumers reference this rule rather than
+   re-deriving it.
+
+   **Chat-Open Primitive (consolidated pattern):**
+
+   All 3 picker-driven flows (``newProject``, ``newEvent``, ``newSession``)
+   SHALL use the following consolidated primitive for chat-editor creation.
+   ``chat.open({mode})`` is NOT a substitute for editor-creation — it is
+   mode-prime only (global mode-selector side-effect).
+   ``openNewChatEditor()`` (``SPEC_MSG_OPENCHAT``) is the editor-creation
+   primitive.
+
+   .. code-block:: typescript
+
+      // Mode-prime (only for concrete agent — global active-mode side-effect)
+      if (agentInput) {
+          try {
+              await vscode.commands.executeCommand(
+                  'workbench.action.chat.open', { mode: agentInput }
+              );
+              await new Promise(resolve => setTimeout(resolve, 300));
+          } catch (err) {
+              log.warn(`Mode-prime failed: ${err}`);
+          }
+      }
+      // Editor creation (always) — openNewChatEditor() calls
+      // workbench.action.openChat + 800ms settle (SPEC_MSG_OPENCHAT)
+      await openNewChatEditor();
+
+   **Cross-reference:** ``SPEC_MSG_OPENCHAT`` is the canonical documentation of
+   the ``openNewChatEditor()`` helper.
+
+   **Acceptance Criteria:**
+
+   1. ``pickAgentMode()`` returns one of exactly three values: ``undefined``,
+      ``""``, or a non-empty agent name string.
+   2. The QuickPick shows "No agent" as the first entry with detail
+      ``"Opens a default chat — pick mode via the chat dropdown"``.
+   3. Agent list below "No agent" is sourced from ``discoverAgents()``
+      filtered by ``user-invocable``.
+   4. All 3 interactive consumers call ``pickAgentMode()`` — none implement
+      their own QuickPick.
+   5. Programmatic LM-tool consumers use ``discoverAgents()`` for validation
+      without invoking the picker.
+   6. Chat-open occurs on all non-cancel returns using the consolidated
+      primitive: ``""`` → ``openNewChatEditor()`` only (no mode-prime);
+      ``"<name>"`` → mode-prime + ``openNewChatEditor()``.
+      ``chat.open({mode})`` is mode-prime only, NOT editor-creation.
+   7. "No agent" entry returns ``""`` (empty string) when selected.
+   8. Escape / dismiss returns ``undefined``.
+
 
 
 .. spec:: Rescan Command
@@ -923,6 +1070,693 @@ Explorer Design Specifications
    * ``folder`` uses forward slashes for cross-platform consistency
    * Falls back to folder basename if entity lookup fails (defensive)
    * Disposable pushed to ``context.subscriptions``
+
+
+.. spec:: List Events LM+MCP Tool
+   :id: SPEC_EXP_LISTEVENTS
+   :status: draft
+   :links: REQ_EXP_LISTEVENTS; SPEC_EXP_SCANNER; SPEC_MSG_DUALREGISTRATION; SPEC_EXP_LISTPROJECTS
+
+   **Description:**
+   Register ``jarvis_listEvents`` as a dual LM + MCP tool in ``extension.ts``.
+   Returns the list of events from the scanner with their name, summary, dates,
+   agent, and relative folder path. Mirrors the ``SPEC_EXP_LISTPROJECTS`` pattern
+   but adds event-specific fields.
+
+   **Core logic** (shared by LM and MCP handlers):
+
+   .. code-block:: typescript
+
+      function getEventList(): {
+          name: string; summary: string; agent: string;
+          datesStart: string; datesEnd: string; folder: string;
+      }[] {
+          const eventsFolder = vscode.workspace
+              .getConfiguration('jarvis')
+              .get<string>('eventsFolder', '');
+          const leaves = collectLeaves(scanner.getEventTree());
+          return leaves.map(leaf => {
+              const entity = scanner.getEntity(leaf.id);
+              const absDir = path.dirname(leaf.id);
+              const rel = eventsFolder
+                  ? path.relative(eventsFolder, absDir)
+                  : absDir;
+              return {
+                  name: entity?.name ?? path.basename(absDir),
+                  summary: entity?.summary ?? '',
+                  agent: entity?.agent ?? '',
+                  datesStart: entity?.datesStart ?? '',
+                  datesEnd: entity?.datesEnd ?? '',
+                  folder: rel.replace(/\\/g, '/'),
+              };
+          });
+      }
+
+   **Dual-tool registration:**
+
+   .. code-block:: typescript
+
+      const listEventsTool = registerDualTool(
+          'jarvis_listEvents',
+          // LM handler
+          async (_options, _token) => {
+              const events = getEventList();
+              return new vscode.LanguageModelToolResult([
+                  new vscode.LanguageModelTextPart(JSON.stringify(events))
+              ]);
+          },
+          // MCP description
+          'Returns the list of events with name, summary, dates, agent, and folder path.',
+          // MCP input schema (Zod)
+          {},
+          // MCP handler
+          async () => {
+              const events = getEventList();
+              return { events };
+          }
+      );
+
+   **Registration in package.json:**
+
+   .. code-block:: json
+
+      {
+        "name": "jarvis_listEvents",
+        "displayName": "List Events",
+        "modelDescription": "Returns the list of events in the Jarvis workspace with name, summary, dates, agent, and folder path. Use this to discover available events.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "listEvents",
+        "icon": "$(calendar)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+
+   **Error handling:**
+
+   * If no events exist, return an empty array (not an error).
+   * Entity lookup failure (``scanner.getEntity()`` returns ``undefined``) →
+     use fallback values (folder basename for ``name``, empty strings for all
+     other fields). The tool never throws on missing data.
+
+   **Acceptance Criteria:**
+
+   1. ``jarvis_listEvents`` is registered via ``registerDualTool()`` with
+      ``canBeReferencedInPrompt: true``.
+   2. The tool accepts no input parameters (empty input schema).
+   3. Each returned record contains ``name``, ``summary``, ``agent``,
+      ``datesStart``, ``datesEnd``, and ``folder``.
+   4. ``agent`` is ``""`` when the entity has no agent (unbound).
+   5. If no events exist, the tool returns an empty array.
+   6. The tool is simultaneously available via the MCP server.
+   7. ``collectLeaves()`` helper is reused from ``SPEC_EXP_LISTPROJECTS``.
+   8. Disposable pushed to ``context.subscriptions``.
+
+   **Design notes:**
+
+   * Reuses ``collectLeaves()`` helper defined in ``SPEC_EXP_LISTPROJECTS``
+   * ``folder`` uses forward slashes for cross-platform consistency
+   * ``summary`` and ``agent`` default to ``""`` when absent — never ``null``
+     or ``undefined`` in the output
+
+
+.. spec:: jarvis_createProject LM+MCP Tool
+   :id: SPEC_EXP_CREATEPROJECT
+   :status: draft
+   :links: REQ_EXP_CREATEPROJECT; SPEC_EXP_SCANNER; SPEC_MSG_DUALREGISTRATION; SPEC_SES_CREATETOOL; SPEC_EXP_AGENT_PICKER
+
+   **Description:**
+   Register ``jarvis_createProject`` via ``registerDualTool()`` in
+   ``src/extension.ts``. Creates a project folder with ``project.yaml`` and
+   ``context.md`` under the configured projects folder. Mirrors
+   ``SPEC_SES_CREATETOOL`` for structure; uses programmatic agent validation
+   (no picker) per ``SPEC_EXP_AGENT_PICKER`` programmatic-consumer pattern.
+
+   **Tool input schema:**
+
+   .. list-table::
+      :header-rows: 1
+      :widths: 20 12 12 56
+
+      * - Parameter
+        - Type
+        - Required
+        - Purpose
+      * - ``name``
+        - ``string``
+        - yes
+        - Project name; used verbatim as folder name.
+      * - ``summary``
+        - ``string``
+        - no
+        - Short description written to ``project.yaml``
+          (omitted from the file when blank or absent).
+      * - ``agent``
+        - ``string``
+        - no
+        - Agent mode to bind. Validated via ``discoverAgents()``
+          (per ``SPEC_SES_AGENT_DISCOVERY``). Omitted from YAML
+          when blank or absent.
+
+   **Name validation** (identical to ``SPEC_SES_CREATETOOL``):
+
+   * The name MUST NOT be empty (``""``).
+   * The name MUST NOT contain any of: ``/ \\ : * ? " < > |``, null bytes, or
+     ASCII control characters (U+0000–U+001F).
+   * The name MUST NOT be ``.`` or ``..``.
+   * On Windows, the name MUST NOT be a reserved device name (``CON``, ``PRN``,
+     ``AUX``, ``NUL``, ``COM1``–``COM9``, ``LPT1``–``LPT9``), case-insensitive.
+
+   Violation → throw ``Error("invalid project name: <reason>")``.
+
+   **Agent validation** (when ``agent`` is non-blank):
+
+   Validate against ``discoverAgents()`` (per ``SPEC_SES_AGENT_DISCOVERY``).
+   If the agent name is not in the discovered list, throw
+   ``Error("unknown agent \"<agent>\"; available: <list>")``.
+   No picker is invoked — this is a programmatic consumer.
+
+   **Idempotency check** (after validation, before writes):
+
+   .. code-block:: typescript
+
+      const projectsFolder = vscode.workspace
+          .getConfiguration('jarvis')
+          .get<string>('projectsFolder', '');
+      if (!projectsFolder) { throw new Error('jarvis_createProject: projectsFolder not configured'); }
+      const targetPath = path.join(projectsFolder, name);
+      if (fs.existsSync(targetPath)) {
+          return { created: false, reason: `project "${name}" already exists` };
+      }
+
+   **File layout after creation:**
+
+   .. code-block:: text
+
+      <projectsFolder>/
+        <name>/
+          project.yaml    ← name always; summary when non-blank; agent when non-blank
+          context.md      ← always; starts with "# <name>\n\n"
+
+   **``project.yaml`` format:**
+
+   .. code-block:: yaml
+
+      name: "<name>"
+      summary: "<summary>"    # only present when summary is non-blank
+      agent: "<agent>"        # only present when agent is non-blank and valid
+
+   **``context.md`` initial content:**
+
+   .. code-block:: markdown
+
+      # <name>
+
+   (Trailing newline, then empty line — identical to ``SPEC_SES_CREATETOOL``.)
+
+   **Post-creation:** Call ``scanner.rescan()`` to update the entity cache.
+
+   **Acceptance Criteria:**
+
+   1. ``jarvis_createProject`` is registered via ``registerDualTool()`` with
+      ``canBeReferencedInPrompt: true``.
+   2. Input parameters: ``name`` (required), ``summary`` (optional),
+      ``agent`` (optional).
+   3. On success, creates ``<projectsFolder>/<name>/project.yaml`` and
+      ``context.md``.
+   4. ``scanner.rescan()`` is called after creation.
+   5. If the folder already exists, returns
+      ``{ created: false, reason: "project \"<name>\" already exists" }``.
+   6. Name validation uses the same rules as ``SPEC_SES_CREATETOOL``.
+   7. Agent validation uses ``discoverAgents()``; invalid agent → error with
+      available agents listed.
+   8. Disposable pushed to ``context.subscriptions``.
+
+
+.. spec:: jarvis_createEvent LM+MCP Tool
+   :id: SPEC_EXP_CREATEEVENT
+   :status: draft
+   :links: REQ_EXP_CREATEEVENT; SPEC_EXP_SCANNER; SPEC_MSG_DUALREGISTRATION; SPEC_SES_CREATETOOL; SPEC_EXP_AGENT_PICKER
+
+   **Description:**
+   Register ``jarvis_createEvent`` via ``registerDualTool()`` in
+   ``src/extension.ts``. Creates an event folder with ``event.yaml`` and
+   ``context.md`` under the configured events folder. Folder name uses
+   ``${startDate}_${name}`` (underscore separator, verbatim name — per KISS
+   convention). Uses programmatic agent validation (no picker).
+
+   **Tool input schema:**
+
+   .. list-table::
+      :header-rows: 1
+      :widths: 20 12 12 56
+
+      * - Parameter
+        - Type
+        - Required
+        - Purpose
+      * - ``name``
+        - ``string``
+        - yes
+        - Event name; used verbatim in folder name and YAML.
+      * - ``startDate``
+        - ``string``
+        - yes
+        - Start date in ``YYYY-MM-DD`` format.
+      * - ``endDate``
+        - ``string``
+        - no
+        - End date in ``YYYY-MM-DD`` format. Defaults to ``startDate``.
+      * - ``summary``
+        - ``string``
+        - no
+        - Short description (defaults to empty).
+      * - ``agent``
+        - ``string``
+        - no
+        - Agent mode to bind. Validated via ``discoverAgents()``.
+
+   **Name validation** (identical to ``SPEC_SES_CREATETOOL``):
+
+   Same rules as ``SPEC_EXP_CREATEPROJECT``. Violation → throw
+   ``Error("invalid event name: <reason>")``.
+
+   **Date validation:**
+
+   * ``startDate`` MUST match ``/^\d{4}-\d{2}-\d{2}$/`` and be a valid
+     calendar date (``new Date(startDate)`` must not be ``NaN``).
+   * ``endDate``, when provided, MUST match the same pattern and be a valid
+     calendar date.
+   * Violation → throw ``Error("invalid date: <reason>")``.
+
+   **Agent validation** (when ``agent`` is non-blank):
+
+   Same as ``SPEC_EXP_CREATEPROJECT`` — validate via ``discoverAgents()``,
+   throw error with available agents on mismatch.
+
+   **Folder naming:**
+
+   .. code-block:: typescript
+
+      const folderName = `${startDate}_${name}`;
+      const targetPath = path.join(eventsFolder, folderName);
+
+   **Idempotency check:**
+
+   .. code-block:: typescript
+
+      if (fs.existsSync(targetPath)) {
+          return { created: false, reason: `event folder "${folderName}" already exists` };
+      }
+
+   **File layout after creation:**
+
+   .. code-block:: text
+
+      <eventsFolder>/
+        <startDate>_<name>/
+          event.yaml      ← name, summary, dates.start, dates.end; agent when valid
+          context.md      ← always; starts with "# <name>\n\n"
+
+   **``event.yaml`` format:**
+
+   .. code-block:: yaml
+
+      name: "<name>"
+      summary: "<summary>"
+      dates:
+        start: "<startDate>"
+        end: "<endDate>"
+      agent: "<agent>"        # only present when agent is non-blank and valid
+
+   **``context.md`` initial content:**
+
+   .. code-block:: markdown
+
+      # <name>
+
+   **Post-creation:** Call ``scanner.rescan()`` to update the entity cache.
+
+   **Acceptance Criteria:**
+
+   1. ``jarvis_createEvent`` is registered via ``registerDualTool()`` with
+      ``canBeReferencedInPrompt: true``.
+   2. Input parameters: ``name`` (required), ``startDate`` (required),
+      ``endDate`` (optional, defaults to ``startDate``), ``summary`` (optional),
+      ``agent`` (optional).
+   3. Folder name is ``${startDate}_${name}`` (underscore separator, verbatim
+      name).
+   4. On success, creates ``event.yaml`` with ``name``, ``summary``,
+      ``dates.start``, ``dates.end``; ``agent`` included only when non-blank
+      and valid.
+   5. ``scanner.rescan()`` is called after creation.
+   6. If the folder already exists, returns ``{ created: false }``.
+   7. Name validation uses the same rules as ``SPEC_SES_CREATETOOL``.
+   8. Date validation ensures valid ``YYYY-MM-DD`` format and valid calendar
+      date.
+   9. Agent validation uses ``discoverAgents()``; invalid → error with
+      available agents listed.
+   10. Disposable pushed to ``context.subscriptions``.
+
+
+.. spec:: Entity Agent Field — Scanner Implementation
+   :id: SPEC_EXP_ENTITY_AGENT
+   :status: draft
+   :links: REQ_EXP_ENTITY_AGENT; SPEC_EXP_SCANNER
+
+   **Description:**
+   Specifies how the ``agent`` field is read from ``project.yaml`` and
+   ``event.yaml`` during the scanner's ``_buildTree()`` loop, the treatment of
+   missing/invalid values, and the runtime semantics of unbound entities.
+
+   **Scanner read logic** (in ``_buildTree()``, after reading the convention
+   file):
+
+   .. code-block:: typescript
+
+      // After parsing the YAML document (doc)
+      const rawAgent = doc['agent'];
+      let agent: string | undefined;
+      if (typeof rawAgent === 'string') {
+          agent = rawAgent;           // preserves "" as valid bound value
+      } else if ('agent' in doc) {
+          agent = undefined;          // non-string present (null, number, bool) → unbound
+      } else {
+          agent = undefined;          // field absent → unbound
+      }
+
+   **Three-state semantics of the ``agent`` field:**
+
+   .. list-table::
+      :header-rows: 1
+      :widths: 30 30 40
+
+      * - ``doc['agent']`` in YAML
+        - ``EntityEntry.agent``
+        - Meaning
+      * - field absent
+        - ``undefined``
+        - legacy/unbound — runtime identical to ``""`` (no mode-prime, no picker)
+      * - ``""`` (present, empty string)
+        - ``""``
+        - explicit "user chose No agent" — NO picker, opens chat without mode
+      * - ``"<name>"`` (non-empty string)
+        - ``"<name>"``
+        - concrete-bound — opens chat with mode
+
+   **Note:** The runtime treats ``""`` and ``undefined`` identically as "no
+   agent bound"; the scanner-level distinction exists for schema validation and
+   warn-logging only.
+
+   **Additional non-string cases:**
+
+   * **Explicitly ``undefined``** (``agent:`` with no value / YAML null) →
+     ``rawAgent`` is ``null`` or ``undefined`` → ``EntityEntry.agent = undefined``
+     (unbound).
+   * **Non-string** (``agent: 42``, ``agent: true``) → ``typeof`` check fails →
+     ``EntityEntry.agent = undefined`` (unbound).
+
+   **Warn-log line** (emitted ONLY when field is missing — ``!('agent' in doc)``):
+
+   .. code-block:: typescript
+
+      if (!('agent' in doc)) {
+          console.warn(
+              `${kind} ${entity.name} at ${filePath} is missing required 'agent' field — marked unbound`
+          );
+      }
+
+   Where ``kind`` is ``"project"`` or ``"event"`` (derived from
+   ``conventionFile``), and ``filePath`` is the convention file's absolute path.
+
+   The warn-log does NOT fire for ``agent: ""`` (that is a valid bound state
+   meaning "No agent chosen").
+
+   **``EntityEntry`` interface update:**
+
+   The ``agent`` field is declared as an optional property in ``EntityEntry``
+   (see ``SPEC_EXP_SCANNER``):
+
+   .. code-block:: typescript
+
+      interface EntityEntry {
+          name: string;
+          datesEnd?: string;
+          datesStart?: string;
+          summary?: string;        // entity-parity: event summary; empty string default
+          agent?: string;          // entity-parity: bound agent mode; undefined = unbound, "" = No agent
+          kind?: string;           // entity-parity: 'project' | 'event' | 'session'
+          folder?: string;         // entity-parity: absolute path to entity folder
+      }
+
+   **Runtime three-state semantic:**
+
+   * ``entity.agent === undefined`` — entity is unbound (legacy, field missing).
+     Runtime behavior identical to ``""`` (opens chat without mode-prime, no
+     picker, no YAML writeback). Warn-log emitted at scan time.
+   * ``entity.agent === ""`` — entity is explicitly bound to "No agent".
+     No picker on tree-click, opens chat without mode parameter.
+   * ``entity.agent === "<name>"`` (non-empty string) — entity is concrete-bound.
+     Opens chat with ``mode: <name>``.
+
+   Downstream consumers (``SPEC_EXP_ENTITY_TREECLICK``,
+   ``SPEC_EXP_LISTEVENTS``, ``SPEC_EXP_LISTPROJECTS``) check this property
+   to determine the states. No separate boolean flag is used.
+
+   **Acceptance Criteria:**
+
+   1. The scanner reads the ``agent`` field from ``project.yaml`` and
+      ``event.yaml`` in the ``_buildTree()`` loop.
+   2. Three-state semantics: field absent → ``undefined`` (unbound); empty
+      string ``""`` → ``""`` (bound to "No agent"); non-empty string →
+      stored verbatim (concrete-bound). Non-string values (null, number,
+      boolean) → ``undefined`` (unbound).
+   3. ``EntityEntry.agent`` can be ``undefined``, ``""``, or a non-empty
+      string. Only ``undefined`` represents an unbound entity.
+   4. A ``console.warn()`` line is emitted ONLY when the ``agent`` field is
+      absent from the YAML (``!('agent' in doc)``), with text:
+      ``"<kind> <name> at <path> is missing required 'agent' field —
+      marked unbound"``. The warn-log does NOT fire for ``agent: ""``.
+   5. ``EntityEntry`` declares ``agent?: string`` as an optional property.
+   6. ``entity.agent === undefined`` is the indicator of unbound state;
+      ``entity.agent === ""`` means "No agent chosen" (bound, no picker);
+      ``entity.agent`` non-empty means concrete-bound.
+   7. Runtime treats ``undefined`` and ``""`` identically (Branch B of
+      ``SPEC_EXP_ENTITY_TREECLICK``): no mode-prime, no picker, no YAML
+      writeback. The distinction is for schema validation and warn-logging only.
+
+
+.. spec:: Entity Tree-Click-to-Chat Implementation
+   :id: SPEC_EXP_ENTITY_TREECLICK
+   :status: draft
+   :links: REQ_EXP_ENTITY_TREECLICK; SPEC_EXP_AGENTSESSION; SPEC_EXP_ENTITY_AGENT
+
+   **Description:**
+   Specifies how ``TreeItem.command`` is wired for project, event, and session
+   leaf nodes so that a single click opens the agent-chat editor. Exactly two
+   runtime branches exist — no picker is ever shown on tree-click.
+
+   **``TreeItem.command`` wiring** (in ``getTreeItem()`` of each
+   TreeDataProvider):
+
+   For every leaf node with ``contextValue`` of ``jarvisProject``,
+   ``jarvisEvent``, or ``jarvisSession``, the ``TreeItem.command`` property
+   SHALL be set to:
+
+   .. code-block:: typescript
+
+      item.command = {
+          command: 'jarvis.openAgentSession',
+          title: 'Open Agent Session',
+          arguments: [element],   // LeafNode passed as argument
+      };
+
+   This causes a single-click to invoke ``jarvis.openAgentSession``
+   (``SPEC_EXP_AGENTSESSION``) with the leaf node.
+
+   **Runtime branches (exactly 2):**
+
+   The ``jarvis.openAgentSession`` handler (``SPEC_EXP_AGENTSESSION``) checks
+   ``entity.agent``:
+
+   * **Branch A — ``entity.agent`` is a non-empty string** (concrete-bound):
+     mode-prime (``workbench.action.chat.open({ mode: entity.agent })`` +
+     300 ms settle) → ``openNewChatEditor()`` (``SPEC_MSG_OPENCHAT``) →
+     rename → init prompt (per ``SPEC_EXP_AGENTSESSION_INITPROMPT``).
+   * **Branch B — ``entity.agent`` is ``""`` OR ``undefined``** (no agent
+     bound, or legacy field-missing): ``openNewChatEditor()``
+     (``SPEC_MSG_OPENCHAT``) → rename → init prompt. No mode-prime, no
+     picker, no YAML writeback.
+
+   **Design rationale:** The scanner-level distinction between ``undefined``
+   and ``""`` is preserved for schema validation and warn-logging
+   (``SPEC_EXP_ENTITY_AGENT``), but at runtime both collapse into Branch B.
+   Users who want to switch agent mode do so via VS Code's native chat-mode
+   dropdown inside the chat editor.
+
+   **Same behavior for all 3 entity kinds:**
+
+   The ``TreeItem.command`` wiring and the branch logic apply uniformly to
+   projects, events, and sessions. No entity-kind-specific branching in the
+   tree-click path.
+
+   **Acceptance Criteria:**
+
+   1. ``TreeItem.command`` for project, event, and session leaf nodes is set
+      to ``jarvis.openAgentSession`` with the ``LeafNode`` as argument.
+   2. Single-click on any leaf node invokes ``jarvis.openAgentSession``.
+   3. Branch A: concrete-bound entities (``entity.agent`` is non-empty string)
+      → mode-prime + ``openNewChatEditor()`` + rename + init prompt.
+   4. Branch B: ``entity.agent === ""`` OR ``entity.agent === undefined`` →
+      ``openNewChatEditor()`` + rename + init prompt. No mode-prime, no
+      picker, no YAML writeback.
+   5. No picker is ever shown on tree-click.
+   6. Double-click behaves identically to single-click (VS Code default).
+   7. All three entity kinds (project, event, session) use the same
+      ``TreeItem.command`` binding — no kind-specific branching.
+
+
+.. spec:: Uniform Inline Icons for All Entities
+   :id: SPEC_EXP_ENTITY_ICONS
+   :status: draft
+   :links: REQ_EXP_ENTITY_ICONS; SPEC_EXP_EXTENSION; SPEC_EXP_PROVIDER; SPEC_EXP_CONTEXTACTIONS
+
+   **Description:**
+   Every leaf node across all three entity types (project, event, session) SHALL
+   display three inline icons: YAML, context.md, and recording (conditional).
+   This spec formalizes the icon identifiers, order, command bindings, and the
+   recording-icon visibility mechanism.
+
+   **Icon identifiers and commands:**
+
+   .. list-table::
+      :header-rows: 1
+      :widths: 20 20 25 35
+
+      * - Icon
+        - Codicon
+        - Command
+        - Purpose
+      * - YAML
+        - ``$(go-to-file)``
+        - ``jarvis.openYaml``
+        - Opens the entity's convention YAML file
+      * - context.md
+        - ``$(notebook)``
+        - ``jarvis.openContext``
+        - Opens ``context.md`` in the entity's folder
+      * - Recording
+        - ``$(record)``
+        - ``jarvis.openRecording``
+        - Opens the ``recording/`` subfolder
+
+   **Icon order** (left to right in the tree item inline area):
+
+   ``$(record)`` (conditional) → ``$(notebook)`` → ``$(go-to-file)``
+
+   This is controlled via ``group: "inline@<n>"`` in the
+   ``contributes.menus.view/item/context`` entries in ``package.json``.
+
+   **Recording icon visibility:**
+
+   The recording icon is conditionally visible, gated by the
+   ``jarvis.hasRecording`` context key:
+
+   * **When to show:** The ``$(record)`` inline icon SHALL be visible only
+     when ``jarvis.hasRecording`` is ``true`` for the given tree item.
+   * **``when`` clause** in ``package.json``:
+
+     .. code-block:: json
+
+        {
+          "command": "jarvis.openRecording",
+          "when": "viewItem =~ /^jarvis(Project|Event|Session)$/ && jarvis.hasRecording",
+          "group": "inline@1"
+        }
+
+   **Context key mechanism — ``jarvis.hasRecording``:**
+
+   The ``jarvis.hasRecording`` context key is set per tree item during
+   ``getTreeItem()`` in each TreeDataProvider:
+
+   1. **Folder scan rule:** For each leaf node, check whether the entity's
+      folder contains a ``recording/`` subdirectory
+      (``fs.existsSync(path.join(entityFolder, 'recording'))``).
+   2. **Set context key:** If ``recording/`` exists → set
+      ``jarvis.hasRecording`` to ``true`` for that tree item via the
+      ``contextValue`` mechanism: append ``+recording`` to the
+      ``contextValue`` string (e.g., ``jarvisProject+recording``).
+   3. **``when`` clause match:** Update the ``when`` clause to check for the
+      ``+recording`` suffix:
+
+      .. code-block:: json
+
+         {
+           "command": "jarvis.openRecording",
+           "when": "viewItem =~ /recording/",
+           "group": "inline@1"
+         }
+
+   4. **No ``recording/`` subfolder** → standard ``contextValue`` without
+      suffix (e.g., ``jarvisProject``). The recording icon is not shown.
+
+   **Implementation in ``getTreeItem()``:**
+
+   .. code-block:: typescript
+
+      const entityFolder = path.dirname(element.id);
+      const hasRecording = fs.existsSync(
+          path.join(entityFolder, 'recording')
+      );
+      item.contextValue = hasRecording
+          ? `${baseContextValue}+recording`
+          : baseContextValue;
+
+   Where ``baseContextValue`` is ``jarvisProject``, ``jarvisEvent``, or
+   ``jarvisSession`` depending on the entity kind.
+
+   **Manifest entries** (``package.json`` ``contributes.menus.view/item/context``):
+
+   .. code-block:: json
+
+      [
+        {
+          "command": "jarvis.openRecording",
+          "when": "viewItem =~ /recording/",
+          "group": "inline@1"
+        },
+        {
+          "command": "jarvis.openContext",
+          "when": "viewItem =~ /^jarvis(Project|Event|Session)/",
+          "group": "inline@2"
+        },
+        {
+          "command": "jarvis.openYaml",
+          "when": "viewItem =~ /^jarvis(Project|Event|Session)/",
+          "group": "inline@3"
+        }
+      ]
+
+   **Acceptance Criteria:**
+
+   1. Every leaf node shows ``$(go-to-file)`` inline icon for opening the
+      entity YAML file.
+   2. Every leaf node shows ``$(notebook)`` inline icon for opening
+      ``context.md``.
+   3. Every leaf node whose folder contains a ``recording/`` subfolder shows
+      ``$(record)`` inline icon.
+   4. Icon order (left to right): ``$(record)`` (conditional), ``$(notebook)``,
+      ``$(go-to-file)``.
+   5. Recording icon visibility is gated by the ``+recording`` suffix in
+      ``contextValue``, set during ``getTreeItem()`` based on
+      ``fs.existsSync(path.join(entityFolder, 'recording'))``.
+   6. The ``when`` clause for the recording icon matches ``viewItem =~
+      /recording/``.
+   7. All three entity kinds (project, event, session) use the same icon set
+      and visibility logic — no kind-specific branching.
+   8. Session nodes already have these icons; this spec extends the pattern to
+      project and event nodes.
 
 
 .. spec:: Feature-Toggled Sidebar Views

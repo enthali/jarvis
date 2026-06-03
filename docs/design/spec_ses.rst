@@ -220,14 +220,24 @@ Sessions Design Specifications
 
    9. Call ``scanner.rescan()`` so the new session appears in the tree
       immediately (no window reload required).
-   10. Execute ``jarvis.openAgentSession`` with a synthetic ``LeafNode`` whose
-       ``id`` equals ``<targetPath>/session.yaml``, so the new session chat opens
-       automatically::
+   10. Open the chat editor using the consolidated chat-open primitive
+       (per ``SPEC_EXP_AGENT_PICKER`` Chat-Open Primitive). Cancel path is
+       handled by the early-return guard after ``pickAgentMode()``, so this
+       code is only reached for ``""`` or a concrete agent::
 
-          await vscode.commands.executeCommand(
-              'jarvis.openAgentSession',
-              { kind: 'leaf', id: `${targetPath}/session.yaml` }
-          );
+          // Mode-prime (only for concrete agent)
+          if (agentInput) {
+              try {
+                  await vscode.commands.executeCommand(
+                      'workbench.action.chat.open', { mode: agentInput }
+                  );
+                  await new Promise(resolve => setTimeout(resolve, 300));
+              } catch (err) {
+                  log.warn(`Mode-prime failed: ${err}`);
+              }
+          }
+          // Editor creation (always) — SPEC_MSG_OPENCHAT
+          await openNewChatEditor();
 
    **``jarvis.newEntity`` Session branch** (``src/extension.ts`` newEntityCommand):
 
@@ -305,13 +315,14 @@ Sessions Design Specifications
 
 .. spec:: sessions-feature: jarvis_listSessionEntities Tool Registration
    :id: SPEC_SES_TOOLS
-   :status: implemented
+   :status: draft
    :links: REQ_SES_LISTTOOL
 
    **Description:**
-   Register ``jarvis_listSessionEntities`` via ``registerDualTool()`` in
-   ``src/extension.ts``, inside the ``if (cfg.get<boolean>('sessions.enabled', true))``
-   activation block, mirroring the gating pattern of ``jarvis_createSession``
+   Register ``jarvis_listSessions`` (renamed from ``jarvis_listSessionEntities``)
+   via ``registerDualTool()`` in ``src/extension.ts``, inside the
+   ``if (cfg.get<boolean>('sessions.enabled', true))`` activation block,
+   mirroring the gating pattern of ``jarvis_createSession``
    (``SPEC_SES_CREATETOOL``).
 
    **Gating:**
@@ -324,8 +335,8 @@ Sessions Design Specifications
 
    .. code-block:: typescript
 
-      const listSessionEntitiesTool = registerDualTool(
-          'jarvis_listSessionEntities',
+      const listSessionsTool = registerDualTool(
+          'jarvis_listSessions',
           async (
               _options: vscode.LanguageModelToolInvocationOptions<Record<string, never>>,
               _token: vscode.CancellationToken
@@ -333,18 +344,18 @@ Sessions Design Specifications
               const sessions = scanner?.entities
                   .filter(e => e.kind === 'session')
                   .map(e => ({ name: e.name, summary: e.summary ?? '', folder: e.folder, agent: e.agent ?? '' })) ?? [];
-              log.info(`[SES] listSessionEntities: ${sessions.length} session(s)`);
+              log.info(`[SES] listSessions: ${sessions.length} session(s)`);
               return new vscode.LanguageModelToolResult([
                   new vscode.LanguageModelTextPart(JSON.stringify({ sessions }))
               ]);
           },
-          'Lists all Jarvis session entities (lightweight projects) discovered under <workspace>/.jarvis/sessions/. Each entry has name, summary, folder, and agent (empty string when no binding set). Distinct from jarvis_listSessions which lists chat sessions.',
+          'Lists all Jarvis session entities (lightweight projects) discovered under <workspace>/.jarvis/sessions/. Each entry has name, summary, folder, and agent (empty string when no binding set). Distinct from jarvis_listChatSessions which lists VS Code chat tab titles.',
           {},
           async () => {
               const sessions = scanner?.entities
                   .filter(e => e.kind === 'session')
                   .map(e => ({ name: e.name, summary: e.summary ?? '', folder: e.folder, agent: e.agent ?? '' })) ?? [];
-              log.info(`[SES] listSessionEntities(MCP): ${sessions.length} session(s)`);
+              log.info(`[SES] listSessions(MCP): ${sessions.length} session(s)`);
               return { sessions };
           }
       );
@@ -354,11 +365,11 @@ Sessions Design Specifications
    .. code-block:: json
 
       {
-        "name": "jarvis_listSessionEntities",
+        "name": "jarvis_listSessions",
         "displayName": "List Session Entities",
-        "modelDescription": "Lists all Jarvis session entities (lightweight projects) discovered under <workspace>/.jarvis/sessions/. Each entry has name, summary, folder, and agent (empty string when no binding set). Distinct from jarvis_listSessions which lists chat sessions.",
+        "modelDescription": "Lists all Jarvis session entities (lightweight projects) discovered under <workspace>/.jarvis/sessions/. Each entry has name, summary, folder, and agent (empty string when no binding set). Distinct from jarvis_listChatSessions which lists VS Code chat tab titles.",
         "canBeReferencedInPrompt": true,
-        "toolReferenceName": "listSessionEntities",
+        "toolReferenceName": "listSessions",
         "icon": "$(list-unordered)",
         "inputSchema": {
           "type": "object",
@@ -1226,7 +1237,7 @@ Sessions Design Specifications
           const items: (vscode.QuickPickItem & { mode: string })[] = [
               {
                   label:       'No agent',
-                  description: 'Use the default VS Code chat mode',
+                  description: 'Opens a default chat — pick mode via the chat dropdown',
                   mode:        '',
               },
               ...agents.map(a => ({
@@ -1248,13 +1259,29 @@ Sessions Design Specifications
    **Return semantics:**
 
    * ``undefined`` — user dismissed (Escape); ``newSessionCommand`` MUST abort.
-   * ``""`` (empty string) — "No agent" was selected; omit ``agent`` field from
-     ``session.yaml``.
+   * ``""`` (empty string) — "No agent" was selected; write ``agent: ""``
+     to ``session.yaml``.
    * ``"<identity>"`` (non-empty) — write ``agent: "<identity>"`` to
      ``session.yaml``.  The identity is the string from ``AgentModeEntry.name``
      (frontmatter ``name`` if present and non-empty, otherwise filename stem)
      and is used verbatim as the ``mode:`` parameter in
      ``workbench.action.chat.open``.  Identities may contain spaces.
+
+   **Scope:** This picker is shown ONLY by the 3 New-Entity command flows
+   (``jarvis.newProject``, ``jarvis.newEvent``, ``jarvis.newSession`` /
+   ``jarvis.newEntity``). It is NEVER shown by tree-click,
+   ``jarvis.openAgentSession``, or any post-creation flow.
+
+   **Chat-open rule for ``newSession``:**
+
+   After YAML creation, ``newSessionCommand`` SHALL always open a chat editor
+   (cancel is handled by the earlier early-return guard).  The consolidated
+   chat-open primitive (``SPEC_EXP_AGENT_PICKER``) applies: if ``agentInput``
+   is non-empty, mode-prime with ``workbench.action.chat.open({ mode: agentInput })``
+   + 300 ms settle; then always ``openNewChatEditor()`` (``SPEC_MSG_OPENCHAT``).
+   If ``agentInput === ""`` ("No agent"), skip mode-prime, just
+   ``openNewChatEditor()``. ``chat.open({mode})`` is mode-prime only — NOT
+   editor-creation.
 
    **``newSessionCommand`` change** (``src/extension.ts``):
 
@@ -1272,12 +1299,35 @@ Sessions Design Specifications
 
    .. code-block:: typescript
 
-      if (agentInput) {
-          yamlLines.push(`agent: ${yamlString(agentInput)}`);
-      }
+      // Always write agent field (empty string for "No agent")
+      yamlLines.push(`agent: ${yamlString(agentInput)}`);
 
    The existing ``yamlString()`` helper (already used for ``name`` and
    ``summary``) handles escaping.
+
+   **Chat-open** (after YAML write + rescan):
+
+   .. code-block:: typescript
+
+      // Implementation: SPEC_SES_AGENT_PICKER (chat-open per SPEC_EXP_AGENT_PICKER consolidated primitive)
+      if (agentInput) {
+          try {
+              await vscode.commands.executeCommand(
+                  'workbench.action.chat.open', { mode: agentInput }
+              );
+              await new Promise(resolve => setTimeout(resolve, 300));
+          } catch (err) {
+              log.warn(`Mode-prime failed: ${err}`);
+          }
+      }
+      // Editor creation (always) — SPEC_MSG_OPENCHAT
+      await openNewChatEditor();
+
+   If ``agentInput === ""`` ("No agent"), mode-prime is skipped and
+   the chat opens in VS Code default mode.  If ``agentInput`` is non-empty,
+   mode-prime sets the global mode selector before editor creation.
+   ``chat.open({mode})`` is mode-prime only — NOT a substitute for
+   ``openNewChatEditor()``.
 
    **No change to ``jarvis.newEntity`` delegation path** — it continues to
    call ``vscode.commands.executeCommand('jarvis.newSession')``; the picker

@@ -3,7 +3,7 @@ Sessions User Stories
 
 .. story:: Sessions Entity Type
    :id: US_SES_SESSIONS
-   :status: implemented
+   :status: draft
    :priority: required
 
    **As a** Jarvis user,
@@ -26,9 +26,9 @@ Sessions User Stories
      Schema is provided for editor validation.
    * AC-4: The existing ``jarvis.openContext`` command works on session tree
      nodes and opens the ``context.md`` file adjacent to ``session.yaml``.
-   * AC-5: A new LM+MCP tool ``jarvis_listSessionEntities`` returns the list of
+   * AC-5: A new LM+MCP tool ``jarvis_listSessions`` returns the list of
      session entities (``name``, ``summary``, ``folder``). It is distinct from
-     ``jarvis_listSessions``, which lists chat sessions.
+     ``jarvis_listChatSessions``, which lists VS Code chat tab titles.
    * AC-6: The existing ``jarvis.newEntity`` command supports session creation
      as a third option alongside Project and Event. It creates a folder with
      ``session.yaml`` and an empty ``context.md`` under the fixed path
@@ -107,9 +107,9 @@ Sessions User Stories
      Each agent is presented under its frontmatter ``name`` field (if set and
      non-empty), otherwise under its filename stem without ``.agent.md``.
      Dismissing the picker (Escape) cancels the creation.
-   * AC-2: The chosen agent (or no-agent, i.e. empty string) is persisted in
-     ``session.yaml`` as an optional ``agent`` field; the field is omitted
-     entirely when "No agent" was selected.
+   * AC-2: The chosen agent (or "No agent", i.e. empty string) is
+     persisted in ``session.yaml`` as ``agent: ""`` or ``agent: "<name>"``.
+     The field is always written.
    * AC-3: Opening a session with a bound agent (via ``jarvis.openAgentSession``
      on a new-session path) opens the chat editor in that agent mode.
    * AC-4: The tool ``jarvis_createSession`` accepts an optional ``agent``
@@ -118,7 +118,10 @@ Sessions User Stories
      known agent, the call fails with a self-contained error message listing
      available agents; the session folder is NOT created.
    * AC-6: Existing ``session.yaml`` files without an ``agent`` field continue
-     to work without error (open in default chat mode).
+     to work without error and behave identically to ``agent: ""`` at runtime
+     (tree-click opens a default chat without setting a mode; the user may
+     pick a mode via VS Code's native chat-mode dropdown inside the editor).
+     No picker is shown and no YAML writeback occurs on tree-click.
    * AC-7: ``session.schema.json`` is extended with an optional ``agent`` field
      so YAML editors provide completion and validation.
 

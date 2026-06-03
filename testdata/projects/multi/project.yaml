@@ -1,3 +1,4 @@
 name: Multi Context Project
 summary: Project with context.md in multiple subfolders (used for T-7)
+agent: ""
 internalStatus: active

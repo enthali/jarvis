@@ -40,6 +40,14 @@ outcome tables** for each feature's acceptance tests.
    spec_uat_listsessionentitiesgating
    spec_uat_chateditorreuse
    spec_uat_sessioninitprompt
+   spec_uat_entity_parity
+   spec_uat_listevents
+   spec_uat_createproject
+   spec_uat_createevent
+   spec_uat_listsessions_swap
+   spec_uat_safe_send_union
+   spec_uat_newentity_picker
+   spec_uat_heartbeat_dest_valid
 
 All UAT Specifications
 ----------------------

@@ -86,7 +86,7 @@ Explorer User Stories
 
 .. story:: Create New Project or Event
    :id: US_EXP_NEWENTITY
-   :status: implemented
+   :status: draft
    :priority: optional
    :links: US_EXP_SIDEBAR; US_EXP_AGENTSESSION; US_CFG_PROJECTPATH
 
@@ -100,12 +100,14 @@ Explorer User Stories
 
    * AC-1: A ``+`` icon (``$(add)``) in the Projects title bar triggers
      ``Jarvis: New Project`` — prompts for a project name, creates
-     ``<kebab-name>/project.yaml`` in ``jarvis.projectsFolder``, triggers a scanner
-     refresh, and opens the agent session
+     ``<raw-name>/project.yaml`` in ``jarvis.projectsFolder`` (verbatim folder
+     name, no slug transformation), triggers a scanner refresh, and opens the
+     agent session
    * AC-2: A ``+`` icon (``$(add)``) in the Events title bar triggers
      ``Jarvis: New Event`` — prompts for an event name and a start date
-     (``YYYY-MM-DD``), creates ``<yyyy-MM-dd-kebab-name>/event.yaml`` in
-     ``jarvis.eventsFolder``, triggers a scanner refresh, and opens the agent session
+     (``YYYY-MM-DD``), creates ``<yyyy-MM-dd>_<raw-name>/event.yaml`` in
+     ``jarvis.eventsFolder`` (underscore separator, raw name verbatim), triggers
+     a scanner refresh, and opens the agent session
    * AC-3: The convention YAML file is pre-populated with a minimal template
      (``name`` field, plus ``dates`` for events with start = end = input date)
    * AC-4: If the user cancels any input prompt, the command aborts without side effects
@@ -113,6 +115,9 @@ Explorer User Stories
      without waiting for the next scan interval
    * AC-6: The commands SHALL NOT appear in the Command Palette (they are only
      reachable via the title bar icons)
+   * AC-7: Invalid entity names (filesystem-illegal characters, dot-only names,
+     Windows reserved device names) SHALL be rejected via ``validateInput``
+     inline feedback — same rules as session creation.
 
 
 .. story:: Manual Rescan Button
@@ -390,3 +395,127 @@ Explorer User Stories
      session SHALL open in that agent mode — regardless of the user's currently
      active VS Code Chat mode setting at the time of opening. Mode is applied at
      session birth, not via post-creation switching.
+
+
+.. story:: List Events (LM Tool)
+   :id: US_EXP_LISTEVENTS
+   :status: draft
+   :priority: optional
+   :links: US_EXP_SIDEBAR; US_MSG_MCPSERVER
+
+   **As a** LLM agent working in a Jarvis workspace,
+   **I want** a tool that lists all events with their name, dates, and folder path,
+   **so that** I can discover available events programmatically and use the
+   information in automation workflows.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A Language Model Tool ``jarvis_listEvents`` is available in the
+     Chat tool picker
+   * AC-2: The tool returns a list of events, each with ``name`` (from YAML),
+     ``summary`` (from YAML, may be empty), ``agent`` (from YAML, may be empty),
+     ``datesStart``, ``datesEnd``, and ``folder`` (relative path from the
+     configured events folder)
+   * AC-3: The tool requires no input parameters
+   * AC-4: The tool is also available via the MCP server (dual registration)
+
+
+.. story:: Programmatic Project Creation Tool
+   :id: US_EXP_CREATEPROJECT
+   :status: draft
+   :priority: optional
+   :links: US_EXP_NEWENTITY; US_MSG_MCPSERVER
+
+   **As an** LLM operating within an active Jarvis session,
+   **I want** a tool ``jarvis_createProject`` that programmatically creates a
+   new project folder with ``project.yaml`` and ``context.md``,
+   **so that** I can orchestrate project setup workflows without requiring
+   the human to click through the Explorer UI.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The tool ``jarvis_createProject`` is registered via LM and MCP.
+   * AC-2: A successful call creates ``<projectsFolder>/<name>/``,
+     ``project.yaml`` (with ``name``, ``summary``, and optionally ``agent``),
+     and an empty ``context.md``.
+   * AC-3: The Projects Tree reflects the new project within 2 seconds of
+     creation, without any manual rescan.
+   * AC-4: If a project folder with the given ``name`` already exists, the tool
+     returns a success response with ``created: false`` and the reason; no file
+     is overwritten.
+   * AC-5: A ``name`` value that is empty, contains filesystem-illegal
+     characters, or is a reserved name results in an error — same rules as
+     ``jarvis_createSession``.
+   * AC-6: An optional ``agent`` parameter is validated against available agents
+     before any filesystem operation.
+
+
+.. story:: Programmatic Event Creation Tool
+   :id: US_EXP_CREATEEVENT
+   :status: draft
+   :priority: optional
+   :links: US_EXP_NEWENTITY; US_MSG_MCPSERVER
+
+   **As an** LLM operating within an active Jarvis session,
+   **I want** a tool ``jarvis_createEvent`` that programmatically creates a
+   new event folder with ``event.yaml`` and ``context.md``,
+   **so that** I can orchestrate event planning workflows without requiring
+   the human to click through the Explorer UI.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The tool ``jarvis_createEvent`` is registered via LM and MCP.
+   * AC-2: A successful call creates ``<eventsFolder>/<date>_<name>/``,
+     ``event.yaml`` (with ``name``, ``summary``, ``dates``, and optionally
+     ``agent``), and an empty ``context.md``.
+   * AC-3: The Events Tree reflects the new event within 2 seconds of
+     creation, without any manual rescan.
+   * AC-4: Required parameters: ``name``, ``startDate`` (YYYY-MM-DD).
+     Optional: ``endDate`` (defaults to ``startDate``), ``summary``, ``agent``.
+   * AC-5: If an event folder with the derived name already exists, the tool
+     returns ``created: false``.
+   * AC-6: Invalid names or dates result in an error.
+
+
+.. story:: Entity Feature Parity (Projects & Events)
+   :id: US_EXP_ENTITYPARITY
+   :status: draft
+   :priority: required
+   :links: US_EXP_SIDEBAR; US_SES_AGENTBIND; US_SES_TREECLICK; US_EXP_AGENTSESSION
+
+   **As a** Jarvis User,
+   **I want** Projects and Events to have the same feature-set as Sessions —
+   agent binding, tree-click-to-chat, and uniform inline icons —
+   **so that** every entity type behaves consistently and I do not have to
+   remember different interaction patterns for different entity kinds.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Project and Event schemas declare ``agent`` as **required**.
+     The scanner is fail-open: YAMLs missing ``agent`` still load, but the
+     entity is flagged internally as **unbound**. A warning log line is
+     emitted at scan time.
+   * AC-2: Event schema makes ``summary`` required. Existing events without
+     ``summary`` get a validation warning in editors but still load at runtime.
+   * AC-3: Tree-click on a project or event leaf node opens the agent-chat
+     editor (same as session tree-click). The existing ``$(go-to-file)``
+     button remains for opening the YAML.
+   * AC-4: All three entity types show uniform inline icons:
+     ``$(go-to-file)`` for YAML, ``$(notebook)`` for context.md,
+     ``$(record)`` for recording folder (if present).
+   * AC-5: ``jarvis.openAgentSession`` respects the ``agent`` field on
+     project/event entities (same behavior as sessions: if agent is set, open
+     in that mode).
+   * AC-6: The YAML scanner reads ``agent`` from ``project.yaml`` and
+     ``event.yaml`` — same pattern as ``session.yaml``.
+   * AC-7: Tree-click on an **unbound** entity (project, event, or session —
+     i.e. ``agent`` field missing or ``agent: ""``) opens a default chat
+     editor directly (no picker, no YAML mutation). The chat is renamed to
+     the entity name and the kind-aware init-prompt is submitted. The user
+     may pick a chat-mode via VS Code's native chat-mode dropdown.
+   * AC-8: ``jarvis.newProject`` and ``jarvis.newEvent`` invoke the
+     agent-picker after the name/date prompts — same shared picker component
+     as ``jarvis.newSession``. After creation, the chat editor opens per
+     the agent-picker chat-open gate (concrete agent → mode chat; "No agent" →
+     default chat with no mode; cancel → abort). In all non-cancel paths the
+     chat is renamed and the init-prompt is submitted.

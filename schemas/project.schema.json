@@ -13,6 +13,10 @@
       "type": "string",
       "description": "Brief project description"
     },
+    "agent": {
+      "type": "string",
+      "description": "VS Code chat-mode name bound to this project. When set, opening the project activates that chat agent automatically."
+    },
     "stakeholders": {
       "type": "array",
       "description": "People involved in this project. Source of truth for project↔person mapping (used by triage).",

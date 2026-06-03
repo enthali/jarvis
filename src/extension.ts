@@ -10,11 +10,12 @@ import { EventTreeProvider } from './eventTreeProvider';
 import { MessageTreeProvider, SessionGroupNode, MessageLeafNode } from './messageTreeProvider';
 import { RemindersTreeProvider, ReminderNode } from './remindersTreeProvider';
 import { YamlScanner, LeafNode, TreeNode } from './yamlScanner';
+import * as yaml from 'js-yaml';
 import { activateHeartbeat, HeartbeatScheduler, HeartbeatJob, HeartbeatStep } from './heartbeat';
 import { JobNode } from './heartbeatTreeProvider';
 import { deleteMessage, appendMessage, popMessage, readAutoDelivery, addAutoDelivery, removeAutoDelivery, readQueue, writeQueue } from './messageQueue';
 import { addReminder, readReminders, removeReminder, popDueReminders, setRemindersLogger } from './reminders';
-import { lookupSessionUUID, getAllSessions, initSessionLookup, setSessionLookupLogger, filterNamedSessions } from './sessionLookup';
+import { lookupSessionUUID, getAllSessions, initSessionLookup, setSessionLookupLogger, filterNamedSessions, getValidDestinations } from './sessionLookup';
 import { checkForUpdates } from './updateCheck';
 import { registerMcpTool, startMcpServer, stopMcpServer } from './mcpServer';
 import { z } from 'zod';
@@ -150,7 +151,7 @@ async function discoverAgentModes(): Promise<AgentModeEntry[]> {
     return agents.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-// Implementation: SPEC_SES_AGENT_PICKER
+// Implementation: SPEC_SES_AGENT_PICKER, SPEC_EXP_AGENT_PICKER
 // Requirements: REQ_SES_AGENT_PICKER
 async function pickAgentMode(): Promise<string | undefined> {
     const agents = await discoverAgentModes();
@@ -158,7 +159,7 @@ async function pickAgentMode(): Promise<string | undefined> {
     const items: (vscode.QuickPickItem & { mode: string })[] = [
         {
             label:       'No agent',
-            description: 'Use the default VS Code chat mode',
+            detail:      'Opens a default chat \u2014 pick mode via the chat dropdown',
             mode:        '',
         },
         ...agents.map(a => ({
@@ -169,7 +170,7 @@ async function pickAgentMode(): Promise<string | undefined> {
     ];
 
     const pick = await vscode.window.showQuickPick(items, {
-        placeHolder: 'Select the agent for this session (Escape = cancel creation)',
+        placeHolder: 'Select the agent for this entity (Escape = cancel)',
         matchOnDescription: true,
     });
 
@@ -224,6 +225,48 @@ export function activate(context: vscode.ExtensionContext) {
     async function openNewChatEditor(): Promise<void> {
         await vscode.commands.executeCommand('workbench.action.openChat');
         await new Promise(resolve => setTimeout(resolve, 800));
+    }
+
+    // SPEC_EXP_ENTITY_TREECLICK / SPEC_EXP_NEWPROJECT_CMD / SPEC_EXP_NEWEVENT_CMD /
+    // SPEC_SES_NEWENTITY: single shared entity-chat opener.
+    // agent === non-empty → mode-prime then openNewChatEditor;
+    // agent === ""/undefined → openNewChatEditor only (no picker, no writeback).
+    // Always followed by rename + init-prompt.
+    async function openChatForEntity(
+        name: string,
+        kind: string,
+        folder: string,
+        agent: string | undefined
+    ): Promise<void> {
+        if (agent) {
+            try {
+                await vscode.commands.executeCommand(
+                    'workbench.action.chat.open', { mode: agent });
+                await new Promise(resolve => setTimeout(resolve, 300));
+            } catch (err) {
+                log.warn(`[MSG] openChatForEntity: failed to prime agent mode "${agent}": ${err}`);
+            }
+        }
+        await openNewChatEditor();
+        await renameFocusedChatSession(name);
+
+        // SPEC_EXP_AGENTSESSION_INITPROMPT
+        const contextPath = path.join(folder, 'context.md');
+        const defaultInitPrompt =
+            `You are the agent session for the \${kind} "\${name}".\n\n` +
+            `Use only \`\${contextPath}\` as your persistent memory. Read it now.\n\n` +
+            `Keep it minimal and action-oriented:\n` +
+            `- Store only long-lived items under Decision / Finding / Next.\n` +
+            `- One concise line per bullet. Prune aggressively.\n` +
+            `- Replace outdated bullets — never append logs.\n` +
+            `- Never store retries, raw tool output, or transient chatter.\n` +
+            `- Before writing, ask: "Will this still matter in 2 weeks?" If no, skip.`;
+        const rawInitTemplate = vscode.workspace.getConfiguration('jarvis')
+            .get<string>('agentSession.initPromptTemplate') ?? '';
+        const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : defaultInitPrompt;
+        const initPrompt = applyTemplate(initTemplate, { kind, name, contextPath });
+        await vscode.commands.executeCommand(
+            'workbench.action.chat.open', { query: initPrompt });
     }
 
     // Implementation: SPEC_PIM_TASKSERVICE
@@ -386,7 +429,7 @@ export function activate(context: vscode.ExtensionContext) {
     // ------- HEARTBEAT feature block (SPEC_CFG_TOGGLEGUARDS) -------
     if (cfg.get<boolean>('heartbeat.enabled', true)) {
         // Activate heartbeat scheduler (creates tree view internally) (SPEC_EXP_EXTENSION, SPEC_AUT_SCHEDULERLOOP)
-        scheduler = activateHeartbeat(context, messageProvider, resolveMessagesPath, log);
+        scheduler = activateHeartbeat(context, messageProvider, resolveMessagesPath, log, scanner);
 
         // Register rescan heartbeat job (SPEC_EXP_EXTENSION)
         if (scanner) { syncRescanJob(); }
@@ -841,7 +884,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
     );
 
-    // Register open agent session command (SPEC_EXP_AGENTSESSION)
+    // Register open agent session command (SPEC_EXP_AGENTSESSION, SPEC_EXP_ENTITY_TREECLICK)
     // Requirements: REQ_EXP_AGENTSESSION
     const openAgentSessionCommand = vscode.commands.registerCommand(
         'jarvis.openAgentSession',
@@ -859,39 +902,10 @@ export function activate(context: vscode.ExtensionContext) {
                 );
                 await vscode.commands.executeCommand('vscode.open', uri);
             } else {
-                // Create new session — mode-prime first so new chat inherits agent mode
-                // Implementation: SPEC_EXP_AGENTSESSION, SPEC_EXP_AGENTSESSION_INITPROMPT
-                // Requirements: REQ_EXP_AGENTSESSION, REQ_EXP_AGENTPROMPT_TEMPLATE
-                if (entity.agent) {
-                    try {
-                        await vscode.commands.executeCommand('workbench.action.chat.open', { mode: entity.agent });
-                        await new Promise(resolve => setTimeout(resolve, 300));
-                    } catch (err) {
-                        log.warn(`[MSG] openAgentSession: failed to prime agent mode "${entity.agent}": ${err}`);
-                    }
-                }
-                await openNewChatEditor();  // SPEC_MSG_OPENCHAT (includes 800 ms settle delay)
-
-                // Rename session via /rename command
-                await renameFocusedChatSession(entity.name);
-
-                // Send initialization prompt (SPEC_EXP_AGENTSESSION_INITPROMPT)
+                // Create new session — SPEC_EXP_ENTITY_TREECLICK
                 const kind = entity.kind ?? 'project';
                 const folder = entity.folder ?? path.dirname(element.id);
-                const contextPath = path.join(folder, 'context.md');
-                const defaultInitPrompt =
-                    `You are the \${kind} "\${name}".\n\n` +
-                    `Use only \`\${contextPath}\` as your persistent memory. Read it now.\n\n` +
-                    `Keep it minimal and action-oriented:\n` +
-                    `- Store only long-lived items under Decision / Finding / Next.\n` +
-                    `- One concise line per bullet. Prune aggressively.\n` +
-                    `- Replace outdated bullets — never append logs.\n` +
-                    `- Never store retries, raw tool output, or transient chatter.\n` +
-                    `- Before writing, ask: "Will this still matter in 2 weeks?" If no, skip.`;
-                const rawInitTemplate = vscode.workspace.getConfiguration('jarvis').get<string>('agentSession.initPromptTemplate') ?? '';
-                const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : defaultInitPrompt;
-                const initPrompt = applyTemplate(initTemplate, { kind, name: entity.name, contextPath });
-                await vscode.commands.executeCommand('workbench.action.chat.open', { query: initPrompt });
+                await openChatForEntity(entity.name, kind, folder, entity.agent);
             }
         }
     );
@@ -944,6 +958,16 @@ export function activate(context: vscode.ExtensionContext) {
             // 3. Nothing found
             vscode.window.showInformationMessage(
                 'No context.md found for this entity');
+        }
+    );
+
+    // Implementation: SPEC_EXP_ENTITY_ICONS (openRecording command)
+    const openRecordingCommand = vscode.commands.registerCommand(
+        'jarvis.openRecording',
+        (element: LeafNode) => {
+            const entityFolder = path.dirname(element.id);
+            const recordingFolder = path.join(entityFolder, 'recording');
+            vscode.commands.executeCommand('revealInExplorer', vscode.Uri.file(recordingFolder));
         }
     );
 
@@ -1086,8 +1110,7 @@ export function activate(context: vscode.ExtensionContext) {
             const { session, text } = options.input;
 
             // Destination validation (REQ_MSG_SENDTOSESSION AC-3/4, REQ_MSG_DEST_ERROR)
-            const allSessions = await getAllSessions();
-            const validNames = filterNamedSessions(allSessions).map(s => s.title);
+            const validNames = await getValidDestinations(scanner);
             if (!validNames.includes(session)) {
                 const sorted = [...validNames].sort((a, b) =>
                     a.localeCompare(b, undefined, { sensitivity: 'base' })
@@ -1115,8 +1138,7 @@ export function activate(context: vscode.ExtensionContext) {
             const text = args.text as string;
 
             // Destination validation (REQ_MSG_SENDTOSESSION AC-3/4, REQ_MSG_DEST_ERROR)
-            const allSessions = await getAllSessions();
-            const validNames = filterNamedSessions(allSessions).map(s => s.title);
+            const validNames = await getValidDestinations(scanner);
             if (!validNames.includes(session)) {
                 const sorted = [...validNames].sort((a, b) =>
                     a.localeCompare(b, undefined, { sensitivity: 'base' })
@@ -1173,10 +1195,38 @@ export function activate(context: vscode.ExtensionContext) {
         }
     );
 
-    // Register LM+MCP tool: listSessions (SPEC_MSG_LISTSESSIONS)
-    // Requirements: REQ_MSG_LISTSESSIONS, REQ_MSG_SESSIONFILTER
+    // Register LM+MCP tool: listSessions — BREAKING SWAP (SPEC_MSG_LISTSESSIONS, SPEC_SES_TOOLS)
+    // Returns YAML session entities; legacy chat-tabs behavior moved to jarvis_listChatSessions.
+    // Requirements: REQ_MSG_LISTSESSIONS, REQ_SES_LISTTOOL
     const listSessionsTool = registerDualTool(
         'jarvis_listSessions',
+        async (
+            _options: vscode.LanguageModelToolInvocationOptions<Record<string, never>>,
+            _token: vscode.CancellationToken
+        ) => {
+            const sessions = scanner?.entities
+                .filter(e => e.kind === 'session')
+                .map(e => ({ name: e.name, summary: e.summary ?? '', agent: e.agent ?? '', folder: e.folder })) ?? [];
+            log.info(`[SES] listSessions: ${sessions.length} session(s)`);
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(JSON.stringify({ sessions }))
+            ]);
+        },
+        'Returns all Jarvis session entities (YAML-based) with name, summary, agent, and folder path.',
+        {},
+        async () => {
+            const sessions = scanner?.entities
+                .filter(e => e.kind === 'session')
+                .map(e => ({ name: e.name, summary: e.summary ?? '', agent: e.agent ?? '', folder: e.folder })) ?? [];
+            log.info(`[SES] listSessions(MCP): ${sessions.length} session(s)`);
+            return { sessions };
+        }
+    );
+
+    // Register LM+MCP tool: listChatSessions (SPEC_MSG_LISTSESSIONS)
+    // Returns VS Code chat tab titles (the old jarvis_listSessions behavior)
+    const listChatSessionsTool = registerDualTool(
+        'jarvis_listChatSessions',
         async (
             _options: vscode.LanguageModelToolInvocationOptions<Record<string, never>>,
             _token: vscode.CancellationToken
@@ -1184,16 +1234,18 @@ export function activate(context: vscode.ExtensionContext) {
             const sessions = await getAllSessions();
             const named = filterNamedSessions(sessions)
                 .map(s => s.title);
+            log.info(`[MSG] listChatSessions: ${named.length} session(s)`);
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(JSON.stringify(named))
             ]);
         },
-        'Returns the list of named chat session titles in the current workspace.',
+        'Returns the list of named VS Code chat session titles in the current workspace.',
         {},
         async () => {
             const sessions = await getAllSessions();
             const named = filterNamedSessions(sessions)
                 .map(s => s.title);
+            log.info(`[MSG] listChatSessions(MCP): ${named.length} session(s)`);
             return { sessions: named };
         }
     );
@@ -1201,10 +1253,9 @@ export function activate(context: vscode.ExtensionContext) {
     // Implementation: SPEC_AUT_JOBREG_TOOLS
     // Requirements: REQ_AUT_JOBREG_TOOLS
 
-    // Validation helper (SPEC_AUT_REGISTERJOB_VALIDATION)
+    // Validation helper (SPEC_AUT_REGISTERJOB_VALIDATION, SPEC_AUT_HEARTBEAT_RESOLVER_REUSE)
     async function validateJobDestinations(steps: HeartbeatStep[]): Promise<void> {
-        const allSessions = await getAllSessions();
-        const validNames = filterNamedSessions(allSessions).map(s => s.title);
+        const validNames = await getValidDestinations(scanner);
         for (const step of steps) {
             if (step.type === 'queue' && step.destination) {
                 if (!validNames.includes(step.destination)) {
@@ -1424,6 +1475,116 @@ export function activate(context: vscode.ExtensionContext) {
         return result;
     }
 
+    // Implementation: SPEC_EXP_CREATEPROJECT
+    // Requirements: REQ_EXP_CREATEPROJECT
+    async function createProjectEntity(args: { name: string; summary?: string; agent?: string }): Promise<{ created: boolean; reason?: string; path?: string }> {
+        const { name, summary, agent } = args;
+
+        if (!name) { throw new Error('invalid project name: name must not be empty'); }
+        if (/[/\\:*?"<>|]/.test(name)) { throw new Error('invalid project name: contains forbidden character (/ \\ : * ? " < > |)'); }
+        if (/[\x00-\x1F]/.test(name)) { throw new Error('invalid project name: contains null or control character'); }
+        if (name === '.' || name === '..') { throw new Error('invalid project name: must not be "." or ".."'); }
+        if (/^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i.test(name)) { throw new Error('invalid project name: reserved device name'); }
+
+        if (agent) {
+            const available = await discoverAgentModes();
+            const validAgentNames = available.map(a => a.name);
+            if (!validAgentNames.includes(agent)) {
+                const names = validAgentNames.length > 0 ? validAgentNames.sort().join(', ') : '(none)';
+                throw new Error(`Agent "${agent}" is not available.\nAvailable agents: ${names}`);
+            }
+        }
+
+        const projectsFolder = vscode.workspace.getConfiguration('jarvis').get<string>('projects.folder', '');
+        if (!projectsFolder) { throw new Error('jarvis_createProject: projects.folder not configured'); }
+
+        const targetPath = path.join(projectsFolder, name);
+        if (fs.existsSync(targetPath)) {
+            return { created: false, reason: `project "${name}" already exists` };
+        }
+
+        await fs.promises.mkdir(targetPath, { recursive: true });
+
+        const yamlLines = [`name: ${yamlString(name)}`];
+        if (summary) { yamlLines.push(`summary: ${yamlString(summary)}`); }
+        if (agent) { yamlLines.push(`agent: ${yamlString(agent)}`); }
+        yamlLines.push('');
+        await fs.promises.writeFile(path.join(targetPath, 'project.yaml'), yamlLines.join('\n'), 'utf-8');
+
+        const contextContent = summary ? `# ${name}\n\n${summary}\n` : `# ${name}\n\n`;
+        await fs.promises.writeFile(path.join(targetPath, 'context.md'), contextContent, 'utf-8');
+
+        await scanner?.rescan();
+        log.info(`[EXP] createProject: created "${name}" at ${targetPath}`);
+        return { created: true, path: path.relative(projectsFolder, targetPath).replace(/\\/g, '/') };
+    }
+
+    // Implementation: SPEC_EXP_CREATEEVENT
+    // Requirements: REQ_EXP_CREATEEVENT
+    async function createEventEntity(args: { name: string; startDate: string; endDate?: string; summary?: string; agent?: string }): Promise<{ created: boolean; reason?: string; path?: string }> {
+        const { name, startDate, summary, agent } = args;
+        const endDate = args.endDate || startDate;
+
+        if (!name) { throw new Error('invalid event name: name must not be empty'); }
+        if (/[/\\:*?"<>|]/.test(name)) { throw new Error('invalid event name: contains forbidden character (/ \\ : * ? " < > |)'); }
+        if (/[\x00-\x1F]/.test(name)) { throw new Error('invalid event name: contains null or control character'); }
+        if (name === '.' || name === '..') { throw new Error('invalid event name: must not be "." or ".."'); }
+        if (/^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i.test(name)) { throw new Error('invalid event name: reserved device name'); }
+
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate)) { throw new Error('invalid date: startDate must be YYYY-MM-DD'); }
+        const [sy, sm, sd] = startDate.split('-').map(Number);
+        const sDate = new Date(sy, sm - 1, sd);
+        if (sDate.getFullYear() !== sy || sDate.getMonth() !== sm - 1 || sDate.getDate() !== sd) {
+            throw new Error('invalid date: startDate is not a valid calendar date');
+        }
+        if (endDate && endDate !== startDate) {
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(endDate)) { throw new Error('invalid date: endDate must be YYYY-MM-DD'); }
+            const [ey, em, ed] = endDate.split('-').map(Number);
+            const eDate = new Date(ey, em - 1, ed);
+            if (eDate.getFullYear() !== ey || eDate.getMonth() !== em - 1 || eDate.getDate() !== ed) {
+                throw new Error('invalid date: endDate is not a valid calendar date');
+            }
+        }
+
+        if (agent) {
+            const available = await discoverAgentModes();
+            const validAgentNames = available.map(a => a.name);
+            if (!validAgentNames.includes(agent)) {
+                const names = validAgentNames.length > 0 ? validAgentNames.sort().join(', ') : '(none)';
+                throw new Error(`Agent "${agent}" is not available.\nAvailable agents: ${names}`);
+            }
+        }
+
+        const eventsFolder = vscode.workspace.getConfiguration('jarvis').get<string>('events.folder', '');
+        if (!eventsFolder) { throw new Error('jarvis_createEvent: events.folder not configured'); }
+
+        const folderName = `${startDate}_${name}`;
+        const targetPath = path.join(eventsFolder, folderName);
+        if (fs.existsSync(targetPath)) {
+            return { created: false, reason: `event folder "${folderName}" already exists` };
+        }
+
+        await fs.promises.mkdir(targetPath, { recursive: true });
+
+        const yamlLines = [
+            `name: ${yamlString(name)}`,
+            `summary: ${yamlString(summary ?? '')}`,
+            `dates:`,
+            `  start: "${startDate}"`,
+            `  end: "${endDate}"`,
+        ];
+        if (agent) { yamlLines.push(`agent: ${yamlString(agent)}`); }
+        yamlLines.push('');
+        await fs.promises.writeFile(path.join(targetPath, 'event.yaml'), yamlLines.join('\n'), 'utf-8');
+
+        const contextContent = `# ${name}\n\n`;
+        await fs.promises.writeFile(path.join(targetPath, 'context.md'), contextContent, 'utf-8');
+
+        await scanner?.rescan();
+        log.info(`[EXP] createEvent: created "${name}" at ${targetPath}`);
+        return { created: true, path: folderName };
+    }
+
     const listProjectsTool = registerDualTool(
         'jarvis_listProjects',
         async (
@@ -1473,36 +1634,129 @@ export function activate(context: vscode.ExtensionContext) {
         }
     );
 
-    // Implementation: SPEC_SES_TOOLS + SPEC_SES_CREATETOOL
-    // Requirements: REQ_SES_LISTTOOL + REQ_SES_CREATETOOL
-    let listSessionEntitiesTool: vscode.Disposable | undefined;
-    let createSessionTool: vscode.Disposable | undefined;
-    if (cfg.get<boolean>('sessions.enabled', true)) {
-        listSessionEntitiesTool = registerDualTool(
-        'jarvis_listSessionEntities',
+    // Implementation: SPEC_EXP_LISTEVENTS
+    // Requirements: REQ_EXP_LISTEVENTS
+    const listEventsTool = registerDualTool(
+        'jarvis_listEvents',
         async (
             _options: vscode.LanguageModelToolInvocationOptions<Record<string, never>>,
             _token: vscode.CancellationToken
         ) => {
-            const sessions = scanner?.entities
-                .filter(e => e.kind === 'session')
-                .map(e => ({ name: e.name, summary: e.summary ?? '', agent: e.agent ?? '', folder: e.folder })) ?? [];
-            log.info(`[SES] listSessionEntities: ${sessions.length} session(s)`);
+            const eventsFolder = vscode.workspace
+                .getConfiguration('jarvis')
+                .get<string>('events.folder', '');
+            const leaves = collectLeaves(scanner?.getEventTree() ?? []);
+            const events = leaves.map(leaf => {
+                const entity = scanner?.getEntity(leaf.id);
+                const absDir = path.dirname(leaf.id);
+                const rel = eventsFolder
+                    ? path.relative(eventsFolder, absDir)
+                    : absDir;
+                return {
+                    name: entity?.name ?? path.basename(absDir),
+                    summary: entity?.summary ?? '',
+                    agent: entity?.agent ?? '',
+                    datesStart: entity?.datesStart ?? '',
+                    datesEnd: entity?.datesEnd ?? '',
+                    folder: rel.replace(/\\/g, '/'),
+                };
+            });
+            log.info(`[EXP] listEvents: ${events.length} event(s)`);
             return new vscode.LanguageModelToolResult([
-                new vscode.LanguageModelTextPart(JSON.stringify({ sessions }))
+                new vscode.LanguageModelTextPart(JSON.stringify(events))
             ]);
         },
-        'Lists all Jarvis session entities (lightweight projects) discovered under <workspace>/.jarvis/sessions/.',
+        'Returns the list of events with name, summary, dates, agent, and folder path.',
         {},
         async () => {
-            const sessions = scanner?.entities
-                .filter(e => e.kind === 'session')
-                .map(e => ({ name: e.name, summary: e.summary ?? '', agent: e.agent ?? '', folder: e.folder })) ?? [];
-            log.info(`[SES] listSessionEntities(MCP): ${sessions.length} session(s)`);
-            return { sessions };
+            const eventsFolder = vscode.workspace
+                .getConfiguration('jarvis')
+                .get<string>('events.folder', '');
+            const leaves = collectLeaves(scanner?.getEventTree() ?? []);
+            const events = leaves.map(leaf => {
+                const entity = scanner?.getEntity(leaf.id);
+                const absDir = path.dirname(leaf.id);
+                const rel = eventsFolder
+                    ? path.relative(eventsFolder, absDir)
+                    : absDir;
+                return {
+                    name: entity?.name ?? path.basename(absDir),
+                    summary: entity?.summary ?? '',
+                    agent: entity?.agent ?? '',
+                    datesStart: entity?.datesStart ?? '',
+                    datesEnd: entity?.datesEnd ?? '',
+                    folder: rel.replace(/\\/g, '/'),
+                };
+            });
+            log.info(`[EXP] listEvents(MCP): ${events.length} event(s)`);
+            return { events };
         }
     );
 
+    // Implementation: SPEC_EXP_CREATEPROJECT
+    // Requirements: REQ_EXP_CREATEPROJECT
+    const createProjectTool = registerDualTool(
+        'jarvis_createProject',
+        async (
+            options: vscode.LanguageModelToolInvocationOptions<{ name: string; summary?: string; agent?: string }>,
+            _token: vscode.CancellationToken
+        ) => {
+            const result = await createProjectEntity(options.input);
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(JSON.stringify(result))
+            ]);
+        },
+        'Creates a new project folder with project.yaml and context.md. Idempotent: returns success if project already exists.',
+        {
+            name: z.string().describe('Project name; used verbatim as the folder name'),
+            summary: z.string().optional().describe('Optional short description'),
+            agent: z.string().optional().describe("Optional VS Code chat-mode name. Must match a user-invocable agent in .github/agents/."),
+        },
+        async (args) => {
+            return await createProjectEntity({
+                name: args.name as string,
+                summary: args.summary as string | undefined,
+                agent: args.agent as string | undefined,
+            });
+        }
+    );
+
+    // Implementation: SPEC_EXP_CREATEEVENT
+    // Requirements: REQ_EXP_CREATEEVENT
+    const createEventTool = registerDualTool(
+        'jarvis_createEvent',
+        async (
+            options: vscode.LanguageModelToolInvocationOptions<{ name: string; startDate: string; endDate?: string; summary?: string; agent?: string }>,
+            _token: vscode.CancellationToken
+        ) => {
+            const result = await createEventEntity(options.input);
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(JSON.stringify(result))
+            ]);
+        },
+        'Creates a new event folder with event.yaml and context.md. Folder name: ${startDate}_${name}. Idempotent.',
+        {
+            name: z.string().describe('Event name; used verbatim in folder name and YAML'),
+            startDate: z.string().describe('Start date in YYYY-MM-DD format'),
+            endDate: z.string().optional().describe('End date in YYYY-MM-DD format (defaults to startDate)'),
+            summary: z.string().optional().describe('Optional short description'),
+            agent: z.string().optional().describe("Optional VS Code chat-mode name. Must match a user-invocable agent."),
+        },
+        async (args) => {
+            return await createEventEntity({
+                name: args.name as string,
+                startDate: args.startDate as string,
+                endDate: args.endDate as string | undefined,
+                summary: args.summary as string | undefined,
+                agent: args.agent as string | undefined,
+            });
+        }
+    );
+
+    // Implementation: SPEC_SES_CREATETOOL
+    // Requirements: REQ_SES_CREATETOOL
+    let createSessionTool: vscode.Disposable | undefined;
+    if (cfg.get<boolean>('sessions.enabled', true)) {
         const createSession = async (args: {
             name: string;
             summary?: string;
@@ -1922,22 +2176,36 @@ export function activate(context: vscode.ExtensionContext) {
             const input = await vscode.window.showInputBox({
                 prompt: 'Project name',
                 placeHolder: 'My Project',
+                validateInput: (value: string) => {
+                    if (/[<>:"\/\\|?*\x00-\x1f]/.test(value)) {
+                        return 'Name contains characters not allowed in folder names';
+                    }
+                    if (!value.trim()) {
+                        return 'Name must not be empty';
+                    }
+                    return undefined;
+                },
             });
             if (!input) { return; }
 
-            const kebabName = toKebabCase(input);
-            const targetPath = path.join(projectsFolder, kebabName);
+            // Mandatory agent picker (SPEC_EXP_AGENT_PICKER)
+            const agentInput = await pickAgentMode();
+            if (agentInput === undefined) { return; } // user cancelled
+
+            const targetPath = path.join(projectsFolder, input);
 
             if (fs.existsSync(targetPath)) {
                 vscode.window.showErrorMessage(
-                    `Folder '${kebabName}' already exists in projects folder`);
+                    `Folder '${input}' already exists in projects folder`);
                 return;
             }
 
             await fs.promises.mkdir(targetPath);
-            const content = `name: "${input}"\n`;
+            const yamlLines = [`name: ${yamlString(input)}`];
+            yamlLines.push(`agent: ${yamlString(agentInput)}`);
+            yamlLines.push('');
             await fs.promises.writeFile(
-                path.join(targetPath, 'project.yaml'), content, 'utf-8');
+                path.join(targetPath, 'project.yaml'), yamlLines.join('\n'), 'utf-8');
 
             // Implementation: SPEC_OLK_AUTOCAT_NEWENTITY
             // Requirements: REQ_OLK_AUTOCAT_NEWENTITY
@@ -1955,11 +2223,8 @@ export function activate(context: vscode.ExtensionContext) {
 
             await scanner?.rescan();
 
-            const leafNode = scanner ? findLeafNode(scanner.getProjectTree(), targetPath) : undefined;
-            if (leafNode) {
-                await vscode.commands.executeCommand(
-                    'jarvis.openAgentSession', leafNode);
-            }
+            // SPEC_EXP_NEWPROJECT_CMD step 12: open chat via shared helper
+            await openChatForEntity(input, 'project', targetPath, agentInput);
         }
     );
 
@@ -1979,6 +2244,15 @@ export function activate(context: vscode.ExtensionContext) {
             const nameInput = await vscode.window.showInputBox({
                 prompt: 'Event name',
                 placeHolder: 'My Event',
+                validateInput: (value: string) => {
+                    if (/[<>:"\/\\|?*\x00-\x1f]/.test(value)) {
+                        return 'Name contains characters not allowed in folder names';
+                    }
+                    if (!value.trim()) {
+                        return 'Name must not be empty';
+                    }
+                    return undefined;
+                },
             });
             if (!nameInput) { return; }
 
@@ -2001,7 +2275,11 @@ export function activate(context: vscode.ExtensionContext) {
             });
             if (!dateInput) { return; }
 
-            const folderName = `${dateInput}-${toKebabCase(nameInput)}`;
+            // Mandatory agent picker (SPEC_EXP_AGENT_PICKER)
+            const agentInput = await pickAgentMode();
+            if (agentInput === undefined) { return; } // user cancelled
+
+            const folderName = `${dateInput}_${nameInput}`;
             const targetPath = path.join(eventsFolder, folderName);
 
             if (fs.existsSync(targetPath)) {
@@ -2012,7 +2290,8 @@ export function activate(context: vscode.ExtensionContext) {
 
             await fs.promises.mkdir(targetPath);
             const content = [
-                `name: "${nameInput}"`,
+                `name: ${yamlString(nameInput)}`,
+                `agent: ${yamlString(agentInput)}`,
                 `dates:`,
                 `  start: "${dateInput}"`,
                 `  end: "${dateInput}"`,
@@ -2037,11 +2316,8 @@ export function activate(context: vscode.ExtensionContext) {
 
             await scanner?.rescan();
 
-            const leafNode = scanner ? findLeafNode(scanner.getEventTree(), targetPath) : undefined;
-            if (leafNode) {
-                await vscode.commands.executeCommand(
-                    'jarvis.openAgentSession', leafNode);
-            }
+            // SPEC_EXP_NEWEVENT_CMD step 14: open chat via shared helper
+            await openChatForEntity(nameInput, 'event', targetPath, agentInput);
         }
     );
 
@@ -2115,9 +2391,8 @@ export function activate(context: vscode.ExtensionContext) {
             if (summaryInput) {
                 yamlLines.push(`summary: ${yamlString(summaryInput)}`);
             }
-            if (agentInput) {
-                yamlLines.push(`agent: ${yamlString(agentInput)}`);
-            }
+            // SPEC_SES_AGENT_PICKER: write agent field unconditionally (empty string for "No agent")
+            yamlLines.push(`agent: ${yamlString(agentInput)}`);
             yamlLines.push('');
             await fs.promises.writeFile(
                 path.join(targetPath, 'session.yaml'),
@@ -2135,10 +2410,8 @@ export function activate(context: vscode.ExtensionContext) {
             await scanner?.rescan();
             log.info(`[NewSession] created session "${nameInput}" at ${targetPath}`);
 
-            // Auto-open the new session as an agent session (SPEC_SES_NEWENTITY_AUTOOPEN)
-            const sessionYamlPath = path.join(targetPath, 'session.yaml');
-            const leaf: LeafNode = { kind: 'leaf', id: sessionYamlPath };
-            await vscode.commands.executeCommand('jarvis.openAgentSession', leaf);
+            // SPEC_SES_NEWENTITY step 10: open chat via shared helper
+            await openChatForEntity(nameInput, 'session', targetPath, agentInput);
         }
     );
 
@@ -2422,7 +2695,6 @@ export function activate(context: vscode.ExtensionContext) {
         sendToSessionTool,
         readMessageTool,
         listSessionsTool,
-        ...(listSessionEntitiesTool ? [listSessionEntitiesTool] : []),
         ...(createSessionTool ? [createSessionTool] : []),
         registerJobTool,
         unregisterJobTool,
@@ -2433,6 +2705,11 @@ export function activate(context: vscode.ExtensionContext) {
         cancelReminderCommand,
         openReminderFileCommand,
         listProjectsTool,
+        listEventsTool,
+        createProjectTool,
+        createEventTool,
+        listChatSessionsTool,
+        openRecordingCommand,
         categoryTool,
         taskTool,
         refreshCategoriesCommand,
