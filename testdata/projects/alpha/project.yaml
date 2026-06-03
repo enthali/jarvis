@@ -2,6 +2,7 @@
 # Requirements: REQ_UAT_VALID_SAMPLES
 name: "Project: Alpha Initiative"
 summary: "Strategic initiative for expanding platform capabilities in Q2."
+agent: "syspilot.cm"
 externalStatus: "On track — Phase 1 completed, Phase 2 in progress."
 internalStatus: "Budget review pending approval from steering committee."
 lastUpdated: "2026-03-15"

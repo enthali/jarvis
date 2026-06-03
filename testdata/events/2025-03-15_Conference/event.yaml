@@ -1,0 +1,9 @@
+# Implementation: SPEC_UAT_TESTDATA_FILES
+# Requirements: REQ_UAT_VALID_SAMPLES
+name: "Conference"
+location: "Munich, Germany"
+status: "intended"
+summary: "Generic conference fixture without agent field — tests scanner fail-open behavior."
+dates:
+  start: "2025-03-15"
+  end: "2025-03-16"

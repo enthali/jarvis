@@ -1,6 +1,7 @@
-// Implementation: SPEC_SES_TREE
-// Requirements: REQ_SES_TREE
+// Implementation: SPEC_SES_TREE, SPEC_EXP_ENTITY_TREECLICK, SPEC_EXP_ENTITY_ICONS
+// Requirements: REQ_SES_TREE, REQ_EXP_ENTITY_TREECLICK, REQ_EXP_ENTITY_ICONS
 
+import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { YamlScanner, TreeNode } from './yamlScanner';
@@ -32,7 +33,13 @@ export class SessionTreeProvider implements vscode.TreeDataProvider<TreeNode> {
         const name = entity ? entity.name : path.basename(path.dirname(element.id));
         const item = new vscode.TreeItem(name, vscode.TreeItemCollapsibleState.None);
         item.tooltip = entity?.summary;
-        item.contextValue = 'jarvisSession';
+
+        // SPEC_EXP_ENTITY_ICONS: contextValue with +recording suffix if recording/ exists
+        const entityFolder = path.dirname(element.id);
+        const hasRecording = fs.existsSync(path.join(entityFolder, 'recording'));
+        item.contextValue = hasRecording ? 'jarvisSession+recording' : 'jarvisSession';
+
+        // SPEC_EXP_ENTITY_TREECLICK: single-click opens agent session
         item.command = {
             command: 'jarvis.openAgentSession',
             title: 'Open Agent Session',

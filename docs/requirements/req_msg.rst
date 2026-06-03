@@ -179,20 +179,22 @@ Message Queue Requirements
      extension SHALL show an informational notification
 
 
-.. req:: List Sessions LM Tool
+.. req:: List Chat Sessions LM Tool
    :id: REQ_MSG_LISTSESSIONS
-   :status: implemented
+   :status: draft
    :priority: optional
    :links: US_MSG_LISTSESSIONS; REQ_MSG_SESSIONLOOKUP; REQ_MSG_SESSIONFILTER
 
    **Description:**
    The extension SHALL register a Language Model Tool that returns the list of
-   named chat sessions in the current workspace.
+   named VS Code chat sessions (tab titles) in the current workspace.
 
    **Acceptance Criteria:**
 
-   * AC-1: A Language Model Tool named ``jarvis_listSessions`` SHALL be registered
-     via ``vscode.lm.registerTool`` with ``canBeReferencedInPrompt: true``
+   * AC-1: A Language Model Tool named ``jarvis_listChatSessions`` SHALL be
+     registered via ``vscode.lm.registerTool`` with
+     ``canBeReferencedInPrompt: true`` (renamed from ``jarvis_listSessions``
+     which now refers to YAML session entities)
    * AC-2: The tool SHALL return the list of session titles (strings) from the
      current workspace's ``state.vscdb``
    * AC-3: The returned list SHALL be filtered by ``REQ_MSG_SESSIONFILTER``
@@ -702,7 +704,7 @@ Message Queue Requirements
 
 .. req:: Send-to-Session LM / MCP Tool
    :id: REQ_MSG_SENDTOSESSION
-   :status: implemented
+   :status: draft
    :priority: mandatory
    :links: US_MSG_SAFE_SEND; REQ_MSG_QUEUE; REQ_MSG_SESSIONLOOKUP; REQ_MSG_SESSIONFILTER
 
@@ -719,8 +721,8 @@ Message Queue Requirements
      registered via ``vscode.lm.registerTool`` (dual-registered as an MCP tool
      via ``registerDualTool``) with ``canBeReferencedInPrompt: true``
    * AC-2: The tool SHALL accept three input parameters: ``session`` (string,
-     required — the exact title of the target VS Code chat session),
-     ``text`` (string, required — the message body), and
+     required — the exact title of the target VS Code chat session or the name
+     of a YAML entity), ``text`` (string, required — the message body), and
      ``senderSession`` (string, optional — name of the originating session)
    * AC-3: Before appending to the queue, the tool SHALL verify that
      ``session`` is a member of the **valid destination set** (see AC-5)
@@ -728,10 +730,11 @@ Message Queue Requirements
      throw an error (not return a success response); no message SHALL be
      appended to the queue; the error message SHALL satisfy
      ``REQ_MSG_DEST_ERROR``
-   * AC-5: The **valid destination set** is the set of named chat sessions
-     currently present in the workspace, as returned by
-     ``getAllSessions()`` filtered through ``filterNamedSessions()``
-     (i.e. the same set exposed by ``jarvis_listSessions``)
+   * AC-5: The **valid destination set** is the union of {named VS Code chat
+     session titles from ``state.vscdb`` filtered through
+     ``filterNamedSessions()``} ∪ {YAML entity names from the scanner store
+     (sessions, projects, events)}. A destination is valid if it appears in
+     either subset.
    * AC-6: If ``session`` is in the valid destination set, the tool SHALL
      append the message to the queue via ``appendMessage`` and return a
      success response; all existing queuing behaviour (auto-delivery, audit

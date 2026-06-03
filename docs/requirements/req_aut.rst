@@ -360,7 +360,7 @@ Automation Requirements
 
 .. req:: Shared Resolver for Heartbeat Destination Validation
    :id: REQ_AUT_HEARTBEAT_RESOLVER_REUSE
-   :status: implemented
+   :status: draft
    :priority: optional
    :links: US_AUT_HEARTBEAT_VALIDATION; REQ_MSG_SESSIONLOOKUP; REQ_MSG_SESSIONFILTER
 
@@ -371,12 +371,12 @@ Automation Requirements
 
    **Acceptance Criteria:**
 
-   * AC-1: Heartbeat validation SHALL call ``getAllSessions()`` and
-     ``filterNamedSessions()`` from ``src/sessionLookup.ts`` — the same functions
-     used by ``SPEC_MSG_SENDTOSESSION``
+   * AC-1: Heartbeat validation SHALL call the unified destination resolver
+     from ``src/sessionLookup.ts`` — the same function used by
+     ``SPEC_MSG_SENDTOSESSION``
    * AC-2: No new session-enumeration logic SHALL be introduced; if the resolver
      changes (e.g. new filtering rules), both ``jarvis_sendToSession`` and heartbeat
      validation automatically inherit the change
-   * AC-3: The valid destination set is defined as the named VS Code chat session
-     titles currently present in the workspace as returned by ``getAllSessions()``
-     filtered through ``filterNamedSessions()``
+   * AC-3: The valid destination set is defined as the union of {named VS Code
+     chat session titles from ``state.vscdb``} ∪ {YAML entity names from the
+     scanner store (sessions, projects, events)}

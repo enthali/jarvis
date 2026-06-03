@@ -123,13 +123,13 @@ Agent Prompt Tuning UAT Design Specifications
         - Open VS Code Settings UI (``Ctrl+,``). In the search box type
           ``jarvis prompt template``.
         - The setting ``jarvis.agentSession.initPromptTemplate`` is displayed
-          under a group labelled **Sessions** (or Agent Session). Its description
+          under a group labelled **Prompt Templates**. Its description
           references the ``${kind}``, ``${name}``, and ``${contextPath}``
           placeholders. The default / placeholder text shows the disciplined
           English default prompt.
       * - T-13 (Settings UI: notification template)
         - In the Settings UI search box type ``jarvis notification template``.
         - The setting ``jarvis.messages.notificationTemplate`` is displayed under
-          a group labelled **Messages**. Its description references the
+          a group labelled **Prompt Templates**. Its description references the
           ``${count}`` and ``${destination}`` placeholders. The default /
           placeholder text shows the English default notification string.

@@ -2,6 +2,7 @@
 # Requirements: REQ_UAT_VALID_SAMPLES
 name: "Project: Gamma Research"
 summary: "Exploratory research project investigating next-generation tooling."
+agent: "syspilot.design"
 lastUpdated: "2026-01-20"
 stakeholders:
   - name: "Clara Jensen"

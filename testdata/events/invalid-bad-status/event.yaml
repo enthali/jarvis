@@ -4,6 +4,7 @@
 name: "Event: Invalid Status Conference"
 location: "Berlin, Germany"
 status: "does-not-exist"
+summary: "Test event with invalid status enum value."
 dates:
   start: "2026-06-01"
   end: "2026-06-02"

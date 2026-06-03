@@ -2,7 +2,7 @@
   "name": "jarvis",
   "displayName": "Jarvis",
   "description": "Personal assistant for managing projects and events in VS Code",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "publisher": "enthali",
   "repository": {
     "type": "git",
@@ -27,14 +27,27 @@
   "main": "./out/extension.js",
   "contributes": {
     "yamlValidation": [
-      { "fileMatch": "session.yaml", "url": "./schemas/session.schema.json" }
+      {
+        "fileMatch": "session.yaml",
+        "url": "./schemas/session.schema.json"
+      },
+      {
+        "fileMatch": "project.yaml",
+        "url": "./schemas/project.schema.json"
+      },
+      {
+        "fileMatch": "event.yaml",
+        "url": "./schemas/event.schema.json"
+      }
     ],
     "customEditors": [
       {
         "viewType": "jarvis.taskEditor",
         "displayName": "Jarvis Task Editor",
         "selector": [
-          { "filenamePattern": "*.jarvis-task" }
+          {
+            "filenamePattern": "*.jarvis-task"
+          }
         ],
         "priority": "default"
       }
@@ -273,6 +286,11 @@
         "shortTitle": "Open context.md",
         "icon": "$(book)",
         "category": "Jarvis"
+      },
+      {
+        "command": "jarvis.openRecording",
+        "title": "Jarvis: Open Recording",
+        "icon": "$(record)"
       }
     ],
     "menus": {
@@ -392,6 +410,10 @@
         {
           "command": "jarvis.cancelReminder",
           "when": "false"
+        },
+        {
+          "command": "jarvis.openRecording",
+          "when": "false"
         }
       ],
       "view/title": [
@@ -468,19 +490,19 @@
       ],
       "view/item/context": [
         {
-          "command": "jarvis.openSessionContext",
-          "when": "view == jarvisSessions && viewItem == jarvisSession",
-          "group": "inline"
+          "command": "jarvis.openRecording",
+          "when": "viewItem =~ /recording/",
+          "group": "inline@1"
+        },
+        {
+          "command": "jarvis.openContext",
+          "when": "viewItem =~ /^jarvis(Project|Event|Session)(\\+recording)?$/",
+          "group": "inline@2"
         },
         {
           "command": "jarvis.openYamlFile",
-          "when": "viewItem == jarvisProject",
-          "group": "inline"
-        },
-        {
-          "command": "jarvis.openYamlFile",
-          "when": "viewItem == jarvisEvent",
-          "group": "inline"
+          "when": "viewItem =~ /^jarvis(Project|Event|Session)(\\+recording)?$/",
+          "group": "inline@3"
         },
         {
           "command": "jarvis.sendMessages",
@@ -501,34 +523,6 @@
           "command": "jarvis.deleteMessage",
           "when": "viewItem == messageItem",
           "group": "inline"
-        },
-        {
-          "command": "jarvis.openAgentSession",
-          "when": "viewItem == jarvisProject",
-          "group": "inline"
-        },
-        {
-          "command": "jarvis.openAgentSession",
-          "when": "viewItem == jarvisEvent",
-          "group": "inline"
-        },
-        {
-          "command": "jarvis.openContext",
-          "when": "viewItem == jarvisProject",
-          "group": "inline"
-        },
-        {
-          "command": "jarvis.openContext",
-          "when": "viewItem == jarvisEvent",
-          "group": "inline"
-        },
-        {
-          "command": "jarvis.openContext",
-          "when": "viewItem == jarvisSession"
-        },
-        {
-          "command": "jarvis.openAgentSession",
-          "when": "viewItem == jarvisSession"
         },
         {
           "command": "jarvis.runJob",
@@ -557,47 +551,17 @@
         },
         {
           "command": "jarvis.revealInExplorer",
-          "when": "viewItem == jarvisProject",
-          "group": "context-actions"
-        },
-        {
-          "command": "jarvis.revealInExplorer",
-          "when": "viewItem == jarvisEvent",
-          "group": "context-actions"
-        },
-        {
-          "command": "jarvis.revealInExplorer",
-          "when": "viewItem == jarvisSession",
+          "when": "viewItem =~ /^jarvis(Project|Event|Session)(\\+recording)?$/",
           "group": "context-actions"
         },
         {
           "command": "jarvis.revealInOS",
-          "when": "viewItem == jarvisProject",
-          "group": "context-actions"
-        },
-        {
-          "command": "jarvis.revealInOS",
-          "when": "viewItem == jarvisEvent",
-          "group": "context-actions"
-        },
-        {
-          "command": "jarvis.revealInOS",
-          "when": "viewItem == jarvisSession",
+          "when": "viewItem =~ /^jarvis(Project|Event|Session)(\\+recording)?$/",
           "group": "context-actions"
         },
         {
           "command": "jarvis.openInTerminal",
-          "when": "viewItem == jarvisProject",
-          "group": "context-actions"
-        },
-        {
-          "command": "jarvis.openInTerminal",
-          "when": "viewItem == jarvisEvent",
-          "group": "context-actions"
-        },
-        {
-          "command": "jarvis.openInTerminal",
-          "when": "viewItem == jarvisSession",
+          "when": "viewItem =~ /^jarvis(Project|Event|Session)(\\+recording)?$/",
           "group": "context-actions"
         },
         {
@@ -611,22 +575,12 @@
         },
         {
           "command": "jarvis.startRecording",
-          "when": "viewItem == jarvisProject && config.jarvis.recording.enabled == true && jarvis.recordingActive != true",
+          "when": "viewItem =~ /^jarvis(Project|Event)/ && config.jarvis.recording.enabled == true && jarvis.recordingActive != true",
           "group": "inline"
         },
         {
           "command": "jarvis.stopRecording",
-          "when": "viewItem == jarvisProject && config.jarvis.recording.enabled == true && jarvis.recordingActive == true",
-          "group": "inline"
-        },
-        {
-          "command": "jarvis.startRecording",
-          "when": "viewItem == jarvisEvent && config.jarvis.recording.enabled == true && jarvis.recordingActive != true",
-          "group": "inline"
-        },
-        {
-          "command": "jarvis.stopRecording",
-          "when": "viewItem == jarvisEvent && config.jarvis.recording.enabled == true && jarvis.recordingActive == true",
+          "when": "viewItem =~ /^jarvis(Project|Event)/ && config.jarvis.recording.enabled == true && jarvis.recordingActive == true",
           "group": "inline"
         }
       ]
@@ -675,14 +629,6 @@
             "type": "boolean",
             "default": true,
             "description": "Enable the Sessions feature (lightweight project entities)."
-          },
-          "jarvis.agentSession.initPromptTemplate": {
-            "type": "string",
-            "default": "You are the ${kind} \"${name}\".\n\nUse only `${contextPath}` as your persistent memory. Read it now.\n\nKeep it minimal and action-oriented:\n- Store only long-lived items under Decision / Finding / Next.\n- One concise line per bullet. Prune aggressively.\n- Replace outdated bullets — never append logs.\n- Never store retries, raw tool output, or transient chatter.\n- Before writing, ask: \"Will this still matter in 2 weeks?\" If no, skip.",
-            "editPresentation": "multilineText",
-            "scope": "window",
-            "description": "Template for the initialization prompt sent to a new agent chat session. Placeholders: ${kind} (entity kind), ${name} (entity name), ${contextPath} (absolute path to context.md). Leave empty to use the built-in disciplined default.",
-            "markdownDescription": "Template for the initialization prompt sent to a new agent chat session.\n\nPlaceholders: `${kind}`, `${name}`, `${contextPath}` (absolute path to `context.md`).\n\nLeave empty or whitespace-only to use the built-in disciplined default."
           }
         }
       },
@@ -698,13 +644,26 @@
             "type": "boolean",
             "default": true,
             "description": "When enabled, every queued message is also appended to .jarvis/message-log.json (append-only audit log)."
+          }
+        }
+      },
+      {
+        "title": "Prompt Templates",
+        "properties": {
+          "jarvis.agentSession.initPromptTemplate": {
+            "type": "string",
+            "default": "You are the agent session for the ${kind} \"${name}\".\n\nUse only `${contextPath}` as your persistent memory. Read it now.\n\nKeep it minimal and action-oriented:\n- Store only long-lived items under Decision / Finding / Next.\n- One concise line per bullet. Prune aggressively.\n- Replace outdated bullets — never append logs.\n- Never store retries, raw tool output, or transient chatter.\n- Before writing, ask: \"Will this still matter in 2 weeks?\" If no, skip.",
+            "editPresentation": "multilineText",
+            "scope": "window",
+            "description": "Template for the initialization prompt sent to a new agent chat session opened for a Project, Event, or Session entity. Placeholders: ${kind} (entity kind: project|event|session), ${name} (entity name), ${contextPath} (absolute path to context.md). Leave empty to use the built-in disciplined default.",
+            "markdownDescription": "Template for the initialization prompt sent to a new agent chat session opened for a Project, Event, or Session entity.\n\nPlaceholders: `${kind}` (entity kind: `project` | `event` | `session`), `${name}`, `${contextPath}` (absolute path to `context.md`).\n\nLeave empty or whitespace-only to use the built-in disciplined default."
           },
           "jarvis.messages.notificationTemplate": {
             "type": "string",
             "default": "[Jarvis Message Service] You have ${count} new message(s) in your inbox.\nRead them with the jarvis_readMessage tool (destination: \"${destination}\") until remaining = 0.",
             "editPresentation": "multilineText",
             "scope": "window",
-            "description": "Template for the auto-delivery notification sent to an agent session. Placeholders: ${count} (number of pending messages), ${destination} (target session name). Leave empty to use the built-in English default."
+            "description": "Template for the auto-delivery notification sent to an agent session when new messages arrive. Placeholders: ${count} (number of pending messages), ${destination} (target session name). Leave empty to use the built-in English default."
           }
         }
       },
@@ -808,10 +767,14 @@
         "canBeReferencedInPrompt": true,
         "toolReferenceName": "createSession",
         "icon": "$(add)",
-        "tags": ["jarvis"],
+        "tags": [
+          "jarvis"
+        ],
         "inputSchema": {
           "type": "object",
-          "required": ["name"],
+          "required": [
+            "name"
+          ],
           "properties": {
             "name": {
               "type": "string",
@@ -830,20 +793,6 @@
               "description": "Optional first message to enqueue in the new session's inbox."
             }
           }
-        }
-      },
-      {
-        "name": "jarvis_listSessionEntities",
-        "displayName": "List Session Entities",
-        "modelDescription": "Lists all Jarvis session entities (lightweight projects) discovered under <workspace>/.jarvis/sessions/. Each entry has name, summary, folder, and agent (empty string when no binding set). Distinct from jarvis_listSessions which lists chat sessions.",
-        "canBeReferencedInPrompt": true,
-        "toolReferenceName": "listSessionEntities",
-        "icon": "$(folder)",
-        "tags": ["jarvis"],
-        "inputSchema": {
-          "type": "object",
-          "properties": {},
-          "additionalProperties": false
         }
       },
       {
@@ -877,11 +826,23 @@
       },
       {
         "name": "jarvis_listSessions",
-        "displayName": "List Chat Sessions",
-        "modelDescription": "Returns the list of named chat session titles in the current workspace. Use this to discover valid session names before sending messages via sendToSession.",
+        "displayName": "List Sessions",
+        "modelDescription": "Returns all Jarvis session entities (YAML-based) with name, summary, agent, and folder path. Use this to discover session entities.",
         "canBeReferencedInPrompt": true,
         "toolReferenceName": "listSessions",
         "icon": "$(list-unordered)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "name": "jarvis_listChatSessions",
+        "displayName": "List Chat Sessions",
+        "modelDescription": "Returns the list of named VS Code chat session titles in the current workspace. Use this to discover valid chat session names before sending messages via sendToSession.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "listChatSessions",
+        "icon": "$(comment-discussion)",
         "inputSchema": {
           "type": "object",
           "properties": {}
@@ -897,6 +858,83 @@
         "inputSchema": {
           "type": "object",
           "properties": {}
+        }
+      },
+      {
+        "name": "jarvis_listEvents",
+        "displayName": "List Events",
+        "modelDescription": "Returns the list of events in the Jarvis workspace with name, summary, dates, agent, and folder path. Use this to discover available events.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "listEvents",
+        "icon": "$(calendar)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "name": "jarvis_createProject",
+        "displayName": "Create Project",
+        "modelDescription": "Creates a new project folder with project.yaml and context.md under the configured projects folder. Idempotent: returns success if project already exists. When agent is specified, it must match a user-invocable agent.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "createProject",
+        "icon": "$(add)",
+        "inputSchema": {
+          "type": "object",
+          "required": [
+            "name"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Project name; used verbatim as the folder name"
+            },
+            "summary": {
+              "type": "string",
+              "description": "Optional short description"
+            },
+            "agent": {
+              "type": "string",
+              "description": "Optional VS Code chat-mode name. Must match a user-invocable agent."
+            }
+          }
+        }
+      },
+      {
+        "name": "jarvis_createEvent",
+        "displayName": "Create Event",
+        "modelDescription": "Creates a new event folder with event.yaml and context.md. Folder name: ${startDate}_${name}. Idempotent. When agent is specified, it must match a user-invocable agent.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "createEvent",
+        "icon": "$(add)",
+        "inputSchema": {
+          "type": "object",
+          "required": [
+            "name",
+            "startDate"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Event name; used verbatim in folder name and YAML"
+            },
+            "startDate": {
+              "type": "string",
+              "description": "Start date in YYYY-MM-DD format"
+            },
+            "endDate": {
+              "type": "string",
+              "description": "End date in YYYY-MM-DD format (defaults to startDate)"
+            },
+            "summary": {
+              "type": "string",
+              "description": "Optional short description"
+            },
+            "agent": {
+              "type": "string",
+              "description": "Optional VS Code chat-mode name"
+            }
+          }
         }
       },
       {
@@ -1031,11 +1069,24 @@
         "inputSchema": {
           "type": "object",
           "properties": {
-            "text": { "type": "string", "description": "Message to deliver" },
-            "session": { "type": "string", "description": "Target chat session name" },
-            "deliverAt": { "type": "string", "description": "ISO 8601 delivery timestamp (must be in the future)" }
+            "text": {
+              "type": "string",
+              "description": "Message to deliver"
+            },
+            "session": {
+              "type": "string",
+              "description": "Target chat session name"
+            },
+            "deliverAt": {
+              "type": "string",
+              "description": "ISO 8601 delivery timestamp (must be in the future)"
+            }
           },
-          "required": ["text", "session", "deliverAt"]
+          "required": [
+            "text",
+            "session",
+            "deliverAt"
+          ]
         }
       },
       {
@@ -1060,9 +1111,14 @@
         "inputSchema": {
           "type": "object",
           "properties": {
-            "id": { "type": "string", "description": "Reminder UUID to cancel" }
+            "id": {
+              "type": "string",
+              "description": "Reminder UUID to cancel"
+            }
           },
-          "required": ["id"]
+          "required": [
+            "id"
+          ]
         }
       },
       {
@@ -1077,7 +1133,12 @@
           "properties": {
             "action": {
               "type": "string",
-              "enum": ["get", "set", "delete", "rename"],
+              "enum": [
+                "get",
+                "set",
+                "delete",
+                "rename"
+              ],
               "description": "The action to perform"
             },
             "name": {
@@ -1101,7 +1162,9 @@
               "description": "New category name (required for rename)"
             }
           },
-          "required": ["action"]
+          "required": [
+            "action"
+          ]
         }
       },
       {
@@ -1116,7 +1179,12 @@
           "properties": {
             "action": {
               "type": "string",
-              "enum": ["get", "set", "modify", "delete"],
+              "enum": [
+                "get",
+                "set",
+                "modify",
+                "delete"
+              ],
               "description": "The action to perform"
             },
             "category": {
@@ -1153,7 +1221,11 @@
             },
             "priority": {
               "type": "string",
-              "enum": ["low", "normal", "high"],
+              "enum": [
+                "low",
+                "normal",
+                "high"
+              ],
               "description": "Task priority"
             },
             "isComplete": {
@@ -1162,7 +1234,9 @@
             },
             "categories": {
               "type": "array",
-              "items": { "type": "string" },
+              "items": {
+                "type": "string"
+              },
               "description": "Outlook category names linking task to projects/events"
             },
             "provider": {
@@ -1170,7 +1244,9 @@
               "description": "Target provider (omit to broadcast to all)"
             }
           },
-          "required": ["action"]
+          "required": [
+            "action"
+          ]
         }
       }
     ]
@@ -1180,6 +1256,7 @@
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "lint": "eslint src --ext ts",
+    "test": "vitest run",
     "package": "vsce package"
   },
   "devDependencies": {
@@ -1190,7 +1267,8 @@
     "@typescript-eslint/parser": "^8.0.0",
     "@vscode/vsce": "^3.0.0",
     "eslint": "^9.0.0",
-    "typescript": "^5.5.0"
+    "typescript": "^5.5.0",
+    "vitest": "^4.1.7"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",

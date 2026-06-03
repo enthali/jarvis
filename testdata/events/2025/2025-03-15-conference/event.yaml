@@ -6,6 +6,7 @@ url: "https://www.embedded-world.de"
 status: "registered"
 role: "speaker"
 summary: "Major European embedded systems conference — presenting our tooling solutions."
+agent: "syspilot.cm"
 lastUpdated: "2025-03-01"
 dates:
   start: "2025-03-15"

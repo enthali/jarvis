@@ -5,6 +5,7 @@ location: "Factory Berlin, Berlin, Germany"
 status: "planned"
 role: "visitor"
 summary: "Monthly tech meetup — future event for filter testing."
+agent: ""
 lastUpdated: "2026-12-01"
 dates:
   start: "2027-01-10"

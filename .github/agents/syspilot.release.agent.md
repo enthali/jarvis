@@ -22,26 +22,17 @@ never rewrite history. When in doubt, you stop and ask.
 
 ## Duties
 
-1. **Change Document Archival** — Scan ALL `*.md` files in `docs/changes/`
-   (root only — do not recurse into subdirectories) and move every found file
-   to `docs/changes/<version>/`. The scan is the definitive input set;
-   session context is not used to determine which files to archive.
-2. **Version Bump** — Bump the `version:` field in `package.json` following semantic versioning (MAJOR.MINOR.PATCH)
-3. **Release Notes** — Generate or update release notes in
-   `docs/releasenotes.md` (newest first) using ALL change documents found in
-   `docs/changes/<version>/` as the explicit source; every archived document
-   MUST have an entry — no document may be omitted due to session context drift.
-4. **Validation** — Run sphinx-build with `-W` flag to catch warnings
-5. **Squash Merge** — Squash-merge `develop` → `main`
-6. **Git Tagging** — Create version tag on `main` and push
-7. **Back-Merge** — Merge `main` back into `develop` to sync the squash commit
-8. **GitHub Release** — Create GitHub Release from the tag
+- **Versioned Tagging** — After every release, `main` carries a uniquely identifying tag (`v{version}`) — there is never an untagged release state.
+- **Build Validity** — Nothing reaches `main` that has not passed `sphinx-build -W` validation — a failed build always blocks release.
+- **Complete Traceability** — Every change document from the release cycle is archived in `docs/changes/<version>/` and every archived document has a corresponding release notes entry — no document is missing or omitted.
+- **Consistent Version Identity** — The version string is identical in the setup agent frontmatter `version:` field, the Git tag, and the release notes header — there is no version drift.
+- **Clean Separation** — After every release, `development` and `main` are synchronized via back-merge — there is no half-state between the two branches.
 
 ## Workflow
 
-1. **Pre-Release** — Confirm all engineers have completed. Stay on `develop`.
+1. **Pre-Release** — Confirm all engineers have completed. Stay on `development`.
 2. **Read Current Version** — Read the `version:` field from
-   `package.json` to determine the current
+   `syspilot/agents/syspilot.setup.agent.md` to determine the current
    version; derive the next version following semantic versioning rules
 3. **Archive** — Scan ALL `*.md` files in `docs/changes/` root
    (`Get-ChildItem docs/changes/ -Filter *.md -File` or equivalent — no
@@ -49,20 +40,23 @@ never rewrite history. When in doubt, you stop and ask.
    `docs/changes/<version>/`. This file-system scan is the authoritative
    input — do NOT rely on session context to determine which files to move.
 4. **Version** — Bump the `version:` field in
-   `package.json` to the new version
+   `syspilot/agents/syspilot.setup.agent.md` to the new version
 5. **Document** — Read ALL files in `docs/changes/<version>/` (the
    just-archived set) and generate release notes from them (newest first in
    `docs/releasenotes.md`). Every file in that directory MUST produce an
    entry. Do NOT rely on session context; use the directory listing as the
    authoritative source.
-6. **Validate** — Run sphinx-build with `-W`, ensure all pass. Commit + push `develop`.
-7. **Squash Merge** — `git checkout main && git merge --squash develop && git commit`
+6. **Validate** — Run sphinx-build with `-W`, ensure all pass. Commit + push `development`.
+7. **Squash Merge** — `git checkout main && git merge --squash development && git commit`
 8. **Tag** — Create Git tag `v{version}`, push `main` + tag to remote
-9. **Back-Merge** — `git checkout develop && git merge main` to sync squash commit
-10. **Publish** — Create GitHub Release
+9. **Back-Merge** — `git checkout development && git merge main` to sync squash commit
+10. **Cleanup Branches** — Delete all `feature/*` branches that have been merged into `development`:
+    `git branch --merged development | Where-Object { $_ -match 'feature/' } | ForEach-Object { git branch -d $_.Trim(); git push origin --delete $_.Trim() }`
+    Feature branches are retained after merge for forensic purposes and only cleaned up here at release time.
+11. **Publish** — Create GitHub Release
 
 **Input:** Trigger from CM (after all engineers complete)
 **Output:** Tagged release on main + GitHub Release + archived change docs
 
 **Conflict Guidance:** If squash-merge produces conflicts, resolve with `-X theirs`
-(develop wins — it contains the authoritative content).
+(development wins — it contains the authoritative content).

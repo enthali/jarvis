@@ -1,5 +1,88 @@
 # Release Notes
 
+## v0.7.0 — Entity Parity (BREAKING)
+
+*2026-06-03*
+
+YAML is the source of truth; the chat session is an ephemeral view. This
+release delivers full feature parity across the three YAML-backed entity
+types (Sessions, Projects, Events), a breaking tool-surface swap, KISS
+folder-naming, schema strictness, uniform UX, and a shared destination
+validator.
+
+### Breaking Changes
+
+- **tool-surface-swap**: `jarvis_listSessions` now returns **YAML-entity
+  objects** (was: chat-tab title strings). The old string-list behaviour is
+  now exposed as `jarvis_listChatSessions`. Agents that relied on
+  `jarvis_listSessions` returning plain title strings must be updated to call
+  `jarvis_listChatSessions` instead.
+
+### New Features
+
+- **jarvis_listEvents**: New MCP tool returning the list of YAML-backed event
+  entities, analogous to `jarvis_listSessions` for sessions.
+
+- **jarvis_createProject / jarvis_createEvent**: New MCP tools for creating
+  projects and events programmatically, analogous to `jarvis_createSession`.
+  Folder names are stored verbatim (raw name 1:1, KISS — no kebab/slug
+  transformation). `validateInput` enforces the same name rules as sessions.
+  Existing kebab-named project/event folders remain readable without
+  migration.
+
+- **schema-strictness-option-c**: `agent` is now a required field on project
+  and event schemas. `summary` is required on event schemas. Legacy YAML
+  files that omit these fields **fail-open** with a warn-log rather than
+  crashing — backward compatibility is preserved at runtime.
+
+- **ux-parity**: Tree-click opens the chat in the assigned agent mode for all
+  three entity types (Sessions, Projects, Events). Inline action icons (YAML,
+  context.md, Recording) are now uniform across all entity tree items. The
+  lazy-bind picker has been removed (user decision v11): clicking an unbound
+  entity opens the default chat directly without mutating the YAML.
+
+- **unified-openChatForEntity**: A shared `openChatForEntity()` helper
+  consolidates the four chat-open call sites (`openAgentSession`, `newProject`,
+  `newEvent`, `newSession`), eliminating code duplication.
+
+- **destination-validation-union**: `jarvis_sendToSession` now accepts
+  destinations from the union of {YAML-backed entities (Session/Project/Event)}
+  ∪ {active VS Code chat-session titles}. Auto-delivery poll opens the chat on
+  first inbound message (same path as v0.6.1).
+
+- **shared-destination-validator**: `jarvis_sendToSession` and heartbeat job
+  registration (`jarvis_registerJob`) now share a single destination-validation
+  function — drift between the two validation paths is eliminated by design.
+
+- **prompt-templates-settings-group**: Session and message prompt-template
+  settings are now grouped under a dedicated "Prompt Templates" settings
+  group (previously scattered under "Sessions" / "Messages").
+
+- **3-state-agent-scanner**: The agent-mode scanner now operates in three
+  states (unset / set / no-agent), making agent-binding semantics explicit and
+  preventing the empty-string → undefined coercion that caused a double-prompt
+  regression in v0.6.x.
+
+- **context-menu-regex-anchored**: The `view/item/context` menu contribution
+  regex is now anchored (`/^jarvis(Project|Event|Session)(\+recording)?$/`)
+  to prevent Messages-Tree items from inheriting entity inline icons or
+  context-menu entries.
+
+### Known Limitations / Future Work (deferred backlog)
+
+The following items were found during this CR and accepted by PM as
+non-blocking for v0.7.0. They will be addressed in follow-up CRs:
+
+- **F-2, F-5, F-10, F-12, F-13, F-14, F-15, F-18** — Documentation,
+  cosmetic, and scanner-warning gaps.
+- **B-1** — Recording-icon is a dead feature (no underlying implementation).
+- **B-2** — Chat-burst race condition (edge case, low frequency).
+- **B-7** — UAT: destination-disappeared edge case in auto-delivery.
+- **F-17** — Positive finding: agent-validation against available chat-modes
+  works correctly; tracked for a follow-up hardening CR.
+
+---
+
 ## v0.6.1 — Agent-mode and init-prompt reliability hotfix
 
 *2026-05-23*
