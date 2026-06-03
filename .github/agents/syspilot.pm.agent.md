@@ -71,5 +71,4 @@ for a release are merged and QM-signed-off):
 3. **Invoke Release Agent** — PM invokes the Release Agent to execute the release
    process (version bump, changelog, tag, publish)
 4. **Confirm Release** — PM confirms the release completed successfully
-5. **Invoke Setup Agent** — PM invokes the Setup Agent to update the installed
-   instance with the newly published release
+
