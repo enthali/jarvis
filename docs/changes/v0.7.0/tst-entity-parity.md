@@ -601,6 +601,29 @@ chat session named `alpha` exists.
 
 ---
 
+### T-37b — Messages tree items do NOT show entity inline icons (regression v11.4)
+
+*UAT ref: F-16 regression / package.json `view/item/context` anchored regex*
+
+> **v11.4 fix (F-16):** Previously the inline `Open context.md` and `Open YAML File`
+> icons appeared on every Message-Session item because the `when` regex
+> `/^jarvis(Project|Event|Session)/` was a prefix-match without end-anchor and
+> matched `jarvisSessionAutoDeliver` / `jarvisSessionManual`. The regex is now
+> anchored: `/^jarvis(Project|Event|Session)(\+recording)?$/`.
+
+**Setup:** At least one queued message exists in the Messages tree (use
+`jarvis_sendToSession` to queue one if empty). Auto-delivery for at least one
+target session enabled (so both `jarvisSessionManual` and
+`jarvisSessionAutoDeliver` contextValues are exercised).
+
+| # | Step | Expected | ✓/✗ |
+|---|------|----------|------|
+| 1 | Expand the Messages tree and hover over a session-item (auto-deliver or manual). | No `$(go-to-file)` or `$(notebook)` icon visible. Only message-related icons (send/enable/disable auto-delivery, delete) are shown. | |
+| 2 | Right-click the same item → context menu. | No `Reveal in Explorer`, `Reveal in OS`, or `Open in Terminal` entries. Only message-related actions. | |
+| 3 | Verify Projects/Events/Sessions trees still show all three inline icons on their entity nodes. | Unchanged — icons still present on real entities. | |
+
+---
+
 ## Group H — Tree-Click Parity and Init-Prompt
 
 ### T-38 — Tree-click on bound project opens chat in correct agent mode

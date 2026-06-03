@@ -496,12 +496,12 @@
         },
         {
           "command": "jarvis.openContext",
-          "when": "viewItem =~ /^jarvis(Project|Event|Session)/",
+          "when": "viewItem =~ /^jarvis(Project|Event|Session)(\\+recording)?$/",
           "group": "inline@2"
         },
         {
           "command": "jarvis.openYamlFile",
-          "when": "viewItem =~ /^jarvis(Project|Event|Session)/",
+          "when": "viewItem =~ /^jarvis(Project|Event|Session)(\\+recording)?$/",
           "group": "inline@3"
         },
         {
@@ -551,17 +551,17 @@
         },
         {
           "command": "jarvis.revealInExplorer",
-          "when": "viewItem =~ /^jarvis(Project|Event|Session)/",
+          "when": "viewItem =~ /^jarvis(Project|Event|Session)(\\+recording)?$/",
           "group": "context-actions"
         },
         {
           "command": "jarvis.revealInOS",
-          "when": "viewItem =~ /^jarvis(Project|Event|Session)/",
+          "when": "viewItem =~ /^jarvis(Project|Event|Session)(\\+recording)?$/",
           "group": "context-actions"
         },
         {
           "command": "jarvis.openInTerminal",
-          "when": "viewItem =~ /^jarvis(Project|Event|Session)/",
+          "when": "viewItem =~ /^jarvis(Project|Event|Session)(\\+recording)?$/",
           "group": "context-actions"
         },
         {
