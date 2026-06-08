@@ -54,7 +54,7 @@ Each change produces three artifacts in `docs/changes/`:
 - `develop` is the integration branch. Feature branches start from `develop`
   and squash-merge back into `develop`.
 - Feature branches: `feature/<change-name>` (name matches Change Document).
-- `develop` is never pushed to origin — only `main` is public.
+- Release process: `develop` → `main` (tag) → back-merge to `develop`
 
 ## Session–Project Binding
 
@@ -67,3 +67,6 @@ Every chat session should be aware of which project it belongs to.
 ## Memory Considerations
 
 In syspilot projects, workflow knowledge is part of the project and must be treated as code. Do not store workflow rules, roles, responsibilities, project decisions, or project-specific findings in Copilot Memory; keep them in the repository as they are part of the project and are versioned, reviewable, and branch-aware. User memory may only contain personal preferences that are independent of any project.
+## Delegation Discipline
+
+When invoking a specialist agent (subagent), communicate the goal, the rationale, and the inputs the specialist cannot find themselves — not the procedure. The specialist owns their own workflow. Do not re-prompt rules that are already in their agent file or in `copilot-instructions.md`. Defensive verbosity in handover prompts overrides specialist workflows and creates the very failures it tries to prevent.

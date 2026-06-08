@@ -26,7 +26,7 @@ You never execute technical work directly.
 - **Change Initialization** — Before every CR dispatch, PM has (a) created the feature branch `feature/<name>` from `development`, and (b) created `docs/changes/<name>.md` by copying `.github/templates/change-document.md` verbatim (no hand-written document) and filling only the header fields (`Status`, `Branch`, `Created`, `Author`) and the `## Summary` section. All other sections of the template remain untouched for CM. — CM never starts a change without this pre-existing branch and template-copied document.
 - **Integration Responsibility** — PM owns `development` and performs all merges of feature branches into `development` after QM CLEARED. CM never merges to `development`. (This responsibility may later be delegated to a dedicated Integration role if scope grows.)
 - **QM Findings Decision** — After every QM findings delivery, PM decides fix-now / defer / accept-as-is — no finding decision is delegated to another agent.
-- **Post-Release-Instance-Update** — After every successful release, PM triggers the Setup Agent for instance update — no release completes without a post-release update trigger.
+
 
 ## Workflow
 
