@@ -906,7 +906,7 @@ Explorer Requirements
 
    **Description:**
    All three entity types (project, event, session) SHALL show uniform inline
-   icons: YAML, context.md, and Recording (when present).
+   icons: YAML and context.md.
 
    **Acceptance Criteria:**
 
@@ -914,12 +914,12 @@ Explorer Requirements
      the entity YAML file.
    * AC-2: Every leaf node SHALL show a ``$(notebook)`` inline icon for opening
      ``context.md``.
-   * AC-3: Every leaf node whose folder contains a ``recording/`` subfolder
-     SHALL show a ``$(record)`` inline icon for opening the recording folder.
-   * AC-4: Icon order (left to right): ``$(record)`` (conditional),
-     ``$(notebook)``, ``$(go-to-file)``.
-   * AC-5: Session nodes already have these; this requirement extends the same
+   * AC-3: Icon order (left to right): ``$(notebook)``, ``$(go-to-file)``.
+   * AC-4: Session nodes already have these; this requirement extends the same
      pattern to project and event nodes.
+   * AC-5: No ``$(record)`` inline icon SHALL appear on any entity tree item,
+     regardless of whether a ``recording/`` subfolder exists in the entity
+     folder.
 
 
 

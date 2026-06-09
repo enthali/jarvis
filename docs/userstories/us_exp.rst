@@ -501,8 +501,7 @@ Explorer User Stories
      editor (same as session tree-click). The existing ``$(go-to-file)``
      button remains for opening the YAML.
    * AC-4: All three entity types show uniform inline icons:
-     ``$(go-to-file)`` for YAML, ``$(notebook)`` for context.md,
-     ``$(record)`` for recording folder (if present).
+     ``$(go-to-file)`` for YAML and ``$(notebook)`` for context.md.
    * AC-5: ``jarvis.openAgentSession`` respects the ``agent`` field on
      project/event entities (same behavior as sessions: if agent is set, open
      in that mode).

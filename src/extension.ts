@@ -961,16 +961,6 @@ export function activate(context: vscode.ExtensionContext) {
         }
     );
 
-    // Implementation: SPEC_EXP_ENTITY_ICONS (openRecording command)
-    const openRecordingCommand = vscode.commands.registerCommand(
-        'jarvis.openRecording',
-        (element: LeafNode) => {
-            const entityFolder = path.dirname(element.id);
-            const recordingFolder = path.join(entityFolder, 'recording');
-            vscode.commands.executeCommand('revealInExplorer', vscode.Uri.file(recordingFolder));
-        }
-    );
-
     // Implementation: SPEC_SES_TREECLICK
     // Requirements: REQ_SES_TREECLICK
     let openSessionContextCommand: vscode.Disposable | undefined;
@@ -2709,7 +2699,6 @@ export function activate(context: vscode.ExtensionContext) {
         createProjectTool,
         createEventTool,
         listChatSessionsTool,
-        openRecordingCommand,
         categoryTool,
         taskTool,
         refreshCategoriesCommand,

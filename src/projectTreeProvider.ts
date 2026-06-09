@@ -1,7 +1,6 @@
 // Implementation: SPEC_EXP_PROVIDER, SPEC_EXP_FILTERCOMMAND, SPEC_EXP_TASKTREE, SPEC_EXP_ENTITY_TREECLICK, SPEC_EXP_ENTITY_ICONS
 // Requirements: REQ_EXP_TREEVIEW, REQ_EXP_YAMLDATA, REQ_EXP_REACTIVECACHE, REQ_EXP_PROJECTFILTER, REQ_EXP_FILTERPERSIST, REQ_EXP_TASKTREE, REQ_EXP_ENTITY_TREECLICK, REQ_EXP_ENTITY_ICONS
 
-import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { YamlScanner, TreeNode, FolderNode } from './yamlScanner';
@@ -92,10 +91,8 @@ export class ProjectTreeProvider implements vscode.TreeDataProvider<ProjectTreeI
             : vscode.TreeItemCollapsibleState.None;
         const item = new vscode.TreeItem(name, collapsible);
 
-        // SPEC_EXP_ENTITY_ICONS: contextValue with +recording suffix if recording/ exists
-        const entityFolder = path.dirname(element.id);
-        const hasRecording = fs.existsSync(path.join(entityFolder, 'recording'));
-        item.contextValue = hasRecording ? 'jarvisProject+recording' : 'jarvisProject';
+        // SPEC_EXP_ENTITY_ICONS: plain contextValue (no recording suffix)
+        item.contextValue = 'jarvisProject';
 
         // SPEC_EXP_ENTITY_TREECLICK: single-click opens agent session
         item.command = {

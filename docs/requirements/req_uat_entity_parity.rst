@@ -62,15 +62,15 @@ Entity Parity UAT Requirements
      For T-31 and T-32, the tester SHALL verify that clicking a bound entity
      opens the chat in the specified agent mode **without any picker appearing**.
 
-   * AC-5 (three inline icons present):
+   * AC-5 (two inline icons present):
      For T-33 and T-37, the tester SHALL hover over a project and event node
-     and verify three icons appear: ``$(go-to-file)``, ``$(notebook)``,
-     ``$(record)``. Tooltip text SHALL be verified for each.
+     and verify two icons appear: ``$(go-to-file)``, ``$(notebook)``.
+     Tooltip text SHALL be verified for each.
 
-   * AC-6 (``$(record)`` context-key gating):
-     For T-36, the tester SHALL create and then remove a ``recording/``
-     subfolder under an entity folder and verify the ``$(record)`` icon
-     appears/disappears after rescan.
+   * AC-6 (``$(record)`` icon absent):
+     For T-36, the tester SHALL verify that no ``$(record)`` icon appears on
+     any entity tree item, even when a ``recording/`` subfolder exists under
+     the entity folder.
 
    * AC-7 (New-Entity picker cancel):
      For T-27, the tester SHALL invoke a ``Jarvis: New …`` command, enter a

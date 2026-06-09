@@ -32,12 +32,12 @@ Entity Parity User Acceptance Tests
      appearing (maps to ``US_EXP_ENTITYPARITY`` AC-3, AC-5 / T-31, T-32,
      T-38, T-39).
    * AC-5: A test verifies that all three entity types expose uniform inline
-     icons: ``$(go-to-file)`` for YAML, ``$(notebook)`` for context.md, and
-     ``$(record)`` for recording (maps to ``US_EXP_ENTITYPARITY`` AC-4 /
-     T-33–T-37).
-   * AC-6: A test verifies that the ``$(record)`` icon is visible only when a
-     ``recording/`` subfolder exists under the entity folder (maps to
-     ``US_EXP_ENTITYPARITY`` AC-4 / T-36).
+     icons: ``$(go-to-file)`` for YAML and ``$(notebook)`` for context.md
+     (maps to ``US_EXP_ENTITYPARITY`` AC-4 / T-33–T-35, T-37).
+   * AC-6: A test verifies that the ``$(record)`` "Open Recording" icon does
+     **not** appear on any entity tree item, regardless of whether a
+     ``recording/`` subfolder exists (maps to ``US_EXP_ENTITYPARITY`` AC-4 /
+     T-36).
    * AC-7: A test verifies the New-Entity agent-picker flow: invoking
      ``Jarvis: New …`` and pressing Escape in the picker aborts entity
      creation (no folder/YAML written, no chat) (maps to
@@ -73,11 +73,12 @@ Entity Parity User Acceptance Tests
      picker, no YAML mutation) + rename + init-prompt.
    * T-31: Tree-click bound project → no picker, immediate chat in bound agent.
    * T-32: Tree-click bound event → no picker, immediate chat in bound agent.
-   * T-33: Project node has 3 inline icons on hover.
+   * T-33: Project node has 2 inline icons on hover (YAML + context.md).
    * T-34: ``$(go-to-file)`` opens project YAML; no chat side-effect.
    * T-35: ``$(notebook)`` opens context.md in non-preview tab.
-   * T-36: ``$(record)`` hidden without ``recording/``; visible when present.
-   * T-37: Event and Session nodes have same 3 icons (parity).
+   * T-36: No ``$(record)`` "Open Recording" icon on any entity node
+     (regardless of ``recording/`` subfolder presence).
+   * T-37: Event and Session nodes have same 2 icons (parity).
    * T-38: Tree-click bound project → chat opens in correct agent mode.
    * T-39: Tree-click bound event → chat opens in correct agent mode.
    * T-40: Init-prompt fires for project on first tree-click open.

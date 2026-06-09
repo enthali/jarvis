@@ -286,11 +286,6 @@
         "shortTitle": "Open context.md",
         "icon": "$(book)",
         "category": "Jarvis"
-      },
-      {
-        "command": "jarvis.openRecording",
-        "title": "Jarvis: Open Recording",
-        "icon": "$(record)"
       }
     ],
     "menus": {
@@ -410,10 +405,6 @@
         {
           "command": "jarvis.cancelReminder",
           "when": "false"
-        },
-        {
-          "command": "jarvis.openRecording",
-          "when": "false"
         }
       ],
       "view/title": [
@@ -490,19 +481,14 @@
       ],
       "view/item/context": [
         {
-          "command": "jarvis.openRecording",
-          "when": "viewItem =~ /recording/",
+          "command": "jarvis.openContext",
+          "when": "viewItem =~ /^jarvis(Project|Event|Session)$/",
           "group": "inline@1"
         },
         {
-          "command": "jarvis.openContext",
-          "when": "viewItem =~ /^jarvis(Project|Event|Session)(\\+recording)?$/",
-          "group": "inline@2"
-        },
-        {
           "command": "jarvis.openYamlFile",
-          "when": "viewItem =~ /^jarvis(Project|Event|Session)(\\+recording)?$/",
-          "group": "inline@3"
+          "when": "viewItem =~ /^jarvis(Project|Event|Session)$/",
+          "group": "inline@2"
         },
         {
           "command": "jarvis.sendMessages",
@@ -551,17 +537,17 @@
         },
         {
           "command": "jarvis.revealInExplorer",
-          "when": "viewItem =~ /^jarvis(Project|Event|Session)(\\+recording)?$/",
+          "when": "viewItem =~ /^jarvis(Project|Event|Session)$/",
           "group": "context-actions"
         },
         {
           "command": "jarvis.revealInOS",
-          "when": "viewItem =~ /^jarvis(Project|Event|Session)(\\+recording)?$/",
+          "when": "viewItem =~ /^jarvis(Project|Event|Session)$/",
           "group": "context-actions"
         },
         {
           "command": "jarvis.openInTerminal",
-          "when": "viewItem =~ /^jarvis(Project|Event|Session)(\\+recording)?$/",
+          "when": "viewItem =~ /^jarvis(Project|Event|Session)$/",
           "group": "context-actions"
         },
         {

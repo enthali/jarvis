@@ -1624,9 +1624,7 @@ Explorer Design Specifications
 
    **Description:**
    Every leaf node across all three entity types (project, event, session) SHALL
-   display three inline icons: YAML, context.md, and recording (conditional).
-   This spec formalizes the icon identifiers, order, command bindings, and the
-   recording-icon visibility mechanism.
+   display two inline icons: YAML and context.md. No recording icon is shown.
 
    **Icon identifiers and commands:**
 
@@ -1646,75 +1644,38 @@ Explorer Design Specifications
         - ``$(notebook)``
         - ``jarvis.openContext``
         - Opens ``context.md`` in the entity's folder
-      * - Recording
-        - ``$(record)``
-        - ``jarvis.openRecording``
-        - Opens the ``recording/`` subfolder
 
    **Icon order** (left to right in the tree item inline area):
 
-   ``$(record)`` (conditional) → ``$(notebook)`` → ``$(go-to-file)``
+   ``$(notebook)`` → ``$(go-to-file)``
 
    This is controlled via ``group: "inline@<n>"`` in the
    ``contributes.menus.view/item/context`` entries in ``package.json``.
 
-   **Recording icon visibility:**
+   **Removed — ``jarvis.openRecording`` command and ``+recording`` contextValue:**
 
-   The recording icon is conditionally visible, gated by the
-   ``jarvis.hasRecording`` context key:
+   The following elements SHALL NOT exist in the codebase:
 
-   * **When to show:** The ``$(record)`` inline icon SHALL be visible only
-     when ``jarvis.hasRecording`` is ``true`` for the given tree item.
-   * **``when`` clause** in ``package.json``:
-
-     .. code-block:: json
-
-        {
-          "command": "jarvis.openRecording",
-          "when": "viewItem =~ /^jarvis(Project|Event|Session)$/ && jarvis.hasRecording",
-          "group": "inline@1"
-        }
-
-   **Context key mechanism — ``jarvis.hasRecording``:**
-
-   The ``jarvis.hasRecording`` context key is set per tree item during
-   ``getTreeItem()`` in each TreeDataProvider:
-
-   1. **Folder scan rule:** For each leaf node, check whether the entity's
-      folder contains a ``recording/`` subdirectory
-      (``fs.existsSync(path.join(entityFolder, 'recording'))``).
-   2. **Set context key:** If ``recording/`` exists → set
-      ``jarvis.hasRecording`` to ``true`` for that tree item via the
-      ``contextValue`` mechanism: append ``+recording`` to the
-      ``contextValue`` string (e.g., ``jarvisProject+recording``).
-   3. **``when`` clause match:** Update the ``when`` clause to check for the
-      ``+recording`` suffix:
-
-      .. code-block:: json
-
-         {
-           "command": "jarvis.openRecording",
-           "when": "viewItem =~ /recording/",
-           "group": "inline@1"
-         }
-
-   4. **No ``recording/`` subfolder** → standard ``contextValue`` without
-      suffix (e.g., ``jarvisProject``). The recording icon is not shown.
+   * The command ``jarvis.openRecording`` SHALL NOT be registered in
+     ``contributes.commands`` in ``package.json``.
+   * No ``contributes.menus.view/item/context`` entry SHALL reference
+     ``jarvis.openRecording``.
+   * The ``+recording`` suffix SHALL NOT be appended to any tree item's
+     ``contextValue``. All leaf nodes use plain ``contextValue`` strings:
+     ``jarvisProject``, ``jarvisEvent``, or ``jarvisSession``.
+   * No ``fs.existsSync(path.join(entityFolder, 'recording'))`` check SHALL
+     exist in any ``getTreeItem()`` method.
+   * No command handler for ``jarvis.openRecording`` SHALL be registered in
+     ``extension.ts``.
 
    **Implementation in ``getTreeItem()``:**
 
    .. code-block:: typescript
 
-      const entityFolder = path.dirname(element.id);
-      const hasRecording = fs.existsSync(
-          path.join(entityFolder, 'recording')
-      );
-      item.contextValue = hasRecording
-          ? `${baseContextValue}+recording`
-          : baseContextValue;
+      item.contextValue = baseContextValue;
 
    Where ``baseContextValue`` is ``jarvisProject``, ``jarvisEvent``, or
-   ``jarvisSession`` depending on the entity kind.
+   ``jarvisSession`` depending on the entity kind. No suffix logic.
 
    **Manifest entries** (``package.json`` ``contributes.menus.view/item/context``):
 
@@ -1722,19 +1683,14 @@ Explorer Design Specifications
 
       [
         {
-          "command": "jarvis.openRecording",
-          "when": "viewItem =~ /recording/",
-          "group": "inline@1"
-        },
-        {
           "command": "jarvis.openContext",
           "when": "viewItem =~ /^jarvis(Project|Event|Session)/",
-          "group": "inline@2"
+          "group": "inline@1"
         },
         {
           "command": "jarvis.openYaml",
           "when": "viewItem =~ /^jarvis(Project|Event|Session)/",
-          "group": "inline@3"
+          "group": "inline@2"
         }
       ]
 
@@ -1744,19 +1700,23 @@ Explorer Design Specifications
       entity YAML file.
    2. Every leaf node shows ``$(notebook)`` inline icon for opening
       ``context.md``.
-   3. Every leaf node whose folder contains a ``recording/`` subfolder shows
-      ``$(record)`` inline icon.
-   4. Icon order (left to right): ``$(record)`` (conditional), ``$(notebook)``,
-      ``$(go-to-file)``.
-   5. Recording icon visibility is gated by the ``+recording`` suffix in
-      ``contextValue``, set during ``getTreeItem()`` based on
-      ``fs.existsSync(path.join(entityFolder, 'recording'))``.
-   6. The ``when`` clause for the recording icon matches ``viewItem =~
-      /recording/``.
+   3. Icon order (left to right): ``$(notebook)``, ``$(go-to-file)``.
+   4. The ``$(record)`` icon SHALL NOT appear on any entity tree item,
+      regardless of whether a ``recording/`` subfolder exists.
+   5. No ``jarvis.openRecording`` command exists in ``package.json`` or is
+      registered at runtime.
+   6. No ``+recording`` suffix is appended to any ``contextValue``.
    7. All three entity kinds (project, event, session) use the same icon set
-      and visibility logic — no kind-specific branching.
+      — no kind-specific branching.
    8. Session nodes already have these icons; this spec extends the pattern to
       project and event nodes.
+   9. Start/stop recording inline icons (``jarvis.startRecording``,
+      ``jarvis.stopRecording``) and active-recording highlight remain
+      unchanged — this removal targets only the dead "Open Recording" icon.
+
+   **Note:** v0.7.0 entity-parity risk #1 (``jarvis.hasRecording`` context-key
+   trigger never formalized) is resolved by this removal — the context key and
+   its folder-scan trigger no longer exist.
 
 
 .. spec:: Feature-Toggled Sidebar Views
