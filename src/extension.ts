@@ -1595,6 +1595,8 @@ export function activate(context: vscode.ExtensionContext) {
                     : absDir;
                 return {
                     name: entity?.name ?? path.basename(absDir),
+                    summary: entity?.summary ?? '',
+                    agent: entity?.agent ?? '',
                     folder: rel.replace(/\\/g, '/')
                 };
             });
@@ -1603,7 +1605,7 @@ export function activate(context: vscode.ExtensionContext) {
                 new vscode.LanguageModelTextPart(JSON.stringify(projects))
             ]);
         },
-        'Returns the list of projects configured in the current Jarvis workspace. Each project has a name and folder path.',
+        'Returns the list of projects configured in the current Jarvis workspace. Each project has a name, summary, agent, and folder path.',
         {},
         async () => {
             const projectsFolder = vscode.workspace
@@ -1618,6 +1620,8 @@ export function activate(context: vscode.ExtensionContext) {
                     : absDir;
                 return {
                     name: entity?.name ?? path.basename(absDir),
+                    summary: entity?.summary ?? '',
+                    agent: entity?.agent ?? '',
                     folder: rel.replace(/\\/g, '/')
                 };
             });

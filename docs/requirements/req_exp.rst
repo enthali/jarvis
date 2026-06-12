@@ -418,10 +418,15 @@ Explorer Requirements
      via ``registerDualTool()`` with ``canBeReferencedInPrompt: true``
    * AC-2: The tool SHALL accept no input parameters (empty input schema)
    * AC-3: The tool SHALL return an array of objects, each containing ``name``
-     (string, from the project YAML ``name`` field) and ``folder`` (string,
-     relative path from the configured projects folder to the project directory)
+     (string, from the project YAML ``name`` field), ``summary`` (string, from
+     the project YAML ``summary`` field, empty string if absent), ``agent``
+     (string, from the project YAML ``agent`` field, empty string if absent),
+     and ``folder`` (string, relative path from the configured projects folder
+     to the project directory)
    * AC-4: If no projects exist, the tool SHALL return an empty array
    * AC-5: The tool SHALL be simultaneously available via the MCP server
+   * AC-6: The output object shape SHALL match ``jarvis_listSessions``
+     (``{name, summary, agent, folder}``)
 
 
 .. req:: Feature-Toggled Sidebar Views

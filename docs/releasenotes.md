@@ -1,5 +1,21 @@
 # Release Notes
 
+## v0.7.1 — listProjects shape parity
+
+*2026-06-12*
+
+`jarvis_listProjects` output shape extended from `{name, folder}` to
+`{name, summary, agent, folder}`, matching `jarvis_listSessions`. Closes F-18
+from the v0.7.0 backlog. Change is additive/backward-compatible.
+
+### Improvements
+
+- **listprojects-shape-parity**: `jarvis_listProjects` now returns `summary`
+  and `agent` alongside `name` and `folder`, giving all three entity list
+  tools a consistent output shape.
+
+---
+
 ## v0.7.0 — Entity Parity (BREAKING)
 
 *2026-06-03*
@@ -73,8 +89,8 @@ validator.
 The following items were found during this CR and accepted by PM as
 non-blocking for v0.7.0. They will be addressed in follow-up CRs:
 
-- **F-2, F-5, F-10, F-12, F-13, F-14, F-15, F-18** — Documentation,
-  cosmetic, and scanner-warning gaps.
+- **F-2, F-5, F-10, F-12, F-13, F-14, F-15** — Documentation,
+  cosmetic, and scanner-warning gaps. (F-18 closed by v0.7.1.)
 - **B-1** — Recording-icon is a dead feature (no underlying implementation).
 - **B-2** — Chat-burst race condition (edge case, low frequency).
 - **B-7** — UAT: destination-disappeared edge case in auto-delivery.

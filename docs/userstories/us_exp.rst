@@ -206,7 +206,8 @@ Explorer User Stories
    :links: US_EXP_SIDEBAR; US_MSG_MCPSERVER
 
    **As a** LLM agent working in a Jarvis workspace,
-   **I want** a tool that lists all projects with their name and folder path,
+   **I want** a tool that lists all projects with their name, summary, agent,
+   and folder path,
    **so that** I can discover available projects programmatically and use the
    information in automation workflows.
 
@@ -214,10 +215,14 @@ Explorer User Stories
 
    * AC-1: A Language Model Tool ``jarvis_listProjects`` is available in the
      Chat tool picker
-   * AC-2: The tool returns a list of projects, each with ``name`` (from YAML)
-     and ``folder`` (relative path from the configured projects folder)
+   * AC-2: The tool returns a list of projects, each with ``name`` (from YAML),
+     ``summary`` (from YAML, empty string if absent), ``agent`` (from YAML,
+     empty string if absent), and ``folder`` (relative path from the configured
+     projects folder)
    * AC-3: The tool requires no input parameters
    * AC-4: The tool is also available via the MCP server (dual registration)
+   * AC-5: The output shape matches ``jarvis_listSessions``
+     (``{name, summary, agent, folder}``)
 
 
 .. story:: Feature-Toggled Sidebar Views

@@ -983,8 +983,9 @@ Explorer Design Specifications
 
    **Description:**
    Register ``jarvis_listProjects`` as a dual LM + MCP tool in ``extension.ts``.
-   Returns the list of projects from the scanner with their name and relative
-   folder path. Follows the ``jarvis_listSessions`` pattern.
+   Returns the list of projects from the scanner with their name, summary,
+   agent, and relative folder path. Output shape matches ``jarvis_listSessions``
+   (``{name, summary, agent, folder}``).
 
    **Leaf extraction helper** (local to ``activate()``):
 
@@ -1006,7 +1007,9 @@ Explorer Design Specifications
 
    .. code-block:: typescript
 
-      function getProjectList(): { name: string; folder: string }[] {
+      function getProjectList(): {
+          name: string; summary: string; agent: string; folder: string;
+      }[] {
           const projectsFolder = vscode.workspace
               .getConfiguration('jarvis')
               .get<string>('projectsFolder', '');
@@ -1019,6 +1022,8 @@ Explorer Design Specifications
                   : absDir;
               return {
                   name: entity?.name ?? path.basename(absDir),
+                  summary: entity?.summary ?? '',
+                  agent: entity?.agent ?? '',
                   folder: rel.replace(/\\/g, '/')
               };
           });
@@ -1038,7 +1043,7 @@ Explorer Design Specifications
               ]);
           },
           // MCP description
-          'Returns the list of projects with name and folder path.',
+          'Returns the list of projects with name, summary, agent, and folder path.',
           // MCP input schema (Zod)
           {},
           // MCP handler
@@ -1055,7 +1060,7 @@ Explorer Design Specifications
       {
         "name": "jarvis_listProjects",
         "displayName": "List Projects",
-        "modelDescription": "Returns the list of projects in the Jarvis workspace with their name and folder path. Use this to discover available projects.",
+        "modelDescription": "Returns the list of projects in the Jarvis workspace with their name, summary, agent, and folder path. Use this to discover available projects.",
         "canBeReferencedInPrompt": true,
         "toolReferenceName": "listProjects",
         "icon": "$(project)",
@@ -1067,6 +1072,8 @@ Explorer Design Specifications
 
    **Design notes:**
 
+   * Output shape: ``{name, summary, agent, folder}`` — matches ``jarvis_listSessions``
+   * ``summary`` and ``agent`` use ``entity?.field ?? ''`` fallback (same as ``jarvis_listEvents``)
    * No input parameters — mirrors ``jarvis_listSessions`` pattern
    * ``folder`` uses forward slashes for cross-platform consistency
    * Falls back to folder basename if entity lookup fails (defensive)

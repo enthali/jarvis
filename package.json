@@ -837,7 +837,7 @@
       {
         "name": "jarvis_listProjects",
         "displayName": "List Projects",
-        "modelDescription": "Returns the list of projects configured in the current Jarvis workspace. Each project has a name and folder path.",
+        "modelDescription": "Returns the list of projects configured in the current Jarvis workspace. Each project has a name, summary, agent, and folder path.",
         "canBeReferencedInPrompt": true,
         "toolReferenceName": "listProjects",
         "icon": "$(project)",
