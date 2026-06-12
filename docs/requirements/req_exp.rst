@@ -733,6 +733,13 @@ Explorer Requirements
      mode from the VS Code Chat mode selector. The extension SHALL NOT attempt to
      set or change the mode of an already-active session via a post-creation
      ``workbench.action.chat.open`` call.
+   * AC-7: The built-in default prompt SHALL include, as the last item of the
+     "Keep it minimal and action-oriented" discipline list, the following bullet
+     (verbatim):
+     ``- When a topic grows past ~5 bullets, move it to a dedicated file beside
+     `context.md` and leave a one-line summary with a relative link in
+     `context.md`.``
+     The rule applies generically to all entity kinds with no per-kind branching.
 
 
 .. req:: List Events LM+MCP Tool

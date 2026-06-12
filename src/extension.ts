@@ -260,7 +260,8 @@ export function activate(context: vscode.ExtensionContext) {
             `- One concise line per bullet. Prune aggressively.\n` +
             `- Replace outdated bullets — never append logs.\n` +
             `- Never store retries, raw tool output, or transient chatter.\n` +
-            `- Before writing, ask: "Will this still matter in 2 weeks?" If no, skip.`;
+            `- Before writing, ask: "Will this still matter in 2 weeks?" If no, skip.\n` +
+            `- When a topic grows past ~5 bullets, move it to a dedicated file beside \`context.md\` and leave a one-line summary with a relative link in \`context.md\`.`;
         const rawInitTemplate = vscode.workspace.getConfiguration('jarvis')
             .get<string>('agentSession.initPromptTemplate') ?? '';
         const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : defaultInitPrompt;
@@ -837,7 +838,8 @@ export function activate(context: vscode.ExtensionContext) {
                         `- One concise line per bullet. Prune aggressively.\n` +
                         `- Replace outdated bullets — never append logs.\n` +
                         `- Never store retries, raw tool output, or transient chatter.\n` +
-                        `- Before writing, ask: "Will this still matter in 2 weeks?" If no, skip.`;
+                        `- Before writing, ask: "Will this still matter in 2 weeks?" If no, skip.\n` +
+                        `- When a topic grows past ~5 bullets, move it to a dedicated file beside \`context.md\` and leave a one-line summary with a relative link in \`context.md\`.`;
                     const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : defaultInitPrompt;
                     const initPrompt = applyTemplate(initTemplate, { kind, name: entityForSend.name, contextPath });
                     await vscode.commands.executeCommand('workbench.action.chat.open', { query: initPrompt });
@@ -2587,7 +2589,8 @@ export function activate(context: vscode.ExtensionContext) {
                             `- One concise line per bullet. Prune aggressively.\n` +
                             `- Replace outdated bullets — never append logs.\n` +
                             `- Never store retries, raw tool output, or transient chatter.\n` +
-                            `- Before writing, ask: "Will this still matter in 2 weeks?" If no, skip.`;
+                            `- Before writing, ask: "Will this still matter in 2 weeks?" If no, skip.\n` +
+                            `- When a topic grows past ~5 bullets, move it to a dedicated file beside \`context.md\` and leave a one-line summary with a relative link in \`context.md\`.`;
                         const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : defaultInitPrompt;
                         const initPrompt = applyTemplate(initTemplate, { kind, name: entityForPoll.name, contextPath });
                         await vscode.commands.executeCommand('workbench.action.chat.open', { query: initPrompt });

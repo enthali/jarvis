@@ -1,5 +1,6 @@
 ---
 name: syspilot.impact-python
+group: impact
 description: >
   Impact analysis using sphinx-needs dependency trees.
   Discovers affected specification elements by traversing
@@ -9,8 +10,10 @@ description: >
 
 # Skill: Impact Analysis (Python)
 
-> **Implements**: SYSP_SPEC_SKILL_IMPACT_QUERY, SYSP_SPEC_SKILL_IMPACT_EXCHANGE
-> **Requirements**: SYSP_REQ_SKILL_IMPACT_QUERY, SYSP_REQ_SKILL_IMPACT_EXCHANGE
+> **Implements**: SYSP_SPEC_SKILL_IMPACT_QUERY, SYSP_SPEC_SKILL_IMPACT_EXCHANGE, SYSP_SPEC_SKILL_IMPACT_GROUP
+> **Requirements**: SYSP_REQ_SKILL_IMPACT_QUERY, SYSP_REQ_SKILL_IMPACT_EXCHANGE, SYSP_REQ_SKILL_IMPACT_GROUP
+
+## Instructions
 
 ## Tool
 
@@ -18,7 +21,13 @@ description: >
 
 Requires `docs/_build/html/needs.json` — run `sphinx-build` first if stale.
 
-## Domain Rules
+## Exchange Contract
+
+To replace this implementation: create a new skill folder, provide the same
+query-by-ID capability, update the `description` for Copilot discovery.
+No agent changes required.
+
+## Rules
 
 ### Mandatory Execution
 
@@ -53,9 +62,3 @@ REQs link upward to USes, SPECs link upward to REQs. So querying a US with
 
 At Level 0 present candidates to the user **without verdicts**. Assessment
 (affected / not affected) happens when writing the next level.
-
-## Exchange Contract
-
-To replace this implementation: create a new skill folder, provide the same
-query-by-ID capability, update the `description` for Copilot discovery.
-No agent changes required.

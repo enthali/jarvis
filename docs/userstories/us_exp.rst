@@ -395,6 +395,10 @@ Explorer User Stories
      session SHALL open in that agent mode — regardless of the user's currently
      active VS Code Chat mode setting at the time of opening. Mode is applied at
      session birth, not via post-creation switching.
+   * AC-8: The default prompt includes a scaling-valve rule that instructs the
+     agent to move a topic to a dedicated file beside ``context.md`` (with a
+     one-line summary and relative link left in ``context.md``) when the topic
+     grows past ~5 bullets. The rule applies uniformly to all entity kinds.
 
 
 .. story:: List Events (LM Tool)

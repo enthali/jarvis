@@ -599,6 +599,7 @@ Explorer Design Specifications
       - Replace outdated bullets — never append logs.
       - Never store retries, raw tool output, or transient chatter.
       - Before writing, ask: "Will this still matter in 2 weeks?" If no, skip.
+      - When a topic grows past ~5 bullets, move it to a dedicated file beside `context.md` and leave a one-line summary with a relative link in `context.md`.
 
    **Fallback rule:** If ``jarvis.agentSession.initPromptTemplate`` is empty or
    not set, the built-in ``DEFAULT_INIT_PROMPT`` is used. Unknown placeholders in

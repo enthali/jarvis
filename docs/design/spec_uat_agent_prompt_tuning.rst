@@ -7,10 +7,10 @@ Agent Prompt Tuning UAT Design Specifications
    :links: REQ_UAT_APT_INITPROMPT; REQ_UAT_APT_NOTIFICATION; REQ_UAT_APT_CFG
 
    **Description:**
-   Step-by-step procedures and expected outcomes for all thirteen acceptance test
-   scenarios covering the configurable agent session init prompt (T-1 to T-6),
-   the configurable auto-delivery notification template (T-7 to T-11), and
-   Settings UI visibility (T-12, T-13).
+   Step-by-step procedures and expected outcomes for all fourteen acceptance test
+   scenarios covering the configurable agent session init prompt (T-1 to T-6,
+   T-14), the configurable auto-delivery notification template (T-7 to T-11),
+   and Settings UI visibility (T-12, T-13).
 
    **Test Setup:**
 
@@ -133,3 +133,12 @@ Agent Prompt Tuning UAT Design Specifications
           a group labelled **Prompt Templates**. Its description references the
           ``${count}`` and ``${destination}`` placeholders. The default /
           placeholder text shows the English default notification string.
+      * - T-14 (extract-overflow bullet presence)
+        - Ensure ``jarvis.agentSession.initPromptTemplate`` is not set (default).
+          Create a new session via **Jarvis: New Session** or
+          **Jarvis: Open Agent Session** on any entity. Observe the auto-opened
+          Copilot agent chat.
+        - The chat shows the default disciplined-memory prompt. The last item of
+          the "Keep it minimal and action-oriented" bullet list is exactly:
+          ``- When a topic grows past ~5 bullets, move it to a dedicated file beside `context.md` and leave a one-line summary with a relative link in `context.md`.``
+          No other bullet follows it in the list.
