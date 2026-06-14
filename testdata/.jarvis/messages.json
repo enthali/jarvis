@@ -1,0 +1,8 @@
+[
+  {
+    "destination": "invalid-no-name",
+    "sender": "heartbeat",
+    "text": "Should never deliver",
+    "timestamp": "2026-06-03T03:51:26.084Z"
+  }
+]

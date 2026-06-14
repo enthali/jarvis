@@ -1,0 +1,146 @@
+[
+  {
+    "destination": "Agent K",
+    "sender": "Agent K",
+    "text": "Selbsttest: Nachricht von Agent K an Agent K (2026-05-19).",
+    "timestamp": "2026-05-18T23:26:07.172Z"
+  },
+  {
+    "destination": "full-params",
+    "sender": "jarvis_createSession",
+    "text": "Second message",
+    "timestamp": "2026-05-19T10:02:52.619Z"
+  },
+  {
+    "destination": "Round Trip Test",
+    "sender": "Agent K",
+    "text": "Agent K",
+    "timestamp": "2026-05-19T10:05:35.787Z"
+  },
+  {
+    "destination": "auto-open-test",
+    "sender": "jarvis_createSession",
+    "text": "Auto-delivered hello",
+    "timestamp": "2026-05-19T12:16:26.847Z"
+  },
+  {
+    "destination": "Agent J",
+    "sender": "Agent J",
+    "text": "Hello Agent J! This is a test message to yourself. You're ready to go. 🎯",
+    "timestamp": "2026-05-22T20:14:46.280Z"
+  },
+  {
+    "destination": "Session C",
+    "sender": "Session C",
+    "text": "Testnachricht an mich selbst (Session C).",
+    "timestamp": "2026-05-22T20:57:07.357Z"
+  },
+  {
+    "destination": "Session C",
+    "sender": "Session C",
+    "text": "Testnachricht 1 von Session C an sich selbst.",
+    "timestamp": "2026-05-22T21:03:16.315Z"
+  },
+  {
+    "destination": "Session C",
+    "sender": "Session C",
+    "text": "Testnachricht 2 von Session C an sich selbst.",
+    "timestamp": "2026-05-22T21:03:16.338Z"
+  },
+  {
+    "destination": "Session C",
+    "sender": "Session C",
+    "text": "Testnachricht 3 von Session C an sich selbst.",
+    "timestamp": "2026-05-22T21:03:16.351Z"
+  },
+  {
+    "destination": "invalid-no-name",
+    "sender": "heartbeat",
+    "text": "Should never deliver",
+    "timestamp": "2026-06-03T03:41:03.521Z"
+  },
+  {
+    "destination": "invalid-no-name",
+    "sender": "heartbeat",
+    "text": "Should never deliver",
+    "timestamp": "2026-06-03T03:41:21.734Z"
+  },
+  {
+    "destination": "invalid-no-name",
+    "sender": "heartbeat",
+    "text": "Should never deliver",
+    "timestamp": "2026-06-03T03:51:26.084Z"
+  },
+  {
+    "destination": "Project: Beta Rollout",
+    "sender": "Project: Alpha Initiative",
+    "text": "Hey Beta, how's live? Please let me know by sending a message back to Project: Alpha Initiative.",
+    "timestamp": "2026-06-03T03:54:07.645Z"
+  },
+  {
+    "destination": "Project: Alpha Initiative",
+    "sender": "Project: Beta Rollout",
+    "text": "Beta is up and running. All systems nominal.",
+    "timestamp": "2026-06-03T03:55:05.408Z"
+  },
+  {
+    "destination": "Project: Beta Rollout",
+    "sender": "Project: Alpha Initiative",
+    "text": "Test ping #1 — auto delivery check.",
+    "timestamp": "2026-06-03T04:00:30.984Z"
+  },
+  {
+    "destination": "Project: Beta Rollout",
+    "sender": "Project: Alpha Initiative",
+    "text": "Test ping #2 — auto delivery check.",
+    "timestamp": "2026-06-03T04:00:35.590Z"
+  },
+  {
+    "destination": "Project: Beta Rollout",
+    "sender": "Project: Alpha Initiative",
+    "text": "Test ping #3 — auto delivery check.",
+    "timestamp": "2026-06-03T04:01:03.198Z"
+  },
+  {
+    "destination": "Project: Beta Rollout",
+    "sender": "Project: Alpha Initiative",
+    "text": "Test ping #1 - auto delivery mode test",
+    "timestamp": "2026-06-03T04:04:28.193Z"
+  },
+  {
+    "destination": "Project: Beta Rollout",
+    "sender": "Project: Alpha Initiative",
+    "text": "Test ping #2 - auto delivery mode test",
+    "timestamp": "2026-06-03T04:04:28.213Z"
+  },
+  {
+    "destination": "Project: Beta Rollout",
+    "sender": "Project: Alpha Initiative",
+    "text": "Test ping #3 - auto delivery mode test",
+    "timestamp": "2026-06-03T04:04:28.241Z"
+  },
+  {
+    "destination": "Project: Beta Rollout",
+    "sender": "Project: Alpha Initiative",
+    "text": "Thanks for the update! Please ping me back when you can.",
+    "timestamp": "2026-06-03T04:14:20.335Z"
+  },
+  {
+    "destination": "Project: Alpha Initiative",
+    "sender": "Project: Beta Rollout",
+    "text": "Beta here — received your message. Standing by.",
+    "timestamp": "2026-06-03T04:19:17.234Z"
+  },
+  {
+    "destination": "Project: Beta Rollout",
+    "sender": "Project: Alpha Initiative",
+    "text": "Just checking in again — any update? Ping me back when you get a moment.",
+    "timestamp": "2026-06-03T04:21:27.095Z"
+  },
+  {
+    "destination": "Project: Alpha Initiative",
+    "sender": "Project: Beta Rollout",
+    "text": "Beta here — got your check-in. All good on our end. Standing by.",
+    "timestamp": "2026-06-03T04:21:56.039Z"
+  }
+]

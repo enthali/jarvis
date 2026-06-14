@@ -1,26 +1,30 @@
-node_modules/
-out/
-dist/
+
 *.vsix
-.vscode-test/
-__pycache__/
 *.pyc
+
+#environment files
 .env
 .venv/
-.jarvis/
-_build/
 
-# syspilot build artifacts
+# build artifacts
+_build/
+__pycache__/
+
+#node modules and build artifacts
+node_modules/
+out/
+
+
+# docs build artifacts
 docs/_build/
+
+# jarvis log files
+.jarvis/logs/
+.jarvis/message-log.json
 
 # OS
 Thumbs.db
 .DS_Store
-
-# Test data
-test-projects/
-test-events/
-build.log
 
 # Workspace (machine-specific)
 Jarvis.code-workspace
