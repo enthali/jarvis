@@ -1,16 +1,22 @@
 # Jarvis Roadmap
 
-*Last updated: 2026-06-04*
+*Last updated: 2026-06-17*
 
 ## Current State
 
 - **Latest release:** v0.7.0 "Entity Parity (BREAKING)" (2026-06-03) — tag `v0.7.0`, pushed to origin, installed on dev instance
-- **develop HEAD:** `8fa58bd` clean, compile + Sphinx green
+- **develop HEAD:** `75fd390` clean, compile + tests green (44/44)
 - **No open feature branches**
 
-## On develop (next release candidates)
+## On develop (next release candidates — bundled into v0.8.0)
 
-*(empty — clean develop after v0.7.0 post-release back-merge)*
+| Change | Merged | Notes |
+|--------|--------|-------|
+| `remove-open-recording-icon` | `a3a5d45` | Removed the dead per-entity recording icon (resolved B-1). Closed v0.7.0 entity-parity risk #1. |
+| `initprompt-extract-overflow` | `658fb59` | Default init prompt gains the extract-to-file rule (lean context.md ↔ knowledge graph). |
+| `listprojects-shape-parity` | `4ef7d38` | `jarvis_listProjects` now returns `{name, summary, agent, folder}` (resolved F-18). |
+
+> Decision (2026-06-17): no intermediate v0.7.1 — these three ship bundled with the modularization as **v0.8.0**.
 
 ---
 
@@ -18,13 +24,15 @@
 
 | Change | Priority | Origin | Scope |
 |--------|----------|--------|-------|
-| `recording-feature-decision` | **HIGH** | B-1 (v0.7.0) | Recording-icon is functionally dead (writes to `${whisperPath}/input`, not per-entity `recording/`). Decision needed: redesign per-entity recording flow OR remove the icon. Cannot stay broken. |
 | `chat-burst-race-fix` | MEDIUM | B-2 (v0.7.0) | Fast successive session-clicks (8–9 in a burst) cause init-prompts to land in wrong chat windows + occasional empty chat. Reproduction is non-deterministic. |
 | `scanner-warn-channel` | MEDIUM | B-3/B-4/B-5 (v0.7.0) | Scanner currently emits warnings via `console.warn` (invisible). Route through shared `OutputChannel` + add missing WARNs (e.g. project/event with `agent` key but missing string value). |
 | `lint-config-eslint9` | MEDIUM | B-8 (v0.7.0 release) | `npm run lint` fails — `eslint.config.js` missing (ESLint 9 migration). Pre-existing since v0.5.x, now release-blocker-adjacent. |
 | `auto-delivery-destination-lifecycle` | LOW | B-7 (v0.7.0) | UAT gap: registered destination disappears mid-job → fire-time soft-skip works, but no explicit user-facing path tested for the "destination removed after register" lifecycle. |
 | `spec-helper-orphan-cleanup` | LOW | pre-v0.6.0 | Multiple orphaned helper specs: `SPEC_MSG_SENDPROMPT`, `SPEC_MSG_AGENTSESSION` step-3, `openPinnedResource()` drift. Decision per helper: introduce in code OR deprecate spec. Spec-refactor (Designer beteiligen). |
-| `doc-cosmetic-cleanup` | LOW | F-10/F-12/F-15/F-18 (v0.7.0) | Test-plan agent-name mismatches with testdata, T-14 expectation wording, scanner-WARN doc gaps, `listProjects` shape inconsistency (returns `{name, folder}` while listSessions/listEvents return full entity objects). |
+| `doc-cosmetic-cleanup` | LOW | F-10/F-12/F-15 (v0.7.0) | Test-plan agent-name mismatches with testdata, T-14 expectation wording, scanner-WARN doc gaps. *(F-18 listProjects shape resolved by `listprojects-shape-parity`.)* |
+| `readme-tools-refresh` | LOW | CM (2026-06-12) | README "Message Queue & Session Tools" omits `listProjects`/`listEvents`/`createProject`/`createEvent` entirely (gap from v0.4.0/v0.7.0). Housekeeping doc CR. |
+
+> **Resolved & merged:** `recording-feature-decision` (B-1) → `remove-open-recording-icon`; `doc-cosmetic-cleanup` F-18 → `listprojects-shape-parity`.
 
 ---
 
@@ -38,6 +46,19 @@
 ---
 
 ## Strategic / Larger Items
+
+### Core/Add-on Modularization → v0.8.0 (ACTIVE EPIC)
+
+**Status:** Planned, paused after planning (2026-06-17). Architecture decided, critical path **proven by spike**.
+
+Split the monolithic `enthali.jarvis` into a kind-agnostic **session engine** (core) + optional **PIM** and **Recorder** add-ons via an IoC plugin registry. Core keeps id `enthali.jarvis` (in-place update). syspilot-only install = zero project/event surface.
+
+- **Epic doc (CR chain A→B→C):** [docs/changes/v0.8.0-modularization-epic.md](../../../docs/changes/v0.8.0-modularization-epic.md)
+- **Research report:** `.jarvis/sessions/Research/modularization-report.md`
+- **Spike:** `experiments/spike-core` + `experiments/spike-addon` (branch `research-modularization`)
+- **Tracking:** [enthali/jarvis#2](https://github.com/enthali/jarvis/issues/2)
+- **Absorbs/retires:** F5, F11. **Re-scoped:** F1/F2/F10.
+- **Next dispatch when resumed:** CR A1 (engine contract), optionally preceded by a pre-B0 characterization-test CR.
 
 ### Outlook Integration (v0.5.x feature-complete milestone)
 
