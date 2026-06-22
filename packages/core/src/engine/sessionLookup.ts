@@ -20,13 +20,36 @@ let _stateVscdbPath: string | undefined;
 let _log: vscode.LogOutputChannel | undefined;
 
 /**
+ * Resolve the VS Code User data path, with WSL2 detection.
+ * In WSL2 the globalStorageUri points into the Linux filesystem, but
+ * state.vscdb lives on the Windows side. Detect WSL2 via /proc/version
+ * and construct the Windows-side path under /mnt/c.
+ */
+export function resolveUserDataPath(globalStorageUri: vscode.Uri): string {
+    try {
+        const procVersion = fs.readFileSync('/proc/version', 'utf-8');
+        if (/microsoft/i.test(procVersion)) {
+            const username = process.env.USERNAME;
+            if (username) {
+                return `/mnt/c/Users/${username}/AppData/Roaming/Code/User`;
+            }
+            _log?.warn('[sessionLookup] WSL2 detected but USERNAME env var is undefined — falling back to globalStorageUri resolution');
+        }
+    } catch {
+        // /proc/version not readable (Windows/macOS/native Linux) — not WSL2
+    }
+    return path.resolve(globalStorageUri.fsPath, '../..');
+}
+
+/**
  * Initialize session lookup with devcontainer-compatible path resolution.
  * Uses globalStorageUri (always a local path) to anchor the userDataPath,
  * then reconstructs workspaceStorage/<hash>/state.vscdb locally.
  */
 export function initSessionLookup(storageUri: vscode.Uri, globalStorageUri: vscode.Uri): void {
     const hash = path.basename(path.dirname(storageUri.fsPath));
-    const userDataPath = path.resolve(globalStorageUri.fsPath, '../..');
+    const userDataPath = resolveUserDataPath(globalStorageUri);
+    _log?.debug(`[sessionLookup] resolved userDataPath: ${userDataPath}`);
     _stateVscdbPath = path.join(userDataPath, 'workspaceStorage', hash, 'state.vscdb');
 }
 

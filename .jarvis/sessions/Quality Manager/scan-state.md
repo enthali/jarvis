@@ -22,7 +22,8 @@ Updated after every cycle. Read this first to know where to pick up.
 | Change | Reviewed | MECE | Trace | Code-vs-Spec | UAT | Key Findings | PM Decision |
 |---|---|---|---|---|---|---|---|
 | remove-open-recording-icon | 2026-06-09 | PASS | PASS | PASS | T-1..T-5 auto ✓ / T-6..T-9 manual pending | F-1 MINOR: releasenotes Artefakt class; F-2 INFO: CR header stale; F-3 INFO: val-report missing pre-merge | pending |
-| modular-install | 2026-06-20 | L0 FAIL→PASS / L1 FAIL→advisory / L2 FAIL→advisory | PASS (all chains) | n/a | n/a | 4 blocking fixed by CM; 5 advisories accepted | QM CLEAR — proceed to merge |
+| modular-install | 2026-06-20 | L0 FAIL→PASS / L1 FAIL→advisory / L2 FAIL→advisory | PASS (all chains) | n/a | n/a | 4 blocking fixed by CM; 5 advisories accepted | QM CLEAR |
+| wsl2-session-lookup | 2026-06-22 | PASS | PASS | n/a | n/a | Advisory: REQ AC-10 silent on USERNAME-unset error (SPEC handles it) | QM CLEAR |
 
 ## Known Releases (at last scan)
 

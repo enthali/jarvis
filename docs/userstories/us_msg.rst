@@ -194,7 +194,7 @@ Messaging User Stories
 
 .. story:: Remote / Devcontainer Session Lookup Compatibility
    :id: US_MSG_REMOTECOMPAT
-   :status: draft
+   :status: approved
    :priority: optional
    :links: US_MSG_CHATQUEUE; US_MSG_OPENSESSION; US_MSG_LISTSESSIONS
 
@@ -214,6 +214,9 @@ Messaging User Stories
      continues to work as before
    * AC-4: When ``state.vscdb`` cannot be found, the extension logs a warning
      and returns an empty list instead of failing silently
+   * AC-5: ``lookupSessionUUID('My Session')`` returns the correct UUID when
+     VS Code is running in WSL2 remote mode with the workspace on the Linux
+     filesystem
 
 
 .. story:: Time-Scheduled Reminders
