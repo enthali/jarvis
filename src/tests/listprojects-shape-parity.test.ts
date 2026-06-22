@@ -96,25 +96,20 @@ describe('TC-4: Project with missing summary and agent returns "" fallback', () 
 });
 
 describe('TC-5: MCP variant uses same mapping (source verification)', () => {
-    it('extension.ts MCP listProjects mapping includes summary and agent', () => {
-        const extensionSrc = fs.readFileSync(
-            path.resolve(__dirname, '..', 'extension.ts'),
+    it('listProjects tool is parked — not in core extension.ts (S4b)', () => {
+        const coreExtSrc = fs.readFileSync(
+            path.resolve(__dirname, '..', '..', 'packages', 'core', 'src', 'extension.ts'),
             'utf-8'
         );
-        // Find MCP variant by looking for the log line
-        const mcpSection = extensionSrc.slice(
-            extensionSrc.indexOf('listProjects(MCP)') - 500,
-            extensionSrc.indexOf('listProjects(MCP)') + 100
-        );
-        expect(mcpSection).toContain("summary: entity?.summary ?? ''");
-        expect(mcpSection).toContain("agent: entity?.agent ?? ''");
+        // PIM tools are parked; core must NOT contain listProjects
+        expect(coreExtSrc).not.toContain('jarvis_listProjects');
     });
 });
 
 describe('TC-6: jarvis_listSessions output shape unaffected', () => {
     it('listSessions mapping still uses {name, summary, agent, folder}', () => {
         const extensionSrc = fs.readFileSync(
-            path.resolve(__dirname, '..', 'extension.ts'),
+            path.resolve(__dirname, '..', '..', 'packages', 'core', 'src', 'extension.ts'),
             'utf-8'
         );
         const sessionsSection = extensionSrc.slice(
@@ -133,20 +128,12 @@ describe('TC-6: jarvis_listSessions output shape unaffected', () => {
 });
 
 describe('TC-7: jarvis_listEvents output shape unaffected', () => {
-    it('listEvents mapping still uses {name, summary, agent, datesStart, datesEnd, folder}', () => {
-        const extensionSrc = fs.readFileSync(
-            path.resolve(__dirname, '..', 'extension.ts'),
+    it('listEvents tool is parked — not in core extension.ts (S4b)', () => {
+        const coreExtSrc = fs.readFileSync(
+            path.resolve(__dirname, '..', '..', 'packages', 'core', 'src', 'extension.ts'),
             'utf-8'
         );
-        const eventsSection = extensionSrc.slice(
-            extensionSrc.indexOf("'jarvis_listEvents'"),
-            extensionSrc.indexOf("'jarvis_listEvents'") + 1200
-        );
-        expect(eventsSection).toContain("name: entity?.name ?? path.basename(absDir)");
-        expect(eventsSection).toContain("summary: entity?.summary ?? ''");
-        expect(eventsSection).toContain("agent: entity?.agent ?? ''");
-        expect(eventsSection).toContain("datesStart: entity?.datesStart ?? ''");
-        expect(eventsSection).toContain("datesEnd: entity?.datesEnd ?? ''");
-        expect(eventsSection).toContain("folder: rel.replace(/\\\\/g, '/')");
+        // PIM tools are parked; core must NOT contain listEvents
+        expect(coreExtSrc).not.toContain('jarvis_listEvents');
     });
 });

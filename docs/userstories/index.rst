@@ -4,7 +4,7 @@ User Stories
 Overview
 --------
 
-User Stories describe **why** functionality is needed from the stakeholder's perspective.
+User Stories or Stakeholder needs describe **why** functionality is needed from the stakeholder's perspective.
 
 .. toctree::
    :hidden:
@@ -19,6 +19,7 @@ User Stories describe **why** functionality is needed from the stakeholder's per
    us_olk
    us_rec
    us_ses
+   us_mod
    us_uat
 
 All User Stories

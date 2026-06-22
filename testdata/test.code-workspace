@@ -11,9 +11,13 @@
 		"jarvis.pim.showCategories": true,
 		"jarvis.recording.enabled": true,
 		"jarvis.recording.whisperPath": "C:\\workspace\\whisper",
-		"jarvis.outlook.tasks.enabled": false,
-		"jarvis.projects.enabled": false,
-		"jarvis.events.enabled": false,
-		"jarvis.sessions.enabled": true
+		"jarvis.outlook.tasks.enabled": true,
+		"jarvis.projects.enabled": true,
+		"jarvis.events.enabled": true,
+		"jarvis.sessions.enabled": true,
+		"jarvis.outlook.enabled": true,
+		"jarvis.projects.folder": "C:\\workspace\\Jarvis\\testdata\\projects",
+		"jarvis.events.folder": "C:\\workspace\\Jarvis\\testdata\\events",
+		"jarvis.mcp.enabled": true
 	}
 }

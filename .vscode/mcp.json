@@ -17,6 +17,7 @@
 			"type": "stdio"
 		},
 		"jarvis-pmo-llm-tools": {
+			"name": "jarvis-pmo-llm-tools",
 			"url": "http://localhost:31410",
 			"type": "http"
 		},

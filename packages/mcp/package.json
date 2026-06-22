@@ -1,0 +1,50 @@
+{
+  "name": "jarvis-mcp",
+  "displayName": "Jarvis MCP",
+  "description": "Jarvis MCP Server — exposes all registered Jarvis tools over MCP HTTP transport",
+  "version": "0.7.0",
+  "publisher": "enthali",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "main": "./out/extension.js",
+  "extensionDependencies": [
+    "enthali.jarvis"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "scripts": {
+    "compile": "tsc -p ./",
+    "package": "vsce package --no-dependencies",
+    "vscode:prepublish": "npm run compile"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.5.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "jarvis": "*"
+  },
+  "contributes": {
+    "configuration": [
+      {
+        "title": "Jarvis MCP",
+        "properties": {
+          "jarvis.mcp.enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Start the embedded MCP server when the Jarvis MCP extension is active. Disable to keep the extension installed but the server off."
+          },
+          "jarvis.mcpPort": {
+            "type": "number",
+            "default": 31415,
+            "description": "Port for the embedded MCP server."
+          }
+        }
+      }
+    ]
+  }
+}

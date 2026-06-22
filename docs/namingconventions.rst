@@ -58,6 +58,12 @@ Theme Abbreviations
    * - ``PIM``
      - Personal Information Management (generic category layer, provider interface, cache, service, tool, tree view)
      - ``US_PIM_CATEGORIES``, ``REQ_PIM_PROVIDER``, ``SPEC_PIM_SERVICE``
+   * - ``MOD``
+     - Modular delivery (core/add-on split, packaging, install combinations)
+     - ``US_MOD_INSTALL``, ``REQ_MOD_ZEROTRACE``, ``SPEC_MOD_MONOREPO``
+   * - ``ENG``
+     - Engine contract (kind-agnostic core API: kind registration, tool injection, generic scanner & tree)
+     - ``REQ_ENG_CONTRACT``, ``SPEC_ENG_API``
    * - ``UAT``
      - User Acceptance Tests
      - ``US_UAT_SAMPLEDATA``, ``REQ_UAT_VALID_SAMPLES``

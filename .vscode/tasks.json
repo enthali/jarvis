@@ -17,6 +17,34 @@
             "label": "npm: watch",
             "isBackground": true,
             "problemMatcher": "$tsc-watch"
+        },
+        {
+            "type": "shell",
+            "command": "npx tsc -p packages/core",
+            "group": "build",
+            "label": "compile core",
+            "problemMatcher": "$tsc"
+        },
+        {
+            "type": "shell",
+            "command": "npx tsc -p packages/core && npx tsc -p packages/pim",
+            "group": "build",
+            "label": "compile core+pim",
+            "problemMatcher": "$tsc"
+        },
+        {
+            "type": "shell",
+            "command": "npx tsc -p packages/core && npx tsc -p packages/pim && npx tsc -p packages/recorder",
+            "group": "build",
+            "label": "compile core+pim+recorder",
+            "problemMatcher": "$tsc"
+        },
+        {
+            "type": "shell",
+            "command": "npx tsc -p packages/core && npx tsc -p packages/pim && npx tsc -p packages/recorder && npx tsc -p packages/mcp",
+            "group": "build",
+            "label": "compile all",
+            "problemMatcher": "$tsc"
         }
     ]
 }

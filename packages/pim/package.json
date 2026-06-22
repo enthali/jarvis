@@ -1,0 +1,526 @@
+{
+  "name": "jarvis-pim",
+  "displayName": "Jarvis PIM",
+  "description": "Jarvis Personal Information Manager — projects, events, categories, tasks",
+  "version": "0.7.0",
+  "publisher": "enthali",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "main": "./out/extension.js",
+  "extensionDependencies": [
+    "enthali.jarvis"
+  ],
+  "activationEvents": [
+    "onView:jarvisProjects",
+    "onView:jarvisEvents",
+    "onView:jarvisCategories"
+  ],
+  "scripts": {
+    "compile": "tsc -p ./",
+    "package": "vsce package --no-dependencies",
+    "vscode:prepublish": "npm run compile"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.5.0"
+  },
+  "dependencies": {
+    "jarvis": "*"
+  },
+  "contributes": {
+    "yamlValidation": [
+      {
+        "fileMatch": "project.yaml",
+        "url": "./schemas/project.schema.json"
+      },
+      {
+        "fileMatch": "event.yaml",
+        "url": "./schemas/event.schema.json"
+      }
+    ],
+    "customEditors": [
+      {
+        "viewType": "jarvis.taskEditor",
+        "displayName": "Jarvis Task Editor",
+        "selector": [
+          {
+            "filenamePattern": "*.jarvis-task"
+          }
+        ],
+        "priority": "default"
+      }
+    ],
+    "views": {
+      "jarvis-explorer": [
+        {
+          "id": "jarvisProjects",
+          "name": "Projects",
+          "when": "config.jarvis.projects.enabled == true"
+        },
+        {
+          "id": "jarvisEvents",
+          "name": "Events",
+          "when": "config.jarvis.events.enabled == true"
+        },
+        {
+          "id": "jarvisCategories",
+          "name": "Categories",
+          "when": "config.jarvis.pim.showCategories == true && config.jarvis.outlook.enabled == true"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "jarvis.newProject",
+        "title": "Jarvis: New Project",
+        "icon": "$(add)"
+      },
+      {
+        "command": "jarvis.newEvent",
+        "title": "Jarvis: New Event",
+        "icon": "$(add)"
+      },
+      {
+        "command": "jarvis.filterProjectFolders",
+        "title": "Filter Project Folders",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "jarvis.filterProjectFoldersActive",
+        "title": "Filter Project Folders",
+        "icon": "$(filter-filled)"
+      },
+      {
+        "command": "jarvis.filterFutureEvents",
+        "title": "Show Future Events Only",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "jarvis.filterFutureEventsActive",
+        "title": "Show Future Events Only",
+        "icon": "$(filter-filled)"
+      },
+      {
+        "command": "jarvis.searchProjects",
+        "title": "Search Projects",
+        "icon": "$(search)"
+      },
+      {
+        "command": "jarvis.searchEvents",
+        "title": "Search Events",
+        "icon": "$(search)"
+      },
+      {
+        "command": "jarvis.refreshCategories",
+        "title": "Jarvis: Refresh Categories",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "jarvis.renameCategory",
+        "title": "Jarvis: Rename Category"
+      },
+      {
+        "command": "jarvis.deleteCategory",
+        "title": "Jarvis: Delete Category"
+      },
+      {
+        "command": "jarvis.refreshTasks",
+        "title": "Jarvis: Refresh Tasks",
+        "icon": "$(refresh)"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "jarvis.newProject",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.newEvent",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.refreshCategories",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.renameCategory",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.deleteCategory",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.refreshTasks",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.searchProjects",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.searchEvents",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.filterProjectFolders",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.filterProjectFoldersActive",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.filterFutureEvents",
+          "when": "false"
+        },
+        {
+          "command": "jarvis.filterFutureEventsActive",
+          "when": "false"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "jarvis.newProject",
+          "when": "view == jarvisProjects",
+          "group": "navigation@1"
+        },
+        {
+          "command": "jarvis.filterProjectFolders",
+          "when": "view == jarvisProjects && !jarvis.projectFilterActive",
+          "group": "navigation@2"
+        },
+        {
+          "command": "jarvis.filterProjectFoldersActive",
+          "when": "view == jarvisProjects && jarvis.projectFilterActive",
+          "group": "navigation@2"
+        },
+        {
+          "command": "jarvis.searchProjects",
+          "when": "view == jarvisProjects",
+          "group": "navigation"
+        },
+        {
+          "command": "jarvis.newEvent",
+          "when": "view == jarvisEvents",
+          "group": "navigation@1"
+        },
+        {
+          "command": "jarvis.filterFutureEvents",
+          "when": "view == jarvisEvents && !jarvis.eventFilterActive",
+          "group": "navigation@2"
+        },
+        {
+          "command": "jarvis.filterFutureEventsActive",
+          "when": "view == jarvisEvents && jarvis.eventFilterActive",
+          "group": "navigation@2"
+        },
+        {
+          "command": "jarvis.searchEvents",
+          "when": "view == jarvisEvents",
+          "group": "navigation"
+        },
+        {
+          "command": "jarvis.refreshCategories",
+          "when": "view == jarvisCategories",
+          "group": "navigation@1"
+        }
+      ],
+      "view/item/context": [
+        { "command": "jarvis.openContext", "when": "viewItem =~ /^jarvis(Project|Event)$/", "group": "inline@1" },
+        { "command": "jarvis.openYamlFile", "when": "viewItem =~ /^jarvis(Project|Event)$/", "group": "inline@2" },
+        { "command": "jarvis.revealInExplorer", "when": "viewItem =~ /^jarvis(Project|Event)$/", "group": "context-actions" },
+        { "command": "jarvis.revealInOS", "when": "viewItem =~ /^jarvis(Project|Event)$/", "group": "context-actions" },
+        { "command": "jarvis.openInTerminal", "when": "viewItem =~ /^jarvis(Project|Event)$/", "group": "context-actions" },
+        {
+          "command": "jarvis.renameCategory",
+          "when": "viewItem == jarvisCategory",
+          "group": "inline"
+        },
+        {
+          "command": "jarvis.deleteCategory",
+          "when": "viewItem == jarvisCategory"
+        }
+      ]
+    },
+    "configuration": [
+      {
+        "title": "Projects",
+        "properties": {
+          "jarvis.projects.enabled": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable the Projects feature. When false, no Projects tree view, commands, or tools are registered."
+          },
+          "jarvis.projects.folder": {
+            "type": "string",
+            "default": "",
+            "description": "Absolute path to the folder containing project YAML files."
+          }
+        }
+      },
+      {
+        "title": "Events",
+        "properties": {
+          "jarvis.events.enabled": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable the Events feature. When false, no Events tree view, commands, or tools are registered."
+          },
+          "jarvis.events.folder": {
+            "type": "string",
+            "default": "",
+            "description": "Absolute path to the folder containing event YAML files."
+          }
+        }
+      },
+      {
+        "title": "PIM",
+        "properties": {
+          "jarvis.pim.showCategories": {
+            "type": "boolean",
+            "default": true,
+            "description": "Show the Categories view in the Jarvis sidebar."
+          }
+        }
+      },
+      {
+        "title": "Outlook",
+        "properties": {
+          "jarvis.outlook.enabled": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable Outlook COM integration (Windows + Outlook Classic). When disabled, no Outlook COM calls are made."
+          },
+          "jarvis.outlook.tasks.enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable the Outlook Tasks integration. Only effective when jarvis.outlook.enabled is true."
+          }
+        }
+      }
+    ],
+    "languageModelTools": [
+      {
+        "name": "jarvis_pim_listProjects",
+        "displayName": "List Projects",
+        "modelDescription": "Returns the list of projects configured in the current Jarvis workspace. Each project has a name, summary, agent, and folder path.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "listProjects",
+        "icon": "$(project)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "name": "jarvis_pim_listEvents",
+        "displayName": "List Events",
+        "modelDescription": "Returns the list of events in the Jarvis workspace with name, summary, dates, agent, and folder path. Use this to discover available events.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "listEvents",
+        "icon": "$(calendar)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "name": "jarvis_pim_createProject",
+        "displayName": "Create Project",
+        "modelDescription": "Creates a new project folder with project.yaml and context.md under the configured projects folder. Idempotent: returns success if project already exists. When agent is specified, it must match a user-invocable agent.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "createProject",
+        "icon": "$(add)",
+        "inputSchema": {
+          "type": "object",
+          "required": [
+            "name"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Project name; used verbatim as the folder name"
+            },
+            "summary": {
+              "type": "string",
+              "description": "Optional short description"
+            },
+            "agent": {
+              "type": "string",
+              "description": "Optional VS Code chat-mode name. Must match a user-invocable agent."
+            }
+          }
+        }
+      },
+      {
+        "name": "jarvis_pim_createEvent",
+        "displayName": "Create Event",
+        "modelDescription": "Creates a new event folder with event.yaml and context.md. Folder name: ${startDate}_${name}. Idempotent. When agent is specified, it must match a user-invocable agent.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "createEvent",
+        "icon": "$(add)",
+        "inputSchema": {
+          "type": "object",
+          "required": [
+            "name",
+            "startDate"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Event name; used verbatim in folder name and YAML"
+            },
+            "startDate": {
+              "type": "string",
+              "description": "Start date in YYYY-MM-DD format"
+            },
+            "endDate": {
+              "type": "string",
+              "description": "End date in YYYY-MM-DD format (defaults to startDate)"
+            },
+            "summary": {
+              "type": "string",
+              "description": "Optional short description"
+            },
+            "agent": {
+              "type": "string",
+              "description": "Optional VS Code chat-mode name"
+            }
+          }
+        }
+      },
+      {
+        "name": "jarvis_pim_category",
+        "displayName": "Manage Categories",
+        "modelDescription": "Manage categories from all configured PIM providers. Actions: get (list/filter categories from cache), set (create/update a category), delete (remove a category), rename (rename a category). When no providers are configured, returns an error.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "category",
+        "icon": "$(tag)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": [
+                "get",
+                "set",
+                "delete",
+                "rename"
+              ],
+              "description": "The action to perform"
+            },
+            "name": {
+              "type": "string",
+              "description": "Category name (required for set/delete)"
+            },
+            "filter": {
+              "type": "string",
+              "description": "Filter by name prefix or source (for get)"
+            },
+            "provider": {
+              "type": "string",
+              "description": "Target provider (omit to broadcast to all)"
+            },
+            "oldName": {
+              "type": "string",
+              "description": "Current category name (required for rename)"
+            },
+            "newName": {
+              "type": "string",
+              "description": "New category name (required for rename)"
+            }
+          },
+          "required": [
+            "action"
+          ]
+        }
+      },
+      {
+        "name": "jarvis_pim_task",
+        "displayName": "Manage Tasks",
+        "modelDescription": "Manage Outlook tasks linked to Jarvis projects and events. Actions: get (list/filter tasks from cache), set (create a new task), modify (update task fields), delete (remove a task). completedDate is read-only. When no providers are configured, returns an error.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "task",
+        "icon": "$(checklist)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": [
+                "get",
+                "set",
+                "modify",
+                "delete"
+              ],
+              "description": "The action to perform"
+            },
+            "category": {
+              "type": "string",
+              "description": "Filter by category name (for get)"
+            },
+            "status": {
+              "type": "string",
+              "description": "Filter by status (for get)"
+            },
+            "dueBefore": {
+              "type": "string",
+              "description": "Filter: only tasks due before this ISO date (for get)"
+            },
+            "includeBody": {
+              "type": "boolean",
+              "description": "Include task body in get results (default false)"
+            },
+            "id": {
+              "type": "string",
+              "description": "Task ID (required for modify/delete)"
+            },
+            "subject": {
+              "type": "string",
+              "description": "Task subject"
+            },
+            "body": {
+              "type": "string",
+              "description": "Task body text"
+            },
+            "dueDate": {
+              "type": "string",
+              "description": "Due date (ISO YYYY-MM-DD)"
+            },
+            "priority": {
+              "type": "string",
+              "enum": [
+                "low",
+                "normal",
+                "high"
+              ],
+              "description": "Task priority"
+            },
+            "isComplete": {
+              "type": "boolean",
+              "description": "Mark task as complete (sets completedDate as side effect)"
+            },
+            "categories": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Outlook category names linking task to projects/events"
+            },
+            "provider": {
+              "type": "string",
+              "description": "Target provider (omit to broadcast to all)"
+            }
+          },
+          "required": [
+            "action"
+          ]
+        }
+      }
+    ]
+  }
+}

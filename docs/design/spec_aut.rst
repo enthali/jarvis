@@ -170,7 +170,9 @@ Automation Design Specifications
    - ``powershell``: same ``child_process.spawn`` pattern with ``pwsh`` (fallback
      ``powershell``) as the executable
    - ``command``: ``await vscode.commands.executeCommand(step.run)`` wrapped in
-     try/catch; thrown exception → ``{ success: false, stepType: 'command', error: message }``
+     try/catch; thrown exception → ``{ success: false, stepType: 'command', error: message }``.
+     If the command is not registered (``getCommands()``), soft-skip with
+     ``{ success: true }`` — see ``SPEC_AUT_HEARTBEAT_COMMAND_SOFTSKIP``.
    - ``agent``: delegated to ``executeAgentStep()`` (see ``SPEC_AUT_AGENTEXEC``)
    - ``queue``: delegated to ``executeQueueStep()`` (see ``SPEC_AUT_QUEUEEXEC``)
 
@@ -1041,3 +1043,70 @@ Automation Design Specifications
    **Consistency guarantee:** any future change to the resolver propagates
    automatically to all validation sites (``sendToSession``, heartbeat load,
    heartbeat fire, ``registerJob``) without further code changes.
+
+
+.. spec:: Command Step Soft-Skip for Unregistered Commands
+   :id: SPEC_AUT_HEARTBEAT_COMMAND_SOFTSKIP
+   :status: approved
+   :links: REQ_MOD_ZEROTRACE; REQ_AUT_JOBEXEC; SPEC_AUT_EXECUTOR; SPEC_AUT_OUTPUTCHANNEL; SPEC_AUT_HEARTBEAT_INVALID_STEP_BEHAVIOR
+
+   **Description:**
+   Modify the ``command`` branch of ``runStep()`` in
+   ``packages/core/src/apps/session/heartbeat.ts`` to check whether the target
+   command is currently registered before execution. If the command is absent
+   from ``vscode.commands.getCommands()``, the step is soft-skipped — mirroring
+   the queue-step behaviour established by
+   ``SPEC_AUT_HEARTBEAT_INVALID_STEP_BEHAVIOR``.
+
+   **Rationale (mirrors D-1 for queue steps):**
+   In the modular architecture, a persisted heartbeat job may reference commands
+   contributed by an add-on that is not (or no longer) installed. This is a
+   normal, expected condition — not a programming error. Failing the entire job
+   (popup + error log) violates ``REQ_MOD_ZEROTRACE`` (no broken surface from an
+   absent add-on) and punishes multi-step jobs whose other steps are unrelated.
+   Background automation favours continuity; absence of a command ≠ job failure.
+
+   **Behaviour:**
+
+   - **Command IS registered but throws at runtime:** unchanged — ``catch``
+     returns ``{ success: false, stepType: 'command', error }`` and
+     ``notifyFailure`` shows a popup.  This remains a real runtime failure.
+   - **Command is NOT registered:** soft-skip — log a warning to the output
+     channel, return ``{ success: true }`` so subsequent steps execute, and
+     raise **no** ``showErrorMessage`` popup.
+
+   **Updated ``command`` branch in ``runStep``:**
+
+   .. code-block:: typescript
+
+      // command step — soft-skip if command not registered (SPEC_AUT_HEARTBEAT_COMMAND_SOFTSKIP)
+      const allCommands = await vscode.commands.getCommands(/* includeInternal */ true);
+      if (!allCommands.includes(step.run!)) {
+          outputChannel.warn(
+              `[Heartbeat] command step skipped — command not registered: "${step.run}"`
+          );
+          return { success: true };  // soft skip: job continues
+      }
+      try {
+          outputChannel.info(`[Heartbeat] command: ${step.run}`);
+          await vscode.commands.executeCommand(step.run!);
+          return { success: true };
+      } catch (e) {
+          return { success: false, stepType: 'command', error: (e as Error).message };
+      }
+
+   **Acceptance Criteria:**
+
+   * AC-1: Given a ``command`` step whose ``step.run`` value is absent from the
+     set returned by ``vscode.commands.getCommands(true)``, the step is skipped
+     and the executor returns ``{ success: true }``.
+   * AC-2: The output channel receives a ``warn``-level entry containing the
+     unregistered command id and the word "skipped", identifiable as a
+     command-step skip (distinct from a command-step success log).
+   * AC-3: No ``vscode.window.showErrorMessage`` popup is raised for the
+     skipped step (``notifyFailure`` is not called).
+   * AC-4: Subsequent steps in the same job continue executing normally after
+     the skip.
+   * AC-5: A registered command that throws at runtime still returns
+     ``{ success: false }`` and triggers ``notifyFailure`` — soft-skip applies
+     only to absent commands.

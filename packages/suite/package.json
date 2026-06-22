@@ -1,0 +1,27 @@
+{
+  "name": "jarvis-suite",
+  "displayName": "Jarvis Suite",
+  "description": "Install all Jarvis capabilities: core, PIM, recorder, and MCP server.",
+  "version": "0.7.0",
+  "publisher": "enthali",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/enthali/Jarvis.git"
+  },
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Extension Packs"
+  ],
+  "extensionPack": [
+    "enthali.jarvis",
+    "enthali.jarvis-pim",
+    "enthali.jarvis-recorder",
+    "enthali.jarvis-mcp"
+  ],
+  "scripts": {
+    "package": "vsce package --no-dependencies"
+  }
+}

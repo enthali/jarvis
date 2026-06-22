@@ -12,8 +12,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 const srcDir = path.resolve(__dirname, '..');
-const extensionSrc = fs.readFileSync(path.join(srcDir, 'extension.ts'), 'utf-8');
-const packageJson = JSON.parse(fs.readFileSync(path.join(srcDir, '..', 'package.json'), 'utf-8'));
+const coreSrcDir = path.resolve(__dirname, '..', '..', 'packages', 'core', 'src');
+const extensionSrc = fs.readFileSync(path.join(coreSrcDir, 'extension.ts'), 'utf-8');
+const packageJson = JSON.parse(fs.readFileSync(path.join(coreSrcDir, '..', 'package.json'), 'utf-8'));
 
 const NEW_BULLET = '- When a topic grows past ~5 bullets, move it to a dedicated file beside `context.md` and leave a one-line summary with a relative link in `context.md`.';
 

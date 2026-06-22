@@ -1,73 +1,25 @@
-# Quality Manager Review Matrix — User Stories
+# QM Review Matrix
 
-Diese Übersicht zeigt auf einen Blick, welche User Stories bereits im QA-Review als vollständige Review-Einheit geprüft wurden.
+Definitions only. All runtime status and logs live in `scan-state.md`.
 
-Eine Review-Einheit umfasst:
-- Feature-US
-- verlinkte REQs
-- SPECs
-- Code-vs-Spec-Prüfung
-- UAT-Abdeckung
-- Doku-Aktualitätsprüfung
+---
 
-## Feature User Stories
+## Standing Checks
 
-| User Story | Letzte Prüfung | Report | Doku-Check |
-|---|---|---|---|
-| `US_AUT_HEARTBEAT` | 2026-04-10 | [qr-2026-04-10.md](reports/qr-2026-04-10.md) | offen (vor Regel) |
-| `US_CFG_PROJECTPATH` | — | — | — |
-| `US_CFG_HEARTBEAT` | — | — | — |
-| `US_CFG_MSG` | — | — | — |
-| `US_DEV_MANUALTEST` | — | — | — |
-| `US_DEV_CONVENTIONS` | — | — | — |
-| `US_DEV_LOGGING` | — | — | — |
-| `US_PIM_TASKS` | 2026-04-15 | [qr-2026-04-15-outlook-tasks.md](reports/qr-2026-04-15-outlook-tasks.md) | geprüft |
-| `US_EXP_SIDEBAR` | — | — | — |
-| `US_EXP_PROJECTFILTER` | — | — | — |
-| `US_EXP_EVENTFILTER` | — | — | — |
-| `US_EXP_OPENYAML` | — | — | — |
-| `US_EXP_NEWENTITY` | — | — | — |
-| `US_EXP_SCANREFRESH` | — | — | — |
-| `US_EXP_CONTENTDETECT` | — | — | — |
-| `US_EXP_NAMESORT` | — | — | — |
-| `US_MSG_CHATQUEUE` | — | — | — |
-| `US_MSG_OPENSESSION` | — | — | — |
-| `US_MSG_LISTSESSIONS` | — | — | — |
-| `US_EXP_AGENTSESSION` | — | — | — |
-| `US_MSG_MCPSERVER` | — | — | — |
-| `US_OLK_TASKS` | 2026-04-15 | [qr-2026-04-15-outlook-tasks.md](reports/qr-2026-04-15-outlook-tasks.md) | geprüft |
-| `US_REL_DOCS` | — | — | — |
-| `US_REL_RELEASE` | — | — | — |
-| `US_REL_VERSION` | — | — | — |
-| `US_REL_GITWORKFLOW` | — | — | — |
-| `US_REL_SELFUPDATE` | — | — | — |
+To add a new check: append a row and set Status to `active`. It runs on the next Friday cycle.
 
-## UAT User Stories
+| ID | Check | Scope | Pass Criterion | Status |
+|---|---|---|---|---|
+| SC-001 | **US Persona compliance** | `docs/userstories/**/*.rst` | Every "As a" actor matches an allowed persona (currently: Jarvis User, Jarvis Developer, Jarvis Test Engineer; Jarvis Agent pending CR) | active |
+| SC-002 | **Spec-in-US disguise** | `docs/userstories/**/*.rst` | No US acceptance criterion contains implementation detail (data structures, function names, file paths, API signatures) — those belong at REQ/SPEC level | active |
+| SC-003 | **Orphaned SPEC elements** | `docs/design/spec_*.rst` | Every SPEC element has `:links:` to at least one REQ | active |
+| SC-004 | **UAT story without val-report** | `docs/userstories/us_uat_*.rst` + `docs/changes/` | Every UAT story whose linked change has `tst-<name>.md` also has `val-<name>.md` | active |
+| SC-005 | **Stale root-level Change Documents** | `docs/changes/*.md` (root only) | No root-level CR has `Status: in-progress` without an active feature branch | active |
 
-| User Story | Letzte Prüfung | Report | Doku-Check |
-|---|---|---|---|
-| `US_UAT_SAMPLEDATA` | — | — | — |
-| `US_UAT_HEARTBEAT` | — | — | — |
-| `US_UAT_HEARTBEATVIEW` | — | — | — |
-| `US_UAT_JOBREG` | — | — | — |
-| `US_UAT_LOGGING` | — | — | — |
-| `US_UAT_MSG` | — | — | — |
-| `US_UAT_MCPSERVER` | — | — | — |
-| `US_UAT_OUTLOOK_TASKS` | — | — | — |
-| `US_UAT_NEWENTITY` | — | — | — |
-| `US_UAT_SIDEBAR` | — | — | — |
-| `US_UAT_EVENTFILTER` | — | — | — |
-| `US_UAT_SCANREFRESH` | — | — | — |
-| `US_UAT_CONTENTDETECT` | — | — | — |
-| `US_UAT_NAMESORT` | — | — | — |
-| `US_UAT_SELFUPDATE` | — | — | — |
-| `US_UAT_OPENSESSION` | — | — | — |
-| `US_UAT_LISTSESSIONS` | — | — | — |
-| `US_UAT_AGENTSESSION` | — | — | — |
+---
 
-## Nutzung
+## Revision History
 
-- Nach jedem vollständigen US-basierten QA-Review die betroffene Feature-US mit Datum und Report eintragen.
-- Den Doku-Check pro Review-Einheit mitpflegen: `geprüft`, `offen` oder kurzer Statushinweis.
-- UAT-Stories werden nur dann eingetragen, wenn sie selbstständig als Prüfgegenstand betrachtet wurden.
-- Die nächste Review-Einheit wird aus den noch nicht geprüften Feature-US ausgewählt.
+| Date | Change |
+|---|---|
+| 2026-06-19 | Redesigned from German US-list format to two-track engine. Logs moved to scan-state.md. |

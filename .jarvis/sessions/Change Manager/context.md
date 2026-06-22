@@ -108,6 +108,15 @@ PM specifies the mode in each Change Request:
   chores without product impact are NOT in CM scope — they belong to PM (or the
   affected session itself). If PM mis-routes such work to CM: politely return with
   a scope reminder rather than silently executing it.
+- **Never stash another session's uncommitted WIP to switch branches** — a staged
+  rename + unstaged edits may not round-trip through `git stash pop` (lost the
+  unstaged half once). If develop has someone else's dirty tree, ask them to
+  commit/stash first before CM touches a feature branch.
+- **Internal refactorings with no standalone user value** (e.g. modularization
+  steps) expose that there's no traceable *epic* entity — the only honest user
+  story is atomic and only satisfied at the end. Decomposition (one big change vs
+  split CRs) is a PM decision; escalate at the L0 gate rather than writing
+  specs-as-user-stories.
 
 ## Current Project State
 
