@@ -1,0 +1,21 @@
+jobs:
+  - name: 'Jarvis: Rescan'
+    schedule: '*/20 * * * *'
+    steps:
+      - type: command
+        run: jarvis.rescan
+  - name: qm-weekly-review
+    schedule: 0 10 * * 5
+    steps:
+      - type: queue
+        destination: Quality Manager
+        sender: Jarvis Heartbeat
+        text: >-
+          PERIODIC QM TRIGGER — Friday review cycle
+
+
+          Run all active Standing Checks (SC-001 through SC-005) from the
+          review-matrix.md. For each check: assess, record Last Run + Last
+          Result in review-matrix.md, report any findings to PM. Also check
+          scan-state.md for new completed CRs or new releases since last scan,
+          and update scan-state.md after the run.

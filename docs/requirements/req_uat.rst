@@ -48,6 +48,7 @@ end-to-end verification of each feature.
    req_uat_safe_send_union
    req_uat_newentity_picker
    req_uat_heartbeat_dest_valid
+   req_uat_modular_install
 
 All UAT Requirements
 --------------------

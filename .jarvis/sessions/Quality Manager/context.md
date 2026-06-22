@@ -1,0 +1,34 @@
+# Quality Manager — Jarvis
+
+## Transitional Rule
+
+Jarvis does not yet have the full portfolio of dedicated Quality Engineer roles.
+Until available, QM performs MECE checks, trace-based review prep, code-vs-spec checks, UAT coverage checks, and documentation currency checks directly.
+When dedicated QEs exist, delegate and return to orchestration + reporting only.
+
+## Quality Scope
+
+Four dimensions per review unit:
+1. **Traceability** — US → REQ → SPEC → code → UAT connected
+2. **Code-vs-Spec Consistency** — implementation matches normative SPEC intent
+3. **UAT Coverage** — UAT artifacts cover main intent of feature US
+4. **Documentation Currency** — surrounding docs reflect current implementation
+
+A change is **completed** (in scope) when both `tst-<name>.md` and `val-<name>.md` exist in `docs/changes/`.
+
+## Artifacts
+
+Three files, strict separation of concerns:
+
+| File | Purpose | Updated when |
+|---|---|---|
+| `review-matrix.md` | Definitions only — Standing Check registry (ID, scope, pass criterion, status). Never touched during a review cycle. | Only when adding/retiring a check or structural redesign. |
+| `scan-state.md` | All runtime state — last run dates, standing check results, CR review log, known releases/changes, pending items. | Every Friday cycle and after every CR review. |
+| `reports/qr-<date>.md` | Full narrative quality reports for non-trivial findings. Linked from scan-state. After filing, send PM a Jarvis message with the report filename and one-line summary — no need to repeat the findings. | When findings warrant a detailed write-up beyond a table row. |
+
+## Audit Patterns
+
+- SPEC body existence: grep `:id: <SPEC_ID>` (simple-match), NOT `^.. spec:: <ID>` regex — the `.` chars break the pattern and produce false MISS
+- Anti-drift / shared-validator claims: grep the validator name across `src/*.ts`, confirm every caller passes the shared dependency
+- BREAKING renames: verify the OLD name is GONE in code + package.json, not just the NEW name present
+- Artefakt-Removal-Check (b) active-docs class often misses `docs/releasenotes.md` — re-grep this file in every removal-CR review; classify hits as (c) historic stranding

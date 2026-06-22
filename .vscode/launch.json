@@ -4,7 +4,63 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Run Extension",
+            "name": "Run Core (enthali.jarvis)",
+            "type": "extensionHost",
+            "request": "launch",
+            "args": ["--extensionDevelopmentPath=${workspaceFolder}/packages/core"],
+            "outFiles": ["${workspaceFolder}/packages/core/out/**/*.js"],
+            "preLaunchTask": "compile core"
+        },
+        {
+            "name": "Run Core + PIM",
+            "type": "extensionHost",
+            "request": "launch",
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/core",
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/pim"
+            ],
+            "outFiles": [
+                "${workspaceFolder}/packages/core/out/**/*.js",
+                "${workspaceFolder}/packages/pim/out/**/*.js"
+            ],
+            "preLaunchTask": "compile core+pim"
+        },
+        {
+            "name": "Run Core + PIM + Recorder",
+            "type": "extensionHost",
+            "request": "launch",
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/core",
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/pim",
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/recorder"
+            ],
+            "outFiles": [
+                "${workspaceFolder}/packages/core/out/**/*.js",
+                "${workspaceFolder}/packages/pim/out/**/*.js",
+                "${workspaceFolder}/packages/recorder/out/**/*.js"
+            ],
+            "preLaunchTask": "compile core+pim+recorder"
+        },
+        {
+            "name": "Run All (Core + PIM + Recorder + MCP)",
+            "type": "extensionHost",
+            "request": "launch",
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/core",
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/pim",
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/recorder",
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/mcp"
+            ],
+            "outFiles": [
+                "${workspaceFolder}/packages/core/out/**/*.js",
+                "${workspaceFolder}/packages/pim/out/**/*.js",
+                "${workspaceFolder}/packages/recorder/out/**/*.js",
+                "${workspaceFolder}/packages/mcp/out/**/*.js"
+            ],
+            "preLaunchTask": "compile all"
+        },
+        {
+            "name": "Run Extension (monolith — retired, S4b)",
             "type": "extensionHost",
             "request": "launch",
             "args": ["--extensionDevelopmentPath=${workspaceFolder}"],

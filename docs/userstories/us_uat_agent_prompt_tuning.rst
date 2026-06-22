@@ -36,6 +36,10 @@ Agent Prompt Tuning User Acceptance Tests
    * AC-6: A test verifies that the prompt is rendered correctly for a
      ``kind=project`` entity, showing ``You are the project "..."`` in the
      default template (T-6).
+   * AC-7: A test verifies that the default init prompt contains the
+     extract-overflow bullet instructing the agent to move topics past ~5
+     bullets to a dedicated file beside ``context.md`` with a one-line summary
+     and relative link (T-7).
 
    **Test Scenarios:**
 
@@ -90,6 +94,16 @@ Agent Prompt Tuning User Acceptance Tests
      summary. Observe the auto-opened chat.
      Expected: The chat shows the default prompt with ``kind`` rendered as
      ``project`` and the project name substituted for ``${name}``.
+
+   **T-7 — Extract-overflow bullet present in default prompt**
+     Setup: Default ``jarvis.agentSession.initPromptTemplate`` (no override).
+     Action: Create a new session (any entity kind). Observe the auto-opened
+     Copilot agent chat.
+     Expected: The default prompt contains a bullet with the text "When a
+     topic grows past ~5 bullets, move it to a dedicated file beside
+     ``context.md`` and leave a one-line summary with a relative link in
+     ``context.md``." appearing as the last item of the "Keep it minimal and
+     action-oriented" list.
 
 
 .. story:: Auto-Delivery Notification Template Acceptance Tests

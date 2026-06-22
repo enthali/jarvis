@@ -1,0 +1,79 @@
+{
+  "name": "jarvis-recorder",
+  "displayName": "Jarvis Recorder",
+  "description": "Jarvis Recorder — session recording, whisper pipeline, and transcript notifications",
+  "version": "0.7.0",
+  "publisher": "enthali",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "main": "./out/extension.js",
+  "extensionDependencies": [
+    "enthali.jarvis"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "scripts": {
+    "compile": "tsc -p ./",
+    "package": "vsce package --no-dependencies",
+    "vscode:prepublish": "npm run compile"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.5.0"
+  },
+  "dependencies": {
+    "jarvis": "*"
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "jarvis.startRecording",
+        "title": "Start Recording",
+        "icon": "$(circle-outline)"
+      },
+      {
+        "command": "jarvis.stopRecording",
+        "title": "Stop Recording",
+        "icon": "$(circle-filled)"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        { "command": "jarvis.startRecording", "when": "false" },
+        { "command": "jarvis.stopRecording", "when": "false" }
+      ],
+      "view/item/context": [
+        {
+          "command": "jarvis.startRecording",
+          "when": "viewItem =~ /^jarvis(Project|Event)/ && config.jarvis.recording.enabled == true && jarvis.recordingActive != true",
+          "group": "inline"
+        },
+        {
+          "command": "jarvis.stopRecording",
+          "when": "viewItem =~ /^jarvis(Project|Event)/ && config.jarvis.recording.enabled == true && jarvis.recordingActive == true",
+          "group": "inline"
+        }
+      ]
+    },
+    "configuration": [
+      {
+        "title": "Jarvis Recorder",
+        "properties": {
+          "jarvis.recording.enabled": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable the Session Recording feature. When true, Start/Stop Recording buttons appear on Project and Event nodes."
+          },
+          "jarvis.recording.whisperPath": {
+            "type": "string",
+            "default": "",
+            "description": "Absolute path to the Whisper project folder containing recorder.py and the input/ subfolder."
+          }
+        }
+      }
+    ]
+  }
+}

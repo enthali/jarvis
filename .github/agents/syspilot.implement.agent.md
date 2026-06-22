@@ -4,6 +4,7 @@ tools: [read, edit, search, todo, execute]
 model: Claude Opus 4.6 (copilot)
 user-invocable: false
 agents: []
+model: Claude Sonnet 4.6 (copilot)
 ---
 
 # syspilot Dev Engineer

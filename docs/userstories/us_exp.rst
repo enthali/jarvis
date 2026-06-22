@@ -206,7 +206,8 @@ Explorer User Stories
    :links: US_EXP_SIDEBAR; US_MSG_MCPSERVER
 
    **As a** LLM agent working in a Jarvis workspace,
-   **I want** a tool that lists all projects with their name and folder path,
+   **I want** a tool that lists all projects with their name, summary, agent,
+   and folder path,
    **so that** I can discover available projects programmatically and use the
    information in automation workflows.
 
@@ -214,10 +215,14 @@ Explorer User Stories
 
    * AC-1: A Language Model Tool ``jarvis_listProjects`` is available in the
      Chat tool picker
-   * AC-2: The tool returns a list of projects, each with ``name`` (from YAML)
-     and ``folder`` (relative path from the configured projects folder)
+   * AC-2: The tool returns a list of projects, each with ``name`` (from YAML),
+     ``summary`` (from YAML, empty string if absent), ``agent`` (from YAML,
+     empty string if absent), and ``folder`` (relative path from the configured
+     projects folder)
    * AC-3: The tool requires no input parameters
    * AC-4: The tool is also available via the MCP server (dual registration)
+   * AC-5: The output shape matches ``jarvis_listSessions``
+     (``{name, summary, agent, folder}``)
 
 
 .. story:: Feature-Toggled Sidebar Views
@@ -395,6 +400,10 @@ Explorer User Stories
      session SHALL open in that agent mode — regardless of the user's currently
      active VS Code Chat mode setting at the time of opening. Mode is applied at
      session birth, not via post-creation switching.
+   * AC-8: The default prompt includes a scaling-valve rule that instructs the
+     agent to move a topic to a dedicated file beside ``context.md`` (with a
+     one-line summary and relative link left in ``context.md``) when the topic
+     grows past ~5 bullets. The rule applies uniformly to all entity kinds.
 
 
 .. story:: List Events (LM Tool)
@@ -501,8 +510,7 @@ Explorer User Stories
      editor (same as session tree-click). The existing ``$(go-to-file)``
      button remains for opening the YAML.
    * AC-4: All three entity types show uniform inline icons:
-     ``$(go-to-file)`` for YAML, ``$(notebook)`` for context.md,
-     ``$(record)`` for recording folder (if present).
+     ``$(go-to-file)`` for YAML and ``$(notebook)`` for context.md.
    * AC-5: ``jarvis.openAgentSession`` respects the ``agent`` field on
      project/event entities (same behavior as sessions: if agent is set, open
      in that mode).

@@ -418,10 +418,15 @@ Explorer Requirements
      via ``registerDualTool()`` with ``canBeReferencedInPrompt: true``
    * AC-2: The tool SHALL accept no input parameters (empty input schema)
    * AC-3: The tool SHALL return an array of objects, each containing ``name``
-     (string, from the project YAML ``name`` field) and ``folder`` (string,
-     relative path from the configured projects folder to the project directory)
+     (string, from the project YAML ``name`` field), ``summary`` (string, from
+     the project YAML ``summary`` field, empty string if absent), ``agent``
+     (string, from the project YAML ``agent`` field, empty string if absent),
+     and ``folder`` (string, relative path from the configured projects folder
+     to the project directory)
    * AC-4: If no projects exist, the tool SHALL return an empty array
    * AC-5: The tool SHALL be simultaneously available via the MCP server
+   * AC-6: The output object shape SHALL match ``jarvis_listSessions``
+     (``{name, summary, agent, folder}``)
 
 
 .. req:: Feature-Toggled Sidebar Views
@@ -733,6 +738,13 @@ Explorer Requirements
      mode from the VS Code Chat mode selector. The extension SHALL NOT attempt to
      set or change the mode of an already-active session via a post-creation
      ``workbench.action.chat.open`` call.
+   * AC-7: The built-in default prompt SHALL include, as the last item of the
+     "Keep it minimal and action-oriented" discipline list, the following bullet
+     (verbatim):
+     ``- When a topic grows past ~5 bullets, move it to a dedicated file beside
+     `context.md` and leave a one-line summary with a relative link in
+     `context.md`.``
+     The rule applies generically to all entity kinds with no per-kind branching.
 
 
 .. req:: List Events LM+MCP Tool
@@ -906,7 +918,7 @@ Explorer Requirements
 
    **Description:**
    All three entity types (project, event, session) SHALL show uniform inline
-   icons: YAML, context.md, and Recording (when present).
+   icons: YAML and context.md.
 
    **Acceptance Criteria:**
 
@@ -914,12 +926,12 @@ Explorer Requirements
      the entity YAML file.
    * AC-2: Every leaf node SHALL show a ``$(notebook)`` inline icon for opening
      ``context.md``.
-   * AC-3: Every leaf node whose folder contains a ``recording/`` subfolder
-     SHALL show a ``$(record)`` inline icon for opening the recording folder.
-   * AC-4: Icon order (left to right): ``$(record)`` (conditional),
-     ``$(notebook)``, ``$(go-to-file)``.
-   * AC-5: Session nodes already have these; this requirement extends the same
+   * AC-3: Icon order (left to right): ``$(notebook)``, ``$(go-to-file)``.
+   * AC-4: Session nodes already have these; this requirement extends the same
      pattern to project and event nodes.
+   * AC-5: No ``$(record)`` inline icon SHALL appear on any entity tree item,
+     regardless of whether a ``recording/`` subfolder exists in the entity
+     folder.
 
 
 

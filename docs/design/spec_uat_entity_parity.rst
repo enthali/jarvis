@@ -124,12 +124,12 @@ Entity Parity UAT Design Specifications
 
       * - T-33
 
-          Project node: 3 inline icons present
+          Project node: 2 inline icons present
 
           *CR AC: 4*
         - Hover over ``alpha`` in Projects Tree.
-        - Three icons visible: ``$(go-to-file)``, ``$(notebook)``,
-          ``$(record)``. Tooltip text present for each.
+        - Two icons visible: ``$(go-to-file)``, ``$(notebook)``.
+          Tooltip text present for each. No ``$(record)`` icon visible.
 
       * - T-34
 
@@ -151,13 +151,13 @@ Entity Parity UAT Design Specifications
 
       * - T-36
 
-          ``$(record)`` gated by ``recording/`` subfolder
+          ``$(record)`` icon absent regardless of ``recording/`` subfolder
 
           *CR AC: 4*
-        - Step 1: verify ``alpha/recording/`` absent; hover → ``$(record)``
-          icon not visible. Step 2: create ``alpha/recording/``; trigger rescan;
-          hover → ``$(record)`` visible. Delete ``recording/`` after test.
-        - Icon visibility matches folder presence.
+        - Step 1: verify ``alpha/recording/`` absent; hover → no ``$(record)``
+          icon. Step 2: create ``alpha/recording/``; trigger rescan;
+          hover → still no ``$(record)`` icon. Delete ``recording/`` after test.
+        - ``$(record)`` icon never appears, regardless of folder presence.
 
       * - T-37
 
@@ -165,7 +165,8 @@ Entity Parity UAT Design Specifications
 
           *CR AC: 4*
         - Hover over ``DevCon 2026`` (Events) and ``copilot-cm`` (Sessions).
-        - Both node types show the same three icons with the same tooltips.
+        - Both node types show the same two icons (``$(go-to-file)``,
+          ``$(notebook)``) with the same tooltips. No ``$(record)`` icon.
 
       * - T-38
 

@@ -48,6 +48,7 @@ outcome tables** for each feature's acceptance tests.
    spec_uat_safe_send_union
    spec_uat_newentity_picker
    spec_uat_heartbeat_dest_valid
+   spec_uat_modular_install
 
 All UAT Specifications
 ----------------------

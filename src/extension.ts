@@ -4,30 +4,32 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as configPaths from './configPaths';
-import { ProjectTreeProvider } from './projectTreeProvider';
-import { EventTreeProvider } from './eventTreeProvider';
-import { MessageTreeProvider, SessionGroupNode, MessageLeafNode } from './messageTreeProvider';
-import { RemindersTreeProvider, ReminderNode } from './remindersTreeProvider';
-import { YamlScanner, LeafNode, TreeNode } from './yamlScanner';
+import * as configPaths from './engine/configPaths';
+import { ProjectTreeProvider } from './apps/pim/projectTreeProvider';
+import { EventTreeProvider } from './apps/pim/eventTreeProvider';
+import { MessageTreeProvider, SessionGroupNode, MessageLeafNode } from './apps/session/messageTreeProvider';
+import { RemindersTreeProvider, ReminderNode } from './apps/session/remindersTreeProvider';
+import { YamlScanner, KindDrivenScanner, LeafNode, TreeNode } from './engine/yamlScanner';
 import * as yaml from 'js-yaml';
-import { activateHeartbeat, HeartbeatScheduler, HeartbeatJob, HeartbeatStep } from './heartbeat';
-import { JobNode } from './heartbeatTreeProvider';
-import { deleteMessage, appendMessage, popMessage, readAutoDelivery, addAutoDelivery, removeAutoDelivery, readQueue, writeQueue } from './messageQueue';
-import { addReminder, readReminders, removeReminder, popDueReminders, setRemindersLogger } from './reminders';
-import { lookupSessionUUID, getAllSessions, initSessionLookup, setSessionLookupLogger, filterNamedSessions, getValidDestinations } from './sessionLookup';
-import { checkForUpdates } from './updateCheck';
-import { registerMcpTool, startMcpServer, stopMcpServer } from './mcpServer';
+import { activateHeartbeat, HeartbeatScheduler, HeartbeatJob, HeartbeatStep } from './apps/session/heartbeat';
+import { JobNode } from './apps/session/heartbeatTreeProvider';
+import { JarvisEngine } from './engine/coreApi';
+import { GenericTreeFactory } from './engine/treeFactory';
+import type { EntityKindConfig, JarvisCoreApi } from './engine/types';
+import { deleteMessage, appendMessage, popMessage, readAutoDelivery, addAutoDelivery, removeAutoDelivery, readQueue, writeQueue } from './engine/messageQueue';
+import { addReminder, readReminders, removeReminder, popDueReminders, setRemindersLogger } from './apps/session/reminders';
+import { lookupSessionUUID, getAllSessions, initSessionLookup, setSessionLookupLogger, filterNamedSessions, getValidDestinations } from './engine/sessionLookup';
+import { checkForUpdates } from './engine/updateCheck';
+import { registerMcpTool, startMcpServer, stopMcpServer } from './engine/mcpServer';
 import { z } from 'zod';
 import { CronExpressionParser } from 'cron-parser';
-import { CategoryService } from './pim/CategoryService';
-import { CategoryTreeProvider } from './pim/CategoryTreeProvider';
-import { OutlookCategoryProvider } from './outlookIntegration/OutlookCategoryProvider';
-import { TaskService } from './pim/TaskService';
-import { TaskEditorProvider } from './pim/TaskEditorProvider';
-import { OutlookTaskProvider } from './outlookIntegration/OutlookTaskProvider';
-import { RecordingManager } from './recording';
-import { SessionTreeProvider } from './sessionTreeProvider';
+import { CategoryService } from './apps/pim/CategoryService';
+import { CategoryTreeProvider } from './apps/pim/CategoryTreeProvider';
+import { OutlookCategoryProvider } from './apps/pim/outlookIntegration/OutlookCategoryProvider';
+import { TaskService } from './apps/pim/TaskService';
+import { TaskEditorProvider } from './apps/pim/TaskEditorProvider';
+import { OutlookTaskProvider } from './apps/pim/outlookIntegration/OutlookTaskProvider';
+import { RecordingManager } from './apps/recorder/recording';
 
 // Module-level reference so deactivate() can call recordingManager.deactivate() (SPEC_REC_SUBPROCESS)
 let _recordingManager: RecordingManager | undefined;
@@ -260,7 +262,8 @@ export function activate(context: vscode.ExtensionContext) {
             `- One concise line per bullet. Prune aggressively.\n` +
             `- Replace outdated bullets — never append logs.\n` +
             `- Never store retries, raw tool output, or transient chatter.\n` +
-            `- Before writing, ask: "Will this still matter in 2 weeks?" If no, skip.`;
+            `- Before writing, ask: "Will this still matter in 2 weeks?" If no, skip.\n` +
+            `- When a topic grows past ~5 bullets, move it to a dedicated file beside \`context.md\` and leave a one-line summary with a relative link in \`context.md\`.`;
         const rawInitTemplate = vscode.workspace.getConfiguration('jarvis')
             .get<string>('agentSession.initPromptTemplate') ?? '';
         const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : defaultInitPrompt;
@@ -282,9 +285,22 @@ export function activate(context: vscode.ExtensionContext) {
     let scanner: YamlScanner | undefined;
     let projectProvider: ProjectTreeProvider | undefined;
     let eventProvider: EventTreeProvider | undefined;
-    let sessionProvider: SessionTreeProvider | undefined;
     let projectView: vscode.TreeView<any> | undefined;
     let eventView: vscode.TreeView<any> | undefined;
+
+    // Engine (kind-driven scanner + generic tree factory) for session kind
+    const kindDrivenScanner = new KindDrivenScanner(
+        () => { engine.treeFactory.refreshAll(); },
+        (settingKey: string) => {
+            if (settingKey === 'jarvis.sessions.folder') {
+                return configPaths.getSessionsDir() ?? '';
+            }
+            return vscode.workspace.getConfiguration().get<string>(settingKey, '');
+        }
+    );
+    const treeFactory = new GenericTreeFactory(kindDrivenScanner);
+    const engine = new JarvisEngine(kindDrivenScanner, treeFactory);
+    context.subscriptions.push({ dispose: () => engine.dispose() });
 
     function startScanner(): void {
         if (!scanner) { return; }
@@ -349,7 +365,7 @@ export function activate(context: vscode.ExtensionContext) {
         scanner = scanner ?? new YamlScanner(() => {
             projectProvider?.refresh();
             eventProvider?.refresh();
-            sessionProvider?.refresh();
+            engine.treeFactory.refreshKind('session');
         });
         projectProvider = new ProjectTreeProvider(scanner, taskService, _recordingManager);
         projectView = vscode.window.createTreeView('jarvisProjects', { treeDataProvider: projectProvider });
@@ -382,7 +398,7 @@ export function activate(context: vscode.ExtensionContext) {
             scanner = new YamlScanner(() => {
                 projectProvider?.refresh();
                 eventProvider?.refresh();
-                sessionProvider?.refresh();
+                engine.treeFactory.refreshKind('session');
             });
         }
         eventProvider = new EventTreeProvider(scanner, taskService, _recordingManager);
@@ -402,23 +418,34 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     // ------- SESSIONS feature block (SPEC_SES_MANIFEST, SPEC_SES_TREE) -------
-    // Implementation: SPEC_SES_TREE, SPEC_SES_TOOLS, SPEC_SES_MANIFEST
+    // Implementation: SPEC_SES_TREE, SPEC_SES_TOOLS, SPEC_SES_MANIFEST, SPEC_ENG_REGISTER_KIND
     // Requirements: REQ_SES_TOGGLE, REQ_SES_TREE, REQ_SES_LISTTOOL
+    let sessionKindDisposable: vscode.Disposable | undefined;
     if (cfg.get<boolean>('sessions.enabled', true)) {
         if (!scanner) {
             scanner = new YamlScanner(() => {
                 projectProvider?.refresh();
                 eventProvider?.refresh();
-                sessionProvider?.refresh();
+                engine.treeFactory.refreshKind('session');
             });
         }
-        sessionProvider = new SessionTreeProvider(scanner);
+        // Register session kind through the engine (reference application — SPEC_ENG_REGISTER_KIND AC-3)
+        const sessionKindConfig: EntityKindConfig = {
+            kind: 'session',
+            viewId: 'jarvisSessions',
+            folderSettingKey: 'jarvis.sessions.folder',
+            label: (name: string) => name,
+        };
+        sessionKindDisposable = engine.registerEntityKind(sessionKindConfig);
+        context.subscriptions.push(sessionKindDisposable);
+
+        const sessionTreeProvider = engine.treeFactory.getProvider('session')!;
         const sessionView = vscode.window.createTreeView('jarvisSessions', {
-            treeDataProvider: sessionProvider,
+            treeDataProvider: sessionTreeProvider,
             canSelectMany: false,
         });
         context.subscriptions.push(sessionView);
-        log.info('[CFG] Sessions feature enabled');
+        log.info('[CFG] Sessions feature enabled (via engine)');
     } else {
         log.info('[CFG] Sessions feature disabled');
     }
@@ -608,8 +635,8 @@ export function activate(context: vscode.ExtensionContext) {
     // Register rescan command (SPEC_EXP_RESCAN_CMD)
     // Requirements: REQ_EXP_RESCAN_BTN
     const rescanCommand = vscode.commands.registerCommand('jarvis.rescan', async () => {
-        if (!scanner) { return; }
-        await scanner.rescan();
+        if (scanner) { await scanner.rescan(); }
+        await kindDrivenScanner.rescan();
         log.info('[Scanner] manual rescan triggered');
     });
 
@@ -837,7 +864,8 @@ export function activate(context: vscode.ExtensionContext) {
                         `- One concise line per bullet. Prune aggressively.\n` +
                         `- Replace outdated bullets — never append logs.\n` +
                         `- Never store retries, raw tool output, or transient chatter.\n` +
-                        `- Before writing, ask: "Will this still matter in 2 weeks?" If no, skip.`;
+                        `- Before writing, ask: "Will this still matter in 2 weeks?" If no, skip.\n` +
+                        `- When a topic grows past ~5 bullets, move it to a dedicated file beside \`context.md\` and leave a one-line summary with a relative link in \`context.md\`.`;
                     const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : defaultInitPrompt;
                     const initPrompt = applyTemplate(initTemplate, { kind, name: entityForSend.name, contextPath });
                     await vscode.commands.executeCommand('workbench.action.chat.open', { query: initPrompt });
@@ -958,16 +986,6 @@ export function activate(context: vscode.ExtensionContext) {
             // 3. Nothing found
             vscode.window.showInformationMessage(
                 'No context.md found for this entity');
-        }
-    );
-
-    // Implementation: SPEC_EXP_ENTITY_ICONS (openRecording command)
-    const openRecordingCommand = vscode.commands.registerCommand(
-        'jarvis.openRecording',
-        (element: LeafNode) => {
-            const entityFolder = path.dirname(element.id);
-            const recordingFolder = path.join(entityFolder, 'recording');
-            vscode.commands.executeCommand('revealInExplorer', vscode.Uri.file(recordingFolder));
         }
     );
 
@@ -1204,9 +1222,9 @@ export function activate(context: vscode.ExtensionContext) {
             _options: vscode.LanguageModelToolInvocationOptions<Record<string, never>>,
             _token: vscode.CancellationToken
         ) => {
-            const sessions = scanner?.entities
+            const sessions = kindDrivenScanner.entities
                 .filter(e => e.kind === 'session')
-                .map(e => ({ name: e.name, summary: e.summary ?? '', agent: e.agent ?? '', folder: e.folder })) ?? [];
+                .map(e => ({ name: e.name, summary: e.summary ?? '', agent: e.agent ?? '', folder: e.folder }));
             log.info(`[SES] listSessions: ${sessions.length} session(s)`);
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(JSON.stringify({ sessions }))
@@ -1215,9 +1233,9 @@ export function activate(context: vscode.ExtensionContext) {
         'Returns all Jarvis session entities (YAML-based) with name, summary, agent, and folder path.',
         {},
         async () => {
-            const sessions = scanner?.entities
+            const sessions = kindDrivenScanner.entities
                 .filter(e => e.kind === 'session')
-                .map(e => ({ name: e.name, summary: e.summary ?? '', agent: e.agent ?? '', folder: e.folder })) ?? [];
+                .map(e => ({ name: e.name, summary: e.summary ?? '', agent: e.agent ?? '', folder: e.folder }));
             log.info(`[SES] listSessions(MCP): ${sessions.length} session(s)`);
             return { sessions };
         }
@@ -1603,6 +1621,8 @@ export function activate(context: vscode.ExtensionContext) {
                     : absDir;
                 return {
                     name: entity?.name ?? path.basename(absDir),
+                    summary: entity?.summary ?? '',
+                    agent: entity?.agent ?? '',
                     folder: rel.replace(/\\/g, '/')
                 };
             });
@@ -1611,7 +1631,7 @@ export function activate(context: vscode.ExtensionContext) {
                 new vscode.LanguageModelTextPart(JSON.stringify(projects))
             ]);
         },
-        'Returns the list of projects configured in the current Jarvis workspace. Each project has a name and folder path.',
+        'Returns the list of projects configured in the current Jarvis workspace. Each project has a name, summary, agent, and folder path.',
         {},
         async () => {
             const projectsFolder = vscode.workspace
@@ -1626,6 +1646,8 @@ export function activate(context: vscode.ExtensionContext) {
                     : absDir;
                 return {
                     name: entity?.name ?? path.basename(absDir),
+                    summary: entity?.summary ?? '',
+                    agent: entity?.agent ?? '',
                     folder: rel.replace(/\\/g, '/')
                 };
             });
@@ -2597,7 +2619,8 @@ export function activate(context: vscode.ExtensionContext) {
                             `- One concise line per bullet. Prune aggressively.\n` +
                             `- Replace outdated bullets — never append logs.\n` +
                             `- Never store retries, raw tool output, or transient chatter.\n` +
-                            `- Before writing, ask: "Will this still matter in 2 weeks?" If no, skip.`;
+                            `- Before writing, ask: "Will this still matter in 2 weeks?" If no, skip.\n` +
+                            `- When a topic grows past ~5 bullets, move it to a dedicated file beside \`context.md\` and leave a one-line summary with a relative link in \`context.md\`.`;
                         const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : defaultInitPrompt;
                         const initPrompt = applyTemplate(initTemplate, { kind, name: entityForPoll.name, contextPath });
                         await vscode.commands.executeCommand('workbench.action.chat.open', { query: initPrompt });
@@ -2709,7 +2732,6 @@ export function activate(context: vscode.ExtensionContext) {
         createProjectTool,
         createEventTool,
         listChatSessionsTool,
-        openRecordingCommand,
         categoryTool,
         taskTool,
         refreshCategoriesCommand,
@@ -2751,6 +2773,9 @@ export function activate(context: vscode.ExtensionContext) {
         }),
         { dispose: () => scanner?.stop() }
     );
+
+    // SPEC_ENG_API AC-1: activate() returns the JarvisCoreApi
+    return engine as JarvisCoreApi;
 }
 
 export async function deactivate() {

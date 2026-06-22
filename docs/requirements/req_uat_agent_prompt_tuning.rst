@@ -45,6 +45,19 @@ Agent Prompt Tuning UAT Requirements
      rendered output (T-5).
    * AC-6: The prompt SHALL work for ``kind=project``; the default template SHALL
      render with ``kind`` = ``project`` and the correct project name (T-6).
+   * AC-7: A test verifies that the default init prompt contains the
+     extract-overflow bullet (verbatim wording) as the last item of the
+     "Keep it minimal and action-oriented" discipline list (T-7).
+
+   **Test Scenario T-7 — Extract-overflow bullet presence:**
+
+   1. Default template active (no workspace override).
+   2. Create session via **Jarvis: Open Agent Session** on any entity.
+   3. Verify the auto-opened chat contains the bullet text
+      ``- When a topic grows past ~5 bullets, move it to a dedicated file beside
+      `context.md` and leave a one-line summary with a relative link in
+      `context.md`.`` as the last item of the "Keep it minimal and
+      action-oriented" list.
 
 
 .. req:: Notification Template UAT Requirements

@@ -5,11 +5,12 @@
     "outDir": "out",
     "lib": ["ES2022"],
     "sourceMap": true,
-    "rootDir": "src",
+    "rootDir": ".",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
+  "include": ["src/apps/**", "packages/core/src/**"],
   "exclude": ["node_modules", ".vscode-test", "vitest.config.ts", "src/tests"]
 }
