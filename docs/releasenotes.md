@@ -1,18 +1,43 @@
 # Release Notes
 
-## v0.7.1 — listProjects shape parity
+## v0.8.0 — Modular Install
 
-*2026-06-12*
+*2026-06-22*
 
-`jarvis_listProjects` output shape extended from `{name, folder}` to
-`{name, summary, agent, folder}`, matching `jarvis_listSessions`. Closes F-18
-from the v0.7.0 backlog. Change is additive/backward-compatible.
+Jarvis is now delivered as a lean core extension with optional add-ons. Install
+only what you need — the core (`enthali.jarvis`) ships sessions, messaging,
+reminders, and heartbeat with zero PIM or recorder surface. PIM and the
+meeting-minutes recorder are independent add-ons. Existing users keep all data
+and workflows with no manual migration.
+
+### New Features
+
+- **modular-install**: Jarvis ships as 4 independent VS Code extensions:
+  `enthali.jarvis` (core), `enthali.jarvis-pim` (email/tasks/calendar),
+  `enthali.jarvis-recorder` (meeting minutes), and `enthali.jarvis-mcp` (MCP
+  server). Each extension contributes only its own views, settings, commands,
+  and tools. The core alone provides a fully functional session/messaging/
+  heartbeat workspace with zero PIM or recorder clutter. A convenience
+  `enthali.jarvis-suite` extension pack installs all four.
 
 ### Improvements
 
 - **listprojects-shape-parity**: `jarvis_listProjects` now returns `summary`
   and `agent` alongside `name` and `folder`, giving all three entity list
-  tools a consistent output shape.
+  tools a consistent output shape. Closes F-18 from the v0.7.0 backlog.
+  Change is additive/backward-compatible.
+
+- **initprompt-extract-overflow**: Default agent-session initialization prompt
+  extended with a sixth discipline bullet — when a topic grows past ~5 bullets
+  in `context.md`, the agent moves it to a dedicated file and leaves a one-line
+  summary with a relative link. Provides a sanctioned path for knowledge that
+  deserves to persist but is too large for a single bullet.
+
+- **remove-open-recording-icon**: Dead `jarvis.openRecording` tree-item icon
+  and its `+recording` contextValue suffix removed from project, event, and
+  session tree items. The icon suggested a per-entity recording artifact that
+  does not exist; its removal reduces visual clutter. Recording start/stop
+  inline icons and the active-recording highlight are unchanged.
 
 ---
 
