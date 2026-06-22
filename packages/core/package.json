@@ -2,7 +2,7 @@
   "name": "jarvis",
   "displayName": "Jarvis",
   "description": "Jarvis core — sessions, messaging, reminders, heartbeat, engine",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "publisher": "enthali",
   "repository": {
     "type": "git",
@@ -26,8 +26,9 @@
   "types": "./out/engine/index.d.ts",
   "scripts": {
     "compile": "tsc -p ./",
+    "bundle": "node build.js",
     "package": "vsce package --no-dependencies",
-    "vscode:prepublish": "npm run compile"
+    "vscode:prepublish": "npm run compile && npm run bundle"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",

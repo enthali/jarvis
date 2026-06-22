@@ -87,7 +87,13 @@ export async function getAllSessions(): Promise<SessionInfo[]> {
         _log?.warn(`[sessionLookup] state.vscdb not found at: ${dbPath}`);
         return [];
     }
-    const SQL = await initSqlJs();
+    // In the packaged extension, build.js copies sql-wasm.wasm next to the bundled
+    // extension.js, so resolve it relative to this module. In dev (unbundled) the
+    // copy is absent, so fall back to sql.js's own default resolution.
+    const bundledWasm = path.join(__dirname, 'sql-wasm.wasm');
+    const SQL = fs.existsSync(bundledWasm)
+        ? await initSqlJs({ locateFile: (file: string) => path.join(__dirname, file) })
+        : await initSqlJs();
     const fileBuffer = fs.readFileSync(dbPath);
     const db = new SQL.Database(fileBuffer);
     try {

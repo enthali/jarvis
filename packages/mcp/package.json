@@ -2,7 +2,7 @@
   "name": "jarvis-mcp",
   "displayName": "Jarvis MCP",
   "description": "Jarvis MCP Server — exposes all registered Jarvis tools over MCP HTTP transport",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "publisher": "enthali",
   "engines": {
     "vscode": "^1.95.0"
@@ -16,8 +16,9 @@
   ],
   "scripts": {
     "compile": "tsc -p ./",
+    "bundle": "node build.js",
     "package": "vsce package --no-dependencies",
-    "vscode:prepublish": "npm run compile"
+    "vscode:prepublish": "npm run compile && npm run bundle"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

@@ -19,10 +19,17 @@ jobs:
         with:
           node-version: '22'
       - run: npm ci
-      - run: npm run compile
-      - run: npm run package
+      - run: npm run compile:packages
+      - name: Package all member extensions
+        run: |
+          mkdir -p dist
+          for pkg in core pim recorder mcp suite; do
+            ( cd "packages/$pkg" && npx vsce package --no-dependencies )
+            mv "packages/$pkg"/*.vsix dist/
+          done
+          ls -la dist
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: '*.vsix'
+          files: 'dist/*.vsix'
           generate_release_notes: true

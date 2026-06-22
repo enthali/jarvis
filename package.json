@@ -25,7 +25,7 @@
     "watch": "tsc -watch -p packages/core",
     "lint": "eslint src --ext ts",
     "test": "vitest run",
-    "package": "cd packages/core && npx vsce package"
+    "package": "cd packages/core && npx vsce package --no-dependencies"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
@@ -34,6 +34,7 @@
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
     "@vscode/vsce": "^3.0.0",
+    "esbuild": "^0.28.1",
     "eslint": "^9.0.0",
     "typescript": "^5.5.0",
     "vitest": "^4.1.7"

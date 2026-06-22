@@ -2,7 +2,7 @@
   "name": "jarvis-suite",
   "displayName": "Jarvis Suite",
   "description": "Install all Jarvis capabilities: core, PIM, recorder, and MCP server.",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "publisher": "enthali",
   "repository": {
     "type": "git",
