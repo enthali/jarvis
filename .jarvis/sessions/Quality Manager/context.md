@@ -32,3 +32,4 @@ Three files, strict separation of concerns:
 - Anti-drift / shared-validator claims: grep the validator name across `src/*.ts`, confirm every caller passes the shared dependency
 - BREAKING renames: verify the OLD name is GONE in code + package.json, not just the NEW name present
 - Artefakt-Removal-Check (b) active-docs class often misses `docs/releasenotes.md` — re-grep this file in every removal-CR review; classify hits as (c) historic stranding
+- Gate routing: gate signal (CLEAR/BLOCK) → CM; Findings Report → PM. CM asking QM to "report back" does NOT override this routing rule — CM gets the verdict, PM gets the findings.
