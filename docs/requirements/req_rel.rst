@@ -55,21 +55,27 @@ Release Requirements
 
 .. req:: Extension Packaging
    :id: REQ_REL_VSCEPKG
-   :status: implemented
+   :status: draft
    :priority: mandatory
    :links: US_REL_RELEASE
 
    **Description:**
-   The extension SHALL be packaged as a ``.vsix`` file using ``@vscode/vsce``.
-   The ``publisher`` field in ``package.json`` SHALL be set to ``enthali``.
+   Each code extension package SHALL be bundled with esbuild and packaged as a
+   ``.vsix`` file using ``@vscode/vsce --no-dependencies``.  Third-party runtime
+   dependencies SHALL be inlined into the bundle; ``node_modules/`` SHALL NOT be
+   shipped in the ``.vsix``.  The ``publisher`` field in each package's
+   ``package.json`` SHALL be ``enthali``.
 
    **Acceptance Criteria:**
 
    * AC-1: ``@vscode/vsce`` is listed as a devDependency
-   * AC-2: ``npm run package`` produces a ``.vsix`` file without errors
+   * AC-2: ``npm run package`` from the repository root produces a ``.vsix`` file
+     without errors
    * AC-3: ``publisher`` in ``package.json`` is ``enthali``
-   * AC-4: Runtime dependencies (``node_modules/``) SHALL be included in the
-     ``.vsix`` package — ``.vscodeignore`` SHALL NOT exclude ``node_modules/**``
+   * AC-4: The ``.vsix`` SHALL NOT contain any ``../../`` paths
+   * AC-5: The ``.vsix`` file size is reasonable (< 5 MB for core)
+   * AC-6: All existing tests pass after the build-system change
+   * AC-7: The F5 development host remains unaffected by the bundle step
 
 
 .. req:: Feature Branch Naming
