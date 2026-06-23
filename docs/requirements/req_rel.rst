@@ -250,3 +250,42 @@ Release Requirements
      is shown
    * AC-3: If already up to date, an information message reads
      ``"Jarvis is up to date (v{current})."``
+
+
+.. req:: Marketplace Metadata
+   :id: REQ_REL_MKTMETA
+   :status: draft
+   :priority: mandatory
+   :links: US_REL_MARKETPLACE
+
+   **Description:**
+   The ``packages/core/package.json`` SHALL include all fields required for a
+   well-formed Marketplace listing: icon, keywords, categories, and gallery banner.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``icon`` field references a valid 128×128 PNG relative to the package root
+   * AC-2: ``keywords`` contains at least five relevant terms
+   * AC-3: ``categories`` contains at least one valid VS Code Marketplace category
+   * AC-4: ``galleryBanner`` specifies ``color`` and ``theme``
+   * AC-5: ``packages/core/README.md`` exists and contains a user-facing description,
+     feature list, and basic usage instructions
+
+
+.. req:: Automated Marketplace Publish
+   :id: REQ_REL_MKTPUBLISH
+   :status: draft
+   :priority: mandatory
+   :links: US_REL_MARKETPLACE
+
+   **Description:**
+   The GitHub Actions release workflow SHALL publish the packaged ``.vsix`` to the
+   VS Code Marketplace after creating the GitHub Release, using the ``VSCE_PAT``
+   secret stored in the repository.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A ``vsce publish`` step runs after the GitHub Release step in ``release.yml``
+   * AC-2: The step uses the pre-built ``.vsix`` (``--packagePath``) to avoid double-bundling
+   * AC-3: The ``VSCE_PAT`` secret is passed as ``VSCE_PAT`` environment variable
+   * AC-4: The existing GitHub Release step is unchanged
