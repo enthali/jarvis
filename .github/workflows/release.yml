@@ -1,5 +1,5 @@
-# Implementation: SPEC_REL_RELEASEACTION
-# Requirements: REQ_REL_RELEASEACTION, REQ_REL_VSCEPKG
+# Implementation: SPEC_REL_RELEASEACTION, SPEC_REL_MKTPUBLISH
+# Requirements: REQ_REL_RELEASEACTION, REQ_REL_VSCEPKG, REQ_REL_MKTPUBLISH
 
 name: Release Extension
 
@@ -24,5 +24,9 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: '*.vsix'
+          files: 'packages/core/*.vsix'
           generate_release_notes: true
+      - name: Publish to VS Code Marketplace
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: npx vsce publish --packagePath packages/core/jarvis-*.vsix --no-dependencies

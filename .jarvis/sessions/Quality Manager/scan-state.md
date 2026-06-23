@@ -22,7 +22,11 @@ Updated after every cycle. Read this first to know where to pick up.
 | Change | Reviewed | MECE | Trace | Code-vs-Spec | UAT | Key Findings | PM Decision |
 |---|---|---|---|---|---|---|---|
 | remove-open-recording-icon | 2026-06-09 | PASS | PASS | PASS | T-1..T-5 auto ✓ / T-6..T-9 manual pending | F-1 MINOR: releasenotes Artefakt class; F-2 INFO: CR header stale; F-3 INFO: val-report missing pre-merge | pending |
-| modular-install | 2026-06-20 | L0 FAIL→PASS / L1 FAIL→advisory / L2 FAIL→advisory | PASS (all chains) | n/a | n/a | 4 blocking fixed by CM; 5 advisories accepted | QM CLEAR — proceed to merge |
+| modular-install | 2026-06-20 | L0 FAIL→PASS / L1 FAIL→advisory / L2 FAIL→advisory | PASS (all chains) | n/a | n/a | 4 blocking fixed by CM; 5 advisories accepted | QM CLEAR |
+| wsl2-session-lookup | 2026-06-22 | PASS | PASS | n/a | n/a | Advisory: REQ AC-10 silent on USERNAME-unset error (SPEC handles it) | QM CLEAR |
+| wsl2-artifacts | 2026-06-23 | n/a (doc-only) | n/a | PASS | TC-1..TC-3 auto ✓ / TC-4 manual pending | Advisory: TC-3 language loose on throw-vs-fallback | QM CLEAR |
+| ci-core-bundle | 2026-06-23 | PASS | PASS | n/a | n/a | Advisory: REQ AC-1/AC-3 (vsce devDep, publisher) not in SPEC ACs | QM CLEAR |
+| marketplace-publish | 2026-06-23 | PASS | PASS | PASS | n/a | F-1 MINOR: US→US :links: unconventional; F-2 MINOR: SPEC_MKTMETA AC-3 under-specifies README; F-3 MINOR: SPEC_RELEASEACTION code block stale (files glob) | QM CLEAR |
 
 ## Known Releases (at last scan)
 

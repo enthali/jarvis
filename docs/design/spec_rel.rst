@@ -164,7 +164,13 @@ Release Design Specifications
    :links: REQ_REL_RELEASEACTION
 
    **Description:**
-   Create ``.github/workflows/release.yml``:
+   Create ``.github/workflows/release.yml``.
+
+   .. note::
+
+      The complete current workflow (including the Marketplace publish step and the
+      corrected ``files`` glob) is documented in **SPEC_REL_MKTPUBLISH**.
+      This spec covers the original GitHub Release step only.
 
    .. code-block:: yaml
 
@@ -191,7 +197,7 @@ Release Design Specifications
             - name: Create GitHub Release
               uses: softprops/action-gh-release@v2
               with:
-                files: '*.vsix'
+                files: 'packages/core/*.vsix'
                 generate_release_notes: true
 
 
@@ -217,6 +223,112 @@ Release Design Specifications
    1. A `Decisions` table entry: `merge=squash`
    2. A `## Merge to main` section with the squash merge command and a note that
       feature branches must NOT be pushed to origin after merging.
+
+
+.. spec:: Marketplace Metadata in package.json
+   :id: SPEC_REL_MKTMETA
+   :status: draft
+   :links: REQ_REL_MKTMETA
+
+   **Description:**
+   ``packages/core/package.json`` SHALL include the following marketplace fields:
+
+   .. code-block:: json
+
+      {
+        "icon": "resources/jarvis-128.png",
+        "keywords": ["assistant", "productivity", "projects", "events", "sessions", "reminders", "heartbeat"],
+        "categories": ["Other"],
+        "galleryBanner": { "color": "#1e1e2e", "theme": "dark" }
+      }
+
+   * ``icon``: 128×128 PNG relative to the ``packages/core/`` root.
+     A placeholder PNG is committed to ``packages/core/resources/jarvis-128.png``.
+     A proper icon is a future improvement.
+   * ``keywords``: used by Marketplace search ranking.
+   * ``categories``: ``"Other"`` is the correct bucket for assistant/utility extensions.
+   * ``galleryBanner``: dark-theme banner matching the VS Code dark theme palette.
+
+   A user-facing ``packages/core/README.md`` SHALL exist with:
+
+   * A short description of Jarvis and its features
+   * Feature bullet list
+   * Basic usage / getting started instructions
+   * Link to the GitHub repository
+
+   **Acceptance Criteria (testable)**
+
+   * AC-1: ``packages/core/package.json`` contains ``icon``, ``keywords``, ``categories``, ``galleryBanner``
+   * AC-2: ``packages/core/resources/jarvis-128.png`` exists and is a valid 128×128 PNG
+   * AC-3: ``packages/core/README.md`` exists and contains all three required
+     sections: (1) a user-facing description with feature list,
+     (2) a getting-started / usage section, and (3) a link to the GitHub repository
+   * AC-4: ``vsce package --no-dependencies`` still succeeds after these additions
+
+
+.. spec:: CI Marketplace Publish Step
+   :id: SPEC_REL_MKTPUBLISH
+   :status: draft
+   :links: REQ_REL_MKTPUBLISH
+
+   **Description:**
+   ``.github/workflows/release.yml`` SHALL be extended with a publish step after the
+   GitHub Release step:
+
+   .. code-block:: yaml
+
+      - name: Publish to VS Code Marketplace
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: npx vsce publish --packagePath packages/core/jarvis-*.vsix --no-dependencies
+
+   * Uses ``--packagePath`` to publish the already-built VSIX — no double-bundle.
+   * ``VSCE_PAT`` is read from the ``VSCE_PAT`` repository secret.
+   * The GitHub Release step above remains unchanged.
+
+   **Updated ``release.yml``:**
+
+   .. code-block:: yaml
+
+      name: Release Extension
+
+      on:
+        push:
+          tags: ['v*']
+
+      permissions:
+        contents: write
+
+      jobs:
+        release:
+          runs-on: ubuntu-latest
+          steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                node-version: '22'
+            - run: npm ci
+            - run: npm run compile
+            - run: npm run package
+            - name: Create GitHub Release
+              uses: softprops/action-gh-release@v2
+              with:
+                files: 'packages/core/*.vsix'
+                generate_release_notes: true
+            - name: Publish to VS Code Marketplace
+              env:
+                VSCE_PAT: ${{ secrets.VSCE_PAT }}
+              run: npx vsce publish --packagePath packages/core/jarvis-*.vsix --no-dependencies
+
+   Note: ``files: 'packages/core/*.vsix'`` is updated from ``'*.vsix'`` to reflect
+   the actual VSIX location in the monorepo.
+
+   **Acceptance Criteria (testable)**
+
+   * AC-1: ``.github/workflows/release.yml`` contains the ``Publish to VS Code Marketplace`` step
+   * AC-2: The step uses ``--packagePath`` pointing to ``packages/core/jarvis-*.vsix``
+   * AC-3: The ``VSCE_PAT`` env var is sourced from ``secrets.VSCE_PAT``
+   * AC-4: The Create GitHub Release step ``files`` pattern is ``packages/core/*.vsix``
 
    <!-- Implementation: SPEC_REL_AGENTPOLICY -->
    <!-- Requirements: REQ_REL_AGENTPOLICY -->

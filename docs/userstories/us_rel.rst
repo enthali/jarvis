@@ -94,3 +94,26 @@ Release User Stories
      already up to date, an informational message confirms this
    * AC-5: A setting ``jarvis.checkForUpdates`` (default ``true``) controls whether the
      automatic check runs at activation; the manual command works regardless
+
+
+.. story:: VS Code Marketplace Discoverability
+   :id: US_REL_MARKETPLACE
+   :status: draft
+   :priority: mandatory
+
+   *Context: Complements US_REL_RELEASE (GitHub Releases) by adding a second
+   distribution channel. The GitHub Releases auto-update path must remain
+   unchanged.*
+
+   **As a** VS Code user,
+   **I want** to find and install Jarvis directly from the VS Code Marketplace,
+   **so that** I can discover and install it without visiting GitHub or downloading a
+   ``.vsix`` manually.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``enthali.jarvis`` is searchable on the VS Code Marketplace by name and keyword
+   * AC-2: The extension page shows a meaningful description, icon, and repository link
+   * AC-3: After a release tag is pushed, the CI automatically publishes the new version
+     to the Marketplace without manual intervention
+   * AC-4: The existing GitHub Releases auto-update path continues to work unchanged
