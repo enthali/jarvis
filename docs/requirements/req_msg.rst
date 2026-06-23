@@ -101,7 +101,7 @@ Message Queue Requirements
 
 .. req:: Session UUID Lookup via state.vscdb
    :id: REQ_MSG_SESSIONLOOKUP
-   :status: draft
+   :status: approved
    :priority: optional
    :links: US_MSG_CHATQUEUE; US_MSG_REMOTECOMPAT
 
@@ -133,6 +133,15 @@ Message Queue Requirements
      SHALL emit a warning via the Jarvis log channel and return an empty list
    * AC-9: When the extension runs in a standard (non-remote) workspace, the
      existing session lookup behavior SHALL be unaffected
+   * AC-10: When the extension host runs in a **WSL2** environment, the module
+     SHALL detect WSL2 by reading ``/proc/version`` and checking for the string
+     ``"microsoft"`` (case-insensitive). It SHALL derive the Windows user data
+     path as ``/mnt/c/Users/<USERNAME>/AppData/Roaming/Code/User`` where
+     ``<USERNAME>`` is taken from the ``USERNAME`` environment variable. The
+     workspace hash extraction is unchanged.
+   * AC-11: ``lookupSessionUUID('My Session')`` SHALL return the correct UUID
+     when VS Code is running in WSL2 remote mode with the workspace on the
+     Linux filesystem
 
 
 .. req:: Named Session Filter

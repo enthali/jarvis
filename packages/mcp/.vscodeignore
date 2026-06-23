@@ -2,6 +2,7 @@
 src/**
 node_modules/**
 tsconfig.json
+build.js
 **/*.map
 **/*.ts
 !out/**

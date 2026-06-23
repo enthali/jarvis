@@ -322,7 +322,7 @@ Message Queue Design Specifications
 
 .. spec:: Session UUID Resolver
    :id: SPEC_MSG_SESSIONLOOKUP
-   :status: draft
+   :status: approved
    :links: REQ_MSG_SESSIONLOOKUP
 
    **Description:**
@@ -364,13 +364,54 @@ Message Queue Design Specifications
    when ``storageUri`` is a remote URI because only the last path segment (the
    hash) is used.
 
+   **WSL2 path resolution:**
+
+   In **WSL2 remote** mode the extension host runs on Linux, so
+   ``globalStorageUri.fsPath`` resolves to the WSL2 path (e.g.
+   ``/home/<user>/.vscode-server/data/User/globalStorage/...``). However,
+   VS Code's ``state.vscdb`` lives on the **Windows host** and is accessible
+   from WSL2 at ``/mnt/c/Users/<USERNAME>/AppData/Roaming/Code/User/workspaceStorage/<hash>/state.vscdb``.
+
+   The ``resolveUserDataPath(globalStorageUri)`` helper handles this:
+
+   1. **Detect WSL2** — read ``/proc/version`` synchronously; if it contains
+      ``"microsoft"`` (case-insensitive), the environment is WSL2.
+   2. **WSL2 branch** — derive the Windows username from the ``USERNAME``
+      environment variable (``process.env.USERNAME``). Construct the user data
+      path as ``/mnt/c/Users/<USERNAME>/AppData/Roaming/Code/User``.
+   3. **Non-WSL2 branch** — use the existing logic:
+      ``path.resolve(globalStorageUri.fsPath, '../..')``.
+
+   The workspace hash extraction (``path.basename(path.dirname(storageUri.fsPath))``)
+   is unchanged — it is the same hash on both sides.
+
    .. code-block:: typescript
 
       let _stateVscdbPath: string | undefined;
 
+      function isWSL2(): boolean {
+        try {
+          const version = fs.readFileSync('/proc/version', 'utf-8');
+          return /microsoft/i.test(version);
+        } catch {
+          return false;
+        }
+      }
+
+      function resolveUserDataPath(globalStorageUri: vscode.Uri): string {
+        if (isWSL2()) {
+          const username = process.env.USERNAME;
+          if (!username) {
+            throw new Error('WSL2 detected but USERNAME env var is not set');
+          }
+          return `/mnt/c/Users/${username}/AppData/Roaming/Code/User`;
+        }
+        return path.resolve(globalStorageUri.fsPath, '../..');
+      }
+
       function initSessionLookup(storageUri: vscode.Uri, globalStorageUri: vscode.Uri): void {
         const hash = path.basename(path.dirname(storageUri.fsPath));
-        const userDataPath = path.resolve(globalStorageUri.fsPath, '../..');
+        const userDataPath = resolveUserDataPath(globalStorageUri);
         _stateVscdbPath = path.join(userDataPath, 'workspaceStorage', hash, 'state.vscdb');
       }
 
@@ -456,6 +497,13 @@ Message Queue Design Specifications
      always a local path; two levels up yields ``userDataPath``; the workspace
      hash is extracted from ``storageUri.fsPath`` (basename of parent of
      extensionId segment) and used to reconstruct the local path
+   * **WSL2 compatibility** — in WSL2 the extension host runs on Linux but
+     ``state.vscdb`` lives on the Windows host. ``resolveUserDataPath()``
+     detects WSL2 via ``/proc/version`` containing ``"microsoft"``
+     (case-insensitive) and constructs the path as
+     ``/mnt/c/Users/<USERNAME>/AppData/Roaming/Code/User`` using the
+     ``USERNAME`` environment variable. ``APPDATA`` is not available in this
+     environment, hence ``USERNAME`` is used instead
    * **Live read, no caching** — the DB is small and the read is fast; caching
      would introduce staleness bugs when sessions are renamed or deleted
    * **``sql.js``** — pure JavaScript/WASM SQLite implementation. Does not

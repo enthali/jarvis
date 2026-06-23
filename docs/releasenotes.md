@@ -1,5 +1,25 @@
 # Release Notes
 
+## v0.9.0 — CI Fix + WSL2 Session Lookup
+
+*2026-06-23*
+
+### Improvements
+
+- **ci-core-bundle**: Fixes the broken CI pipeline introduced by v0.8.0
+  modularization. `packages/core` is now bundled with esbuild, inlining all
+  third-party runtime dependencies (`cron-parser`, `js-yaml`, `sql.js`).
+  Packaging uses `vsce package --no-dependencies`, eliminating the
+  `../../node_modules/…` path errors from npm-workspaces hoisting. The
+  resulting vsix is ~425 KB.
+
+- **wsl2-session-lookup**: `lookupSessionUUID` now correctly resolves the
+  session database in WSL2 remote environments. When running in WSL2, the
+  extension detects the remote via `/proc/version` and maps the Windows host
+  path through `/mnt/c/Users/<USERNAME>/AppData/Roaming/Code/User/` instead
+  of the unreachable Linux `globalStorageUri` path. Prevents duplicate sessions
+  on `sendToSession` calls from WSL2.
+
 ## v0.8.0 — Modular Install
 
 *2026-06-22*

@@ -14,26 +14,105 @@ Release Design Specifications
 
 .. spec:: Extension Packaging Setup
    :id: SPEC_REL_VSCEPKG
-   :status: implemented
+   :status: draft
    :links: REQ_REL_VSCEPKG
 
    **Description:**
-   Configure ``package.json`` for packaging:
 
-   * ``"publisher": "enthali"``
-   * Add devDependency: ``"@vscode/vsce": "^3.0.0"``
-   * Add script: ``"package": "vsce package"``
+   In the npm-workspaces monorepo, ``vsce package`` without ``--no-dependencies``
+   traverses hoisted production dependencies to paths outside the package root
+   (``../../node_modules/…``), which vsce rejects.  The solution is to **bundle**
+   each code extension with esbuild so all runtime deps are inlined, then package
+   with ``vsce package --no-dependencies``.
 
-   Run ``npm install`` to update ``package-lock.json``.
-   Verify with ``npm run package`` — produces ``jarvis-<version>.vsix``.
+   This spec covers the **core** package (``packages/core``) only.
 
-   **``.vscodeignore`` constraints:**
+   **1. Bundle script — ``packages/core/build.js``**
 
-   The ``.vscodeignore`` file controls which files are excluded from the
-   ``.vsix`` package.  Because Jarvis does **not** use a bundler (no webpack,
-   no esbuild), runtime dependencies in ``node_modules/`` must be shipped
-   inside the package.  Therefore ``node_modules/**`` SHALL NOT appear in
-   ``.vscodeignore``.
+   An esbuild-based Node script that:
+
+   * Entry point: ``src/extension.ts``
+   * Output: ``out/extension.js`` (CommonJS, platform ``node``, target ``node20``)
+   * Externals: ``vscode`` (always provided by the host)
+   * Inlined: ``cron-parser``, ``js-yaml``, ``sql.js`` (all third-party runtime deps)
+   * Source maps: enabled
+   * Minification: optional (``--minify`` flag)
+   * Watch mode: optional (``--watch`` flag)
+   * WASM handling: after the build, copies
+     ``<repo-root>/node_modules/sql.js/dist/sql-wasm.wasm`` to ``out/sql-wasm.wasm``
+
+   **2. ``sql.js`` WASM runtime resolution**
+
+   ``sql.js`` requires a WebAssembly binary (``sql-wasm.wasm``) at runtime.
+   esbuild cannot bundle ``.wasm`` files, so ``build.js`` copies the WASM next to
+   the output bundle.  The source code (``engine/sessionLookup.ts``) uses a
+   conditional ``locateFile`` override:
+
+   .. code-block:: typescript
+
+      const bundledWasm = path.join(__dirname, 'sql-wasm.wasm');
+      const SQL = fs.existsSync(bundledWasm)
+          ? await initSqlJs({ locateFile: (file: string) => path.join(__dirname, file) })
+          : await initSqlJs();
+
+   * **Packaged extension** (``out/extension.js``): ``__dirname`` resolves to
+     ``out/``, the copied WASM is found → ``locateFile`` override used.
+   * **Dev host (F5)**: the code runs from ``out/`` compiled by ``tsc`` where no
+     WASM copy exists → ``fs.existsSync`` returns false → ``initSqlJs()`` default
+     resolution (from ``node_modules/sql.js/dist/``) is used.  Dev host is
+     unaffected.
+
+   **3. ``packages/core/package.json`` scripts**
+
+   .. code-block:: json
+
+      "scripts": {
+        "compile": "tsc -p ./",
+        "bundle": "node build.js",
+        "vscode:prepublish": "npm run compile && npm run bundle",
+        "package": "vsce package --no-dependencies"
+      }
+
+   * ``vscode:prepublish``: runs TypeScript compilation followed by the esbuild
+     bundle.  vsce invokes this automatically before packaging.
+   * ``package``: calls vsce with ``--no-dependencies`` so no dependency traversal
+     occurs.
+
+   **4. ``packages/core/.vscodeignore``**
+
+   Excludes from the VSIX:
+
+   * ``src/**`` — TypeScript sources
+   * ``build.js`` — build tooling
+   * ``node_modules/**`` — all deps are inlined in the bundle
+   * ``tsconfig.json`` — build config
+   * ``**/*.map`` — source maps
+   * ``**/*.ts`` (with ``!out/**/*.d.ts`` exception for type declarations if needed)
+
+   Includes in the VSIX:
+
+   * ``out/`` — bundled extension + WASM
+   * ``resources/`` — icons, assets
+   * ``schemas/`` — JSON schemas
+   * ``package.json``, ``README.md``
+
+   **5. Root ``package.json`` ``"package"`` script**
+
+   .. code-block:: json
+
+      "package": "cd packages/core && npx vsce package --no-dependencies"
+
+   Core-only for this change.  Multi-package packaging is deferred to a future CR.
+
+   **6. Acceptance Criteria (testable)**
+
+   * AC-1: ``npm run package`` from repo root completes without error and produces
+     exactly one ``jarvis-<version>.vsix`` under ``packages/core/``
+   * AC-2: The VSIX contains no ``../../`` paths
+   * AC-3: VSIX file size < 5 MB
+   * AC-4: All 148 tests still pass after the build change
+   * AC-5: F5 (Run Core) launches the extension without bundling errors (dev host
+     unaffected)
 
 
 .. spec:: Docs GitHub Actions Workflow

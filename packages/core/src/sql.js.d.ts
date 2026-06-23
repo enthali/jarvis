@@ -13,6 +13,10 @@ declare module 'sql.js' {
         close(): void;
     }
 
-    function initSqlJs(): Promise<SqlJsStatic>;
+    interface SqlJsConfig {
+        locateFile?: (file: string) => string;
+    }
+
+    function initSqlJs(config?: SqlJsConfig): Promise<SqlJsStatic>;
     export default initSqlJs;
 }
