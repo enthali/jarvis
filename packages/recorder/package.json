@@ -9,7 +9,7 @@
   },
   "main": "./out/extension.js",
   "extensionDependencies": [
-    "enthali.jarvis"
+    "enthali.jarvis-core"
   ],
   "activationEvents": [
     "onStartupFinished"
@@ -25,7 +25,7 @@
     "typescript": "^5.5.0"
   },
   "dependencies": {
-    "jarvis": "*"
+    "jarvis-core": "*"
   },
   "contributes": {
     "commands": [

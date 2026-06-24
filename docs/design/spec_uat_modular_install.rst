@@ -92,7 +92,7 @@ Modular Delivery UAT Design Specifications
 
           *AC: REQ_MOD_ADDONS 1-2*
         - Attempt to activate an add-on without the core installed.
-        - ``extensionDependencies`` blocks activation without ``enthali.jarvis``.
+        - ``extensionDependencies`` blocks activation without ``enthali.jarvis-core``.
 
       * - T-8
 

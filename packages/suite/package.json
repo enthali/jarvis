@@ -16,7 +16,7 @@
     "Extension Packs"
   ],
   "extensionPack": [
-    "enthali.jarvis",
+    "enthali.jarvis-core",
     "enthali.jarvis-pim",
     "enthali.jarvis-recorder",
     "enthali.jarvis-mcp"

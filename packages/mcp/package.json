@@ -9,7 +9,7 @@
   },
   "main": "./out/extension.js",
   "extensionDependencies": [
-    "enthali.jarvis"
+    "enthali.jarvis-core"
   ],
   "activationEvents": [
     "onStartupFinished"
@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "jarvis": "*"
+    "jarvis-core": "*"
   },
   "contributes": {
     "configuration": [

@@ -3,7 +3,7 @@
 
 import * as vscode from 'vscode';
 import * as path from 'path';
-import type { TreeItemDecorator, TreeNode } from 'jarvis';
+import type { TreeItemDecorator, TreeNode } from 'jarvis-core';
 import type { TaskService } from './TaskService';
 import type { Task } from './ITaskProvider';
 

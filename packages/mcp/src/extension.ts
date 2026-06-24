@@ -2,7 +2,7 @@
 // MCP extension — serves the aggregate tool registry over MCP HTTP transport.
 
 import * as vscode from 'vscode';
-import type { JarvisCoreApi, ToolDescriptor } from 'jarvis';
+import type { JarvisCoreApi, ToolDescriptor } from 'jarvis-core';
 import { startMcpServer, stopMcpServer } from './mcpServer';
 import type { McpToolDescriptor } from './mcpServer';
 
@@ -80,9 +80,9 @@ export function activate(context: vscode.ExtensionContext): void {
     const log = vscode.window.createOutputChannel('Jarvis MCP', { log: true });
     context.subscriptions.push(log);
 
-    const coreExt = vscode.extensions.getExtension('enthali.jarvis');
+    const coreExt = vscode.extensions.getExtension('enthali.jarvis-core');
     if (!coreExt) {
-        log.error('[MCP] Jarvis core extension (enthali.jarvis) not found');
+        log.error('[MCP] Jarvis core extension (enthali.jarvis-core) not found');
         return;
     }
 

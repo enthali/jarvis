@@ -106,7 +106,7 @@ export interface TreeItemDecorator {
 
 /**
  * The public API surface exported by the Jarvis core extension.
- * Add-ons obtain this via `vscode.extensions.getExtension('enthali.jarvis')!.exports`.
+ * Add-ons obtain this via `vscode.extensions.getExtension('enthali.jarvis-core')!.exports`.
  */
 export interface JarvisCoreApi {
     /** Contract version — add-ons MUST check before using newer fields. */

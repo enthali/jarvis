@@ -4,7 +4,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import type { JarvisCoreApi, TreeNode, LeafNode } from 'jarvis';
+import type { JarvisCoreApi, TreeNode, LeafNode } from 'jarvis-core';
 import { buildProjectKindConfig } from './projectKind';
 import { buildEventKindConfig } from './eventKind';
 import { TaskBadgeDecorator } from './taskBadgeDecorator';
@@ -118,7 +118,7 @@ export function activate(context: vscode.ExtensionContext): void {
     context.subscriptions.push(log);
 
     // Acquire the core engine API
-    const coreExt = vscode.extensions.getExtension('enthali.jarvis');
+    const coreExt = vscode.extensions.getExtension('enthali.jarvis-core');
     const rawApi = coreExt?.exports as JarvisCoreApi | undefined;
     if (!rawApi || rawApi.version !== 1) {
         log.error('[PIM] Jarvis core API not available or version mismatch — PIM will not activate.');

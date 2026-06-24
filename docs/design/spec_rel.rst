@@ -326,9 +326,74 @@ Release Design Specifications
    **Acceptance Criteria (testable)**
 
    * AC-1: ``.github/workflows/release.yml`` contains the ``Publish to VS Code Marketplace`` step
-   * AC-2: The step uses ``--packagePath`` pointing to ``packages/core/jarvis-*.vsix``
+   * AC-2: The step uses ``--packagePath`` pointing to ``packages/core/jarvis-core-*.vsix``
    * AC-3: The ``VSCE_PAT`` env var is sourced from ``secrets.VSCE_PAT``
-   * AC-4: The Create GitHub Release step ``files`` pattern is ``packages/core/*.vsix``
+   * AC-4: The Create GitHub Release step ``files`` pattern covers all VSIX locations
+
+   .. note::
+      The complete current workflow (including all add-on publish steps and the
+      ``packages/core-gh`` legacy build) is described in **SPEC_REL_COREGH**.
+
+
+.. spec:: Legacy GitHub Release Package (enthali.jarvis)
+   :id: SPEC_REL_COREGH
+   :status: draft
+   :links: REQ_REL_RELEASEACTION
+
+   **Description:**
+   ``packages/core-gh/`` is a thin packaging-only directory that produces the
+   legacy ``enthali.jarvis`` VSIX for GitHub Releases, sharing the compiled bundle
+   from ``packages/core/``.
+
+   **Directory layout (committed):**
+
+   .. code-block:: text
+
+      packages/core-gh/
+        package.json        ← name="jarvis", same contributes as core
+        README.md           ← explains legacy status, links to jarvis-core
+        .vscodeignore       ← excludes *.map, *.d.ts
+        resources/          ← jarvis.svg, jarvis-128.png (copies from core)
+        schemas/            ← session.schema.json (copy from core)
+        # out/ is NOT committed; CI copies it from packages/core/out/ at release time
+
+   **Key rules:**
+
+   * ``packages/core-gh/`` has **no** ``src/``, **no** ``build.js``, **no** ``vscode:prepublish``.
+     The extension behaviour is 100% determined by ``out/extension.js`` copied from core.
+   * The ``contributes`` block in ``core-gh/package.json`` MUST be kept in sync with
+     ``core/package.json`` whenever commands, views, or settings are added to core.
+     (This constraint is removed once ``core-gh`` is EOL'd in a future CR.)
+   * ``enthali.jarvis`` is NOT published to the Marketplace — GitHub Release upload only.
+
+   **CI steps for core-gh packaging (in release.yml):**
+
+   .. code-block:: yaml
+
+      - name: Copy bundle to core-gh
+        run: |
+          mkdir -p packages/core-gh/out
+          cp packages/core/out/extension.js packages/core-gh/out/extension.js
+          cp packages/core/out/sql-wasm.wasm packages/core-gh/out/sql-wasm.wasm
+      - name: Package enthali.jarvis (legacy)
+        run: cd packages/core-gh && npx vsce package --no-dependencies
+
+   **Complete release.yml CI sequence:**
+
+   1. ``npm ci`` + ``npm run compile`` + esbuild bundle (core)
+   2. Package ``enthali.jarvis-core`` from ``packages/core/``
+   3. Copy bundle → ``packages/core-gh/out/`` + package ``enthali.jarvis``
+   4. Package add-ons (``pim``, ``recorder``, ``mcp``) — each runs own ``vscode:prepublish``
+   5. GitHub Release — upload all VSIXs (core, core-gh, pim, recorder, mcp)
+   6. Marketplace publish — ``jarvis-core`` + add-ons only (NOT ``jarvis``)
+
+   **Acceptance Criteria (testable)**
+
+   * AC-1: ``packages/core-gh/`` directory exists with ``package.json``, ``README.md``, ``resources/``, ``schemas/``
+   * AC-2: ``packages/core-gh/package.json`` ``name`` is ``"jarvis"``; no ``vscode:prepublish``
+   * AC-3: After copying ``out/`` from core, ``cd packages/core-gh && vsce package --no-dependencies`` succeeds
+   * AC-4: ``enthali.jarvis`` VSIX is uploaded to GitHub Release
+   * AC-5: ``enthali.jarvis`` VSIX is NOT in any marketplace publish step
 
    <!-- Implementation: SPEC_REL_AGENTPOLICY -->
    <!-- Requirements: REQ_REL_AGENTPOLICY -->

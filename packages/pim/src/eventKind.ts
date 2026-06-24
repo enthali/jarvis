@@ -2,7 +2,7 @@
 // Requirements: REQ_ENG_TREEFACTORY
 
 import * as vscode from 'vscode';
-import type { EntityKindConfig, SubtreeNode } from 'jarvis';
+import type { EntityKindConfig, SubtreeNode } from 'jarvis-core';
 import type { TaskService } from './TaskService';
 import type { Task } from './ITaskProvider';
 

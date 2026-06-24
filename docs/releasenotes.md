@@ -6,14 +6,14 @@
 
 ### New Features
 
-- **marketplace-publish**: `enthali.jarvis` is now published to the VS Code
+- **marketplace-publish / extension-rename**: `enthali.jarvis-core` is now published to the VS Code
   Marketplace. Users can find and install Jarvis directly from the Extensions
   view without visiting GitHub or downloading a `.vsix` manually. The extension
   page shows a description, icon, keywords, and a link to the repository.
   The CI release workflow now runs `vsce publish` automatically after each
   release tag is pushed — every future release reaches the marketplace without
-  manual intervention. The existing GitHub Releases auto-update path is
-  unchanged.
+  manual intervention. The existing GitHub Releases auto-update path (`enthali.jarvis`)
+  is unchanged.
 
 ## v0.9.0 — CI Fix + WSL2 Session Lookup
 
