@@ -94,6 +94,11 @@ Release User Stories
      already up to date, an informational message confirms this
    * AC-5: A setting ``jarvis.checkForUpdates`` (default ``true``) controls whether the
      automatic check runs at activation; the manual command works regardless
+   * AC-6: The "Download & Install" flow updates exactly the ``enthali.jarvis*``
+     extensions the user currently has installed — each gets the VSIX that corresponds
+     to its extension ID; a single "Reload Now" prompt follows once all are installed
+   * AC-7: If no installed ``enthali.jarvis*`` extension matches any asset in the
+     release, the release page is opened as fallback (no silent failure)
 
 
 .. story:: VS Code Marketplace Discoverability

@@ -22,12 +22,122 @@ The current auto-updater in `packages/core/src/engine/updateCheck.ts` uses `rele
 
 | ID | Title | Impact | Notes |
 |----|-------|--------|-------|
-| US_xxx | ... | modified | ... |
+| US_REL_SELFUPDATE | Self-Update Check | modified | AC-6 and AC-7 added |
 
 ### New User Stories
 
-| ID | Title | Priority |
-|----|-------|----------|
+None — change fits under existing `US_REL_SELFUPDATE`.
+
+### Decisions
+
+- No new US needed; selective install is a correctness fix to the existing user goal ("always run the latest version"), not a new capability.
+
+### Horizontal Check (MECE)
+
+- [x] No contradictions with existing User Stories
+- [x] No redundancies
+- [x] Gaps identified and addressed
+
+---
+
+## Level 1: Requirements
+
+**Status**: ✅ completed
+
+### Impacted Requirements
+
+| ID | Linked From | Impact | Notes |
+|----|-------------|--------|-------|
+| REQ_REL_UPDATEINSTALL | US_REL_SELFUPDATE | modified | Rewritten; now specifies selective install with ID→VSIX mapping |
+| REQ_REL_UPDATENOTIFY | US_REL_SELFUPDATE | modified | AC-3 updated to reference selective flow |
+
+### New Requirements
+
+None.
+
+### Conflicts Detected
+
+None. Old AC-1 ("first `.vsix` asset") replaced — no prior requirement depended on it being first.
+
+### Decisions
+
+- ID→filename mapping is captured in the REQ as a normative table so QM can verify it in code without reading implementation.
+- AC-5 replaces old AC-5 ("no `.vsix`") with the richer fallback condition (no *matching* asset for any installed extension).
+
+### Horizontal Check (MECE)
+
+- [x] No contradictions
+- [x] No redundancies
+- [x] All REQs link to User Stories
+
+---
+
+## Level 2: Design
+
+**Status**: ✅ completed
+
+### Impacted Design Elements
+
+| ID | Linked From | Impact | Notes |
+|----|-------------|--------|-------|
+| SPEC_REL_UPDATENOTIFY | REQ_REL_UPDATENOTIFY; REQ_REL_UPDATEINSTALL | modified | "Download & Install" handler rewritten with selective logic + mapping table |
+
+### New Design Elements
+
+None.
+
+### Conflicts Detected
+
+None.
+
+### Decisions
+
+- `vscode.extensions.all` filtered by `id.startsWith('enthali.jarvis')` — avoids coupling to a hardcoded list of extension IDs while remaining scoped to Jarvis extensions.
+- Mapping table is hardcoded in `updateCheck.ts` (mirrors the table in SPEC); adding a new extension requires updating both the spec table and the code map — explicit and reviewable.
+- Single `withProgress` covers all downloads; each install runs sequentially to avoid VS Code install-extension race conditions.
+- Cleanup (`fs.unlink`) runs per-file immediately after install, not batched.
+
+### Horizontal Check (MECE)
+
+- [x] No contradictions with existing Designs
+- [x] All SPECs link to Requirements
+
+---
+
+## Final Consistency Check
+
+**Status**: ✅ passed
+
+### Traceability Verification
+
+| User Story | Requirements | Design | Complete? |
+|------------|--------------|--------|-----------|
+| US_REL_SELFUPDATE (AC-6, AC-7) | REQ_REL_UPDATEINSTALL (rewritten), REQ_REL_UPDATENOTIFY (AC-3) | SPEC_REL_UPDATENOTIFY (handler rewritten) | ✅ |
+
+### Artefakt-Removal-Check
+
+Old logic `release.assets.find(a => a.name.endsWith('.vsix'))` removed from `updateCheck.ts`.
+
+Grep for `endsWith('.vsix')` and `endsWith(".vsix")`:
+
+| Removed Artefact | Class (a): Code/Workflow refs | Class (b): Doc refs | Class (c): Historic Change Docs |
+|---|---|---|---|
+| `find(a => a.name.endsWith('.vsix'))` | none — removed from updateCheck.ts | none — SPEC_REL_UPDATENOTIFY updated | `v0.2.0/val-self-update.md` line 41 references old AC-1 — acceptable historic stranding |
+
+- [x] All class (a) active code/workflow references fixed in this CR
+- [x] All class (b) active documentation references fixed in this CR
+- [x] Class (c) historical Change Documents accepted as acceptable historic stranding
+
+### Issues Found
+
+None.
+
+### Sign-off
+
+- [x] All levels completed
+- [x] All conflicts resolved
+- [x] Traceability verified
+- [x] Ready for implementation
 | SYSPILOT_US_NEW_1 | As a..., I want..., so that... | mandatory |
 
 ### Decisions
