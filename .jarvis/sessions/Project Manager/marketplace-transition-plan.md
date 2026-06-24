@@ -1,4 +1,4 @@
-# Marketplace Transition Plan — enthali.jarvis → enthali.<newname>
+# Marketplace Transition Plan — enthali.jarvis → enthali.jarvis-core
 
 *Created: 2026-06-23*
 

@@ -1,5 +1,30 @@
 # Release Notes
 
+## v0.11.1 — Extension Package Contract + CI Fix
+
+*2026-06-24*
+
+### Fixes
+
+- **extension-pkg-contract**: Fixes the broken v0.11.0 CI caused by missing `build.js` scripts
+  in the `jarvis-pim`, `jarvis-recorder`, and `jarvis-mcp` add-on packages. Each add-on now
+  has an esbuild `build.js` that satisfies the new `SPEC_REL_PKGCONTRACT` spec element.
+  `vsce package --no-dependencies` succeeds for all add-ons and the CI release pipeline
+  completes end-to-end without error.
+
+### Spec
+
+- **extension-pkg-contract**: Introduces `SPEC_REL_PKGCONTRACT` — a reusable specification
+  element that defines the mandatory structural prerequisites for every publishable Jarvis
+  extension package: an esbuild `build.js`, a `.vscodeignore`, a `vscode:prepublish` script
+  invoking compile + bundle, and the required VS Code Marketplace `package.json` fields.
+  All per-package specs (`SPEC_MOD_CORE_PKG`, `SPEC_MOD_PIM_PKG`, `SPEC_MOD_REC_PKG`,
+  `SPEC_MOD_MCP_PKG`) link to this contract. Future packages are spec-compliant from day one.
+
+- **extension-rename** *(retroactive archive)*: The `extension-rename` change document was
+  not removed from the `docs/changes/` root after the v0.11.0 back-merge. It is archived
+  here as a housekeeping action; no functional change.
+
 ## v0.11.0 — Dual-VSIX CI + Marketplace Identity
 
 *2026-06-24*
