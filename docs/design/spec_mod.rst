@@ -36,7 +36,7 @@ Modular Delivery Design Specifications
 .. spec:: Core Package
    :id: SPEC_MOD_CORE_PKG
    :status: approved
-   :links: REQ_MOD_CORE; REQ_MOD_NOMIGRATION; REQ_MOD_ZEROTRACE
+   :links: REQ_MOD_CORE; REQ_MOD_NOMIGRATION; REQ_MOD_ZEROTRACE; SPEC_REL_PKGCONTRACT
 
    **Description:**
    ``packages/core`` builds the ``enthali.jarvis-core`` extension — the primary
@@ -66,7 +66,7 @@ Modular Delivery Design Specifications
 .. spec:: PIM Package
    :id: SPEC_MOD_PIM_PKG
    :status: approved
-   :links: REQ_MOD_ADDONS; REQ_MOD_ZEROTRACE; REQ_ENG_TOOLNS
+   :links: REQ_MOD_ADDONS; REQ_MOD_ZEROTRACE; REQ_ENG_TOOLNS; SPEC_REL_PKGCONTRACT
 
    **Description:**
    ``packages/pim`` builds ``enthali.jarvis-pim`` with
@@ -89,7 +89,7 @@ Modular Delivery Design Specifications
 .. spec:: Recorder Package
    :id: SPEC_MOD_REC_PKG
    :status: approved
-   :links: REQ_MOD_ADDONS; REQ_MOD_ZEROTRACE; REQ_ENG_TOOLNS
+   :links: REQ_MOD_ADDONS; REQ_MOD_ZEROTRACE; REQ_ENG_TOOLNS; SPEC_REL_PKGCONTRACT
 
    **Description:**
    ``packages/recorder`` builds ``enthali.jarvis-recorder`` with
@@ -126,7 +126,7 @@ Modular Delivery Design Specifications
 .. spec:: MCP Package
    :id: SPEC_MOD_MCP_PKG
    :status: approved
-   :links: REQ_MOD_ADDONS; REQ_MOD_ZEROTRACE; REQ_ENG_TOOLREGISTRY
+   :links: REQ_MOD_ADDONS; REQ_MOD_ZEROTRACE; REQ_ENG_TOOLREGISTRY; SPEC_REL_PKGCONTRACT
 
    **Description:**
    ``packages/mcp`` builds ``enthali.jarvis-mcp`` with

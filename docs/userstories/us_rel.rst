@@ -117,3 +117,27 @@ Release User Stories
    * AC-3: After a release tag is pushed, the CI automatically publishes the new version
      to the Marketplace without manual intervention
    * AC-4: The existing GitHub Releases auto-update path continues to work unchanged
+
+
+.. story:: Extension Package Contract
+   :id: US_REL_PKGCONTRACT
+   :status: implemented
+   :priority: mandatory
+
+   *Context: Complements US_REL_RELEASE (GitHub Releases) and US_REL_MARKETPLACE
+   (Marketplace publishing) by establishing the structural prerequisites that make
+   both distribution channels reliable across all extension packages.*
+
+   **As a** Jarvis Developer,
+   **I want** all extension packages in the monorepo to follow a uniform build and
+   packaging contract,
+   **so that** the release CI can compile, bundle, and publish every extension
+   reliably with a single consistent strategy.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Each extension is packageable via ``vsce package --no-dependencies`` after
+     esbuild bundling without CI-specific workarounds
+   * AC-2: Adding a new extension to the monorepo requires no CI changes — it just
+     follows the contract
+   * AC-3: A packaging failure in any single extension is visible and fails the CI job
