@@ -1,5 +1,33 @@
 # Release Notes
 
+## v0.12.0 — Selective Self-Updater + Add-on Marketplace Icons
+
+*2026-06-24*
+
+### Features
+
+- **selective-updater**: Replaces the "first `.vsix` wins" auto-updater with an extension-aware
+  selective installer. The updater now detects which `enthali.jarvis*` extensions the user has
+  installed, maps each to its expected VSIX filename in the GitHub Release, and downloads and
+  installs only the matching assets. A single *Reload Now* prompt is offered after all matched
+  VSIXs are installed. Fixes the regression where `enthali.jarvis-core` users received the
+  legacy `jarvis-*.vsix` instead of `jarvis-core-*.vsix` from the auto-updater.
+  *(US_REL_SELFUPDATE AC-6/AC-7; REQ_REL_UPDATEINSTALL rewritten)*
+
+### UX
+
+- **addon-icons**: Adds marketplace icons for the Jarvis PIM, Recorder, and MCP add-on
+  extensions. Each add-on now carries the `jarvis-128.png` icon and an `icon` field in its
+  `package.json`, replacing the generic grey placeholder on the VS Code Marketplace. Closes
+  the spec gap by adding AC-8 to `SPEC_REL_PKGCONTRACT` and `REQ_REL_PKGCONTRACT`.
+
+### Spec
+
+- **lockfile-sync-ac**: Adds AC-7 to `REQ_REL_PKGCONTRACT` and `SPEC_REL_PKGCONTRACT`
+  requiring that the root `package-lock.json` is updated whenever any workspace package
+  dependency changes, and that `npm ci` passes locally before any release tag is pushed.
+  Makes lock-file hygiene an enforceable pre-release gate.
+
 ## v0.11.2 — Lockfile Sync Acceptance Criterion
 
 *2026-06-24*
