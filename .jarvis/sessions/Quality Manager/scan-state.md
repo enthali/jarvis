@@ -28,7 +28,7 @@ Updated after every cycle. Read this first to know where to pick up.
 | ci-core-bundle | 2026-06-23 | PASS | PASS | n/a | n/a | Advisory: REQ AC-1/AC-3 (vsce devDep, publisher) not in SPEC ACs | QM CLEAR |
 | marketplace-publish | 2026-06-23 | PASS | PASS | PASS | n/a | F-1 MINOR: US→US :links: unconventional; F-2 MINOR: SPEC_MKTMETA AC-3 under-specifies README; F-3 MINOR: SPEC_RELEASEACTION code block stale (files glob) | QM CLEAR |
 | extension-rename | 2026-06-24 | PASS | PASS | PASS | n/a | F-1 resolved: releasenotes.md v0.10.0 corrected to enthali.jarvis-core; F-2 resolved: REQ_REL_RELEASEACTION + AC-5 added; SPEC_REL_COREGH links fixed | QM CLEAR |
-| extension-pkg-contract | 2026-06-24 | PASS | PASS | PASS | n/a | F-1 MINOR: US→US :links: anti-pattern (2nd recurrence); F-2 ADVISORY: SPEC has no AC section; F-3 ADVISORY: SPEC=implemented but US/REQ=draft | QM CLEAR |
+| extension-pkg-contract | 2026-06-24 | PASS | PASS | PASS | n/a | F-1/F-2/F-3 resolved (US→US link removed, SPEC ACs added, status aligned); needs_warnings for US→US deferred (101 violations — separate CR, PM informed) | QM CLEAR |
 
 ## Known Releases (at last scan)
 
