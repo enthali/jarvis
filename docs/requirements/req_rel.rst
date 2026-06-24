@@ -208,34 +208,47 @@ Release Requirements
      ``"Jarvis v{new} is available (current: v{current})"``
    * AC-2: A **"Release Notes"** button opens the release ``html_url`` in the
      default browser
-   * AC-3: A **"Download & Install"** button triggers the download-and-install
-     flow (see REQ_REL_UPDATEINSTALL)
+   * AC-3: A **"Download & Install"** button triggers the selective download-and-install
+     flow (see REQ_REL_UPDATEINSTALL); all matching extensions are updated in one flow
    * AC-4: If the user dismisses the notification, no further action is taken
 
 
-.. req:: Download and Install .vsix
+.. req:: Selective Download and Install
    :id: REQ_REL_UPDATEINSTALL
    :status: implemented
    :priority: mandatory
    :links: US_REL_SELFUPDATE
 
    **Description:**
-   The "Download & Install" action SHALL download the ``.vsix`` asset from the
-   GitHub release and install it into VS Code, then prompt for a window reload.
+   The "Download & Install" action SHALL identify which ``enthali.jarvis*``
+   extensions the user currently has installed, download the corresponding
+   ``.vsix`` assets from the GitHub release, install them all, and then prompt
+   for a single window reload.
+
+   **Extension ID → VSIX filename mapping:**
+
+   ========================= ===================================
+   Extension ID              VSIX filename (``{id}-{ver}.vsix``)
+   ========================= ===================================
+   ``enthali.jarvis``        ``jarvis-{version}.vsix``
+   ``enthali.jarvis-core``   ``jarvis-core-{version}.vsix``
+   ``enthali.jarvis-pim``    ``jarvis-pim-{version}.vsix``
+   ``enthali.jarvis-recorder`` ``jarvis-recorder-{version}.vsix``
+   ``enthali.jarvis-mcp``    ``jarvis-mcp-{version}.vsix``
+   ========================= ===================================
 
    **Acceptance Criteria:**
 
-   * AC-1: The first asset whose ``name`` ends with ``.vsix`` from the release's
-     ``assets`` array is used as the download URL (``browser_download_url``)
-   * AC-2: The file is downloaded to a temporary directory
-   * AC-3: The ``.vsix`` is installed via
-     ``vscode.commands.executeCommand('workbench.extensions.installExtension',
-     vscode.Uri.file(path))``
-   * AC-4: After successful installation, a reload prompt is shown:
+   * AC-1: All currently installed ``enthali.jarvis*`` extensions are detected;
+     each is matched to its expected VSIX asset via the mapping above
+   * AC-2: Only the matched assets are downloaded, each to a temporary directory
+   * AC-3: Each ``.vsix`` is installed via
+     ``workbench.extensions.installExtension`` with a ``vscode.Uri.file`` path
+   * AC-4: After all installations succeed, a single reload prompt is shown:
      ``"Jarvis has been updated. Reload to activate v{new}."`` with a
      **"Reload Now"** button
-   * AC-5: If no ``.vsix`` asset is found, the user is informed and the
-     release page is opened as a fallback
+   * AC-5: If no installed extension maps to any release asset, the user is
+     informed and the release page is opened as a fallback
 
 
 .. req:: Manual Update Check Command
@@ -326,3 +339,5 @@ Release Requirements
    * AC-7: After any workspace package dependency change, ``npm install`` MUST be
      run at the monorepo root so that ``package-lock.json`` is updated; ``npm ci``
      MUST succeed locally before a release tag is pushed.
+   * AC-8: Every publishable extension's ``package.json`` MUST include an ``icon``
+     field referencing a 128×128 PNG relative to the package root.

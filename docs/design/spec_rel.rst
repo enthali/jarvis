@@ -515,6 +515,8 @@ Release Design Specifications
 
    **Description:**
    Show an information notification with two action buttons when an update is available.
+   The "Download & Install" action runs the selective install flow covering all installed
+   ``enthali.jarvis*`` extensions.
 
    **Notification:**
 
@@ -534,12 +536,29 @@ Release Design Specifications
         vscode.env.openExternal(vscode.Uri.parse(release.html_url));
       }
 
-   **"Download & Install" handler:**
+   **"Download & Install" handler (selective):**
 
-   1. Find the first asset where ``name`` ends with ``.vsix``
-   2. If no ``.vsix`` asset found → show error and open ``html_url`` as fallback
-   3. Download the ``.vsix`` via HTTPS to ``os.tmpdir() + '/' + asset.name``
-   4. Install via:
+   1. Build the extension ID → VSIX filename mapping:
+
+      ========================= ===================================
+      Extension ID              VSIX filename
+      ========================= ===================================
+      ``enthali.jarvis``        ``jarvis-{version}.vsix``
+      ``enthali.jarvis-core``   ``jarvis-core-{version}.vsix``
+      ``enthali.jarvis-pim``    ``jarvis-pim-{version}.vsix``
+      ``enthali.jarvis-recorder`` ``jarvis-recorder-{version}.vsix``
+      ``enthali.jarvis-mcp``    ``jarvis-mcp-{version}.vsix``
+      ========================= ===================================
+
+   2. Collect installed ``enthali.jarvis*`` extension IDs via
+      ``vscode.extensions.all``.
+
+   3. For each installed ID, look up the expected VSIX filename and find the
+      matching asset in ``release.assets``.
+
+   4. If no assets match → show error and open ``html_url`` as fallback.
+
+   5. Download each matched asset to ``os.tmpdir()`` via HTTPS, install via:
 
       .. code-block:: typescript
 
@@ -548,7 +567,9 @@ Release Design Specifications
            vscode.Uri.file(tmpPath)
          );
 
-   5. After install, prompt reload:
+      Clean up the temporary file after each install.
+
+   6. After all installs succeed, show a single reload prompt:
 
       .. code-block:: typescript
 
@@ -559,8 +580,6 @@ Release Design Specifications
          if (reload === 'Reload Now') {
            vscode.commands.executeCommand('workbench.action.reloadWindow');
          }
-
-   6. Clean up the temporary ``.vsix`` file after install.
 
 
 .. spec:: Command Registration and Activation Hook
@@ -659,6 +678,9 @@ Release Design Specifications
    * AC-7: After any workspace package dependency change, ``npm install`` is run at
      the monorepo root and the updated ``package-lock.json`` is committed. ``npm ci``
      succeeds locally before a release tag is pushed.
+   * AC-8: Every publishable extension's ``package.json`` includes an ``icon`` field
+     pointing to ``resources/jarvis-128.png`` (128×128 PNG). The ``resources/``
+     directory is NOT excluded by ``.vscodeignore``.
 
    **Rationale:**
    Without bundling, ``vsce`` in an npm-workspaces monorepo either fails (``../../``
