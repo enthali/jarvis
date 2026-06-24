@@ -16,13 +16,117 @@ The add-on extensions (Jarvis PIM, Jarvis Recorder, Jarvis MCP) were published t
 
 ## Level 0: User Stories
 
-**Status**: ⏳ not started | 🔄 in progress | ✅ completed
+**Status**: ✅ completed
 
 ### Impacted User Stories
 
 | ID | Title | Impact | Notes |
 |----|-------|--------|-------|
-| US_xxx | ... | modified | ... |
+| US_REL_PKGCONTRACT | Extension Package Contract | linked-from | AC-8 added at REQ/SPEC level; US unchanged |
+
+### New User Stories
+
+None — gap fits under existing `US_REL_PKGCONTRACT`.
+
+### Decisions
+
+- No new US needed: marketplace icon requirement is a structural detail of the package contract.
+
+### Horizontal Check (MECE)
+
+- [x] No contradictions with existing User Stories
+- [x] No redundancies
+- [x] Gaps identified and addressed
+
+---
+
+## Level 1: Requirements
+
+**Status**: ✅ completed
+
+### Impacted Requirements
+
+| ID | Linked From | Impact | Notes |
+|----|-------------|--------|-------|
+| REQ_REL_PKGCONTRACT | US_REL_PKGCONTRACT | modified | AC-8 added |
+
+### New Requirements
+
+None.
+
+### Conflicts Detected
+
+None. `REQ_REL_MKTMETA` covers the icon for `packages/core` only; AC-8 extends the contract to all publishable add-ons.
+
+### Decisions
+
+- AC-8 added to `REQ_REL_PKGCONTRACT` (not `REQ_REL_MKTMETA`) because the icon is a contract-level structural requirement for all packages, not a metadata concern for core alone.
+
+### Horizontal Check (MECE)
+
+- [x] No contradictions with existing Requirements
+- [x] No redundancies — `REQ_REL_MKTMETA` remains core-scoped; AC-8 covers all packages
+- [x] All new REQs link to User Stories
+
+---
+
+## Level 2: Design
+
+**Status**: ✅ completed
+
+### Impacted Design Elements
+
+| ID | Linked From | Impact | Notes |
+|----|-------------|--------|-------|
+| SPEC_REL_PKGCONTRACT | REQ_REL_PKGCONTRACT | modified | AC-8 added |
+| SPEC_MOD_PIM_PKG | REQ_MOD_ADDONS | modified | `icon` + `resources/jarvis-128.png` added |
+| SPEC_MOD_REC_PKG | REQ_MOD_ADDONS | modified | `icon` + `resources/jarvis-128.png` added |
+| SPEC_MOD_MCP_PKG | REQ_MOD_ADDONS | modified | `icon` + `resources/jarvis-128.png` added |
+
+### New Design Elements
+
+None.
+
+### Conflicts Detected
+
+None.
+
+### Decisions
+
+- Icon file copied from `packages/core/resources/jarvis-128.png` — same branding asset across all extensions.
+- `.vscodeignore` does not exclude `resources/` — no change needed to existing ignore files.
+
+### Horizontal Check (MECE)
+
+- [x] No contradictions with existing Designs
+- [x] All new SPECs link to Requirements
+
+---
+
+## Final Consistency Check
+
+**Status**: ✅ passed
+
+### Traceability Verification
+
+| User Story | Requirements | Design | Complete? |
+|------------|--------------|--------|-----------|
+| US_REL_PKGCONTRACT | REQ_REL_PKGCONTRACT (AC-8 added) | SPEC_REL_PKGCONTRACT (AC-8 added) | ✅ |
+
+### Artefakt-Removal-Check
+
+This CR adds files and ACs only. No artefacts removed. Check not applicable.
+
+### Issues Found
+
+None.
+
+### Sign-off
+
+- [x] All levels completed (no ⚠️ DEPRECATED markers remaining)
+- [x] All conflicts resolved
+- [x] Traceability verified
+- [x] Ready for implementation
 
 ### New User Stories
 
