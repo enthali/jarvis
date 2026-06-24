@@ -4,7 +4,7 @@
 **Branch**: feature/extension-pkg-contract
 **Created**: 2026-06-24
 **Author**: PM
-**Operation Mode**: autonomous
+**Operation Mode**: user-guided
 
 ---
 
@@ -24,138 +24,129 @@ The v0.11.0 CI failure (missing `build.js` in add-on packages) exposed a spec ga
 
 ## Level 0: User Stories
 
-**Status**: ⏳ not started | 🔄 in progress | ✅ completed
+**Status**: ✅ completed
 
 ### Impacted User Stories
 
 | ID | Title | Impact | Notes |
 |----|-------|--------|-------|
-| US_xxx | ... | modified | ... |
+| US_REL_RELEASE | Extension Release | linked-from | `US_REL_PKGCONTRACT` links to it |
+| US_REL_MARKETPLACE | VS Code Marketplace Discoverability | linked-from | `US_REL_PKGCONTRACT` links to it |
 
 ### New User Stories
 
 | ID | Title | Priority |
 |----|-------|----------|
-| SYSPILOT_US_NEW_1 | As a..., I want..., so that... | mandatory |
+| US_REL_PKGCONTRACT | Extension Package Contract | mandatory |
 
 ### Decisions
 
-- Decision 1: ...
-- Decision 2: ...
+- New developer-facing US preferred over reusing `US_REL_MARKETPLACE` (user-facing); the build contract is a standing architectural rule, not a one-time fix.
 
 ### Horizontal Check (MECE)
 
-- [ ] No contradictions with existing User Stories
-- [ ] No redundancies
-- [ ] Gaps identified and addressed
+- [x] No contradictions with existing User Stories
+- [x] No redundancies — complements `US_REL_RELEASE` and `US_REL_MARKETPLACE` at a different concern level
+- [x] Gaps identified and addressed
 
 ---
 
 ## Level 1: Requirements
 
-**Status**: ⏳ not started | 🔄 in progress | ✅ completed
+**Status**: ✅ completed
 
 ### Impacted Requirements
 
-Found via links from User Stories above.
-
 | ID | Linked From | Impact | Notes |
 |----|-------------|--------|-------|
-| REQ_xxx | US_xxx | modified | ... |
+| REQ_REL_RELEASEACTION | US_REL_RELEASE | modified | Added link to `REQ_REL_PKGCONTRACT` |
+| REQ_REL_VSCEPKG | US_REL_RELEASE | modified | Added link to `REQ_REL_PKGCONTRACT` |
+| REQ_REL_MKTPUBLISH | US_REL_MARKETPLACE | modified | Added link to `REQ_REL_PKGCONTRACT` |
 
 ### New Requirements
 
 | ID | Title | Links | Priority |
 |----|-------|-------|----------|
-| SYSPILOT_REQ_NEW_1 | ... | US_xxx | mandatory |
+| REQ_REL_PKGCONTRACT | Extension Package Contract | US_REL_PKGCONTRACT | mandatory |
 
 ### Conflicts Detected
 
-- ⚠️ REQ_xxx vs REQ_yyy: {description}
-  - Resolution: {decision}
+None.
 
 ### Decisions
 
-- Decision 1: ...
+- `REQ_REL_PKGCONTRACT` captures the structural prerequisites (build.js, .vscodeignore, scripts, esbuild devDep) that `REQ_REL_VSCEPKG` and `REQ_REL_RELEASEACTION` implicitly depend on.
 
 ### Horizontal Check (MECE)
 
-- [ ] No contradictions with existing Requirements
-- [ ] No redundancies
-- [ ] All new REQs link to User Stories
+- [x] No contradictions with existing Requirements
+- [x] No redundancies — `REQ_REL_VSCEPKG` covers the vsce invocation; `REQ_REL_PKGCONTRACT` covers the structural prerequisites
+- [x] All new REQs link to User Stories
 
 ---
 
 ## Level 2: Design
 
-**Status**: ⏳ not started | 🔄 in progress | ✅ completed
+**Status**: ✅ completed
 
 ### Impacted Design Elements
 
-Found via links from Requirements above.
-
 | ID | Linked From | Impact | Notes |
 |----|-------------|--------|-------|
-| SPEC_xxx | REQ_xxx | modified | ... |
+| SPEC_MOD_CORE_PKG | REQ_MOD_CORE | modified | Added link to `SPEC_REL_PKGCONTRACT` |
+| SPEC_MOD_PIM_PKG | REQ_MOD_ADDONS | modified | Added link to `SPEC_REL_PKGCONTRACT` |
+| SPEC_MOD_REC_PKG | REQ_MOD_ADDONS | modified | Added link to `SPEC_REL_PKGCONTRACT` |
+| SPEC_MOD_MCP_PKG | REQ_MOD_ADDONS | modified | Added link to `SPEC_REL_PKGCONTRACT` |
 
 ### New Design Elements
 
 | ID | Title | Links |
 |----|-------|-------|
-| SYSPILOT_SPEC_NEW_1 | ... | REQ_xxx, SYSPILOT_REQ_NEW_1 |
+| SPEC_REL_PKGCONTRACT | Extension Package Contract | REQ_REL_PKGCONTRACT |
 
 ### Conflicts Detected
 
-- ⚠️ SPEC_xxx vs SPEC_yyy: {description}
-  - Resolution: {decision}
+None.
 
 ### Decisions
 
-- Decision 1: ...
+- `external: ['vscode', 'jarvis-core']` in all add-on `build.js` scripts — `jarvis-core` is a workspace peer resolved at runtime by the VS Code extension host; bundling it would violate the extension host contract.
+- `@modelcontextprotocol/sdk` is **inlined** in the MCP bundle — it is a true production dependency with no runtime provider.
+- PIM and Recorder have no production deps beyond `jarvis-core`; their `build.js` is structurally identical to core minus the sql-wasm WASM copy step.
 
 ### Horizontal Check (MECE)
 
-- [ ] No contradictions with existing Designs
-- [ ] All new SPECs link to Requirements
+- [x] No contradictions with existing Designs
+- [x] All new SPECs link to Requirements
 
 ---
 
 ## Final Consistency Check
 
-**Status**: ⏳ not started | ✅ passed | ❌ failed
+**Status**: ✅ passed
 
 ### Traceability Verification
 
 | User Story | Requirements | Design | Complete? |
 |------------|--------------|--------|-----------|
-| US_xxx | REQ_xxx | SPEC_xxx | ✅ |
-| SYSPILOT_US_NEW_1 | SYSPILOT_REQ_NEW_1 | SYSPILOT_SPEC_NEW_1 | ✅ |
+| US_REL_PKGCONTRACT | REQ_REL_PKGCONTRACT | SPEC_REL_PKGCONTRACT | ✅ |
+| US_REL_RELEASE | REQ_REL_RELEASEACTION, REQ_REL_VSCEPKG | SPEC_MOD_CORE_PKG, SPEC_MOD_PIM_PKG, SPEC_MOD_REC_PKG, SPEC_MOD_MCP_PKG | ✅ (link added) |
+| US_REL_MARKETPLACE | REQ_REL_MKTPUBLISH | — | ✅ (link added) |
 
 ### Artefakt-Removal-Check
 
-*Fill in only when this CR removes an artefact (file, field, configuration key, REQ-ID).*
-
-For each removed artefact, run a project-wide grep on all plausible name variants and classify results:
-
-| Removed Artefact | Class (a): Code/Workflow refs | Class (b): Doc refs | Class (c): Historic Change Docs |
-|------------------|-------------------------------|---------------------|---------------------------------|
-| `{artefact name}` | {files + lines fixed / none} | {files + lines fixed / none} | {count — acceptable historic stranding} |
-
-- [ ] All class (a) active code/workflow references fixed in this CR
-- [ ] All class (b) active documentation references fixed in this CR
-- [ ] Class (c) historical Change Documents accepted as "acceptable historic stranding" and disclosed above
+This CR adds artefacts only (new files: `build.js` × 3, `.vscodeignore` × 2). No artefacts removed. Check not applicable.
 
 ### Issues Found
 
-- [ ] Issue 1: ...
-- [ ] Issue 2: ...
+None.
 
 ### Sign-off
 
-- [ ] All levels completed (no ⚠️ DEPRECATED markers remaining)
-- [ ] All conflicts resolved
-- [ ] Traceability verified
-- [ ] Ready for implementation
+- [x] All levels completed (no ⚠️ DEPRECATED markers remaining)
+- [x] All conflicts resolved
+- [x] Traceability verified
+- [x] Ready for implementation
 
 ---
 

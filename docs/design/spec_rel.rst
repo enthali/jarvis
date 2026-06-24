@@ -600,3 +600,50 @@ Release Design Specifications
           checkForUpdates(context, false)
         )
       );
+
+
+.. spec:: Extension Package Contract
+   :id: SPEC_REL_PKGCONTRACT
+   :status: implemented
+   :links: REQ_REL_PKGCONTRACT
+
+   **Description:**
+   Every publishable Jarvis extension (core and all add-ons) SHALL conform to a
+   uniform package contract. The contract ensures all extensions can be packaged
+   with the same CI strategy: ``vsce package --no-dependencies`` after esbuild
+   bundling.
+
+   **Required files per package:**
+
+   ``build.js``
+      esbuild script. Entry: ``src/extension.ts``. Output: ``out/extension.js``.
+      Options: ``bundle: true``, ``format: 'cjs'``, ``platform: 'node'``,
+      ``target: 'node20'``, ``sourcemap: true``, ``minify`` via ``--minify`` argv flag.
+      ``external: ['vscode', 'jarvis-core']``.
+      Add-on runtime production deps (e.g. ``@modelcontextprotocol/sdk``) are
+      **inlined** (not listed as external).
+
+   ``.vscodeignore``
+      Excludes: ``src/``, ``node_modules/``, ``tsconfig.json``, ``build.js``,
+      ``**/*.map``, ``**/*.ts``. Preserves ``out/``.
+
+   **Required ``package.json`` entries:**
+
+   .. code-block:: json
+
+      {
+        "scripts": {
+          "bundle": "node build.js",
+          "vscode:prepublish": "npm run compile && npm run bundle"
+        },
+        "devDependencies": {
+          "esbuild": "^0.25.0"
+        }
+      }
+
+   **Rationale:**
+   Without bundling, ``vsce`` in an npm-workspaces monorepo either fails (``../../``
+   path resolution error) or produces bloated VSIXs that include hoisted
+   dependencies from the root. Bundling with ``external: ['vscode', 'jarvis-core']``
+   ensures the VSIX is self-contained while keeping the runtime peer dependency
+   resolved by the VS Code extension host.

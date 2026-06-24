@@ -39,7 +39,7 @@ Release Requirements
    :id: REQ_REL_RELEASEACTION
    :status: implemented
    :priority: mandatory
-   :links: US_REL_RELEASE
+   :links: US_REL_RELEASE; REQ_REL_PKGCONTRACT
 
    **Description:**
    A GitHub Actions workflow SHALL trigger on ``push: tags: v*``, build the
@@ -63,7 +63,7 @@ Release Requirements
    :id: REQ_REL_VSCEPKG
    :status: draft
    :priority: mandatory
-   :links: US_REL_RELEASE
+   :links: US_REL_RELEASE; REQ_REL_PKGCONTRACT
 
    **Description:**
    Each code extension package SHALL be bundled with esbuild and packaged as a
@@ -282,7 +282,7 @@ Release Requirements
    :id: REQ_REL_MKTPUBLISH
    :status: draft
    :priority: mandatory
-   :links: US_REL_MARKETPLACE
+   :links: US_REL_MARKETPLACE; REQ_REL_PKGCONTRACT
 
    **Description:**
    The GitHub Actions release workflow SHALL publish the packaged ``.vsix`` to the
@@ -295,3 +295,31 @@ Release Requirements
    * AC-2: The step uses the pre-built ``.vsix`` (``--packagePath``) to avoid double-bundling
    * AC-3: The ``VSCE_PAT`` secret is passed as ``VSCE_PAT`` environment variable
    * AC-4: The existing GitHub Release step is unchanged
+
+
+.. req:: Extension Package Contract
+   :id: REQ_REL_PKGCONTRACT
+   :status: draft
+   :priority: mandatory
+   :links: US_REL_PKGCONTRACT
+
+   **Description:**
+   Every publishable Jarvis extension package (core and all add-ons) SHALL follow a
+   uniform package contract so that the release CI workflow can package all extensions
+   with a single, consistent strategy.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Each extension package contains a ``build.js`` esbuild script that bundles
+     ``src/extension.ts`` into ``out/extension.js`` with ``format: cjs``,
+     ``platform: node``, ``target: node20``, ``sourcemap: true``, and ``--minify``
+     support via a ``process.argv`` flag.
+   * AC-2: ``vscode`` and ``jarvis-core`` are always listed as esbuild ``external``
+     entries; no other workspace-peer packages are bundled.
+   * AC-3: ``package.json`` defines ``bundle: "node build.js"`` and
+     ``vscode:prepublish: "npm run compile && npm run bundle"``.
+   * AC-4: ``esbuild`` is listed in ``devDependencies``.
+   * AC-5: A ``.vscodeignore`` file excludes ``src/``, ``node_modules/``,
+     ``tsconfig.json``, ``build.js``, ``**/*.map``, and ``**/*.ts``
+     while preserving ``out/``.
+   * AC-6: All extensions are packaged with ``vsce package --no-dependencies``.
