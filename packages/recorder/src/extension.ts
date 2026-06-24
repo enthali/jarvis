@@ -4,13 +4,13 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import type { JarvisCoreApi, TreeItemDecorator, TreeNode, LeafNode, HeartbeatJob } from 'jarvis';
+import type { JarvisCoreApi, TreeItemDecorator, TreeNode, LeafNode, HeartbeatJob } from 'jarvis-core';
 import { RecordingManager } from './recording';
 
 const subscriptions: vscode.Disposable[] = [];
 
 export function activate(context: vscode.ExtensionContext): void {
-    const api = vscode.extensions.getExtension<JarvisCoreApi>('enthali.jarvis')?.exports;
+    const api = vscode.extensions.getExtension<JarvisCoreApi>('enthali.jarvis-core')?.exports;
     if (!api || api.version !== 1) {
         const log = vscode.window.createOutputChannel('Jarvis Recorder', { log: true });
         log.warn('[Recorder] Core API not available or version mismatch — deactivating.');

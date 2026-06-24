@@ -1,4 +1,4 @@
-# Implementation: SPEC_REL_RELEASEACTION, SPEC_REL_MKTPUBLISH
+# Implementation: SPEC_REL_RELEASEACTION, SPEC_REL_MKTPUBLISH, SPEC_REL_COREGH
 # Requirements: REQ_REL_RELEASEACTION, REQ_REL_VSCEPKG, REQ_REL_MKTPUBLISH
 
 name: Release Extension
@@ -19,14 +19,61 @@ jobs:
         with:
           node-version: '22'
       - run: npm ci
+
+      # ── Build core (source of truth) ────────────────────────────────────────
       - run: npm run compile
-      - run: npm run package
+      - name: Bundle core (esbuild)
+        run: node packages/core/build.js --minify
+
+      # ── Package enthali.jarvis-core (marketplace) ────────────────────────────
+      - name: Package enthali.jarvis-core
+        run: cd packages/core && npx vsce package --no-dependencies
+
+      # ── Package enthali.jarvis (legacy GitHub Release) ───────────────────────
+      # Copy the compiled bundle into core-gh before packaging (no src/ there)
+      - name: Copy bundle to core-gh
+        run: |
+          mkdir -p packages/core-gh/out
+          cp packages/core/out/extension.js packages/core-gh/out/extension.js
+          cp packages/core/out/sql-wasm.wasm packages/core-gh/out/sql-wasm.wasm
+      - name: Package enthali.jarvis (legacy)
+        run: cd packages/core-gh && npx vsce package --no-dependencies
+
+      # ── Package add-ons (each has own vscode:prepublish compile step) ────────
+      - name: Package enthali.jarvis-pim
+        run: cd packages/pim && npx vsce package --no-dependencies
+      - name: Package enthali.jarvis-recorder
+        run: cd packages/recorder && npx vsce package --no-dependencies
+      - name: Package enthali.jarvis-mcp
+        run: cd packages/mcp && npx vsce package --no-dependencies
+
+      # ── GitHub Release — all VSIXs ───────────────────────────────────────────
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: 'packages/core/*.vsix'
+          files: |
+            packages/core/*.vsix
+            packages/core-gh/*.vsix
+            packages/pim/*.vsix
+            packages/recorder/*.vsix
+            packages/mcp/*.vsix
           generate_release_notes: true
-      - name: Publish to VS Code Marketplace
+
+      # ── Marketplace publish — jarvis-core + add-ons (NOT legacy jarvis) ──────
+      - name: Publish enthali.jarvis-core to Marketplace
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: npx vsce publish --packagePath packages/core/jarvis-*.vsix --no-dependencies
+        run: npx vsce publish --packagePath packages/core/jarvis-core-*.vsix --no-dependencies
+      - name: Publish enthali.jarvis-pim to Marketplace
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: npx vsce publish --packagePath packages/pim/jarvis-pim-*.vsix --no-dependencies
+      - name: Publish enthali.jarvis-recorder to Marketplace
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: npx vsce publish --packagePath packages/recorder/jarvis-recorder-*.vsix --no-dependencies
+      - name: Publish enthali.jarvis-mcp to Marketplace
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: npx vsce publish --packagePath packages/mcp/jarvis-mcp-*.vsix --no-dependencies
+

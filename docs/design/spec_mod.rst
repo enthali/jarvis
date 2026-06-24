@@ -17,18 +17,12 @@ Modular Delivery Design Specifications
    .. code-block:: text
 
       packages/
-        core/        -> enthali.jarvis        (engine + session app + shared runtime)
+        core/        -> enthali.jarvis-core  (engine + session app + shared runtime; marketplace)
+        core-gh/     -> enthali.jarvis        (legacy GitHub Releases packaging; no src/)
         pim/         -> enthali.jarvis-pim
         recorder/    -> enthali.jarvis-recorder
-      (pre-split intermediate, single extension)
-      src/
-        engine/      scanner, configPaths, mcpServer, sessionLookup,
-                     messageQueue, heartbeat, registerTool, tree factory
-        apps/
-          session/   session kind registration + tools
-          pim/        project/event/category/task + outlook
-          recorder/   recording manager + whisper + transcript
-        shared/      logging, templates, helpers
+        mcp/         -> enthali.jarvis-mcp
+        suite/       -> enthali.jarvis-suite  (extension pack)
 
    **Acceptance Criteria:**
 
@@ -45,18 +39,28 @@ Modular Delivery Design Specifications
    :links: REQ_MOD_CORE; REQ_MOD_NOMIGRATION; REQ_MOD_ZEROTRACE
 
    **Description:**
-   ``packages/core`` builds the ``enthali.jarvis`` extension — the same id the
-   monolith uses, so installs update in place. Its ``package.json`` contributes
-   only core surfaces (sessions view, messaging, reminders, heartbeat, core
-   settings, core commands, core tools) and exports ``JarvisCoreApi``.
+   ``packages/core`` builds the ``enthali.jarvis-core`` extension — the primary
+   marketplace identity. Its ``package.json`` contributes only core surfaces
+   (sessions view, messaging, reminders, heartbeat, core settings, core commands,
+   core tools) and exports ``JarvisCoreApi``.
+
+   ``packages/core-gh`` is a thin packaging-only companion that produces the
+   legacy ``enthali.jarvis`` VSIX for GitHub Releases, sharing the same compiled
+   bundle from ``packages/core/out/``. It has no ``src/`` of its own.
+   See ``SPEC_REL_COREGH`` for the packaging mechanism.
+
+   Add-ons obtain the engine API via:
+   ``vscode.extensions.getExtension('enthali.jarvis-core')!.exports``
 
    **Acceptance Criteria:**
 
-   * AC-1: The published id is ``enthali.jarvis``.
+   * AC-1: The marketplace published id is ``enthali.jarvis-core``.
    * AC-2: ``contributes`` in the core manifest contains no PIM or recorder
      views, settings, commands, or tools.
    * AC-3: Settings keep their existing ``jarvis.*`` keys.
    * AC-4: ``activate()`` returns ``JarvisCoreApi`` (per ``SPEC_ENG_API``).
+   * AC-5: ``packages/core-gh/package.json`` name is ``jarvis`` (id ``enthali.jarvis``);
+     its ``out/extension.js`` is a CI copy of ``packages/core/out/extension.js``.
 
 
 .. spec:: PIM Package
@@ -66,14 +70,14 @@ Modular Delivery Design Specifications
 
    **Description:**
    ``packages/pim`` builds ``enthali.jarvis-pim`` with
-   ``extensionDependencies: ["enthali.jarvis"]``. On activation it obtains the
+   ``extensionDependencies: ["enthali.jarvis-core"]``. On activation it obtains the
    engine and registers the ``project`` and ``event`` kinds plus PIM tools
    (``jarvis_pim_*``). All PIM views, settings, commands, and tools live in this
    manifest only.
 
    **Acceptance Criteria:**
 
-   * AC-1: Manifest declares ``extensionDependencies: ["enthali.jarvis"]``.
+   * AC-1: Manifest declares ``extensionDependencies: ["enthali.jarvis-core"]``.
    * AC-2: PIM registers ``project`` and ``event`` kinds via
      ``registerEntityKind`` and PIM tools via ``registerTool``.
    * AC-3: PIM settings use existing ``jarvis.*`` keys (e.g.
@@ -89,14 +93,14 @@ Modular Delivery Design Specifications
 
    **Description:**
    ``packages/recorder`` builds ``enthali.jarvis-recorder`` with
-   ``extensionDependencies: ["enthali.jarvis"]``. It contributes recording
+   ``extensionDependencies: ["enthali.jarvis-core"]``. It contributes recording
    commands/settings/tools (``jarvis_rec_*``) and the whisper/transcript
    pipeline. The recorder works with whatever entity kinds are present (it does
    not require PIM).
 
    **Acceptance Criteria:**
 
-   * AC-1: Manifest declares ``extensionDependencies: ["enthali.jarvis"]``.
+   * AC-1: Manifest declares ``extensionDependencies: ["enthali.jarvis-core"]``.
    * AC-2: Recorder tools use the ``jarvis_rec_`` infix.
    * AC-3: Recording functions with core alone (no PIM dependency).
    * AC-4: When the recorder is not installed, none of its contributions exist.
@@ -126,7 +130,7 @@ Modular Delivery Design Specifications
 
    **Description:**
    ``packages/mcp`` builds ``enthali.jarvis-mcp`` with
-   ``extensionDependencies: ["enthali.jarvis"]``. On activation it obtains the
+   ``extensionDependencies: ["enthali.jarvis-core"]``. On activation it obtains the
    engine, enumerates registered tools via ``getRegisteredTools()``, and serves
    them over the MCP protocol on ``127.0.0.1`` using
    ``@modelcontextprotocol/sdk``. It registers NO ``jarvis_`` tools of its own
@@ -155,7 +159,7 @@ Modular Delivery Design Specifications
 
    **Acceptance Criteria:**
 
-   * AC-1: Manifest declares ``extensionDependencies: ["enthali.jarvis"]``.
+   * AC-1: Manifest declares ``extensionDependencies: ["enthali.jarvis-core"]``.
    * AC-2: When the MCP extension is not installed, no MCP surface exists
      anywhere (per ``REQ_MOD_ZEROTRACE``): no ``jarvis.mcp.*`` settings, no
      status bar item, no port binding.

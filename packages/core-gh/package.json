@@ -1,26 +1,9 @@
 {
-  "name": "jarvis-core",
+  "name": "jarvis",
   "displayName": "Jarvis",
   "description": "Jarvis core — sessions, messaging, reminders, heartbeat, engine",
   "version": "0.11.0",
   "publisher": "enthali",
-  "icon": "resources/jarvis-128.png",
-  "keywords": [
-    "assistant",
-    "productivity",
-    "projects",
-    "events",
-    "sessions",
-    "reminders",
-    "heartbeat"
-  ],
-  "categories": [
-    "Other"
-  ],
-  "galleryBanner": {
-    "color": "#1e1e2e",
-    "theme": "dark"
-  },
   "repository": {
     "type": "git",
     "url": "https://github.com/enthali/Jarvis.git"
@@ -29,6 +12,9 @@
   "engines": {
     "vscode": "^1.95.0"
   },
+  "categories": [
+    "Other"
+  ],
   "activationEvents": [
     "onStartupFinished",
     "onView:jarvisMessages",
@@ -37,24 +23,8 @@
     "onView:jarvisSessions"
   ],
   "main": "./out/extension.js",
-  "types": "./out/engine/index.d.ts",
   "scripts": {
-    "compile": "tsc -p ./",
-    "bundle": "node build.js",
-    "package": "vsce package --no-dependencies",
-    "vscode:prepublish": "node build.js --minify"
-  },
-  "devDependencies": {
-    "@types/js-yaml": "^4.0.9",
-    "@types/node": "^20.0.0",
-    "@types/vscode": "^1.85.0",
-    "esbuild": "^0.25.0",
-    "typescript": "^5.5.0"
-  },
-  "dependencies": {
-    "cron-parser": "^5.5.0",
-    "js-yaml": "^4.1.1",
-    "sql.js": "^1.14.1"
+    "package": "vsce package --no-dependencies"
   },
   "contributes": {
     "yamlValidation": [
@@ -189,7 +159,7 @@
             "default": "You are the agent session for the ${kind} \"${name}\".\n\nUse only `${contextPath}` as your persistent memory. Read it now.\n\nKeep it minimal and action-oriented:\n- Store only long-lived items under Decision / Finding / Next.\n- One concise line per bullet. Prune aggressively.\n- Replace outdated bullets — never append logs.\n- Never store retries, raw tool output, or transient chatter.\n- Before writing, ask: \"Will this still matter in 2 weeks?\" If no, skip.\n- When a topic grows past ~5 bullets, move it to a dedicated file beside `context.md` and leave a one-line summary with a relative link in `context.md`.",
             "editPresentation": "multilineText",
             "scope": "window",
-            "description": "Template for the initialization prompt sent to a new agent chat session. Leave empty to use the built-in default."
+            "description": "Template for the initialization prompt sent to a new agent chat session."
           },
           "jarvis.messages.notificationTemplate": {
             "type": "string",
@@ -214,7 +184,6 @@
           "jarvis.reminders.enabled": { "type": "boolean", "default": true, "description": "Enable the Reminders sub-feature." }
         }
       },
-
       {
         "title": "Updates",
         "properties": {

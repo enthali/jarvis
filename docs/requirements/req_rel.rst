@@ -44,6 +44,9 @@ Release Requirements
    **Description:**
    A GitHub Actions workflow SHALL trigger on ``push: tags: v*``, build the
    extension package, and create a GitHub Release with the ``.vsix`` as an asset.
+   The workflow SHALL produce both ``enthali.jarvis-core`` (marketplace) and the
+   legacy ``enthali.jarvis`` (GitHub Releases only) VSIXs and upload both to the
+   GitHub Release.
 
    **Acceptance Criteria:**
 
@@ -51,6 +54,9 @@ Release Requirements
    * AC-2: Trigger is ``push: tags: v*``
    * AC-3: The ``.vsix`` file is attached to the GitHub Release as a downloadable asset
    * AC-4: The GitHub Release name equals the tag name (e.g. ``v0.1.0``)
+   * AC-5: Both ``enthali.jarvis`` (legacy) and ``enthali.jarvis-core`` VSIXs are
+     uploaded to the GitHub Release; ``enthali.jarvis`` is NOT published to the
+     marketplace
 
 
 .. req:: Extension Packaging

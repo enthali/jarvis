@@ -1,19 +1,35 @@
 # Release Notes
 
+## v0.11.0 — Dual-VSIX CI + Marketplace Identity
+
+*2026-06-24*
+
+### New Features
+
+- **extension-rename**: `enthali.jarvis-core` is now the official VS Code Marketplace identity
+  for the Jarvis core extension. This is the first release where `jarvis-core` and all
+  add-ons (`jarvis-pim`, `jarvis-recorder`, `jarvis-mcp`) are published to the marketplace
+  via CI automatically on every release tag push. The CI release workflow is split:
+  `enthali.jarvis` (core-gh) vsix → GitHub Releases only; `enthali.jarvis-core` + add-ons →
+  `vsce publish` to marketplace. The add-on packages update their `extensionDependencies`
+  to reference `enthali.jarvis-core` so that marketplace users get the correct dependency
+  resolved automatically. Existing users of `enthali.jarvis` via GitHub Releases and the
+  auto-update mechanism are unaffected.
+
 ## v0.10.0 — VS Code Marketplace Publishing
 
 *2026-06-23*
 
 ### New Features
 
-- **marketplace-publish**: `enthali.jarvis` is now published to the VS Code
+- **marketplace-publish / extension-rename**: `enthali.jarvis-core` is now published to the VS Code
   Marketplace. Users can find and install Jarvis directly from the Extensions
   view without visiting GitHub or downloading a `.vsix` manually. The extension
   page shows a description, icon, keywords, and a link to the repository.
   The CI release workflow now runs `vsce publish` automatically after each
   release tag is pushed — every future release reaches the marketplace without
-  manual intervention. The existing GitHub Releases auto-update path is
-  unchanged.
+  manual intervention. The existing GitHub Releases auto-update path (`enthali.jarvis`)
+  is unchanged.
 
 ## v0.9.0 — CI Fix + WSL2 Session Lookup
 

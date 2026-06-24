@@ -51,6 +51,10 @@ Jeder Change Request enthaelt einen Mode:
 
 Vor Merge: CM fragt immer explizit 'merge jetzt OK?' zurueck (Lesson Learned).
 
+## Active Plans
+
+- [Marketplace Transition Plan](marketplace-transition-plan.md) — rename enthali.jarvis → enthali.<newname>, EOL strategy, migration steps
+
 ## Lessons Learned
 
 ### Verify-Agent darf keine UAT-Ergebnisse erfinden (2026-04-15)

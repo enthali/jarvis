@@ -1,0 +1,3 @@
+# Exclude source maps and type declarations — out/extension.js is the only runtime file
+**/*.map
+**/*.d.ts
