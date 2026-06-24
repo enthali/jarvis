@@ -120,30 +120,57 @@ export async function checkForUpdates(
     if (action === 'Release Notes') {
         vscode.env.openExternal(vscode.Uri.parse(release.html_url));
     } else if (action === 'Download & Install') {
-        // Find .vsix asset
-        const vsixAsset = release.assets.find(a => a.name.endsWith('.vsix'));
-        if (!vsixAsset) {
+        // Selective install: map each installed enthali.jarvis* extension to its
+        // expected VSIX filename in the release (SPEC_REL_UPDATENOTIFY).
+        const idToVsix: Record<string, string> = {
+            'enthali.jarvis':          `jarvis-${newVersion}.vsix`,
+            'enthali.jarvis-core':     `jarvis-core-${newVersion}.vsix`,
+            'enthali.jarvis-pim':      `jarvis-pim-${newVersion}.vsix`,
+            'enthali.jarvis-recorder': `jarvis-recorder-${newVersion}.vsix`,
+            'enthali.jarvis-mcp':      `jarvis-mcp-${newVersion}.vsix`,
+        };
+
+        const installedIds = vscode.extensions.all
+            .map(e => e.id)
+            .filter(id => id.startsWith('enthali.jarvis'));
+
+        const matchedAssets = installedIds
+            .map(id => {
+                const filename = idToVsix[id];
+                return filename ? release.assets.find(a => a.name === filename) : undefined;
+            })
+            .filter((a): a is NonNullable<typeof a> => !!a);
+
+        if (matchedAssets.length === 0) {
+            log?.warn('[Update] no matching assets for installed extensions; opening release page');
             vscode.window.showErrorMessage(
-                'Jarvis: No .vsix asset found in the release. Opening release page instead.'
+                'Jarvis: No matching .vsix assets found in the release. Opening release page instead.'
             );
             vscode.env.openExternal(vscode.Uri.parse(release.html_url));
             return;
         }
 
-        const tmpPath = path.join(os.tmpdir(), vsixAsset.name);
+        const tmpPaths: string[] = [];
         try {
             await vscode.window.withProgress(
-                { location: vscode.ProgressLocation.Notification, title: 'Jarvis: Downloading update…' },
-                async () => { await downloadFile(vsixAsset.browser_download_url, tmpPath); }
+                { location: vscode.ProgressLocation.Notification, title: 'Jarvis: Downloading updates…' },
+                async () => {
+                    for (const asset of matchedAssets) {
+                        const tmpPath = path.join(os.tmpdir(), asset.name);
+                        tmpPaths.push(tmpPath);
+                        log?.info(`[Update] downloading ${asset.name}…`);
+                        await downloadFile(asset.browser_download_url, tmpPath);
+                    }
+                }
             );
 
-            await vscode.commands.executeCommand(
-                'workbench.extensions.installExtension',
-                vscode.Uri.file(tmpPath)
-            );
-
-            // Clean up temp file
-            fs.unlink(tmpPath, () => {});
+            for (const tmpPath of tmpPaths) {
+                await vscode.commands.executeCommand(
+                    'workbench.extensions.installExtension',
+                    vscode.Uri.file(tmpPath)
+                );
+                fs.unlink(tmpPath, () => {});
+            }
 
             const reload = await vscode.window.showInformationMessage(
                 `Jarvis has been updated. Reload to activate v${newVersion}.`,
@@ -154,7 +181,7 @@ export async function checkForUpdates(
             }
         } catch {
             vscode.window.showErrorMessage('Jarvis: Failed to download or install update.');
-            fs.unlink(tmpPath, () => {});
+            for (const tmpPath of tmpPaths) { fs.unlink(tmpPath, () => {}); }
         }
     }
 }
