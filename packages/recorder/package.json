@@ -2,7 +2,7 @@
   "name": "jarvis-recorder",
   "displayName": "Jarvis Recorder",
   "description": "Jarvis Recorder — session recording, whisper pipeline, and transcript notifications",
-  "version": "0.11.1",
+  "version": "0.11.2",
   "publisher": "enthali",
   "engines": {
     "vscode": "^1.95.0"
