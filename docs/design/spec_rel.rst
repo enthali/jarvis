@@ -656,6 +656,9 @@ Release Design Specifications
      ``tsconfig.json``, ``build.js``, ``**/*.map``, and ``**/*.ts``
      while preserving ``out/``.
    * AC-6: All extensions are packaged with ``vsce package --no-dependencies``.
+   * AC-7: After any workspace package dependency change, ``npm install`` is run at
+     the monorepo root and the updated ``package-lock.json`` is committed. ``npm ci``
+     succeeds locally before a release tag is pushed.
 
    **Rationale:**
    Without bundling, ``vsce`` in an npm-workspaces monorepo either fails (``../../``

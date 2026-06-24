@@ -1,5 +1,18 @@
 # Release Notes
 
+## v0.11.2 — Lockfile Sync Acceptance Criterion
+
+*2026-06-24*
+
+### Spec
+
+- **lockfile-sync-ac**: Closes the spec gap exposed by the v0.11.1 CI failure. Adds AC-7
+  to `REQ_REL_PKGCONTRACT` and `SPEC_REL_PKGCONTRACT` requiring that the root
+  `package-lock.json` is updated (via `npm install` at the workspace root) whenever any
+  workspace package dependency changes, and that `npm ci` is verified to pass locally before
+  any release tag is pushed. This makes lock-file hygiene an enforceable pre-release gate,
+  not a manual convention.
+
 ## v0.11.1 — Extension Package Contract + CI Fix
 
 *2026-06-24*
