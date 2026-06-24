@@ -4,6 +4,7 @@
   "description": "Jarvis Recorder — session recording, whisper pipeline, and transcript notifications",
   "version": "0.11.2",
   "publisher": "enthali",
+  "icon": "resources/jarvis-128.png",
   "engines": {
     "vscode": "^1.95.0"
   },

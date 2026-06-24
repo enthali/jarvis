@@ -659,6 +659,9 @@ Release Design Specifications
    * AC-7: After any workspace package dependency change, ``npm install`` is run at
      the monorepo root and the updated ``package-lock.json`` is committed. ``npm ci``
      succeeds locally before a release tag is pushed.
+   * AC-8: Every publishable extension's ``package.json`` includes an ``icon`` field
+     pointing to ``resources/jarvis-128.png`` (128×128 PNG). The ``resources/``
+     directory is NOT excluded by ``.vscodeignore``.
 
    **Rationale:**
    Without bundling, ``vsce`` in an npm-workspaces monorepo either fails (``../../``

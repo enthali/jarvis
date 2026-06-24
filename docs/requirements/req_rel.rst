@@ -326,3 +326,5 @@ Release Requirements
    * AC-7: After any workspace package dependency change, ``npm install`` MUST be
      run at the monorepo root so that ``package-lock.json`` is updated; ``npm ci``
      MUST succeed locally before a release tag is pushed.
+   * AC-8: Every publishable extension's ``package.json`` MUST include an ``icon``
+     field referencing a 128×128 PNG relative to the package root.
