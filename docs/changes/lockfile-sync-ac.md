@@ -16,138 +16,113 @@ The v0.11.1 CI failure revealed a process gap: when `esbuild` was added as a `de
 
 ## Level 0: User Stories
 
-**Status**: ⏳ not started | 🔄 in progress | ✅ completed
+**Status**: ✅ completed
 
 ### Impacted User Stories
 
 | ID | Title | Impact | Notes |
 |----|-------|--------|-------|
-| US_xxx | ... | modified | ... |
+| US_REL_PKGCONTRACT | Extension Package Contract | linked-from | AC-7 added at REQ/SPEC level; US unchanged |
 
 ### New User Stories
 
-| ID | Title | Priority |
-|----|-------|----------|
-| SYSPILOT_US_NEW_1 | As a..., I want..., so that... | mandatory |
+None — gap fits under existing `US_REL_PKGCONTRACT`.
 
 ### Decisions
 
-- Decision 1: ...
-- Decision 2: ...
+- No new US needed: lock-file hygiene is an implementation detail of the package contract, not a separate user-visible concern.
 
 ### Horizontal Check (MECE)
 
-- [ ] No contradictions with existing User Stories
-- [ ] No redundancies
-- [ ] Gaps identified and addressed
+- [x] No contradictions with existing User Stories
+- [x] No redundancies
+- [x] Gaps identified and addressed
 
 ---
 
 ## Level 1: Requirements
 
-**Status**: ⏳ not started | 🔄 in progress | ✅ completed
+**Status**: ✅ completed
 
 ### Impacted Requirements
 
-Found via links from User Stories above.
-
 | ID | Linked From | Impact | Notes |
 |----|-------------|--------|-------|
-| REQ_xxx | US_xxx | modified | ... |
+| REQ_REL_PKGCONTRACT | US_REL_PKGCONTRACT | modified | AC-7 added |
 
 ### New Requirements
 
-| ID | Title | Links | Priority |
-|----|-------|-------|----------|
-| SYSPILOT_REQ_NEW_1 | ... | US_xxx | mandatory |
+None.
 
 ### Conflicts Detected
 
-- ⚠️ REQ_xxx vs REQ_yyy: {description}
-  - Resolution: {decision}
+None.
 
 ### Decisions
 
-- Decision 1: ...
+- AC-7 added to the existing `REQ_REL_PKGCONTRACT` rather than a new requirement — it is a pre-release gate condition of the same package contract, not a separate concern.
 
 ### Horizontal Check (MECE)
 
-- [ ] No contradictions with existing Requirements
-- [ ] No redundancies
-- [ ] All new REQs link to User Stories
+- [x] No contradictions with existing Requirements
+- [x] No redundancies
+- [x] All new REQs link to User Stories
 
 ---
 
 ## Level 2: Design
 
-**Status**: ⏳ not started | 🔄 in progress | ✅ completed
+**Status**: ✅ completed
 
 ### Impacted Design Elements
 
-Found via links from Requirements above.
-
 | ID | Linked From | Impact | Notes |
 |----|-------------|--------|-------|
-| SPEC_xxx | REQ_xxx | modified | ... |
+| SPEC_REL_PKGCONTRACT | REQ_REL_PKGCONTRACT | modified | AC-7 added |
 
 ### New Design Elements
 
-| ID | Title | Links |
-|----|-------|-------|
-| SYSPILOT_SPEC_NEW_1 | ... | REQ_xxx, SYSPILOT_REQ_NEW_1 |
+None.
 
 ### Conflicts Detected
 
-- ⚠️ SPEC_xxx vs SPEC_yyy: {description}
-  - Resolution: {decision}
+None.
 
 ### Decisions
 
-- Decision 1: ...
+- AC-7 mirrors REQ AC-7 exactly; no additional design elaboration needed.
 
 ### Horizontal Check (MECE)
 
-- [ ] No contradictions with existing Designs
-- [ ] All new SPECs link to Requirements
+- [x] No contradictions with existing Designs
+- [x] All new SPECs link to Requirements
 
 ---
 
 ## Final Consistency Check
 
-**Status**: ⏳ not started | ✅ passed | ❌ failed
+**Status**: ✅ passed
 
 ### Traceability Verification
 
 | User Story | Requirements | Design | Complete? |
 |------------|--------------|--------|-----------|
-| US_xxx | REQ_xxx | SPEC_xxx | ✅ |
-| SYSPILOT_US_NEW_1 | SYSPILOT_REQ_NEW_1 | SYSPILOT_SPEC_NEW_1 | ✅ |
+| US_REL_PKGCONTRACT | REQ_REL_PKGCONTRACT (AC-7 added) | SPEC_REL_PKGCONTRACT (AC-7 added) | ✅ |
 
 ### Artefakt-Removal-Check
 
-*Fill in only when this CR removes an artefact (file, field, configuration key, REQ-ID).*
-
-For each removed artefact, run a project-wide grep on all plausible name variants and classify results:
-
-| Removed Artefact | Class (a): Code/Workflow refs | Class (b): Doc refs | Class (c): Historic Change Docs |
-|------------------|-------------------------------|---------------------|---------------------------------|
-| `{artefact name}` | {files + lines fixed / none} | {files + lines fixed / none} | {count — acceptable historic stranding} |
-
-- [ ] All class (a) active code/workflow references fixed in this CR
-- [ ] All class (b) active documentation references fixed in this CR
-- [ ] Class (c) historical Change Documents accepted as "acceptable historic stranding" and disclosed above
+This CR adds ACs only. No artefacts removed. Check not applicable.
 
 ### Issues Found
 
-- [ ] Issue 1: ...
-- [ ] Issue 2: ...
+None.
 
 ### Sign-off
 
-- [ ] All levels completed (no ⚠️ DEPRECATED markers remaining)
-- [ ] All conflicts resolved
-- [ ] Traceability verified
-- [ ] Ready for implementation
+- [x] All levels completed (no ⚠️ DEPRECATED markers remaining)
+- [x] All conflicts resolved
+- [x] Traceability verified
+- [x] Ready for implementation
 
 ---
 

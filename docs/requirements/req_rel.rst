@@ -323,3 +323,6 @@ Release Requirements
      ``tsconfig.json``, ``build.js``, ``**/*.map``, and ``**/*.ts``
      while preserving ``out/``.
    * AC-6: All extensions are packaged with ``vsce package --no-dependencies``.
+   * AC-7: After any workspace package dependency change, ``npm install`` MUST be
+     run at the monorepo root so that ``package-lock.json`` is updated; ``npm ci``
+     MUST succeed locally before a release tag is pushed.
