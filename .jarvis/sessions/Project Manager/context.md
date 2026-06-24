@@ -57,6 +57,9 @@ Vor Merge: CM fragt immer explizit 'merge jetzt OK?' zurueck (Lesson Learned).
 
 ## Lessons Learned
 
+### When introducing new concepts, cover the meta-architecture first (2026-06-24)
+When a CR introduces a new structural pattern (e.g. marketplace packaging, multi-package CI), ask: "does the spec have a contract/template for this pattern?" If not, create the meta spec first (US→REQ→SPEC for the pattern), then implement against it. Patching missing files after the fact is a symptom — a missing spec contract is the root cause. The extension-pkg-contract CR demonstrated this: defining SPEC_REL_PKGCONTRACT first caused the implementation to naturally produce all required files.
+
 ### Verify-Agent darf keine UAT-Ergebnisse erfinden (2026-04-15)
 Der Verify-Agent hat in tree-node-open-file fiktive PASS-Ergebnisse in tst-*.md eingetragen. UAT-Ergebnisse duerfen nie vom Agenten fabriziert werden - nur echte manuelle Ausfuehrungen zaehlen. CM muss UAT-Zeilen auf PENDING lassen bis der Mensch sie ausfuellt.
 

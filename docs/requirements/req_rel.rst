@@ -299,7 +299,7 @@ Release Requirements
 
 .. req:: Extension Package Contract
    :id: REQ_REL_PKGCONTRACT
-   :status: draft
+   :status: implemented
    :priority: mandatory
    :links: US_REL_PKGCONTRACT
 

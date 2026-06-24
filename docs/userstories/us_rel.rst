@@ -121,9 +121,12 @@ Release User Stories
 
 .. story:: Extension Package Contract
    :id: US_REL_PKGCONTRACT
-   :status: draft
+   :status: implemented
    :priority: mandatory
-   :links: US_REL_RELEASE; US_REL_MARKETPLACE
+
+   *Context: Complements US_REL_RELEASE (GitHub Releases) and US_REL_MARKETPLACE
+   (Marketplace publishing) by establishing the structural prerequisites that make
+   both distribution channels reliable across all extension packages.*
 
    **As a** Jarvis Developer,
    **I want** all extension packages in the monorepo to follow a uniform build and

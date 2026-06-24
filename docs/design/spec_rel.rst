@@ -641,6 +641,22 @@ Release Design Specifications
         }
       }
 
+   **Acceptance Criteria:**
+
+   * AC-1: Each extension package contains a ``build.js`` esbuild script that bundles
+     ``src/extension.ts`` into ``out/extension.js`` with ``format: cjs``,
+     ``platform: node``, ``target: node20``, ``sourcemap: true``, and ``--minify``
+     support via a ``process.argv`` flag.
+   * AC-2: ``vscode`` and ``jarvis-core`` are always listed as esbuild ``external``
+     entries; no other workspace-peer packages are bundled.
+   * AC-3: ``package.json`` defines ``bundle: "node build.js"`` and
+     ``vscode:prepublish: "npm run compile && npm run bundle"``.
+   * AC-4: ``esbuild`` is listed in ``devDependencies``.
+   * AC-5: A ``.vscodeignore`` file excludes ``src/``, ``node_modules/``,
+     ``tsconfig.json``, ``build.js``, ``**/*.map``, and ``**/*.ts``
+     while preserving ``out/``.
+   * AC-6: All extensions are packaged with ``vsce package --no-dependencies``.
+
    **Rationale:**
    Without bundling, ``vsce`` in an npm-workspaces monorepo either fails (``../../``
    path resolution error) or produces bloated VSIXs that include hoisted
