@@ -2,7 +2,7 @@
   "name": "jarvis",
   "displayName": "Jarvis",
   "description": "Jarvis core — sessions, messaging, reminders, heartbeat, engine",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "publisher": "enthali",
   "repository": {
     "type": "git",
