@@ -38,6 +38,13 @@ CR sequence:
 4. **retire-jarvis-legacy** — `enthali.jarvis` one-time migration to `enthali.jarvis-core`
 5. **US→US link audit** — conf.py `needs_warnings` guard (deferred from extension-pkg-contract)
 
+## Roadmap Source of Truth
+
+The roadmap is built from [open GitHub Issues](https://github.com/enthali/jarvis/issues). The PM reviews open issues, prioritizes them manually, and drives the backlog that way. This ensures:
+- Always current (no stale documents)
+- External feedback included
+- Dependencies documented in issue comments
+
 ## Active Plans
 
 - [Marketplace Transition Plan](marketplace-transition-plan.md) — name decided: jarvis-core; step 1 done (v0.11.x/v0.12.0); step 2 (EOL enthali.jarvis) is item #4 in queue above
