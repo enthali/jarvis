@@ -243,8 +243,8 @@ Release Design Specifications
       }
 
    * ``icon``: 128×128 PNG relative to the ``packages/core/`` root.
-     A placeholder PNG is committed to ``packages/core/resources/jarvis-128.png``.
-     A proper icon is a future improvement.
+     Generated from ``resources/jarvis.svg`` by ``scripts/generate-icons.mjs``.
+     The icon depicts a right-pointing play triangle with a serif J inside.
    * ``keywords``: used by Marketplace search ranking.
    * ``categories``: ``"Other"`` is the correct bucket for assistant/utility extensions.
    * ``galleryBanner``: dark-theme banner matching the VS Code dark theme palette.
@@ -679,8 +679,9 @@ Release Design Specifications
      the monorepo root and the updated ``package-lock.json`` is committed. ``npm ci``
      succeeds locally before a release tag is pushed.
    * AC-8: Every publishable extension's ``package.json`` includes an ``icon`` field
-     pointing to ``resources/jarvis-128.png`` (128×128 PNG). The ``resources/``
-     directory is NOT excluded by ``.vscodeignore``.
+     pointing to ``resources/jarvis-128.png`` (128×128 PNG). The PNG is generated
+     from ``resources/jarvis.svg`` via ``scripts/generate-icons.mjs``. The
+     ``resources/`` directory is NOT excluded by ``.vscodeignore``.
 
    **Rationale:**
    Without bundling, ``vsce`` in an npm-workspaces monorepo either fails (``../../``
@@ -688,3 +689,55 @@ Release Design Specifications
    dependencies from the root. Bundling with ``external: ['vscode', 'jarvis-core']``
    ensures the VSIX is self-contained while keeping the runtime peer dependency
    resolved by the VS Code extension host.
+
+
+.. spec:: Icon Generation and Alignment
+   :id: SPEC_REL_ICONALIGN
+   :status: implemented
+   :links: REQ_REL_ICONALIGN; REQ_REL_PKGCONTRACT
+
+   **Description:**
+   All Jarvis icons are derived from a single monochromatic SVG source file.
+   A generation script produces all derived icon files, which are committed to
+   the repository.
+
+   **Source of Truth:**
+
+   ``resources/jarvis.svg``
+      Monochromatic SVG (``viewBox="0 0 24 24"``, ``stroke="currentColor"``).
+      Used directly by ``core`` and ``core-gh`` as the VS Code activity bar icon.
+      The icon depicts a right-pointing play triangle with a serif J inside.
+
+   **Generation Script:**
+
+   ``scripts/generate-icons.mjs``
+      Reads the source SVG and produces:
+
+      * **SVG copies** → ``packages/core/resources/jarvis.svg``,
+        ``packages/core-gh/resources/jarvis.svg``
+      * **128×128 marketplace PNGs** → ``packages/{core,core-gh,mcp,pim,recorder}/resources/jarvis-128.png``
+
+      The marketplace PNG renders the same triangle and J with brand colours
+      (light-blue fill ``#6cc2e0``, white J ``#ffffff``, dark background
+      ``#1e1e2e`` with rounded corners).
+
+      Requires ``sharp`` (listed in root ``devDependencies``).
+      Invoked via ``npm run generate-icons``.
+
+   **Icon Modification Process:**
+
+   1. Edit ``resources/jarvis.svg``
+   2. Run ``npm run generate-icons``
+   3. Commit all generated files
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``resources/jarvis.svg`` is a valid monochromatic SVG using only
+     ``currentColor`` — no hardcoded colour values.
+   * AC-2: ``scripts/generate-icons.mjs`` produces SVG copies for ``core`` and
+     ``core-gh``, and 128×128 PNGs for all five publishable packages.
+   * AC-3: The marketplace PNG uses the same triangle + J shape as the SVG source,
+     rendered with brand colours.
+   * AC-4: ``npm run generate-icons`` is defined in the root ``package.json``.
+   * AC-5: Generated files are committed to the repository — no CI pipeline change
+     is required.

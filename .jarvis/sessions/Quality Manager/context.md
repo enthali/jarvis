@@ -33,3 +33,7 @@ Three files, strict separation of concerns:
 - BREAKING renames: verify the OLD name is GONE in code + package.json, not just the NEW name present
 - Artefakt-Removal-Check (b) active-docs class often misses `docs/releasenotes.md` — re-grep this file in every removal-CR review; classify hits as (c) historic stranding
 - Gate routing: gate signal (CLEAR/BLOCK) → CM; Findings Report → PM. CM asking QM to "report back" does NOT override this routing rule — CM gets the verdict, PM gets the findings.
+
+## Active Reviews
+
+- **icon-alignment** (2026-06-25): BLOCK — sent Findings Report to PM. Must-fix: `core-gh/package.json` missing top-level `icon` field (SPEC_REL_PKGCONTRACT AC-8). Missing tst/val artifacts. Status fields on REQ/SPEC need `implemented`.

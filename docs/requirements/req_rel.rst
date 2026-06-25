@@ -340,4 +340,28 @@ Release Requirements
      run at the monorepo root so that ``package-lock.json`` is updated; ``npm ci``
      MUST succeed locally before a release tag is pushed.
    * AC-8: Every publishable extension's ``package.json`` MUST include an ``icon``
-     field referencing a 128×128 PNG relative to the package root.
+     field referencing a 128×128 PNG relative to the package root. The PNG SHALL
+     be generated from the single-source SVG via the icon generation script.
+
+
+.. req:: Activity Bar Icon Alignment
+   :id: REQ_REL_ICONALIGN
+   :status: implemented
+   :priority: mandatory
+   :links: US_REL_PKGCONTRACT
+
+   **Description:**
+   All Jarvis extension icons SHALL be derived from a single source SVG so that the
+   activity bar icon and all marketplace icons are visually consistent.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A single monochromatic SVG at ``resources/jarvis.svg`` SHALL be the
+     source of truth for all icon variants.
+   * AC-2: The activity bar icon and marketplace PNG SHALL use the same visual
+     concept (shape and letter).
+   * AC-3: A generation script SHALL produce all derived icon files (SVG copies
+     for activity-bar packages, 128×128 PNG for all publishable packages) from the
+     single source.
+   * AC-4: The SVG SHALL use ``currentColor`` (no hardcoded colours) so VS Code
+     themes can style the activity bar icon.
