@@ -1,5 +1,35 @@
 # Release Notes
 
+## v0.13.0 — Legacy Retirement Shim + Icon Alignment
+
+*2026-06-26*
+
+### Migration
+
+- **retire-jarvis-legacy**: Final release of the legacy `enthali.jarvis` extension (formerly
+  distributed via GitHub Releases as the original Jarvis). This release converts the legacy
+  extension into a migration-only shim: on startup, if `enthali.jarvis-core` is already installed,
+  the shim immediately uninstalls itself and surfaces no duplicate views, heartbeat, or message
+  processing (preventing concurrent operation on shared `.jarvis` project data). If
+  `enthali.jarvis-core` is not installed, the shim offers a direct Marketplace install; if the
+  Marketplace is unreachable (corporate environments), it offers a GitHub Releases `.vsix` fallback.
+  If both channels fail, the shim stays active, shows a manual-install link, and retries on next
+  startup — no dead-end state. Migration is automatic (notify-then-proceed). This is the final
+  `enthali.jarvis` release; no further legacy releases follow.
+  *(US_REL_RETIRELEGACY; REQ_REL_RETIRELEGACY; SPEC_REL_RETIRELEGACY)*
+
+### UX
+
+- **icon-alignment**: Aligns the VS Code activity bar icon with the marketplace "J" icon.
+  Previously the activity bar showed a generic circle/play SVG while the marketplace displayed
+  the serif-J monogram. A single-source `resources/jarvis.svg` (monochromatic, `currentColor`)
+  now serves as the canonical icon. A `scripts/generate-icons.mjs` generation script regenerates
+  all five package `resources/jarvis-128.png` files (128×128) from that SVG. All `package.json`
+  files reference the icon field. Consistent branding across both surfaces.
+  *(US_REL_PKGCONTRACT; REQ_REL_ICONALIGN; SPEC_REL_ICONALIGN)*
+
+---
+
 ## v0.12.0 — Selective Self-Updater + Add-on Marketplace Icons
 
 *2026-06-24*
