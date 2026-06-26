@@ -29,6 +29,9 @@ Updated after every cycle. Read this first to know where to pick up.
 | marketplace-publish | 2026-06-23 | PASS | PASS | PASS | n/a | F-1 MINOR: US→US :links: unconventional; F-2 MINOR: SPEC_MKTMETA AC-3 under-specifies README; F-3 MINOR: SPEC_RELEASEACTION code block stale (files glob) | QM CLEAR |
 | extension-rename | 2026-06-24 | PASS | PASS | PASS | n/a | F-1 resolved: releasenotes.md v0.10.0 corrected to enthali.jarvis-core; F-2 resolved: REQ_REL_RELEASEACTION + AC-5 added; SPEC_REL_COREGH links fixed | QM CLEAR |
 | extension-pkg-contract | 2026-06-24 | PASS | PASS | PASS | n/a | F-1/F-2/F-3 resolved (US→US link removed, SPEC ACs added, status aligned); needs_warnings for US→US deferred (101 violations — separate CR, PM informed) | QM CLEAR |
+| lockfile-sync-ac | 2026-06-24 | n/a (spec-only, no new US) | PASS | n/a | n/a | No findings | QM CLEAR |
+| addon-icons | 2026-06-24 | n/a (spec-only, no new US) | PASS | n/a | n/a | No findings | QM CLEAR |
+| selective-updater | 2026-06-24 | PASS (AC-6/AC-7 added) | PASS | PASS | n/a | No findings; code-vs-spec exact match on all 6 handler steps; Artefakt-Removal verified | QM CLEAR |
 
 ## Known Releases (at last scan)
 

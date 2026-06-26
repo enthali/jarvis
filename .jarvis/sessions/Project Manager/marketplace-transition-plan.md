@@ -33,6 +33,7 @@ unique names and publish without conflict.
 - Update all internal references to the extension ID
 - Publish to marketplace — clean slate, no existing user conflicts
 - Test: install `enthali.<newname>` in a fresh project
+- **Icon alignment** — handled in separate CR (see Pending CRs)
 
 ### Step 2 — `.jarvis` folder compatibility (part of rename CR)
 - New installations use `.<newname>` as root folder **OR** keep `.jarvis`
@@ -66,7 +67,8 @@ Final release of `enthali.jarvis` via GitHub Releases (auto-update delivers it):
   the EOL notification and prompted to migrate
 
 ## Pending CRs (in order)
-1. WSL2 fix (`USERNAME ?? USER`) — small, independent, can go anytime
-2. Extension rename + marketplace publish — blocked on name decision
-3. EOL `enthali.jarvis` migration prompt — after Step 1 confirmed working
-4. Remove GitHub Releases updater from new extension — after user base migrated
+1. Icon alignment (J icon consistency) — independent, can go anytime
+2. WSL2 fix (`USERNAME ?? USER`) — small, independent, can go anytime
+3. Extension rename + marketplace publish — blocked on name decision
+4. EOL `enthali.jarvis` migration prompt — after Step 1 confirmed working
+5. Remove GitHub Releases updater from new extension — after user base migrated

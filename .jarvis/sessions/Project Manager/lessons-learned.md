@@ -1,5 +1,11 @@
 # PM Lessons Learned
 
+### Release agent only bumps root package.json — spec gap (2026-06-24)
+SPEC_REL_RELEASEACTION does not require bumping ALL workspace package.json files — only the root. In an npm monorepo, each sub-package (core, pim, recorder, mcp, core-gh) has its own version field. The release agent missed them all, CI built v0.11.2 VSIXs under the v0.12.0 tag. Fix: add an AC to SPEC_REL_RELEASEACTION requiring the version bump to cover every `packages/*/package.json` in the workspace.
+
+### Moving a git tag: always specify the commit explicitly (2026-06-24)
+When moving a tag (delete + recreate), always use `git tag <tag> <sha>` with the explicit commit hash — never rely on a chain like `git tag -d <tag>; git tag <tag>` where a mid-chain failure leaves the local tag deleted but the new one uncreated, causing the subsequent push to go to the wrong commit. The safe pattern: `git tag -d v0.x.y; git push origin :refs/tags/v0.x.y; git tag v0.x.y <sha>; git push origin v0.x.y`.
+
 ### Meta-architecture first when introducing new concepts (2026-06-24)
 When a CR introduces a new structural pattern (e.g. marketplace packaging, multi-package CI), ask: "does the spec have a contract/template for this pattern?" If not, create the meta spec first (US→REQ→SPEC for the pattern), then implement against it. Patching missing files after the fact is a symptom — a missing spec contract is the root cause. The extension-pkg-contract CR demonstrated this: defining SPEC_REL_PKGCONTRACT first caused the implementation to naturally produce all required files.
 
