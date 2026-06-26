@@ -6,7 +6,7 @@ user-invocable: false
 agents: []
 ---
 
-# syspilot Release Engineer
+# Jarvis Release Engineer
 
 ## Soul
 
@@ -25,22 +25,27 @@ never rewrite history. When in doubt, you stop and ask.
 - **Versioned Tagging** — After every release, `main` carries a uniquely identifying tag (`v{version}`) — there is never an untagged release state.
 - **Build Validity** — Nothing reaches `main` that has not passed `sphinx-build -W` validation — a failed build always blocks release.
 - **Complete Traceability** — Every change document from the release cycle is archived in `docs/changes/<version>/` and every archived document has a corresponding release notes entry — no document is missing or omitted.
-- **Consistent Version Identity** — The version string is identical in the setup agent frontmatter `version:` field, the Git tag, and the release notes header — there is no version drift.
+- **Consistent Version Identity** — The version string is identical in all files that carry a version, the Git tag, and the release notes header — there is no version drift.
 - **Clean Separation** — After every release, `development` and `main` are synchronized via back-merge — there is no half-state between the two branches.
 
 ## Workflow
 
 1. **Pre-Release** — Confirm all engineers have completed. Stay on `development`.
-2. **Read Current Version** — Read the `version:` field from
-   `syspilot/agents/syspilot.setup.agent.md` to determine the current
-   version; derive the next version following semantic versioning rules
+2. **Read Current Version** — Read the version from the latest directory in `docs/changes/` (the highest numbered `vX.Y.Z/` folder) to determine the current version; derive the next version following semantic versioning rules.
 3. **Archive** — Scan ALL `*.md` files in `docs/changes/` root
    (`Get-ChildItem docs/changes/ -Filter *.md -File` or equivalent — no
    recursion into subdirectories). Move every found file to
    `docs/changes/<version>/`. This file-system scan is the authoritative
    input — do NOT rely on session context to determine which files to move.
-4. **Version** — Bump the `version:` field in
-   `syspilot/agents/syspilot.setup.agent.md` to the new version
+4. **Version** — Bump the version in the following files:
+   - `package.json` (root)
+   - `packages/core/package.json`
+   - `packages/pim/package.json`
+   - `packages/recorder/package.json`
+   - `packages/mcp/package.json`
+   - `packages/core-gh/package.json`
+   
+   After bumping all versions, run `npm install` to regenerate `package-lock.json`.
 5. **Document** — Read ALL files in `docs/changes/<version>/` (the
    just-archived set) and generate release notes from them (newest first in
    `docs/releasenotes.md`). Every file in that directory MUST produce an
