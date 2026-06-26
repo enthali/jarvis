@@ -146,3 +146,38 @@ Release User Stories
    * AC-2: Adding a new extension to the monorepo requires no CI changes — it just
      follows the contract
    * AC-3: A packaging failure in any single extension is visible and fails the CI job
+
+
+.. story:: Legacy Extension Retirement
+   :id: US_REL_RETIRELEGACY
+   :status: draft
+   :priority: mandatory
+   :links: US_REL_SELFUPDATE
+
+   *Context: The extension was renamed from ``enthali.jarvis`` to
+   ``enthali.jarvis-core``. Users still on the obsolete ``enthali.jarvis`` ID must
+   be migrated to the renamed extension. Reuses the GitHub Releases delivery path
+   from US_REL_SELFUPDATE; the migrated user is then served by US_REL_MARKETPLACE.*
+
+   **As a** user still on the obsolete ``enthali.jarvis`` extension,
+   **I want** the final legacy release to automatically migrate me to
+   ``enthali.jarvis-core`` and then remove itself,
+   **so that** I am never stranded on the dead extension ID, and two Jarvis
+   instances never operate on the same ``.jarvis`` project data at once.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The final ``enthali.jarvis`` release is a migration shim: on activation it
+     registers **no** Jarvis surfaces (no sessions view, no heartbeat, no message
+     processing) — guaranteeing only one active Jarvis instance per workspace.
+   * AC-2: The shim notifies the user that Jarvis has moved, then ensures
+     ``enthali.jarvis-core`` is installed — trying the VS Code Marketplace first, and
+     falling back to a GitHub Releases ``.vsix`` install when the Marketplace is
+     unreachable (e.g. corporate/private marketplace).
+   * AC-3: Once ``enthali.jarvis-core`` is present, the shim uninstalls itself and
+     prompts the user to reload the window.
+   * AC-4: If neither install channel succeeds, the shim does **not** uninstall
+     itself; it shows a notification with a manual-install link to
+     ``enthali.jarvis-core`` and retries the migration on the next startup.
+   * AC-5: No ``enthali.jarvis`` release is published after this final shim. The shim
+     release remains downloadable so existing users still land on it and migrate.

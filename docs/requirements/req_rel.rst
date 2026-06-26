@@ -365,3 +365,113 @@ Release Requirements
      single source.
    * AC-4: The SVG SHALL use ``currentColor`` (no hardcoded colours) so VS Code
      themes can style the activity bar icon.
+
+
+.. req:: Migration Shim Activation
+   :id: REQ_REL_RETIRESHIM
+   :status: draft
+   :priority: mandatory
+   :links: US_REL_RETIRELEGACY
+
+   **Description:**
+   The final ``enthali.jarvis`` release SHALL behave as a migration shim. On
+   activation it SHALL NOT register any Jarvis runtime surfaces and SHALL instead
+   run the migration sequence only — guaranteeing that only one active Jarvis
+   instance ever operates on a workspace's ``.jarvis`` data.
+
+   **Acceptance Criteria:**
+
+   * AC-1: On activation the extension registers **no** Jarvis surfaces: no sessions
+     tree view, no heartbeat scheduler, no message-queue processing, no Jarvis
+     commands other than what the migration sequence itself requires.
+   * AC-2: On activation the extension displays an information notification stating
+     that Jarvis has moved to ``enthali.jarvis-core`` and that migration is in progress.
+   * AC-3: The migration sequence (detect → install → uninstall, or fallback) is the
+     only behaviour the shim performs.
+
+
+.. req:: Migration Install with Channel Fallback
+   :id: REQ_REL_RETIREINSTALL
+   :status: draft
+   :priority: mandatory
+   :links: US_REL_RETIRELEGACY; REQ_REL_UPDATEINSTALL
+
+   **Description:**
+   The shim SHALL ensure ``enthali.jarvis-core`` is installed. It SHALL first detect
+   whether ``enthali.jarvis-core`` is already present; if absent, it SHALL install it
+   from the VS Code Marketplace, falling back to a GitHub Releases ``.vsix`` install
+   when the Marketplace is unreachable.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Presence of ``enthali.jarvis-core`` is detected via
+     ``vscode.extensions.getExtension('enthali.jarvis-core')``.
+   * AC-2: If absent, the shim attempts a Marketplace install of
+     ``enthali.jarvis-core`` (e.g. via ``workbench.extensions.installExtension`` with
+     the extension ID).
+   * AC-3: If the Marketplace install fails (e.g. corporate/private marketplace where
+     the public listing is unreachable), the shim falls back to downloading and
+     installing the ``jarvis-core-{version}.vsix`` GitHub Releases asset, reusing the
+     mechanism defined in REQ_REL_UPDATEINSTALL.
+   * AC-4: A successful install via either channel is treated as "``jarvis-core``
+     present" for the purposes of REQ_REL_RETIREUNINSTALL.
+
+
+.. req:: Legacy Self-Uninstall and Reload
+   :id: REQ_REL_RETIREUNINSTALL
+   :status: draft
+   :priority: mandatory
+   :links: US_REL_RETIRELEGACY
+
+   **Description:**
+   Once ``enthali.jarvis-core`` is present, the shim SHALL uninstall the legacy
+   ``enthali.jarvis`` extension and prompt the user to reload the window.
+
+   **Acceptance Criteria:**
+
+   * AC-1: When ``enthali.jarvis-core`` is present (already installed or just
+     installed), the shim triggers uninstall of ``enthali.jarvis`` via
+     ``workbench.extensions.uninstallExtension``.
+   * AC-2: After uninstall is requested, a single reload prompt is shown with a
+     **"Reload Now"** button that reloads the window.
+   * AC-3: No Jarvis surface is ever brought up by the shim before or after uninstall.
+
+
+.. req:: Migration Failure Fallback
+   :id: REQ_REL_RETIREFALLBACK
+   :status: draft
+   :priority: mandatory
+   :links: US_REL_RETIRELEGACY
+
+   **Description:**
+   If neither the Marketplace nor the GitHub install channel succeeds in installing
+   ``enthali.jarvis-core``, the shim SHALL NOT uninstall itself and SHALL guide the
+   user to a manual install, retrying on the next startup.
+
+   **Acceptance Criteria:**
+
+   * AC-1: If both install channels fail, the shim does **not** call uninstall on
+     ``enthali.jarvis`` (the user is never left without a working extension path).
+   * AC-2: A notification is shown with a link to install ``enthali.jarvis-core``
+     manually (Marketplace listing URL, with the GitHub Releases URL as alternative).
+   * AC-3: The migration sequence is re-attempted on the next activation/startup.
+
+
+.. req:: Final Legacy Release Policy
+   :id: REQ_REL_RETIRENORELEASE
+   :status: draft
+   :priority: mandatory
+   :links: US_REL_RETIRELEGACY
+
+   **Description:**
+   The migration shim SHALL be the final ``enthali.jarvis`` release. No further
+   ``enthali.jarvis`` releases are published, and the shim release remains available
+   for download so existing users still land on it and migrate.
+
+   **Acceptance Criteria:**
+
+   * AC-1: No ``enthali.jarvis`` (legacy ID) release is published after the shim
+     release.
+   * AC-2: The shim release remains downloadable from GitHub Releases so existing
+     ``enthali.jarvis`` users continue to receive it via the self-update check
+     (REQ_REL_UPDATECHECK) and are migrated.

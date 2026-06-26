@@ -1,3 +1,7 @@
-# Exclude source maps and type declarations — out/extension.js is the only runtime file
+src/
+node_modules/
+tsconfig.json
+build.js
 **/*.map
-**/*.d.ts
+**/*.ts
+!out/extension.js

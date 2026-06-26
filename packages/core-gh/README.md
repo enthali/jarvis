@@ -1,10 +1,19 @@
-# Jarvis (GitHub Releases distribution)
+# Jarvis (End-of-Life — Migration Shim)
 
-This package (`enthali.jarvis`) is the **legacy GitHub Releases distribution** of Jarvis core.
+> **This extension is deprecated.** It exists only to migrate users to
+> [`enthali.jarvis-core`](https://marketplace.visualstudio.com/items?itemName=enthali.jarvis-core).
 
-New users should install [`enthali.jarvis-core`](https://marketplace.visualstudio.com/items?itemName=enthali.jarvis-core) from the VS Code Marketplace instead.
+## What happens
 
-This package will eventually become an EOL migration stub that redirects users to `enthali.jarvis-core`. Until then it continues to receive updates via GitHub Releases.
+On activation this extension will:
 
-- Source: <https://github.com/enthali/Jarvis>
-- Marketplace edition: `enthali.jarvis-core`
+1. Attempt to install **Jarvis Core** (`enthali.jarvis-core`) from the VS Code Marketplace.
+2. If the Marketplace is unreachable (e.g. corporate/private network), fall back to installing the `.vsix` from GitHub Releases.
+3. Once Jarvis Core is installed, uninstall itself and prompt a window reload.
+
+If both install channels fail, the shim stays installed and retries on the next VS Code startup. A notification offers manual-install links.
+
+## Links
+
+- Marketplace: <https://marketplace.visualstudio.com/items?itemName=enthali.jarvis-core>
+- GitHub: <https://github.com/enthali/Jarvis>

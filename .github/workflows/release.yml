@@ -30,12 +30,8 @@ jobs:
         run: cd packages/core && npx vsce package --no-dependencies
 
       # ── Package enthali.jarvis (legacy GitHub Release) ───────────────────────
-      # Copy the compiled bundle into core-gh before packaging (no src/ there)
-      - name: Copy bundle to core-gh
-        run: |
-          mkdir -p packages/core-gh/out
-          cp packages/core/out/extension.js packages/core-gh/out/extension.js
-          cp packages/core/out/sql-wasm.wasm packages/core-gh/out/sql-wasm.wasm
+      # core-gh is now a self-contained shim with its own src/ and build.js;
+      # vsce package triggers vscode:prepublish which runs the bundle step.
       - name: Package enthali.jarvis (legacy)
         run: cd packages/core-gh && npx vsce package --no-dependencies
 

@@ -2,7 +2,7 @@
 description: "Subagent that keeps internal and external documentation in sync with reality. Updates copilot-instructions.md, context.md, README, and methodology docs."
 tools: [read, edit, search, todo, execute]
 model: Claude Sonnet 4.6 (copilot)
-user-invocable: false
+user-invocable: true
 agents: []
 ---
 

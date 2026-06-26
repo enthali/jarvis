@@ -335,68 +335,81 @@ Release Design Specifications
       ``packages/core-gh`` legacy build) is described in **SPEC_REL_COREGH**.
 
 
-.. spec:: Legacy GitHub Release Package (enthali.jarvis)
+.. spec:: Legacy Package → Migration Shim (enthali.jarvis)
    :id: SPEC_REL_COREGH
    :status: draft
-   :links: REQ_REL_RELEASEACTION
+   :links: REQ_REL_RELEASEACTION; REQ_REL_RETIRENORELEASE
 
    **Description:**
-   ``packages/core-gh/`` is a thin packaging-only directory that produces the
-   legacy ``enthali.jarvis`` VSIX for GitHub Releases, sharing the compiled bundle
-   from ``packages/core/``.
+   ``packages/core-gh/`` produces the legacy ``enthali.jarvis`` VSIX for GitHub
+   Releases. In its **final** release it is no longer a re-export of ``core`` — it is
+   converted into a self-contained **migration shim** with its own minimal bundle.
+   It no longer shares ``out/extension.js`` from ``packages/core/``.
 
    **Directory layout (committed):**
 
    .. code-block:: text
 
       packages/core-gh/
-        package.json        ← name="jarvis", same contributes as core
-        README.md           ← explains legacy status, links to jarvis-core
-        .vscodeignore       ← excludes *.map, *.d.ts
-        resources/          ← jarvis.svg, jarvis-128.png (copies from core)
-        schemas/            ← session.schema.json (copy from core)
-        # out/ is NOT committed; CI copies it from packages/core/out/ at release time
+        package.json        ← name="jarvis", minimal contributes (migration only)
+        build.js            ← esbuild script bundling src/extension.ts
+        src/extension.ts    ← migration shim entry point (see SPEC_REL_RETIRESHIM)
+        src/migrate.ts      ← migration logic (install/uninstall/fallback)
+        README.md           ← explains EOL status, links to jarvis-core
+        .vscodeignore       ← excludes src/, *.map, *.ts; preserves out/
+        resources/          ← jarvis.svg, jarvis-128.png
+        schemas/            ← (removed — shim contributes no yamlValidation)
+
+   **Manifest reduction (``core-gh/package.json``):**
+
+   * ``viewsContainers``, ``views``, ``commands``, ``menus``, ``configuration`` and
+     ``yamlValidation`` contributions are **removed** — the shim registers no UI.
+   * ``activationEvents`` is reduced to ``onStartupFinished`` only.
+   * ``main`` points to ``./out/extension.js`` (the shim's own bundle).
+   * Adopts the package contract (SPEC_REL_PKGCONTRACT): ``build.js``,
+     ``bundle`` / ``vscode:prepublish`` scripts, ``esbuild`` devDependency.
 
    **Key rules:**
 
-   * ``packages/core-gh/`` has **no** ``src/``, **no** ``build.js``, **no** ``vscode:prepublish``.
-     The extension behaviour is 100% determined by ``out/extension.js`` copied from core.
-   * The ``contributes`` block in ``core-gh/package.json`` MUST be kept in sync with
-     ``core/package.json`` whenever commands, views, or settings are added to core.
-     (This constraint is removed once ``core-gh`` is EOL'd in a future CR.)
+   * ``core-gh`` now has its **own** ``src/`` and ``build.js``; the prior
+     "contributes must stay in sync with core" constraint is **removed** (this is the
+     EOL CR that SPEC_REL_COREGH previously anticipated).
+   * CI **no longer copies** ``packages/core/out/`` into ``core-gh``; ``core-gh``
+     builds its own bundle via ``vscode:prepublish``.
    * ``enthali.jarvis`` is NOT published to the Marketplace — GitHub Release upload only.
+   * This is the **final** ``enthali.jarvis`` release; the VSIX remains downloadable so
+     existing users still receive it via the self-update check (REQ_REL_UPDATECHECK)
+     and are migrated.
 
    **CI steps for core-gh packaging (in release.yml):**
 
    .. code-block:: yaml
 
-      - name: Copy bundle to core-gh
-        run: |
-          mkdir -p packages/core-gh/out
-          cp packages/core/out/extension.js packages/core-gh/out/extension.js
-          cp packages/core/out/sql-wasm.wasm packages/core-gh/out/sql-wasm.wasm
-      - name: Package enthali.jarvis (legacy)
+      - name: Package enthali.jarvis (legacy migration shim)
         run: cd packages/core-gh && npx vsce package --no-dependencies
 
    **Complete release.yml CI sequence:**
 
    1. ``npm ci`` + ``npm run compile`` + esbuild bundle (core)
    2. Package ``enthali.jarvis-core`` from ``packages/core/``
-   3. Copy bundle → ``packages/core-gh/out/`` + package ``enthali.jarvis``
+   3. Build + package ``enthali.jarvis`` migration shim from ``packages/core-gh/``
+      (own ``vscode:prepublish`` — no bundle copy from core)
    4. Package add-ons (``pim``, ``recorder``, ``mcp``) — each runs own ``vscode:prepublish``
-   5. GitHub Release — upload all VSIXs (core, core-gh, pim, recorder, mcp)
+   5. GitHub Release — upload all VSIXs (core, core-gh shim, pim, recorder, mcp)
    6. Marketplace publish — ``jarvis-core`` + add-ons only (NOT ``jarvis``)
 
    **Acceptance Criteria (testable)**
 
-   * AC-1: ``packages/core-gh/`` directory exists with ``package.json``, ``README.md``, ``resources/``, ``schemas/``
-   * AC-2: ``packages/core-gh/package.json`` ``name`` is ``"jarvis"``; no ``vscode:prepublish``
-   * AC-3: After copying ``out/`` from core, ``cd packages/core-gh && vsce package --no-dependencies`` succeeds
-   * AC-4: ``enthali.jarvis`` VSIX is uploaded to GitHub Release
+   * AC-1: ``packages/core-gh/`` contains ``package.json``, ``build.js``,
+     ``src/extension.ts``, ``README.md``, ``resources/``
+   * AC-2: ``core-gh/package.json`` ``name`` is ``"jarvis"``; ``contributes`` declares
+     no views, commands, or yamlValidation; ``activationEvents`` is
+     ``["onStartupFinished"]``
+   * AC-3: ``cd packages/core-gh && npm run bundle && vsce package --no-dependencies``
+     succeeds **without** copying any bundle from ``packages/core/``
+   * AC-4: ``enthali.jarvis`` shim VSIX is uploaded to GitHub Release
    * AC-5: ``enthali.jarvis`` VSIX is NOT in any marketplace publish step
-
-   <!-- Implementation: SPEC_REL_AGENTPOLICY -->
-   <!-- Requirements: REQ_REL_AGENTPOLICY -->
+   * AC-6: No ``enthali.jarvis`` release is produced after this shim release
 
 
 .. spec:: No-Push Constraint in Release Agent
@@ -741,3 +754,179 @@ Release Design Specifications
    * AC-4: ``npm run generate-icons`` is defined in the root ``package.json``.
    * AC-5: Generated files are committed to the repository — no CI pipeline change
      is required.
+
+
+.. spec:: Migration Shim Activation
+   :id: SPEC_REL_RETIRESHIM
+   :status: draft
+   :links: REQ_REL_RETIRESHIM; SPEC_REL_COREGH
+
+   **Description:**
+   ``packages/core-gh/src/extension.ts`` is the migration shim entry point. Its
+   ``activate()`` registers **no** Jarvis runtime surfaces and runs the migration
+   sequence only.
+
+   **activate() implementation:**
+
+   .. code-block:: typescript
+
+      import * as vscode from 'vscode';
+      import { migrate } from './migrate';
+
+      export function activate(context: vscode.ExtensionContext): void {
+        // Register NO views, NO heartbeat, NO message processing, NO commands.
+        // The shim's only job is to migrate to enthali.jarvis-core and remove itself.
+        void vscode.window.showInformationMessage(
+          'Jarvis has moved to "Jarvis Core" (enthali.jarvis-core). Migrating…'
+        );
+        void migrate(context);
+      }
+
+      export function deactivate(): void { /* nothing */ }
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``activate()`` registers no tree views, no heartbeat scheduler, no
+     message-queue processing, and no Jarvis commands.
+   * AC-2: On activation an information notification states that Jarvis has moved to
+     ``enthali.jarvis-core`` and migration is in progress.
+   * AC-3: ``activate()`` delegates all migration work to ``migrate()`` and returns
+     immediately (non-blocking).
+
+
+.. spec:: Ensure jarvis-core Installed (Channel Fallback)
+   :id: SPEC_REL_RETIREINSTALL
+   :status: draft
+   :links: REQ_REL_RETIREINSTALL; SPEC_REL_UPDATECHECK
+
+   **Description:**
+   ``ensureCoreInstalled()`` detects ``enthali.jarvis-core`` and, if absent, installs
+   it — Marketplace first, GitHub ``.vsix`` fallback when the Marketplace is
+   unreachable. The GitHub fallback reuses the release-fetch and install mechanism
+   from SPEC_REL_UPDATECHECK / SPEC_REL_UPDATENOTIFY.
+
+   **Implementation:**
+
+   .. code-block:: typescript
+
+      const CORE_ID = 'enthali.jarvis-core';
+
+      async function ensureCoreInstalled(): Promise<boolean> {
+        // Already present?
+        if (vscode.extensions.getExtension(CORE_ID)) {
+          return true;
+        }
+        // 1) Marketplace install (by extension ID)
+        try {
+          await vscode.commands.executeCommand(
+            'workbench.extensions.installExtension', CORE_ID
+          );
+          return true;
+        } catch { /* fall through to GitHub */ }
+
+        // 2) GitHub Releases .vsix fallback (corporate/private marketplace)
+        try {
+          const release = await fetchLatestRelease();          // reused
+          const asset = release.assets.find(a =>
+            a.name === `jarvis-core-${release.tag_name.replace(/^v/, '')}.vsix`);
+          if (!asset) return false;
+          const tmp = await downloadToTmp(asset.browser_download_url); // reused
+          await vscode.commands.executeCommand(
+            'workbench.extensions.installExtension', vscode.Uri.file(tmp)
+          );
+          return true;
+        } catch {
+          return false;
+        }
+      }
+
+   **Acceptance Criteria:**
+
+   * AC-1: Presence is detected via ``vscode.extensions.getExtension('enthali.jarvis-core')``.
+   * AC-2: If absent, a Marketplace install is attempted with the extension ID.
+   * AC-3: On Marketplace failure, the ``jarvis-core-{version}.vsix`` GitHub asset is
+     downloaded and installed (mechanism reused from SPEC_REL_UPDATENOTIFY).
+   * AC-4: Returns ``true`` if ``jarvis-core`` is present or successfully installed via
+     either channel; ``false`` if both channels fail.
+
+
+.. spec:: Legacy Self-Uninstall and Reload
+   :id: SPEC_REL_RETIREUNINSTALL
+   :status: draft
+   :links: REQ_REL_RETIREUNINSTALL
+
+   **Description:**
+   ``retireSelf()`` uninstalls the legacy ``enthali.jarvis`` extension and prompts a
+   single window reload. Called only after ``ensureCoreInstalled()`` returns ``true``.
+
+   **Implementation:**
+
+   .. code-block:: typescript
+
+      const LEGACY_ID = 'enthali.jarvis';
+
+      async function retireSelf(): Promise<void> {
+        await vscode.commands.executeCommand(
+          'workbench.extensions.uninstallExtension', LEGACY_ID
+        );
+        const reload = await vscode.window.showInformationMessage(
+          'Jarvis has migrated to Jarvis Core. Reload to complete.',
+          'Reload Now'
+        );
+        if (reload === 'Reload Now') {
+          void vscode.commands.executeCommand('workbench.action.reloadWindow');
+        }
+      }
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``enthali.jarvis`` is uninstalled via
+     ``workbench.extensions.uninstallExtension``.
+   * AC-2: A single reload prompt with a **"Reload Now"** button is shown; choosing it
+     reloads the window.
+   * AC-3: ``retireSelf()`` is invoked only when ``jarvis-core`` is confirmed present.
+
+
+.. spec:: Migration Failure Fallback
+   :id: SPEC_REL_RETIREFALLBACK
+   :status: draft
+   :links: REQ_REL_RETIREFALLBACK
+
+   **Description:**
+   When ``ensureCoreInstalled()`` returns ``false`` (both channels failed), the shim
+   does **not** uninstall itself; it shows a manual-install notification and relies on
+   the next activation to retry.
+
+   **Migration orchestration (``migrate()``):**
+
+   .. code-block:: typescript
+
+      export async function migrate(_ctx: vscode.ExtensionContext): Promise<void> {
+        const ok = await ensureCoreInstalled();
+        if (ok) {
+          await retireSelf();              // SPEC_REL_RETIREUNINSTALL
+          return;
+        }
+        // Failure path: keep the shim installed, guide the user, retry next startup.
+        const MKT = 'https://marketplace.visualstudio.com/items?itemName=enthali.jarvis-core';
+        const GH  = 'https://github.com/enthali/jarvis/releases/latest';
+        const pick = await vscode.window.showWarningMessage(
+          'Could not install Jarvis Core automatically. Please install it manually.',
+          'Open Marketplace', 'Open GitHub Releases'
+        );
+        if (pick === 'Open Marketplace') {
+          void vscode.env.openExternal(vscode.Uri.parse(MKT));
+        } else if (pick === 'Open GitHub Releases') {
+          void vscode.env.openExternal(vscode.Uri.parse(GH));
+        }
+        // No uninstall — migration is re-attempted on the next activation.
+      }
+
+   **Acceptance Criteria:**
+
+   * AC-1: If both install channels fail, ``retireSelf()`` is **not** called — the
+     legacy extension remains installed.
+   * AC-2: A notification offers manual-install links to the ``jarvis-core``
+     Marketplace listing and the GitHub Releases page.
+   * AC-3: Because activation re-runs on every startup, the migration is retried until
+     it succeeds.
