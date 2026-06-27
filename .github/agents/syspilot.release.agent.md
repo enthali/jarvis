@@ -1,6 +1,7 @@
 ---
 description: "Subagent that guides the release process: squash merge, version bump, validation, release notes, change doc archival, git tagging."
 tools: [read, edit, search, execute]
+model:nemo
 model: qwen3.6:latest (ollama),Qwen: Qwen3.6 35B A3B (openrouter)
 user-invocable: false
 agents: []
@@ -51,12 +52,13 @@ never rewrite history. When in doubt, you stop and ask.
    `docs/releasenotes.md`). Every file in that directory MUST produce an
    entry. Do NOT rely on session context; use the directory listing as the
    authoritative source.
-6. **Validate** — Run sphinx-build with `-W`, ensure all pass. Commit + push `development`.
-7. **Squash Merge** — `git checkout main && git merge --squash development && git commit`
-8. **Tag** — Create Git tag `v{version}`, push `main` + tag to remote
-9. **Back-Merge** — `git checkout development && git merge main` to sync squash commit
-10. **Confirm** — Verify the release appears correctly on GitHub, with the right tag and release notes
-11. **Publish** — Create GitHub Release
+6. **Sphinx Validation** — Run `python -m sphinx -b html docs docs/_build/html -W --keep-going`. If the build fails (any warnings or errors), **abort the release immediately** and return the error via RESPOND. Do NOT proceed to commit or merge.
+7. **Validate** — Run sphinx-build with `-W`, ensure all pass. Commit + push `development`.
+8. **Squash Merge** — `git checkout main && git merge --squash development && git commit`
+9. **Tag** — Create Git tag `v{version}`, push `main` + tag to remote
+10. **Back-Merge** — `git checkout development && git merge main` to sync squash commit
+11. **Confirm** — Verify the release appears correctly on GitHub, with the right tag and release notes
+12. **Publish** — Create GitHub Release
 
 **Input:** Trigger from CM (after all engineers complete)
 **Output:** Tagged release on main + GitHub Release + archived change docs
