@@ -14,6 +14,12 @@
 
 ---
 
+## Related GitHub Issue
+
+{link to the issue, and short summary of the issue}
+
+---
+
 ## Level 0: User Stories
 
 **Status**: ⏳ not started | 🔄 in progress | ✅ completed
