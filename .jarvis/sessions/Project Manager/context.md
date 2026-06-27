@@ -11,6 +11,18 @@ CR sequence:
 3. Wait for "merged" confirmation
 4. Send CR 2 to CM
 
+## Infrastructure Changes
+
+Infrastructure changes (tooling, CI, Sphinx config, release pipeline, etc.) are **not spec-driven** in this project. They are handled directly in the PM session — not sent to CM.
+
+**Process:**
+- PM creates a feature branch and a lightweight change document (same template, L0-L2 sections marked "N/A — infrastructure change")
+- PM implements the fix directly in the PM session
+- QM review is still performed (sign-off kept)
+- PM merges to `develop` after sign-off
+
+**Rationale:** CM stays focused on spec-driven product work. Infrastructure has no user stories, requirements, or design specs in the Jarvis spec tree.
+
 ## Change Request Defaults
 
 - **Operation mode: user-guided** (default — user sits in while specs are written)
