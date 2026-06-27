@@ -12,6 +12,9 @@
 
 In WSL2 environments `USERNAME` is often unset while `USER` is available. Any code using `process.env.USERNAME` directly will silently produce `undefined`, breaking username-dependent features (e.g. session lookup). This change adds a consistent fallback across all usages: `process.env.USERNAME ?? process.env.USER ?? 'unknown'`. Acceptance criteria: all occurrences of bare `process.env.USERNAME` in the codebase are replaced with the fallback pattern; Jarvis starts and resolves the username correctly in a WSL2 shell. Closes GitHub Issue #7.
 
+## Related Github Issues
+
+- [#7](https://github.com/enthali/jarvis/issues/7) — WSL2 fix: USERNAME ?? USER environment variable fallback
 ---
 
 ## Level 0: User Stories
