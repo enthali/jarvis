@@ -36,14 +36,17 @@ CR sequence:
 1. **Issue #4** — `jarvis_listAgentSessions` + `registerAgentSessionProvider` in `JarvisCoreApi` (prerequisite for #3)
 2. **Issue #3** — `jarvis.freshmind` + `jarvis.housekeeping` commands (depends on #4)
 3. **Issue #7** — WSL2 fix: `USERNAME ?? USER` environment variable fallback
-4. **Issue #8** — Remove GitHub Releases auto-updater from `enthali.jarvis-core`
-5. **Issue #9** — version-bump-ac: add AC to SPEC_REL_RELEASEACTION
-6. **Issue #10** — US→US link audit: conf.py `needs_warnings` guard
-7. **Issue #1** — End-user documentation — getting started with Jarvis for syspilot
-8. **Issue #2** — Extract PIM features as separate installable add-on
+4. **Issue #9** — version-bump-ac: add AC to SPEC_REL_RELEASEACTION
+5. **Issue #10** — US→US link audit: conf.py `needs_warnings` guard
+6. **Issue #1** — End-user documentation — getting started with Jarvis for syspilot
+7. **Issue #2** — Extract PIM features as separate installable add-on
+8. **Issue #11** — Message Flow Visualization with Chord Diagram (medium, visualization)
 
 **Research / Long-term:**
 - **Issue #6** — Agent Host Protocol: send messages to chat sessions without stealing focus (2-3 weeks research, not next cycle)
+
+**Won't Fix:**
+- **Issue #8** — Remove GitHub Releases auto-updater: **REQUIRED** for corporate/private marketplace environments
 
 ## Roadmap Source of Truth
 

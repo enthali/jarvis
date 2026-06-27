@@ -52,10 +52,11 @@ Final release of `enthali.jarvis` via GitHub Releases (auto-update delivers it):
 - No new features in this release — migration prompt only
 - After this release, `enthali.jarvis` GitHub Releases stops permanently
 
-### Step 4 — Cleanup ✅ **PARTIAL** (Issue #8)
+### Step 4 — Cleanup ✅ **PARTIAL** (Issue #8 - WON'T FIX)
 - `enthali.<newname>` never publishes vsix to GitHub Releases (marketplace only)
-- Remove GitHub Releases auto-update mechanism from `enthali.<newname>` (separate CR)
+- **Keep GitHub Releases auto-update mechanism** — REQUIRED for corporate/private marketplace environments where public marketplace is inaccessible
 - Archive `enthali.jarvis` GitHub repository README with EOL notice
+</parameter=enthali.jarvis-core
 
 ## What Does NOT Need Migration
 - `.jarvis/` directory contents — folder name is independent of extension ID ✓
