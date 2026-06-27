@@ -1,5 +1,20 @@
 # Release Notes
 
+## v0.13.1 — Release Agent Patch
+
+*2026-06-27*
+
+### Infrastructure
+
+- **release-agent-patch**: Patches the Jarvis Release Agent to work correctly with the monorepo
+  setup. Removes syspilot-specific hardcoded paths; the agent now discovers the current version
+  by scanning the `docs/changes/<version>/` directory. Version bumps now cover all 6 `package.json`
+  files (root, `packages/core`, `packages/pim`, `packages/recorder`, `packages/mcp`,
+  `packages/core-gh`). `npm install` is run after the version bump to regenerate
+  `package-lock.json`, fixing the `npm ci` blocker that broke the release pipeline after v0.13.0.
+
+---
+
 ## v0.13.0 — Legacy Retirement Shim + Icon Alignment
 
 *2026-06-26*
