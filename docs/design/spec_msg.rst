@@ -322,7 +322,7 @@ Message Queue Design Specifications
 
 .. spec:: Session UUID Resolver
    :id: SPEC_MSG_SESSIONLOOKUP
-   :status: draft
+   :status: implemented
    :links: REQ_MSG_SESSIONLOOKUP
 
    **Description:**

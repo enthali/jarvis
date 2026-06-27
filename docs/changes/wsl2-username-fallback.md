@@ -1,6 +1,6 @@
 # Change Document: wsl2-username-fallback
 
-**Status**: in-progress
+**Status**: completed
 **Branch**: feature/wsl2-username-fallback
 **Created**: 2026-06-27
 **Author**: PM
