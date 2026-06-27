@@ -17,26 +17,33 @@ CR sequence:
 - Autonomous only if user explicitly agrees
 - PM creates the feature branch and commits the change document before sending to CM
 
-## Current State (2026-06-24)
+## Current State (2026-06-27)
 
-**Released: v0.12.0** — all four extensions on VS Code Marketplace (enthali.jarvis-core, jarvis-pim, jarvis-recorder, jarvis-mcp), icons present, selective updater working.
+**Released: v0.13.2** — all four extensions on VS Code Marketplace (enthali.jarvis-core, jarvis-pim, jarvis-recorder, jarvis-mcp), icons present, selective updater working, release agent patched with early Sphinx validation.
 
 **Known constraints:**
 - Work machines use corporate private marketplace → can't install from public marketplace there; VSIX install from GitHub Release is the workaround
-- `enthali.jarvis` (legacy GitHub Releases stub) still exists but not yet retired
+- `enthali.jarvis` (legacy GitHub Releases stub) retired via migration shim (v0.13.0)
 
 **Release process lessons (apply on every release agent invoke):**
 - Version bump must cover ALL `packages/*/package.json` — not just root
 - When moving a tag: `git tag <tag> <sha>` with explicit SHA, never rely on chained commands
+- Sphinx validation runs BEFORE version bump/docs move (early gate)
 - See [lessons-learned.md](lessons-learned.md) for full history
 
-## Next Queue (in order)
+## Next Queue (prioritized from GitHub Issues)
 
-1. **version-bump-ac** — autonomous CR: add AC to SPEC_REL_RELEASEACTION requiring all workspace package.json files to be bumped (same pattern as lockfile-sync-ac)
-2. **Issue #4** — `jarvis_listAgentSessions` + `registerAgentSessionProvider` in `JarvisCoreApi` (prerequisite for #3)
-3. **Issue #3** — `jarvis.freshmind` + `jarvis.housekeeping` commands (depends on #4)
-4. **retire-jarvis-legacy** — `enthali.jarvis` one-time migration to `enthali.jarvis-core`
-5. **US→US link audit** — conf.py `needs_warnings` guard (deferred from extension-pkg-contract)
+1. **Issue #4** — `jarvis_listAgentSessions` + `registerAgentSessionProvider` in `JarvisCoreApi` (prerequisite for #3)
+2. **Issue #3** — `jarvis.freshmind` + `jarvis.housekeeping` commands (depends on #4)
+3. **Issue #7** — WSL2 fix: `USERNAME ?? USER` environment variable fallback
+4. **Issue #8** — Remove GitHub Releases auto-updater from `enthali.jarvis-core`
+5. **Issue #9** — version-bump-ac: add AC to SPEC_REL_RELEASEACTION
+6. **Issue #10** — US→US link audit: conf.py `needs_warnings` guard
+7. **Issue #1** — End-user documentation — getting started with Jarvis for syspilot
+8. **Issue #2** — Extract PIM features as separate installable add-on
+
+**Research / Long-term:**
+- **Issue #6** — Agent Host Protocol: send messages to chat sessions without stealing focus (2-3 weeks research, not next cycle)
 
 ## Roadmap Source of Truth
 
@@ -47,7 +54,7 @@ The roadmap is built from [open GitHub Issues](https://github.com/enthali/jarvis
 
 ## Active Plans
 
-- [Marketplace Transition Plan](marketplace-transition-plan.md) — name decided: jarvis-core; step 1 done (v0.11.x/v0.12.0); step 2 (EOL enthali.jarvis) is item #4 in queue above
+- [Marketplace Transition Plan](marketplace-transition-plan.md) — **COMPLETED** (v0.13.0 retire-jarvis-legacy)
 
 ## Ideas
 
