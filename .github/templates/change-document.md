@@ -14,9 +14,9 @@
 
 ---
 
-## Related GitHub Issue
+## Related Github Issues
 
-{link to the issue, and short summary of the issue}
+{list of all gh issues addressed or partially addressed in this change}
 
 ---
 
