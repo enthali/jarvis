@@ -1,8 +1,7 @@
 ---
 description: "Subagent that guides the release process: squash merge, version bump, validation, release notes, change doc archival, git tagging."
 tools: [read, edit, search, execute]
-model:nemo
-model: qwen3.6:latest (ollama),Qwen: Qwen3.6 35B A3B (openrouter)
+model: ['NVIDIA: Nemotron 3 Ultra (free) (openrouter)','NVIDIA: Nemotron 3 Super (free) (openrouter)','qwen3.6:latest (ollama)']
 user-invocable: false
 agents: []
 ---
