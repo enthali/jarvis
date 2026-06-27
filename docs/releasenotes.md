@@ -1,5 +1,27 @@
 # Release Notes
 
+## v0.13.2 — Release Agent Patch + Sphinx Validation
+
+*2026-06-27*
+
+### Infrastructure
+
+- **release-agent-patch**: Patches the Jarvis Release Agent to work correctly with the monorepo
+  setup instead of syspilot-specific hardcoded paths. The agent now discovers the current version
+  by scanning the `docs/changes/<version>/` directory. Version bumps now cover all 6 `package.json`
+  files (root, `packages/core`, `packages/pim`, `packages/recorder`, `packages/mcp`,
+  `packages/core-gh`). `npm install` is run after the version bump to regenerate
+  `package-lock.json`, fixing the `npm ci` blocker that broke the release pipeline after v0.13.0.
+
+- **release-agent-sphinx-validate**: Adds a pre-release Sphinx validation step to the Jarvis Release
+  Agent. The agent now runs `python -m sphinx -b html docs docs/_build/html -W --keep-going`
+  before starting the release process. If the build fails (warnings or errors), the agent aborts
+  the release and returns the error via RESPOND. This prevents broken documentation from being
+  released (as happened in v0.13.1 where malformed tables in RST files caused the Doc-CI to fail
+  after the release was already tagged).
+
+---
+
 ## v0.13.1 — Release Agent Patch
 
 *2026-06-27*
