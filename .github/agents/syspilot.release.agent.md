@@ -1,7 +1,7 @@
 ---
 description: "Subagent that guides the release process: squash merge, version bump, validation, release notes, change doc archival, git tagging."
 tools: [read, edit, search, execute]
-model: Claude Sonnet 4.6 (copilot)
+model: qwen3.6:latest (ollama),Qwen: Qwen3.6 35B A3B (openrouter)
 user-invocable: false
 agents: []
 ---
