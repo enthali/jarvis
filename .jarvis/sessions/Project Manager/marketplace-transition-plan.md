@@ -1,6 +1,7 @@
 # Marketplace Transition Plan — enthali.jarvis → enthali.jarvis-core
 
 *Created: 2026-06-23*
+*Status: **COMPLETED** (v0.13.0)*
 
 ## Background
 
@@ -27,7 +28,7 @@ unique names and publish without conflict.
 
 ## Transition Steps
 
-### Step 1 — Rename & publish new extension (new CR)
+### Step 1 — Rename & publish new extension (new CR) ✅ **DONE v0.10.0+**
 - Change `name` in `packages/core/package.json` from `jarvis` to `<newname>`
 - New marketplace ID: `enthali.<newname>`
 - Update all internal references to the extension ID
@@ -35,13 +36,13 @@ unique names and publish without conflict.
 - Test: install `enthali.<newname>` in a fresh project
 - **Icon alignment** — handled in separate CR (see Pending CRs)
 
-### Step 2 — `.jarvis` folder compatibility (part of rename CR)
+### Step 2 — `.jarvis` folder compatibility (part of rename CR) ✅ **DONE**
 - New installations use `.<newname>` as root folder **OR** keep `.jarvis`
 - Decision: keep `.jarvis` as the canonical folder name forever
   (it's a user data folder convention, not tied to extension ID)
 - No migration needed for existing `.jarvis` directories
 
-### Step 3 — EOL `enthali.jarvis` (separate CR, after Step 1 confirmed working)
+### Step 3 — EOL `enthali.jarvis` (separate CR, after Step 1 confirmed working) ✅ **DONE v0.13.0**
 Final release of `enthali.jarvis` via GitHub Releases (auto-update delivers it):
 - On VS Code window load: check if `enthali.<newname>` is installed
   - **Not installed:** show notification "Jarvis has moved to the marketplace"
@@ -51,10 +52,11 @@ Final release of `enthali.jarvis` via GitHub Releases (auto-update delivers it):
 - No new features in this release — migration prompt only
 - After this release, `enthali.jarvis` GitHub Releases stops permanently
 
-### Step 4 — Cleanup
+### Step 4 — Cleanup ✅ **PARTIAL** (Issue #8 - WON'T FIX)
 - `enthali.<newname>` never publishes vsix to GitHub Releases (marketplace only)
-- Remove GitHub Releases auto-update mechanism from `enthali.<newname>` (separate CR)
+- **Keep GitHub Releases auto-update mechanism** — REQUIRED for corporate/private marketplace environments where public marketplace is inaccessible
 - Archive `enthali.jarvis` GitHub repository README with EOL notice
+</parameter=enthali.jarvis-core
 
 ## What Does NOT Need Migration
 - `.jarvis/` directory contents — folder name is independent of extension ID ✓
@@ -66,9 +68,9 @@ Final release of `enthali.jarvis` via GitHub Releases (auto-update delivers it):
 - If the Bosch user has shared `enthali.jarvis` further, those installs will get
   the EOL notification and prompted to migrate
 
-## Pending CRs (in order)
-1. Icon alignment (J icon consistency) — independent, can go anytime
-2. WSL2 fix (`USERNAME ?? USER`) — small, independent, can go anytime
-3. Extension rename + marketplace publish — blocked on name decision
-4. EOL `enthali.jarvis` migration prompt — after Step 1 confirmed working
-5. Remove GitHub Releases updater from new extension — after user base migrated
+## Pending CRs (in order) — **ALL COMPLETED**
+1. Icon alignment (J icon consistency) — independent, can go anytime ✅ **v0.12.0**
+2. WSL2 fix (`USERNAME ?? USER`) — small, independent, can go anytime → **Issue #7**
+3. Extension rename + marketplace publish — blocked on name decision ✅ **v0.10.0+**
+4. EOL `enthali.jarvis` migration prompt — after Step 1 confirmed working ✅ **v0.13.0**
+5. Remove GitHub Releases updater from new extension — after user base migrated → **Issue #8**

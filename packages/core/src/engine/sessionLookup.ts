@@ -29,11 +29,11 @@ export function resolveUserDataPath(globalStorageUri: vscode.Uri): string {
     try {
         const procVersion = fs.readFileSync('/proc/version', 'utf-8');
         if (/microsoft/i.test(procVersion)) {
-            const username = process.env.USERNAME;
-            if (username) {
+            const username = process.env.USERNAME ?? process.env.USER ?? 'unknown';
+            if (username !== 'unknown') {
                 return `/mnt/c/Users/${username}/AppData/Roaming/Code/User`;
             }
-            _log?.warn('[sessionLookup] WSL2 detected but USERNAME env var is undefined — falling back to globalStorageUri resolution');
+            _log?.warn('[sessionLookup] WSL2 detected but USERNAME/USER env vars are undefined — falling back to globalStorageUri resolution');
         }
     } catch {
         // /proc/version not readable (Windows/macOS/native Linux) — not WSL2

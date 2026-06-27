@@ -4,9 +4,9 @@ the development engineer - the actual coder
 
 ## Current
 
-- **Change:** retire-jarvis-legacy (feature/retire-jarvis-legacy)
-- **Status:** Implementation committed — all 4 new SPECs + COREGH mod done
-- **Commit:** `8668db2` — migration shim in packages/core-gh
+- **Change:** wsl2-username-fallback (feature/wsl2-username-fallback)
+- **Status:** Fix committed — `resolveUserDataPath()` falls back to `process.env.USER`
+- **Commit:** `7e72852` — 1 file changed, 3 insertions(+), 3 deletions(-)
 
 ## Decisions
 

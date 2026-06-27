@@ -1,0 +1,189 @@
+# Change Document: wsl2-username-fallback
+
+**Status**: completed
+**Branch**: feature/wsl2-username-fallback
+**Created**: 2026-06-27
+**Author**: PM
+**Operation Mode**: autonomous
+
+---
+
+## Summary
+
+In WSL2 environments `USERNAME` is often unset while `USER` is available. Any code using `process.env.USERNAME` directly will silently produce `undefined`, breaking username-dependent features (e.g. session lookup). This change adds a consistent fallback across all usages: `process.env.USERNAME ?? process.env.USER ?? 'unknown'`. Acceptance criteria: all occurrences of bare `process.env.USERNAME` in the codebase are replaced with the fallback pattern; Jarvis starts and resolves the username correctly in a WSL2 shell. Closes GitHub Issue #7.
+
+## Related Github Issues
+
+- [#7](https://github.com/enthali/jarvis/issues/7) — WSL2 fix: USERNAME ?? USER environment variable fallback
+---
+
+## Level 0: User Stories
+
+**Status**: ✅ completed
+
+### Impacted User Stories
+
+| ID | Title | Impact | Notes |
+|----|-------|--------|-------|
+| US_MSG_REMOTECOMPAT | WSL2/Remote Compatibility | modified | Username fallback added to session lookup |
+
+### New User Stories
+
+None — this is a fix to an existing capability, not a new user story.
+
+### Decisions
+
+- Decision 1: Fallback pattern is `process.env.USERNAME ?? process.env.USER ?? 'unknown'` — consistent across all usages.
+- Decision 2: Error handling changes from throwing when USERNAME is unset to falling back to globalStorageUri path when both USERNAME and USER are unavailable.
+
+### Horizontal Check (MECE)
+
+- [x] No contradictions with existing User Stories
+- [x] No redundancies
+- [x] Gaps identified and addressed (WSL2 username fallback)
+
+---
+
+## Level 1: Requirements
+
+**Status**: ✅ completed
+
+### Impacted Requirements
+
+Found via links from User Stories above.
+
+| ID | Linked From | Impact | Notes |
+|----|-------------|--------|-------|
+| REQ_MSG_SESSIONLOOKUP | US_MSG_REMOTECOMPAT | modified | Username fallback added to WSL2 path resolution |
+
+### New Requirements
+
+None — existing requirement modified.
+
+### Conflicts Detected
+
+None.
+
+### Decisions
+
+- Decision 1: Reuse existing REQ_MSG_SESSIONLOOKUP; no new REQ needed.
+
+### Horizontal Check (MECE)
+
+- [x] No contradictions with existing Requirements
+- [x] No redundancies
+- [x] All modified REQs link to User Stories
+
+---
+
+## Level 2: Design
+
+**Status**: ✅ completed
+
+### Impacted Design Elements
+
+Found via links from Requirements above.
+
+| ID | Linked From | Impact | Notes |
+|----|-------------|--------|-------|
+| SPEC_MSG_SESSIONLOOKUP | REQ_MSG_SESSIONLOOKUP | modified | WSL2 username fallback pattern; error handling relaxed |
+
+### New Design Elements
+
+None — existing SPEC modified.
+
+### Conflicts Detected
+
+None.
+
+### Decisions
+
+- Decision 1: Fallback pattern `process.env.USERNAME ?? process.env.USER ?? 'unknown'` applied in `resolveUserDataPath()`.
+- Decision 2: When both USERNAME and USER are unset, fall back to the non-WSL2 `globalStorageUri` path instead of throwing.
+- Decision 3: No changes to workspace hash extraction or non-WSL2 branch.
+
+### Horizontal Check (MECE)
+
+- [x] No contradictions with existing Designs
+- [x] All modified SPECs link to Requirements
+
+- ⚠️ SPEC_xxx vs SPEC_yyy: {description}
+  - Resolution: {decision}
+
+### Decisions
+
+- Decision 1: ...
+
+### Horizontal Check (MECE)
+
+- [ ] No contradictions with existing Designs
+- [ ] All new SPECs link to Requirements
+
+---
+
+## Final Consistency Check
+
+**Status**: ✅ passed
+
+### Traceability Verification
+
+| User Story | Requirements | Design | Complete? |
+|------------|--------------|--------|-----------|
+| US_MSG_REMOTECOMPAT | REQ_MSG_SESSIONLOOKUP | SPEC_MSG_SESSIONLOOKUP | ✅ |
+
+Verified via `get_need_links.py` impact queries (US→REQ and REQ→SPEC, `--direction in`).
+
+### Artefakt-Removal-Check
+
+*Fill in only when this CR removes an artefact (file, field, configuration key, REQ-ID).*
+
+Not applicable — this CR modifies existing elements, no removals.
+
+### Issues Found
+
+None.
+
+### Sign-off
+
+- [x] All levels completed
+- [x] All conflicts resolved
+- [x] Traceability verified
+- [x] Ready for implementation
+
+---
+
+## QM Findings
+
+*QM writes findings directly into this section after each review round. PM records
+decisions (fix-now / defer / accept-as-is) with rationale in the same section.
+Multiple review rounds are appended as sub-sections. Existing CDs without this
+section are unaffected — the section is additive, never required retroactively.*
+
+### Round 1
+
+**Reviewed by:** QM
+**Review date:** {DATE}
+
+#### Findings
+
+| # | Level | Element ID | Finding | Severity |
+|---|-------|------------|---------|----------|
+| 1 | L? | {ID} | {description} | high / medium / low |
+
+#### PM Decisions
+
+| # | Finding # | Decision | Rationale |
+|---|-----------|----------|-----------|
+| 1 | 1 | fix-now / defer / accept-as-is | {rationale} |
+
+---
+
+## Appendix: Link Discovery Results
+
+```
+{paste output from get_need_links.py as needed}
+```
+
+---
+
+*Generated by syspilot Change Agent*

@@ -1,5 +1,21 @@
 # Release Notes
 
+## v0.13.3 — WSL2 Username Fallback
+
+*2026-06-27*
+
+### Fixes
+
+- **wsl2-username-fallback**: Fixes WSL2 compatibility where `USERNAME` environment variable is often unset while `USER` is available. Added consistent fallback pattern `process.env.USERNAME ?? process.env.USER ?? 'unknown'` across all username-dependent code paths. Session lookup now correctly resolves Windows user paths in WSL2 environments. When both `USERNAME` and `USER` are unavailable, falls back to `globalStorageUri` path instead of throwing. Closes GitHub Issue #7.
+  *(US_MSG_REMOTECOMPAT; REQ_MSG_SESSIONLOOKUP; SPEC_MSG_SESSIONLOOKUP)*
+
+### Infrastructure
+
+- **release-agent-prevalidate**: Adds a pre-release Sphinx validation step to the Release Engineer workflow. Before any version bump or document move, the agent runs `python -m sphinx -b html docs docs/_build/html -W --keep-going`. If the build fails (warnings or errors), the release is aborted immediately. This prevents broken documentation from being released (e.g., malformed tables in RST files).
+  *(SYSPILOT_US_NEW_1; SYSPILOT_REQ_NEW_1; SPEC_xxx)*
+
+---
+
 ## v0.13.2 — Release Agent Patch + Sphinx Validation
 
 *2026-06-27*

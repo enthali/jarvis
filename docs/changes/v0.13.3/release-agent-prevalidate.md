@@ -1,22 +1,24 @@
-# Change Document: {NAME}
+# Change Document: release-agent-prevalidate
 
-**Status**: draft | in-progress | review | approved | merged
-**Branch**: feature/{NAME}
-**Created**: {DATE}
-**Author**: {AUTHOR(S)}
-**Operation Mode**: autonomous | user-guided
+**Status**: in-progress
+**Branch**: feature/release-agent-prevalidate
+**Created**: 2026-06-27
+**Author**: PM
+**Operation Mode**: autonomous
 
 ---
 
 ## Summary
 
-{One paragraph describing the change}
+Add a pre‑release Sphinx validation step to the Release Engineer workflow. Before any version bump or document move, run:
 
----
+```bash
+python -m sphinx -b html docs docs/_build/html -W --keep-on-keep-going
+```
 
-## Related Github Issues
+If the build fails (warnings or errors), abort the release immediately and return the error via RESPOND. This prevents broken documentation from being released (e.g., malformed tables in RST files). The validation occurs **before** moving docs or bumping versions, eliminating unnecessary work when the docs are invalid.
 
-{list of all gh issues addressed or partially addressed in this change}
+**Related:** Closes GitHub Issue #10 (US→US link audit) — broken cross-references in sphinx-needs are already caught by `-W --keep-going` in this validation step; no separate `needs_warnings` config is needed.
 
 ---
 

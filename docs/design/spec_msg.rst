@@ -322,7 +322,7 @@ Message Queue Design Specifications
 
 .. spec:: Session UUID Resolver
    :id: SPEC_MSG_SESSIONLOOKUP
-   :status: approved
+   :status: implemented
    :links: REQ_MSG_SESSIONLOOKUP
 
    **Description:**
@@ -376,9 +376,11 @@ Message Queue Design Specifications
 
    1. **Detect WSL2** — read ``/proc/version`` synchronously; if it contains
       ``"microsoft"`` (case-insensitive), the environment is WSL2.
-   2. **WSL2 branch** — derive the Windows username from the ``USERNAME``
-      environment variable (``process.env.USERNAME``). Construct the user data
-      path as ``/mnt/c/Users/<USERNAME>/AppData/Roaming/Code/User``.
+   2. **WSL2 branch** — derive the Windows username from the environment
+      variables with a fallback chain: ``process.env.USERNAME ?? process.env.USER ?? 'unknown'``.
+      Construct the user data path as ``/mnt/c/Users/<username>/AppData/Roaming/Code/User``.
+      If both ``USERNAME`` and ``USER`` are unset, fall back to the non-WSL2
+      logic (using ``globalStorageUri``) instead of throwing.
    3. **Non-WSL2 branch** — use the existing logic:
       ``path.resolve(globalStorageUri.fsPath, '../..')``.
 
@@ -400,11 +402,11 @@ Message Queue Design Specifications
 
       function resolveUserDataPath(globalStorageUri: vscode.Uri): string {
         if (isWSL2()) {
-          const username = process.env.USERNAME;
-          if (!username) {
-            throw new Error('WSL2 detected but USERNAME env var is not set');
+          const username = process.env.USERNAME ?? process.env.USER ?? 'unknown';
+          if (username !== 'unknown') {
+            return `/mnt/c/Users/${username}/AppData/Roaming/Code/User`;
           }
-          return `/mnt/c/Users/${username}/AppData/Roaming/Code/User`;
+          // Both USERNAME and USER unset — fall back to non-WSL2 logic
         }
         return path.resolve(globalStorageUri.fsPath, '../..');
       }
@@ -501,9 +503,11 @@ Message Queue Design Specifications
      ``state.vscdb`` lives on the Windows host. ``resolveUserDataPath()``
      detects WSL2 via ``/proc/version`` containing ``"microsoft"``
      (case-insensitive) and constructs the path as
-     ``/mnt/c/Users/<USERNAME>/AppData/Roaming/Code/User`` using the
-     ``USERNAME`` environment variable. ``APPDATA`` is not available in this
-     environment, hence ``USERNAME`` is used instead
+     ``/mnt/c/Users/<username>/AppData/Roaming/Code/User`` using the
+     ``USERNAME`` environment variable with a fallback chain
+     ``USERNAME ?? USER ?? 'unknown'``. If both are unset, it falls back to
+     the non-WSL2 logic instead of throwing. ``APPDATA`` is not available in
+     this environment, hence the fallback chain.
    * **Live read, no caching** — the DB is small and the read is fast; caching
      would introduce staleness bugs when sessions are renamed or deleted
    * **``sql.js``** — pure JavaScript/WASM SQLite implementation. Does not

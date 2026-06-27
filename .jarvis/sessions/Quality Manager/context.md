@@ -36,4 +36,5 @@ Three files, strict separation of concerns:
 
 ## Active Reviews
 
-- **icon-alignment** (2026-06-25): BLOCK — sent Findings Report to PM. Must-fix: `core-gh/package.json` missing top-level `icon` field (SPEC_REL_PKGCONTRACT AC-8). Missing tst/val artifacts. Status fields on REQ/SPEC need `implemented`.
+- **icon-alignment** (2026-06-25): CLEAR — all findings addressed, awaiting Verify Engineer execution.
+- **wsl2-username-fallback** (2026-06-27): APPROVED — audit sign-off sent to CM. Minor: SPEC status should be `implemented`, Change Doc status stale.
