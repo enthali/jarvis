@@ -32,6 +32,20 @@ Engine Design Specifications
           folder?: string;
       }
 
+      /**
+       * A flat, public-API view of a single scanned entity, used by
+       * ``listJarvisSessions()``. Optional source fields are normalised to
+       * empty strings so the shape matches ``jarvis_listSessions`` /
+       * ``jarvis_listProjects``.
+       */
+      export interface JarvisSession {
+          name: string;
+          summary: string;
+          agent: string;
+          kind: string;
+          folder: string;
+      }
+
       export interface FolderNode {
           kind: 'folder';
           name: string;
@@ -197,6 +211,15 @@ Engine Design Specifications
            * Returns ``undefined`` if the id is not in the scanner cache.
            */
           getEntity(id: string): EntityEntry | undefined;
+
+          /**
+           * Return every entity currently held by the central scanner, across
+           * all registered kinds, as a flat ``JarvisSession[]``. This publishes
+           * the scanner's existing cross-kind list (no new scan, no per-add-on
+           * coupling). Optional source fields (``summary``, ``agent``) are
+           * normalised to empty strings. See ``SPEC_ENG_SESSIONLIST``.
+           */
+          listJarvisSessions(): JarvisSession[];
           /**
            * Trigger a full rescan of all registered kinds. The returned
            * promise resolves when the scan is complete and tree views have
@@ -260,6 +283,10 @@ Engine Design Specifications
      that kind (empty array if not registered). ``getEntity(id)`` returns the
      entity or ``undefined``. Both are read-only views of the central
      scanner's cache — no per-add-on scanner.
+   * AC-4a: ``listJarvisSessions()`` returns one ``JarvisSession`` per scanned
+     entity across all registered kinds, derived read-only from the scanner's
+     cache (no filesystem scan). Optional fields are normalised to empty strings.
+     See ``SPEC_ENG_SESSIONLIST``.
    * AC-5: ``rescan()`` triggers a full re-scan of all registered kinds and
      resolves when done; tree views are refreshed.
    * AC-5a: ``refreshKind(kind)`` fires the tree's change event for the given
@@ -521,6 +548,67 @@ Engine Design Specifications
    * AC-6: The existing ``registerTool`` / ``registerEntityKind`` / disposal
      semantics are unchanged (no breaking modification to the validated
      contract).
+
+
+.. spec:: Platform Session List API
+   :id: SPEC_ENG_SESSIONLIST
+   :status: draft
+   :links: REQ_ENG_SESSIONLIST
+
+   **Description:**
+   ``JarvisCoreApi.listJarvisSessions()`` publishes the central scanner's existing
+   cross-kind entity list as a flat ``JarvisSession[]``. The scanner already holds
+   every entity of every registered kind (``yamlScanner.entities``); this method is
+   a thin, read-only projection of that data — **no** new scanner, provider, or
+   registry is introduced.
+
+   **Implementation:**
+
+   The engine's ``coreApi`` delegates to the scanner's existing ``entities``
+   getter and maps each entry to the public ``JarvisSession`` shape, normalising
+   optional fields to empty strings:
+
+   .. code-block:: typescript
+
+      // In coreApi.ts — JarvisCoreApi implementation
+      listJarvisSessions(): JarvisSession[] {
+          return this._scanner.entities.map(e => ({
+              name: e.name,
+              summary: e.summary ?? '',
+              agent: e.agent ?? '',
+              kind: e.kind,
+              folder: e.folder,
+          }));
+      }
+
+   The ``scanner.entities`` getter (already present in ``yamlScanner.ts``) returns
+   every entity across all registered kinds; ``listJarvisSessions()`` adds only the
+   shape normalisation.
+
+   **Design rationale:**
+
+   * **Publishes, does not rebuild** — the scanner is the single source of truth
+     and already enumerates all kinds to build the tree views. This method simply
+     exposes that list; it never triggers a filesystem scan.
+   * **No opt-in marker** — every scanned entity is by construction a Jarvis
+     session: a kind only appears in the scanner if it registered a scan folder
+     and its convention YAML was found. A non-session capability (e.g. a recorder
+     recording) is simply not scanned as an entity and therefore never appears.
+   * **Shape parity** — the ``{name, summary, agent, kind, folder}`` shape matches
+     the existing ``jarvis_listSessions`` / ``jarvis_listProjects`` output (plus
+     ``kind`` to distinguish), so consumers see a consistent contract.
+   * **Additive** — ``version`` stays ``1``; no existing API method changes.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``listJarvisSessions()`` returns one ``JarvisSession`` per entity in
+     ``scanner.entities`` across all registered kinds.
+   * AC-2: Each result carries ``{name, summary, agent, kind, folder}`` with
+     ``summary`` and ``agent`` normalised to ``''`` when absent in the source YAML.
+   * AC-3: The method performs no filesystem scan — it reads the scanner cache only.
+   * AC-4: When the scanner holds no entities, the method returns ``[]``.
+   * AC-5: The addition is purely additive — no existing ``JarvisCoreApi`` method
+     is modified.
 
 
 .. spec:: Heartbeat Job Registration API Surface

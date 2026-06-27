@@ -642,6 +642,68 @@ Message Queue Design Specifications
    * Disposable pushed to ``context.subscriptions``
 
 
+.. spec:: List Jarvis Sessions Tool
+   :id: SPEC_MSG_JARVISSESSIONS
+   :status: draft
+   :links: REQ_MSG_JARVISSESSIONS; REQ_ENG_SESSIONLIST; SPEC_ENG_SESSIONLIST
+
+   **Description:**
+   Register ``jarvis_listJarvisSessions`` via the engine's ``registerTool`` (dual
+   LM + MCP registration) in ``extension.ts``. The handler returns the result of
+   ``JarvisCoreApi.listJarvisSessions()`` — every scanned entity across all
+   registered kinds. It owns no enumeration logic of its own; it is a thin wrapper
+   over the platform API (``SPEC_ENG_SESSIONLIST``).
+
+   **Handler:**
+
+   .. code-block:: typescript
+
+      const listJarvisSessionsTool = engine.registerTool(
+        'jarvis_listJarvisSessions',
+        'Lists all Jarvis sessions (sessions, projects, events) across all kinds.',
+        async (
+          _options: vscode.LanguageModelToolInvocationOptions<Record<string, never>>,
+          _token: vscode.CancellationToken
+        ) => {
+          const sessions = engine.listJarvisSessions();
+          return new vscode.LanguageModelToolResult([
+            new vscode.LanguageModelTextPart(JSON.stringify(sessions))
+          ]);
+        }
+      );
+      context.subscriptions.push(listJarvisSessionsTool);
+
+   **Registration in package.json:**
+
+   .. code-block:: json
+
+      {
+        "name": "jarvis_listJarvisSessions",
+        "displayName": "List Jarvis Sessions",
+        "modelDescription": "Returns all Jarvis sessions across every kind (sessions, projects, events). Each entry has {name, summary, agent, kind, folder}. Use this to enumerate all agent-session-capable entities without coupling to a specific add-on.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "listJarvisSessions",
+        "icon": "$(list-tree)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+
+   **Design notes:**
+
+   * No input parameters — returns every scanned entity across all kinds.
+   * Registered via the engine's ``registerTool`` (not raw ``vscode.lm``), so it
+     is simultaneously an LM Tool and an MCP Tool (dual registration,
+     ``SPEC_MSG_MCPSERVER``).
+   * Output shape ``{name, summary, agent, kind, folder}`` is consistent with
+     ``jarvis_listSessions`` / ``jarvis_listProjects`` plus the ``kind``
+     discriminator.
+   * Distinct from ``jarvis_listChatSessions`` (VS Code chat tab titles from
+     ``state.vscdb``) — this lists YAML entities held by the central scanner.
+   * Disposable pushed to ``context.subscriptions``.
+
+
 .. spec:: MCP Server Module
    :id: SPEC_MSG_MCPSERVER
    :status: implemented

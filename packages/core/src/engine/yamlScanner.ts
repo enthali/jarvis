@@ -314,6 +314,17 @@ export class KindDrivenScanner {
         return [...this._kinds.keys()];
     }
 
+    /** SPEC_ENG_SESSIONLIST: thin projection of all entities for JarvisCoreApi. */
+    listJarvisSessions(): { name: string; summary: string; agent: string; kind: string; folder: string }[] {
+        return this.entities.map(e => ({
+            name: e.name ?? '',
+            summary: e.summary ?? '',
+            agent: e.agent ?? '',
+            kind: e.kind,
+            folder: e.folder,
+        }));
+    }
+
     /** Rescan all registered kinds. */
     async rescan(): Promise<void> {
         let changed = false;

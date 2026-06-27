@@ -105,6 +105,18 @@ export interface TreeItemDecorator {
 }
 
 /**
+ * A session entity as exposed by the Jarvis core API.
+ * All optional fields are normalized to empty string for consistent shape.
+ */
+export interface JarvisSession {
+    name: string;
+    summary: string;
+    agent: string;
+    kind: string;
+    folder: string;
+}
+
+/**
  * The public API surface exported by the Jarvis core extension.
  * Add-ons obtain this via `vscode.extensions.getExtension('enthali.jarvis-core')!.exports`.
  */
@@ -124,6 +136,11 @@ export interface JarvisCoreApi {
     getEntity(id: string): import('./yamlScanner').EntityEntry | undefined;
     /** Trigger a full rescan of all registered kinds. */
     rescan(): Promise<void>;
+
+    // --- Session listing API (SPEC_ENG_SESSIONLIST, SPEC_MSG_JARVISSESSIONS) ---
+
+    /** List all Jarvis sessions across all kinds (Sessions, Projects, Events, ...). */
+    listJarvisSessions(): JarvisSession[];
 
     // --- Heartbeat job API (SPEC_ENG_HEARTBEAT_JOBAPI) ---
 

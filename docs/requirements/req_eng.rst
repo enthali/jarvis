@@ -114,3 +114,32 @@ Engine Requirements
    * AC-3: The surface is purely additive — it introduces no changes to existing
      ``registerTool``, ``registerEntityKind``, or disposal semantics.
    * AC-4: If a tool is not registered, invocation throws a descriptive error.
+
+
+.. req:: Platform Session List API
+   :id: REQ_ENG_SESSIONLIST
+   :status: draft
+   :priority: optional
+   :links: US_MSG_JARVISSESSIONS
+
+   **Description:**
+   The core SHALL expose a read-only ``JarvisCoreApi.listJarvisSessions()`` method
+   that returns every entity currently held by the central scanner, across all
+   registered kinds, as a flat ``JarvisSession[]``. This publishes the
+   already-existing cross-kind entity list (``scanner.entities``); it introduces
+   no new scanner, provider, or registry.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A ``JarvisSession`` type is exposed on the public API surface with the
+     shape ``{ name: string; summary: string; agent: string; kind: string;
+     folder: string }``.
+   * AC-2: ``listJarvisSessions()`` returns one ``JarvisSession`` per scanned
+     entity across all registered kinds (``session``, ``project``, ``event``, and
+     any future kind), derived from the central scanner's current cache.
+   * AC-3: The method performs no filesystem scan of its own — it is a read-only
+     view of the scanner's existing state.
+   * AC-4: Missing optional fields (``summary``, ``agent``) are returned as empty
+     strings, matching the shape of ``jarvis_listSessions`` /
+     ``jarvis_listProjects``.
+   * AC-5: The addition is purely additive — no existing API method changes.

@@ -397,7 +397,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             const count = node.children.length;
             const defaultNotifTemplate =
                 `[Jarvis Message Service] You have \${count} new message(s) in your inbox.\n` +
-                `Read them with the jarvis_readMessage tool (destination: "\${destination}") until remaining = 0.`;
+                `Read them with the enthali.jarvis-core/readMessage tool (destination: "\${destination}") until remaining = 0.`;
             const rawNotifTemplate = vscode.workspace.getConfiguration('jarvis').get<string>('messages.notificationTemplate') ?? '';
             const notifTemplate = rawNotifTemplate.trim() ? rawNotifTemplate : defaultNotifTemplate;
             const stub = applyTemplate(notifTemplate, { count: String(count), destination: node.destination });
@@ -668,6 +668,18 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             log.info(`[MSG] listChatSessions: ${named.length} session(s)`);
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(JSON.stringify(named))
+            ]);
+        }
+    );
+
+    // listJarvisSessions — returns all Jarvis sessions across all kinds (Sessions, Projects, Events, ...)
+    const listJarvisSessionsTool = engine.registerTool('jarvis_listJarvisSessions',
+        'List all Jarvis sessions across all kinds (Sessions, Projects, Events, ...)',
+        async (_options: vscode.LanguageModelToolInvocationOptions<any>, _token: vscode.CancellationToken) => {
+            const sessions = engine.listJarvisSessions();
+            log.info(`[SES] listJarvisSessions: ${sessions.length} session(s)`);
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(JSON.stringify(sessions))
             ]);
         }
     );
