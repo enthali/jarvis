@@ -227,15 +227,15 @@ Release Requirements
 
    **Extension ID → VSIX filename mapping:**
 
-   ========================= ===================================
-   Extension ID              VSIX filename (``{id}-{ver}.vsix``)
-   ========================= ===================================
-   ``enthali.jarvis``        ``jarvis-{version}.vsix``
-   ``enthali.jarvis-core``   ``jarvis-core-{version}.vsix``
-   ``enthali.jarvis-pim``    ``jarvis-pim-{version}.vsix``
-   ``enthali.jarvis-recorder`` ``jarvis-recorder-{version}.vsix``
-   ``enthali.jarvis-mcp``    ``jarvis-mcp-{version}.vsix``
-   ========================= ===================================
+   =============================== ======================================
+   Extension ID                    VSIX filename (``{id}-{ver}.vsix``)
+   =============================== ======================================
+   ``enthali.jarvis``              ``jarvis-{version}.vsix``
+   ``enthali.jarvis-core``         ``jarvis-core-{version}.vsix``
+   ``enthali.jarvis-pim``          ``jarvis-pim-{version}.vsix``
+   ``enthali.jarvis-recorder``     ``jarvis-recorder-{version}.vsix``
+   ``enthali.jarvis-mcp``          ``jarvis-mcp-{version}.vsix``
+   =============================== ======================================
 
    **Acceptance Criteria:**
 

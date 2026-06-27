@@ -553,15 +553,15 @@ Release Design Specifications
 
    1. Build the extension ID → VSIX filename mapping:
 
-      ========================= ===================================
-      Extension ID              VSIX filename
-      ========================= ===================================
-      ``enthali.jarvis``        ``jarvis-{version}.vsix``
-      ``enthali.jarvis-core``   ``jarvis-core-{version}.vsix``
-      ``enthali.jarvis-pim``    ``jarvis-pim-{version}.vsix``
-      ``enthali.jarvis-recorder`` ``jarvis-recorder-{version}.vsix``
-      ``enthali.jarvis-mcp``    ``jarvis-mcp-{version}.vsix``
-      ========================= ===================================
+      =============================== ======================================
+      Extension ID                    VSIX filename
+      =============================== ======================================
+      ``enthali.jarvis``              ``jarvis-{version}.vsix``
+      ``enthali.jarvis-core``         ``jarvis-core-{version}.vsix``
+      ``enthali.jarvis-pim``          ``jarvis-pim-{version}.vsix``
+      ``enthali.jarvis-recorder``     ``jarvis-recorder-{version}.vsix``
+      ``enthali.jarvis-mcp``          ``jarvis-mcp-{version}.vsix``
+      =============================== ======================================
 
    2. Collect installed ``enthali.jarvis*`` extension IDs via
       ``vscode.extensions.all``.
