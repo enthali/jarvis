@@ -18,6 +18,8 @@ python -m sphinx -b html docs docs/_build/html -W --keep-on-keep-going
 
 If the build fails (warnings or errors), abort the release immediately and return the error via RESPOND. This prevents broken documentation from being released (e.g., malformed tables in RST files). The validation occurs **before** moving docs or bumping versions, eliminating unnecessary work when the docs are invalid.
 
+**Related:** Closes GitHub Issue #10 (US→US link audit) — broken cross-references in sphinx-needs are already caught by `-W --keep-going` in this validation step; no separate `needs_warnings` config is needed.
+
 ---
 
 ## Level 0: User Stories
