@@ -20,6 +20,7 @@ User Stories or Stakeholder needs describe **why** functionality is needed from 
    us_rec
    us_ses
    us_mod
+   us_hook
    us_uat
 
 All User Stories

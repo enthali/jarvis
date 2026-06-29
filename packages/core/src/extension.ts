@@ -18,6 +18,9 @@ import { deleteMessage, appendMessage, popMessage, readAutoDelivery, addAutoDeli
 import { addReminder, readReminders, removeReminder, popDueReminders, setRemindersLogger } from './apps/session/reminders';
 import { lookupSessionUUID, getAllSessions, initSessionLookup, setSessionLookupLogger, filterNamedSessions, getValidDestinations } from './engine/sessionLookup';
 import { checkForUpdates } from './engine/updateCheck';
+import { HookEngine } from './hookEngine';
+import { HookIntake } from './hookIntake';
+import { installHookConfig, getHooksDir } from './hookConfig';
 
 import { CronExpressionParser } from 'cron-parser';
 
@@ -165,6 +168,37 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     context.subscriptions.push(log);
     setSessionLookupLogger(log);
     setRemindersLogger(log);
+
+    // Hook Engine (SPEC_HOOK_LOG, SPEC_HOOK_INTAKE, SPEC_HOOK_CONFIG)
+    const hookEngine = new HookEngine(log);
+    const hookIntake = new HookIntake(hookEngine, getHooksDir(configPaths.getJarvisDir() ?? ''));
+    let hookIntakeStarted = false;
+
+    async function startHookIntake(): Promise<void> {
+        if (hookIntakeStarted) { return; }
+        try {
+            const workspaceRoot = configPaths.getJarvisDir();
+            if (workspaceRoot) {
+                await installHookConfig(workspaceRoot, log);
+                await hookIntake.start();
+                hookIntakeStarted = true;
+                log.info(`[HookIntake] Started on port ${hookIntake.getPort()}`);
+            }
+        } catch (err) {
+            log.warn(`[HookIntake] Failed to start (best-effort): ${err}`);
+        }
+    }
+
+    async function stopHookIntake(): Promise<void> {
+        if (hookIntakeStarted) {
+            await hookIntake.stop();
+            hookIntakeStarted = false;
+            log.info('[HookIntake] Stopped');
+        }
+    }
+
+    // Start hook intake asynchronously (non-blocking)
+    void startHookIntake();
 
     async function renameFocusedChatSession(sessionName: string): Promise<void> {
         await vscode.commands.executeCommand(
@@ -1004,6 +1038,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         openAgentSessionCommand,
         openContextCommand,
         newSessionCommand,
+        { dispose: () => void stopHookIntake() },
         checkForUpdatesCommand,
         sendToSessionTool,
         readMessageTool,
@@ -1031,5 +1066,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
 }
 
 export function deactivate() {
-    // No-op — subscriptions handle cleanup.
+    // Stop hook intake on deactivate
+    // Note: this is best-effort; the extension host may terminate before this runs
+    // The actual stop is handled by the subscription disposal in activate()
 }
