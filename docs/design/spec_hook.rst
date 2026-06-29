@@ -1,4 +1,4 @@
-Hook Engine Design Specifications
+﻿Hook Engine Design Specifications
 =================================
 
 .. spec:: Hook Configuration Self-Install
@@ -8,7 +8,7 @@ Hook Engine Design Specifications
 
    **Description:**
    On activation, the hook engine self-installs its VS Code Agent Hook wiring into
-   ``.github/hooks/`` — the VS Code default scan location for agent hook configs
+   ``.github/hooks/`` â€” the VS Code default scan location for agent hook configs
    (see `VS Code Agent Hooks <https://code.visualstudio.com/docs/agent-customization/hooks>`_).
    No ``chat.hookFilesLocations`` setting change is required; VS Code scans
    ``.github/hooks/*.json`` automatically.
@@ -16,7 +16,7 @@ Hook Engine Design Specifications
    **Steps performed at activation:**
 
    1. **Ensure the hook directory exists.** Create ``.github/hooks/`` if not present.
-      VS Code scans this directory by default — no workspace-settings change needed.
+      VS Code scans this directory by default â€” no workspace-settings change needed.
    2. **Write the hook config** ``.github/hooks/jarvis-hooks.json`` registering all
       eight lifecycle events, each pointing to the bridge (SPEC_HOOK_BRIDGE):
 
@@ -47,19 +47,19 @@ Hook Engine Design Specifications
    * Forward slashes in the command path work on Windows (Node normalises). A
      ``windows`` OS-override may be added for robustness. WSL2/Linux multi-host
      support is a known follow-up (MVP targets the primary dev host).
-   * The config and bridge are **generated artifacts** owned by the engine — they
+   * The config and bridge are **generated artifacts** owned by the engine â€” they
      are re-written on activation so they stay consistent with the engine version.
    * ``.github/hooks/port`` is a generated runtime artifact and SHOULD be
      git-ignored.
    * **Multi-instance:** each workspace has its own ``.github/hooks/`` folder, so
-     each VS Code instance writes its own ``port`` file — parallel instances on
+     each VS Code instance writes its own ``port`` file â€” parallel instances on
      *different* workspaces are naturally collision-free. **Known limitation:** the
      same workspace opened in two windows shares one ``port`` file; the later
      activation wins. This is out of scope for the observe-only MVP.
 
    **Security & lifecycle (known, partly deferred):**
 
-   * **Agent-editable bridge — security consideration.** ``bridge.mjs`` lives in
+   * **Agent-editable bridge â€” security consideration.** ``bridge.mjs`` lives in
      ``.github/hooks/`` and is therefore reachable by the agent's edit tools; an
      agent that rewrites it could execute arbitrary code on the next hook. Per the
      VS Code hooks docs, protect hook scripts from unattended edits (e.g.
@@ -67,8 +67,8 @@ Hook Engine Design Specifications
      several hook-related risks (cf. approval-bypass) and is documented, not solved,
      in this MVP.
    * **Teardown (deferred).** The MVP does not remove the ``.github/hooks/`` config
-     on disable/uninstall. A stale config is harmless — the bridge swallows transport
-     errors and returns ``continue:true`` — so cleanup is a known follow-up, not an
+     on disable/uninstall. A stale config is harmless â€” the bridge swallows transport
+     errors and returns ``continue:true`` â€” so cleanup is a known follow-up, not an
      MVP requirement.
 
    **Acceptance Criteria:**
@@ -99,7 +99,7 @@ Hook Engine Design Specifications
    .. code-block:: javascript
 
       #!/usr/bin/env node
-      // .jarvis/hooks/bridge.mjs — forwards a VS Code agent hook event to jarvis-core.
+      // .jarvis/hooks/bridge.mjs â€” forwards a VS Code agent hook event to jarvis-core.
       import http from 'node:http';
       import { readFileSync } from 'node:fs';
       import { fileURLToPath } from 'node:url';
@@ -129,7 +129,7 @@ Hook Engine Design Specifications
             headers: { 'content-type': 'application/json', 'content-length': Buffer.byteLength(raw) } },
           (res) => { res.resume(); res.on('end', resolve); }
         );
-        req.on('error', resolve);   // transport error → still continue
+        req.on('error', resolve);   // transport error â†’ still continue
         req.write(raw);
         req.end();
       });
@@ -146,7 +146,7 @@ Hook Engine Design Specifications
      ``http://127.0.0.1:<port>/hooks``.
    * AC-3: The bridge **always** writes ``{"continue": true}`` to stdout and exits 0,
      including when the port file is missing or the POST fails (errors are
-     swallowed) — it never blocks or influences the agent.
+     swallowed) â€” it never blocks or influences the agent.
    * AC-4: The bridge has no dependency beyond Node's standard library.
 
 
@@ -162,7 +162,7 @@ Hook Engine Design Specifications
 
    **Listener:**
 
-   * Binds to ``127.0.0.1`` on an **ephemeral port** (``server.listen(0)`` — the OS
+   * Binds to ``127.0.0.1`` on an **ephemeral port** (``server.listen(0)`` â€” the OS
      assigns a guaranteed-free port), avoiding fixed-port collisions across the
      user's parallel VS Code instances. The bound port is published to
      ``.github/hooks/port`` (SPEC_HOOK_CONFIG) so the bridge can find it.
@@ -195,25 +195,25 @@ Hook Engine Design Specifications
       export class HookEngine {
           constructor(private readonly _log: vscode.LogOutputChannel) {}
 
-          /** Intake point — called by the HTTP listener for each received event. */
+          /** Intake point â€” called by the HTTP listener for each received event. */
           receive(event: HookEvent): void {
               this._sink(event);     // MVP: the only sink is the logger (SPEC_HOOK_LOG)
           }
 
           // A future event bus is inserted here: receive() fans out to subscribers
-          // instead of calling a single sink — without changing the intake contract.
+          // instead of calling a single sink â€” without changing the intake contract.
       }
 
    **Design notes:**
 
    * **Bus-ready:** ``receive()`` is the stable intake contract. In the MVP it calls
      the logging sink directly; later it fans out to a dispatch bus / subscribers,
-     and the same listener can return real control decisions in the HTTP response —
+     and the same listener can return real control decisions in the HTTP response â€”
      no change to the bridge or the intake contract.
    * **Subscriber-conditional blocking.** The bridge only needs to *wait* for events
      that have a **deciding** subscriber (one that influences the agent, e.g. a
-     ``PreToolUse`` deny). In the MVP the only subscriber is the logger — a pure
-     sink that needs no synchronous answer — so the listener responds immediately and
+     ``PreToolUse`` deny). In the MVP the only subscriber is the logger â€” a pure
+     sink that needs no synchronous answer â€” so the listener responds immediately and
      the bridge returns at once. A future blocking path is introduced **per event,
      only for deciding subscribers**, leaving observe-only events latency-free.
    * **Multi-subscriber on one deciding event (known future concern).** If several
@@ -231,7 +231,7 @@ Hook Engine Design Specifications
    * AC-2: ``POST /hooks`` parses the body into a ``HookEvent`` (``eventName``,
      ``sessionId?``, ``timestamp?``, raw ``payload``) and calls
      ``HookEngine.receive(event)``.
-   * AC-3: The listener responds ``200`` with ``{"continue": true}`` — no
+   * AC-3: The listener responds ``200`` with ``{"continue": true}`` â€” no
      agent-influencing output in the MVP.
    * AC-4: ``receive()`` is the single, stable intake contract behind which a future
      bus/subscribers can be inserted without changing the bridge or listener.
@@ -255,15 +255,15 @@ Hook Engine Design Specifications
 
       function logHookEvent(log: vscode.LogOutputChannel, e: HookEvent): void {
           const sid = e.sessionId ? ` session=${e.sessionId}` : '';
-          log.info(`[Hook] ${e.eventName}${sid} — ${JSON.stringify(e.payload)}`);
+          log.info(`[Hook] ${e.eventName}${sid} â€” ${JSON.stringify(e.payload)}`);
       }
 
    Example output:
 
    .. code-block:: text
 
-      [Hook] SessionStart session=abc-123 — {"hook_event_name":"SessionStart","cwd":"…"}
-      [Hook] PostToolUse session=abc-123 — {"tool_name":"replace_string_in_file",…}
+      [Hook] SessionStart session=abc-123 â€” {"hook_event_name":"SessionStart","cwd":"â€¦"}
+      [Hook] PostToolUse session=abc-123 â€” {"tool_name":"replace_string_in_file",â€¦}
 
    **Acceptance Criteria:**
 
@@ -271,7 +271,88 @@ Hook Engine Design Specifications
      ``LogOutputChannel`` with the ``[Hook]`` tag.
    * AC-2: The entry includes the event name and the full payload so the delivered
      data is observable; the session id is included when present.
-   * AC-3: The sink takes no other action — no bus dispatch, no triggered actions,
+   * AC-3: The sink takes no other action â€” no bus dispatch, no triggered actions,
      no memory injection, no per-session routing.
-   * AC-4: No new output channel is created — the "Jarvis" channel from
+   * AC-4: No new output channel is created â€” the "Jarvis" channel from
      ``SPEC_DEV_LOGCHANNEL`` is reused.
+
+
+.. spec:: Hook Auto-Install Setting
+   :id: SPEC_HOOK_AUTOINST
+   :status: implemented
+   :links: REQ_HOOK_AUTOINST; SPEC_HOOK_CONFIG; SPEC_HOOK_INTAKE
+
+   **Description:**
+   A workspace-scoped VS Code setting `jarvis.hooks.autoInstall` (boolean, default
+   `true`) gates the Hook Configuration Self-Install (SPEC_HOOK_CONFIG). When
+   `true`, SPEC_HOOK_CONFIG runs as defined. When `false`, the engine performs a
+   teardown: it removes all Jarvis-managed hook files and does not write them during
+   the activation lifecycle.
+
+   **Setting definition (contributes.configuration in package.json):**
+
+   .. code-block:: json
+
+      {
+        "jarvis.hooks.autoInstall": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "description": "When true (default), Jarvis auto-installs hook bridge files in .github/hooks/. Set to false to remove managed files and stop hook management."
+        }
+      }
+
+   **Activation behaviour:**
+
+   1. Read `jarvis.hooks.autoInstall` from workspace configuration.
+   2. **If `true`:** execute the self-install sequence (SPEC_HOOK_CONFIG steps
+      1–4) as before. Start the intake listener (SPEC_HOOK_INTAKE).
+   3. **If `false`:** execute teardown, then skip intake listener start.
+
+   **Teardown sequence (autoInstall = false):**
+
+   1. Delete `.github/hooks/jarvis-hooks.json` if it exists.
+   2. Delete `.github/hooks/bridge.mjs` if it exists.
+   3. Delete `.github/hooks/port` if it exists.
+   4. Do **not** remove the `.github/hooks/` directory itself — other tools or
+      user-managed hooks may reside there.
+   5. Do **not** start the Hook Intake HTTP listener (SPEC_HOOK_INTAKE).
+
+   **Configuration change listener:**
+
+   * The extension SHALL listen for `onDidChangeConfiguration` on the
+     `jarvis.hooks.autoInstall` key.
+   * If the setting transitions from `true` → `false` at runtime: stop the
+     intake listener, run teardown.
+   * If the setting transitions from `false` → `true` at runtime: run the
+     self-install sequence, start the intake listener.
+
+   **Design notes:**
+
+   * The setting is `scope: "resource"` (workspace-scoped) so each workspace can
+     independently opt in or out.
+   * Teardown is idempotent — deleting non-existent files is a no-op.
+   * The intake listener lifecycle is tied to the setting: when `false`, the
+     listener is not started (and stopped if running). This means hook events are
+     neither received nor logged when the setting is `false`.
+   * The bridge (SPEC_HOOK_BRIDGE) is removed during teardown, so even if VS Code
+     still has a stale `jarvis-hooks.json` in memory, the bridge would fail
+     gracefully (file not found → VS Code skips).
+
+   **Acceptance Criteria:**
+
+   * AC-1: `package.json` contributes `jarvis.hooks.autoInstall` as a boolean
+     setting with default `true` and scope `resource`.
+   * AC-2: When `jarvis.hooks.autoInstall` is `true`, activation runs the
+     SPEC_HOOK_CONFIG self-install and starts the SPEC_HOOK_INTAKE listener — no
+     behavioural change from current default.
+   * AC-3: When `jarvis.hooks.autoInstall` is `false`, activation deletes
+     `.github/hooks/jarvis-hooks.json`, `.github/hooks/bridge.mjs`, and
+     `.github/hooks/port` (if present) and does NOT start the intake listener.
+   * AC-4: The `.github/hooks/` directory itself is never removed.
+   * AC-5: A runtime change `true` → `false` stops the intake listener and runs
+     teardown; `false` → `true` runs self-install and starts the listener.
+   * AC-6: Teardown is idempotent — running it when files are already absent
+     produces no errors.
+   * AC-7: The setting is workspace-scoped — different workspaces can have different
+     values.

@@ -127,6 +127,45 @@ export async function installHookConfig(workspaceRoot: string, log: vscode.LogOu
     }
 }
 
+export async function uninstallHookConfig(workspaceRoot: string, log: vscode.LogOutputChannel): Promise<void> {
+    const hooksDir = path.join(workspaceRoot, HOOKS_DIR);
+    const filesToRemove = [CONFIG_FILE, BRIDGE_FILE, PORT_FILE];
+
+    try {
+        for (const file of filesToRemove) {
+            const filePath = path.join(hooksDir, file);
+            try {
+                fs.unlinkSync(filePath);
+            } catch (err: unknown) {
+                if ((err as NodeJS.ErrnoException).code !== 'ENOENT') { throw err; }
+            }
+        }
+
+        // Remove chat.hookFilesLocations entry from .vscode/settings.json
+        const settingsPath = path.join(workspaceRoot, '.vscode', 'settings.json');
+        try {
+            const raw = fs.readFileSync(settingsPath, 'utf-8');
+            const settings: Record<string, unknown> = JSON.parse(raw);
+            const hookLocations = settings['chat.hookFilesLocations'] as Record<string, boolean> | undefined;
+            if (hookLocations && HOOKS_DIR in hookLocations) {
+                delete hookLocations[HOOKS_DIR];
+                if (Object.keys(hookLocations).length === 0) {
+                    delete settings['chat.hookFilesLocations'];
+                } else {
+                    settings['chat.hookFilesLocations'] = hookLocations;
+                }
+                fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf-8');
+            }
+        } catch {
+            // settings.json missing or unparseable — nothing to clean
+        }
+
+        log.info('[HookConfig] Teardown complete: managed hook files removed');
+    } catch (err) {
+        log.warn(`[HookConfig] Teardown failed (best-effort): ${err}`);
+    }
+}
+
 export function getHooksDir(workspaceRoot: string): string {
     return path.join(workspaceRoot, HOOKS_DIR);
 }

@@ -220,6 +220,17 @@
         "properties": {
           "jarvis.checkForUpdates": { "type": "boolean", "default": true, "description": "Check for new Jarvis releases on GitHub when the extension activates." }
         }
+      },
+      {
+        "title": "Hooks",
+        "properties": {
+          "jarvis.hooks.autoInstall": {
+            "type": "boolean",
+            "default": true,
+            "scope": "resource",
+            "description": "When true (default), Jarvis auto-installs hook bridge files in .github/hooks/. Set to false to remove managed files and stop hook management."
+          }
+        }
       }
     ],
     "languageModelTools": [

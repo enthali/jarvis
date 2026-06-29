@@ -20,7 +20,7 @@ import { lookupSessionUUID, getAllSessions, initSessionLookup, setSessionLookupL
 import { checkForUpdates } from './engine/updateCheck';
 import { HookEngine } from './hookEngine';
 import { HookIntake } from './hookIntake';
-import { installHookConfig, getHooksDir } from './hookConfig';
+import { installHookConfig, uninstallHookConfig, getHooksDir } from './hookConfig';
 
 import { CronExpressionParser } from 'cron-parser';
 
@@ -171,13 +171,14 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
 
     // Hook Engine (SPEC_HOOK_LOG, SPEC_HOOK_INTAKE, SPEC_HOOK_CONFIG)
     const hookEngine = new HookEngine(log);
-    const hookIntake = new HookIntake(hookEngine, getHooksDir(configPaths.getJarvisDir() ?? ''));
+    const workspaceRoot = configPaths.getWorkspaceRoot();
+    const hookIntake = new HookIntake(hookEngine, workspaceRoot ? getHooksDir(workspaceRoot) : '');
     let hookIntakeStarted = false;
 
     async function startHookIntake(): Promise<void> {
         if (hookIntakeStarted) { return; }
         try {
-            const workspaceRoot = configPaths.getJarvisDir();
+            const workspaceRoot = configPaths.getWorkspaceRoot();
             if (workspaceRoot) {
                 await installHookConfig(workspaceRoot, log);
                 await hookIntake.start();
@@ -197,8 +198,31 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         }
     }
 
-    // Start hook intake asynchronously (non-blocking)
-    void startHookIntake();
+    // Start hook intake gated on autoInstall setting (SPEC_HOOK_AUTOINST)
+    const autoInstall = vscode.workspace.getConfiguration('jarvis.hooks').get<boolean>('autoInstall', true);
+    if (autoInstall) {
+        void startHookIntake();
+    } else {
+        // Teardown any leftover files from a previous activation
+        const wr = configPaths.getWorkspaceRoot();
+        if (wr) { void uninstallHookConfig(wr, log); }
+    }
+
+    // Configuration change listener for jarvis.hooks.autoInstall (SPEC_HOOK_AUTOINST AC-5)
+    const hookAutoInstallListener = vscode.workspace.onDidChangeConfiguration(async (e) => {
+        if (!e.affectsConfiguration('jarvis.hooks.autoInstall')) { return; }
+        const newValue = vscode.workspace.getConfiguration('jarvis.hooks').get<boolean>('autoInstall', true);
+        const wr = configPaths.getWorkspaceRoot();
+        if (newValue) {
+            // false → true: install + start
+            if (wr) { await startHookIntake(); }
+        } else {
+            // true → false: stop + teardown
+            await stopHookIntake();
+            if (wr) { await uninstallHookConfig(wr, log); }
+        }
+    });
+    context.subscriptions.push(hookAutoInstallListener);
 
     async function renameFocusedChatSession(sessionName: string): Promise<void> {
         await vscode.commands.executeCommand(
