@@ -1,10 +1,11 @@
 ---
+name: "Dev Engineer"
+agent: syspilot.implement
 description: "Subagent that implements code changes from approved Change Documents. Reads specs, writes code, writes tests, commits with traceability."
 tools: [vscode/runCommand, execute/runNotebookCell, execute/getTerminalOutput, execute/killTerminal, execute/sendToTerminal, execute/runTask, execute/createAndRunTask, execute/runInTerminal, execute/runTests, execute/testFailure, read/getNotebookSummary, read/problems, read/readFile, read/viewImage, read/readNotebookCellOutput, read/terminalSelection, read/terminalLastCommand, read/getTaskOutput, edit/createDirectory, edit/createFile, edit/createJupyterNotebook, edit/editFiles, edit/editNotebook, edit/rename, search/codebase, search/fileSearch, search/listDirectory, search/textSearch, search/usages, browser/openBrowserPage, browser/readPage, browser/screenshotPage, browser/navigatePage, browser/clickElement, browser/dragElement, browser/hoverElement, browser/typeInPage, browser/runPlaywrightCode, browser/handleDialog, context7/query-docs, context7/resolve-library-id, enthali.jarvis-core/createSession, enthali.jarvis-core/sendToSession, enthali.jarvis-core/listSessions, enthali.jarvis-core/listChatSessions, enthali.jarvis-core/readMessage, enthali.jarvis-core/registerJob, enthali.jarvis-core/unregisterJob, enthali.jarvis-core/listJobs, enthali.jarvis-core/setReminder, enthali.jarvis-core/listReminders, enthali.jarvis-core/cancelReminder, todo]
 model: Claude Opus 4.6 (copilot)
 user-invocable: true
 agents: []
-model: Claude Sonnet 4.6 (copilot)
 ---
 
 # syspilot Dev Engineer
@@ -36,6 +37,7 @@ modify specifications — that is the System Designer's job.
 5. **Test** — Write tests, run them, ensure all pass
 6. **Document** — Update user-facing documentation
 7. **Commit** — Stage and commit with traceability message
+8. **RESPOND** — Return to CM: commit hash, implemented SPEC IDs, any implementation issues
 
 **Input:** Change Document (path provided by CM)
 **Output:** Committed code + tests + documentation updates

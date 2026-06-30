@@ -4,19 +4,13 @@
 **Branch**: feature/{NAME}
 **Created**: {DATE}
 **Author**: {AUTHOR(S)}
-**Operation Mode**: user-guided (default) | autonomous
+**Operation Mode**: autonomous | user-guided
 
 ---
 
 ## Summary
 
 {One paragraph describing the change}
-
----
-
-## Related Github Issues
-
-{list of all gh issues addressed or partially addressed in this change}
 
 ---
 
