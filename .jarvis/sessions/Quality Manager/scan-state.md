@@ -32,6 +32,14 @@ Updated after every cycle. Read this first to know where to pick up.
 | lockfile-sync-ac | 2026-06-24 | n/a (spec-only, no new US) | PASS | n/a | n/a | No findings | QM CLEAR |
 | addon-icons | 2026-06-24 | n/a (spec-only, no new US) | PASS | n/a | n/a | No findings | QM CLEAR |
 | selective-updater | 2026-06-24 | PASS (AC-6/AC-7 added) | PASS | PASS | n/a | No findings; code-vs-spec exact match on all 6 handler steps; Artefakt-Removal verified | QM CLEAR |
+| icon-alignment | 2026-06-25 | PASS | PASS | PASS | n/a | 6 findings (icon field in core-gh, test/val artifacts) — all addressed by PM | QM CLEAR |
+| wsl2-username-fallback | 2026-06-27 | PASS | PASS | PASS | n/a | process.env fallback verified PASSED; minor SPEC status updates pending | QM APPROVED |
+| agent-session-api | 2026-06-27 | PASS | PASS | PASS | 9/11 auto ✓, 2 manual PENDING | JarvisSession type + listJarvisSessions() API clean | QM CLEAR |
+| hook-engine-mvp | 2026-06-29 | PASS | PASS | PASS | 16 TCs (15 auto ✓, 1 manual E2E ✓) | HookEngine, HookIntake, HookConfig; 4 new SPECs | QM CLEAR |
+| hook-autoinstall-setting | 2026-06-29 | PASS | PASS | PASS | 8 TCs ✓ | jarvis.hooks.autoInstall setting; SPEC_HOOK_AUTOINST added during verification | QM CLEAR |
+| hook-event-router | 2026-06-30 | PASS | PASS | PASS | 35 TCs across 8 groups ✓ | Event routing registry, on/off methods, --event parameter, typed dispatch; US_HOOK_OBSERVE AC-4 fulfilled | QM CLEAR |
+| hook-files-relocate | 2026-06-30 | n/a (structural) | PASS | PASS | 147/147 tests ✓ | Moved hook files to engine/hooks/, imports updated, build clean | QM CLEAR |
+| engine-restructure | 2026-06-30 | n/a (structural) | PASS | PASS | 148/148 tests ✓ | Moved 8 core files to engine/core/ and engine/sessions/, index.ts re-exports, build clean | QM CLEAR |
 
 ## Known Releases (at last scan)
 
