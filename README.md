@@ -41,6 +41,7 @@ Cron-based job scheduling configured via YAML:
 | `jarvis.heartbeatConfigFile` | Absolute path to `heartbeat.yaml` | workspace storage |
 | `jarvis.heartbeatInterval` | Scheduler tick interval in seconds | 60 |
 | `jarvis.messagesFile` | Absolute path to `messages.json` | extension storage |
+| `jarvis.hooks.autoInstall` | Auto-install hook bridge files in `.github/hooks/`. Set to `false` to remove managed files and opt out of hook management. | `true` |
 
 ## Installation
 

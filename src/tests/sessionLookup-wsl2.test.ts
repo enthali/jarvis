@@ -15,7 +15,7 @@ vi.mock('fs', async (importOriginal) => {
 });
 
 import { readFileSync } from 'fs';
-import { resolveUserDataPath } from '../../packages/core/src/engine/sessionLookup';
+import { resolveUserDataPath } from '../../packages/core/src/engine/sessions/sessionLookup';
 
 const mockedReadFileSync = vi.mocked(readFileSync);
 

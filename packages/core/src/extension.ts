@@ -5,19 +5,22 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as configPaths from './engine/configPaths';
+import * as configPaths from './engine/core/configPaths';
 import { MessageTreeProvider, SessionGroupNode, MessageLeafNode } from './apps/session/messageTreeProvider';
 import { RemindersTreeProvider, ReminderNode } from './apps/session/remindersTreeProvider';
-import { KindDrivenScanner, LeafNode, TreeNode } from './engine/yamlScanner';
+import { KindDrivenScanner, LeafNode, TreeNode } from './engine/sessions/yamlScanner';
 import { activateHeartbeat, HeartbeatScheduler, HeartbeatJob, HeartbeatStep } from './apps/session/heartbeat';
 import { JobNode } from './apps/session/heartbeatTreeProvider';
-import { JarvisEngine } from './engine/coreApi';
-import { GenericTreeFactory } from './engine/treeFactory';
-import type { EntityKindConfig, JarvisCoreApi } from './engine/types';
-import { deleteMessage, appendMessage, popMessage, readAutoDelivery, addAutoDelivery, removeAutoDelivery, readQueue, writeQueue } from './engine/messageQueue';
+import { JarvisEngine } from './engine/core/coreApi';
+import { GenericTreeFactory } from './engine/core/treeFactory';
+import type { EntityKindConfig, JarvisCoreApi } from './engine/core/types';
+import { deleteMessage, appendMessage, popMessage, readAutoDelivery, addAutoDelivery, removeAutoDelivery, readQueue, writeQueue } from './engine/sessions/messageQueue';
 import { addReminder, readReminders, removeReminder, popDueReminders, setRemindersLogger } from './apps/session/reminders';
-import { lookupSessionUUID, getAllSessions, initSessionLookup, setSessionLookupLogger, filterNamedSessions, getValidDestinations } from './engine/sessionLookup';
-import { checkForUpdates } from './engine/updateCheck';
+import { lookupSessionUUID, getAllSessions, initSessionLookup, setSessionLookupLogger, filterNamedSessions, getValidDestinations } from './engine/sessions/sessionLookup';
+import { checkForUpdates } from './engine/core/updateCheck';
+import { HookEngine } from './engine/hooks/hookEngine';
+import { HookIntake } from './engine/hooks/hookIntake';
+import { installHookConfig, uninstallHookConfig, getHooksDir } from './engine/hooks/hookConfig';
 
 import { CronExpressionParser } from 'cron-parser';
 
@@ -165,6 +168,61 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     context.subscriptions.push(log);
     setSessionLookupLogger(log);
     setRemindersLogger(log);
+
+    // Hook Engine (SPEC_HOOK_LOG, SPEC_HOOK_INTAKE, SPEC_HOOK_CONFIG)
+    const hookEngine = new HookEngine(log);
+    const workspaceRoot = configPaths.getWorkspaceRoot();
+    const hookIntake = new HookIntake(hookEngine, workspaceRoot ? getHooksDir(workspaceRoot) : '');
+    let hookIntakeStarted = false;
+
+    async function startHookIntake(): Promise<void> {
+        if (hookIntakeStarted) { return; }
+        try {
+            const workspaceRoot = configPaths.getWorkspaceRoot();
+            if (workspaceRoot) {
+                await installHookConfig(workspaceRoot, log);
+                await hookIntake.start();
+                hookIntakeStarted = true;
+                log.info(`[HookIntake] Started on port ${hookIntake.getPort()}`);
+            }
+        } catch (err) {
+            log.warn(`[HookIntake] Failed to start (best-effort): ${err}`);
+        }
+    }
+
+    async function stopHookIntake(): Promise<void> {
+        if (hookIntakeStarted) {
+            await hookIntake.stop();
+            hookIntakeStarted = false;
+            log.info('[HookIntake] Stopped');
+        }
+    }
+
+    // Start hook intake gated on autoInstall setting (SPEC_HOOK_AUTOINST)
+    const autoInstall = vscode.workspace.getConfiguration('jarvis.hooks').get<boolean>('autoInstall', true);
+    if (autoInstall) {
+        void startHookIntake();
+    } else {
+        // Teardown any leftover files from a previous activation
+        const wr = configPaths.getWorkspaceRoot();
+        if (wr) { void uninstallHookConfig(wr, log); }
+    }
+
+    // Configuration change listener for jarvis.hooks.autoInstall (SPEC_HOOK_AUTOINST AC-5)
+    const hookAutoInstallListener = vscode.workspace.onDidChangeConfiguration(async (e) => {
+        if (!e.affectsConfiguration('jarvis.hooks.autoInstall')) { return; }
+        const newValue = vscode.workspace.getConfiguration('jarvis.hooks').get<boolean>('autoInstall', true);
+        const wr = configPaths.getWorkspaceRoot();
+        if (newValue) {
+            // false → true: install + start
+            if (wr) { await startHookIntake(); }
+        } else {
+            // true → false: stop + teardown
+            await stopHookIntake();
+            if (wr) { await uninstallHookConfig(wr, log); }
+        }
+    });
+    context.subscriptions.push(hookAutoInstallListener);
 
     async function renameFocusedChatSession(sessionName: string): Promise<void> {
         await vscode.commands.executeCommand(
@@ -397,7 +455,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             const count = node.children.length;
             const defaultNotifTemplate =
                 `[Jarvis Message Service] You have \${count} new message(s) in your inbox.\n` +
-                `Read them with the jarvis_readMessage tool (destination: "\${destination}") until remaining = 0.`;
+                `Read them with the enthali.jarvis-core/readMessage tool (destination: "\${destination}") until remaining = 0.`;
             const rawNotifTemplate = vscode.workspace.getConfiguration('jarvis').get<string>('messages.notificationTemplate') ?? '';
             const notifTemplate = rawNotifTemplate.trim() ? rawNotifTemplate : defaultNotifTemplate;
             const stub = applyTemplate(notifTemplate, { count: String(count), destination: node.destination });
@@ -668,6 +726,18 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             log.info(`[MSG] listChatSessions: ${named.length} session(s)`);
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(JSON.stringify(named))
+            ]);
+        }
+    );
+
+    // listJarvisSessions — returns all Jarvis sessions across all kinds (Sessions, Projects, Events, ...)
+    const listJarvisSessionsTool = engine.registerTool('jarvis_listJarvisSessions',
+        'List all Jarvis sessions across all kinds (Sessions, Projects, Events, ...)',
+        async (_options: vscode.LanguageModelToolInvocationOptions<any>, _token: vscode.CancellationToken) => {
+            const sessions = engine.listJarvisSessions();
+            log.info(`[SES] listJarvisSessions: ${sessions.length} session(s)`);
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(JSON.stringify(sessions))
             ]);
         }
     );
@@ -992,6 +1062,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         openAgentSessionCommand,
         openContextCommand,
         newSessionCommand,
+        { dispose: () => void stopHookIntake() },
         checkForUpdatesCommand,
         sendToSessionTool,
         readMessageTool,
@@ -1019,5 +1090,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
 }
 
 export function deactivate() {
-    // No-op — subscriptions handle cleanup.
+    // Stop hook intake on deactivate
+    // Note: this is best-effort; the extension host may terminate before this runs
+    // The actual stop is handled by the subscription disposal in activate()
 }

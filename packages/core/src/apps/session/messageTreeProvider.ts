@@ -2,7 +2,7 @@
 // Requirements: REQ_MSG_EXPLORER, REQ_MSG_DELETE, REQ_EXP_TREEVIEW
 
 import * as vscode from 'vscode';
-import { readQueue, readAutoDelivery } from '../../engine/messageQueue';
+import { readQueue, readAutoDelivery } from '../../engine/sessions/messageQueue';
 
 // ---------------------------------------------------------------------------
 // Node types

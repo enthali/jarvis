@@ -80,6 +80,38 @@ Messaging User Stories
    * AC-3: Empty or untitled sessions are excluded from the list
 
 
+.. story:: Platform-Wide Session Enumeration
+   :id: US_MSG_JARVISSESSIONS
+   :status: draft
+   :priority: optional
+   :links: US_MSG_LISTSESSIONS; US_EXP_AGENTSESSION
+
+   *Context: Generalises the kind-specific enumeration tools
+   (``jarvis_listSessions`` for the ``session`` kind, ``jarvis_listProjects`` for
+   the ``project`` kind) into a single cross-kind tool. The central scanner
+   already holds every entity of every registered kind; this story publishes that
+   already-existing list via the platform API — no new scanner, provider, or
+   registry. Unblocks Issue #3 (``/freshmind`` + ``/housekeeping``).*
+
+   **As an** LLM agent or automation working in a Jarvis workspace,
+   **I want** a single tool that lists **all** Jarvis sessions across every
+   registered kind (sessions, projects, events, and any future kind),
+   **so that** I can build cross-cutting features without coupling to any specific
+   add-on's internals.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A platform API method ``JarvisCoreApi.listJarvisSessions()`` returns
+     all scanned entities across all registered kinds as ``JarvisSession[]``
+     (``{name, summary, agent, kind, folder}``).
+   * AC-2: An LM/MCP tool ``jarvis_listJarvisSessions`` wraps the API and is
+     available in the Chat tool picker (and via the MCP server, dual registration).
+   * AC-3: The result reflects the central scanner's current state — no separate
+     scan and no per-add-on coupling.
+   * AC-4: No new scanner, provider, or registry is introduced — the existing
+     ``scanner.entities`` list is published.
+
+
 .. story:: Auto-Delivery for Message Sessions
    :id: US_MSG_AUTODELIVERY
    :status: approved

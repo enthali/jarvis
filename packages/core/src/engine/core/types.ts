@@ -2,7 +2,7 @@
 // Requirements: REQ_ENG_CONTRACT, REQ_ENG_TOOLNS
 
 import type * as vscode from 'vscode';
-import type { TreeNode } from './yamlScanner';
+import type { TreeNode } from '../sessions/yamlScanner';
 
 /**
  * A recursive subtree node descriptor returned by a children provider.
@@ -92,7 +92,7 @@ export interface ToolDescriptor {
 }
 
 // Re-export heartbeat types as public engine types (SPEC_ENG_HEARTBEAT_JOBAPI)
-export type { HeartbeatJob, HeartbeatStep } from '../apps/session/heartbeat';
+export type { HeartbeatJob, HeartbeatStep } from '../../apps/session/heartbeat';
 
 /**
  * Decoration contributor interface.
@@ -102,6 +102,18 @@ export type { HeartbeatJob, HeartbeatStep } from '../apps/session/heartbeat';
 export interface TreeItemDecorator {
     /** Called after the engine builds a base TreeItem; may mutate it in place. */
     decorate(item: vscode.TreeItem, node: TreeNode, kind: string): void;
+}
+
+/**
+ * A session entity as exposed by the Jarvis core API.
+ * All optional fields are normalized to empty string for consistent shape.
+ */
+export interface JarvisSession {
+    name: string;
+    summary: string;
+    agent: string;
+    kind: string;
+    folder: string;
 }
 
 /**
@@ -119,20 +131,25 @@ export interface JarvisCoreApi {
     /** Trigger a tree-view refresh for a specific kind. */
     refreshKind(kind: string): void;
     /** Get the tree nodes for a registered kind. */
-    getTreeForKind(kind: string): import('./yamlScanner').TreeNode[];
+    getTreeForKind(kind: string): import('../sessions/yamlScanner').TreeNode[];
     /** Get an entity by its id (YAML file path). */
-    getEntity(id: string): import('./yamlScanner').EntityEntry | undefined;
+    getEntity(id: string): import('../sessions/yamlScanner').EntityEntry | undefined;
     /** Trigger a full rescan of all registered kinds. */
     rescan(): Promise<void>;
+
+    // --- Session listing API (SPEC_ENG_SESSIONLIST, SPEC_MSG_JARVISSESSIONS) ---
+
+    /** List all Jarvis sessions across all kinds (Sessions, Projects, Events, ...). */
+    listJarvisSessions(): JarvisSession[];
 
     // --- Heartbeat job API (SPEC_ENG_HEARTBEAT_JOBAPI) ---
 
     /** Idempotent upsert of a heartbeat job (PERSISTENT — survives restart/uninstall). */
-    registerJob(job: import('../apps/session/heartbeat').HeartbeatJob): Promise<void>;
+    registerJob(job: import('../../apps/session/heartbeat').HeartbeatJob): Promise<void>;
     /** Remove a heartbeat job by name. */
     unregisterJob(name: string): Promise<void>;
     /** Return all currently persisted heartbeat jobs. */
-    listJobs(): import('../apps/session/heartbeat').HeartbeatJob[];
+    listJobs(): import('../../apps/session/heartbeat').HeartbeatJob[];
 
     // --- Tool registry API (SPEC_ENG_TOOLREGISTRY) ---
 

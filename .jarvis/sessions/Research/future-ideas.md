@@ -7,6 +7,40 @@ Sortierung: jüngste oben.
 
 ---
 
+## FI-2026-06-28 — Hook Engine (Jarvis Core) · Layer 1
+
+**Status:** MVP in Arbeit (`hook-engine-mvp`, observe/log-only). API verifiziert, MVP-Architektur steht (`.jarvis/hooks/` + HTTP-Listener, ephemeral Port).  
+**Kurz:** Domänen-neutraler Hook-Dispatcher in Jarvis **Core**. 8 Lifecycle-Events, per-session on/off. **Keine Sackgasse:** Copilot CLI + Claude Code haben dieselbe Hook-API → Jarvis dockt an und **steuert sie als spec-driven Agents**. Erster Consumer: Memory. Linchpin: korreliert Hook-`session_id` mit Jarvis-Session? → MVP misst das.
+
+**Detail:** [FI-2026-06-28-hook-engine.md](FI-2026-06-28-hook-engine.md)
+
+---
+
+## FI-2026-06-28 — JarvisAgents (Spec-Assembled Agent Framework) · Layer 2
+
+**Status:** **Bewusst zurückgestellt** — erst nach Hook-Log-Beweis (Session-Linking) + Klärung, was VS Codes native Custom Agents schon abdecken.  
+**Kurz:** Separates **Modul** (nicht Core) auf der Hook Engine. Leerer JarvisAgent (Shell) der nach Spec läuft. **Kern-Wert: Handoff-Kontinuität** — eine Session morpht durch die Rollen (CM→Designer→Implementer→Verifier), Kontext bleibt live statt kaltem Re-Read bei jedem Wechsel. KV-Cache warm, Context-Reset gezielt an Rollen-Naht. Differentiator ggü. native Custom Agents (separate Session pro Agent).
+
+**Detail:** [FI-2026-06-28-jarvisagents.md](FI-2026-06-28-jarvisagents.md)
+
+---
+
+## FI-2026-06-28 — JarvisAgent Consumers (syspilot · PIM · …) · Layer 3
+
+**Kurz:** Jedes Projekt bringt eigene Agent-Families als Spec. **syspilot** (Projekt-Koordinator, Systems Engineer, Quality Manager — QM ohne Change-Context). **PIM** (Inbox, PM, Event, Travel — bald produktiv zuhause; Killer-Case: spec-driven Gmail + Outlook). Beide parallel über Specs. Jarvis = Engine, Projekt = Agenten.
+
+**Detail:** [FI-2026-06-28-jarvisagent-consumers.md](FI-2026-06-28-jarvisagent-consumers.md)
+
+---
+
+## FI-2026-06-28 — Workflow-as-Spec (der selbst-auditierende Prozess)
+
+**Kurz:** Nicht nur das Produkt, der **Prozess selbst** ist spec-driven (US/REQ/SPEC pro Agent). syspilot ist schon fast da — JarvisAgents spart den `.agent.md`-Übersetzungsschritt. **Impact + MECE auf den Prozess** → Killer-Case Functional-Safety-Audit (26262/DO-178): „wo hat der Prozess Lücken?" BAM. **Selbst-schließender Kreis:** Lücke gefunden → PM-Change → Prozess-Update als Spec → zurück in den Workflow.
+
+**Detail:** [FI-2026-06-28-workflow-as-spec.md](FI-2026-06-28-workflow-as-spec.md)
+
+---
+
 ## FI-2026-05-29 — Per-Agent Model Selection (BYOK-Era)
 
 **Trigger:** VS Code 1.122.1 — BYOK ohne GitHub-Sign-In + Custom Endpoint Provider in Stable.

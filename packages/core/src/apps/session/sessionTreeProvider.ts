@@ -3,7 +3,7 @@
 
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { YamlScanner, TreeNode } from '../../engine/yamlScanner';
+import { YamlScanner, TreeNode } from '../../engine/sessions/yamlScanner';
 
 export class SessionTreeProvider implements vscode.TreeDataProvider<TreeNode> {
 

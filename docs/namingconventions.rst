@@ -64,6 +64,9 @@ Theme Abbreviations
    * - ``ENG``
      - Engine contract (kind-agnostic core API: kind registration, tool injection, generic scanner & tree)
      - ``REQ_ENG_CONTRACT``, ``SPEC_ENG_API``
+   * - ``HOOK``
+     - Hook Engine (agent lifecycle hook intake, dispatch foundation in jarvis-core)
+     - ``US_HOOK_OBSERVE``, ``REQ_HOOK_INTAKE``, ``SPEC_HOOK_PROXY``
    * - ``UAT``
      - User Acceptance Tests
      - ``US_UAT_SAMPLEDATA``, ``REQ_UAT_VALID_SAMPLES``

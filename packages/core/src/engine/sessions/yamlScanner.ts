@@ -239,7 +239,7 @@ export class YamlScanner {
 // Kind-driven scanner (SPEC_ENG_SCANNER)
 // ---------------------------------------------------------------------------
 
-import type { EntityKindConfig } from './types';
+import type { EntityKindConfig } from '../core/types';
 
 export interface KindScanConfig {
     kind: string;
@@ -312,6 +312,17 @@ export class KindDrivenScanner {
     /** The set of currently registered kind names. */
     get registeredKinds(): string[] {
         return [...this._kinds.keys()];
+    }
+
+    /** SPEC_ENG_SESSIONLIST: thin projection of all entities for JarvisCoreApi. */
+    listJarvisSessions(): { name: string; summary: string; agent: string; kind: string; folder: string }[] {
+        return this.entities.map(e => ({
+            name: e.name ?? '',
+            summary: e.summary ?? '',
+            agent: e.agent ?? '',
+            kind: e.kind,
+            folder: e.folder,
+        }));
     }
 
     /** Rescan all registered kinds. */

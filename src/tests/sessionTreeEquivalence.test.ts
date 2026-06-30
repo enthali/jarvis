@@ -7,11 +7,11 @@
  * It imports and exercises the REAL provider classes — no inline mirrors allowed.
  */
 import { describe, it, expect } from 'vitest';
-import type { TreeNode, EntityEntry } from '../../packages/core/src/engine/yamlScanner';
-import type { YamlScanner } from '../../packages/core/src/engine/yamlScanner';
-import type { KindDrivenScanner } from '../../packages/core/src/engine/yamlScanner';
+import type { TreeNode, EntityEntry } from '../../packages/core/src/engine/sessions/yamlScanner';
+import type { YamlScanner } from '../../packages/core/src/engine/sessions/yamlScanner';
+import type { KindDrivenScanner } from '../../packages/core/src/engine/sessions/yamlScanner';
 import { SessionTreeProvider } from '../../packages/core/src/apps/session/sessionTreeProvider';
-import { GenericTreeFactory } from '../../packages/core/src/engine/treeFactory';
+import { GenericTreeFactory } from '../../packages/core/src/engine/core/treeFactory';
 
 // --- Test data -----------------------------------------------------------------
 

@@ -152,7 +152,7 @@ Agent Prompt Tuning User Acceptance Tests
      Expected: The auto-opened chat shows:
      ``[Jarvis Message Service] You have 2 new message(s) in your inbox.``
      followed by:
-     ``Read them with the jarvis_readMessage tool (destination: "TestSession") until remaining = 0.``
+     ``Read them with the enthali.jarvis-core/readMessage tool (destination: "TestSession") until remaining = 0.``
 
    **T-8 — Default notification via auto-delivery poll**
      Setup: Same environment. Add ``TestSession`` to auto-delivery (right-click

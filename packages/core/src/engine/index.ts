@@ -10,7 +10,7 @@ export type {
     JarvisCoreApi,
     HeartbeatJob,
     HeartbeatStep,
-} from './types';
+} from './core/types';
 
 export type {
     TreeNode,
@@ -18,4 +18,4 @@ export type {
     FolderNode,
     EntityEntry,
     KindDrivenScanner,
-} from './yamlScanner';
+} from './sessions/yamlScanner';

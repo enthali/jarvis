@@ -4,8 +4,8 @@
 import * as vscode from 'vscode';
 import type { EntityKindConfig, JarvisCoreApi, ToolDescriptor, ToolHandler, TreeItemDecorator } from './types';
 import type { HeartbeatJob } from './types';
-import type { HeartbeatScheduler } from '../apps/session/heartbeat';
-import { KindDrivenScanner } from './yamlScanner';
+import type { HeartbeatScheduler } from '../../apps/session/heartbeat';
+import { KindDrivenScanner } from '../sessions/yamlScanner';
 import { GenericTreeFactory } from './treeFactory';
 
 /**
@@ -102,6 +102,12 @@ export class JarvisEngine implements JarvisCoreApi {
 
     async rescan(): Promise<void> {
         await this._scanner.rescan();
+    }
+
+    // --- Session listing API (SPEC_ENG_SESSIONLIST, SPEC_MSG_JARVISSESSIONS) ---
+
+    listJarvisSessions(): { name: string; summary: string; agent: string; kind: string; folder: string }[] {
+        return this._scanner.listJarvisSessions();
     }
 
     // --- Heartbeat job API (SPEC_ENG_HEARTBEAT_JOBAPI) ---

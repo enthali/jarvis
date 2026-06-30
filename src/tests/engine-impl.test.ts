@@ -10,10 +10,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import * as path from 'path';
 import * as fs from 'fs';
-import { KindDrivenScanner } from '../../packages/core/src/engine/yamlScanner';
-import { GenericTreeFactory } from '../../packages/core/src/engine/treeFactory';
-import type { EntityKindConfig } from '../../packages/core/src/engine/types';
-import { JarvisEngine } from '../../packages/core/src/engine/coreApi';
+import { KindDrivenScanner } from '../../packages/core/src/engine/sessions/yamlScanner';
+import { GenericTreeFactory } from '../../packages/core/src/engine/core/treeFactory';
+import type { EntityKindConfig } from '../../packages/core/src/engine/core/types';
+import { JarvisEngine } from '../../packages/core/src/engine/core/coreApi';
 
 // ---------------------------------------------------------------------------
 // Kind-Driven Scanner tests (SPEC_ENG_SCANNER)

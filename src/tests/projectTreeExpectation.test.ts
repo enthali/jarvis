@@ -11,9 +11,9 @@
  *   label, collapsibleState, contextValue, command, description, iconPath
  */
 import { describe, it, expect } from 'vitest';
-import type { TreeNode, EntityEntry } from '../../packages/core/src/engine/yamlScanner';
-import type { KindDrivenScanner } from '../../packages/core/src/engine/yamlScanner';
-import { GenericTreeFactory, type ProviderNode } from '../../packages/core/src/engine/treeFactory';
+import type { TreeNode, EntityEntry } from '../../packages/core/src/engine/sessions/yamlScanner';
+import type { KindDrivenScanner } from '../../packages/core/src/engine/sessions/yamlScanner';
+import { GenericTreeFactory, type ProviderNode } from '../../packages/core/src/engine/core/treeFactory';
 import { buildProjectKindConfig } from '../../packages/pim/src/projectKind';
 import { TaskBadgeDecorator } from '../../packages/pim/src/taskBadgeDecorator';
 import { TaskService } from '../../packages/pim/src/TaskService';

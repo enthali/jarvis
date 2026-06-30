@@ -210,6 +210,29 @@ Message Queue Requirements
    * AC-4: If no named sessions exist, the tool SHALL return an empty list
 
 
+.. req:: List Jarvis Sessions LM Tool
+   :id: REQ_MSG_JARVISSESSIONS
+   :status: draft
+   :priority: optional
+   :links: US_MSG_JARVISSESSIONS; REQ_ENG_SESSIONLIST
+
+   **Description:**
+   The extension SHALL register a Language Model / MCP Tool that returns all
+   Jarvis sessions across every registered kind, wrapping the platform API method
+   ``JarvisCoreApi.listJarvisSessions()`` (REQ_ENG_SESSIONLIST).
+
+   **Acceptance Criteria:**
+
+   * AC-1: A tool named ``jarvis_listJarvisSessions`` SHALL be registered via the
+     engine's ``registerTool`` so it is available both as an LM Tool
+     (``canBeReferencedInPrompt: true``) and as an MCP Tool (dual registration).
+   * AC-2: The tool SHALL return the result of
+     ``JarvisCoreApi.listJarvisSessions()`` — one entry per scanned entity across
+     all registered kinds, each with ``{name, summary, agent, kind, folder}``.
+   * AC-3: The tool SHALL require no input parameters.
+   * AC-4: If the scanner holds no entities, the tool SHALL return an empty list.
+
+
 .. req:: Read Message LM Tool
    :id: REQ_MSG_READ
    :status: implemented
@@ -664,7 +687,7 @@ Message Queue Requirements
    .. code-block:: text
 
       [Jarvis Message Service] You have ${count} new message(s) in your inbox.
-      Read them with the jarvis_readMessage tool (destination: "${destination}") until remaining = 0.
+      Read them with the enthali.jarvis-core/readMessage tool (destination: "${destination}") until remaining = 0.
 
    **Acceptance Criteria:**
 

@@ -26,7 +26,7 @@ import * as yaml from 'js-yaml';
 
 describe('Characterization: YamlScanner tree structure', () => {
     it('scanner exports TreeNode types (FolderNode and LeafNode)', async () => {
-        const scannerModule = await import('../../packages/core/src/engine/yamlScanner');
+        const scannerModule = await import('../../packages/core/src/engine/sessions/yamlScanner');
         expect(scannerModule.YamlScanner).toBeDefined();
         const scanner = new scannerModule.YamlScanner(() => {});
         expect(typeof scanner.getProjectTree).toBe('function');
@@ -36,7 +36,7 @@ describe('Characterization: YamlScanner tree structure', () => {
     });
 
     it('scanner produces empty trees before start()', async () => {
-        const { YamlScanner } = await import('../../packages/core/src/engine/yamlScanner');
+        const { YamlScanner } = await import('../../packages/core/src/engine/sessions/yamlScanner');
         const scanner = new YamlScanner(() => {});
         expect(scanner.getProjectTree()).toEqual([]);
         expect(scanner.getEventTree()).toEqual([]);
@@ -44,7 +44,7 @@ describe('Characterization: YamlScanner tree structure', () => {
     });
 
     it('scanner discovers YAML entities in test folders after rescan()', async () => {
-        const { YamlScanner } = await import('../../packages/core/src/engine/yamlScanner');
+        const { YamlScanner } = await import('../../packages/core/src/engine/sessions/yamlScanner');
         const scanner = new YamlScanner(() => {});
 
         const testdataDir = path.resolve(__dirname, '..', '..', 'testdata');
@@ -64,7 +64,7 @@ describe('Characterization: YamlScanner tree structure', () => {
     });
 
     it('entities have expected shape (name, kind, folder)', async () => {
-        const { YamlScanner } = await import('../../packages/core/src/engine/yamlScanner');
+        const { YamlScanner } = await import('../../packages/core/src/engine/sessions/yamlScanner');
         const scanner = new YamlScanner(() => {});
 
         const testdataDir = path.resolve(__dirname, '..', '..', 'testdata');
