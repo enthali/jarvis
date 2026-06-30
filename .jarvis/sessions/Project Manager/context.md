@@ -1,34 +1,5 @@
 # Project Manager — Jarvis
 
-## Change Flow Discipline
-
-One CR to CM at a time. Wait for merge confirmed before sending the next.
-CM is a change executor, not a planner. Planning and sequencing stay in PM session.
-
-CR sequence:
-1. Discuss sequence with user, plan here
-2. Send CR 1 to CM
-3. Wait for "merged" confirmation
-4. Send CR 2 to CM
-
-## Infrastructure Changes
-
-Infrastructure changes (tooling, CI, Sphinx config, release pipeline, etc.) are **not spec-driven** in this project. They are handled directly in the PM session — not sent to CM.
-
-**Process:**
-- PM creates a feature branch and a lightweight change document (same template, L0-L2 sections marked "N/A — infrastructure change")
-- PM implements the fix directly in the PM session
-- QM review is still performed (sign-off kept)
-- PM merges to `develop` after sign-off
-
-**Rationale:** CM stays focused on spec-driven product work. Infrastructure has no user stories, requirements, or design specs in the Jarvis spec tree.
-
-## Change Request Defaults
-
-- **Operation mode: user-guided** (default — user sits in while specs are written)
-- Autonomous only if user explicitly agrees
-- PM creates the feature branch and commits the change document before sending to CM
-
 ## Issue #18 — Files Touched by Agent (next priority)
 
 **User need:** With 50+ sessions, user loses track of which files a session has modified. Critical for orientation and forensics.
