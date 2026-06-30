@@ -18,20 +18,21 @@
    1. **Ensure the hook directory exists.** Create ``.github/hooks/`` if not present.
       VS Code scans this directory by default â€” no workspace-settings change needed.
    2. **Write the hook config** ``.github/hooks/jarvis-hooks.json`` registering all
-      eight lifecycle events, each pointing to the bridge (SPEC_HOOK_BRIDGE):
+      eight lifecycle events, each pointing to the bridge (SPEC_HOOK_BRIDGE) with
+      the ``--event <name>`` parameter:
 
       .. code-block:: json
 
          {
            "hooks": {
-             "SessionStart":     [{ "type": "command", "command": "node .github/hooks/bridge.mjs", "timeout": 10 }],
-             "UserPromptSubmit": [{ "type": "command", "command": "node .github/hooks/bridge.mjs", "timeout": 10 }],
-             "PreToolUse":       [{ "type": "command", "command": "node .github/hooks/bridge.mjs", "timeout": 10 }],
-             "PostToolUse":      [{ "type": "command", "command": "node .github/hooks/bridge.mjs", "timeout": 10 }],
-             "PreCompact":       [{ "type": "command", "command": "node .github/hooks/bridge.mjs", "timeout": 10 }],
-             "SubagentStart":    [{ "type": "command", "command": "node .github/hooks/bridge.mjs", "timeout": 10 }],
-             "SubagentStop":     [{ "type": "command", "command": "node .github/hooks/bridge.mjs", "timeout": 10 }],
-             "Stop":             [{ "type": "command", "command": "node .github/hooks/bridge.mjs", "timeout": 10 }]
+             "SessionStart":     [{ "type": "command", "command": "node .github/hooks/bridge.mjs --event SessionStart", "timeout": 10 }],
+             "UserPromptSubmit": [{ "type": "command", "command": "node .github/hooks/bridge.mjs --event UserPromptSubmit", "timeout": 10 }],
+             "PreToolUse":       [{ "type": "command", "command": "node .github/hooks/bridge.mjs --event PreToolUse", "timeout": 10 }],
+             "PostToolUse":      [{ "type": "command", "command": "node .github/hooks/bridge.mjs --event PostToolUse", "timeout": 10 }],
+             "PreCompact":       [{ "type": "command", "command": "node .github/hooks/bridge.mjs --event PreCompact", "timeout": 10 }],
+             "SubagentStart":    [{ "type": "command", "command": "node .github/hooks/bridge.mjs --event SubagentStart", "timeout": 10 }],
+             "SubagentStop":     [{ "type": "command", "command": "node .github/hooks/bridge.mjs --event SubagentStop", "timeout": 10 }],
+             "Stop":             [{ "type": "command", "command": "node .github/hooks/bridge.mjs --event Stop", "timeout": 10 }]
            }
          }
 
@@ -66,10 +67,10 @@
      ``chat.tools.edits.autoApprove`` excluding ``.github/hooks/``). This is one of
      several hook-related risks (cf. approval-bypass) and is documented, not solved,
      in this MVP.
-   * **Teardown (deferred).** The MVP does not remove the ``.github/hooks/`` config
-     on disable/uninstall. A stale config is harmless â€” the bridge swallows transport
-     errors and returns ``continue:true`` â€” so cleanup is a known follow-up, not an
-     MVP requirement.
+   * **Teardown.** Controlled via the ``jarvis.hooks.autoInstall`` workspace setting
+     (SPEC_HOOK_AUTOINST). When set to ``false``, Jarvis removes all managed hook
+     files and stops the intake listener. The ``.github/hooks/`` directory itself is
+     never removed — other tools or user-managed hooks may reside there.
 
    **Acceptance Criteria:**
 
@@ -99,11 +100,19 @@
    .. code-block:: javascript
 
       #!/usr/bin/env node
-      // .jarvis/hooks/bridge.mjs â€” forwards a VS Code agent hook event to jarvis-core.
+      // .github/hooks/bridge.mjs — forwards a VS Code agent hook event to jarvis-core.
       import http from 'node:http';
       import { readFileSync } from 'node:fs';
       import { fileURLToPath } from 'node:url';
       import { dirname, join } from 'node:path';
+
+      // Parse --event argument
+      const args = process.argv.slice(2);
+      let eventName = 'Unknown';
+      const eventIdx = args.indexOf('--event');
+      if (eventIdx !== -1 && eventIdx + 1 < args.length) {
+        eventName = args[eventIdx + 1];
+      }
 
       // The intake listener's ephemeral port is published next to this script.
       const here = dirname(fileURLToPath(import.meta.url));
@@ -129,7 +138,7 @@
             headers: { 'content-type': 'application/json', 'content-length': Buffer.byteLength(raw) } },
           (res) => { res.resume(); res.on('end', resolve); }
         );
-        req.on('error', resolve);   // transport error â†’ still continue
+        req.on('error', resolve);   // transport error → still continue
         req.write(raw);
         req.end();
       });
@@ -146,8 +155,10 @@
      ``http://127.0.0.1:<port>/hooks``.
    * AC-3: The bridge **always** writes ``{"continue": true}`` to stdout and exits 0,
      including when the port file is missing or the POST fails (errors are
-     swallowed) â€” it never blocks or influences the agent.
+     swallowed) — it never blocks or influences the agent.
    * AC-4: The bridge has no dependency beyond Node's standard library.
+   * AC-5: The bridge parses ``--event <name>`` from the command line and includes
+     it in the POST payload as ``hook_event_name``.
 
 
 .. spec:: Hook Intake HTTP Listener
@@ -197,12 +208,33 @@
 
           /** Intake point â€” called by the HTTP listener for each received event. */
           receive(event: HookEvent): void {
-              this._sink(event);     // MVP: the only sink is the logger (SPEC_HOOK_LOG)
+              // Dispatch to registered handlers for this event type
+              this._dispatch(event);
+              // MVP: also log via the logging sink (SPEC_HOOK_LOG)
+              this._sink(event);
+          }
+
+          /** Register a handler for a specific hook event name. */
+          on(eventName: string, handler: (event: HookEvent) => void): void {
+              // Registry implementation
+          }
+
+          /** Dispatch event to registered handlers. */
+          private _dispatch(event: HookEvent): void {
+              // Call all handlers registered for event.eventName
           }
 
           // A future event bus is inserted here: receive() fans out to subscribers
-          // instead of calling a single sink â€” without changing the intake contract.
+          // instead of calling a single sink — without changing the intake contract.
       }
+
+   **HTTP Listener payload parsing:**
+
+   The HTTP listener extracts ``hook_event_name`` from the incoming JSON payload
+   (added by the bridge, SPEC_HOOK_BRIDGE) and uses it as the ``eventName`` field
+   in the ``HookEvent`` passed to ``HookEngine.receive()``. If ``hook_event_name``
+   is absent, it falls back to ``eventName`` or ``event`` from the payload, or
+   ``'Unknown'``.
 
    **Design notes:**
 
@@ -356,3 +388,66 @@
      produces no errors.
    * AC-7: The setting is workspace-scoped — different workspaces can have different
      values.
+
+
+.. spec:: Hook Event Routing Registry
+   :id: SPEC_HOOK_ROUTE
+   :status: implemented
+   :links: REQ_HOOK_ROUTE; SPEC_HOOK_INTAKE
+
+   **Description:**
+   The Hook Engine provides an internal ``on(eventName, handler)`` registry that
+   allows typed handlers to subscribe to specific hook event names. When
+   ``HookEngine.receive(event)`` is called, the engine dispatches the event to all
+   handlers registered for ``event.eventName``. This fulfills the "bus-ready"
+   promise of SPEC_HOOK_INTAKE AC-4 and REQ_HOOK_INTAKE AC-4.
+
+   **Registry API:**
+
+   .. code-block:: typescript
+
+      export class HookEngine {
+          // ... existing constructor and receive()
+
+          /** Register a handler for a specific hook event name. */
+          on(eventName: string, handler: (event: HookEvent) => void): void;
+
+          /** Remove a previously registered handler. */
+          off(eventName: string, handler: (event: HookEvent) => void): void;
+
+          /** Dispatch event to all handlers registered for event.eventName. */
+          private _dispatch(event: HookEvent): void;
+      }
+
+   **Handler signature:**
+
+   .. code-block:: typescript
+
+      type HookHandler = (event: HookEvent) => void;
+
+   **Dispatch semantics:**
+
+   * Handlers are called synchronously in registration order.
+   * Exceptions in handlers are caught and logged (they do not stop other handlers).
+   * The logging sink (SPEC_HOOK_LOG) is always invoked after dispatch, regardless
+     of whether any handlers are registered.
+   * No return value is expected from handlers in the MVP (observe-only).
+
+   **Design notes:**
+
+   * The registry is intentionally simple — a ``Map<string, HookHandler[]>`` —
+     sufficient for the observe-only MVP. Future layers may add priority, async
+     support, or decision-merging for blocking subscribers.
+   * The ``on()``/``off()`` API is the stable extension point. Consumers (memory
+     housekeeping, agent steering, entity flows) will register handlers via this
+     API without modifying the intake path.
+   * The registry lives in ``jarvis-core`` and is independent of MCP, sessions,
+     or any other feature.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``HookEngine`` exposes ``on(eventName, handler)`` and ``off(eventName, handler)`` methods.
+   * AC-2: ``receive(event)`` calls all handlers registered for ``event.eventName`` in registration order.
+   * AC-3: Exceptions in handlers are caught and logged; they do not prevent other handlers from running.
+   * AC-4: The logging sink (SPEC_HOOK_LOG) is always invoked after dispatch, even when no handlers are registered.
+   * AC-5: The registry is internal to ``jarvis-core`` and does not depend on MCP, sessions, or other features.

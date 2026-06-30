@@ -104,6 +104,12 @@ export class JarvisEngine implements JarvisCoreApi {
         await this._scanner.rescan();
     }
 
+    // --- Session listing API (SPEC_ENG_SESSIONLIST, SPEC_MSG_JARVISSESSIONS) ---
+
+    listJarvisSessions(): { name: string; summary: string; agent: string; kind: string; folder: string }[] {
+        return this._scanner.listJarvisSessions();
+    }
+
     // --- Heartbeat job API (SPEC_ENG_HEARTBEAT_JOBAPI) ---
 
     async registerJob(job: HeartbeatJob): Promise<void> {

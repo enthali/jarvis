@@ -29,6 +29,10 @@ Thumbs.db
 # Workspace (machine-specific)
 Jarvis.code-workspace
 
+# Hook Engine bridge files (workspace-specific, installed at runtime)
+.github/hooks/
+testdata/.github/hooks/
+
 # Vitest compiled artifacts (vitest.config.ts is the source)
 vitest.config.js
 vitest.config.js.map

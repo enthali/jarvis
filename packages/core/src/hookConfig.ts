@@ -21,67 +21,81 @@ const ALL_EVENTS = [
     'Stop',
 ];
 
-const BRIDGE_SOURCE = `// Jarvis Hook Bridge — stdlib only, always continue: true
-// Reads hook event JSON from stdin, POSTs to the port in .jarvis/hooks/port
-// Never blocks the agent — exit 0, {"continue": true} always.
+const BRIDGE_SOURCE = `#!/usr/bin/env node
+// .github/hooks/bridge.mjs — forwards a VS Code agent hook event to jarvis-core.
+// Reads hook event JSON from stdin, receives event name via --event argument,
+// POSTs to the port in .github/hooks/port. Never blocks the agent — exit 0, {"continue": true} always.
 
-import { readFileSync } from 'fs';
-import { resolve } from 'path';
-import http from 'http';
+import http from 'node:http';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join, resolve } from 'node:path';
 
-function main() {
-    const hooksDir = resolve('.github', 'hooks');
-    const portFile = resolve(hooksDir, 'port');
+// Parse --event argument
+const args = process.argv.slice(2);
+let eventName = 'Unknown';
+const eventIdx = args.indexOf('--event');
+if (eventIdx !== -1 && eventIdx + 1 < args.length) {
+    eventName = args[eventIdx + 1];
+}
 
-    let port;
-    try {
-        port = parseInt(readFileSync(portFile, 'utf-8').trim(), 10);
-    } catch {
-        // Port file missing — log and continue
-        console.error('[Jarvis Hook Bridge] Port file not found, continuing');
-        process.stdout.write(JSON.stringify({ continue: true }));
-        return;
-    }
+// The intake listener's ephemeral port is published next to this script.
+const here = dirname(fileURLToPath(import.meta.url));
+let port;
+try { port = parseInt(readFileSync(join(here, 'port'), 'utf8').trim(), 10); }
+catch {
+    // Port file missing — log and continue
+    console.error('[Jarvis Hook Bridge] Port file not found, continuing');
+    process.stdout.write(JSON.stringify({ continue: true }));
+    process.exit(0);
+}
 
-    let input = '';
-    process.stdin.setEncoding('utf-8');
-    process.stdin.on('data', chunk => { input += chunk; });
-    process.stdin.on('end', () => {
-        if (!input.trim()) {
-            process.stdout.write(JSON.stringify({ continue: true }));
-            return;
-        }
-
-        const postData = input;
-        const options = {
-            hostname: '127.0.0.1',
-            port,
-            path: '/hooks',
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Content-Length': Buffer.byteLength(postData),
-            },
-        };
-
-        const req = http.request(options, res => {
-            res.on('data', () => {});
-            res.on('end', () => {
-                process.stdout.write(JSON.stringify({ continue: true }));
-            });
-        });
-
-        req.on('error', () => {
-            // Transport error — swallow, always continue
-            process.stdout.write(JSON.stringify({ continue: true }));
-        });
-
-        req.write(postData);
-        req.end();
+function readStdin() {
+    return new Promise((resolve) => {
+        let data = '';
+        process.stdin.setEncoding('utf8');
+        process.stdin.on('data', (c) => (data += c));
+        process.stdin.on('end', () => resolve(data));
     });
 }
 
-main();
+const raw = await readStdin();
+
+if (!raw.trim()) {
+    process.stdout.write(JSON.stringify({ continue: true }));
+    process.exit(0);
+}
+
+// Include hook_event_name in the POST payload
+const payload = JSON.parse(raw);
+payload.hook_event_name = eventName;
+const postData = JSON.stringify(payload);
+
+const options = {
+    hostname: '127.0.0.1',
+    port,
+    path: '/hooks',
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(postData),
+    },
+};
+
+const req = http.request(options, (res) => {
+    res.on('data', () => {});
+    res.on('end', () => {
+        process.stdout.write(JSON.stringify({ continue: true }));
+    });
+});
+
+req.on('error', () => {
+    // Transport error — swallow, always continue
+    process.stdout.write(JSON.stringify({ continue: true }));
+});
+
+req.write(postData);
+req.end();
 `;
 
 export async function installHookConfig(workspaceRoot: string, log: vscode.LogOutputChannel): Promise<void> {
@@ -99,7 +113,7 @@ export async function installHookConfig(workspaceRoot: string, log: vscode.LogOu
         // 3. Write jarvis-hooks.json (always regenerate to keep in sync with spec)
         const hookEntries: Record<string, unknown> = {};
         for (const event of ALL_EVENTS) {
-            hookEntries[event] = [{ type: 'command', command: `node .github/hooks/${BRIDGE_FILE}`, timeout: 10 }];
+            hookEntries[event] = [{ type: 'command', command: `node .github/hooks/${BRIDGE_FILE} --event ${event}`, timeout: 10 }];
         }
         const hooksConfig = { hooks: hookEntries };
 

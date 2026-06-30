@@ -27,9 +27,12 @@ export class HookIntake {
                     req.on('end', () => {
                         try {
                             const parsed = JSON.parse(body);
+                            // Extract hook_event_name from payload (added by bridge)
+                            const eventName = parsed.hook_event_name ?? parsed.eventName ?? parsed.event ?? 'Unknown';
                             const event: HookEvent = {
-                                event: parsed.eventName ?? parsed.event ?? 'Unknown',
+                                eventName,
                                 timestamp: parsed.timestamp ?? new Date().toISOString(),
+                                sessionId: parsed.sessionId,
                                 payload: parsed.payload ?? parsed,
                             };
                             this.hookEngine.receive(event);

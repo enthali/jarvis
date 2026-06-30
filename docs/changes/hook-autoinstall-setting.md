@@ -22,36 +22,36 @@ Add a `jarvis.hooks.autoInstall` VS Code setting (default: `true`) to control wh
 
 ## Level 0: User Stories
 
-**Status**: ⏳ not started | 🔄 in progress | ✅ completed
+**Status**: ✅ completed
 
 ### Impacted User Stories
 
 | ID | Title | Impact | Notes |
 |----|-------|--------|-------|
-| US_xxx | ... | modified | ... |
+| US_HOOK_OBSERVE | Observe Agent Lifecycle Hooks (MVP) | none | Parent context; no modification needed |
 
 ### New User Stories
 
 | ID | Title | Priority |
 |----|-------|----------|
-| SYSPILOT_US_NEW_1 | As a..., I want..., so that... | mandatory |
+| US_HOOK_CONTROL | Control Hook Auto-Installation | optional |
 
 ### Decisions
 
-- Decision 1: ...
-- Decision 2: ...
+- Decision 1: New US rather than extending US_HOOK_OBSERVE — the existing US is about *observing* hooks (developer persona); the new US is about *controlling* installation (user persona with workspace-management concern).
+- Decision 2: Priority `optional` — mirrors parent US_HOOK_OBSERVE; the hook engine itself is optional, and this is a refinement of it.
 
 ### Horizontal Check (MECE)
 
-- [ ] No contradictions with existing User Stories
-- [ ] No redundancies
-- [ ] Gaps identified and addressed
+- [x] No contradictions with existing User Stories
+- [x] No redundancies — US_HOOK_OBSERVE covers intake/logging; US_HOOK_CONTROL covers install/teardown gating
+- [x] Gaps identified and addressed — the opt-out gap in the MVP (noted in SPEC_HOOK_CONFIG "Teardown (deferred)") is now covered
 
 ---
 
 ## Level 1: Requirements
 
-**Status**: ⏳ not started | 🔄 in progress | ✅ completed
+**Status**: ✅ completed
 
 ### Impacted Requirements
 
@@ -59,34 +59,34 @@ Found via links from User Stories above.
 
 | ID | Linked From | Impact | Notes |
 |----|-------------|--------|-------|
-| REQ_xxx | US_xxx | modified | ... |
+| REQ_HOOK_INTAKE | US_HOOK_OBSERVE | none | Intake contract unchanged; the new setting gates *installation*, not intake logic |
 
 ### New Requirements
 
 | ID | Title | Links | Priority |
 |----|-------|-------|----------|
-| SYSPILOT_REQ_NEW_1 | ... | US_xxx | mandatory |
+| REQ_HOOK_AUTOINST | Hook Auto-Install Setting | US_HOOK_CONTROL | optional |
 
 ### Conflicts Detected
 
-- ⚠️ REQ_xxx vs REQ_yyy: {description}
-  - Resolution: {decision}
+- None. REQ_HOOK_AUTOINST gates the *file management* path; REQ_HOOK_INTAKE defines the *intake contract*. They are orthogonal — when autoInstall=false, no files are written and no listener starts, but the intake contract itself is unchanged (it simply isn't instantiated).
 
 ### Decisions
 
-- Decision 1: ...
+- Decision 1: The setting gates both file management AND the intake listener — when false, no hook events are received or logged. This is intentional: without the bridge files, VS Code has nothing to invoke, so the listener would be idle anyway. Stopping it avoids resource waste.
+- Decision 2: Teardown removes only known Jarvis-managed files, never the `.github/hooks/` directory — other tools (user hooks, CI) may live there.
 
 ### Horizontal Check (MECE)
 
-- [ ] No contradictions with existing Requirements
-- [ ] No redundancies
-- [ ] All new REQs link to User Stories
+- [x] No contradictions with existing Requirements
+- [x] No redundancies — REQ_HOOK_INTAKE covers *what* intake does; REQ_HOOK_AUTOINST covers *whether* intake is activated
+- [x] All new REQs link to User Stories
 
 ---
 
 ## Level 2: Design
 
-**Status**: ⏳ not started | 🔄 in progress | ✅ completed
+**Status**: ✅ completed
 
 ### Impacted Design Elements
 
@@ -94,59 +94,48 @@ Found via links from Requirements above.
 
 | ID | Linked From | Impact | Notes |
 |----|-------------|--------|-------|
-| SPEC_xxx | REQ_xxx | modified | ... |
+| SPEC_HOOK_CONFIG | REQ_HOOK_INTAKE | context only | The new spec references SPEC_HOOK_CONFIG's steps but does not modify it — SPEC_HOOK_CONFIG remains as-is (it defines what happens *when* self-install runs) |
 
 ### New Design Elements
 
 | ID | Title | Links |
 |----|-------|-------|
-| SYSPILOT_SPEC_NEW_1 | ... | REQ_xxx, SYSPILOT_REQ_NEW_1 |
+| SPEC_HOOK_AUTOINST | Hook Auto-Install Setting | REQ_HOOK_AUTOINST; SPEC_HOOK_CONFIG |
 
 ### Conflicts Detected
 
-- ⚠️ SPEC_xxx vs SPEC_yyy: {description}
-  - Resolution: {decision}
+- None. SPEC_HOOK_AUTOINST is a gate *around* SPEC_HOOK_CONFIG, not a modification of it. SPEC_HOOK_CONFIG's "Teardown (deferred)" note explicitly anticipated this feature.
 
 ### Decisions
 
-- Decision 1: ...
+- Decision 1: Separate SPEC element rather than modifying SPEC_HOOK_CONFIG — the existing spec is `implemented` and describes *what* self-install does; the new spec describes *whether* it runs and the teardown reverse path.
+- Decision 2: Runtime config-change listener included — allows toggling without restart (better UX, avoids stale state).
+- Decision 3: `scope: "resource"` (workspace-scoped) — each workspace can independently opt in/out, matching the per-workspace nature of `.github/hooks/`.
 
 ### Horizontal Check (MECE)
 
-- [ ] No contradictions with existing Designs
-- [ ] All new SPECs link to Requirements
+- [x] No contradictions with existing Designs
+- [x] All new SPECs link to Requirements
 
 ---
 
 ## Final Consistency Check
 
-**Status**: ⏳ not started | ✅ passed | ❌ failed
+**Status**: ✅ passed
 
 ### Traceability Verification
 
 | User Story | Requirements | Design | Complete? |
 |------------|--------------|--------|-----------|
-| US_xxx | REQ_xxx | SPEC_xxx | ✅ |
-| SYSPILOT_US_NEW_1 | SYSPILOT_REQ_NEW_1 | SYSPILOT_SPEC_NEW_1 | ✅ |
+| US_HOOK_CONTROL | REQ_HOOK_AUTOINST | SPEC_HOOK_AUTOINST | ✅ |
 
 ### Artefakt-Removal-Check
 
-*Fill in only when this CR removes an artefact (file, field, configuration key, REQ-ID).*
-
-For each removed artefact, run a project-wide grep on all plausible name variants and classify results:
-
-| Removed Artefact | Class (a): Code/Workflow refs | Class (b): Doc refs | Class (c): Historic Change Docs |
-|------------------|-------------------------------|---------------------|---------------------------------|
-| `{artefact name}` | {files + lines fixed / none} | {files + lines fixed / none} | {count — acceptable historic stranding} |
-
-- [ ] All class (a) active code/workflow references fixed in this CR
-- [ ] All class (b) active documentation references fixed in this CR
-- [ ] Class (c) historical Change Documents accepted as "acceptable historic stranding" and disclosed above
+*Not applicable — this CR adds new artefacts, does not remove any.*
 
 ### Issues Found
 
-- [ ] Issue 1: ...
-- [ ] Issue 2: ...
+- None.
 
 ### Sign-off
 
