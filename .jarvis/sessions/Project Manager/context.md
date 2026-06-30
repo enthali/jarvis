@@ -29,6 +29,32 @@ Infrastructure changes (tooling, CI, Sphinx config, release pipeline, etc.) are 
 - Autonomous only if user explicitly agrees
 - PM creates the feature branch and commits the change document before sending to CM
 
+## Issue #18 — Files Touched by Agent (next priority)
+
+**User need:** With 50+ sessions, user loses track of which files a session has modified. Critical for orientation and forensics.
+
+**VS Code native overlap:** June 27 VS Code update added "See which files have changed when using the Agent Host" (#318891). Before starting #18, assess what VS Code provides natively — may be able to build on top of it instead of building from scratch.
+
+**Status:** Next in queue after v0.14.0 release. Assess native VS Code capability first, then scope CR accordingly.
+
+---
+
+## Known Issue: Custom Agents Disappear (observed 2026-06-30)
+
+**Symptom:** Custom agents (`.github/agents/*.agent.md`) vanish mid-session or after window reload. Jarvis syspilot agents (CM, QM, Dev Engineer, PM) affected. Not limited to Jarvis — observed in syspilot dev context too.
+
+**Trigger:** Not reliably reproducible. Occurs:
+- Sporadically mid-session (possibly triggered by an extension update in the background)
+- Occasionally after window reload (not always)
+
+**Workaround:** Closing and reopening windows does not always help. No reliable fix found yet.
+
+**Status:** Data collection phase — needs more observations before a fix/CR can be scoped.
+
+**Next step:** Log occurrences with context (what was happening, any extension updates, VS Code version) to identify pattern.
+
+---
+
 ## Current State (2026-06-27)
 
 **Released: v0.13.2** — all four extensions on VS Code Marketplace (enthali.jarvis-core, jarvis-pim, jarvis-recorder, jarvis-mcp), icons present, selective updater working, release agent patched with early Sphinx validation.
