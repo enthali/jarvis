@@ -18,9 +18,9 @@ import { deleteMessage, appendMessage, popMessage, readAutoDelivery, addAutoDeli
 import { addReminder, readReminders, removeReminder, popDueReminders, setRemindersLogger } from './apps/session/reminders';
 import { lookupSessionUUID, getAllSessions, initSessionLookup, setSessionLookupLogger, filterNamedSessions, getValidDestinations } from './engine/sessionLookup';
 import { checkForUpdates } from './engine/updateCheck';
-import { HookEngine } from './hookEngine';
-import { HookIntake } from './hookIntake';
-import { installHookConfig, uninstallHookConfig, getHooksDir } from './hookConfig';
+import { HookEngine } from './engine/hooks/hookEngine';
+import { HookIntake } from './engine/hooks/hookIntake';
+import { installHookConfig, uninstallHookConfig, getHooksDir } from './engine/hooks/hookConfig';
 
 import { CronExpressionParser } from 'cron-parser';
 
