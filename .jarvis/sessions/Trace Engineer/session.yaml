@@ -1,0 +1,9 @@
+name: "Trace Engineer"
+agent: "syspilot.trace"
+summary: >-
+  Traces one specification element vertically through all levels (US → REQ →
+  SPEC) and checks traceability completeness. Aligned with
+  .github/agents/syspilot.trace.agent.md.
+externalStatus: 'active'
+internalStatus: 'created 2026-06-30'
+lastUpdated: '2026-06-30'

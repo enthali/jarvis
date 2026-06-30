@@ -1,0 +1,9 @@
+name: "Verify Engineer"
+agent: "syspilot.verify"
+summary: >-
+  Final checkpoint before a change is closed. Verifies implementation matches
+  the Change Document and traceability is complete. Aligned with
+  .github/agents/syspilot.verify.agent.md.
+externalStatus: 'active'
+internalStatus: 'created 2026-06-30'
+lastUpdated: '2026-06-30'

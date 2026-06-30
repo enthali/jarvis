@@ -1,0 +1,9 @@
+name: "Release Engineer"
+agent: "syspilot.release"
+summary: >-
+  Guides the release process: squash merge, version bump, validation, release
+  notes, change doc archival, git tagging. Aligned with
+  .github/agents/syspilot.release.agent.md.
+externalStatus: 'active'
+internalStatus: 'created 2026-06-30'
+lastUpdated: '2026-06-30'
