@@ -10,10 +10,10 @@
  * - Decorator extension point still applies after hook changes
  */
 import { describe, it, expect } from 'vitest';
-import type { TreeNode, EntityEntry } from '../../packages/core/src/engine/yamlScanner';
-import type { KindDrivenScanner } from '../../packages/core/src/engine/yamlScanner';
-import { GenericTreeFactory, type TreeItemDecorator, type ProviderNode } from '../../packages/core/src/engine/treeFactory';
-import type { EntityKindConfig, SubtreeNode } from '../../packages/core/src/engine/types';
+import type { TreeNode, EntityEntry } from '../../packages/core/src/engine/sessions/yamlScanner';
+import type { KindDrivenScanner } from '../../packages/core/src/engine/sessions/yamlScanner';
+import { GenericTreeFactory, type TreeItemDecorator, type ProviderNode } from '../../packages/core/src/engine/core/treeFactory';
+import type { EntityKindConfig, SubtreeNode } from '../../packages/core/src/engine/core/types';
 import { TreeItemCollapsibleState, ThemeIcon } from './__mocks__/vscode';
 
 // --- Test data -----------------------------------------------------------------

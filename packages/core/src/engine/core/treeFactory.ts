@@ -4,7 +4,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import type { EntityKindConfig, SubtreeNode, TreeItemDecorator } from './types';
-import type { TreeNode, KindDrivenScanner } from './yamlScanner';
+import type { TreeNode, KindDrivenScanner } from '../sessions/yamlScanner';
 
 export type { TreeItemDecorator } from './types';
 

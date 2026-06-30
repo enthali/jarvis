@@ -239,7 +239,7 @@ export class YamlScanner {
 // Kind-driven scanner (SPEC_ENG_SCANNER)
 // ---------------------------------------------------------------------------
 
-import type { EntityKindConfig } from './types';
+import type { EntityKindConfig } from '../core/types';
 
 export interface KindScanConfig {
     kind: string;

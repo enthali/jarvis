@@ -13,12 +13,12 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as cp from 'child_process';
 import * as path from 'path';
-import * as configPaths from '../../engine/configPaths';
+import * as configPaths from '../../engine/core/configPaths';
 import * as yaml from 'js-yaml';
-import { appendMessage } from '../../engine/messageQueue';
+import { appendMessage } from '../../engine/sessions/messageQueue';
 import { MessageTreeProvider } from './messageTreeProvider';
 import { HeartbeatTreeProvider, JobNode } from './heartbeatTreeProvider';
-import { getAllSessions, filterNamedSessions, getValidDestinations } from '../../engine/sessionLookup';
+import { getAllSessions, filterNamedSessions, getValidDestinations } from '../../engine/sessions/sessionLookup';
 
 // ---------------------------------------------------------------------------
 // Types (SPEC_AUT_JOBSCHEMA)

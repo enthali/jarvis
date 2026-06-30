@@ -16,8 +16,8 @@ describe('T-51: shared resolver code identity', () => {
         // so we verify via static analysis: read the compiled output and confirm export.
         const fs = await import('fs');
         const path = await import('path');
-        const outDir = path.resolve(__dirname, '..', '..', 'out');
-        const sessionLookupJs = path.join(outDir, 'engine', 'sessionLookup.js');
+        const outDir = path.resolve(__dirname, '..', '..', 'packages', 'core', 'out');
+        const sessionLookupJs = path.join(outDir, 'engine', 'sessions', 'sessionLookup.js');
 
         // The compiled JS must exist and export getValidDestinations
         const content = fs.readFileSync(sessionLookupJs, 'utf-8');
@@ -33,8 +33,8 @@ describe('T-51: shared resolver code identity', () => {
         const heartbeatSrc = fs.readFileSync(path.join(coreSrcDir, 'apps', 'session', 'heartbeat.ts'), 'utf-8');
 
         // Both must import getValidDestinations from the same module
-        expect(extensionSrc).toMatch(/import\s*\{[^}]*getValidDestinations[^}]*\}\s*from\s*['"]\.\/engine\/sessionLookup['"]/);
-        expect(heartbeatSrc).toMatch(/import\s*\{[^}]*getValidDestinations[^}]*\}\s*from\s*['"]\.\.\/\.\.\/engine\/sessionLookup['"]/);
+        expect(extensionSrc).toMatch(/import\s*\{[^}]*getValidDestinations[^}]*\}\s*from\s*['"]\.\/engine\/sessions\/sessionLookup['"]/);
+        expect(heartbeatSrc).toMatch(/import\s*\{[^}]*getValidDestinations[^}]*\}\s*from\s*['"]\.\.\/\.\.\/engine\/sessions\/sessionLookup['"]/);
     });
 });
 

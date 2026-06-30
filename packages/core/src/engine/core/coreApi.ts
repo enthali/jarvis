@@ -4,8 +4,8 @@
 import * as vscode from 'vscode';
 import type { EntityKindConfig, JarvisCoreApi, ToolDescriptor, ToolHandler, TreeItemDecorator } from './types';
 import type { HeartbeatJob } from './types';
-import type { HeartbeatScheduler } from '../apps/session/heartbeat';
-import { KindDrivenScanner } from './yamlScanner';
+import type { HeartbeatScheduler } from '../../apps/session/heartbeat';
+import { KindDrivenScanner } from '../sessions/yamlScanner';
 import { GenericTreeFactory } from './treeFactory';
 
 /**

@@ -5,9 +5,9 @@
  * Uses a stubbed HeartbeatScheduler to avoid file I/O.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { KindDrivenScanner } from '../../packages/core/src/engine/yamlScanner';
-import { GenericTreeFactory } from '../../packages/core/src/engine/treeFactory';
-import { JarvisEngine } from '../../packages/core/src/engine/coreApi';
+import { KindDrivenScanner } from '../../packages/core/src/engine/sessions/yamlScanner';
+import { GenericTreeFactory } from '../../packages/core/src/engine/core/treeFactory';
+import { JarvisEngine } from '../../packages/core/src/engine/core/coreApi';
 import type { HeartbeatJob } from '../../packages/core/src/apps/session/heartbeat';
 
 // Minimal scheduler stub that mirrors HeartbeatScheduler's public interface
