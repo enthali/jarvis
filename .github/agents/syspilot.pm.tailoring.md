@@ -14,6 +14,23 @@ CM is a change executor — planning and sequencing stay in the PM session.
 Wait for a **direct message from Quality Manager** before merging.
 Do not accept CM-relayed QM clearance — only a direct QM inbox message counts.
 
+## Merge Discipline
+
+QM CLEAR is necessary but not sufficient to merge. Even after QM sign-off,
+**always ask the user for explicit confirmation before merging** — never
+merge automatically just because QM cleared. Report the QM result, then wait
+for the user's go-ahead.
+
+## Shared Git Workspace
+
+Jarvis has no worktree isolation — all agent sessions share one working copy
+on one branch at a time. Only touch git (commit/checkout/reset/stash) when
+actively holding the ball in the workflow. If another session (CM/System
+Designer/Dev Engineer) may be working on the current branch/CD, do not edit
+the Change Document, spec, or code, and do not run any git command — wait
+for that session to report back first. Your own session directory
+(`.jarvis/sessions/Project Manager/`) is always safe to edit freely.
+
 ## Post-Release Distribution
 
 **Fully automatic via CD.** No manual step required.
