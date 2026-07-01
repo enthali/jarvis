@@ -1,88 +1,10 @@
 Sessions Design Specifications
 ================================
 
-.. spec:: sessions-feature: YamlScanner Extension for Sessions
-   :id: SPEC_SES_SCANNER
-   :status: implemented
-   :links: REQ_SES_SCHEMA; REQ_SES_TREE; REQ_SES_TOGGLE
-
-   **Description:**
-   Extend ``src/yamlScanner.ts`` to recognise ``session.yaml`` as a third leaf
-   marker and emit session entities from each configured sessions folder.
-
-   **Interface changes** (``yamlScanner.ts``):
-
-   Add ``summary`` to ``EntityEntry`` and add ``kind`` to ``LeafNode`` so tree
-   providers and tools can distinguish entity types without separate getter
-   methods:
-
-   .. code-block:: typescript
-
-      export interface EntityEntry {
-          name: string;
-          summary?: string;           // NEW — populated from session.yaml
-          agent?: string;             // NEW — optional chat-mode binding for sessions
-          kind?: 'project' | 'event' | 'session';  // NEW
-          datesStart?: string;
-          datesEnd?: string;
-      }
-
-   **New state and API** (``YamlScanner`` class):
-
-   Add a ``_sessionTree`` array and matching getter alongside the existing
-   ``_projectTree`` / ``_eventTree`` pair:
-
-   .. code-block:: typescript
-
-      private _sessionTree: TreeNode[] = [];
-      private _sessionsFolder = '';   // single folder (fixed path)
-
-      getSessionTree(): TreeNode[] {
-          return this._sessionTree;
-      }
-
-   Update ``start()`` / ``rescan()`` to accept a single
-   ``sessionsFolder?: string`` parameter (no array — path is fixed):
-
-   .. code-block:: typescript
-
-      start(projectsFolder: string, eventsFolder: string, sessionsFolder?: string): void
-
-      // In _scan():
-      const newSessionTree = await this._buildTree(
-          sessionsFolder ?? '', newEntities, 'session.yaml', 'session'
-      );
-
-   **YAML reading** — in ``_buildTree`` when ``conventionFile === 'session.yaml'``,
-   read the ``summary`` field and store it in the entity entry:
-
-   .. code-block:: typescript
-
-      // After reading doc['name']:
-      entities.set(conventionPath, {
-          name: doc['name'],
-          kind: 'session',
-          summary: typeof doc['summary'] === 'string' ? doc['summary'] : '',
-      });
-
-   **Change-detection** — extend ``_scan()`` to compare the new session tree
-   against ``_sessionTree`` (same ``_treesEqual`` helper already exists).
-
-   **Touchpoints in ``yamlScanner.ts``:**
-
-   * Line ~10: ``EntityEntry`` interface — add ``summary`` and ``kind`` fields.
-   * Line ~69–70: ``_scan()`` private method — add session-tree build loop.
-   * Line ~152: ``isEvent`` constant — no change; ``isSession`` follows the
-     same pattern for the optional ``summary`` read.
-   * ``start()`` signature — add optional ``sessionsFolder?: string`` parameter
-     (single fixed path).
-   * Add ``getSessionTree()`` getter after ``getEventTree()``.
-
-
 .. spec:: sessions-feature: SessionTreeProvider Module
-   :id: SPEC_SES_TREE
+   :id: SPEC_ACT_TREE
    :status: implemented
-   :links: REQ_SES_TREE; REQ_SES_OPENCONTEXT; SPEC_EXP_ENTITY_FILE_CHILDREN
+   :links: REQ_ACT_TREE; REQ_ACT_OPENCONTEXT; SPEC_ENT_ENTITY_FILE_CHILDREN
 
    **Description:**
    New module ``src/sessionTreeProvider.ts`` — a slimmed clone of
@@ -94,22 +16,22 @@ Sessions Design Specifications
    .. note::
 
       The ``item.command`` binding shown below is superseded by
-      ``SPEC_SES_TREECLICK`` for ``jarvisSession`` items: the primary action is
+      ``SPEC_ACT_TREECLICK`` for ``jarvisSession`` items: the primary action is
       now ``jarvis.openAgentSession`` (open the agent chat), and ``context.md``
-      access moves to an inline-icon menu entry. See ``SPEC_SES_TREECLICK`` for
+      access moves to an inline-icon menu entry. See ``SPEC_ACT_TREECLICK`` for
       the current assignment.
 
    .. note::
 
       The ``vscode.TreeItemCollapsibleState.None`` shown below is superseded
-      by ``SPEC_EXP_ENTITY_FILE_CHILDREN``: session leaf nodes become
+      by ``SPEC_ENT_ENTITY_FILE_CHILDREN``: session leaf nodes become
       expandable (``Collapsed``) to show file children. See
-      ``SPEC_EXP_ENTITY_FILE_CHILDREN`` for the current assignment.
+      ``SPEC_ENT_ENTITY_FILE_CHILDREN`` for the current assignment.
 
    .. code-block:: typescript
 
-      // Implementation: SPEC_SES_TREE
-      // Requirements: REQ_SES_TREE
+      // Implementation: SPEC_ACT_TREE
+      // Requirements: REQ_ACT_TREE
 
       import * as path from 'path';
       import * as vscode from 'vscode';
@@ -178,15 +100,15 @@ Sessions Design Specifications
      command is needed.
    * ``SessionTreeProvider`` is registered in ``extension.ts`` inside the
      ``if (sessions.enabled)`` block, same pattern as Projects/Events.
-   * **Design rationale (REQ_SES_OPENCONTEXT):** No change to
+   * **Design rationale (REQ_ACT_OPENCONTEXT):** No change to
      ``jarvis.openContext`` was needed because both project and session tree
      nodes pass ``{ folder: <dir> }`` as the command argument.
 
 
 .. spec:: sessions-feature: newEntity Command — Session Branch
-   :id: SPEC_SES_NEWENTITY
+   :id: SPEC_ACT_NEWENTITY
    :status: draft
-   :links: REQ_SES_NEWENTITY
+   :links: REQ_ACT_NEWENTITY
 
    **Description:**
    Two commands implement session creation. ``jarvis.newSession`` is the actual
@@ -228,7 +150,7 @@ Sessions Design Specifications
    9. Call ``scanner.rescan()`` so the new session appears in the tree
       immediately (no window reload required).
    10. Open the chat editor using the consolidated chat-open primitive
-       (per ``SPEC_EXP_AGENT_PICKER`` Chat-Open Primitive). Cancel path is
+       (per ``SPEC_ENT_AGENT_PICKER`` Chat-Open Primitive). Cancel path is
        handled by the early-return guard after ``pickAgentMode()``, so this
        code is only reached for ``""`` or a concrete agent::
 
@@ -266,7 +188,7 @@ Sessions Design Specifications
    .. note::
 
       Both ``jarvis.newSession`` and ``jarvis_createSession``
-      (``SPEC_SES_CREATETOOL``) now use the session name verbatim as the folder
+      (``SPEC_ACT_CREATETOOL``) now use the session name verbatim as the folder
       name — no slug transformation.  The previously-documented asymmetry
       between the two creation paths is resolved by this CR.  The folder name is
       storage only; session identity is the ``name:`` field inside
@@ -274,9 +196,9 @@ Sessions Design Specifications
 
 
 .. spec:: sessions-feature: session.schema.json and yamlValidation Entry
-   :id: SPEC_SES_SCHEMA
+   :id: SPEC_ACT_SCHEMA
    :status: implemented
-   :links: REQ_SES_SCHEMA
+   :links: REQ_ACT_SCHEMA
 
    **Description:**
    New JSON Schema file ``schemas/session.schema.json`` and a corresponding
@@ -321,16 +243,16 @@ Sessions Design Specifications
 
 
 .. spec:: sessions-feature: jarvis_listSessionEntities Tool Registration
-   :id: SPEC_SES_TOOLS
+   :id: SPEC_ACT_TOOLS
    :status: draft
-   :links: REQ_SES_LISTTOOL
+   :links: REQ_ACT_LISTTOOL
 
    **Description:**
    Register ``jarvis_listSessions`` (renamed from ``jarvis_listSessionEntities``)
    via ``registerDualTool()`` in ``src/extension.ts``, inside the
    ``if (cfg.get<boolean>('sessions.enabled', true))`` activation block,
    mirroring the gating pattern of ``jarvis_createSession``
-   (``SPEC_SES_CREATETOOL``).
+   (``SPEC_ACT_CREATETOOL``).
 
    **Gating:**
    The tool is registered only when ``jarvis.sessions.enabled`` is ``true`` at
@@ -386,9 +308,9 @@ Sessions Design Specifications
 
 
 .. spec:: sessions-feature: package.json Manifest Changes
-   :id: SPEC_SES_MANIFEST
+   :id: SPEC_ACT_MANIFEST
    :status: implemented
-   :links: REQ_SES_TOGGLE; REQ_SES_TREE; REQ_SES_NEWENTITY
+   :links: REQ_ACT_TOGGLE; REQ_ACT_TREE; REQ_ACT_NEWENTITY
 
    **Description:**
    All ``package.json`` structural changes required by this CR. No new named
@@ -429,10 +351,10 @@ Sessions Design Specifications
    ``onView:jarvisEvents`` entries.
 
    **4. ``contributes.languageModelTools``** — add the
-   ``jarvis_listSessionEntities`` entry (full detail in ``SPEC_SES_TOOLS``).
+   ``jarvis_listSessionEntities`` entry (full detail in ``SPEC_ACT_TOOLS``).
 
    **5. ``contributes.yamlValidation``** — add the ``session.yaml`` entry
-   (full detail in ``SPEC_SES_SCHEMA``).
+   (full detail in ``SPEC_ACT_SCHEMA``).
 
    **6. ``contributes.commands``** — add ``jarvis.newSession``:
 
@@ -472,9 +394,9 @@ Sessions Design Specifications
 
 
 .. spec:: sessions-feature: Session Tree-Node Context Menu
-   :id: SPEC_SES_CONTEXTMENU
+   :id: SPEC_ACT_CONTEXTMENU
    :status: implemented
-   :links: REQ_SES_CONTEXTMENU
+   :links: REQ_ACT_CONTEXTMENU
 
    **Description:**
    Five ``view/item/context`` ``package.json`` menu entries extend the context
@@ -517,21 +439,21 @@ Sessions Design Specifications
 
    * ``jarvis.openContext`` was already wired for ``jarvisSession`` (previously
      via the leaf node's default command; now via the inline
-     ``view/item/context`` entry — see ``SPEC_SES_TREECLICK``). The explicit
+     ``view/item/context`` entry — see ``SPEC_ACT_TREECLICK``). The explicit
      ``view/item/context`` inline entry makes the inline icon appear like
      Projects/Events.
    * ``jarvis.openAgentSession`` is the new addition that enables one-click agent
      chat opening from a session node, analogous to project and event nodes.
    * The three context-actions entries (``revealInExplorer``, ``revealInOS``,
      ``openInTerminal``) bring Sessions to full parity with the EXP context-actions
-     feature (``SPEC_EXP_CONTEXTACTIONS``).
+     feature (``SPEC_ENT_CONTEXTACTIONS``).
    * File touchpoint: ``package.json`` ``contributes.menus.view/item/context``.
 
 
 .. spec:: jarvis_createSession: LM+MCP Tool Registration
-   :id: SPEC_SES_CREATETOOL
+   :id: SPEC_ACT_CREATETOOL
    :status: implemented
-   :links: REQ_SES_CREATETOOL
+   :links: REQ_ACT_CREATETOOL
 
    **Description:**
    Register ``jarvis_createSession`` via ``registerDualTool()`` in
@@ -702,8 +624,8 @@ Sessions Design Specifications
 
    .. code-block:: typescript
 
-      // Implementation: SPEC_SES_CREATETOOL
-      // Requirements: REQ_SES_CREATETOOL
+      // Implementation: SPEC_ACT_CREATETOOL
+      // Requirements: REQ_ACT_CREATETOOL
       const createSessionTool = registerDualTool(
           'jarvis_createSession',
           async (
@@ -785,9 +707,9 @@ Sessions Design Specifications
 
 
 .. spec:: session-tree-click-behavior: Inverted Click Semantics and Inline Context Icon
-   :id: SPEC_SES_TREECLICK
+   :id: SPEC_ACT_TREECLICK
    :status: implemented
-   :links: REQ_SES_TREECLICK; REQ_SES_TREE; REQ_SES_OPENCONTEXT
+   :links: REQ_ACT_TREECLICK; REQ_ACT_TREE; REQ_ACT_OPENCONTEXT
 
    **Description:**
    Change the default click action on ``jarvisSession`` tree items from
@@ -801,14 +723,14 @@ Sessions Design Specifications
 
    .. code-block:: typescript
 
-      // Before (SPEC_SES_TREE -- implemented):
+      // Before (SPEC_ACT_TREE -- implemented):
       item.command = {
           command: 'jarvis.openContext',
           title: 'Open Context',
           arguments: [element],
       };
 
-      // After (SPEC_SES_TREECLICK):
+      // After (SPEC_ACT_TREECLICK):
       item.command = {
           command: 'jarvis.openAgentSession',
           title: 'Open Agent Session',
@@ -824,8 +746,8 @@ Sessions Design Specifications
 
    .. code-block:: typescript
 
-      // Implementation: SPEC_SES_TREECLICK
-      // Requirements: REQ_SES_TREECLICK
+      // Implementation: SPEC_ACT_TREECLICK
+      // Requirements: REQ_ACT_TREECLICK
       const openSessionContextCommand = vscode.commands.registerCommand(
           'jarvis.openSessionContext',
           async (element: LeafNode) => {
@@ -883,7 +805,7 @@ Sessions Design Specifications
 
    VS Code uses ``shortTitle`` (when present) as the inline-icon tooltip on
    ``view/item/context`` menu entries, falling back to ``title`` when absent.
-   This is what makes ``REQ_SES_TREECLICK`` AC-3 verifiable.
+   This is what makes ``REQ_ACT_TREECLICK`` AC-3 verifiable.
 
    Add to ``contributes.menus.commandPalette`` (hide from palette; icon-only
    action):
@@ -928,7 +850,7 @@ Sessions Design Specifications
 
    **6. Existing context-menu entries --- no change**
 
-   ``SPEC_SES_CONTEXTMENU`` is not touched. The five existing
+   ``SPEC_ACT_CONTEXTMENU`` is not touched. The five existing
    ``view/item/context`` entries (``jarvis.openContext``,
    ``jarvis.openAgentSession``, ``jarvis.revealInExplorer``,
    ``jarvis.revealInOS``, ``jarvis.openInTerminal``) are preserved as-is.
@@ -946,9 +868,9 @@ Sessions Design Specifications
 
 
 .. spec:: session-agent-binding: Agent Discovery Function
-   :id: SPEC_SES_AGENT_DISCOVERY
+   :id: SPEC_ACT_AGENT_DISCOVERY
    :status: draft
-   :links: REQ_SES_AGENT_DISCOVERY; REQ_SES_AGENT_PICKER; REQ_SES_AGENT_CREATETOOL
+   :links: REQ_ACT_AGENT_DISCOVERY; REQ_ACT_AGENT_PICKER; REQ_ACT_AGENT_CREATETOOL
 
    **Description:**
    A new module-level helper function ``discoverAgentModes()`` in
@@ -1136,9 +1058,9 @@ Sessions Design Specifications
 
 
 .. spec:: session-agent-binding: Schema and EntityEntry Extension
-   :id: SPEC_SES_AGENT_SCHEMA
+   :id: SPEC_ACT_AGENT_SCHEMA
    :status: implemented
-   :links: REQ_SES_AGENT_FIELD; REQ_SES_AGENT_COMPAT; SPEC_SES_SCANNER; SPEC_SES_SCHEMA; SPEC_SES_TOOLS
+   :links: REQ_ACT_AGENT_FIELD; REQ_ACT_AGENT_COMPAT; SPEC_ENG_SCANNER; SPEC_ACT_SCHEMA; SPEC_ACT_TOOLS
 
    **Description:**
    Three coordinated changes add the optional ``agent`` field to the data model:
@@ -1158,7 +1080,7 @@ Sessions Design Specifications
         "properties": {
           "name":    { "type": "string", "description": "Short display name for this session.", "minLength": 1 },
           "summary": { "type": "string", "description": "One-sentence description of the session's purpose." },
-          "agent":   { "type": "string", "description": "VS Code chat-mode name bound to this session (e.g. 'syspilot.cm' or 'Change Manager' — identity may be filename-stem or frontmatter name with spaces, per SPEC_SES_AGENT_DISCOVERY). When set, opening the session activates that chat agent automatically." }
+          "agent":   { "type": "string", "description": "VS Code chat-mode name bound to this session (e.g. 'syspilot.cm' or 'Change Manager' — identity may be filename-stem or frontmatter name with spaces, per SPEC_ACT_AGENT_DISCOVERY). When set, opening the session activates that chat agent automatically." }
         }
       }
 
@@ -1201,7 +1123,7 @@ Sessions Design Specifications
 
    **3. ``jarvis_listSessionEntities`` tool — expose ``agent`` in output:**
 
-   Amend both the LM and MCP handler bodies in ``SPEC_SES_TOOLS`` to include
+   Amend both the LM and MCP handler bodies in ``SPEC_ACT_TOOLS`` to include
    ``agent``:
 
    .. code-block:: typescript
@@ -1213,7 +1135,7 @@ Sessions Design Specifications
           folder:  e.folder,
       }))
 
-   Callers MUST treat ``""`` as "no binding" (``REQ_SES_AGENT_COMPAT AC-3``).
+   Callers MUST treat ``""`` as "no binding" (``REQ_ACT_AGENT_COMPAT AC-3``).
 
    **File touchpoints:**
 
@@ -1225,9 +1147,9 @@ Sessions Design Specifications
 
 
 .. spec:: session-agent-binding: Agent Picker and newSession Update
-   :id: SPEC_SES_AGENT_PICKER
+   :id: SPEC_ACT_AGENT_PICKER
    :status: draft
-   :links: REQ_SES_AGENT_PICKER; REQ_SES_AGENT_DISCOVERY; SPEC_SES_NEWENTITY; SPEC_SES_AGENT_DISCOVERY
+   :links: REQ_ACT_AGENT_PICKER; REQ_ACT_AGENT_DISCOVERY; SPEC_ACT_NEWENTITY; SPEC_ACT_AGENT_DISCOVERY
 
    **Description:**
    A new helper ``pickAgentMode()`` presents the agent picker QuickPick.
@@ -1283,7 +1205,7 @@ Sessions Design Specifications
 
    After YAML creation, ``newSessionCommand`` SHALL always open a chat editor
    (cancel is handled by the earlier early-return guard).  The consolidated
-   chat-open primitive (``SPEC_EXP_AGENT_PICKER``) applies: if ``agentInput``
+   chat-open primitive (``SPEC_ENT_AGENT_PICKER``) applies: if ``agentInput``
    is non-empty, mode-prime with ``workbench.action.chat.open({ mode: agentInput })``
    + 300 ms settle; then always ``openNewChatEditor()`` (``SPEC_MSG_OPENCHAT``).
    If ``agentInput === ""`` ("No agent"), skip mode-prime, just
@@ -1292,12 +1214,12 @@ Sessions Design Specifications
 
    **``newSessionCommand`` change** (``src/extension.ts``):
 
-   After the ``summary`` prompt (step 4 in ``SPEC_SES_NEWENTITY``) and before
+   After the ``summary`` prompt (step 4 in ``SPEC_ACT_NEWENTITY``) and before
    slug + folder creation (steps 5–6), insert:
 
    .. code-block:: typescript
 
-      // Implementation: SPEC_SES_AGENT_PICKER
+      // Implementation: SPEC_ACT_AGENT_PICKER
       const agentInput = await pickAgentMode();
       if (agentInput === undefined) { return; }  // user cancelled
 
@@ -1316,7 +1238,7 @@ Sessions Design Specifications
 
    .. code-block:: typescript
 
-      // Implementation: SPEC_SES_AGENT_PICKER (chat-open per SPEC_EXP_AGENT_PICKER consolidated primitive)
+      // Implementation: SPEC_ACT_AGENT_PICKER (chat-open per SPEC_ENT_AGENT_PICKER consolidated primitive)
       if (agentInput) {
           try {
               await vscode.commands.executeCommand(
@@ -1347,9 +1269,9 @@ Sessions Design Specifications
 
 
 .. spec:: session-agent-binding: jarvis_createSession Agent Parameter
-   :id: SPEC_SES_AGENT_CREATETOOL
+   :id: SPEC_ACT_AGENT_CREATETOOL
    :status: draft
-   :links: REQ_SES_AGENT_CREATETOOL; REQ_SES_AGENT_VALIDATION; SPEC_SES_CREATETOOL; SPEC_SES_AGENT_DISCOVERY
+   :links: REQ_ACT_AGENT_CREATETOOL; REQ_ACT_AGENT_VALIDATION; SPEC_ACT_CREATETOOL; SPEC_ACT_AGENT_DISCOVERY
 
    **Description:**
    Extend ``jarvis_createSession`` to accept an optional ``agent`` parameter,
@@ -1372,7 +1294,7 @@ Sessions Design Specifications
 
    .. note::
 
-      ``agent`` is an identity string (see ``SPEC_SES_AGENT_DISCOVERY
+      ``agent`` is an identity string (see ``SPEC_ACT_AGENT_DISCOVERY
       getAgentIdentity``): it may be a frontmatter name with spaces
       (e.g. ``"Change Manager"``) or a filename stem (e.g. ``"syspilot.cm"``).
       The validation checks the supplied value against the identity strings
@@ -1380,7 +1302,7 @@ Sessions Design Specifications
 
    .. code-block:: typescript
 
-      // Implementation: SPEC_SES_AGENT_CREATETOOL
+      // Implementation: SPEC_ACT_AGENT_CREATETOOL
       if (agent) {
           const available = await discoverAgentModes();
           const validNames = available.map(a => a.name);
@@ -1438,7 +1360,7 @@ Sessions Design Specifications
           // ...
       }
 
-   **Error contract (REQ_SES_AGENT_VALIDATION):**
+   **Error contract (REQ_ACT_AGENT_VALIDATION):**
 
    *Example — unknown agent, two available:*
 
@@ -1466,9 +1388,9 @@ Sessions Design Specifications
 
 
 .. spec:: session-agent-binding: openAgentSession Agent Mode Binding
-   :id: SPEC_SES_AGENT_OPEN
+   :id: SPEC_ACT_AGENT_OPEN
    :status: implemented
-   :links: REQ_SES_AGENT_OPEN; REQ_SES_AGENT_COMPAT; SPEC_EXP_AGENTSESSION; SPEC_SES_AGENT_SCHEMA
+   :links: REQ_ACT_AGENT_OPEN; REQ_ACT_AGENT_COMPAT; SPEC_ENT_AGENTSESSION; SPEC_ACT_AGENT_SCHEMA
 
    **Description:**
    Amend ``jarvis.openAgentSession`` so that when creating a **new** chat session
@@ -1491,8 +1413,8 @@ Sessions Design Specifications
 
    .. code-block:: typescript
 
-      // Implementation: SPEC_SES_AGENT_OPEN
-      // Requirements: REQ_SES_AGENT_OPEN
+      // Implementation: SPEC_ACT_AGENT_OPEN
+      // Requirements: REQ_ACT_AGENT_OPEN
       const chatOpenOptions: { query: string; mode?: string } = { query: initPrompt };
       if (entity.agent) {
           chatOpenOptions.mode = entity.agent;
@@ -1517,7 +1439,7 @@ Sessions Design Specifications
    ``openPinnedResource()``.  The ``agent`` binding is not re-applied —
    the session was already initialized in the correct mode on first open.
 
-   **Backward compatibility (REQ_SES_AGENT_COMPAT):**
+   **Backward compatibility (REQ_ACT_AGENT_COMPAT):**
 
    When ``entity.agent`` is ``undefined`` (existing sessions, or sessions
    created without a binding), ``chatOpenOptions.mode`` is never set.

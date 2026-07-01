@@ -2,10 +2,10 @@ Sessions Feature User Acceptance Tests
 =======================================
 
 .. story:: Sessions Feature Acceptance Tests
-   :id: US_UAT_SES_SESSIONS
+   :id: US_UAT_ACT_SESSIONS
    :status: implemented
    :priority: required
-   :links: US_SES_SESSIONS
+   :links: US_ACT_ACTORS
 
    **As a** Jarvis Test Engineer,
    **I want** a set of manual acceptance test scenarios for the sessions-feature change,

@@ -45,7 +45,7 @@ Message Queue Requirements
    :id: REQ_MSG_SEND
    :status: draft
    :priority: optional
-   :links: US_MSG_CHATQUEUE; REQ_MSG_SESSIONLOOKUP; REQ_MSG_QUEUE; REQ_EXP_AGENTPROMPT_TEMPLATE
+   :links: US_MSG_CHATQUEUE; REQ_MSG_SESSIONLOOKUP; REQ_MSG_QUEUE; REQ_ENT_AGENTPROMPT_TEMPLATE
 
    **Description:**
    The extension SHALL provide a command to notify a VS Code Chat session about
@@ -80,7 +80,7 @@ Message Queue Requirements
      ``node.destination`` in the scanner entity store. If an entity is found, the
      extension SHALL send a context initialization prompt using the same template,
      placeholder substitution, and agent-mode binding as
-     ``REQ_EXP_AGENTPROMPT_TEMPLATE`` — **before** sending the notification stub
+     ``REQ_ENT_AGENTPROMPT_TEMPLATE`` — **before** sending the notification stub
      (AC-3). If no entity matches the destination name, the init prompt is skipped.
 
 .. req:: Delete Individual Message
@@ -318,7 +318,7 @@ Message Queue Requirements
    :id: REQ_MSG_AUTODELIVER_POLL
    :status: draft
    :priority: optional
-   :links: US_MSG_AUTODELIVERY; REQ_MSG_AUTODELIVER_CONFIG; REQ_MSG_AUTODELIVER_TAG; REQ_MSG_SEND; REQ_EXP_AGENTPROMPT_TEMPLATE
+   :links: US_MSG_AUTODELIVERY; REQ_MSG_AUTODELIVER_CONFIG; REQ_MSG_AUTODELIVER_TAG; REQ_MSG_SEND; REQ_ENT_AGENTPROMPT_TEMPLATE
 
    **Description:**
    The extension SHALL run a background poll loop that automatically sends
@@ -348,7 +348,7 @@ Message Queue Requirements
      creates the chat editor and the session is renamed to the session name, the
      poll loop SHALL look up the entity whose display name equals the session name
      in the scanner entity store. If an entity is found, the poll loop SHALL send
-     a context initialization prompt per ``REQ_EXP_AGENTPROMPT_TEMPLATE`` —
+     a context initialization prompt per ``REQ_ENT_AGENTPROMPT_TEMPLATE`` —
      **before** sending the notification stub. If no entity matches the session
      name, the init prompt is skipped.
 
@@ -551,7 +551,7 @@ Message Queue Requirements
    :id: REQ_MSG_AGENTSESSION
    :status: implemented
    :priority: optional
-   :links: US_MSG_STABLESESSION; REQ_EXP_AGENTSESSION; REQ_MSG_OPENCHAT; REQ_MSG_SENDPROMPT
+   :links: US_MSG_STABLESESSION; REQ_ENT_AGENTSESSION; REQ_MSG_OPENCHAT; REQ_MSG_SENDPROMPT
 
    **Description:**
    When creating a new agent session for a project or event, the extension SHALL

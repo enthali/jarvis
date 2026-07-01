@@ -370,6 +370,38 @@ Engine Design Specifications
    the same lookup), discovers leaf entities, and parses their YAML. There is no
    per-add-on scanner.
 
+   **Scan algorithm (convention-file model):** for each registered kind's
+   folder, the scanner reads directory entries recursively. For each
+   subdirectory: (1) if the kind's convention file (e.g. ``project.yaml``,
+   ``event.yaml``, ``session.yaml``) exists and parses with a valid ``name``,
+   emit a leaf entity keyed by the convention file's absolute path and do not
+   descend further; (2) if the convention file exists but is unparseable or
+   missing ``name``, still emit a leaf entity with ``name`` falling back to
+   the folder name; (3) if no convention file exists, recurse into the
+   subdirectory as a grouping node (folder nodes with no leaf descendants are
+   omitted). Non-convention YAML files and other file types are ignored.
+
+   **Sort order:** after building each directory level, nodes are sorted
+   alphabetically (case-insensitive, ``localeCompare``) before being returned.
+   Folders and leaves are interleaved in one sorted list per level (not
+   grouped separately). The default leaf sort key is the entity's ``name``
+   field (folder-name fallback if unresolved). A kind MAY override the sort
+   key via ``EntityKindConfig`` (e.g. Event nodes sort by
+   ``(entity.datesStart ?? '') + name`` so dated events sort chronologically
+   and undated events sort last, since ``YYYY-MM-DD`` is lexicographically
+   sortable) — see ``SPEC_EVT_LISTEVENTS`` / ``REQ_EVT_DATESORT`` for the
+   Event-specific sort-key rule.
+
+   **Change detection:** after each scan, the scanner compares the new tree
+   structure AND the new entity data map against the cached versions. The
+   entity-map comparison converts each map to a sorted array of
+   ``[key, JSON.stringify(value)]`` pairs and compares the resulting
+   strings — this ensures a YAML content edit (e.g. renaming an entity or
+   changing a date) triggers a cache update even when the tree's
+   folder/leaf structure is unchanged. The scanner fires its change
+   notification only when a difference is detected in either structure or
+   entity data.
+
    **Acceptance Criteria:**
 
    * AC-1: The scanner's kind set is exactly the set of currently registered
@@ -377,6 +409,13 @@ Engine Design Specifications
    * AC-2: Adding/disposing a kind updates the scan set without a reload.
    * AC-3: Each kind's folder is read from its ``folderSettingKey`` setting; the
      scanner contains no hard-coded per-kind folder logic.
+   * AC-4: Nodes at each tree level are sorted alphabetically (case-insensitive)
+     by default; folders and leaves are interleaved in one sorted list, not
+     grouped separately. A kind MAY override the leaf sort key.
+   * AC-5: A cache update (change notification) fires when either the tree
+     structure or any entity's data (per the sorted-JSON entity-map
+     comparison) differs from the previous scan — a YAML content edit alone
+     (no structural change) SHALL trigger an update.
 
 
 .. spec:: Generic Tree-Provider Factory

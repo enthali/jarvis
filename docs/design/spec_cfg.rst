@@ -279,7 +279,7 @@ Configuration Design Specifications
 .. spec:: settings-cleanup: Full Configuration Manifest (package.json)
    :id: SPEC_CFG_MANIFEST
    :status: implemented
-   :links: REQ_CFG_TOGGLES; REQ_CFG_GROUPS; REQ_CFG_MCPDEFAULTOFF; REQ_CFG_RENAMES; REQ_EXP_AGENTPROMPT_TEMPLATE; REQ_MSG_NOTIFICATION_TEMPLATE
+   :links: REQ_CFG_TOGGLES; REQ_CFG_GROUPS; REQ_CFG_MCPDEFAULTOFF; REQ_CFG_RENAMES; REQ_ENT_AGENTPROMPT_TEMPLATE; REQ_MSG_NOTIFICATION_TEMPLATE
 
    **Description:**
    The complete ``contributes.configuration`` array in ``package.json`` after
@@ -287,7 +287,7 @@ Configuration Design Specifications
    Projects, Events, Sessions, Messages, Heartbeat, Reminders, MCP, PIM,
    Outlook, Recording, Updates. CR ``sessions-feature`` populated the
    Sessions group with ``jarvis.sessions.enabled`` only — paths are fixed
-   under ``.jarvis/sessions/`` (no folder setting; see ``SPEC_SES_MANIFEST``). The Updates group
+   under ``.jarvis/sessions/`` (no folder setting; see ``SPEC_ACT_MANIFEST``). The Updates group
    houses ``jarvis.checkForUpdates``.
 
    .. code-block:: json
@@ -454,7 +454,7 @@ Configuration Design Specifications
       string), so users see and edit the default directly in the Settings UI.
       The ``"default": ""`` shown above is a documentation shorthand. An empty
       or whitespace-only value falls back to the built-in constant in
-      ``src/extension.ts`` (see ``SPEC_EXP_AGENTSESSION_INITPROMPT`` and
+      ``src/extension.ts`` (see ``SPEC_ENT_AGENTSESSION_INITPROMPT`` and
       ``REQ_MSG_NOTIFICATION_TEMPLATE``).
 
    **Updates group:** The ``jarvis.checkForUpdates`` setting lives in the

@@ -5,7 +5,7 @@ Create Event Tool UAT Requirements
    :id: REQ_UAT_CREATEEVENT
    :status: draft
    :priority: optional
-   :links: US_UAT_CREATEEVENT; REQ_EXP_CREATEEVENT
+   :links: US_UAT_CREATEEVENT; REQ_EVT_CREATEEVENT
 
    **Description:**
    Specifies the test data and per-AC verification criteria for manually

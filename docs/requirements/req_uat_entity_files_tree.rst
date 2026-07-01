@@ -5,7 +5,7 @@ Entity File Children UAT Requirements
    :id: REQ_UAT_ENTITY_FILES_TREE
    :status: draft
    :priority: required
-   :links: US_UAT_ENTITY_FILES_TREE; REQ_EXP_ENTITY_FILE_CHILDREN
+   :links: US_UAT_ENTITY_FILES_TREE; REQ_ENT_ENTITY_FILE_CHILDREN
 
    **Description:**
    Specifies the test data, workspace state, and per-AC verification criteria

@@ -5,7 +5,7 @@ Chat Editor Reuse — Session Open UAT Requirements
    :id: REQ_UAT_CHATEDITORREUSE
    :status: implemented
    :priority: required
-   :links: US_UAT_CHATEDITORREUSE; REQ_EXP_AGENTSESSION; REQ_MSG_AUTODELIVER_POLL
+   :links: US_UAT_CHATEDITORREUSE; REQ_ENT_AGENTSESSION; REQ_MSG_AUTODELIVER_POLL
 
    **Description:**
    Specifies the test data, workspace state, and per-AC verification criteria

@@ -5,7 +5,7 @@ Session Init Prompt on Auto-Open User Acceptance Tests
    :id: US_UAT_SESSIONINITPROMPT
    :status: draft
    :priority: required
-   :links: US_EXP_AGENTSESSION; US_EXP_AGENTSESSION_PROMPT; US_MSG_STABLESESSION
+   :links: US_ENT_AGENTSESSION; US_ENT_AGENTSESSION_PROMPT; US_MSG_STABLESESSION
 
    **As a** Jarvis Test Engineer running the Extension Development Host,
    **I want** a set of manual acceptance test scenarios for the session

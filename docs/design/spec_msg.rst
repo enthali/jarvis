@@ -151,7 +151,7 @@ Message Queue Design Specifications
 .. spec:: Send Messages Command
    :id: SPEC_MSG_SENDCOMMAND
    :status: draft
-   :links: REQ_MSG_SEND; REQ_MSG_SESSIONLOOKUP; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_QUEUESTORE; REQ_MSG_AUTODELIVER_TAG; REQ_MSG_NOTIFICATION_TEMPLATE; REQ_EXP_AGENTPROMPT_TEMPLATE; SPEC_EXP_AGENTSESSION_INITPROMPT
+   :links: REQ_MSG_SEND; REQ_MSG_SESSIONLOOKUP; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_QUEUESTORE; REQ_MSG_AUTODELIVER_TAG; REQ_MSG_NOTIFICATION_TEMPLATE; REQ_ENT_AGENTPROMPT_TEMPLATE; SPEC_ENT_AGENTSESSION_INITPROMPT
 
    **Description:**
    Register ``jarvis.sendMessages`` in ``extension.ts``. Invoked from the session
@@ -167,7 +167,7 @@ Message Queue Design Specifications
 
    The notification stub is sent as a single ``workbench.action.chat.open`` query.
    The text is produced by calling ``applyTemplate(template, vars)`` (see
-   ``SPEC_EXP_AGENTSESSION_INITPROMPT`` for the shared helper definition), where
+   ``SPEC_ENT_AGENTSESSION_INITPROMPT`` for the shared helper definition), where
    ``template`` is the value of ``jarvis.messages.notificationTemplate`` (falling
    back to the built-in English default from ``REQ_MSG_NOTIFICATION_TEMPLATE``
    when empty/whitespace), and ``vars`` is ``{ count, destination }``.
@@ -206,7 +206,7 @@ Message Queue Design Specifications
 
             // Mode-primed creation: prime the VS Code Chat mode selector BEFORE
             // openNewChatEditor() so the new session is born in the bound mode.
-            // (SPEC_MSG_OPENCHAT mode-prime note, REQ_EXP_AGENTPROMPT_TEMPLATE AC-6)
+            // (SPEC_MSG_OPENCHAT mode-prime note, REQ_ENT_AGENTPROMPT_TEMPLATE AC-6)
             if (entity?.agent) {
               await vscode.commands.executeCommand(
                   'workbench.action.chat.open', { mode: entity.agent }
@@ -221,7 +221,7 @@ Message Queue Design Specifications
             await renameFocusedChatSession(node.destination);
 
             // Send init prompt if the destination matches a known entity
-            // (REQ_MSG_SEND AC-8, SPEC_EXP_AGENTSESSION_INITPROMPT)
+            // (REQ_MSG_SEND AC-8, SPEC_ENT_AGENTSESSION_INITPROMPT)
             if (entity) {
               const kind = entity.kind ?? 'project';
               const contextPath = path.join(entity.folder, 'context.md');
@@ -241,7 +241,7 @@ Message Queue Design Specifications
           const stub = applyTemplate(
             cfg.get<string>('messages.notificationTemplate', ''),
             { count: String(count), destination: node.destination }
-          );  // REQ_MSG_NOTIFICATION_TEMPLATE, SPEC_EXP_AGENTSESSION_INITPROMPT
+          );  // REQ_MSG_NOTIFICATION_TEMPLATE, SPEC_ENT_AGENTSESSION_INITPROMPT
           await sendPromptToFocusedAgentChat(stub);  // SPEC_MSG_SENDPROMPT
 
           // 4. Refresh tree (messages stay in queue)
@@ -1023,7 +1023,7 @@ Message Queue Design Specifications
 .. spec:: Auto-Delivery Poll Loop
    :id: SPEC_MSG_AUTODELIVER_POLL
    :status: draft
-   :links: REQ_MSG_AUTODELIVER_POLL; SPEC_MSG_AUTODELIVER_STORE; SPEC_MSG_AUTODELIVER_TAG; SPEC_MSG_SENDCOMMAND; REQ_MSG_NOTIFICATION_TEMPLATE; SPEC_MSG_OPENCHAT; REQ_EXP_AGENTPROMPT_TEMPLATE; SPEC_EXP_AGENTSESSION_INITPROMPT
+   :links: REQ_MSG_AUTODELIVER_POLL; SPEC_MSG_AUTODELIVER_STORE; SPEC_MSG_AUTODELIVER_TAG; SPEC_MSG_SENDCOMMAND; REQ_MSG_NOTIFICATION_TEMPLATE; SPEC_MSG_OPENCHAT; REQ_ENT_AGENTPROMPT_TEMPLATE; SPEC_ENT_AGENTSESSION_INITPROMPT
 
    **Description:**
 
@@ -1066,7 +1066,7 @@ Message Queue Design Specifications
 
             // Mode-primed creation: prime the VS Code Chat mode selector BEFORE
             // openNewChatEditor() so the new session is born in the bound mode.
-            // (SPEC_MSG_OPENCHAT mode-prime note, REQ_EXP_AGENTPROMPT_TEMPLATE AC-6)
+            // (SPEC_MSG_OPENCHAT mode-prime note, REQ_ENT_AGENTPROMPT_TEMPLATE AC-6)
             if (entity?.agent) {
               await vscode.commands.executeCommand(
                   'workbench.action.chat.open', { mode: entity.agent }
@@ -1079,7 +1079,7 @@ Message Queue Design Specifications
             await renameFocusedChatSession(sessionName);
 
             // Send init prompt if the session name matches a known entity
-            // (REQ_MSG_AUTODELIVER_POLL AC-8, SPEC_EXP_AGENTSESSION_INITPROMPT)
+            // (REQ_MSG_AUTODELIVER_POLL AC-8, SPEC_ENT_AGENTSESSION_INITPROMPT)
             if (entity) {
               const kind = entity.kind ?? 'project';
               const contextPath = path.join(entity.folder, 'context.md');
@@ -1098,7 +1098,7 @@ Message Queue Design Specifications
           const stub = applyTemplate(
             cfg.get<string>('messages.notificationTemplate', ''),
             { count: String(pending.length), destination: sessionName }
-          );  // REQ_MSG_NOTIFICATION_TEMPLATE, SPEC_EXP_AGENTSESSION_INITPROMPT
+          );  // REQ_MSG_NOTIFICATION_TEMPLATE, SPEC_ENT_AGENTSESSION_INITPROMPT
           await vscode.commands.executeCommand(
             'workbench.action.chat.open', { query: stub, isPartialQuery: false }
           );
@@ -1520,7 +1520,7 @@ Message Queue Design Specifications
    * ``jarvis.openAgentSession`` (new session path) — submits the ``/rename``
      command only; the init prompt is submitted directly via
      ``workbench.action.chat.open { query: initPrompt }`` (see
-     ``SPEC_EXP_AGENTSESSION``)
+     ``SPEC_ENT_AGENTSESSION``)
    * Auto-delivery poll loop — submits the notification stub for each
      auto-delivery session
 
@@ -1528,7 +1528,7 @@ Message Queue Design Specifications
 
       The full new-session sequence for ``jarvis.openAgentSession`` (including
       the mode-prime step and init-prompt submission) is canonical in
-      ``SPEC_EXP_AGENTSESSION``.
+      ``SPEC_ENT_AGENTSESSION``.
 
    **Design decisions:**
 
@@ -1560,7 +1560,7 @@ Message Queue Design Specifications
 .. spec:: Agent Session Init Sequence
    :id: SPEC_MSG_AGENTSESSION
    :status: draft
-   :links: REQ_MSG_AGENTSESSION; REQ_EXP_AGENTSESSION; SPEC_MSG_OPENCHAT; SPEC_MSG_SENDPROMPT; SPEC_MSG_PINNED
+   :links: REQ_MSG_AGENTSESSION; REQ_ENT_AGENTSESSION; SPEC_MSG_OPENCHAT; SPEC_MSG_SENDPROMPT; SPEC_MSG_PINNED
 
    **Description:**
    The `jarvis.openAgentSession` command orchestrates the full lifecycle of

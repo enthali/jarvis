@@ -5,7 +5,7 @@ Session Init Prompt on Auto-Open UAT Requirements
    :id: REQ_UAT_SESSIONINITPROMPT
    :status: draft
    :priority: required
-   :links: US_UAT_SESSIONINITPROMPT; REQ_EXP_AGENTSESSION; REQ_MSG_AGENTSESSION; REQ_EXP_AGENTPROMPT_TEMPLATE
+   :links: US_UAT_SESSIONINITPROMPT; REQ_ENT_AGENTSESSION; REQ_MSG_AGENTSESSION; REQ_ENT_AGENTPROMPT_TEMPLATE
 
    **Description:**
    Specifies the test data, workspace state, and per-AC verification criteria

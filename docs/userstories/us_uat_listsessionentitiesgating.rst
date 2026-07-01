@@ -5,7 +5,7 @@
    :id: US_UAT_LISTSESSIONENTITIESGATING
    :status: implemented
    :priority: required
-   :links: US_SES_SESSIONS
+   :links: US_ACT_ACTORS
 
    **As a** Jarvis Test Engineer running in the Extension Development Host,
    **I want** a set of manual acceptance test scenarios for the

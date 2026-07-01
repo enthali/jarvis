@@ -78,7 +78,7 @@ Session Tools UAT Design Specifications
 .. spec:: Open Agent Session Test Data
    :id: SPEC_UAT_AGENTSESSION_FILES
    :status: approved
-   :links: REQ_UAT_AGENTSESSION_TESTDATA; SPEC_EXP_AGENTSESSION
+   :links: REQ_UAT_AGENTSESSION_TESTDATA; SPEC_ENT_AGENTSESSION
 
    **Description:**
    Uses existing ``testdata/projects/`` and ``testdata/events/`` files for

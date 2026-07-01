@@ -1,5 +1,5 @@
-// Implementation: SPEC_EXP_SCANNER
-// Requirements: REQ_EXP_YAMLDATA, REQ_EXP_REACTIVECACHE, REQ_EXP_EVENTFILTER, REQ_EXP_NAMESORT
+// Implementation: SPEC_ENG_SCANNER
+// Requirements: REQ_ENG_SCANNER, REQ_EXP_YAMLDATA, REQ_EXP_REACTIVECACHE, REQ_EVT_EVENTFILTER, REQ_ENT_NAMESORT
 
 import * as fs from 'fs';
 import * as path from 'path';

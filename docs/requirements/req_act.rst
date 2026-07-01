@@ -2,10 +2,10 @@ Sessions Requirements
 =====================
 
 .. req:: Sessions Feature Toggle
-   :id: REQ_SES_TOGGLE
+   :id: REQ_ACT_TOGGLE
    :status: implemented
    :priority: required
-   :links: US_SES_SESSIONS
+   :links: US_ACT_ACTORS
 
    **Description:**
    The extension SHALL provide a setting to control the Sessions feature:
@@ -31,10 +31,10 @@ Sessions Requirements
 
 
 .. req:: Session Entity Schema
-   :id: REQ_SES_SCHEMA
+   :id: REQ_ACT_SCHEMA
    :status: implemented
    :priority: required
-   :links: US_SES_SESSIONS
+   :links: US_ACT_ACTORS
 
    **Description:**
    A ``session.yaml`` file SHALL serve as the leaf marker for a session entity.
@@ -53,10 +53,10 @@ Sessions Requirements
 
 
 .. req:: Sessions Tree View
-   :id: REQ_SES_TREE
+   :id: REQ_ACT_TREE
    :status: implemented
    :priority: required
-   :links: US_SES_SESSIONS
+   :links: US_ACT_ACTORS
 
    **Description:**
    A new TreeView ``jarvisSessions`` SHALL display all session entities.
@@ -73,15 +73,15 @@ Sessions Requirements
    * AC-5: When the scanner refreshes, the Sessions tree SHALL refresh
      automatically.
    * AC-6: Session leaf nodes SHALL be expandable (``collapsibleState = Collapsed``)
-     to show file children (see ``REQ_EXP_ENTITY_FILE_CHILDREN``). This does
+     to show file children (see ``REQ_ENT_ENTITY_FILE_CHILDREN``). This does
      not change the leaf-node identity defined in AC-3.
 
 
 .. req:: newEntity Command — Session Support
-   :id: REQ_SES_NEWENTITY
+   :id: REQ_ACT_NEWENTITY
    :status: draft
    :priority: required
-   :links: US_SES_SESSIONS
+   :links: US_ACT_ACTORS
 
    **Description:**
    The existing ``jarvis.newEntity`` command SHALL offer "Session" as a third
@@ -111,7 +111,7 @@ Sessions Requirements
    * AC-8: On successful creation the new Session SHALL be auto-opened as an agent
      chat session via ``jarvis.openAgentSession`` (no manual action required).
    * AC-9: Invalid session names (per the character set and dot-only and
-     Windows reserved-name rules defined in ``SPEC_SES_NEWENTITY`` step 5)
+     Windows reserved-name rules defined in ``SPEC_ACT_NEWENTITY`` step 5)
      SHALL be rejected via real-time inline validation in the name input box
      (``showInputBox`` ``validateInput`` callback).  The user SHALL receive
      immediate feedback and SHALL NOT be able to confirm an invalid name.  The
@@ -119,10 +119,10 @@ Sessions Requirements
 
 
 .. req:: jarvis_listSessions LM+MCP Tool
-   :id: REQ_SES_LISTTOOL
+   :id: REQ_ACT_LISTTOOL
    :status: draft
    :priority: required
-   :links: US_SES_SESSIONS
+   :links: US_ACT_ACTORS
 
    **Description:**
    A Language Model and MCP tool ``jarvis_listSessions`` SHALL return
@@ -148,10 +148,10 @@ Sessions Requirements
 
 
 .. req:: Session Tree-Node Context Menu Parity
-   :id: REQ_SES_CONTEXTMENU
+   :id: REQ_ACT_CONTEXTMENU
    :status: implemented
    :priority: required
-   :links: US_SES_SESSIONS
+   :links: US_ACT_ACTORS
 
    **Description:**
    Session tree leaf nodes (``contextValue: jarvisSession``) SHALL expose the same
@@ -175,10 +175,10 @@ Sessions Requirements
 
 
 .. req:: Agent-Session Identity Prompt
-   :id: REQ_SES_AGENTPROMPT
+   :id: REQ_ACT_AGENTPROMPT
    :status: implemented
    :priority: required
-   :links: US_SES_SESSIONS
+   :links: US_ACT_ACTORS
 
    **Description:**
    When ``jarvis.openAgentSession`` creates a **new** chat session for any entity
@@ -202,10 +202,10 @@ Sessions Requirements
 
 
 .. req:: openContext on Session Nodes
-   :id: REQ_SES_OPENCONTEXT
+   :id: REQ_ACT_OPENCONTEXT
    :status: implemented
    :priority: required
-   :links: US_SES_SESSIONS
+   :links: US_ACT_ACTORS
 
    **Description:**
    The existing ``jarvis.openContext`` command SHALL work on session tree nodes.
@@ -223,10 +223,10 @@ Sessions Requirements
 
 
 .. req:: jarvis_createSession LM+MCP Tool
-   :id: REQ_SES_CREATETOOL
+   :id: REQ_ACT_CREATETOOL
    :status: implemented
    :priority: required
-   :links: US_SES_CREATETOOL
+   :links: US_ACT_CREATETOOL
 
    **Description:**
    A new Language Model and MCP tool ``jarvis_createSession`` SHALL
@@ -289,10 +289,10 @@ Sessions Requirements
 
 
 .. req:: Session Tree Inverted Click Semantics
-   :id: REQ_SES_TREECLICK
+   :id: REQ_ACT_TREECLICK
    :status: implemented
    :priority: required
-   :links: US_SES_TREECLICK
+   :links: US_ENT_ENTITYPARITY
 
    **Description:**
    The `jarvisSession` tree leaf node's primary action (single click) SHALL
@@ -324,15 +324,15 @@ Sessions Requirements
      derived from the entity entry; if unavailable, it falls back to the folder
      basename. Errors during file creation SHALL be shown via
      `vscode.window.showErrorMessage` and SHALL NOT silently discard them.   * AC-7: Making the session node expandable (``collapsibleState = Collapsed``,
-     per ``REQ_EXP_ENTITY_FILE_CHILDREN``) does not interfere with this
+     per ``REQ_ENT_ENTITY_FILE_CHILDREN``) does not interfere with this
      binding — clicking the label still invokes ``jarvis.openAgentSession``;
      clicking the expand arrow only expands/collapses.
 
 .. req:: Session Agent Field
-   :id: REQ_SES_AGENT_FIELD
+   :id: REQ_ACT_AGENT_FIELD
    :status: implemented
    :priority: required
-   :links: US_SES_AGENTBIND
+   :links: US_ENT_ENTITYPARITY
 
    **Description:**
    The session entity schema, YAML scanner, and tool output SHALL support an
@@ -356,10 +356,10 @@ Sessions Requirements
 
 
 .. req:: Agent Picker at Session Creation
-   :id: REQ_SES_AGENT_PICKER
+   :id: REQ_ACT_AGENT_PICKER
    :status: draft
    :priority: required
-   :links: US_SES_AGENTBIND; REQ_SES_NEWENTITY
+   :links: US_ENT_ENTITYPARITY; REQ_ACT_NEWENTITY
 
    **Description:**
    The ``jarvis.newSession`` command SHALL present an optional agent picker after
@@ -370,7 +370,7 @@ Sessions Requirements
    * AC-1: After prompting for ``name`` and ``summary``, the command SHALL
      display a QuickPick populated with: a "No agent" entry (yields
      ``agent: ""`` in ``session.yaml``) and one entry per user-invocable
-     agent discovered under ``.github/agents/`` (see ``REQ_SES_AGENT_DISCOVERY``).
+     agent discovered under ``.github/agents/`` (see ``REQ_ACT_AGENT_DISCOVERY``).
    * AC-2: If the user dismisses the picker (Escape / window close), the
      command SHALL abort; no folder, ``session.yaml``, or ``context.md`` SHALL
      be created.
@@ -378,7 +378,7 @@ Sessions Requirements
      written to ``session.yaml``.  A chat editor SHALL be opened via
      ``openNewChatEditor()`` without mode-prime (VS Code default mode).
    * AC-4: If the user selects a named agent, that agent's identity (per
-     ``REQ_SES_AGENT_DISCOVERY`` AC-7) SHALL be written to ``session.yaml``
+     ``REQ_ACT_AGENT_DISCOVERY`` AC-7) SHALL be written to ``session.yaml``
      as ``agent: "<identity>"``.  The identity is used verbatim; it may
      contain spaces (e.g., ``"Change Manager"``).  The chat editor SHALL be
      opened via mode-prime + ``openNewChatEditor()``.
@@ -387,10 +387,10 @@ Sessions Requirements
 
 
 .. req:: Agent Discovery Mechanism
-   :id: REQ_SES_AGENT_DISCOVERY
+   :id: REQ_ACT_AGENT_DISCOVERY
    :status: draft
    :priority: required
-   :links: US_SES_AGENTBIND; REQ_SES_AGENT_PICKER; REQ_SES_AGENT_CREATETOOL
+   :links: US_ENT_ENTITYPARITY; REQ_ACT_AGENT_PICKER; REQ_ACT_AGENT_CREATETOOL
 
    **Description:**
    The set of available agents SHALL be determined at runtime by scanning
@@ -424,10 +424,10 @@ Sessions Requirements
 
 
 .. req:: jarvis_createSession Agent Parameter
-   :id: REQ_SES_AGENT_CREATETOOL
+   :id: REQ_ACT_AGENT_CREATETOOL
    :status: draft
    :priority: required
-   :links: US_SES_AGENTBIND; REQ_SES_CREATETOOL
+   :links: US_ENT_ENTITYPARITY; REQ_ACT_CREATETOOL
 
    **Description:**
    The ``jarvis_createSession`` tool SHALL accept an optional ``agent``
@@ -440,11 +440,11 @@ Sessions Requirements
    * AC-2: When ``agent`` is blank or absent, the tool SHALL behave exactly as
      before (no ``agent`` field in ``session.yaml``); no validation runs.
    * AC-3: When ``agent`` is non-blank, the tool SHALL validate it against the
-     set of available agent identities (per ``REQ_SES_AGENT_DISCOVERY`` AC-7)
+     set of available agent identities (per ``REQ_ACT_AGENT_DISCOVERY`` AC-7)
      **before** any filesystem operation.  The supplied value must exactly match
      an identity string from the discovery result (frontmatter name or filename
      stem, as applicable).  If the value is unknown, the tool SHALL throw an
-     error (see ``REQ_SES_AGENT_VALIDATION``); the session folder SHALL NOT be
+     error (see ``REQ_ACT_AGENT_VALIDATION``); the session folder SHALL NOT be
      created.
    * AC-4: When ``agent`` is non-blank and valid, the tool SHALL write
      ``agent: "<name>"`` to ``session.yaml`` after ``summary`` (if present).
@@ -455,10 +455,10 @@ Sessions Requirements
 
 
 .. req:: Agent Validation Error Contract
-   :id: REQ_SES_AGENT_VALIDATION
+   :id: REQ_ACT_AGENT_VALIDATION
    :status: implemented
    :priority: required
-   :links: US_SES_AGENTBIND; REQ_SES_AGENT_CREATETOOL
+   :links: US_ENT_ENTITYPARITY; REQ_ACT_AGENT_CREATETOOL
 
    **Description:**
    The error thrown by ``jarvis_createSession`` when an unknown agent name is
@@ -487,10 +487,10 @@ Sessions Requirements
 
 
 .. req:: Open Session with Bound Agent
-   :id: REQ_SES_AGENT_OPEN
+   :id: REQ_ACT_AGENT_OPEN
    :status: implemented
    :priority: required
-   :links: US_SES_AGENTBIND; REQ_EXP_AGENTSESSION
+   :links: US_ENT_ENTITYPARITY; REQ_ENT_AGENTSESSION
 
    **Description:**
    When ``jarvis.openAgentSession`` creates a new chat session for a session
@@ -514,10 +514,10 @@ Sessions Requirements
 
 
 .. req:: Session Agent Backward Compatibility
-   :id: REQ_SES_AGENT_COMPAT
+   :id: REQ_ACT_AGENT_COMPAT
    :status: implemented
    :priority: required
-   :links: US_SES_AGENTBIND; REQ_SES_AGENT_FIELD; REQ_SES_AGENT_OPEN
+   :links: US_ENT_ENTITYPARITY; REQ_ACT_AGENT_FIELD; REQ_ACT_AGENT_OPEN
 
    **Description:**
    All existing ``session.yaml`` files that do not contain an ``agent`` field
@@ -544,7 +544,7 @@ Sessions Requirements
       ``session.yaml`` files written by v0.6.0 that store a filename-stem
       value in the ``agent`` field (e.g. ``agent: syspilot.cm``) continue to
       resolve correctly when the corresponding agent file has no ``name:``
-      frontmatter key, because per ``SPEC_SES_AGENT_DISCOVERY`` the effective
+      frontmatter key, because per ``SPEC_ACT_AGENT_DISCOVERY`` the effective
       identity is ``name?.trim() || filename-stem``.  See
-      ``SPEC_SES_AGENT_DISCOVERY`` for the identity-drift edge case (out of
+      ``SPEC_ACT_AGENT_DISCOVERY`` for the identity-drift edge case (out of
       scope for this CR).

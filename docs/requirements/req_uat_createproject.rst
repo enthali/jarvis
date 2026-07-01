@@ -5,7 +5,7 @@ Create Project Tool UAT Requirements
    :id: REQ_UAT_CREATEPROJECT
    :status: draft
    :priority: optional
-   :links: US_UAT_CREATEPROJECT; REQ_EXP_CREATEPROJECT
+   :links: US_UAT_CREATEPROJECT; REQ_PRJ_CREATEPROJECT
 
    **Description:**
    Specifies the test data and per-AC verification criteria for manually

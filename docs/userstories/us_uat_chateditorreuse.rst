@@ -5,7 +5,7 @@ Chat Editor Reuse — Session Open User Acceptance Tests
    :id: US_UAT_CHATEDITORREUSE
    :status: implemented
    :priority: required
-   :links: US_EXP_AGENTSESSION; US_MSG_AUTODELIVERY
+   :links: US_ENT_AGENTSESSION; US_MSG_AUTODELIVERY
 
    **As a** Jarvis Test Engineer running in the Extension Development Host,
    **I want** a set of manual acceptance test scenarios for the
@@ -39,17 +39,17 @@ Chat Editor Reuse — Session Open User Acceptance Tests
 
    * T-1: Existing-UUID regression — click Session-Tree entry for a session
      with a known UUID → that session's editor is activated; no new editor
-     created.  (SPEC_EXP_AGENTSESSION)
+     created.  (SPEC_ENT_AGENTSESSION)
    * T-2: ``jarvis_createSession`` happy path — invoke with ``name`` +
      ``initialMessage`` → new chat editor opens; init-prompt and
      ``initialMessage`` appear in it, not in the invoking chat.
-     (SPEC_EXP_AGENTSESSION)
+     (SPEC_ENT_AGENTSESSION)
    * T-3: UI "New Session" command — invoke from the Sessions tree-view
      title bar → new chat editor opens; no existing editor is reused.
-     (SPEC_EXP_AGENTSESSION)
+     (SPEC_ENT_AGENTSESSION)
    * T-4: Successive new sessions — trigger "New Session" (or
      ``jarvis_createSession``) twice → two distinct editors visible; the
-     second open does not reuse the first editor.  (SPEC_EXP_AGENTSESSION)
+     second open does not reuse the first editor.  (SPEC_ENT_AGENTSESSION)
    * T-5: Auto-delivery new-editor path — enable auto-delivery for a
      session, close its chat editor, queue a message → delivery loop opens
      a **new** chat editor for that session, not the previously focused one.

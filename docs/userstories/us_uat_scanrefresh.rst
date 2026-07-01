@@ -5,7 +5,7 @@ Scanner Refresh User Acceptance Tests
    :id: US_UAT_SCANREFRESH
    :status: implemented
    :priority: optional
-   :links: US_EXP_SCANREFRESH
+   :links: US_ENT_SCANREFRESH
 
    **As a** Jarvis Test Engineer,
    **I want** manual acceptance test scenarios for the rescan button,
@@ -54,7 +54,7 @@ Scanner Refresh User Acceptance Tests
    :id: US_UAT_CONTENTDETECT
    :status: implemented
    :priority: optional
-   :links: US_EXP_CONTENTDETECT
+   :links: US_ENT_CONTENTDETECT
 
    **As a** Jarvis Test Engineer,
    **I want** manual acceptance test scenarios for YAML content change detection,
@@ -99,7 +99,7 @@ Scanner Refresh User Acceptance Tests
    :id: US_UAT_NAMESORT
    :status: implemented
    :priority: optional
-   :links: US_EXP_NAMESORT
+   :links: US_ENT_NAMESORT
 
    **As a** Jarvis Test Engineer,
    **I want** manual acceptance test scenarios for entity-name-based sorting,

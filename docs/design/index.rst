@@ -18,7 +18,10 @@ Design Specifications describe **how** requirements are fulfilled technically.
    spec_pim
    spec_olk
    spec_rec
-   spec_ses
+   spec_evt
+   spec_prj
+   spec_act
+   spec_ent
    spec_eng
    spec_mod
    spec_hook

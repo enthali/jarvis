@@ -84,7 +84,7 @@ Messaging User Stories
    :id: US_MSG_JARVISSESSIONS
    :status: draft
    :priority: optional
-   :links: US_MSG_LISTSESSIONS; US_EXP_AGENTSESSION
+   :links: US_MSG_LISTSESSIONS; US_ENT_AGENTSESSION
 
    *Context: Generalises the kind-specific enumeration tools
    (``jarvis_listSessions`` for the ``session`` kind, ``jarvis_listProjects`` for
@@ -196,7 +196,7 @@ Messaging User Stories
    :id: US_MSG_STABLESESSION
    :status: approved
    :priority: optional
-   :links: US_MSG_CHATQUEUE; US_EXP_AGENTSESSION
+   :links: US_MSG_CHATQUEUE; US_ENT_AGENTSESSION
 
    **As a** Jarvis User,
    **I want** project and event agent sessions to open without editor-reuse

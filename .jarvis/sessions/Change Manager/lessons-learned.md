@@ -27,3 +27,11 @@
   this slips through anyway (engineer dispatches directly despite correction), do not send a
   duplicate/conflicting task — wait for the acting engineer's report, then resume normal
   CM-mediated handoff for the next step.
+- **Deprecated spec stubs are not a permanent artefact** — "keep a deprecated stub so
+  links don't break" is circular: if a live element still points to a superseded ID, that
+  reference is the defect to fix (repoint it), not a reason to preserve the old ID. Once all
+  consumers are repointed (mandatory in the same CR per the Artefakt-Removal Rule), delete the
+  superseded element outright — git history is the record of what used to exist, not a
+  deprecated stub in the live spec tree. Only exception: class (c) historic Change Document
+  prose (plain text, not a live sphinx-needs directive) — that's accepted stranding already,
+  nothing to fix.

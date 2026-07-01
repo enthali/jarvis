@@ -5,7 +5,7 @@ Session Tree Click Behaviour User Acceptance Tests
    :id: US_UAT_SESSIONTREECLICK
    :status: draft
    :priority: required
-   :links: US_SES_TREECLICK
+   :links: US_ENT_ENTITYPARITY
 
    **As a** Jarvis Test Engineer working in the Extension Development Host
    with the Sessions Tree visible,

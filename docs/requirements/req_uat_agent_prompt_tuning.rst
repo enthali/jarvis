@@ -5,7 +5,7 @@ Agent Prompt Tuning UAT Requirements
    :id: REQ_UAT_APT_INITPROMPT
    :status: implemented
    :priority: required
-   :links: US_UAT_APT_INITPROMPT; REQ_EXP_AGENTPROMPT_TEMPLATE; SPEC_EXP_AGENTSESSION_INITPROMPT
+   :links: US_UAT_APT_INITPROMPT; REQ_ENT_AGENTPROMPT_TEMPLATE; SPEC_ENT_AGENTSESSION_INITPROMPT
 
    **Description:**
    The configurable agent session init prompt — default content, placeholder

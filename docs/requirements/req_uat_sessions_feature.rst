@@ -2,10 +2,10 @@ Sessions Feature UAT Requirements
 ==================================
 
 .. req:: Sessions Tree View UAT Requirements
-   :id: REQ_UAT_SES_TREE
+   :id: REQ_UAT_ACT_TREE
    :status: implemented
    :priority: required
-   :links: US_UAT_SES_SESSIONS; REQ_SES_TOGGLE; REQ_SES_TREE; REQ_SES_SCHEMA; REQ_SES_OPENCONTEXT
+   :links: US_UAT_ACT_SESSIONS; REQ_ACT_TOGGLE; REQ_ACT_TREE; REQ_ACT_SCHEMA; REQ_ACT_OPENCONTEXT
 
    **Description:**
    The Sessions tree view behaviour — toggle gating, folder configuration, alphabetical
@@ -40,10 +40,10 @@ Sessions Feature UAT Requirements
 
 
 .. req:: Sessions New Entity UAT Requirements
-   :id: REQ_UAT_SES_NEWENTITY
+   :id: REQ_UAT_ACT_NEWENTITY
    :status: implemented
    :priority: required
-   :links: US_UAT_SES_SESSIONS; REQ_SES_NEWENTITY
+   :links: US_UAT_ACT_SESSIONS; REQ_ACT_NEWENTITY
 
    **Description:**
    The extension of ``jarvis.newEntity`` to include a **Session** option SHALL be
@@ -64,17 +64,17 @@ Sessions Feature UAT Requirements
    * AC-3: The newly created session node SHALL appear in the Sessions tree
      immediately after creation, without a manual reload (T-5).
    * AC-4: After creation, a new Copilot chat session SHALL open automatically
-     with the identity prompt described in ``REQ_SES_AGENTPROMPT`` (T-5, T-11).
+     with the identity prompt described in ``REQ_ACT_AGENTPROMPT`` (T-5, T-11).
    * AC-5: The Sessions view title ``+`` button (``jarvis.newSession``) SHALL
      trigger the same creation flow as T-5 without going through the QuickPick
      (T-5a). The command SHALL be absent from the Command Palette.
 
 
 .. req:: Sessions LM/MCP Tool UAT Requirements
-   :id: REQ_UAT_SES_TOOL
+   :id: REQ_UAT_ACT_TOOL
    :status: implemented
    :priority: required
-   :links: US_UAT_SES_SESSIONS; REQ_SES_LISTTOOL
+   :links: US_UAT_ACT_SESSIONS; REQ_ACT_LISTTOOL
 
    **Description:**
    The ``jarvis_listSessionEntities`` LM+MCP tool registration and output SHALL be
@@ -82,7 +82,7 @@ Sessions Feature UAT Requirements
 
    **Test Data Requirements:**
 
-   * Same two sample sessions as REQ_UAT_SES_TREE.
+   * Same two sample sessions as REQ_UAT_ACT_TREE.
    * ``jarvis.mcp.enabled=true`` for T-8 (MCP port listening).
 
    **Acceptance Criteria:**
@@ -96,10 +96,10 @@ Sessions Feature UAT Requirements
 
 
 .. req:: Sessions Feature Toggle UAT Requirements
-   :id: REQ_UAT_SES_TOGGLE
+   :id: REQ_UAT_ACT_TOGGLE
    :status: implemented
    :priority: required
-   :links: US_UAT_SES_SESSIONS; REQ_SES_TOGGLE
+   :links: US_UAT_ACT_SESSIONS; REQ_ACT_TOGGLE
 
    **Description:**
    The independence of the Sessions feature from Projects/Events and the gating of
@@ -123,10 +123,10 @@ Sessions Feature UAT Requirements
 
 
 .. req:: Agent-Session Identity Prompt UAT Requirements
-   :id: REQ_UAT_SES_AGENTPROMPT
+   :id: REQ_UAT_ACT_AGENTPROMPT
    :status: implemented
    :priority: required
-   :links: US_UAT_SES_SESSIONS; REQ_SES_AGENTPROMPT
+   :links: US_UAT_ACT_SESSIONS; REQ_ACT_AGENTPROMPT
 
    **Description:**
    The identity prompt sent by ``jarvis.openAgentSession`` when creating a new chat

@@ -5,7 +5,7 @@
    :id: US_UAT_CREATESESSIONTOOL
    :status: draft
    :priority: required
-   :links: US_SES_CREATETOOL
+   :links: US_ACT_CREATETOOL
 
    **As a** Jarvis Test Engineer running in the Extension Development Host,
    **I want** a set of manual acceptance test scenarios for the
@@ -14,7 +14,7 @@
    correctly, validates input, enforces idempotency, handles the disabled-gate
    case, uses verbatim folder names (no slugging), supports the
    round-trip with ``jarvis_sendToSession``, and auto-opens the new session's
-   agent chat — covering all ten acceptance criteria in ``REQ_SES_CREATETOOL``.
+   agent chat — covering all ten acceptance criteria in ``REQ_ACT_CREATETOOL``.
 
    **Acceptance Criteria:**
 

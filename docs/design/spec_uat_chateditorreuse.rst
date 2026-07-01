@@ -52,7 +52,7 @@ Chat Editor Reuse — Session Open UAT Design Specifications
 
           *CR AC: 1*
 
-          *Spec under test:* ``SPEC_EXP_AGENTSESSION``
+          *Spec under test:* ``SPEC_ENT_AGENTSESSION``
         - Precondition: ``copilot-cm`` session node is visible in the
           Sessions tree.  Note the current tab count (baseline).
 
@@ -78,7 +78,7 @@ Chat Editor Reuse — Session Open UAT Design Specifications
 
           *CR AC: 2*
 
-          *Spec under test:* ``SPEC_EXP_AGENTSESSION``
+          *Spec under test:* ``SPEC_ENT_AGENTSESSION``
         - Precondition: ``testdata/.jarvis/sessions/uat-new-session/`` does
           not exist.  Note the baseline tab count and the currently focused
           chat editor.
@@ -115,7 +115,7 @@ Chat Editor Reuse — Session Open UAT Design Specifications
 
           *CR AC: 3*
 
-          *Spec under test:* ``SPEC_EXP_AGENTSESSION``
+          *Spec under test:* ``SPEC_ENT_AGENTSESSION``
         - Precondition: No ``uat-ui-session`` folder exists.  Note the
           baseline tab count.
 
@@ -143,7 +143,7 @@ Chat Editor Reuse — Session Open UAT Design Specifications
 
           *CR AC: 4*
 
-          *Spec under test:* ``SPEC_EXP_AGENTSESSION``
+          *Spec under test:* ``SPEC_ENT_AGENTSESSION``
         - Precondition: No ``uat-sess-a`` or ``uat-sess-b`` folders exist.
           Note the baseline tab count.
 

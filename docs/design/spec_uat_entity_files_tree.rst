@@ -44,7 +44,7 @@ Entity File Children UAT Design Specifications
 
       * - T-2
 
-          Session node expands → 3 file children
+          Actor node expands → 3 file children
 
           *CR AC: 1, 3*
         - Expand ``copilot-cm`` in the Sessions Tree.

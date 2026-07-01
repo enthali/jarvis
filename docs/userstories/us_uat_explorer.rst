@@ -5,7 +5,7 @@ Explorer User Acceptance Tests
    :id: US_UAT_SAMPLEDATA
    :status: implemented
    :priority: mandatory
-   :links: US_EXP_SIDEBAR; US_EXP_PROJECTFILTER; US_EXP_EVENTFILTER; US_EXP_OPENYAML; US_CFG_PROJECTPATH
+   :links: US_EXP_SIDEBAR; US_PRJ_PROJECTFILTER; US_EVT_EVENTFILTER; US_ENT_OPENYAML; US_CFG_PROJECTPATH
 
    **As a** Jarvis Test Engineer,
    **I want** a versioned test dataset in the repo and manual acceptance test

@@ -5,7 +5,7 @@ Scanner Refresh UAT Requirements
    :id: REQ_UAT_SCANREFRESH_TESTDATA
    :status: implemented
    :priority: optional
-   :links: US_UAT_SCANREFRESH; US_UAT_CONTENTDETECT; US_UAT_NAMESORT; REQ_EXP_REACTIVECACHE; REQ_EXP_RESCAN_BTN; REQ_EXP_NAMESORT
+   :links: US_UAT_SCANREFRESH; US_UAT_CONTENTDETECT; US_UAT_NAMESORT; REQ_EXP_REACTIVECACHE; REQ_ENT_SCANREFRESH; REQ_ENT_NAMESORT
 
    **Description:**
    The repo SHALL contain sufficient test data and documented expected outcomes

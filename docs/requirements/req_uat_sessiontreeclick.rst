@@ -5,7 +5,7 @@ Session Tree Click Behaviour UAT Requirements
    :id: REQ_UAT_SESSIONTREECLICK
    :status: draft
    :priority: required
-   :links: US_UAT_SESSIONTREECLICK; REQ_SES_TREECLICK
+   :links: US_UAT_SESSIONTREECLICK; REQ_ACT_TREECLICK
 
    **Description:**
    Specifies the test data, workspace state, and per-AC verification criteria
@@ -32,7 +32,7 @@ Session Tree Click Behaviour UAT Requirements
    * Between scenarios that create or delete files, restore the original state
      before proceeding to the next scenario.
 
-   **Acceptance Criteria — per REQ_SES_TREECLICK AC:**
+   **Acceptance Criteria — per REQ_ACT_TREECLICK AC:**
 
    * AC-1 (REQ AC-1 — single click opens agent chat):
      For T-1 and T-7, the tester SHALL verify that clicking the session name

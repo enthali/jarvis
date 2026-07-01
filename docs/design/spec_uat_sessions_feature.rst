@@ -2,9 +2,9 @@ Sessions Feature UAT Design Specifications
 ==========================================
 
 .. spec:: Sessions Feature Test Scenarios and Expected Outcomes
-   :id: SPEC_UAT_SES_SCENARIOS
+   :id: SPEC_UAT_ACT_SCENARIOS
    :status: implemented
-   :links: REQ_UAT_SES_TREE; REQ_UAT_SES_NEWENTITY; REQ_UAT_SES_TOOL; REQ_UAT_SES_TOGGLE; REQ_UAT_SES_AGENTPROMPT
+   :links: REQ_UAT_ACT_TREE; REQ_UAT_ACT_NEWENTITY; REQ_UAT_ACT_TOOL; REQ_UAT_ACT_TOGGLE; REQ_UAT_ACT_AGENTPROMPT
 
    **Description:**
    Step-by-step procedures and expected outcomes for all ten sessions-feature

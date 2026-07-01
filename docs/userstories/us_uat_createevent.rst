@@ -5,7 +5,7 @@ Create Event Tool User Acceptance Tests
    :id: US_UAT_CREATEEVENT
    :status: draft
    :priority: optional
-   :links: US_EXP_CREATEEVENT; REQ_EXP_CREATEEVENT
+   :links: US_EVT_CREATEEVENT; REQ_EVT_CREATEEVENT
 
    **As a** Jarvis Test Engineer,
    **I want** manual acceptance test scenarios for the ``jarvis_createEvent``
@@ -19,17 +19,17 @@ Create Event Tool User Acceptance Tests
    * AC-1: A test verifies that ``jarvis_createEvent`` creates a folder named
      ``<startDate>_<name>`` (underscore separator, raw name verbatim), writes
      ``event.yaml`` and ``context.md``, and returns ``created: true`` (maps to
-     ``US_EXP_CREATEEVENT`` AC-1, AC-2, AC-4 / T-10).
+     ``US_EVT_CREATEEVENT`` AC-1, AC-2, AC-4 / T-10).
    * AC-2: A test verifies that the Events Tree reflects the new event within
-     2 seconds without a manual rescan (maps to ``US_EXP_CREATEEVENT`` AC-3
+     2 seconds without a manual rescan (maps to ``US_EVT_CREATEEVENT`` AC-3
      / T-10).
    * AC-3: A test verifies that a duplicate folder returns ``created: false``
-     without overwriting files (maps to ``US_EXP_CREATEEVENT`` AC-5 / T-11).
+     without overwriting files (maps to ``US_EVT_CREATEEVENT`` AC-5 / T-11).
    * AC-4: A test verifies that an invalid date format or non-calendar date
      returns an error and does not create any folder (maps to
-     ``US_EXP_CREATEEVENT`` AC-6 / T-12).
+     ``US_EVT_CREATEEVENT`` AC-6 / T-12).
    * AC-5: A test verifies that omitting the required ``startDate`` parameter
-     causes the tool to return an error (maps to ``US_EXP_CREATEEVENT`` AC-4
+     causes the tool to return an error (maps to ``US_EVT_CREATEEVENT`` AC-4
      / T-13).
 
    **Test Scenarios (summary):**

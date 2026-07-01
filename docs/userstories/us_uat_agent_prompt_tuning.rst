@@ -5,7 +5,7 @@ Agent Prompt Tuning User Acceptance Tests
    :id: US_UAT_APT_INITPROMPT
    :status: implemented
    :priority: required
-   :links: US_EXP_AGENTSESSION_PROMPT
+   :links: US_ENT_AGENTSESSION_PROMPT
 
    **As a** Jarvis Test Engineer,
    **I want** a set of manual acceptance test scenarios for the configurable

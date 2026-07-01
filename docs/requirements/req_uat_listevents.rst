@@ -5,7 +5,7 @@ List Events Tool UAT Requirements
    :id: REQ_UAT_LISTEVENTS
    :status: draft
    :priority: optional
-   :links: US_UAT_LISTEVENTS; REQ_EXP_LISTEVENTS
+   :links: US_UAT_LISTEVENTS; REQ_EVT_LISTEVENTS
 
    **Description:**
    Specifies the test data and per-AC verification criteria for manually

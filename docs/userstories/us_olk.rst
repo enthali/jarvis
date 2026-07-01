@@ -30,7 +30,7 @@ Outlook User Stories
    :id: US_OLK_AUTOCATEGORY
    :status: implemented
    :priority: optional
-   :links: US_EXP_NEWENTITY; US_OLK_COMBRIDGE
+   :links: US_ENT_NEWENTITY; US_OLK_COMBRIDGE
 
    **As a** Jarvis User,
    **I want** an Outlook category automatically created with a conventional name

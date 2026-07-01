@@ -5,7 +5,7 @@ Open Context UAT Requirements
    :id: REQ_UAT_OPENCONTEXT_TESTDATA
    :status: approved
    :priority: optional
-   :links: US_UAT_OPENCONTEXT; REQ_EXP_OPENCONTEXT
+   :links: US_UAT_OPENCONTEXT; REQ_ENT_OPENCONTEXT
 
    **Description:**
    The repo SHALL provide test data files for manual verification of the
