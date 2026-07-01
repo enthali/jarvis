@@ -1,12 +1,16 @@
 # Project Manager — Jarvis
 
-## Issue #18 — Files Touched by Agent (next priority)
+## Issue #18 — Files Touched by Agent (in progress)
 
 **User need:** With 50+ sessions, user loses track of which files a session has modified. Critical for orientation and forensics.
 
-**VS Code native overlap:** June 27 VS Code update added "See which files have changed when using the Agent Host" (#318891). Before starting #18, assess what VS Code provides natively — may be able to build on top of it instead of building from scratch.
+**VS Code native overlap:** June 27 VS Code update added "See which files have changed when using the Agent Host" (#318891) — confirmed this is AHP-only (Copilot CLI), does not apply to our normal chat sessions. Building our own.
 
-**Status:** Next in queue after v0.14.0 release. Assess native VS Code capability first, then scope CR accordingly.
+**Step 1 — entity-files-tree (2026-07-01):** Expandable file children (context.md, YAML, agent file) on Session/Project/Event tree nodes. Pipeline complete, awaiting QM + merge.
+
+**Step 2+ (not yet scoped):** Hook-based tracking of files touched during a session — user wants to go step by step, not all at once.
+
+**Design-doc drift found during step 1 (CM notable item):** Design docs still reference separate Project/Event/Session TreeProvider classes — these were already unified into one `GenericTreeDataProvider` in a prior CR. Implemented in the correct unified location. **Watch for this in other pending/future CDs that may still reference the old per-entity-kind TreeProvider model** — may need a doc correction pass.
 
 ---
 
@@ -49,6 +53,15 @@
 5. **Issue #10** — US→US link audit: conf.py `needs_warnings` guard
 6. **Issue #1** — End-user documentation — getting started with Jarvis for syspilot
 7. **Issue #2** — Extract PIM features as separate installable add-on
+
+## Spec Status Fixes (quick wins)
+
+- **US_EXP_OPENCONTEXT** — marked `draft` but implemented. Set to `implemented` after confirming ACs match behavior. (Found by System Designer during entity-files-tree review.)
+- **US_EXP_SIDEBAR** — "leaf node" definition predates entity-files-tree expandability change, reads stale standalone. (QM Round 2 finding #3, deferred.)
+
+## Technical Debt
+
+- **SES/EXP Theme Boundary** — SES theme is narrowly scoped to "Sessions" entity kind, while cross-entity concepts are split between EXP and SES organically. New REQs correctly use EXP for all 3 entity kinds. Worth a dedicated cleanup pass later (e.g. renaming SES → SESKIND, or consolidating cross-entity under EXP). (Flagged by System Designer.)
 8. **Issue #11** — Message Flow Visualization with Chord Diagram (medium, visualization)
 
 **Research / Long-term:**

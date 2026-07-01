@@ -2,7 +2,10 @@
   "Quality Manager",
   "Project Manager",
   "Change Manager",
-  "System Designer",
   "Dev Engineer",
-  "Research"
+  "Research",
+  "Test Designer",
+  "MECE Engineer",
+  "Trace Engineer",
+  "Documentation Engineer"
 ]
