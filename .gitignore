@@ -21,6 +21,7 @@ docs/_build/
 # jarvis log files
 .jarvis/logs/
 .jarvis/message-log.json
+.jarvis/autodelivery.json
 
 # OS
 Thumbs.db
