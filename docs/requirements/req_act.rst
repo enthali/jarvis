@@ -292,41 +292,47 @@ Sessions Requirements
    :id: REQ_ACT_TREECLICK
    :status: implemented
    :priority: required
-   :links: US_ENT_ENTITYPARITY
+   :links: US_ENT_ENTITYPARITY; REQ_ACT_OPENCONTEXT
 
    **Description:**
    The `jarvisSession` tree leaf node's primary action (single click) SHALL
-   open the agent-chat editor. Opening `context.md` SHALL be exposed via a
-   dedicated inline icon command.
+   open the agent-chat editor. Opening `context.md` remains reachable via the
+   existing inline `jarvis.openContext` icon — no dedicated command is
+   introduced for Actor nodes.
 
    **Acceptance Criteria:**
 
    * AC-1: The `command` property of every `jarvisSession` `TreeItem` SHALL
      be bound to `jarvis.openAgentSession` (replacing the previous binding to
      `jarvis.openContext`).
-   * AC-2: A new command `jarvis.openSessionContext` SHALL be registered. Its
-     handler SHALL open the session's `context.md` in the editor
-     (`preview: false`).
-   * AC-3: The `jarvis.openSessionContext` command SHALL be exposed as an
-     inline icon on `jarvisSession` tree items via
-     `contributes.menus.view/item/context` (`inline` group), with a tooltip of
-     `"Open context.md"`.
-   * AC-4: Double-click on a session node SHALL exhibit the same behaviour as
+   * AC-2: The existing `jarvis.openContext` command (per `REQ_ACT_OPENCONTEXT`)
+     remains the inline `context.md` icon for `jarvisSession` nodes — the
+     same shared command used by Project and Event nodes. No separate
+     Actor-specific command exists or is introduced.
+   * AC-3: Double-click on a session node SHALL exhibit the same behaviour as
      single click. This is satisfied by VS Code's default TreeView mapping and
      requires no explicit implementation; it SHALL be verified in UAT only.
-   * AC-5: All existing `view/item/context` menu entries for
+   * AC-4: All existing `view/item/context` menu entries for
      `viewItem == jarvisSession` SHALL remain unchanged (`jarvis.openContext`,
      `jarvis.openAgentSession`, `jarvis.revealInExplorer`,
      `jarvis.revealInOS`, `jarvis.openInTerminal`).
-   * AC-6: When `jarvis.openSessionContext` is invoked and `context.md` does
-     not exist in the session folder, the command SHALL create the file with the
-     template `# <session-name>\n\n` before opening it. The session name is
-     derived from the entity entry; if unavailable, it falls back to the folder
-     basename. Errors during file creation SHALL be shown via
-     `vscode.window.showErrorMessage` and SHALL NOT silently discard them.   * AC-7: Making the session node expandable (``collapsibleState = Collapsed``,
+   * AC-5: `jarvis.openContext`'s missing-file behaviour is unchanged for
+     Actor nodes: it uses the same discovery-only resolution (direct hit →
+     sibling-folder search → picker → "not found" message) as Project and
+     Event nodes — no auto-creation of `context.md` occurs on any kind (see
+     `entity-open-context-cleanup` CR: `REQ_ENT_OPENCONTEXT` AC-2/AC-6).
+   * AC-6: Making the session node expandable (``collapsibleState = Collapsed``,
      per ``REQ_ENT_ENTITY_FILE_CHILDREN``) does not interfere with this
      binding — clicking the label still invokes ``jarvis.openAgentSession``;
      clicking the expand arrow only expands/collapses.
+
+   **Retired (entity-open-context-cleanup CR):** the command
+   `jarvis.openSessionContext` — introduced by an earlier revision of this
+   REQ as a dedicated Actor inline-icon command with auto-create semantics —
+   was never activated (its `package.json` menu binding shipped with
+   `"when": "false"` and no code path ever invoked it programmatically). It
+   is removed from the codebase entirely (not merged/kept as an alias) — see
+   `entity-open-context-cleanup.md` for the Artefakt-Removal-Check.
 
 .. req:: Session Agent Field
    :id: REQ_ACT_AGENT_FIELD

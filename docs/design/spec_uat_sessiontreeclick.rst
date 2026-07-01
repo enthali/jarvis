@@ -7,13 +7,15 @@ Session Tree Click Behaviour UAT Design Specifications
    :links: REQ_UAT_SESSIONTREECLICK
 
    **Description:**
-   Step-by-step procedures and expected outcomes for all nine
+   Step-by-step procedures and expected outcomes for all ten
    session-tree click-behaviour acceptance test scenarios, covering the
    inverted single-click semantics, inline icon visibility and tooltip,
    non-preview ``context.md`` open, double-click equivalence, context-menu
-   preservation, legacy-resilience (missing ``context.md``), regression of
-   pre-existing sessions, cross-CR sanity for programmatically created
-   sessions, and command-palette hygiene.
+   preservation, discovery-only behavior on missing ``context.md`` (no
+   auto-create), regression of pre-existing sessions, cross-CR sanity for
+   programmatically created sessions, non-existence of the retired
+   ``jarvis.openSessionContext`` command, and cross-kind consistency of the
+   shared ``jarvis.openContext`` command across Session/Project/Event.
 
    **Test Setup:**
 
@@ -31,10 +33,11 @@ Session Tree Click Behaviour UAT Design Specifications
      * ``testdata/.jarvis/sessions/dev-feature-x/session.yaml`` and
        ``context.md``
 
-   * Expand the **Sessions** section in the Jarvis sidebar so all leaf nodes
-     are visible.
+   * Expand the **Sessions**, **Projects**, and **Events** sections in the
+     Jarvis sidebar so all leaf nodes are visible (Projects/Events needed
+     for T-10).
    * For T-8, an active VS Code Chat agent session must be open in the EDH.
-   * Between destructive scenarios (T-6, T-8), restore the original file
+   * Between destructive scenarios (T-6, T-8, T-10), restore the original file
      state before proceeding to the next scenario.
 
    **Expected Outcomes:**
@@ -161,7 +164,8 @@ Session Tree Click Behaviour UAT Design Specifications
 
       * - T-6
 
-          Legacy resilience — missing context.md auto-recreated
+          Discovery-only behavior — missing context.md shows info message,
+          no auto-create
 
           *CR AC: 6*
         - Precondition: using File Explorer or terminal, **delete**
@@ -171,23 +175,18 @@ Session Tree Click Behaviour UAT Design Specifications
           Return to the Jarvis sidebar.  Hover over the ``dev-feature-x``
           session node to reveal the inline icon, then click the icon.
 
-          Observe the editor and the filesystem.
-        - **File recreation:** ``testdata/.jarvis/sessions/dev-feature-x/context.md``
-          is created on disk.  Its content is exactly::
+          Observe the editor, any notifications, and the filesystem.
+        - **No file recreation:** ``testdata/.jarvis/sessions/dev-feature-x/context.md``
+          remains absent from disk — it is **not** recreated.
 
-            # dev-feature-x
+          **Information message:** A non-blocking information message is
+          shown (e.g. "No context.md found for this entity").
 
-          (the heading ``# dev-feature-x`` followed by a blank line; nothing
-          else — no extra text, no YAML front-matter).
+          **No editor opened:** No editor tab opens as a result of this
+          click; the agent-chat editor is also not opened.
 
-          **Editor:** The newly created ``context.md`` opens in a non-preview
-          editor tab.
-
-          **No error notification:** No error toast or message is shown; the
-          Jarvis output channel shows at most an informational log entry.
-
-          *Clean up: the file is already restored by the command — no manual
-          action needed.*
+          *Clean up: restore* ``context.md`` *(e.g. via* ``git checkout`` *)*
+          *after the scenario.*
 
       * - T-7
 
@@ -247,6 +246,63 @@ Session Tree Click Behaviour UAT Design Specifications
 
           *Clean up: delete* ``testdata/.jarvis/sessions/click-test-new/``
           *after the scenario.*
+
+      * - T-9
+
+          ``jarvis.openSessionContext`` non-existence (not merely
+          palette-hidden)
+
+          *CR AC: 9*
+        - a. Search all ``package.json`` files in the repository (root,
+               ``packages/core``, ``packages/pim``) for the string
+               ``openSessionContext``.
+
+          b. Open the Command Palette (``Ctrl+Shift+P``) and search for
+             "Open Session Context" / "openSessionContext".
+
+          c. Open the EDH's Debug Console and run
+             ``await vscode.commands.executeCommand('jarvis.openSessionContext')``.
+        - **No package.json references:** zero matches for
+          ``openSessionContext`` in any ``package.json``.
+
+          **Not in palette:** the command does not appear in the Command
+          Palette results.
+
+          **Execution fails:** the ``executeCommand`` call rejects with an
+          error containing "command 'jarvis.openSessionContext' not found"
+          (or equivalent VS Code wording) — proving the command is fully
+          unregistered, not just hidden from the palette.
+
+      * - T-10
+
+          Cross-kind consistency — shared ``jarvis.openContext`` behaves
+          identically for Project/Event/Session
+
+          *CR AC: 10*
+        - Repeat the T-3 check (inline icon opens ``context.md``,
+          ``preview:false``, no chat side-effect) on the ``alpha`` Project
+          node and the ``DevCon 2026`` Event node.
+
+          Then repeat the T-6 check (delete ``context.md``, click inline
+          icon, observe no recreation + information message) on the same
+          two nodes.
+        - **Project (``alpha``):** Inline icon opens
+          ``testdata/projects/alpha/context.md`` in a non-preview tab; after
+          deleting the file, clicking the icon shows an information message
+          and does not recreate it.
+
+          **Event (``DevCon 2026``):** Inline icon opens
+          ``testdata/events/2026-06-15_DevCon 2026/context.md`` in a
+          non-preview tab; after deleting the file, clicking the icon shows
+          an information message and does not recreate it.
+
+          **Consistency:** Behavior for both kinds is identical to the
+          Session node behavior verified in T-3/T-6, confirming
+          ``jarvis.openContext`` is the single shared command across all 3
+          entity kinds.
+
+          *Clean up: restore both deleted* ``context.md`` *files (e.g. via*
+          ``git checkout`` *) after the scenario.*
 
       * - T-9
 

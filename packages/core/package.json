@@ -121,12 +121,10 @@
       { "command": "jarvis.openMessageFile", "title": "Jarvis: Open Message File" },
       { "command": "jarvis.openEntityFile", "title": "Jarvis: Open Entity File" },
       { "command": "jarvis.openReminderFile", "title": "Jarvis: Open Reminder File" },
-      { "command": "jarvis.cancelReminder", "title": "Jarvis: Cancel Reminder", "icon": "$(trash)" },
-      { "command": "jarvis.openSessionContext", "title": "Jarvis: Open Session Context", "shortTitle": "Open context.md", "icon": "$(book)", "category": "Jarvis" }
+      { "command": "jarvis.cancelReminder", "title": "Jarvis: Cancel Reminder", "icon": "$(trash)" }
     ],
     "menus": {
       "commandPalette": [
-        { "command": "jarvis.openSessionContext", "when": "false" },
         { "command": "jarvis.openAgentSession", "when": "false" },
         { "command": "jarvis.openContext", "when": "false" },
         { "command": "jarvis.newEntity", "when": "false" },

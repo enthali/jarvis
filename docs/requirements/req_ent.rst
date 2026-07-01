@@ -129,16 +129,19 @@ generic/user-facing, ``ENG`` = kind-agnostic plumbing, no US level).
    :id: REQ_ENT_OPENCONTEXT
    :status: draft
    :priority: optional
-   :links: US_ENT_OPENCONTEXT; REQ_ENT_OPENYAML; REQ_ENT_AGENTSESSION
+   :links: US_ENT_OPENCONTEXT; REQ_ENT_OPENYAML; REQ_ENT_AGENTSESSION; REQ_ACT_OPENCONTEXT
 
    **Description:**
-   Every project and event leaf item SHALL provide an inline action button that
-   resolves and opens a ``context.md`` file using a 3-step discovery process.
+   Every project, event, and actor leaf item SHALL provide an inline action
+   button (``jarvis.openContext``) that resolves and opens a ``context.md``
+   file using a 3-step discovery process. This is the single, shared command
+   for all 3 entity kinds — there is no per-kind variant and no auto-create
+   behavior for any kind (see entity-open-context-cleanup CR decision below).
    If no file is found, an information message SHALL be shown.
 
    **Acceptance Criteria:**
 
-   * AC-1: All project and event leaf items SHALL display an inline
+   * AC-1: All project, event, and actor leaf items SHALL display an inline
      ``$(notebook)`` button in addition to the existing ``$(go-to-file)`` and
      ``$(comment-discussion)`` buttons
    * AC-2: The resolution order SHALL be:
@@ -159,7 +162,11 @@ generic/user-facing, ``ENG`` = kind-agnostic plumbing, no US level).
    * AC-5: The picker label SHALL be the relative path from the entity folder
      (e.g. ``pm/context.md``)
    * AC-6: If the file exists (step 1 or selected), it SHALL be opened using
-     ``vscode.window.showTextDocument()``
+     ``vscode.window.showTextDocument()`` with ``{ preview: false }`` — no
+     kind shows a preview-mode tab, and no kind auto-creates a missing
+     ``context.md`` on open (creation happens only at entity-creation time,
+     via ``jarvis_createProject``/``jarvis_createEvent``/``jarvis_createSession``
+     and their UI equivalents — never as a side effect of opening).
    * AC-7: Folder nodes SHALL NOT display the button
    * AC-8: The command SHALL NOT appear in the Command Palette (it requires a
      tree element argument and would fail without one)

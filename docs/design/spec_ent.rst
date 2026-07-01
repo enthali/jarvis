@@ -12,10 +12,13 @@ level).
    ``pickAgentMode()`` implementation invoked by all 3 entity kinds'
    creation flows; ``SPEC_ENT_AGENT_PICKER`` (below) is its cross-cutting
    contract (return semantics, consumer list, chat-open gate).
-   ``SPEC_ACT_TREECLICK`` (in ``spec_act.rst``) additionally specifies the
-   Actor-only ``jarvis.openSessionContext`` command, which has no
-   cross-kind equivalent and is therefore NOT merged into
-   ``SPEC_ENT_TREECLICK`` (below).
+   ``SPEC_ACT_TREECLICK`` (in ``spec_act.rst``) specifies the Actor-specific
+   click-semantics inversion (single-click opens agent chat instead of
+   context.md); its inline context.md icon uses the same shared
+   ``jarvis.openContext`` command specified below in
+   ``SPEC_ENT_OPENCONTEXT_CMD`` — no Actor-only command exists (the earlier
+   ``jarvis.openSessionContext`` command was retired as dead code by the
+   ``entity-open-context-cleanup`` CR).
 
 .. spec:: Open YAML Command
    :id: SPEC_ENT_OPENYAML_CMD
@@ -1063,12 +1066,17 @@ level).
 .. spec:: Open Context File Command
    :id: SPEC_ENT_OPENCONTEXT_CMD
    :status: draft
-   :links: REQ_ENT_OPENCONTEXT; SPEC_ENT_OPENYAML_CMD; SPEC_ENT_AGENTSESSION; SPEC_EXP_EXTENSION
+   :links: REQ_ENT_OPENCONTEXT; REQ_ACT_OPENCONTEXT; SPEC_ENT_OPENYAML_CMD; SPEC_ENT_AGENTSESSION; SPEC_EXP_EXTENSION
 
    **Description:**
-   A command ``jarvis.openContext`` resolves and opens the ``context.md`` file
-   associated with a project or event leaf item using a 3-step discovery
-   process. If no file is found, an information message is shown.
+   A single command ``jarvis.openContext`` resolves and opens the
+   ``context.md`` file associated with a project, event, **or actor** leaf
+   item using a 3-step discovery process. This is the one shared command
+   for all 3 entity kinds — there is no per-kind variant
+   (``jarvis.openSessionContext`` was retired in the
+   ``entity-open-context-cleanup`` CR; see ``SPEC_ACT_TREECLICK``). If no
+   file is found, an information message is shown; the command never
+   creates a file as a side effect.
 
    **Handler:**
 
@@ -1086,7 +1094,7 @@ level).
           // Step 1: direct hit
           const direct = path.join(folder, 'context.md');
           if (fs.existsSync(direct)) {
-            await vscode.window.showTextDocument(vscode.Uri.file(direct));
+            await vscode.window.showTextDocument(vscode.Uri.file(direct), { preview: false });
             return;
           }
 
@@ -1106,7 +1114,7 @@ level).
 
           if (candidates.length === 1) {
             // Step 2a: exactly one match — open without prompting
-            await vscode.window.showTextDocument(vscode.Uri.file(candidates[0]));
+            await vscode.window.showTextDocument(vscode.Uri.file(candidates[0]), { preview: false });
             return;
           }
 
@@ -1120,7 +1128,7 @@ level).
               placeHolder: 'Multiple context.md found — pick one'
             });
             if (pick) {
-              await vscode.window.showTextDocument(vscode.Uri.file(pick.fullPath));
+              await vscode.window.showTextDocument(vscode.Uri.file(pick.fullPath), { preview: false });
             }
             return;
           }
@@ -1158,6 +1166,11 @@ level).
             "command": "jarvis.openContext",
             "when": "viewItem == jarvisEvent",
             "group": "inline"
+          },
+          {
+            "command": "jarvis.openContext",
+            "when": "viewItem =~ /^jarvisSession$/",
+            "group": "inline@1"
           }
         ]
 
@@ -1178,6 +1191,10 @@ level).
    * Same inline-button pattern as ``SPEC_ENT_OPENYAML_CMD`` and
      ``SPEC_ENT_AGENTSESSION`` — three icons will be shown on leaf nodes:
      ``$(go-to-file)``, ``$(comment-discussion)``, and ``$(notebook)``
+   * The Project/Event menu entries are contributed by the PIM package
+     (``packages/pim/package.json``); the Actor (``jarvisSession``) entry is
+     contributed by the core package (``packages/core/package.json``). Both
+     invoke the same ``jarvis.openContext`` command registered once in core.
    * ``fs.existsSync()`` is used synchronously for all existence checks — this
      is acceptable because the subfolder count is small (project/event folders
      typically contain fewer than 20 entries)
@@ -1195,3 +1212,8 @@ level).
    * The ``$(notebook)`` icon visually suggests "documentation" or "notes" and
      is distinct from the existing icons
    * No tree provider changes required — purely a command + menu contribution
+   * ``{ preview: false }`` is passed on every ``showTextDocument()`` call so
+     opening ``context.md`` never reuses/clobbers a preview tab, consistent
+     across all 3 entity kinds (entity-open-context-cleanup CR)
+   * No auto-creation of ``context.md`` occurs on any kind — see
+     ``SPEC_ACT_TREECLICK``'s "Auto-create decision" for the rationale

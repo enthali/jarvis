@@ -441,7 +441,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         }
     );
 
-    // Open context command (SPEC_EXP_OPENCONTEXT_CMD)
+    // Open context command (SPEC_ENT_OPENCONTEXT_CMD)
     const openContextCommand = vscode.commands.registerCommand(
         'jarvis.openContext',
         async (element: LeafNode) => {
@@ -449,7 +449,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             const direct = path.join(folder, 'context.md');
 
             if (fs.existsSync(direct)) {
-                await vscode.window.showTextDocument(vscode.Uri.file(direct));
+                await vscode.window.showTextDocument(vscode.Uri.file(direct), { preview: false });
                 return;
             }
 
@@ -463,7 +463,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             } catch { /* fall through */ }
 
             if (found.length === 1) {
-                await vscode.window.showTextDocument(vscode.Uri.file(found[0]));
+                await vscode.window.showTextDocument(vscode.Uri.file(found[0]), { preview: false });
                 return;
             }
 
@@ -476,7 +476,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
                     { placeHolder: 'Multiple context.md found — pick one' }
                 );
                 if (picked) {
-                    await vscode.window.showTextDocument(vscode.Uri.file(picked.fullPath));
+                    await vscode.window.showTextDocument(vscode.Uri.file(picked.fullPath), { preview: false });
                 }
                 return;
             }
@@ -484,38 +484,6 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             vscode.window.showInformationMessage('No context.md found for this entity');
         }
     );
-
-    // Open session context command (SPEC_SES_TREECLICK)
-    let openSessionContextCommand: vscode.Disposable | undefined;
-    if (cfg.get<boolean>('sessions.enabled', true)) {
-        openSessionContextCommand = vscode.commands.registerCommand(
-            'jarvis.openSessionContext',
-            async (element: LeafNode) => {
-                const sessionDir = path.dirname(element.id);
-                const contextPath = path.join(sessionDir, 'context.md');
-
-                if (!fs.existsSync(contextPath)) {
-                    const entity = kindDrivenScanner.getEntity(element.id);
-                    const sessionName = entity?.name ?? path.basename(sessionDir);
-                    try {
-                        await fs.promises.writeFile(contextPath, '# ' + sessionName + '\n\n', 'utf-8');
-                        log.info('[OpenSessionContext] created missing context.md for "' + sessionName + '"');
-                    } catch (err) {
-                        vscode.window.showErrorMessage('Jarvis: Could not create context.md -- ' + err);
-                        return;
-                    }
-                }
-
-                try {
-                    await vscode.window.showTextDocument(vscode.Uri.file(contextPath), { preview: false });
-                } catch (err) {
-                    log.warn(`[SES] openSessionContext: showTextDocument failed for ${contextPath}: ${err}`);
-                    vscode.window.showWarningMessage(`Jarvis: could not open context.md: ${err}`);
-                }
-            }
-        );
-        context.subscriptions.push(openSessionContextCommand);
-    }
 
     // Delete message command
     const deleteMessageCommand = vscode.commands.registerCommand(
