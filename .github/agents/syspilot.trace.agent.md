@@ -2,7 +2,7 @@
 name: "Trace Engineer"
 agent: syspilot.trace
 description: "Subagent that traces one specification element vertically through all levels (US → REQ → SPEC) and checks traceability completeness."
-tools: [read, search, execute]
+tools: [execute, read, enthali.jarvis-core, search]
 model: Claude Haiku 4.5 (copilot)
 user-invocable: true
 agents: []

@@ -22,3 +22,8 @@
   If not, create the concept spec (e.g. `SPEC_REL_PKGCONTRACT`) in the same CR so the pattern
   is repeatable and future modules just link to it rather than re-specifying it from scratch.
   Apply this even when the PM CR targets a specific feature — the architecture gap is in scope.
+- **Never instruct one engineer to dispatch directly to another** — even when asking System
+  Designer to "hand off to Dev Engineer" seems efficient, it breaks Engineer Isolation. When
+  this slips through anyway (engineer dispatches directly despite correction), do not send a
+  duplicate/conflicting task — wait for the acting engineer's report, then resume normal
+  CM-mediated handoff for the next step.

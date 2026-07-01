@@ -527,3 +527,33 @@ Explorer User Stories
      the agent-picker chat-open gate (concrete agent → mode chat; "No agent" →
      default chat with no mode; cancel → abort). In all non-cancel paths the
      chat is renamed and the init-prompt is submitted.
+
+
+.. story:: Entity File Children in Tree
+   :id: US_EXP_ENTITY_FILES_TREE
+   :status: approved
+   :priority: mandatory
+   :links: US_EXP_SIDEBAR; US_SES_SESSIONS; US_SES_TREECLICK; US_EXP_ENTITYPARITY
+
+   **As a** Jarvis User,
+   **I want** each Session, Project, and Event node in the Jarvis Explorer to
+   expand and show its core files (``context.md``, the YAML config, and the
+   agent file when one is configured) as clickable tree items with tooltips,
+   **so that** I can open any of these files directly by clicking on the file
+   child, without leaving the tree.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Every Session, Project, and Event leaf node is expandable and shows
+     up to 3 file children: ``context.md``, the entity's YAML config file
+     (``session.yaml`` / ``project.yaml`` / ``event.yaml``), and the agent
+     file.
+   * AC-2: The agent file child is shown only when the entity has a
+     configured agent file; otherwise it is omitted (fail-open, no error).
+   * AC-3: Each file child shows a tooltip with the full filesystem path of
+     that file.
+   * AC-4: Clicking a file child opens that file directly in the VS Code
+     editor.
+   * AC-5: This is purely additive — existing inline icon buttons (YAML,
+     context.md) and existing entity-node click behavior (open agent session
+     / open chat) are unchanged by this feature.

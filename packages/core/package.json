@@ -119,6 +119,7 @@
       { "command": "jarvis.openInTerminal", "title": "Open in Terminal" },
       { "command": "jarvis.openHeartbeatJob", "title": "Jarvis: Open Heartbeat Job" },
       { "command": "jarvis.openMessageFile", "title": "Jarvis: Open Message File" },
+      { "command": "jarvis.openEntityFile", "title": "Jarvis: Open Entity File" },
       { "command": "jarvis.openReminderFile", "title": "Jarvis: Open Reminder File" },
       { "command": "jarvis.cancelReminder", "title": "Jarvis: Cancel Reminder", "icon": "$(trash)" },
       { "command": "jarvis.openSessionContext", "title": "Jarvis: Open Session Context", "shortTitle": "Open context.md", "icon": "$(book)", "category": "Jarvis" }
@@ -140,6 +141,7 @@
         { "command": "jarvis.openInTerminal", "when": "false" },
         { "command": "jarvis.openHeartbeatJob", "when": "false" },
         { "command": "jarvis.openMessageFile", "when": "false" },
+        { "command": "jarvis.openEntityFile", "when": "false" },
         { "command": "jarvis.openReminderFile", "when": "false" },
         { "command": "jarvis.enableAutoDelivery", "when": "false" },
         { "command": "jarvis.disableAutoDelivery", "when": "false" },

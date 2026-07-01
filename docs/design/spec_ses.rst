@@ -82,7 +82,7 @@ Sessions Design Specifications
 .. spec:: sessions-feature: SessionTreeProvider Module
    :id: SPEC_SES_TREE
    :status: implemented
-   :links: REQ_SES_TREE; REQ_SES_OPENCONTEXT
+   :links: REQ_SES_TREE; REQ_SES_OPENCONTEXT; SPEC_EXP_ENTITY_FILE_CHILDREN
 
    **Description:**
    New module ``src/sessionTreeProvider.ts`` — a slimmed clone of
@@ -98,6 +98,13 @@ Sessions Design Specifications
       now ``jarvis.openAgentSession`` (open the agent chat), and ``context.md``
       access moves to an inline-icon menu entry. See ``SPEC_SES_TREECLICK`` for
       the current assignment.
+
+   .. note::
+
+      The ``vscode.TreeItemCollapsibleState.None`` shown below is superseded
+      by ``SPEC_EXP_ENTITY_FILE_CHILDREN``: session leaf nodes become
+      expandable (``Collapsed``) to show file children. See
+      ``SPEC_EXP_ENTITY_FILE_CHILDREN`` for the current assignment.
 
    .. code-block:: typescript
 

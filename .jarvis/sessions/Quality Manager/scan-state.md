@@ -40,6 +40,7 @@ Updated after every cycle. Read this first to know where to pick up.
 | hook-event-router | 2026-06-30 | PASS | PASS | PASS | 35 TCs across 8 groups ✓ | Event routing registry, on/off methods, --event parameter, typed dispatch; US_HOOK_OBSERVE AC-4 fulfilled | QM CLEAR |
 | hook-files-relocate | 2026-06-30 | n/a (structural) | PASS | PASS | 147/147 tests ✓ | Moved hook files to engine/hooks/, imports updated, build clean | QM CLEAR |
 | engine-restructure | 2026-06-30 | n/a (structural) | PASS | PASS | 148/148 tests ✓ | Moved 8 core files to engine/core/ and engine/sessions/, index.ts re-exports, build clean | QM CLEAR |
+| entity-files-tree | 2026-07-01 | L0 PASS/2 gaps / L1 PASS/1 modality mismatch / L2 PASS/2 doc gaps | PASS (2 elements sampled) | PASS | n/a (UAT already exec'd by CM pipeline) | Round 2: stale CD summary + REQ MAY/SHALL — both fixed. Round 3 spot-check on agent-discovery bug-fix amendment: PASS, no scope creep, code matches amended spec. | QM FINAL SIGN-OFF — CLEAR |
 
 ## Known Releases (at last scan)
 

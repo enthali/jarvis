@@ -72,6 +72,9 @@ Sessions Requirements
    * AC-4: Session nodes SHALL be sorted alphabetically by name (case-insensitive).
    * AC-5: When the scanner refreshes, the Sessions tree SHALL refresh
      automatically.
+   * AC-6: Session leaf nodes SHALL be expandable (``collapsibleState = Collapsed``)
+     to show file children (see ``REQ_EXP_ENTITY_FILE_CHILDREN``). This does
+     not change the leaf-node identity defined in AC-3.
 
 
 .. req:: newEntity Command — Session Support
@@ -320,8 +323,10 @@ Sessions Requirements
      template `# <session-name>\n\n` before opening it. The session name is
      derived from the entity entry; if unavailable, it falls back to the folder
      basename. Errors during file creation SHALL be shown via
-     `vscode.window.showErrorMessage` and SHALL NOT silently discard them.
-
+     `vscode.window.showErrorMessage` and SHALL NOT silently discard them.   * AC-7: Making the session node expandable (``collapsibleState = Collapsed``,
+     per ``REQ_EXP_ENTITY_FILE_CHILDREN``) does not interfere with this
+     binding — clicking the label still invokes ``jarvis.openAgentSession``;
+     clicking the expand arrow only expands/collapses.
 
 .. req:: Session Agent Field
    :id: REQ_SES_AGENT_FIELD

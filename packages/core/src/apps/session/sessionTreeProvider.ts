@@ -27,6 +27,15 @@ export class SessionTreeProvider implements vscode.TreeDataProvider<TreeNode> {
             return item;
         }
 
+        if (element.kind === 'file') {
+            // This legacy provider predates SPEC_EXP_ENTITY_FILE_CHILDREN and never
+            // produces FileNode itself (see getChildren below); handled only to
+            // satisfy the shared TreeNode union exhaustively.
+            const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.None);
+            item.tooltip = element.filePath;
+            return item;
+        }
+
         // LeafNode (session)
         const entity = this._scanner.getEntity(element.id);
         const name = entity ? entity.name : path.basename(path.dirname(element.id));

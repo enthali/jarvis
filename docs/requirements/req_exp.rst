@@ -48,6 +48,10 @@ Explorer Requirements
    * AC-9: Grouping nodes with no descendant leaf items SHALL be omitted from the tree
    * AC-10: The sidebar contains a "Categories" tree view (visible when
      categories are enabled — see ``REQ_PIM_CATVIEW`` for visibility rules)
+   * AC-11: Entity leaf nodes (project, event, session) SHALL themselves be
+     expandable (``collapsibleState = Collapsed``) to show file children
+     (see ``REQ_EXP_ENTITY_FILE_CHILDREN``). Expandability does not change
+     leaf-node identity — AC-6 still applies unmodified.
 
 
 .. req:: Static Dummy Data
@@ -908,6 +912,10 @@ Explorer Requirements
    * AC-2: ``REQ_EXP_OPENYAML`` AC-4 is superseded: ``TreeItem.command`` is now
      set (to open agent session), and the YAML button remains as an inline icon.
    * AC-3: Double-click behaves identically (VS Code default).
+   * AC-4: Making the node expandable (``collapsibleState = Collapsed``, per
+     ``REQ_EXP_ENTITY_FILE_CHILDREN``) does not interfere with this binding —
+     clicking the label still invokes ``jarvis.openAgentSession``; clicking
+     the expand arrow only expands/collapses.
 
 
 .. req:: Uniform Inline Icons (All Entities)
@@ -932,6 +940,41 @@ Explorer Requirements
    * AC-5: No ``$(record)`` inline icon SHALL appear on any entity tree item,
      regardless of whether a ``recording/`` subfolder exists in the entity
      folder.
+
+
+.. req:: Entity File Children in Tree
+   :id: REQ_EXP_ENTITY_FILE_CHILDREN
+   :status: approved
+   :priority: mandatory
+   :links: US_EXP_ENTITY_FILES_TREE; US_SES_SESSIONS; US_EXP_ENTITYPARITY; REQ_EXP_TREEVIEW
+
+   **Description:**
+   Session, Project, and Event tree leaf nodes SHALL be expandable and show
+   up to 3 file children: ``context.md``, the entity's YAML config file, and
+   the agent file (when configured). This is purely additive to existing
+   leaf-node behavior — inline icons and click-to-chat semantics are
+   unchanged (see ``REQ_EXP_ENTITY_TREECLICK`` AC-4, ``REQ_SES_TREECLICK``
+   AC-7, ``REQ_EXP_TREEVIEW`` AC-11).
+
+   **Acceptance Criteria:**
+
+   * AC-1: Every project, event, and session leaf node SHALL have
+     ``collapsibleState = Collapsed``.
+   * AC-2: Each entity leaf node's children SHALL be, in order: ``context.md``,
+     the YAML config file (``project.yaml`` / ``event.yaml`` / ``session.yaml``),
+     and the agent file.
+   * AC-3: The agent file child SHALL be omitted when the entity has no
+     configured agent file (fail-open, no error).
+   * AC-4: Each file child ``TreeItem`` SHALL have ``tooltip`` set to the full
+     absolute filesystem path of that file.
+   * AC-5: Each file child ``TreeItem.command`` SHALL open that file in the
+     VS Code editor (``preview: false``).
+   * AC-6: File child nodes SHALL have ``collapsibleState = None`` (no further
+     descent) and a distinct ``contextValue`` (e.g. ``jarvisEntityFile``) so
+     they are excluded from entity-node context-menu actions.
+   * AC-7: File children SHALL be shown regardless of whether the target file
+     currently exists on disk; missing-file click behavior is specified at
+     Level 2 design.
 
 
 
