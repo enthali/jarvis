@@ -61,7 +61,8 @@
 
 ## Technical Debt
 
-- **SES/EXP Theme Boundary** — SES theme is narrowly scoped to "Sessions" entity kind, while cross-entity concepts are split between EXP and SES organically. New REQs correctly use EXP for all 3 entity kinds. Worth a dedicated cleanup pass later (e.g. renaming SES → SESKIND, or consolidating cross-entity under EXP). (Flagged by System Designer.)
+- **SES/EXP Theme Boundary** — resolved by entity-taxonomy-rename CR (in progress, 2026-07-01). Session kind → Actor kind, EXP narrows to sidebar frame, new ENT theme for generic cross-kind concepts.
+- **Future: `.jarvis/sessions/` folder rename** (queued after entity-taxonomy-rename + #3 freshmind/housekeeping). Additive-only migration: new workspaces get `.jarvis/actors/`; existing `.jarvis/sessions/` folders are NOT force-migrated (active sessions run out of that folder — forced rename mid-flight breaks orchestration; no safe quiesce mechanism exists yet without #3). Sequencing: entity-taxonomy-rename (spec) → #3 (freshmind/housekeeping) → folder-rename code CR.
 - **Release agent copies instead of moves change docs** — v0.14.0 release left duplicate change docs at `docs/changes/` root (should only exist under `docs/changes/v0.14.0/`). Cleaned up manually 2026-07-01. Check this on every future release.
 8. **Issue #11** — Message Flow Visualization with Chord Diagram (medium, visualization)
 

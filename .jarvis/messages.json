@@ -1,1 +1,9 @@
-[]
+[
+  {
+    "destination": "Change Manager",
+    "sender": "Project Manager",
+    "text": "CR: entity-taxonomy-rename\n\nBranch: feature/entity-taxonomy-rename\nChange Document: docs/changes/entity-taxonomy-rename.md\nBackground reading (required before starting): .jarvis/sessions/Research/FI-2026-07-01-exp-ses-theme-boundary.md\n\nSummary: Spec-only cleanup resolving the EXP/SES theme boundary drift. Establishes a consistent entity taxonomy: umbrella concept renamed to \"Jarvis Entity\", the three entity kinds become Project / Event / Actor (the \"Session\" kind retired in favor of \"Actor\", per the Hewitt actor model — mailbox=queue, state=context.md, heartbeat=activator+supervisor). Theme realignment: generic cross-kind concepts → new ENT theme, plumbing/infrastructure → ENG, kind-specific → PRJ/EVT/ACT, EXP narrows to sidebar UI frame only. Also consolidates duplicate SPECs (Scanner, Agent-Picker, Tree-Click, New-Entity — each currently specced twice across EXP/SES) and fixes stray items (SES missing from naming conventions, unused PRJ/EVT theme declarations, misplaced US_EVT_DATESORT).\n\nNo code changes — pure specification/documentation. NOT in scope: renaming the .jarvis/sessions/ folder path or any runtime code (future code CR).\n\nProcess for this CR (important, per user direction): execute as ONE CR with multiple internal work steps (e.g. 1: mechanical rename SES→ACT + naming conventions fix, 2: dedup duplicate SPECs, 3: EXP thinning + new ENT theme). Do NOT send partial/half-finished states to QM. Complete all internal steps first, verify internally (MECE + Trace as safety net, as usual), THEN send the fully consistent end state to QM as a whole. I don't need a findings list for each internal step — just the final consolidated result.\n\nPlease proceed — this is a System Designer-heavy CR (taxonomy/spec restructuring), coordinate accordingly.",
+    "timestamp": "2026-07-01T10:59:03.632Z",
+    "notified": true
+  }
+]
