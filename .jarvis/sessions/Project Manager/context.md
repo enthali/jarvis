@@ -44,15 +44,13 @@
 - Sphinx validation runs BEFORE version bump/docs move (early gate)
 - See [lessons-learned.md](lessons-learned.md) for full history
 
-## Next Queue (prioritized from GitHub Issues)
+## Backlog
 
-1. **Issue #4** — `jarvis_listAgentSessions` + `registerAgentSessionProvider` in `JarvisCoreApi` (prerequisite for #3)
-2. **Issue #3** — `jarvis.freshmind` + `jarvis.housekeeping` commands (depends on #4)
-3. **Issue #7** — WSL2 fix: `USERNAME ?? USER` environment variable fallback
-4. **Issue #9** — version-bump-ac: add AC to SPEC_REL_RELEASEACTION
-5. **Issue #10** — US→US link audit: conf.py `needs_warnings` guard
-6. **Issue #1** — End-user documentation — getting started with Jarvis for syspilot
-7. **Issue #2** — Extract PIM features as separate installable add-on
+Single source of truth: [open GitHub Issues](https://github.com/enthali/jarvis/issues). See `.github/agents/syspilot.pm.tailoring.md`.
+
+**Housekeeping (close on GitHub if not already closed):**
+- **Issue #7** — WSL2 username fallback, shipped v0.13.3 (commit 8fa838e)
+- **Issue #2** — PIM already extracted as separate installable add-on (jarvis-pim package, on Marketplace)
 
 ## Spec Status Fixes (quick wins)
 
@@ -61,23 +59,15 @@
 
 ## Technical Debt
 
-- **SES/EXP Theme Boundary** — resolved by entity-taxonomy-rename CR (in progress, 2026-07-01). Session kind → Actor kind, EXP narrows to sidebar frame, new ENT theme for generic cross-kind concepts.
-- **Future: `.jarvis/sessions/` folder rename** (queued after entity-taxonomy-rename + #3 freshmind/housekeeping). Additive-only migration: new workspaces get `.jarvis/actors/`; existing `.jarvis/sessions/` folders are NOT force-migrated (active sessions run out of that folder — forced rename mid-flight breaks orchestration; no safe quiesce mechanism exists yet without #3). Sequencing: entity-taxonomy-rename (spec) → #3 (freshmind/housekeeping) → folder-rename code CR.
+## Technical Debt
+
+- **SES/EXP Theme Boundary** — resolved by entity-taxonomy-rename CR (merged to develop, 2026-07-01). Session kind → Actor kind, EXP narrows to sidebar frame, new ENT theme for generic cross-kind concepts.
+- **Future: `.jarvis/sessions/` folder rename** (queued after #3 freshmind/housekeeping). Additive-only migration: new workspaces get `.jarvis/actors/`; existing `.jarvis/sessions/` folders are NOT force-migrated (active sessions run out of that folder — forced rename mid-flight breaks orchestration; no safe quiesce mechanism exists yet without #3). Sequencing: entity-taxonomy-rename (done) → #3 (freshmind/housekeeping) → folder-rename code CR.
 - **Release agent copies instead of moves change docs** — v0.14.0 release left duplicate change docs at `docs/changes/` root (should only exist under `docs/changes/v0.14.0/`). Cleaned up manually 2026-07-01. Check this on every future release.
-8. **Issue #11** — Message Flow Visualization with Chord Diagram (medium, visualization)
 
-**Research / Long-term:**
-- **Issue #6** — Agent Host Protocol: send messages to chat sessions without stealing focus (2-3 weeks research, not next cycle)
+## Parallel Work — Research in Progress
 
-**Won't Fix:**
-- **Issue #8** — Remove GitHub Releases auto-updater: **REQUIRED** for corporate/private marketplace environments
-
-## Roadmap Source of Truth
-
-The roadmap is built from [open GitHub Issues](https://github.com/enthali/jarvis/issues). The PM reviews open issues, prioritizes them manually, and drives the backlog that way. This ensures:
-- Always current (no stale documents)
-- External feedback included
-- Dependencies documented in issue comments
+User is having Research do a stocktake on running parallel CRs via git worktrees (multiple CM/Dev Engineer pairs at once). Related: prior S2S push to expose Jarvis messages to Copilot CLI — CLI sessions could work in a worktree too. Not scoped yet.
 
 ## Active Plans
 
