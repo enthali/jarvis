@@ -69,7 +69,7 @@ Project Requirements
    :id: REQ_PRJ_CREATEPROJECT
    :status: draft
    :priority: optional
-   :links: US_PRJ_CREATEPROJECT; REQ_EXP_NEWPROJECT; REQ_ACT_AGENT_DISCOVERY
+   :links: US_PRJ_CREATEPROJECT; REQ_PRJ_NEWPROJECT; REQ_ACT_AGENT_DISCOVERY
 
    **Description:**
    A Language Model and MCP tool ``jarvis_createProject`` SHALL programmatically
@@ -94,5 +94,47 @@ Project Requirements
    * AC-7: When ``agent`` is non-blank, validate against
      ``REQ_ACT_AGENT_DISCOVERY``; if invalid, throw error with available
      agents listed (per ``REQ_ACT_AGENT_VALIDATION``).
+
+
+
+.. req:: New Project Command
+   :id: REQ_PRJ_NEWPROJECT
+   :status: draft
+   :priority: optional
+   :links: US_ENT_NEWENTITY; REQ_EXP_REACTIVECACHE; REQ_ENT_AGENTSESSION; REQ_EXP_YAMLDATA; REQ_CFG_FOLDERPATHS
+
+   **Description:**
+   A command triggered by a ``+`` icon in the Projects title bar SHALL create
+   a new project folder with a convention file and immediately refresh the scanner.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A ``$(add)`` icon in the Projects view title bar triggers the command
+     ``jarvis.newProject``
+   * AC-2: The command shows an InputBox prompting for the project name
+   * AC-3: The folder name is the verbatim input name (no lowercase, no slug,
+     no character substitution) — same folder-naming semantics as session
+     creation. Old kebab-case folders remain readable.
+   * AC-4: The folder ``<name>/`` is created inside ``jarvis.projectsFolder``
+     with ``project.yaml`` containing ``name: "<input>"``
+   * AC-5: After file creation, an immediate scanner rescan is triggered
+   * AC-6: After the rescan, the new entity appears in the tree. The chat
+     editor is opened per the consolidated chat-open primitive
+     (``SPEC_ENT_AGENT_PICKER``): concrete agent → mode-prime +
+     ``openNewChatEditor()``; "No agent" → ``openNewChatEditor()`` only.
+   * AC-7: If the user cancels the InputBox, the command exits without side effects
+   * AC-8: The command SHALL NOT appear in the Command Palette
+   * AC-9: If a folder with the given name already exists, the command SHALL
+     show an error notification and abort without modifying the file system
+   * AC-10: Invalid names (filesystem-illegal characters, dot-only, Windows
+     reserved device names) SHALL be rejected via ``validateInput`` inline
+     feedback in the InputBox — same rules as ``jarvis.newSession``.
+   * AC-11: After the name prompt, the command SHALL invoke the shared
+     agent-picker (``SPEC_ENT_AGENT_PICKER``). If the user cancels the picker,
+     the command SHALL abort without side effects.
+   * AC-12: The selected agent SHALL be written to ``project.yaml`` as the
+     ``agent`` field. If "No agent" is chosen, ``agent: ""`` SHALL be
+     written (not omitted). Chat editor opens via ``openNewChatEditor()``
+     (``SPEC_MSG_OPENCHAT``).
 
 

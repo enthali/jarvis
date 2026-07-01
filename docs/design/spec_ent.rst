@@ -285,7 +285,7 @@ level).
 .. spec:: Shared Agent Picker Component
    :id: SPEC_ENT_AGENT_PICKER
    :status: draft
-   :links: REQ_EXP_NEWPROJECT; REQ_EXP_NEWEVENT; REQ_ACT_AGENT_PICKER; SPEC_ACT_AGENT_PICKER; SPEC_ACT_AGENT_DISCOVERY
+   :links: REQ_PRJ_NEWPROJECT; REQ_EVT_NEWEVENT; REQ_ACT_AGENT_PICKER; SPEC_ACT_AGENT_PICKER; SPEC_ACT_AGENT_DISCOVERY
 
    **Description:**
    Shared agent-picker component — the single source of truth for interactive
@@ -314,8 +314,8 @@ level).
    **Interactive consumer list (3 — anti-drift applies):**
 
    1. ``jarvis.newSession`` (via ``SPEC_ACT_AGENT_PICKER``)
-   2. ``jarvis.newProject`` (via ``SPEC_EXP_NEWPROJECT_CMD``)
-   3. ``jarvis.newEvent`` (via ``SPEC_EXP_NEWEVENT_CMD``)
+   2. ``jarvis.newProject`` (via ``SPEC_PRJ_NEWPROJECT_CMD``)
+   3. ``jarvis.newEvent`` (via ``SPEC_EVT_NEWEVENT_CMD``)
 
    **Anti-drift rule:** No interactive consumer SHALL implement its own agent
    QuickPick. All SHALL call ``pickAgentMode()``.

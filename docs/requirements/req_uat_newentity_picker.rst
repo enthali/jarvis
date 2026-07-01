@@ -5,7 +5,7 @@ New Entity Picker and KISS Naming UAT Requirements
    :id: REQ_UAT_NEWENTITY_PICKER
    :status: draft
    :priority: required
-   :links: US_UAT_NEWENTITY_PICKER; REQ_EXP_NEWPROJECT; REQ_EXP_NEWEVENT
+   :links: US_UAT_NEWENTITY_PICKER; REQ_PRJ_NEWPROJECT; REQ_EVT_NEWEVENT
 
    **Description:**
    Specifies the test data and per-AC verification criteria for manually

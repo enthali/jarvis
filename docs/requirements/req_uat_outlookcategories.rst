@@ -89,7 +89,7 @@ Outlook Categories UAT Requirements
    :id: REQ_UAT_AUTOCAT_TESTDATA
    :status: implemented
    :priority: optional
-   :links: US_UAT_AUTOCAT; REQ_OLK_AUTOCAT_NEWENTITY; REQ_EXP_NEWPROJECT; REQ_EXP_NEWEVENT
+   :links: US_UAT_AUTOCAT; REQ_OLK_AUTOCAT_NEWENTITY; REQ_PRJ_NEWPROJECT; REQ_EVT_NEWEVENT
 
    **Description:**
    The repo SHALL contain documented expected outcomes for manual verification of

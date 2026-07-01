@@ -90,7 +90,7 @@ Event Requirements
    :id: REQ_EVT_CREATEEVENT
    :status: draft
    :priority: optional
-   :links: US_EVT_CREATEEVENT; REQ_EXP_NEWEVENT; REQ_ACT_AGENT_DISCOVERY
+   :links: US_EVT_CREATEEVENT; REQ_EVT_NEWEVENT; REQ_ACT_AGENT_DISCOVERY
 
    **Description:**
    A Language Model and MCP tool ``jarvis_createEvent`` SHALL programmatically
@@ -134,5 +134,54 @@ Event Requirements
      only.
    * AC-3: Test data in ``testdata/events/`` that is missing ``summary``
      SHALL be updated to include the field.
+
+
+
+.. req:: New Event Command
+   :id: REQ_EVT_NEWEVENT
+   :status: draft
+   :priority: optional
+   :links: US_ENT_NEWENTITY; REQ_EXP_REACTIVECACHE; REQ_ENT_AGENTSESSION; REQ_EXP_YAMLDATA; REQ_CFG_FOLDERPATHS
+
+   **Description:**
+   A command triggered by a ``+`` icon in the Events title bar SHALL create
+   a new event folder with a convention file and immediately refresh the scanner.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A ``$(add)`` icon in the Events view title bar triggers the command
+     ``jarvis.newEvent``
+   * AC-2: The command shows an InputBox prompting for the event name
+   * AC-3: The command shows a second InputBox prompting for a start date
+     (``YYYY-MM-DD``) with validation — if the input does not match the format
+     or is not a valid calendar date, the InputBox shows an inline error and
+     re-prompts
+   * AC-4: The folder name is derived as ``<date>_<raw-name>``
+     (e.g. ``2026-06-10_DevCon 2026``) — underscore separator, raw name
+     verbatim (no kebab transformation). Old hyphen-kebab folders remain
+     readable.
+   * AC-5: The folder is created directly in ``jarvis.eventsFolder``
+     (not nested in a year subfolder)
+   * AC-6: ``event.yaml`` contains ``name``, ``summary`` (empty string),
+     ``dates.start``, ``dates.end`` (start = end = input date)
+   * AC-7: After file creation, an immediate scanner rescan is triggered
+   * AC-8: After the rescan, the new entity appears in the tree. The chat
+     editor is opened per the consolidated chat-open primitive
+     (``SPEC_ENT_AGENT_PICKER``): concrete agent → mode-prime +
+     ``openNewChatEditor()``; "No agent" → ``openNewChatEditor()`` only.
+   * AC-9: If the user cancels any InputBox, the command exits without side effects
+   * AC-10: The command SHALL NOT appear in the Command Palette
+   * AC-11: If a folder with the derived name already exists, the command SHALL
+     show an error notification and abort without modifying the file system
+   * AC-12: Invalid names (filesystem-illegal characters, dot-only, Windows
+     reserved device names) SHALL be rejected via ``validateInput`` inline
+     feedback — same rules as ``jarvis.newSession``.
+   * AC-13: After the date prompt, the command SHALL invoke the shared
+     agent-picker (``SPEC_ENT_AGENT_PICKER``). If the user cancels the picker,
+     the command SHALL abort without side effects.
+   * AC-14: The selected agent SHALL be written to ``event.yaml`` as the
+     ``agent`` field. If "No agent" is chosen, ``agent: ""`` SHALL be
+     written (not omitted). Chat editor opens via ``openNewChatEditor()``
+     (``SPEC_MSG_OPENCHAT``).
 
 

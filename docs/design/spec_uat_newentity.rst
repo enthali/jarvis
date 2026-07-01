@@ -4,7 +4,7 @@ New Entity UAT Design Specifications
 .. spec:: New Entity Test Data
    :id: SPEC_UAT_NEWENTITY_FILES
    :status: approved
-   :links: REQ_UAT_NEWENTITY_TESTDATA; SPEC_EXP_NEWPROJECT_CMD; SPEC_EXP_NEWEVENT_CMD; SPEC_ENG_SCANNER
+   :links: REQ_UAT_NEWENTITY_TESTDATA; SPEC_PRJ_NEWPROJECT_CMD; SPEC_EVT_NEWEVENT_CMD; SPEC_ENG_SCANNER
 
    **Description:**
    Test data for new-entity testing reuses the existing ``testdata/`` directory.

@@ -5,7 +5,7 @@ New Entity User Acceptance Tests
    :id: US_UAT_NEWENTITY
    :status: approved
    :priority: optional
-   :links: US_ENT_NEWENTITY; REQ_EXP_NEWPROJECT; REQ_EXP_NEWEVENT; REQ_EXP_REACTIVECACHE
+   :links: US_ENT_NEWENTITY; REQ_PRJ_NEWPROJECT; REQ_EVT_NEWEVENT; REQ_EXP_REACTIVECACHE
 
    **As a** Jarvis Test Engineer,
    **I want** manual acceptance test scenarios for creating new projects and events

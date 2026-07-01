@@ -263,3 +263,103 @@ Event Design Specifications
    10. Disposable pushed to ``context.subscriptions``.
 
 
+
+.. spec:: New Event Command
+   :id: SPEC_EVT_NEWEVENT_CMD
+   :status: draft
+   :links: REQ_EVT_NEWEVENT; REQ_EXP_REACTIVECACHE; SPEC_ENG_SCANNER; SPEC_EXP_EXTENSION; SPEC_ENT_AGENT_PICKER
+
+   **Description:**
+   Register ``jarvis.newEvent`` in ``extension.ts``. Triggered by the ``$(add)``
+   icon in the Events view title bar. Creates a new event folder with
+   ``event.yaml`` and opens the new entity's chat editor (same new-session
+   pattern used by ``jarvis.newSession``).
+
+   **Handler flow:**
+
+   1. Read ``jarvis.eventsFolder`` from configuration.
+      If empty, show warning notification and return.
+   2. Show ``InputBox`` with prompt ``"Event name"``,
+      ``placeHolder: "My Event"``, with ``validateInput``:
+
+      .. code-block:: typescript
+
+         validateInput: (value: string) => {
+             if (/[<>:"\/\\|?*\x00-\x1f]/.test(value)) {
+                 return 'Name contains characters not allowed in folder names';
+             }
+             if (!value.trim()) {
+                 return 'Name must not be empty';
+             }
+             return undefined;
+         }
+
+   3. If user cancels (``undefined``), return.
+   4. Show second ``InputBox`` with prompt ``"Start date (YYYY-MM-DD)"``,
+      ``placeHolder: "2026-01-15"``, with ``validateInput``:
+
+      .. code-block:: typescript
+
+         validateInput: (value: string) => {
+             if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+                 return 'Date must be in YYYY-MM-DD format';
+             }
+             const [y, m, d] = value.split('-').map(Number);
+             const date = new Date(y, m - 1, d);
+             if (date.getFullYear() !== y ||
+                 date.getMonth() !== m - 1 ||
+                 date.getDate() !== d) {
+                 return 'Not a valid calendar date';
+             }
+             return undefined;
+         }
+
+   5. If user cancels (``undefined``), return.
+   6. Invoke ``pickAgentMode()`` (per ``SPEC_ENT_AGENT_PICKER``).
+   7. If picker returns ``undefined`` (cancel), return (creation aborted).
+   8. Derive folder name: ```${dateInput}_${nameInput}`` (underscore separator,
+      raw name verbatim).
+   9. Compute target path: ``path.join(eventsFolder, folderName)``.
+   10. If target path already exists (``fs.existsSync``), show error notification
+       ``"Folder '<folderName>' already exists in events folder"`` and return.
+   11. Create directory: ``await fs.promises.mkdir(targetPath)``.
+   12. Write ``event.yaml``:
+
+       .. code-block:: typescript
+
+          const agent = pickerResult; // "" or "<agent-name>"
+          const content = [
+              `name: "${nameInput}"`,
+              `agent: "${agent}"`,
+              `dates:`,
+              `  start: "${dateInput}"`,
+              `  end: "${dateInput}"`,
+              ''
+          ].join('\n');
+          await fs.promises.writeFile(
+              path.join(targetPath, 'event.yaml'), content, 'utf-8');
+
+   13. Trigger scanner rescan: ``await scanner.rescan()``.
+   14. Open chat editor (per ``SPEC_ENT_AGENT_PICKER`` Chat-Open Primitive):
+
+       .. code-block:: typescript
+
+          // Mode-prime (only for concrete agent)
+          if (pickerResult) {
+              try {
+                  await vscode.commands.executeCommand(
+                      'workbench.action.chat.open', { mode: pickerResult }
+                  );
+                  await new Promise(resolve => setTimeout(resolve, 300));
+              } catch (err) {
+                  log.warn(`Mode-prime failed: ${err}`);
+              }
+          }
+          // Editor creation (always)
+          await openNewChatEditor();  // SPEC_MSG_OPENCHAT
+
+   **Disposable** pushed to ``context.subscriptions``.
+
+   **Registration in package.json** — see ``SPEC_EXP_EXTENSION``.
+
+

@@ -253,3 +253,75 @@ Project Design Specifications
    8. Disposable pushed to ``context.subscriptions``.
 
 
+
+.. spec:: New Project Command
+   :id: SPEC_PRJ_NEWPROJECT_CMD
+   :status: draft
+   :links: REQ_PRJ_NEWPROJECT; REQ_EXP_REACTIVECACHE; SPEC_ENG_SCANNER; SPEC_EXP_EXTENSION; SPEC_ENT_AGENT_PICKER
+
+   **Description:**
+   Register ``jarvis.newProject`` in ``extension.ts``. Triggered by the ``$(add)``
+   icon in the Projects view title bar. Creates a new project folder with
+   ``project.yaml`` and opens the new entity's chat editor (same new-session
+   pattern used by ``jarvis.newSession``).
+
+   **Handler flow:**
+
+   1. Read ``jarvis.projectsFolder`` from configuration.
+      If empty, show warning notification and return.
+   2. Show ``InputBox`` with prompt ``"Project name"``,
+      ``placeHolder: "My Project"``, with ``validateInput``:
+
+      .. code-block:: typescript
+
+         validateInput: (value: string) => {
+             if (/[<>:"\/\\|?*\x00-\x1f]/.test(value)) {
+                 return 'Name contains characters not allowed in folder names';
+             }
+             if (!value.trim()) {
+                 return 'Name must not be empty';
+             }
+             return undefined;
+         }
+
+   3. If user cancels (``undefined``), return.
+   4. Invoke ``pickAgentMode()`` (per ``SPEC_ENT_AGENT_PICKER``).
+   5. If picker returns ``undefined`` (cancel), return (creation aborted).
+   6. Use raw input as folder name (verbatim, no transformation).
+   7. Compute target path: ``path.join(projectsFolder, input)``.
+   8. If target path already exists (``fs.existsSync``), show error notification
+      ``"Folder '<input>' already exists in projects folder"`` and return.
+   9. Create directory: ``await fs.promises.mkdir(targetPath)``.
+   10. Write ``project.yaml``:
+
+       .. code-block:: typescript
+
+          const agent = pickerResult; // "" or "<agent-name>"
+          const content = `name: "${input}"\nagent: "${agent}"\n`;
+          await fs.promises.writeFile(
+              path.join(targetPath, 'project.yaml'), content, 'utf-8');
+
+   11. Trigger scanner rescan: ``await scanner.rescan()``.
+   12. Open chat editor (per ``SPEC_ENT_AGENT_PICKER`` Chat-Open Primitive):
+
+       .. code-block:: typescript
+
+          // Mode-prime (only for concrete agent)
+          if (pickerResult) {
+              try {
+                  await vscode.commands.executeCommand(
+                      'workbench.action.chat.open', { mode: pickerResult }
+                  );
+                  await new Promise(resolve => setTimeout(resolve, 300));
+              } catch (err) {
+                  log.warn(`Mode-prime failed: ${err}`);
+              }
+          }
+          // Editor creation (always)
+          await openNewChatEditor();  // SPEC_MSG_OPENCHAT
+
+   **Disposable** pushed to ``context.subscriptions``.
+
+   **Registration in package.json** — see ``SPEC_EXP_EXTENSION``.
+
+

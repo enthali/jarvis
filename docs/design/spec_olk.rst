@@ -190,7 +190,7 @@ Outlook Design Specifications
 .. spec:: Auto-Create Outlook Category in New-Entity Commands
    :id: SPEC_OLK_AUTOCAT_NEWENTITY
    :status: implemented
-   :links: REQ_OLK_AUTOCAT_NEWENTITY; SPEC_EXP_NEWPROJECT_CMD; SPEC_EXP_NEWEVENT_CMD; SPEC_PIM_SERVICE
+   :links: REQ_OLK_AUTOCAT_NEWENTITY; SPEC_PRJ_NEWPROJECT_CMD; SPEC_EVT_NEWEVENT_CMD; SPEC_PIM_SERVICE
 
    **Description:**
    Both ``jarvis.newProject`` and ``jarvis.newEvent`` command handlers in

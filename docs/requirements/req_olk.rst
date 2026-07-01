@@ -55,7 +55,7 @@ Outlook Requirements
    :id: REQ_OLK_AUTOCAT_NEWENTITY
    :status: implemented
    :priority: optional
-   :links: US_OLK_AUTOCATEGORY; REQ_EXP_NEWPROJECT; REQ_EXP_NEWEVENT; REQ_OLK_ENABLE; REQ_PIM_SERVICE
+   :links: US_OLK_AUTOCATEGORY; REQ_PRJ_NEWPROJECT; REQ_EVT_NEWEVENT; REQ_OLK_ENABLE; REQ_PIM_SERVICE
 
    **Description:**
    When a new project or event is created via ``jarvis.newProject`` or

@@ -408,7 +408,51 @@ Independently verified both remaining fix-now items directly against the files (
 
 **QM Verdict: CLEAR — all 5 Round 1 findings resolved. Signed off for merge.**
 
+---
 
+## Follow-up (post-merge): relocate US_ENT_NEWENTITY's remaining EXP-resident children
+
+**Trigger:** PM decision — the original CR deliberately left `REQ_EXP_NEWPROJECT`, `REQ_EXP_NEWEVENT`, `SPEC_EXP_NEWPROJECT_CMD`, `SPEC_EXP_NEWEVENT_CMD` in `EXP` (disclosed at the time as "not in PM's explicit relocation list"). PM now wants full consistency — these 4 elements physically relocated to `PRJ`/`EVT`, matching the kind-specific relocation pattern used everywhere else in this CR.
+
+### Impact analysis
+
+`get_need_links.py US_ENT_NEWENTITY --direction in --depth 1` confirmed the link graph: `REQ_EXP_NEWPROJECT`, `REQ_EXP_NEWEVENT` (direct children) plus their own downstream consumers (`REQ_OLK_AUTOCAT_NEWENTITY`, `REQ_PRJ_CREATEPROJECT`, `REQ_UAT_*`, `SPEC_ENT_AGENT_PICKER`, `SPEC_EXP_EXTENSION`, `SPEC_EXP_NEWPROJECT_CMD`/`NEWEVENT_CMD`) — no surprises, no additional consumers outside the expected set.
+
+### Executed
+
+1. Renamed (tree-wide, matching the established `PRJ`/`EVT` pattern already used for every other single-kind element in this CR):
+   - `REQ_EXP_NEWPROJECT` → `REQ_PRJ_NEWPROJECT`
+   - `REQ_EXP_NEWEVENT` → `REQ_EVT_NEWEVENT`
+   - `SPEC_EXP_NEWPROJECT_CMD` → `SPEC_PRJ_NEWPROJECT_CMD`
+   - `SPEC_EXP_NEWEVENT_CMD` → `SPEC_EVT_NEWEVENT_CMD`
+2. Physically relocated: `REQ_PRJ_NEWPROJECT` moved `req_exp.rst` → `req_prj.rst`; `REQ_EVT_NEWEVENT` moved `req_exp.rst` → `req_evt.rst`; `SPEC_PRJ_NEWPROJECT_CMD` moved `spec_exp.rst` → `spec_prj.rst`; `SPEC_EVT_NEWEVENT_CMD` moved `spec_exp.rst` → `spec_evt.rst`.
+3. All downstream `:links:` references (consumers listed above) updated automatically by the tree-wide rename pass — no dangling links.
+
+This closes the one remaining disclosed gap from the original CR; `EXP` now contains only true sidebar-frame + non-entity-view elements, with zero single-kind command specs remaining.
+
+### Verification
+
+- `sphinx-build -W --keep-going`: **0 warnings, 0 errors**
+- `get_need_links.py US_ENT_NEWENTITY --direction in --depth 1` re-run post-relocation: confirms `REQ_PRJ_NEWPROJECT`/`REQ_EVT_NEWEVENT` (renamed) resolve correctly as direct children, all other consumers intact
+
+**Status:** Spec-only physical relocation complete. Per CM, this needs a MECE + Trace verification pass before QM sign-off — CM to dispatch.
+
+### Round 3 (QM Review — Follow-up)
+
+**Reviewed by:** Quality Manager (dispatched MECE Engineer + Trace Engineer, scoped to the 4 relocated elements and their consumers)
+**Review date:** 2026-07-01
+
+**Result: PASS, cleared.**
+
+- Physical relocation confirmed (not duplicated): all 4 IDs present in `req_prj.rst`/`req_evt.rst`/`spec_prj.rst`/`spec_evt.rst`, absent from `req_exp.rst`/`spec_exp.rst`.
+- Zero dangling references to the 4 old IDs anywhere in `docs/` (only appear in this CD's own narrative, as expected).
+- All claimed consumers (`REQ_OLK_AUTOCAT_NEWENTITY`, `REQ_PRJ_CREATEPROJECT`, `REQ_UAT_*`, `SPEC_ENT_AGENT_PICKER`, `SPEC_EXP_EXTENSION`, plus `SPEC_OLK_AUTOCAT_NEWENTITY`/`SPEC_UAT_*` for the SPEC pair) correctly repointed; upward chain to `US_ENT_NEWENTITY` intact for both new REQs; zero orphans.
+- `NEWPROJECT`/`NEWEVENT` (UI `+`-button commands) vs. `CREATEPROJECT`/`CREATEEVENT` (LM/MCP tools) confirmed as genuinely distinct concepts (different entry points, registration mechanisms, ACs) — not a redundant pair, coherent alongside each other in the same theme files.
+- **Minor, non-blocking observation:** the CD's claim "EXP now contains zero single-kind command specs" is technically imprecise — `REQ_EXP_SEARCHPROJECTS`/`REQ_EXP_SEARCHEVENTS` (and their SPEC counterparts) are single-kind but are tree-navigation/sidebar-frame infrastructure, not entity-creation commands, so they were correctly out of scope for this follow-up. No action needed; noted for wording precision only if the claim is ever restated elsewhere.
+
+**QM Verdict: CLEAR.**
+
+---
 
 ## Appendix: Link Discovery Results
 
