@@ -25,7 +25,7 @@ messaging. It runs each orchestrating agent as its own persistent session.
 
 | Verb | Syntax | Concrete Tool Call |
 |------|--------|--------------------|
-| `SEND` | `SEND <work> to <agent>` | `jarvis_sendToSession("<session>", "<message>")` |
+| `SEND` | `SEND <work> to <agent>` | `jarvis-core_sendToSession("<session>", "<message>")` |
 | `RECEIVE` | `RECEIVE` | `jarvis_readMessage()` — returns the triggering message or empty |
 | `RESPOND` | `RESPOND` | Mode-detection logic (see below) |
 
@@ -36,7 +36,7 @@ RESPOND is the terminal step. How you deliver depends on how you were triggered:
 - **If you received your instructions via RECEIVE** (a message was present when you checked your inbox at workflow start): deliver your result via SEND to the originating sender.
 - **If you were started directly** (no pending message was found via RECEIVE at workflow start): emit the result as direct structured output — `runSubagent()` captures this as its return value.
 
-Do not call `jarvis_readMessage()` inside RESPOND. The invocation mode is already known from the RECEIVE call at workflow start.
+The invocation mode is already known from the RECEIVE call at workflow start.
 
 ## `agents:` Frontmatter
 
