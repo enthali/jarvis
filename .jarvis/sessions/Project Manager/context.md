@@ -62,6 +62,7 @@
 ## Technical Debt
 
 - **SES/EXP Theme Boundary** — SES theme is narrowly scoped to "Sessions" entity kind, while cross-entity concepts are split between EXP and SES organically. New REQs correctly use EXP for all 3 entity kinds. Worth a dedicated cleanup pass later (e.g. renaming SES → SESKIND, or consolidating cross-entity under EXP). (Flagged by System Designer.)
+- **Release agent copies instead of moves change docs** — v0.14.0 release left duplicate change docs at `docs/changes/` root (should only exist under `docs/changes/v0.14.0/`). Cleaned up manually 2026-07-01. Check this on every future release.
 8. **Issue #11** — Message Flow Visualization with Chord Diagram (medium, visualization)
 
 **Research / Long-term:**
