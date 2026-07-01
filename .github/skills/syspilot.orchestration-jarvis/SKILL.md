@@ -26,7 +26,7 @@ messaging. It runs each orchestrating agent as its own persistent session.
 | Verb | Syntax | Concrete Tool Call |
 |------|--------|--------------------|
 | `SEND` | `SEND <work> to <agent>` | `jarvis-core_sendToSession("<session>", "<message>")` |
-| `RECEIVE` | `RECEIVE` | `jarvis_readMessage()` — returns the triggering message or empty |
+| `RECEIVE` | `RECEIVE` | `jarvis-core_readMessage()` — returns the triggering message or empty |
 | `RESPOND` | `RESPOND` | Mode-detection logic (see below) |
 
 ## RESPOND: Delivering Your Result
