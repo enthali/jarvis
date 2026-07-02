@@ -43,6 +43,11 @@
    ~1h — working as designed (poll skips the active tab), but there's no
    "N messages waiting" indicator anywhere while it happens. Needs design
    thought (badge on the Messages tree view? statusbar item?), not scoped.
+   Confirmed opt-out is tied to VS Code's literal active *tab* (`isSessionActiveTab`
+   checks `tabGroups.activeTabGroup.activeTab.label`), not "user is chatting" —
+   switching focus to any other editor tab (e.g. viewing a spec file) while
+   the chat conversation continues in the background is enough for the next
+   poll tick to treat the session as inactive and deliver.
 
 ## Known Issue: Custom Agents Disappear (since 2026-06-30, unresolved)
 
