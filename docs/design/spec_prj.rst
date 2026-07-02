@@ -39,7 +39,7 @@ Project Design Specifications
 .. spec:: List Projects LM Tool
    :id: SPEC_PRJ_LISTPROJECTS
    :status: implemented
-   :links: REQ_PRJ_LISTPROJECTS; SPEC_ENG_SCANNER; SPEC_MSG_DUALREGISTRATION
+   :links: REQ_PRJ_LISTPROJECTS; SPEC_ENG_SCANNER; SPEC_MSG_DUALREGISTRATION; SPEC_ENT_ENTITY_FILE_CHILDREN
 
    **Description:**
    Register ``jarvis_listProjects`` as a dual LM + MCP tool in ``extension.ts``.
@@ -51,14 +51,22 @@ Project Design Specifications
 
    .. code-block:: typescript
 
+      // TreeNode is a 3-variant union (folder/leaf/file, per
+      // SPEC_ENT_ENTITY_FILE_CHILDREN) — exhaustive handling required.
+      // FileNode carries no .children and is not a descent target for
+      // leaf-collection purposes.
       function collectLeaves(nodes: TreeNode[]): LeafNode[] {
           const leaves: LeafNode[] = [];
           for (const node of nodes) {
               if (node.kind === 'leaf') {
                   leaves.push(node);
-              } else {
+              } else if (node.kind === 'folder') {
                   leaves.push(...collectLeaves(node.children));
               }
+              // node.kind === 'file' — no-op, file children are not part of
+              // the project/event tree walked here (they're computed
+              // on-demand elsewhere by the tree provider, not returned by
+              // getTreeForKind()).
           }
           return leaves;
       }
@@ -138,6 +146,13 @@ Project Design Specifications
    * ``folder`` uses forward slashes for cross-platform consistency
    * Falls back to folder basename if entity lookup fails (defensive)
    * Disposable pushed to ``context.subscriptions``
+   * ``collectLeaves()`` operates on the ``TreeNode`` union defined in
+     ``packages/core`` — since ``SPEC_ENT_ENTITY_FILE_CHILDREN`` added the
+     ``FileNode`` variant (``kind: 'file'``, no ``.children``), any consumer
+     of this helper (this spec, ``SPEC_EVT_LISTEVENTS``, and any future
+     ``packages/pim``/``packages/core`` code walking a ``TreeNode[]``) SHALL
+     exhaustively handle all three variants (``folder`` / ``leaf`` / ``file``)
+     rather than assuming a binary leaf-vs-folder split
 
 
 .. spec:: jarvis_createProject LM+MCP Tool
