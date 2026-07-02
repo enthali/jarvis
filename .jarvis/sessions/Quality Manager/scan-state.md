@@ -53,3 +53,4 @@ v0.0.1, v0.1.0, v0.1.1, v0.2.0, v0.3.0, v0.3.1, v0.4.0, v0.5.0, v0.5.1, v0.5.2, 
 
 - SC-002 through SC-005: not yet run (first run on next Friday heartbeat)
 - remove-open-recording-icon PM decision: outstanding
+- **URGENT (2026-07-02):** full package-suite build (`tsc -p packages/pim`) fails on develop HEAD — `collectLeaves()` in `packages/pim/src/extension.ts:326` doesn't handle the `FileNode` variant of `TreeNode` (added by entity-files-tree). Flagged to CM for a fix. Re-run full-suite build to confirm once fixed.
