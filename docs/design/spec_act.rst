@@ -97,12 +97,17 @@ Sessions Design Specifications
 
    * No filter state (no hidden-folders UI) in this CR.
    * The ``command`` on leaf nodes reuses ``jarvis.openContext`` — no new
-     command is needed.
+     command is needed. **Historical, superseded twice since:** first by
+     ``SPEC_ACT_TREECLICK`` (leaf-node command rebound to
+     ``jarvis.openAgentSession``), then ``jarvis.openContext`` itself was
+     fully retired (``SPEC_ENT_OPENCONTEXT_CMD``, entity-tree-context-menu
+     CR) — neither the command nor this binding exist any more.
    * ``SessionTreeProvider`` is registered in ``extension.ts`` inside the
      ``if (sessions.enabled)`` block, same pattern as Projects/Events.
-   * **Design rationale (REQ_ACT_OPENCONTEXT):** No change to
-     ``jarvis.openContext`` was needed because both project and session tree
-     nodes pass ``{ folder: <dir> }`` as the command argument.
+   * **Design rationale (REQ_ACT_OPENCONTEXT, historical):** No change to
+     ``jarvis.openContext`` was needed at the time because both project and
+     session tree nodes passed ``{ folder: <dir> }`` as the command
+     argument — moot now that the command is retired.
 
 
 .. spec:: sessions-feature: newEntity Command — Session Branch
@@ -393,26 +398,34 @@ Sessions Design Specifications
       { "command": "jarvis.newSession", "when": "false" }
 
 
-.. spec:: sessions-feature: Session Tree-Node Context Menu
+.. spec:: sessions-feature: Session Tree-Node Context Menu — Partially Retired
    :id: SPEC_ACT_CONTEXTMENU
    :status: implemented
-   :links: REQ_ACT_CONTEXTMENU
+   :links: REQ_ACT_CONTEXTMENU; SPEC_ENT_ENTITY_CONTEXTMENU
 
    **Description:**
-   Five ``view/item/context`` ``package.json`` menu entries extend the context
-   menu for ``viewItem == jarvisSession`` leaf nodes. All five command
-   implementations are unchanged; only their ``when``-clauses are extended.
+   Four remaining ``view/item/context`` ``package.json`` menu entries extend
+   the context menu for ``viewItem == jarvisSession`` leaf nodes:
+   ``jarvis.openAgentSession`` (inline) plus the three ``context-actions``
+   entries. The former fifth entry, ``jarvis.openContext`` (inline group),
+   is **retired (entity-tree-context-menu CR)** — see below.
 
-   **``contributes.menus.view/item/context`` additions:**
+   **Retired (entity-tree-context-menu CR): ``jarvis.openContext`` inline entry**
+
+   The JSON entry ``{ "command": "jarvis.openContext", "when": "viewItem ==
+   jarvisSession", "group": "inline" }`` — shown below for historical
+   reference only — no longer exists. ``jarvis.openContext`` itself was
+   fully retired (``REQ_ACT_OPENCONTEXT``, ``REQ_ENT_OPENCONTEXT``). In its
+   place, ``jarvisSession`` nodes now get the right-click Open/Copy
+   Path/Copy Full Path menu specified by ``SPEC_ENT_ENTITY_CONTEXTMENU``
+   (its ``jarvis.openAgentSession`` "Open" entry, added under
+   ``viewItem =~ /^jarvisSession$/`` in that spec, supersedes this one).
+
+   **``contributes.menus.view/item/context`` — current (4 entries):**
 
    .. code-block:: json
 
       [
-        {
-          "command": "jarvis.openContext",
-          "when": "viewItem == jarvisSession",
-          "group": "inline"
-        },
         {
           "command": "jarvis.openAgentSession",
           "when": "viewItem == jarvisSession",
@@ -435,19 +448,28 @@ Sessions Design Specifications
         }
       ]
 
+   **Historical entry** (removed, kept for reference only):
+
+   .. code-block:: json
+
+      {
+        "command": "jarvis.openContext",
+        "when": "viewItem == jarvisSession",
+        "group": "inline"
+      }
+
    **Notes:**
 
-   * ``jarvis.openContext`` was already wired for ``jarvisSession`` (previously
-     via the leaf node's default command; now via the inline
-     ``view/item/context`` entry — see ``SPEC_ACT_TREECLICK``). The explicit
-     ``view/item/context`` inline entry makes the inline icon appear like
-     Projects/Events.
-   * ``jarvis.openAgentSession`` is the new addition that enables one-click agent
-     chat opening from a session node, analogous to project and event nodes.
+   * ``jarvis.openAgentSession`` enables one-click agent chat opening from a
+     session node, analogous to project and event nodes — this is the sole
+     remaining inline entry.
    * The three context-actions entries (``revealInExplorer``, ``revealInOS``,
      ``openInTerminal``) bring Sessions to full parity with the EXP context-actions
      feature (``SPEC_ENT_CONTEXTACTIONS``).
-   * File touchpoint: ``package.json`` ``contributes.menus.view/item/context``.
+   * File touchpoint: ``package.json`` ``contributes.menus.view/item/context``
+     (Dev Engineer: delete the ``jarvis.openContext`` entry as part of this
+     CR's command retirement, alongside the ``SPEC_ENT_OPENCONTEXT_CMD``
+     removal work).
 
 
 .. spec:: jarvis_createSession: LM+MCP Tool Registration
@@ -714,10 +736,13 @@ Sessions Design Specifications
    **Description:**
    Change the default click action on ``jarvisSession`` tree items from
    ``jarvis.openContext`` to ``jarvis.openAgentSession``. Opening
-   ``context.md`` remains reachable via the existing, shared
-   ``jarvis.openContext`` inline icon (``SPEC_ENT_OPENCONTEXT_CMD``) — the
-   same command already used by Project and Event nodes. No Actor-specific
-   command is introduced.
+   ``context.md`` is now reachable via the entity's expandable file
+   children (``jarvis.openEntityFile``, ``REQ_ENT_ENTITY_FILE_CHILDREN``)
+   and the right-click "Open"/"Copy Path"/"Copy Full Path" menu
+   (``SPEC_ENT_ENTITY_CONTEXTMENU``) — ``jarvis.openContext`` itself was
+   later fully retired by the ``entity-tree-context-menu`` CR
+   (``SPEC_ENT_OPENCONTEXT_CMD``), including its inline icon which this
+   spec originally described as the remaining way to reach ``context.md``.
 
    **1. ``src/sessionTreeProvider.ts`` --- ``getTreeItem()`` change**
 
@@ -739,11 +764,14 @@ Sessions Design Specifications
           arguments: [element],
       };
 
-   No other changes to ``SessionTreeProvider``. The inline ``$(notebook)``
-   icon for ``jarvisSession`` nodes continues to invoke the shared
-   ``jarvis.openContext`` command (already wired in ``package.json`` —
-   see ``SPEC_ENT_OPENCONTEXT_CMD``); no new command registration exists
-   for this purpose.
+   No other changes to ``SessionTreeProvider``. **Historical note:** an
+   earlier revision of this spec stated the inline ``$(notebook)`` icon on
+   ``jarvisSession`` nodes "continues to invoke the shared
+   ``jarvis.openContext`` command" — this is no longer accurate:
+   ``entity-tree-context-menu`` removed that inline icon and then fully
+   retired ``jarvis.openContext`` itself (``SPEC_ENT_OPENCONTEXT_CMD``). No
+   new command registration exists for this purpose; ``context.md`` access
+   moved entirely to ``SPEC_ENT_ENTITY_CONTEXTMENU``.
 
    **Retired (entity-open-context-cleanup CR): ``jarvis.openSessionContext``**
 
@@ -791,15 +819,19 @@ Sessions Design Specifications
       codebase (`src/extension.ts` contains no handler for it) and no
       `package.json` `contributes.commands`/`contributes.menus` entry
       references it.
-   3. The inline `$(notebook)` icon on `jarvisSession` nodes invokes
-      `jarvis.openContext` — verifiable via the shared `view/item/context`
-      entry in `packages/core/package.json` (`viewItem =~ /^jarvisSession$/`).
+   3. **Historical (superseded by ``entity-tree-context-menu``
+      ``SPEC_ENT_OPENCONTEXT_CMD`` retirement):** the inline ``$(notebook)``
+      icon on ``jarvisSession`` nodes previously invoked ``jarvis.openContext``
+      — that icon and command are now fully retired; ``context.md`` is
+      reached via file children / the right-click menu
+      (``SPEC_ENT_ENTITY_CONTEXTMENU``) instead.
    4. Double-click behaves identically to single-click (VS Code default).
-   5. The existing five `view/item/context` entries for `viewItem ==
-      jarvisSession` (`jarvis.openContext`, `jarvis.openAgentSession`,
-      `jarvis.revealInExplorer`, `jarvis.revealInOS`, `jarvis.openInTerminal`)
-      are unaffected by this retirement — `SPEC_ACT_CONTEXTMENU` is not
-      touched.
+   5. **Historical:** the five ``view/item/context`` entries for ``viewItem ==
+      jarvisSession`` originally listed here (``jarvis.openContext``,
+      ``jarvis.openAgentSession``, ``jarvis.revealInExplorer``,
+      ``jarvis.revealInOS``, ``jarvis.openInTerminal``) are reduced to four
+      after ``jarvis.openContext``'s retirement; ``SPEC_ACT_CONTEXTMENU`` is
+      not otherwise touched.
 
    **File touchpoints:**
 

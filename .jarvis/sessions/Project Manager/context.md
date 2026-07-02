@@ -1,117 +1,56 @@
 # Project Manager — Jarvis
 
-## Working Principle: No-Blame, Verify-Before-Send (2026-07-02)
+## Working Principles
 
-The user is not always right — and neither am I. Before sending any finding,
-bug report, or change into any process (CM, Dev Engineer, QM, etc.), make sure
-the user and I actually agree on what happened and what we're describing.
-Misread test scenarios (e.g. conflating two different code paths) look like
-bugs but aren't — verify first, dispatch second.
+- **CR Queuing**: while one CR is in the pipeline, draft the next small CR's
+  Change Document locally (commit ok, never push/dispatch) to avoid idle gaps.
+  Unrelated small feature ideas surfacing mid-flight → collect in Backlog
+  below, don't fold into the running CR (avoids scope-churn, see
+  `editor-group-placement`).
+- **Branch + CD before dispatch**: CM cannot start a CR without an existing
+  branch + template-copied CD — create both before/with the CR message, not
+  just mention them.
+- **Bugs are (almost always) spec problems**: check traceability/links first
+  when debugging, not just the code diff — missing spec cross-links are a
+  common root cause (see `pim-treenode-filenode-fix`).
+- **No-Blame, Verify-Before-Send**: confirm shared understanding of a finding
+  with the user before dispatching it into any process.
+- **context.md discipline**: keep this file short/scannable, stick-note style.
+  Commit every change immediately (survives branch switches/corruption). Only
+  keep what's relevant within ~2 weeks; larger topics → separate file with a
+  one-line pointer here. Current release/version info lives in
+  `docs/changes/` (revision history), not here.
 
-## Working Principle: Bugs Are (Almost Always) Spec Problems (2026-07-02)
+## Backlog: Entity Tree Context Menu — Follow-ups (queued for next CR)
 
-Jarvis is spec-driven — implementation is steered by the spec, not written
-freehand. So when something breaks in code, don't just look at the code:
-assume the spec is imprecise or has a traceability gap until proven
-otherwise. Concrete case: a v0.15.0 CI build broke because `entity-files-tree`
-extended the shared `TreeNode` union (added `FileNode`) without linking
-`SPEC_ENT_ENTITY_FILE_CHILDREN` to `SPEC_PRJ_LISTPROJECTS`/`SPEC_EVT` (the
-specs owning the downstream consumer, `pim`'s `collectLeaves()`). Impact
-analysis never had a link to follow, so the affected consumer was invisible
-to it — the bug was a missing spec link, not a one-off coding mistake. When
-debugging: check traceability/links first, not just the code diff.
+1. Right-click on a category node (Projects/Events/Actors headers) → "Copy"
+   (category name).
+2. Right-click on a file-child node → add "Copy File Name" (bare filename,
+   no path) alongside existing Copy Path/Copy Full Path.
+3. `context.md` should open in rendered Markdown preview, not raw editor.
+   Our own code (`jarvis.openContext` in extension.ts uses
+   `showTextDocument`) — needs `vscode.commands.executeCommand('markdown.showPreview', uri)`
+   instead/in addition. Note: existing `{ preview: false }` param is the
+   unrelated editor-tab-preview concept, not Markdown rendering.
+4. Collapse All across all tree views (Projects/Events/Actors/Messages/
+   Reminders). Trivial — native VS Code feature via `showCollapseAll: true`
+   on `createTreeView()`, currently unset on all our views (one-line fix
+   each). Expand All dropped from scope (no native API, not important
+   enough to justify custom recursive reveal() logic).
 
----
+## Known Issue: Custom Agents Disappear (since 2026-06-30, unresolved)
 
-## Issue #18 — Files Touched by Agent (in progress)
+Custom agents (`.github/agents/*.agent.md`) vanish mid-session or after
+window reload, not reliably reproducible. Data collection phase — log
+occurrences with context when seen.
 
-**User need:** With 50+ sessions, user loses track of which files a session has modified. Critical for orientation and forensics.
+## Backlog / Debt (see GitHub Issues for full tracking)
 
-**VS Code native overlap:** June 27 VS Code update added "See which files have changed when using the Agent Host" (#318891) — confirmed this is AHP-only (Copilot CLI), does not apply to our normal chat sessions. Building our own.
-
-**Step 1 — entity-files-tree (2026-07-01):** Expandable file children (context.md, YAML, agent file) on Session/Project/Event tree nodes. Pipeline complete, awaiting QM + merge.
-
-**Step 2+ (not yet scoped):** Hook-based tracking of files touched during a session — user wants to go step by step, not all at once.
-
-**Design-doc drift found during step 1 (CM notable item):** Design docs still reference separate Project/Event/Session TreeProvider classes — these were already unified into one `GenericTreeDataProvider` in a prior CR. Implemented in the correct unified location. **Watch for this in other pending/future CDs that may still reference the old per-entity-kind TreeProvider model** — may need a doc correction pass.
-
----
-
-## editor-group-placement CR — Play-Button Main-routing decision (2026-07-02)
-
-**Decision (pending own CR, not yet sent):** `jarvis.sendMessages` (manual
-Play-button delivery) should be deliberately routed to the **Main** target,
-not left to "wherever VS Code focus happens to be" (its current, accidental
-behavior — works today only because it coincidentally matches). Auto-Delivery
-(system poll loop) stays on **Secondary**. Rationale: active user-initiated
-input always lands where the user is looking (Main); background automation
-stays out of the way (Secondary) unless the session is already open in Main.
-Also needs REQ_MSG_EDITORPLACEMENT to actually scope the Play-button target
-(currently undefined) and REQ_MSG_AUTODELIVER_POLL AC-3 corrected (claims
-poll loop delegates to `jarvis.sendMessages`; it doesn't — inlined instead,
-confirmed in SPEC_MSG_EDITORPLACEMENT). Not blocking the current
-editor-group-placement CR merge — track as a follow-up CR.
-
----
-
-## Known Issue: Custom Agents Disappear (observed 2026-06-30)
-
-**Symptom:** Custom agents (`.github/agents/*.agent.md`) vanish mid-session or after window reload. Jarvis syspilot agents (CM, QM, Dev Engineer, PM) affected. Not limited to Jarvis — observed in syspilot dev context too.
-
-**Trigger:** Not reliably reproducible. Occurs:
-- Sporadically mid-session (possibly triggered by an extension update in the background)
-- Occasionally after window reload (not always)
-
-**Workaround:** Closing and reopening windows does not always help. No reliable fix found yet.
-
-**Status:** Data collection phase — needs more observations before a fix/CR can be scoped.
-
-**Next step:** Log occurrences with context (what was happening, any extension updates, VS Code version) to identify pattern.
-
----
-
-## Current State (2026-06-27)
-
-**Released: v0.13.2** — all four extensions on VS Code Marketplace (enthali.jarvis-core, jarvis-pim, jarvis-recorder, jarvis-mcp), icons present, selective updater working, release agent patched with early Sphinx validation.
-
-**Known constraints:**
-- Work machines use corporate private marketplace → can't install from public marketplace there; VSIX install from GitHub Release is the workaround
-- `enthali.jarvis` (legacy GitHub Releases stub) retired via migration shim (v0.13.0)
-
-**Release process lessons (apply on every release agent invoke):**
-- Version bump must cover ALL `packages/*/package.json` — not just root
-- When moving a tag: `git tag <tag> <sha>` with explicit SHA, never rely on chained commands
-- Sphinx validation runs BEFORE version bump/docs move (early gate)
-- See [lessons-learned.md](lessons-learned.md) for full history
-
-## Backlog
-
-Single source of truth: [open GitHub Issues](https://github.com/enthali/jarvis/issues). See `.github/agents/syspilot.pm.tailoring.md`.
-
-**Housekeeping (close on GitHub if not already closed):**
-- **Issue #7** — WSL2 username fallback, shipped v0.13.3 (commit 8fa838e)
-- **Issue #2** — PIM already extracted as separate installable add-on (jarvis-pim package, on Marketplace)
-
-## Spec Status Fixes (quick wins)
-
-- **US_EXP_OPENCONTEXT** — marked `draft` but implemented. Set to `implemented` after confirming ACs match behavior. (Found by System Designer during entity-files-tree review.)
-- **US_EXP_SIDEBAR** — "leaf node" definition predates entity-files-tree expandability change, reads stale standalone. (QM Round 2 finding #3, deferred.)
-
-## Technical Debt
-
-## Technical Debt
-
-- **SES/EXP Theme Boundary** — resolved by entity-taxonomy-rename CR (merged to develop, 2026-07-01). Session kind → Actor kind, EXP narrows to sidebar frame, new ENT theme for generic cross-kind concepts.
-- **Future: `.jarvis/sessions/` folder rename** (queued after #3 freshmind/housekeeping). Additive-only migration: new workspaces get `.jarvis/actors/`; existing `.jarvis/sessions/` folders are NOT force-migrated (active sessions run out of that folder — forced rename mid-flight breaks orchestration; no safe quiesce mechanism exists yet without #3). Sequencing: entity-taxonomy-rename (done) → #3 (freshmind/housekeeping) → folder-rename code CR.
-- **Release agent copies instead of moves change docs** — v0.14.0 release left duplicate change docs at `docs/changes/` root (should only exist under `docs/changes/v0.14.0/`). Cleaned up manually 2026-07-01. Check this on every future release.
-
-## Parallel Work — Research in Progress
-
-User is having Research do a stocktake on running parallel CRs via git worktrees (multiple CM/Dev Engineer pairs at once). Related: prior S2S push to expose Jarvis messages to Copilot CLI — CLI sessions could work in a worktree too. Not scoped yet.
-
-## Active Plans
-
-- [Marketplace Transition Plan](marketplace-transition-plan.md) — **COMPLETED** (v0.13.0 retire-jarvis-legacy)
+- Single source of truth for feature backlog: [open GitHub Issues](https://github.com/enthali/jarvis/issues).
+- `.jarvis/sessions/` → `.jarvis/actors/` folder rename: additive-only,
+  queued after housekeeping (#3). Not yet scoped.
+- Release agent: verify change-doc archival doesn't leave duplicates at
+  `docs/changes/` root (happened once, v0.14.0 — cleaned up manually).
 
 ## Ideas
 

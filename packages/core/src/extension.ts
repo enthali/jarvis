@@ -8,7 +8,7 @@ import * as path from 'path';
 import * as configPaths from './engine/core/configPaths';
 import { MessageTreeProvider, SessionGroupNode, MessageLeafNode } from './apps/session/messageTreeProvider';
 import { RemindersTreeProvider, ReminderNode } from './apps/session/remindersTreeProvider';
-import { KindDrivenScanner, LeafNode, TreeNode } from './engine/sessions/yamlScanner';
+import { KindDrivenScanner, LeafNode, TreeNode, FileNode } from './engine/sessions/yamlScanner';
 import { activateHeartbeat, HeartbeatScheduler, HeartbeatJob, HeartbeatStep } from './apps/session/heartbeat';
 import { JobNode } from './apps/session/heartbeatTreeProvider';
 import { JarvisEngine } from './engine/core/coreApi';
@@ -472,12 +472,6 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         log.info('[Scanner] manual rescan triggered');
     });
 
-    // Open YAML command (SPEC_EXP_OPENYAML_CMD) — generic, used by any entity
-    const openYamlCommand = vscode.commands.registerCommand('jarvis.openYamlFile', (element: LeafNode) => {
-        const uri = vscode.Uri.file(element.id);
-        vscode.commands.executeCommand('vscode.open', uri);
-    });
-
     // Context actions (SPEC_EXP_CONTEXTACTIONS) — generic, used by any entity
     const revealInExplorerCommand = vscode.commands.registerCommand('jarvis.revealInExplorer', (node: LeafNode) => {
         vscode.commands.executeCommand('revealInExplorer', vscode.Uri.file(node.id));
@@ -599,50 +593,6 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         }
     );
 
-    // Open context command (SPEC_ENT_OPENCONTEXT_CMD)
-    const openContextCommand = vscode.commands.registerCommand(
-        'jarvis.openContext',
-        async (element: LeafNode) => {
-            const folder = path.dirname(element.id);
-            const direct = path.join(folder, 'context.md');
-
-            if (fs.existsSync(direct)) {
-                await vscode.window.showTextDocument(vscode.Uri.file(direct), { preview: false });
-                return;
-            }
-
-            const found: string[] = [];
-            try {
-                for (const entry of fs.readdirSync(folder, { withFileTypes: true })) {
-                    if (!entry.isDirectory() || entry.name.startsWith('.')) { continue; }
-                    const candidate = path.join(folder, entry.name, 'context.md');
-                    if (fs.existsSync(candidate)) { found.push(candidate); }
-                }
-            } catch { /* fall through */ }
-
-            if (found.length === 1) {
-                await vscode.window.showTextDocument(vscode.Uri.file(found[0]), { preview: false });
-                return;
-            }
-
-            if (found.length > 1) {
-                const picked = await vscode.window.showQuickPick(
-                    found.map(p => ({
-                        label: path.relative(folder, p).replace(/\\/g, '/'),
-                        fullPath: p,
-                    })),
-                    { placeHolder: 'Multiple context.md found — pick one' }
-                );
-                if (picked) {
-                    await vscode.window.showTextDocument(vscode.Uri.file(picked.fullPath), { preview: false });
-                }
-                return;
-            }
-
-            vscode.window.showInformationMessage('No context.md found for this entity');
-        }
-    );
-
     // Delete message command
     const deleteMessageCommand = vscode.commands.registerCommand(
         'jarvis.deleteMessage',
@@ -729,6 +679,36 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             } catch {
                 vscode.window.showWarningMessage(`Jarvis: Cannot open file: ${node.filePath}`);
             }
+        }
+    );
+
+    // Copy Path / Copy Full Path (SPEC_ENT_ENTITY_CONTEXTMENU) — shared path
+    // resolution helper for file-child nodes and entity root nodes.
+    function resolveCopyPaths(node: FileNode | LeafNode): { folder: string; full: string } {
+        if (node.kind === 'file') {
+            return { folder: path.dirname(node.filePath), full: node.filePath };
+        }
+        // Entity root (LeafNode): node.id is the convention file's absolute
+        // path (project.yaml/event.yaml/session.yaml) — the entity's own
+        // folder is its dirname; there is no separate "full path" for a
+        // root node, so both resolve to the folder.
+        const folder = path.dirname(node.id);
+        return { folder, full: folder };
+    }
+
+    const copyPathCommand = vscode.commands.registerCommand(
+        'jarvis.copyPath',
+        async (node: FileNode | LeafNode) => {
+            const { folder } = resolveCopyPaths(node);
+            await vscode.env.clipboard.writeText(folder);
+        }
+    );
+
+    const copyFullPathCommand = vscode.commands.registerCommand(
+        'jarvis.copyFullPath',
+        async (node: FileNode | LeafNode) => {
+            const { full } = resolveCopyPaths(node);
+            await vscode.env.clipboard.writeText(full);
         }
     );
 
@@ -1133,7 +1113,6 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
 
     context.subscriptions.push(
         rescanCommand,
-        openYamlCommand,
         revealInExplorerCommand,
         revealInOSCommand,
         openInTerminalCommand,
@@ -1142,9 +1121,10 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         openHeartbeatJobCommand,
         openMessageFileCommand,
         openEntityFileCommand,
+        copyPathCommand,
+        copyFullPathCommand,
         openSessionCommand,
         openAgentSessionCommand,
-        openContextCommand,
         newSessionCommand,
         { dispose: () => void stopHookIntake() },
         checkForUpdatesCommand,

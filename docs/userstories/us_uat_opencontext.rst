@@ -5,22 +5,39 @@ Open Context UAT User Stories
    :id: US_UAT_OPENCONTEXT
    :status: approved
    :priority: optional
-   :links: US_ENT_OPENCONTEXT; REQ_ENT_OPENCONTEXT
+   :links: US_ENT_OPENCONTEXT; REQ_ENT_OPENCONTEXT; US_UAT_ENTITY_CONTEXTMENU
+
+   **Superseded by the ``entity-tree-context-menu`` CR (2026-07-02).** The
+   ``jarvis.openContext`` inline ``$(notebook)`` button this story tested is
+   now fully retired (``REQ_ENT_OPENCONTEXT`` — Retired) — not merely its
+   inline placement removed, the command and its 3-step discovery algorithm
+   (direct hit → subfolder scan → QuickPick → info message) no longer exist
+   in the codebase at all. There is no surviving equivalent: the new
+   right-click "Open" entry (``US_UAT_ENTITY_CONTEXTMENU``,
+   ``REQ_ENT_ENTITY_CONTEXTMENU``) invokes ``jarvis.openEntityFile`` (a
+   fixed, already-known file path — no discovery/QuickPick) for file
+   children, or ``jarvis.openAgentSession`` (opens the chat, not
+   ``context.md``) for entity root nodes. Missing-file fail-open behavior is
+   now covered by ``US_UAT_ENTITY_FILES_TREE`` T-9 (``jarvis.openEntityFile``
+   fail-open warning), a materially different mechanism than this story's
+   T-3. Kept in place (not deleted) for historical traceability — all
+   scenarios below describe **retired** behavior, executable only on
+   pre-``entity-tree-context-menu`` code.
 
    **As a** Jarvis Test Engineer,
    **I want** manual acceptance test scenarios for the Open Context inline button,
    **so that** I can verify that the ``context.md`` file opens correctly from
    project and event tree nodes before release.
 
-   **Acceptance Criteria:**
+   **Acceptance Criteria (historical, retired):**
 
-   * AC-1: Test scenarios document expected outcomes for: happy-path open,
-     missing-file fallback, and folder-node exclusion
-   * AC-2: At least one test covers the happy path (context.md exists and opens)
-   * AC-3: At least one test covers the missing-file edge case (info message shown)
-   * AC-4: At least one test verifies the button is absent on folder nodes
+   * AC-1: **Retired.** Test scenarios document expected outcomes for:
+     happy-path open, missing-file fallback, and folder-node exclusion
+   * AC-2: **Retired.** At least one test covers the happy path (context.md exists and opens)
+   * AC-3: **Retired.** At least one test covers the missing-file edge case (info message shown)
+   * AC-4: **Retired.** At least one test verifies the button is absent on folder nodes
 
-   **Test Scenarios:**
+   **Test Scenarios (historical, retired — kept for traceability):**
 
    **T-1 — Open context.md for a project (happy path)**
      Setup: A project leaf node exists in the testdata tree (e.g.

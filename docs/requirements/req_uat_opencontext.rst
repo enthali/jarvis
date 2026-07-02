@@ -7,11 +7,17 @@ Open Context UAT Requirements
    :priority: optional
    :links: US_UAT_OPENCONTEXT; REQ_ENT_OPENCONTEXT
 
-   **Description:**
+   **Superseded by the ``entity-tree-context-menu`` CR (2026-07-02).** See
+   ``US_UAT_OPENCONTEXT`` for the full rationale — ``jarvis.openContext`` and
+   its 3-step discovery algorithm are fully retired with no surviving
+   equivalent. Kept for historical traceability; describes retired test data
+   requirements only.
+
+   **Description (historical):**
    The repo SHALL provide test data files for manual verification of the
    Open Context command.
 
-   **Acceptance Criteria:**
+   **Acceptance Criteria (historical, retired):**
 
    * AC-1: A ``context.md`` file SHALL exist in at least one project testdata
      folder (e.g. ``testdata/projects/alpha/context.md``) for happy-path testing

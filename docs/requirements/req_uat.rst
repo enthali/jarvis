@@ -50,6 +50,7 @@ end-to-end verification of each feature.
    req_uat_heartbeat_dest_valid
    req_uat_modular_install
    req_uat_entity_files_tree
+   req_uat_entity_contextmenu
 
 All UAT Requirements
 --------------------

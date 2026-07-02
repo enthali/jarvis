@@ -97,7 +97,6 @@
       ]
     },
     "commands": [
-      { "command": "jarvis.openYamlFile", "title": "Open YAML File", "icon": "$(go-to-file)" },
       { "command": "jarvis.runHeartbeatJob", "title": "Jarvis: Run Heartbeat Job" },
       { "command": "jarvis.sendMessages", "title": "Jarvis: Send Messages to Chat Session", "icon": "$(debug-start)" },
       { "command": "jarvis.enableAutoDelivery", "title": "Enable Direct Delivery", "icon": "$(zap)" },
@@ -105,7 +104,6 @@
       { "command": "jarvis.deleteMessage", "title": "Jarvis: Delete Queued Message", "icon": "$(trash)" },
       { "command": "jarvis.openSession", "title": "Jarvis: Open Chat Session" },
       { "command": "jarvis.openAgentSession", "title": "Jarvis: Open Agent Session", "icon": "$(comment-discussion)" },
-      { "command": "jarvis.openContext", "title": "Jarvis: Open Context", "icon": "$(notebook)" },
       { "command": "jarvis.newEntity", "title": "Jarvis: New Entity", "icon": "$(add)" },
       { "command": "jarvis.newSession", "title": "Jarvis: New Session", "icon": "$(add)" },
       { "command": "jarvis.checkForUpdates", "title": "Jarvis: Check for Updates" },
@@ -121,12 +119,13 @@
       { "command": "jarvis.openMessageFile", "title": "Jarvis: Open Message File" },
       { "command": "jarvis.openEntityFile", "title": "Jarvis: Open Entity File" },
       { "command": "jarvis.openReminderFile", "title": "Jarvis: Open Reminder File" },
-      { "command": "jarvis.cancelReminder", "title": "Jarvis: Cancel Reminder", "icon": "$(trash)" }
+      { "command": "jarvis.cancelReminder", "title": "Jarvis: Cancel Reminder", "icon": "$(trash)" },
+      { "command": "jarvis.copyPath", "title": "Copy Path" },
+      { "command": "jarvis.copyFullPath", "title": "Copy Full Path" }
     ],
     "menus": {
       "commandPalette": [
         { "command": "jarvis.openAgentSession", "when": "false" },
-        { "command": "jarvis.openContext", "when": "false" },
         { "command": "jarvis.newEntity", "when": "false" },
         { "command": "jarvis.newSession", "when": "false" },
         { "command": "jarvis.rescan", "when": "false" },
@@ -143,7 +142,9 @@
         { "command": "jarvis.openReminderFile", "when": "false" },
         { "command": "jarvis.enableAutoDelivery", "when": "false" },
         { "command": "jarvis.disableAutoDelivery", "when": "false" },
-        { "command": "jarvis.cancelReminder", "when": "false" }
+        { "command": "jarvis.cancelReminder", "when": "false" },
+        { "command": "jarvis.copyPath", "when": "false" },
+        { "command": "jarvis.copyFullPath", "when": "false" }
       ],
       "view/title": [
         { "command": "jarvis.newSession", "when": "view == jarvisSessions", "group": "navigation@1" },
@@ -151,8 +152,6 @@
         { "command": "jarvis.refreshHeartbeat", "when": "view == jarvisHeartbeat", "group": "navigation@1" }
       ],
       "view/item/context": [
-        { "command": "jarvis.openContext", "when": "viewItem =~ /^jarvisSession$/", "group": "inline@1" },
-        { "command": "jarvis.openYamlFile", "when": "viewItem =~ /^jarvisSession$/", "group": "inline@2" },
         { "command": "jarvis.sendMessages", "when": "viewItem == messageSession || viewItem == jarvisSessionManual || viewItem == jarvisSessionAutoDeliver", "group": "inline" },
         { "command": "jarvis.enableAutoDelivery", "when": "viewItem == jarvisSessionManual", "group": "inline" },
         { "command": "jarvis.disableAutoDelivery", "when": "viewItem == jarvisSessionAutoDeliver", "group": "inline" },
@@ -164,7 +163,13 @@
         { "command": "jarvis.cancelReminder", "when": "viewItem == jarvisReminder", "group": "inline" },
         { "command": "jarvis.revealInExplorer", "when": "viewItem =~ /^jarvisSession$/", "group": "context-actions" },
         { "command": "jarvis.revealInOS", "when": "viewItem =~ /^jarvisSession$/", "group": "context-actions" },
-        { "command": "jarvis.openInTerminal", "when": "viewItem =~ /^jarvisSession$/", "group": "context-actions" }
+        { "command": "jarvis.openInTerminal", "when": "viewItem =~ /^jarvisSession$/", "group": "context-actions" },
+        { "command": "jarvis.openEntityFile", "when": "viewItem == jarvisEntityFile", "group": "open" },
+        { "command": "jarvis.copyPath", "when": "viewItem == jarvisEntityFile", "group": "clipboard@1" },
+        { "command": "jarvis.copyFullPath", "when": "viewItem == jarvisEntityFile", "group": "clipboard@2" },
+        { "command": "jarvis.openAgentSession", "when": "viewItem =~ /^jarvisSession$/", "group": "open" },
+        { "command": "jarvis.copyPath", "when": "viewItem =~ /^jarvisSession$/", "group": "clipboard@1" },
+        { "command": "jarvis.copyFullPath", "when": "viewItem =~ /^jarvisSession$/", "group": "clipboard@2" }
       ]
     },
     "configuration": [
