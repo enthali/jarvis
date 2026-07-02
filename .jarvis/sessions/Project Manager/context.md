@@ -1,5 +1,15 @@
 # Project Manager — Jarvis
 
+## Working Principle: No-Blame, Verify-Before-Send (2026-07-02)
+
+The user is not always right — and neither am I. Before sending any finding,
+bug report, or change into any process (CM, Dev Engineer, QM, etc.), make sure
+the user and I actually agree on what happened and what we're describing.
+Misread test scenarios (e.g. conflating two different code paths) look like
+bugs but aren't — verify first, dispatch second.
+
+---
+
 ## Issue #18 — Files Touched by Agent (in progress)
 
 **User need:** With 50+ sessions, user loses track of which files a session has modified. Critical for orientation and forensics.
@@ -11,6 +21,23 @@
 **Step 2+ (not yet scoped):** Hook-based tracking of files touched during a session — user wants to go step by step, not all at once.
 
 **Design-doc drift found during step 1 (CM notable item):** Design docs still reference separate Project/Event/Session TreeProvider classes — these were already unified into one `GenericTreeDataProvider` in a prior CR. Implemented in the correct unified location. **Watch for this in other pending/future CDs that may still reference the old per-entity-kind TreeProvider model** — may need a doc correction pass.
+
+---
+
+## editor-group-placement CR — Play-Button Main-routing decision (2026-07-02)
+
+**Decision (pending own CR, not yet sent):** `jarvis.sendMessages` (manual
+Play-button delivery) should be deliberately routed to the **Main** target,
+not left to "wherever VS Code focus happens to be" (its current, accidental
+behavior — works today only because it coincidentally matches). Auto-Delivery
+(system poll loop) stays on **Secondary**. Rationale: active user-initiated
+input always lands where the user is looking (Main); background automation
+stays out of the way (Secondary) unless the session is already open in Main.
+Also needs REQ_MSG_EDITORPLACEMENT to actually scope the Play-button target
+(currently undefined) and REQ_MSG_AUTODELIVER_POLL AC-3 corrected (claims
+poll loop delegates to `jarvis.sendMessages`; it doesn't — inlined instead,
+confirmed in SPEC_MSG_EDITORPLACEMENT). Not blocking the current
+editor-group-placement CR merge — track as a follow-up CR.
 
 ---
 
