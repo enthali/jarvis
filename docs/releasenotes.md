@@ -1,5 +1,16 @@
 # Release Notes
 
+## v0.15.1 — collectLeaves() TreeNode Exhaustiveness Hotfix
+
+*2026-07-02*
+
+### Fixes
+
+- **pim-treenode-filenode-fix**: Fixes an urgent full-package-suite build break where `collectLeaves()` in `packages/pim/src/extension.ts` failed to compile because `TreeNode` (`packages/core`) gained a third union variant, `FileNode`, when `entity-files-tree` (v0.15.0) added file-tree-children support. `collectLeaves()` now exhaustively handles all 3 `TreeNode` variants (leaf/folder/file) — a pure type-narrowing correctness fix, no behavior change. Also adds the missing `SPEC_ENT_ENTITY_FILE_CHILDREN` ↔ `SPEC_PRJ_LISTPROJECTS` spec cross-link so this class of gap surfaces during future impact analysis instead of recurring.
+  *(SPEC_ENT_ENTITY_FILE_CHILDREN; SPEC_PRJ_LISTPROJECTS)*
+
+---
+
 ## v0.15.0 — Editor Placement, Entity File Tree, Taxonomy & Context Cleanup
 
 *2026-07-02*
