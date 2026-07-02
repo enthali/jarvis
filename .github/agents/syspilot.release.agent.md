@@ -25,7 +25,7 @@ never rewrite history. When in doubt, you stop and ask.
 ## Duties
 
 - **Versioned Tagging** — After every release, `main` carries a uniquely identifying tag (`v{version}`) — there is never an untagged release state.
-- **Build Validity** — Nothing reaches `main` that has not passed `sphinx-build -W` validation — a failed build always blocks release.
+- **Build Validity** — Nothing reaches `main` that has not passed `sphinx-build -W` validation AND a full build of every package in the suite — a failure in either always blocks release.
 - **Complete Traceability** — Every change document from the release cycle is archived in `docs/changes/<version>/` and every archived document has a corresponding release notes entry — no document is missing or omitted.
 - **Consistent Version Identity** — The version string is identical in `package.json` (root and all `packages/*/package.json`), the Git tag, and the release notes header — there is no version drift.
 - **Clean Separation** — After every release, `develop` and `main` are synchronized via back-merge — there is no half-state between the two branches.
@@ -52,7 +52,13 @@ never rewrite history. When in doubt, you stop and ask.
    `docs/releasenotes.md`). Every file in that directory MUST produce an
    entry. Do NOT rely on session context; use the directory listing as the
    authoritative source.
-6. **Validate** — Run sphinx-build with `-W`, ensure all pass. Commit + push `develop`.
+6. **Validate** — Run sphinx-build with `-W`, ensure all pass. THEN build
+   every package in the suite (`npx tsc -p packages/core && npx tsc -p
+   packages/pim && npx tsc -p packages/recorder && npx tsc -p packages/mcp`,
+   or the equivalent `compile all` task) — a failing build in ANY package
+   blocks the release exactly like a failed sphinx-build. This is the last
+   safety net before `main`; a change that only builds in isolation is not
+   release-ready. Commit + push `develop`.
 7. **Squash Merge** — `git checkout main && git merge --squash develop && git commit`
 8. **Tag** — Create Git tag `v{version}`, push `main` + tag to remote
 9. **Back-Merge** — `git checkout develop && git merge main` to sync squash commit
