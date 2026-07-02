@@ -188,7 +188,7 @@ Entity Parity UAT Design Specifications
 
           Init-prompt fires for project (kind-aware)
 
-          *US_SES_SESSIONS AC-9*
+          *US_ACT_ACTORS AC-9*
         - Click ``alpha`` (no open chat). Observe transcript.
           Then click again (chat already open).
         - First click: kind-aware init-prompt submitted (references project
@@ -198,6 +198,6 @@ Entity Parity UAT Design Specifications
 
           Init-prompt fires for event (kind-aware)
 
-          *US_SES_SESSIONS AC-9*
+          *US_ACT_ACTORS AC-9*
         - Click ``DevCon 2026`` (no open chat). Observe transcript.
         - Kind-aware init-prompt submitted referencing event kind and name.

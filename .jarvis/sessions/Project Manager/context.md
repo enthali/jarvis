@@ -1,33 +1,61 @@
 # Project Manager — Jarvis
 
-## Change Flow Discipline
+## Working Principle: No-Blame, Verify-Before-Send (2026-07-02)
 
-One CR to CM at a time. Wait for merge confirmed before sending the next.
-CM is a change executor, not a planner. Planning and sequencing stay in PM session.
+The user is not always right — and neither am I. Before sending any finding,
+bug report, or change into any process (CM, Dev Engineer, QM, etc.), make sure
+the user and I actually agree on what happened and what we're describing.
+Misread test scenarios (e.g. conflating two different code paths) look like
+bugs but aren't — verify first, dispatch second.
 
-CR sequence:
-1. Discuss sequence with user, plan here
-2. Send CR 1 to CM
-3. Wait for "merged" confirmation
-4. Send CR 2 to CM
+---
 
-## Infrastructure Changes
+## Issue #18 — Files Touched by Agent (in progress)
 
-Infrastructure changes (tooling, CI, Sphinx config, release pipeline, etc.) are **not spec-driven** in this project. They are handled directly in the PM session — not sent to CM.
+**User need:** With 50+ sessions, user loses track of which files a session has modified. Critical for orientation and forensics.
 
-**Process:**
-- PM creates a feature branch and a lightweight change document (same template, L0-L2 sections marked "N/A — infrastructure change")
-- PM implements the fix directly in the PM session
-- QM review is still performed (sign-off kept)
-- PM merges to `develop` after sign-off
+**VS Code native overlap:** June 27 VS Code update added "See which files have changed when using the Agent Host" (#318891) — confirmed this is AHP-only (Copilot CLI), does not apply to our normal chat sessions. Building our own.
 
-**Rationale:** CM stays focused on spec-driven product work. Infrastructure has no user stories, requirements, or design specs in the Jarvis spec tree.
+**Step 1 — entity-files-tree (2026-07-01):** Expandable file children (context.md, YAML, agent file) on Session/Project/Event tree nodes. Pipeline complete, awaiting QM + merge.
 
-## Change Request Defaults
+**Step 2+ (not yet scoped):** Hook-based tracking of files touched during a session — user wants to go step by step, not all at once.
 
-- **Operation mode: user-guided** (default — user sits in while specs are written)
-- Autonomous only if user explicitly agrees
-- PM creates the feature branch and commits the change document before sending to CM
+**Design-doc drift found during step 1 (CM notable item):** Design docs still reference separate Project/Event/Session TreeProvider classes — these were already unified into one `GenericTreeDataProvider` in a prior CR. Implemented in the correct unified location. **Watch for this in other pending/future CDs that may still reference the old per-entity-kind TreeProvider model** — may need a doc correction pass.
+
+---
+
+## editor-group-placement CR — Play-Button Main-routing decision (2026-07-02)
+
+**Decision (pending own CR, not yet sent):** `jarvis.sendMessages` (manual
+Play-button delivery) should be deliberately routed to the **Main** target,
+not left to "wherever VS Code focus happens to be" (its current, accidental
+behavior — works today only because it coincidentally matches). Auto-Delivery
+(system poll loop) stays on **Secondary**. Rationale: active user-initiated
+input always lands where the user is looking (Main); background automation
+stays out of the way (Secondary) unless the session is already open in Main.
+Also needs REQ_MSG_EDITORPLACEMENT to actually scope the Play-button target
+(currently undefined) and REQ_MSG_AUTODELIVER_POLL AC-3 corrected (claims
+poll loop delegates to `jarvis.sendMessages`; it doesn't — inlined instead,
+confirmed in SPEC_MSG_EDITORPLACEMENT). Not blocking the current
+editor-group-placement CR merge — track as a follow-up CR.
+
+---
+
+## Known Issue: Custom Agents Disappear (observed 2026-06-30)
+
+**Symptom:** Custom agents (`.github/agents/*.agent.md`) vanish mid-session or after window reload. Jarvis syspilot agents (CM, QM, Dev Engineer, PM) affected. Not limited to Jarvis — observed in syspilot dev context too.
+
+**Trigger:** Not reliably reproducible. Occurs:
+- Sporadically mid-session (possibly triggered by an extension update in the background)
+- Occasionally after window reload (not always)
+
+**Workaround:** Closing and reopening windows does not always help. No reliable fix found yet.
+
+**Status:** Data collection phase — needs more observations before a fix/CR can be scoped.
+
+**Next step:** Log occurrences with context (what was happening, any extension updates, VS Code version) to identify pattern.
+
+---
 
 ## Current State (2026-06-27)
 
@@ -43,29 +71,30 @@ Infrastructure changes (tooling, CI, Sphinx config, release pipeline, etc.) are 
 - Sphinx validation runs BEFORE version bump/docs move (early gate)
 - See [lessons-learned.md](lessons-learned.md) for full history
 
-## Next Queue (prioritized from GitHub Issues)
+## Backlog
 
-1. **Issue #4** — `jarvis_listAgentSessions` + `registerAgentSessionProvider` in `JarvisCoreApi` (prerequisite for #3)
-2. **Issue #3** — `jarvis.freshmind` + `jarvis.housekeeping` commands (depends on #4)
-3. **Issue #7** — WSL2 fix: `USERNAME ?? USER` environment variable fallback
-4. **Issue #9** — version-bump-ac: add AC to SPEC_REL_RELEASEACTION
-5. **Issue #10** — US→US link audit: conf.py `needs_warnings` guard
-6. **Issue #1** — End-user documentation — getting started with Jarvis for syspilot
-7. **Issue #2** — Extract PIM features as separate installable add-on
-8. **Issue #11** — Message Flow Visualization with Chord Diagram (medium, visualization)
+Single source of truth: [open GitHub Issues](https://github.com/enthali/jarvis/issues). See `.github/agents/syspilot.pm.tailoring.md`.
 
-**Research / Long-term:**
-- **Issue #6** — Agent Host Protocol: send messages to chat sessions without stealing focus (2-3 weeks research, not next cycle)
+**Housekeeping (close on GitHub if not already closed):**
+- **Issue #7** — WSL2 username fallback, shipped v0.13.3 (commit 8fa838e)
+- **Issue #2** — PIM already extracted as separate installable add-on (jarvis-pim package, on Marketplace)
 
-**Won't Fix:**
-- **Issue #8** — Remove GitHub Releases auto-updater: **REQUIRED** for corporate/private marketplace environments
+## Spec Status Fixes (quick wins)
 
-## Roadmap Source of Truth
+- **US_EXP_OPENCONTEXT** — marked `draft` but implemented. Set to `implemented` after confirming ACs match behavior. (Found by System Designer during entity-files-tree review.)
+- **US_EXP_SIDEBAR** — "leaf node" definition predates entity-files-tree expandability change, reads stale standalone. (QM Round 2 finding #3, deferred.)
 
-The roadmap is built from [open GitHub Issues](https://github.com/enthali/jarvis/issues). The PM reviews open issues, prioritizes them manually, and drives the backlog that way. This ensures:
-- Always current (no stale documents)
-- External feedback included
-- Dependencies documented in issue comments
+## Technical Debt
+
+## Technical Debt
+
+- **SES/EXP Theme Boundary** — resolved by entity-taxonomy-rename CR (merged to develop, 2026-07-01). Session kind → Actor kind, EXP narrows to sidebar frame, new ENT theme for generic cross-kind concepts.
+- **Future: `.jarvis/sessions/` folder rename** (queued after #3 freshmind/housekeeping). Additive-only migration: new workspaces get `.jarvis/actors/`; existing `.jarvis/sessions/` folders are NOT force-migrated (active sessions run out of that folder — forced rename mid-flight breaks orchestration; no safe quiesce mechanism exists yet without #3). Sequencing: entity-taxonomy-rename (done) → #3 (freshmind/housekeeping) → folder-rename code CR.
+- **Release agent copies instead of moves change docs** — v0.14.0 release left duplicate change docs at `docs/changes/` root (should only exist under `docs/changes/v0.14.0/`). Cleaned up manually 2026-07-01. Check this on every future release.
+
+## Parallel Work — Research in Progress
+
+User is having Research do a stocktake on running parallel CRs via git worktrees (multiple CM/Dev Engineer pairs at once). Related: prior S2S push to expose Jarvis messages to Copilot CLI — CLI sessions could work in a worktree too. Not scoped yet.
 
 ## Active Plans
 

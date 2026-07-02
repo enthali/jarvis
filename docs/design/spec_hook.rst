@@ -1,4 +1,4 @@
-﻿Hook Engine Design Specifications
+Hook Engine Design Specifications
 =================================
 
 .. spec:: Hook Configuration Self-Install

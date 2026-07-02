@@ -87,7 +87,7 @@ Convention-File Model User Acceptance Tests
    :id: US_UAT_EVENTFILTER
    :status: approved
    :priority: optional
-   :links: US_EXP_EVENTFILTER; REQ_EXP_EVENTFILTER; REQ_EXP_TREEVIEW
+   :links: US_EVT_EVENTFILTER; REQ_EVT_EVENTFILTER; REQ_EXP_TREEVIEW
 
    **As a** Jarvis Test Engineer,
    **I want** manual acceptance test scenarios for empty-branch pruning in

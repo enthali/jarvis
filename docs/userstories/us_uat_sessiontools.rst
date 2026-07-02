@@ -97,7 +97,7 @@ Session Tools User Acceptance Tests
    :id: US_UAT_AGENTSESSION
    :status: approved
    :priority: optional
-   :links: US_EXP_AGENTSESSION; REQ_EXP_AGENTSESSION; US_EXP_OPENYAML
+   :links: US_ENT_AGENTSESSION; REQ_ENT_AGENTSESSION; US_ENT_OPENYAML
 
    **As a** Jarvis Test Engineer,
    **I want** manual acceptance test scenarios for the Open Agent Session

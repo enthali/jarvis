@@ -30,7 +30,7 @@ Convention-File Model UAT Requirements
    :id: REQ_UAT_EVENTFILTER_TESTDATA
    :status: approved
    :priority: optional
-   :links: US_UAT_EVENTFILTER; REQ_EXP_EVENTFILTER
+   :links: US_UAT_EVENTFILTER; REQ_EVT_EVENTFILTER
 
    **Description:**
    The repo SHALL contain test data and documented expected outcomes for manual

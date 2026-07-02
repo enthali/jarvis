@@ -123,7 +123,7 @@ New Entity Picker and KISS Naming UAT Design Specifications
 
           ``jarvis.newSession`` — cancel at picker
 
-          *US_SES_AGENTBIND AC-1 (cancel)*
+          *US_ENT_ENTITYPARITY AC-8 (cancel)*
         - Run ``jarvis.newEntity`` → Session. Enter ``"Cancel Session"``.
           Press Escape in picker.
         - No folder created. Sessions Tree unchanged.
@@ -132,7 +132,7 @@ New Entity Picker and KISS Naming UAT Design Specifications
 
           ``jarvis.newSession`` — concrete agent → written, chat opened
 
-          *US_SES_AGENTBIND AC-2, AC-3*
+          *US_ENT_ENTITYPARITY AC-8*
         - Run ``jarvis.newEntity`` → Session. Enter ``"Bound Session Test"``.
           Select ``syspilot.uat``.
         - ``session.yaml`` contains ``agent: "syspilot.uat"``. VS Code Chat

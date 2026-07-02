@@ -1,5 +1,27 @@
 # Release Notes
 
+## v0.15.0 — Editor Placement, Entity File Tree, Taxonomy & Context Cleanup
+
+*2026-07-02*
+
+### Features
+
+- **editor-group-placement**: Introduces a three-target editor-group placement model (Main / Docs / Secondary) with no new state — targets are derived at runtime from the current editor layout. Clicking an Actor in the tree always opens at Main (closing and reopening if the tab is open elsewhere); `context.md`/YAML/agent-file opens land at Docs; deliveries to not-yet-open sessions land at the last existing column (Secondary). Adds a Focus-Snapshot/Restore mechanism around system-initiated (Auto-Delivery) deliveries so the user's focus is automatically restored afterward, and an opt-out for Auto-Delivery on sessions actively being used. The manual Play-button (`jarvis.sendMessages`) entry point is also routed to Main, closing a gap found during joint manual testing where it had no assigned placement target.
+  *(REQ_MSG_EDITORPLACEMENT; REQ_MSG_SEND; SPEC_MSG_SENDCOMMAND; REQ_UAT_CHATEDITORREUSE)*
+
+- **entity-files-tree**: Session, Project, and Event tree nodes are now expandable, showing their 3 core files (`context.md`, YAML config, agent file if configured) as clickable children with tooltips showing the full file path. Purely additive — existing inline tool-icon shortcuts are unchanged.
+  *(US_EXP_ENTITY_FILES_TREE; US_EXP_SIDEBAR; US_SES_SESSIONS; US_SES_TREECLICK; US_EXP_ENTITYPARITY)*
+
+### Cleanup
+
+- **entity-open-context-cleanup**: Unifies `jarvis.openContext` as the single command for opening `context.md` across Project, Event, and Actor entity kinds, retiring the dead, unreachable `jarvis.openSessionContext` command (and its stale `REQ_ACT_TREECLICK` description). Standardizes on the `$(notebook)` icon and `preview: false` across all 3 kinds; discovery-only behavior (no auto-create) is kept uniform.
+  *(REQ_ACT_TREECLICK; REQ_ENT_OPENCONTEXT; REQ_ACT_OPENCONTEXT; REQ_ACT_CONTEXTMENU)*
+
+- **entity-taxonomy-rename**: Spec-only cleanup establishing a consistent entity taxonomy — the "Session" kind is renamed to **Actor** (Hewitt actor model: mailbox=queue, state=context.md, heartbeat=activator+supervisor), joining Project and Event as the three peer entity kinds under the umbrella concept **Jarvis Entity**. Realigns theme boundaries: generic cross-kind concepts move to a new **ENT** theme, plumbing stays in **ENG**, kind-specific concepts live in **PRJ/EVT/ACT**, and **EXP** narrows to the sidebar UI frame only. Consolidates duplicate specs and fixes several mis-filed items. No code changes — pure specification/documentation.
+  *(namingconventions.rst theme table; US_EXP_SIDEBAR and dependents)*
+
+---
+
 ## v0.13.3 — WSL2 Username Fallback
 
 *2026-06-27*

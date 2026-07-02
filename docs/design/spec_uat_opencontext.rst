@@ -4,7 +4,7 @@ Open Context UAT Design Specifications
 .. spec:: Open Context Test Data
    :id: SPEC_UAT_OPENCONTEXT_FILES
    :status: approved
-   :links: REQ_UAT_OPENCONTEXT_TESTDATA; SPEC_EXP_OPENCONTEXT_CMD
+   :links: REQ_UAT_OPENCONTEXT_TESTDATA; SPEC_ENT_OPENCONTEXT_CMD
 
    **Description:**
    A ``context.md`` test file is added to the ``alpha`` project testdata folder.

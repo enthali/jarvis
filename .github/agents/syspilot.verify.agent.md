@@ -1,9 +1,11 @@
 ---
+name: "Verify Engineer"
+agent: syspilot.verify
 description: "Verify implementation matches Change Document and traceability is complete."
 tools: [read, search, execute, todo, agent]
 model: Claude Haiku 4.5 (copilot)
 user-invocable: true
-agents: [syspilot.trace]
+agents: []
 ---
 
 # syspilot Verify Engineer
@@ -44,6 +46,7 @@ The `todo` tool tracks per-element verification progress during long runs.
    per-element pass/fail, evidence, and summary
 7. **Update Spec Statuses** — Set `:status: implemented` on elements that pass
    verification; flag elements that fail with evidence
+8. **RESPOND** — Return to CM: validation report path, per-element pass/fail summary, any blocking issues
 
 **Input:** Change Document path (provided by CM)
 **Output:** Validation report + updated spec statuses

@@ -5,7 +5,7 @@ Open Context UAT User Stories
    :id: US_UAT_OPENCONTEXT
    :status: approved
    :priority: optional
-   :links: US_EXP_OPENCONTEXT; REQ_EXP_OPENCONTEXT
+   :links: US_ENT_OPENCONTEXT; REQ_ENT_OPENCONTEXT
 
    **As a** Jarvis Test Engineer,
    **I want** manual acceptance test scenarios for the Open Context inline button,

@@ -4,7 +4,7 @@ Scanner Refresh UAT Design Specifications
 .. spec:: Scanner Refresh Test Data
    :id: SPEC_UAT_SCANREFRESH_FILES
    :status: implemented
-   :links: REQ_UAT_SCANREFRESH_TESTDATA; SPEC_EXP_SCANNER; SPEC_EXP_RESCAN_CMD
+   :links: REQ_UAT_SCANREFRESH_TESTDATA; SPEC_ENG_SCANNER; SPEC_ENT_RESCAN_CMD
 
    **Description:**
    All test scenarios use existing ``testdata/`` files. Temporary modifications

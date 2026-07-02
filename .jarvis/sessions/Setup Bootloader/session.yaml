@@ -1,0 +1,9 @@
+name: "Setup Bootloader"
+agent: "syspilot.setup"
+summary: >-
+  Stable entry point for syspilot installation and updates. Fetches the current
+  Installer from upstream and runs it. Aligned with
+  .github/agents/syspilot.setup.agent.md.
+externalStatus: 'active'
+internalStatus: 'created 2026-06-30'
+lastUpdated: '2026-06-30'

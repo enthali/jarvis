@@ -1,10 +1,11 @@
-// Implementation: SPEC_ENG_TREEFACTORY
-// Requirements: REQ_ENG_TREEFACTORY
+// Implementation: SPEC_ENG_TREEFACTORY, SPEC_EXP_ENTITY_FILE_CHILDREN
+// Requirements: REQ_ENG_TREEFACTORY, REQ_EXP_ENTITY_FILE_CHILDREN
 
 import * as vscode from 'vscode';
 import * as path from 'path';
 import type { EntityKindConfig, SubtreeNode, TreeItemDecorator } from './types';
 import type { TreeNode, KindDrivenScanner } from '../sessions/yamlScanner';
+import { getEntityFileChildren } from '../sessions/yamlScanner';
 
 export type { TreeItemDecorator } from './types';
 
@@ -159,19 +160,26 @@ export class GenericTreeDataProvider implements vscode.TreeDataProvider<Provider
             return item;
         }
 
+        // FileNode — entity file child (SPEC_EXP_ENTITY_FILE_CHILDREN)
+        if (element.kind === 'file') {
+            const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.None);
+            item.tooltip = element.filePath.replace(/\\/g, '/');
+            item.contextValue = 'jarvisEntityFile';
+            item.command = {
+                command: 'jarvis.openEntityFile',
+                title: 'Open File',
+                arguments: [element],
+            };
+            return item;
+        }
+
         // LeafNode — render from kind config with hook support
         const entity = this._scanner.getEntity(element.id);
         const name = entity ? entity.name : path.basename(path.dirname(element.id));
-        const entityData = { name, filePath: element.id, data: (entity ?? {}) as Record<string, unknown> };
 
-        // Determine collapsible state based on children hook
-        let collapsibleState = vscode.TreeItemCollapsibleState.None;
-        if (this._config.getChildren) {
-            const children = this._config.getChildren(entityData);
-            if (children && children.length > 0) {
-                collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
-            }
-        }
+        // SPEC_EXP_ENTITY_FILE_CHILDREN: leaf is always expandable — file children
+        // (context.md + YAML, at minimum) guarantee at least 2 children exist.
+        const collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
 
         const item = new vscode.TreeItem(this._config.label(name, { data: (entity ?? {}) as Record<string, unknown> }), collapsibleState);
 
@@ -207,7 +215,7 @@ export class GenericTreeDataProvider implements vscode.TreeDataProvider<Provider
         return item;
     }
 
-    getChildren(element?: ProviderNode): ProviderNode[] {
+    getChildren(element?: ProviderNode): ProviderNode[] | Promise<ProviderNode[]> {
         if (!element) {
             return this._scanner.getTreeForKind(this._config.kind);
         }
@@ -222,17 +230,31 @@ export class GenericTreeDataProvider implements vscode.TreeDataProvider<Provider
             }
             return [];
         }
-        // Leaf node — return children from hook if available
-        if (element.kind === 'leaf' && this._config.getChildren) {
-            const entity = this._scanner.getEntity(element.id);
+        if (element.kind === 'file') {
+            // File nodes are leaves — no children
+            return [];
+        }
+        // Leaf node — file children (always) + hook-based children (if any)
+        if (element.kind === 'leaf') {
+            return this._getLeafChildren(element);
+        }
+        return [];
+    }
+
+    private async _getLeafChildren(element: import('../sessions/yamlScanner').LeafNode): Promise<ProviderNode[]> {
+        const entity = this._scanner.getEntity(element.id);
+        const fileChildren: ProviderNode[] = await getEntityFileChildren(element, entity);
+
+        let hookChildren: ProviderNode[] = [];
+        if (this._config.getChildren) {
             const name = entity ? entity.name : path.basename(path.dirname(element.id));
             const entityData = { name, filePath: element.id, data: (entity ?? {}) as Record<string, unknown> };
             const descriptors = this._config.getChildren(entityData);
             if (descriptors && descriptors.length > 0) {
-                return descriptors.map(d => ({ kind: 'child' as const, descriptor: d, parentKind: this._config.kind }));
+                hookChildren = descriptors.map(d => ({ kind: 'child' as const, descriptor: d, parentKind: this._config.kind }));
             }
         }
-        return [];
+        return [...fileChildren, ...hookChildren];
     }
 
     getParent(_element: ProviderNode): ProviderNode | null {

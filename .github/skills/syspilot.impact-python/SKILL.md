@@ -21,6 +21,12 @@ description: >
 
 Requires `docs/_build/html/needs.json` — run `sphinx-build` first if stale.
 
+## Exchange Contract
+
+To replace this implementation: create a new skill folder, provide the same
+query-by-ID capability, update the `description` for Copilot discovery.
+No agent changes required.
+
 ## Rules
 
 ### Mandatory Execution

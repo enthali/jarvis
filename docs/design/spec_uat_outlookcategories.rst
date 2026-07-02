@@ -185,7 +185,7 @@ Outlook Categories UAT Design Specifications
 .. spec:: Auto-Category on New Entity Test Procedures
    :id: SPEC_UAT_AUTOCAT_FILES
    :status: implemented
-   :links: REQ_UAT_AUTOCAT_TESTDATA; SPEC_OLK_AUTOCAT_NEWENTITY; SPEC_EXP_NEWPROJECT_CMD; SPEC_EXP_NEWEVENT_CMD
+   :links: REQ_UAT_AUTOCAT_TESTDATA; SPEC_OLK_AUTOCAT_NEWENTITY; SPEC_PRJ_NEWPROJECT_CMD; SPEC_EVT_NEWEVENT_CMD
 
    **Description:**
    Manual test procedures for the automatic Outlook category creation triggered

@@ -5,7 +5,7 @@ New Entity UAT Requirements
    :id: REQ_UAT_NEWENTITY_TESTDATA
    :status: approved
    :priority: optional
-   :links: US_UAT_NEWENTITY; REQ_EXP_NEWPROJECT; REQ_EXP_NEWEVENT
+   :links: US_UAT_NEWENTITY; REQ_PRJ_NEWPROJECT; REQ_EVT_NEWEVENT
 
    **Description:**
    The repo SHALL contain test data and documented expected outcomes for manual

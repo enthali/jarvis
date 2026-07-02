@@ -46,11 +46,15 @@ Auto Delivery UAT Requirements
    :id: REQ_UAT_MSG_AUTODELIVERY_POLL
    :status: approved
    :priority: optional
-   :links: US_UAT_MSG_AUTODELIVERY; REQ_MSG_AUTODELIVER_POLL; REQ_MSG_AUTODELIVER_TAG
+   :links: US_UAT_MSG_AUTODELIVERY; REQ_MSG_AUTODELIVER_POLL; REQ_MSG_AUTODELIVER_TAG; REQ_MSG_EDITORPLACEMENT; REQ_MSG_FOCUSRESTORE; REQ_MSG_AUTODELIVERY_OPTOUT
 
    **Description:**
    The poll loop SHALL deliver messages automatically and prevent re-delivery,
-   as verified by T-7 and T-8.
+   as verified by T-7 and T-8; it SHALL also place a newly-opened delivery
+   tab at the Secondary column when other columns already exist (T-10) and
+   split a new column when only Main is open, never collapsing into it
+   (T-14), restore the user's prior focus after delivery (T-11, T-12), and
+   skip delivery to an actively-focused session (T-13).
 
    **Acceptance Criteria:**
 
@@ -60,3 +64,29 @@ Auto Delivery UAT Requirements
      be set to ``true`` so subsequent ticks skip the message
    * AC-3: The manual Play action SHALL also work for sessions in the Auto
      Delivery group (T-9), and SHALL NOT cause double delivery on the next tick
+   * AC-4 (REQ_MSG_EDITORPLACEMENT AC-3 — Secondary placement):
+     For T-10, the tester SHALL verify that a delivery to a session with no
+     currently-open chat tab opens it in the last existing editor-group
+     column (not a newly created column), when other columns are already
+     open (e.g. Main + Docs).
+   * AC-5 (REQ_MSG_FOCUSRESTORE AC-1–AC-3 — focus restore, editor case):
+     For T-11, the tester SHALL verify that focus on an unrelated,
+     previously-active editor tab is automatically restored immediately
+     after a system-initiated delivery completes, with no manual action.
+   * AC-6 (REQ_MSG_FOCUSRESTORE AC-1–AC-3 — focus restore, terminal case):
+     For T-12, the tester SHALL verify that focus on a previously-active
+     integrated terminal is automatically restored (via ``terminal.show()``)
+     immediately after a system-initiated delivery completes.
+   * AC-7 (REQ_MSG_AUTODELIVERY_OPTOUT AC-1–AC-2 — active-use opt-out):
+     For T-13, the tester SHALL verify that a poll tick skips delivery to a
+     session whose chat tab is the currently active/focused tab, that the
+     message remains queued (retrievable via ``jarvis_readMessage``), and
+     that delivery proceeds normally once the tab is no longer active/focused.
+   * AC-8 (REQ_MSG_EDITORPLACEMENT AC-3/AC-7 — Secondary split when only
+     Main is open):
+     For T-14, the tester SHALL verify that a delivery to a not-yet-open
+     session, when exactly 1 editor-group column (Main) is currently open,
+     splits a new column 2 for the delivery target — it SHALL NOT open the
+     session inside column 1 alongside or in place of the Main tab. This is
+     the degenerate-column edge case distinct from T-10 (2+ columns already
+     open).

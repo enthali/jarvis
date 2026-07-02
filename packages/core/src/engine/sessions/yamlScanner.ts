@@ -1,9 +1,11 @@
-// Implementation: SPEC_EXP_SCANNER
-// Requirements: REQ_EXP_YAMLDATA, REQ_EXP_REACTIVECACHE, REQ_EXP_EVENTFILTER, REQ_EXP_NAMESORT
+// Implementation: SPEC_ENG_SCANNER
+// Requirements: REQ_ENG_SCANNER, REQ_EXP_YAMLDATA, REQ_EXP_REACTIVECACHE, REQ_EVT_EVENTFILTER, REQ_ENT_NAMESORT
 
 import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
+import * as vscode from 'vscode';
+import { resolveAgentFileChild } from './agentDiscovery';
 
 export interface EntityEntry {
     name: string;
@@ -26,7 +28,13 @@ export interface LeafNode {
     id: string;
 }
 
-export type TreeNode = FolderNode | LeafNode;
+export interface FileNode {
+    kind: 'file';
+    filePath: string;   // absolute path, forward-slash normalized for tooltip
+    label: string;      // basename shown as the tree item label
+}
+
+export type TreeNode = FolderNode | LeafNode | FileNode;
 
 export class YamlScanner {
     private _projectTree: TreeNode[] = [];
@@ -120,7 +128,7 @@ export class YamlScanner {
             return [];
         }
 
-        const nodes: TreeNode[] = [];
+        const nodes: (LeafNode | FolderNode)[] = [];
 
         for (const entry of entries) {
             const fullPath = path.join(folder, entry.name);
@@ -364,7 +372,7 @@ export class KindDrivenScanner {
             return [];
         }
 
-        const nodes: TreeNode[] = [];
+        const nodes: (LeafNode | FolderNode)[] = [];
 
         for (const entry of entries) {
             const fullPath = path.join(folder, entry.name);
@@ -439,6 +447,24 @@ export class KindDrivenScanner {
 
         return nodes;
     }
+}
+
+// SPEC_EXP_ENTITY_FILE_CHILDREN: shared helper for file children
+export async function getEntityFileChildren(
+    leaf: LeafNode,
+    entity: EntityEntry | undefined
+): Promise<FileNode[]> {
+    const folder = path.dirname(leaf.id);
+    const children: FileNode[] = [
+        { kind: 'file', filePath: path.join(folder, 'context.md'), label: 'context.md' },
+        { kind: 'file', filePath: leaf.id, label: path.basename(leaf.id) },
+    ];
+    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
+    const agentFile = await resolveAgentFileChild(entity?.agent, workspaceRoot);
+    if (agentFile) {
+        children.push(agentFile);
+    }
+    return children;
 }
 
 // Shared tree comparison utilities

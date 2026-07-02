@@ -5,7 +5,7 @@
    :id: REQ_UAT_LISTSESSIONENTITIESGATING
    :status: implemented
    :priority: required
-   :links: US_UAT_LISTSESSIONENTITIESGATING; REQ_SES_LISTTOOL
+   :links: US_UAT_LISTSESSIONENTITIESGATING; REQ_ACT_LISTTOOL
 
    **Description:**
    Specifies the workspace state and per-AC verification criteria required to
@@ -27,7 +27,7 @@
      **Developer: Restart Extension Host** from the Command Palette, and
      reopen the Chat panel before issuing the prompt.
 
-   **Acceptance Criteria — per REQ_SES_LISTTOOL AC:**
+   **Acceptance Criteria — per REQ_ACT_LISTTOOL AC:**
 
    * AC-1 (Feature ENABLED — tool registered):
      The tester SHALL verify that with ``jarvis.sessions.enabled=true`` and

@@ -131,9 +131,9 @@ describe('Project kind config + TaskBadgeDecorator (standalone expectations)', (
             expect(item.iconPath).toBeUndefined();
         });
 
-        it('entity without matching tasks: collapsibleState = None (no children)', () => {
+        it('entity without matching tasks: collapsibleState = Collapsed (file children present)', () => {
             const item = provider.getTreeItem(projectLeafNoTasks);
-            expect(item.collapsibleState).toBe(TreeItemCollapsibleState.None);
+            expect(item.collapsibleState).toBe(TreeItemCollapsibleState.Collapsed);
         });
 
         it('folder node renders correctly', () => {
@@ -145,37 +145,40 @@ describe('Project kind config + TaskBadgeDecorator (standalone expectations)', (
     });
 
     describe('task subtree (getChildren for entity leaf)', () => {
-        it('entity with tasks produces 2 groups: open + completed', () => {
-            const children = provider.getChildren(projectLeaf1) as ProviderNode[];
-            expect(children).toHaveLength(2);
-            expect(children[0].kind).toBe('child');
-            expect(children[1].kind).toBe('child');
+        it('entity with tasks produces file children + 2 groups: open + completed', async () => {
+            const children = await provider.getChildren(projectLeaf1) as ProviderNode[];
+            expect(children).toHaveLength(4);
+            expect(children[0].kind).toBe('file');
+            expect(children[1].kind).toBe('file');
+            expect(children[2].kind).toBe('child');
+            expect(children[3].kind).toBe('child');
         });
 
-        it('open group label includes count', () => {
-            const children = provider.getChildren(projectLeaf1) as ProviderNode[];
-            const openGroup = provider.getTreeItem(children[0]);
+        it('open group label includes count', async () => {
+            const children = await provider.getChildren(projectLeaf1) as ProviderNode[];
+            const openGroup = provider.getTreeItem(children[2]);
             expect(openGroup.label).toBe('Open Tasks (2)');
         });
 
-        it('completed group label includes count', () => {
-            const children = provider.getChildren(projectLeaf1) as ProviderNode[];
-            const completedGroup = provider.getTreeItem(children[1]);
+        it('completed group label includes count', async () => {
+            const children = await provider.getChildren(projectLeaf1) as ProviderNode[];
+            const completedGroup = provider.getTreeItem(children[3]);
             expect(completedGroup.label).toBe('Completed Tasks (1)');
         });
 
-        it('task leaf renders with correct label and command', () => {
-            const children = provider.getChildren(projectLeaf1) as ProviderNode[];
-            const openChildren = provider.getChildren(children[0]) as ProviderNode[];
+        it('task leaf renders with correct label and command', async () => {
+            const children = await provider.getChildren(projectLeaf1) as ProviderNode[];
+            const openChildren = provider.getChildren(children[2]) as ProviderNode[];
             expect(openChildren.length).toBeGreaterThan(0);
             const taskItem = provider.getTreeItem(openChildren[0]);
             expect(taskItem.command?.command).toBe('vscode.openWith');
             expect(taskItem.contextValue).toBe('jarvisTask');
         });
 
-        it('entity without tasks returns empty children', () => {
-            const children = provider.getChildren(projectLeafNoTasks);
-            expect(children).toEqual([]);
+        it('entity without tasks returns only file children', async () => {
+            const children = await provider.getChildren(projectLeafNoTasks) as ProviderNode[];
+            expect(children).toHaveLength(2);
+            expect(children.every(c => c.kind === 'file')).toBe(true);
         });
     });
 
@@ -184,9 +187,9 @@ describe('Project kind config + TaskBadgeDecorator (standalone expectations)', (
         factoryNoTasks.addKind(buildProjectKindConfig(undefined));
         const providerNoTasks = factoryNoTasks.getProvider('project')!;
 
-        it('entity renders as None (flat leaf)', () => {
+        it('entity renders as Collapsed (file children present even without TaskService)', () => {
             const item = providerNoTasks.getTreeItem(projectLeaf1);
-            expect(item.collapsibleState).toBe(TreeItemCollapsibleState.None);
+            expect(item.collapsibleState).toBe(TreeItemCollapsibleState.Collapsed);
         });
 
         it('no description or iconPath', () => {

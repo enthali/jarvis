@@ -4,7 +4,7 @@ Session Init Prompt on Auto-Open UAT Design Specifications
 .. spec:: Session Init Prompt on Auto-Open — Test Scenarios and Expected Outcomes
    :id: SPEC_UAT_SESSIONINITPROMPT
    :status: draft
-   :links: REQ_UAT_SESSIONINITPROMPT; SPEC_MSG_AGENTSESSION; SPEC_EXP_AGENTSESSION; SPEC_EXP_AGENTSESSION_INITPROMPT; SPEC_MSG_AUTODELIVER_POLL; SPEC_MSG_SENDCOMMAND
+   :links: REQ_UAT_SESSIONINITPROMPT; SPEC_MSG_AGENTSESSION; SPEC_ENT_AGENTSESSION; SPEC_ENT_AGENTSESSION_INITPROMPT; SPEC_MSG_AUTODELIVER_POLL; SPEC_MSG_SENDCOMMAND
 
    **Description:**
    Step-by-step procedures and expected outcomes for eleven acceptance test
@@ -342,8 +342,8 @@ Session Init Prompt on Auto-Open UAT Design Specifications
 
           Edge: agent file without ``user-invocable`` key — appears in picker
 
-          *CR AC-5; see SPEC_SES_AGENT_DISCOVERY (revised),
-          REQ_SES_AGENT_DISCOVERY AC-2 (revised)*
+          *CR AC-5; see SPEC_ACT_AGENT_DISCOVERY (revised),
+          REQ_ACT_AGENT_DISCOVERY AC-2 (revised)*
         - Precondition: The workspace's ``.github/agents/`` folder contains
           two test agent files:
 
@@ -380,8 +380,8 @@ Session Init Prompt on Auto-Open UAT Design Specifications
           Agent with ``name: Change Manager`` in frontmatter appears in
           picker as "Change Manager"
 
-          *REQ_SES_AGENT_DISCOVERY AC-7;
-          REQ_SES_AGENT_PICKER AC-1*
+          *REQ_ACT_AGENT_DISCOVERY AC-7;
+          REQ_ACT_AGENT_PICKER AC-1*
         - Precondition: ``testdata/.github/agents/change-agent.agent.md``
           exists with frontmatter ``name: Change Manager``.
           EDH open on ``testdata/test.code-workspace``.
@@ -401,7 +401,7 @@ Session Init Prompt on Auto-Open UAT Design Specifications
 
           Agent without ``name:`` key appears as filename stem
 
-          *REQ_SES_AGENT_DISCOVERY AC-3/AC-7*
+          *REQ_ACT_AGENT_DISCOVERY AC-3/AC-7*
         - Precondition: Create
           ``testdata/.github/agents/noname-agent.agent.md`` with
           frontmatter that contains ``description:`` but NO ``name:`` key::
@@ -428,7 +428,7 @@ Session Init Prompt on Auto-Open UAT Design Specifications
           Session created with identity "Change Manager" stores
           ``agent: Change Manager`` in session.yaml
 
-          *REQ_SES_AGENT_PICKER AC-4*
+          *REQ_ACT_AGENT_PICKER AC-4*
         - Precondition: EDH open on ``testdata/test.code-workspace``.
           No folder ``testdata/.jarvis/sessions/cm-identity-test/`` exists.
 
@@ -453,7 +453,7 @@ Session Init Prompt on Auto-Open UAT Design Specifications
           Opening session with ``agent: Change Manager`` invokes
           ``chat.open { mode: "Change Manager" }``
 
-          *REQ_SES_AGENT_OPEN AC-1; backward-compat*
+          *REQ_ACT_AGENT_OPEN AC-1; backward-compat*
         - Precondition: ``cm-identity-test/session.yaml`` (created in
           T-F1-3) contains ``agent: Change Manager``.
           No VS Code Chat session named ``cm-identity-test`` exists.
@@ -479,7 +479,7 @@ Session Init Prompt on Auto-Open UAT Design Specifications
           Existing session.yaml ``agent: syspilot.cm`` (filename stem,
           no frontmatter name) still resolves — backward compat
 
-          *REQ_SES_AGENT_DISCOVERY AC-7; backward-compat*
+          *REQ_ACT_AGENT_DISCOVERY AC-7; backward-compat*
         - Precondition: If not already present, create
           ``testdata/.github/agents/syspilot.cm.agent.md`` with
           frontmatter that contains NO ``name:`` key::
@@ -512,7 +512,7 @@ Session Init Prompt on Auto-Open UAT Design Specifications
           Create session "Change" — folder named ``Change`` created
           verbatim, no transformation
 
-          *REQ_SES_NEWENTITY AC-2*
+          *REQ_ACT_NEWENTITY AC-2*
         - Precondition: No folder
           ``testdata/.jarvis/sessions/Change/`` exists.
 
@@ -542,7 +542,7 @@ Session Init Prompt on Auto-Open UAT Design Specifications
           Create session "Change Manager" (with space) — folder
           ``Change Manager`` created verbatim
 
-          *REQ_SES_NEWENTITY AC-2*
+          *REQ_ACT_NEWENTITY AC-2*
         - Precondition: No folder
           ``testdata/.jarvis/sessions/Change Manager/`` exists.
 
@@ -571,7 +571,7 @@ Session Init Prompt on Auto-Open UAT Design Specifications
 
           Create session "a/b" — error shown, no folder created
 
-          *REQ_SES_NEWENTITY AC-9*
+          *REQ_ACT_NEWENTITY AC-9*
         - Precondition: No folder ``testdata/.jarvis/sessions/a/``
           exists.
 
@@ -603,7 +603,7 @@ Session Init Prompt on Auto-Open UAT Design Specifications
           ``name: Change Manager`` in session.yaml — identity resolves
           from name field, folder name irrelevant
 
-          *REQ_SES_NEWENTITY AC-2 (storage-only note)*
+          *REQ_ACT_NEWENTITY AC-2 (storage-only note)*
         - Precondition: Manually create the following files before
           starting the EDH:
 

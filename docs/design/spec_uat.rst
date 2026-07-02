@@ -49,6 +49,7 @@ outcome tables** for each feature's acceptance tests.
    spec_uat_newentity_picker
    spec_uat_heartbeat_dest_valid
    spec_uat_modular_install
+   spec_uat_entity_files_tree
 
 All UAT Specifications
 ----------------------

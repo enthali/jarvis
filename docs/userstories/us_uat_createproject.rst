@@ -5,7 +5,7 @@ Create Project Tool User Acceptance Tests
    :id: US_UAT_CREATEPROJECT
    :status: draft
    :priority: optional
-   :links: US_EXP_CREATEPROJECT; REQ_EXP_CREATEPROJECT
+   :links: US_PRJ_CREATEPROJECT; REQ_PRJ_CREATEPROJECT
 
    **As a** Jarvis Test Engineer,
    **I want** manual acceptance test scenarios for the ``jarvis_createProject``
@@ -17,18 +17,18 @@ Create Project Tool User Acceptance Tests
 
    * AC-1: A test verifies that ``jarvis_createProject`` creates the expected
      folder, ``project.yaml``, and ``context.md`` and returns ``created: true``
-     (maps to ``US_EXP_CREATEPROJECT`` AC-1, AC-2 / T-6).
+     (maps to ``US_PRJ_CREATEPROJECT`` AC-1, AC-2 / T-6).
    * AC-2: A test verifies that the Projects Tree reflects the new project within
-     2 seconds without a manual rescan (maps to ``US_EXP_CREATEPROJECT`` AC-3
+     2 seconds without a manual rescan (maps to ``US_PRJ_CREATEPROJECT`` AC-3
      / T-6).
    * AC-3: A test verifies that calling the tool for a project whose folder already
      exists returns ``created: false`` without overwriting any files (maps to
-     ``US_EXP_CREATEPROJECT`` AC-4 / T-7).
+     ``US_PRJ_CREATEPROJECT`` AC-4 / T-7).
    * AC-4: A test verifies that providing an invalid ``agent`` value causes the
      tool to return an error and NOT create any folder (maps to
-     ``US_EXP_CREATEPROJECT`` AC-6 / T-8).
+     ``US_PRJ_CREATEPROJECT`` AC-6 / T-8).
    * AC-5: A test verifies that an empty name or a Windows reserved name causes
-     the tool to return an error (maps to ``US_EXP_CREATEPROJECT`` AC-5 / T-9).
+     the tool to return an error (maps to ``US_PRJ_CREATEPROJECT`` AC-5 / T-9).
 
    **Test Scenarios (summary):**
 

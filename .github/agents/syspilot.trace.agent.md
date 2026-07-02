@@ -1,6 +1,8 @@
 ---
+name: "Trace Engineer"
+agent: syspilot.trace
 description: "Subagent that traces one specification element vertically through all levels (US → REQ → SPEC) and checks traceability completeness."
-tools: [read, search, execute]
+tools: [execute, read, enthali.jarvis-core, search]
 model: Claude Haiku 4.5 (copilot)
 user-invocable: true
 agents: []
@@ -40,8 +42,7 @@ and read-only.
 2. **Discover** — Use `get_need_links.py` to find all connected elements
 3. **Traverse** — Follow the complete chain upward and downward
 4. **Analyze** — Check chain completeness, semantic consistency, link validity
-5. **Report** — Produce trace report: complete chain, missing links,
-   semantic drift, orphaned elements
+5. **RESPOND** — Return trace report to caller: complete chain, missing links, semantic drift, orphaned elements
 
 **Input:** Specification element ID
 **Output:** Trace report with chain and findings

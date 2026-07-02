@@ -5,7 +5,7 @@ Entity Parity UAT Requirements
    :id: REQ_UAT_ENTITY_PARITY
    :status: draft
    :priority: required
-   :links: US_UAT_ENTITY_PARITY; REQ_EXP_ENTITY_AGENT; REQ_EXP_ENTITY_TREECLICK; REQ_EXP_ENTITY_ICONS
+   :links: US_UAT_ENTITY_PARITY; REQ_ENT_ENTITY_AGENT; REQ_ENT_ENTITY_TREECLICK; REQ_ENT_ENTITY_ICONS
 
    **Description:**
    Specifies the test data, workspace state, and per-AC verification criteria

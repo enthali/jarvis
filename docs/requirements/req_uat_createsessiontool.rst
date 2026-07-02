@@ -5,7 +5,7 @@
    :id: REQ_UAT_CREATESESSIONTOOL
    :status: draft
    :priority: required
-   :links: US_UAT_CREATESESSIONTOOL; REQ_SES_CREATETOOL
+   :links: US_UAT_CREATESESSIONTOOL; REQ_ACT_CREATETOOL
 
    **Description:**
    Specifies the test data, workspace state, and per-AC verification criteria
@@ -16,7 +16,7 @@
 
    * Open ``testdata/test.code-workspace`` in the Extension Development Host
      (F5 from VS Code with ``feature/create-session-tool`` checked out).
-   * Pre-existing session test data from ``REQ_UAT_SES_TREE`` must be present
+   * Pre-existing session test data from ``REQ_UAT_ACT_TREE`` must be present
      (``testdata/.jarvis/sessions/copilot-cm/`` and
      ``testdata/.jarvis/sessions/dev-feature-x/``).
    * An active VS Code Chat agent session (any name) must be open in the EDH so
@@ -27,7 +27,7 @@
      (either inline ``#createSession`` reference or direct LM prompt asking
      the model to call the tool).
 
-   **Acceptance Criteria — per REQ_SES_CREATETOOL AC:**
+   **Acceptance Criteria — per REQ_ACT_CREATETOOL AC:**
 
    * AC-1 (REQ AC-1 — tool registration gate):
      The tester SHALL verify that the tool appears in the VS Code Chat tool

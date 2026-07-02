@@ -6,6 +6,15 @@
 
 ---
 
+> ## North Star
+> **Jarvis: A purely event-driven actor system with heartbeats for liveness and supervision.**
+>
+> Drei Schichten, exakt gemappt: **event-driven** = die Hook Engine (dieses Dokument) · **actor system** = die Actor-Entities + Mailbox/Queue (Hewitt, siehe [FI-2026-07-01](FI-2026-07-01-exp-ses-theme-boundary.md)) · **heartbeats for liveness & supervision** = der Heartbeat als Grain-Aktivator *und* Supervisor.
+>
+> Systemisch: Ein rein reaktives (event-getriebenes) System kann verhungern, wenn keine externen Events kommen — schlafende Actors, nie zugestellte Messages. Der **Heartbeat-Tick ist das eine Uhr-Event**, das Baseline-Liveness garantiert und Actors überwacht/reaktiviert. Damit bleibt „purely event-driven" konsistent.
+
+---
+
 ## Trigger
 
 VS Code Agent Hooks (Preview) liefern JSON-konfigurierte Lifecycle-Events. JSON „schreit nach TypeScript". Statt jeder Consumer baut seine eigene Hook-Verdrahtung → eine generische, domänen-neutrale **Hook Engine** in Jarvis Core.

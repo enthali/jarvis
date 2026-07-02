@@ -19,19 +19,27 @@ Updated after every cycle. Read this first to know where to pick up.
 
 ## CR Review Log
 
+*Older entries (2026-06-09 through 2026-06-24, 11 CRs: remove-open-recording-icon,
+modular-install, wsl2-session-lookup, wsl2-artifacts, ci-core-bundle,
+marketplace-publish, extension-rename, extension-pkg-contract, lockfile-sync-ac,
+addon-icons, selective-updater) — all QM CLEAR, no outstanding items. Full detail
+in git history of this file.*
+
 | Change | Reviewed | MECE | Trace | Code-vs-Spec | UAT | Key Findings | PM Decision |
 |---|---|---|---|---|---|---|---|
-| remove-open-recording-icon | 2026-06-09 | PASS | PASS | PASS | T-1..T-5 auto ✓ / T-6..T-9 manual pending | F-1 MINOR: releasenotes Artefakt class; F-2 INFO: CR header stale; F-3 INFO: val-report missing pre-merge | pending |
-| modular-install | 2026-06-20 | L0 FAIL→PASS / L1 FAIL→advisory / L2 FAIL→advisory | PASS (all chains) | n/a | n/a | 4 blocking fixed by CM; 5 advisories accepted | QM CLEAR |
-| wsl2-session-lookup | 2026-06-22 | PASS | PASS | n/a | n/a | Advisory: REQ AC-10 silent on USERNAME-unset error (SPEC handles it) | QM CLEAR |
-| wsl2-artifacts | 2026-06-23 | n/a (doc-only) | n/a | PASS | TC-1..TC-3 auto ✓ / TC-4 manual pending | Advisory: TC-3 language loose on throw-vs-fallback | QM CLEAR |
-| ci-core-bundle | 2026-06-23 | PASS | PASS | n/a | n/a | Advisory: REQ AC-1/AC-3 (vsce devDep, publisher) not in SPEC ACs | QM CLEAR |
-| marketplace-publish | 2026-06-23 | PASS | PASS | PASS | n/a | F-1 MINOR: US→US :links: unconventional; F-2 MINOR: SPEC_MKTMETA AC-3 under-specifies README; F-3 MINOR: SPEC_RELEASEACTION code block stale (files glob) | QM CLEAR |
-| extension-rename | 2026-06-24 | PASS | PASS | PASS | n/a | F-1 resolved: releasenotes.md v0.10.0 corrected to enthali.jarvis-core; F-2 resolved: REQ_REL_RELEASEACTION + AC-5 added; SPEC_REL_COREGH links fixed | QM CLEAR |
-| extension-pkg-contract | 2026-06-24 | PASS | PASS | PASS | n/a | F-1/F-2/F-3 resolved (US→US link removed, SPEC ACs added, status aligned); needs_warnings for US→US deferred (101 violations — separate CR, PM informed) | QM CLEAR |
-| lockfile-sync-ac | 2026-06-24 | n/a (spec-only, no new US) | PASS | n/a | n/a | No findings | QM CLEAR |
-| addon-icons | 2026-06-24 | n/a (spec-only, no new US) | PASS | n/a | n/a | No findings | QM CLEAR |
-| selective-updater | 2026-06-24 | PASS (AC-6/AC-7 added) | PASS | PASS | n/a | No findings; code-vs-spec exact match on all 6 handler steps; Artefakt-Removal verified | QM CLEAR |
+| icon-alignment | 2026-06-25 | PASS | PASS | PASS | n/a | 6 findings (icon field in core-gh, test/val artifacts) — all addressed by PM | QM CLEAR |
+| wsl2-username-fallback | 2026-06-27 | PASS | PASS | PASS | n/a | process.env fallback verified PASSED; minor SPEC status updates pending | QM APPROVED |
+| agent-session-api | 2026-06-27 | PASS | PASS | PASS | 9/11 auto ✓, 2 manual PENDING | JarvisSession type + listJarvisSessions() API clean | QM CLEAR |
+| hook-engine-mvp | 2026-06-29 | PASS | PASS | PASS | 16 TCs (15 auto ✓, 1 manual E2E ✓) | HookEngine, HookIntake, HookConfig; 4 new SPECs | QM CLEAR |
+| hook-autoinstall-setting | 2026-06-29 | PASS | PASS | PASS | 8 TCs ✓ | jarvis.hooks.autoInstall setting; SPEC_HOOK_AUTOINST added during verification | QM CLEAR |
+| hook-event-router | 2026-06-30 | PASS | PASS | PASS | 35 TCs across 8 groups ✓ | Event routing registry, on/off methods, --event parameter, typed dispatch; US_HOOK_OBSERVE AC-4 fulfilled | QM CLEAR |
+| hook-files-relocate | 2026-06-30 | n/a (structural) | PASS | PASS | 147/147 tests ✓ | Moved hook files to engine/hooks/, imports updated, build clean | QM CLEAR |
+| engine-restructure | 2026-06-30 | n/a (structural) | PASS | PASS | 148/148 tests ✓ | Moved 8 core files to engine/core/ and engine/sessions/, index.ts re-exports, build clean | QM CLEAR |
+| entity-files-tree | 2026-07-01 | L0 PASS/2 gaps / L1 PASS/1 modality mismatch / L2 PASS/2 doc gaps | PASS (2 elements sampled) | PASS | n/a (UAT already exec'd by CM pipeline) | Round 2: stale CD summary + REQ MAY/SHALL — both fixed. Round 3 spot-check on agent-discovery bug-fix amendment: PASS, no scope creep, code matches amended spec. | QM FINAL SIGN-OFF — CLEAR |
+| entity-taxonomy-rename | 2026-07-01 | L0 PASS (2 advisory) / L1 PASS / L2 PASS (1 medium: dual openContext/openSessionContext commands undisclosed; 1 low: residual "session" prose in SPEC_ENT_TREECLICK) | PASS (3 chains: US_ENT_ENTITY, US_ACT_ACTORS, SPEC_ENG_SCANNER) | n/a (spec-only, no code) | n/a | All 5 Round 1 findings resolved and independently re-verified (CD tables backfilled, disclosure line, prose fix, yamlScanner.ts comment, US_ENT_ENTITY downward links, US_PRJ_PROJECT/US_EVT_EVENT added). Round 3: small follow-up (REQ/SPEC_EXP_NEWPROJECT/NEWEVENT → PRJ/EVT relocation) — PASS, CLEAR. | QM FINAL SIGN-OFF — CLEAR |
+| entity-open-context-cleanup | 2026-07-01 | n/a (REQ/SPEC rewrite, no new US) | PASS (REQ_ACT_TREECLICK/SPEC_ACT_TREECLICK retirement + REQ_ENT_OPENCONTEXT/SPEC_ENT_OPENCONTEXT_CMD unification) | PASS (code independently verified: extension.ts/package.json clean of dead command, preview:false on all 3 kinds) | PASS (T-9 non-existence, T-10 cross-kind) | Retired jarvis.openSessionContext (dead code), unified on jarvis.openContext for Project/Event/Actor — resolves the asymmetry flagged in entity-taxonomy-rename Round 1 Finding #2. 1 cosmetic finding (CD status markers stale vs actual completion). | QM CLEAR |
+| editor-group-placement | 2026-07-02 | PASS (7 REQs: EDITORPLACEMENT/FOCUSRESTORE/AUTODELIVERY_OPTOUT new + 4 modified; 2 low maintainability suggestions) | PASS (FOCUSRESTORE chain + bug-fix verification) | PASS (extension.ts independently verified: resolveSecondaryColumn Math.max formula, snapshotFocus UUID-resolution bug fix, opt-out sequencing) | n/a (CD's own UAT extension, not separately re-run) | Main/Docs/Secondary placement model + Focus-Snapshot/Restore + Auto-Delivery active-use opt-out. CM caught a real bug (snapshotFocus encoding session name not UUID) pre-QM; independently re-verified fixed in both spec and live code with a passing dedicated test. **PM wants joint manual test with user before merge — do not treat QM clearance as auto-merge trigger.** | QM CLEAR (merge pending PM manual test) |
+
 
 ## Known Releases (at last scan)
 

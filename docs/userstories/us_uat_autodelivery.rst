@@ -5,12 +5,16 @@ Auto Delivery User Acceptance Tests
    :id: US_UAT_MSG_AUTODELIVERY
    :status: approved
    :priority: optional
-   :links: US_MSG_AUTODELIVERY
+   :links: US_MSG_AUTODELIVERY; US_MSG_EDITORPLACEMENT; US_MSG_AUTODELIVERY_OPTOUT
 
    **As a** Jarvis Test Engineer,
    **I want** manual acceptance test scenarios for the auto-delivery feature,
+   including its Secondary-column placement, Focus-Snapshot/Restore, and
+   active-use opt-out behavior,
    so that I can verify end-to-end that messages are automatically sent to
-   registered sessions without manual intervention.
+   registered sessions without manual intervention, without disrupting the
+   user's current focus, and without interrupting an in-progress
+   conversation.
 
    **Acceptance Criteria:**
 
@@ -28,6 +32,18 @@ Auto Delivery User Acceptance Tests
      (``notified`` flag prevents duplicates)
    * AC-7: The manual Play button still works for sessions that are in the Auto
      Delivery group
+   * AC-8: A delivery to a session with no currently-open chat tab opens it
+     at the Secondary placement target (the last existing editor-group
+     column) rather than creating a new column
+   * AC-8b: When exactly 1 editor-group column (Main only) is open, a
+     Secondary delivery SHALL split a new column 2 — it SHALL NOT collapse
+     into column 1 (Main)
+   * AC-9: Around a system-initiated (poll-loop) delivery, the user's
+     current focus — an editor tab or an integrated terminal — is
+     automatically restored immediately after the delivery completes
+   * AC-10: The poll loop skips delivering to a session whose chat tab is
+     currently the active/focused tab, retrying on a later tick once the
+     session is no longer active
 
    **Test Scenarios:**
 
@@ -91,3 +107,51 @@ Auto Delivery User Acceptance Tests
      Expected: The message is delivered immediately, same as for a manual
      session. No error is shown. The message is not delivered a second time by
      the subsequent poll tick.
+
+   **T-10 — Secondary placement for delivery to a not-yet-open session**
+     Setup: 2 editor columns already open (e.g. an Actor chat in column 1, a
+     ``context.md`` in column 2). "TestTarget" is registered for auto-delivery
+     and its chat tab is **not** open in any column. Queue a message for it.
+     Action: Wait up to 10 s (two poll ticks).
+     Expected: A new tab for "TestTarget" opens in column 2 (the last
+     existing column at delivery time) — no third column is created.
+
+   **T-11 — Focus-Snapshot/Restore: editor tab case**
+     Setup: "TestTarget" is registered for auto-delivery; its chat tab is
+     closed. An unrelated file (e.g. ``README.md``) is open and focused in
+     the editor. Queue a message for "TestTarget".
+     Action: Wait up to 10 s for the poll tick to deliver.
+     Expected: The "TestTarget" chat briefly opens/receives the message, then
+     focus automatically returns to the ``README.md`` tab — the user ends up
+     exactly where they were before the delivery, with no manual action.
+
+   **T-12 — Focus-Snapshot/Restore: terminal case**
+     Setup: "TestTarget" is registered for auto-delivery; its chat tab is
+     closed. An integrated terminal panel is open and focused (not an
+     editor tab). Queue a message for "TestTarget".
+     Action: Wait up to 10 s for the poll tick to deliver.
+     Expected: After the delivery, focus automatically returns to the
+     integrated terminal (``terminal.show()``) — not to the newly-opened
+     "TestTarget" chat tab.
+
+   **T-13 — Active-use opt-out skips a session mid-chat**
+     Setup: "TestTarget" is registered for auto-delivery. Its chat tab is
+     open and is the currently active/focused editor tab (simulate active
+     use by keeping it focused). Queue a message for "TestTarget".
+     Action: Wait up to 10 s (two poll ticks) while keeping the "TestTarget"
+     tab focused throughout.
+     Expected: The message is NOT delivered while the tab remains active/
+     focused — it stays queued (retrievable via ``jarvis_readMessage``).
+     Switch focus away from the "TestTarget" tab and wait one more tick;
+     the message is then delivered normally on the next tick.
+
+   **T-14 — Secondary placement with only Main column open (split, not collapse)**
+     Setup: Exactly 1 editor-group column open, containing an Actor chat at
+     Main (column 1). No Docs column is open yet. "TestTarget" is registered
+     for auto-delivery and its chat tab is **not** open anywhere. Queue a
+     message for "TestTarget".
+     Action: Wait up to 10 s (two poll ticks).
+     Expected: A new column 2 is split off and "TestTarget"'s chat tab opens
+     there. The Main tab in column 1 is undisturbed — "TestTarget" does NOT
+     open inside column 1 alongside/replacing the Main tab. This is distinct
+     from T-10 (2+ columns already open, Secondary reuses the last one).

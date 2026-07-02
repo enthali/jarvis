@@ -45,7 +45,7 @@ Session Tools UAT Requirements
    :id: REQ_UAT_AGENTSESSION_TESTDATA
    :status: approved
    :priority: optional
-   :links: US_UAT_AGENTSESSION; REQ_EXP_AGENTSESSION
+   :links: US_UAT_AGENTSESSION; REQ_ENT_AGENTSESSION
 
    **Description:**
    The repo SHALL contain test data and documented expected outcomes for manual

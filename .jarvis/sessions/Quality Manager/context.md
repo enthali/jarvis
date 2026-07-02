@@ -36,5 +36,4 @@ Three files, strict separation of concerns:
 
 ## Active Reviews
 
-- **icon-alignment** (2026-06-25): CLEAR — all findings addressed, awaiting Verify Engineer execution.
-- **wsl2-username-fallback** (2026-06-27): APPROVED — audit sign-off sent to CM. Minor: SPEC status should be `implemented`, Change Doc status stale.
+None currently. All recent CRs cleared (see scan-state.md).

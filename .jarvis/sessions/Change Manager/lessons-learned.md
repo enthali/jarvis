@@ -22,3 +22,16 @@
   If not, create the concept spec (e.g. `SPEC_REL_PKGCONTRACT`) in the same CR so the pattern
   is repeatable and future modules just link to it rather than re-specifying it from scratch.
   Apply this even when the PM CR targets a specific feature — the architecture gap is in scope.
+- **Never instruct one engineer to dispatch directly to another** — even when asking System
+  Designer to "hand off to Dev Engineer" seems efficient, it breaks Engineer Isolation. When
+  this slips through anyway (engineer dispatches directly despite correction), do not send a
+  duplicate/conflicting task — wait for the acting engineer's report, then resume normal
+  CM-mediated handoff for the next step.
+- **Deprecated spec stubs are not a permanent artefact** — "keep a deprecated stub so
+  links don't break" is circular: if a live element still points to a superseded ID, that
+  reference is the defect to fix (repoint it), not a reason to preserve the old ID. Once all
+  consumers are repointed (mandatory in the same CR per the Artefakt-Removal Rule), delete the
+  superseded element outright — git history is the record of what used to exist, not a
+  deprecated stub in the live spec tree. Only exception: class (c) historic Change Document
+  prose (plain text, not a live sphinx-needs directive) — that's accepted stranding already,
+  nothing to fix.

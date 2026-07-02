@@ -16,6 +16,8 @@ Each project and event item has two inline action buttons:
 - `$(go-to-file)` — Open the YAML file in the editor
 - `$(comment-discussion)` — Open the agent chat session for that item
 
+Project, Event, and Session nodes are expandable to reveal their core files (`context.md`, YAML config, and agent file if configured) as clickable children — click a file child to open it in the editor. Tooltips show the full file path.
+
 ### Heartbeat Scheduler
 
 Cron-based job scheduling configured via YAML:
