@@ -7,11 +7,13 @@ Chat Editor Reuse — Session Open UAT Design Specifications
    :links: REQ_UAT_CHATEDITORREUSE
 
    **Description:**
-   Step-by-step procedures and expected outcomes for all five
-   ``chat-editor-reuse-on-session-open`` acceptance test scenarios, covering
-   the existing-UUID regression guard, fresh-editor creation via
-   ``jarvis_createSession``, the UI "New Session" command, successive
-   new-session opens, and the auto-delivery new-editor path.
+   Step-by-step procedures and expected outcomes for all nine
+   ``chat-editor-reuse-on-session-open`` and ``editor-group-placement``
+   acceptance test scenarios, covering the existing-UUID regression guard,
+   fresh-editor creation via ``jarvis_createSession``, the UI "New Session"
+   command, successive new-session opens, the auto-delivery new-editor path,
+   the Main-target close+reopen rule, the Docs-target fixed column, the
+   already-open-anywhere rule, and the Play-button's Main placement.
 
    **Test Setup:**
 
@@ -29,6 +31,10 @@ Chat Editor Reuse — Session Open UAT Design Specifications
 
    * An agent chat session (any name) is open in the EDH for issuing tool
      calls.
+   * For T-6/T-7/T-8/T-9, at least 2 editor columns are open (e.g. "Split
+     Editor" on any 2 unrelated files) before the scenario starts.
+   * For T-9, a message must be queued for a session in the manual root of
+     the Messages tree (Play button visible) — see ``REQ_MSG_QUEUE``.
    * Note the number of open chat editor tabs before each scenario (baseline
      tab count).
    * Between scenarios: close any session-specific chat editors opened
@@ -207,3 +213,98 @@ Chat Editor Reuse — Session Open UAT Design Specifications
           *Clean up: close the new editor tab; remove*
           ``"dev-feature-x"`` *from auto-delivery config; delete any test
           messages from the queue.*
+
+      * - T-6
+
+          Main-target close+reopen rule
+
+          *CR AC: 6*
+
+          *Spec under test:* ``SPEC_MSG_EDITORPLACEMENT``
+        - Precondition: at least 2 editor columns open. Click the
+          ``copilot-cm`` Actor node to open its chat (opens in column 1 per
+          AC-1). Manually drag the ``copilot-cm`` chat tab to column 2.
+
+          Click the ``copilot-cm`` Actor node again in the entity tree.
+
+          Observe which column the chat tab ends up in.
+        - **Close+reopen:** The ``copilot-cm`` chat tab that was in column 2
+          is closed, and a fresh tab for the same session opens in column 1,
+          focused.
+
+          **No duplicate:** Only one ``copilot-cm`` chat tab exists
+          afterward — in column 1, not column 2.
+
+          *Clean up: close the* ``copilot-cm`` *editor tab.*
+
+      * - T-7
+
+          Docs-target fixed column
+
+          *CR AC: 7*
+
+          *Spec under test:* ``SPEC_MSG_EDITORPLACEMENT``, ``SPEC_ENT_ENTITY_FILE_CHILDREN``
+        - Precondition: at least 2 editor columns open, with column 2 not
+          currently showing ``context.md``. Expand the ``alpha`` Project
+          node in the entity tree; click its ``context.md``, ``project.yaml``,
+          and agent-file children in turn.
+        - **Fixed column:** Each of the three file children opens in view
+          column 2 (Docs), regardless of which column previously had focus
+          or how many columns existed.
+
+          **No Main interference:** No chat editor is opened or moved in
+          column 1 as a side effect.
+
+      * - T-8
+
+          Already-open-anywhere rule (Docs target)
+
+          *CR AC: 8*
+
+          *Spec under test:* ``SPEC_MSG_EDITORPLACEMENT``
+        - Precondition: at least 3 editor columns open. Click ``alpha``'s
+          ``context.md`` child (opens in column 2 per T-7). Manually drag
+          that tab to column 3.
+
+          Click the ``alpha`` ``context.md`` child again in the entity tree.
+
+          Observe which column the tab is focused in.
+        - **Focus in place:** The existing ``context.md`` tab in column 3 is
+          focused. It is NOT closed, reopened, or moved back to column 2.
+
+          **No duplicate:** Only one ``context.md`` tab for ``alpha`` exists
+          throughout, regardless of column.
+
+          *Clean up: close the* ``context.md`` *editor tab.*
+
+      * - T-9
+
+          Play-button targets Main
+
+          *CR AC: 9*
+
+          *Spec under test:* ``SPEC_MSG_SENDCOMMAND``, ``SPEC_MSG_EDITORPLACEMENT``
+        - Precondition: at least 2 editor columns open. Queue a message for
+          ``dev-feature-x`` (manual root, not Auto Delivery group). Open its
+          chat tab and manually drag it to column 2.
+
+          Click the Play (``$(debug-start)``) button on the
+          ``dev-feature-x`` node in the Messages tree.
+
+          Observe which column the chat tab ends up in.
+
+          Then queue a second message for ``dev-feature-x`` (now at Main)
+          and click Play again.
+        - **First Play (close+reopen):** The ``dev-feature-x`` chat tab that
+          was in column 2 is closed, and a fresh tab for the same session
+          opens in column 1, focused — identical to the T-6 Actor-click
+          behavior.
+
+          **Second Play (focus-in-place):** With the tab already at column
+          1 (Main), clicking Play again simply focuses the existing tab in
+          place — no close+reopen, no second tab created.
+
+          **No duplicate:** Only one ``dev-feature-x`` chat tab exists
+          throughout, in column 1.
+
+          *Clean up: close the* ``dev-feature-x`` *editor tab.*

@@ -224,6 +224,66 @@ Messaging User Stories
      for older VS Code builds
 
 
+.. story:: Predictable Editor-Group Placement with Focus Restore
+   :id: US_MSG_EDITORPLACEMENT
+   :status: approved
+   :priority: mandatory
+   :links: US_MSG_STABLESESSION; US_MSG_AUTODELIVERY; US_ENT_AGENTSESSION; US_ENT_ENTITY_FILES_TREE
+
+   **As a** Jarvis User,
+   **I want** chat, docs, and delivery tabs to open in predictable, stable
+   editor-group columns (Main / Docs / Secondary) with my focus automatically
+   restored after a system-initiated delivery,
+   **so that** Auto-Delivery no longer disrupts my current work by jumping my
+   focus around, and I always know where a given kind of tab will land.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Clicking an Actor node in the entity tree always opens/focuses its
+     chat in a fixed Main column (column 1), regardless of where else it may
+     currently be open.
+   * AC-2: Opening a `context.md`/YAML/agent file from the entity tree always
+     opens/focuses it in a fixed Docs column (column 2).
+   * AC-3: A system-initiated delivery to a session with no open tab opens it
+     in the current last-existing column (Secondary) — no runaway column
+     creation, no manual configuration required.
+   * AC-4: If a tab is already open anywhere — including a column the user
+     manually moved it to — the system finds and focuses it there instead of
+     moving or duplicating it (except for the Main-column click rule, which
+     always relocates to column 1).
+   * AC-5: Before a system-initiated delivery (Auto-Delivery), my current
+     focus (an editor tab or a terminal) is remembered and automatically
+     restored immediately after the delivery completes.
+   * AC-6: No new configuration or persisted state is introduced — the
+     placement and restore behavior is derived entirely from the current
+     editor layout at the moment of the action.
+
+
+.. story:: Auto-Delivery Skips Actively-Used Sessions
+   :id: US_MSG_AUTODELIVERY_OPTOUT
+   :status: approved
+   :priority: mandatory
+   :links: US_MSG_AUTODELIVERY; US_MSG_EDITORPLACEMENT
+
+   **As a** Jarvis User,
+   **I want** Auto-Delivery to skip a session I am actively chatting in,
+   **so that** queued messages don't interrupt or disrupt an in-progress
+   conversation.
+
+   **Acceptance Criteria:**
+
+   * AC-1: If the target session's chat tab is the currently active
+     (focused) editor tab at poll time, Auto-Delivery SHALL skip delivering
+     to it on that tick.
+   * AC-2: A skipped message remains queued and is retried on a subsequent
+     poll tick once the session is no longer the active tab.
+   * AC-3: The manual "Play button" (``jarvis.sendMessages``) delivery path
+     is unaffected by this opt-out — it always delivers immediately when
+     invoked, regardless of active-use state.
+   * AC-4: No new configuration or persisted state is introduced — active-use
+     is derived from the current editor layout at poll time.
+
+
 .. story:: Remote / Devcontainer Session Lookup Compatibility
    :id: US_MSG_REMOTECOMPAT
    :status: approved

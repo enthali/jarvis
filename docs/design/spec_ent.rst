@@ -65,7 +65,7 @@ level).
 .. spec:: Open Agent Session Command
    :id: SPEC_ENT_AGENTSESSION
    :status: draft
-   :links: REQ_ENT_AGENTSESSION; SPEC_MSG_SESSIONLOOKUP; SPEC_EXP_PROVIDER; SPEC_ENT_OPENYAML_CMD; SPEC_MSG_OPENCHAT; SPEC_MSG_PINNED; SPEC_MSG_AGENTSESSION; SPEC_ENT_AGENTSESSION_INITPROMPT
+   :links: REQ_ENT_AGENTSESSION; SPEC_MSG_SESSIONLOOKUP; SPEC_EXP_PROVIDER; SPEC_ENT_OPENYAML_CMD; SPEC_MSG_OPENCHAT; SPEC_MSG_PINNED; SPEC_MSG_AGENTSESSION; SPEC_ENT_AGENTSESSION_INITPROMPT; SPEC_MSG_EDITORPLACEMENT
 
    **Description:**
    Register ``jarvis.openAgentSession`` in ``extension.ts``. Invoked from the
@@ -93,12 +93,14 @@ level).
           const uuid = await lookupSessionUUID(entity.name);
 
           if (uuid) {
-            // Open existing session pinned
+            // Open existing session, always at Main (column 1) — close+reopen
+            // if currently open elsewhere (SPEC_MSG_EDITORPLACEMENT AC-5, the
+            // one exception to the don't-move rule)
             const b64 = Buffer.from(uuid).toString('base64');
             const uri = vscode.Uri.parse(
               `vscode-chat-session://local/${b64}`
             );
-            await openPinnedResource(uri);  // SPEC_MSG_PINNED
+            await openAtMain(uri, entity.name);  // SPEC_MSG_EDITORPLACEMENT
           } else {
             // Mode-primed creation: set the mode selector BEFORE openNewChatEditor()
             // so the new session is born in the bound agent mode (SPEC_MSG_OPENCHAT
@@ -183,6 +185,18 @@ level).
      existing ``$(go-to-file)`` button
    * No changes to ``yamlScanner.ts`` — uses existing ``entity.name`` from the
      entity store
+   * ``openAtMain`` (``SPEC_MSG_EDITORPLACEMENT``) replaces the prior
+     ``openPinnedResource`` call for the existing-session branch: the tab is
+     always found and, if necessary, closed and reopened at column 1 rather
+     than merely focused wherever it happens to be (``REQ_ENT_AGENTSESSION``
+     AC-6 — guaranteed)
+   * The fresh-session-creation branch (``openNewChatEditor`` /
+     ``renameFocusedChatSession``) is unchanged — a newly created chat editor
+     is born in the currently active column, which for a user-initiated click
+     is already Main in the common case; this is **best-effort, not
+     guaranteed** (``REQ_ENT_AGENTSESSION`` AC-7) — VS Code exposes no API to
+     force the view column of a chat editor at creation time, so no explicit
+     re-placement step is added here
    * No changes to ``sessionLookup.ts`` — reuses ``lookupSessionUUID()`` as-is
    * The initialization prompt is submitted directly via
      ``workbench.action.chat.open`` (not via the message queue)
@@ -748,7 +762,7 @@ level).
 .. spec:: Entity File Children in Tree
    :id: SPEC_ENT_ENTITY_FILE_CHILDREN
    :status: approved
-   :links: REQ_ENT_ENTITY_FILE_CHILDREN; SPEC_EXP_PROVIDER; SPEC_ACT_TREE; SPEC_ENT_TREECLICK; SPEC_ACT_AGENT_DISCOVERY
+   :links: REQ_ENT_ENTITY_FILE_CHILDREN; SPEC_EXP_PROVIDER; SPEC_ACT_TREE; SPEC_ENT_TREECLICK; SPEC_ACT_AGENT_DISCOVERY; SPEC_MSG_EDITORPLACEMENT
 
    **Description:**
    Every project, event, and actor leaf node becomes expandable and shows
@@ -899,8 +913,10 @@ level).
         async (node: FileNode) => {
           const uri = vscode.Uri.file(node.filePath);
           try {
-            const doc = await vscode.workspace.openTextDocument(uri);
-            await vscode.window.showTextDocument(doc, { preview: false });
+            await vscode.workspace.openTextDocument(uri); // validates existence first
+            // Docs placement: fixed column 2, focus-in-place if already open
+            // elsewhere (SPEC_MSG_EDITORPLACEMENT)
+            await openAtDocs(uri);
           } catch {
             vscode.window.showWarningMessage(`Jarvis: Cannot open file: ${node.filePath}`);
           }
@@ -948,8 +964,10 @@ level).
       the lifetime of the extension host session — the underlying
       filesystem scan SHALL NOT re-run on every tree expansion.
    7. Clicking a file child invokes ``jarvis.openEntityFile``, which opens
-      the file (``preview: false``) or shows a warning if the file does not
-      exist. No file is created as a side effect.
+      the file at the fixed Docs column (column 2), focusing an already-open
+      tab in place if the file is open elsewhere (``SPEC_MSG_EDITORPLACEMENT``),
+      or shows a warning if the file does not exist. No file is created as a
+      side effect.
    8. File child tooltip shows the full absolute path with forward slashes.
    9. File child ``contextValue`` is ``jarvisEntityFile`` (distinct from
       ``jarvisProject`` / ``jarvisEvent`` / ``jarvisSession`` / ``jarvisFolder``)

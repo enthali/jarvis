@@ -7,9 +7,11 @@ Auto Delivery UAT Design Specifications
    :links: REQ_UAT_MSG_AUTODELIVERY_TESTDATA; REQ_UAT_MSG_AUTODELIVERY_TREE; REQ_UAT_MSG_AUTODELIVERY_POLL
 
    **Description:**
-   Expected outcomes for all nine auto-delivery test scenarios, covering tree
-   layout, context menu commands, persistence, poll-loop delivery, and the
-   ``notified`` deduplication flag.
+   Expected outcomes for all fourteen auto-delivery test scenarios, covering
+   tree layout, context menu commands, persistence, poll-loop delivery, the
+   ``notified`` deduplication flag, Secondary-column placement (including
+   the only-Main-open split edge case), Focus-Snapshot/Restore (editor and
+   terminal cases), and the active-use opt-out.
 
    **Test Setup:**
 
@@ -19,6 +21,16 @@ Auto Delivery UAT Design Specifications
      targets "TestTarget")
    * The ``autodelivery.json`` file starts absent or empty (delete from extension
      storage folder before each full run)
+   * For T-10, at least 2 editor columns already open before queuing the
+     message.
+   * For T-11, an unrelated file open and focused in the editor before
+     queuing the message.
+   * For T-12, an integrated terminal open and focused before queuing the
+     message.
+   * For T-13, "TestTarget"'s chat tab open and focused before queuing the
+     message.
+   * For T-14, exactly 1 editor-group column open (Main only, e.g. an
+     Actor chat) before queuing the message — no Docs column yet.
 
    **Expected Outcomes:**
 
@@ -65,6 +77,33 @@ Auto Delivery UAT Design Specifications
           click Play on "TestTarget" node before next tick
         - Message delivered immediately; subsequent poll tick does NOT
           deliver it again
+      * - T-10 (Secondary placement)
+        - 2 columns open (Main + Docs); "TestTarget" chat not open; queue a
+          message; wait ≤10 s
+        - New "TestTarget" tab opens in column 2 (last existing column) — no
+          3rd column is created
+      * - T-11 (focus restore — editor)
+        - Unrelated file focused in editor; "TestTarget" chat closed; queue
+          a message; wait ≤10 s
+        - Delivery occurs, then focus automatically returns to the unrelated
+          file tab — no manual action needed
+      * - T-12 (focus restore — terminal)
+        - Integrated terminal focused; "TestTarget" chat closed; queue a
+          message; wait ≤10 s
+        - Delivery occurs, then focus automatically returns to the
+          integrated terminal (``terminal.show()``)
+      * - T-13 (active-use opt-out)
+        - "TestTarget" chat tab open and focused; queue a message; wait
+          ≤10 s while keeping it focused
+        - Message is NOT delivered while the tab stays active/focused; it
+          remains queued. Once focus moves away, the next tick delivers it
+          normally
+      * - T-14 (Secondary split when only Main open)
+        - Exactly 1 column open (Main, e.g. an Actor chat); "TestTarget"
+          chat not open anywhere; queue a message; wait ≤10 s
+        - A new column 2 is split off and "TestTarget" opens there; the
+          Main tab in column 1 is undisturbed — "TestTarget" does NOT open
+          inside/replace column 1
 
 .. spec:: Auto Delivery Test Data Files
    :id: SPEC_UAT_MSG_AUTODELIVERY_FILES

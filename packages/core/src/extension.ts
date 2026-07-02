@@ -169,6 +169,160 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         await new Promise(resolve => setTimeout(resolve, 800));
     }
 
+    // Pinned resource open helper (SPEC_MSG_PINNED) — { preview: false } prevents
+    // VS Code from silently reusing a transient editor slot ("ghost editor").
+    // Optional viewColumn lets callers direct the open per the placement model
+    // (SPEC_MSG_EDITORPLACEMENT); omitting it preserves prior default-column behavior.
+    async function openPinnedResource(
+        uri: vscode.Uri,
+        viewColumn?: vscode.ViewColumn
+    ): Promise<void> {
+        await vscode.commands.executeCommand('vscode.open', uri, {
+            preview: false,
+            ...(viewColumn !== undefined ? { viewColumn } : {}),
+        });
+    }
+
+    // --- Editor-Group Placement Helper (SPEC_MSG_EDITORPLACEMENT) ---
+    // Three placement targets (Main/Docs/Secondary) computed at call time from
+    // vscode.window.tabGroups.all — no persisted state.
+
+    const MAIN_COLUMN = vscode.ViewColumn.One;
+    const DOCS_COLUMN = vscode.ViewColumn.Two;
+
+    function resolveSecondaryColumn(): vscode.ViewColumn {
+        // Math.max(2, N) — NOT N alone, and NOT N + 1.
+        // - N alone collapses Secondary into Main (column 1) when only 1
+        //   column is open — Secondary and Main must never be the same
+        //   column (confirmed regression found by PM in manual testing).
+        // - N + 1 creates a brand-new column on every delivery (confirmed
+        //   regression during spike validation).
+        // The floor of 2 guarantees Secondary always splits at least
+        // column 2 the first time; once 2+ columns exist, Secondary
+        // reuses the existing last column, letting Secondary sessions
+        // stack as tabs within the same group once 3+ columns exist.
+        const groupCount = vscode.window.tabGroups.all.length;
+        return Math.max(2, groupCount) as vscode.ViewColumn;
+    }
+
+    /** Finds an already-open tab for a chat session, by resolving the tab's
+     *  label via lookupSessionUUID (chat tabs expose no .uri). */
+    function findSessionTab(sessionName: string): vscode.Tab | undefined {
+        for (const group of vscode.window.tabGroups.all) {
+            for (const tab of group.tabs) {
+                if (tab.label === sessionName) { return tab; }
+            }
+        }
+        return undefined;
+    }
+
+    /** Finds an already-open tab for a file, by comparing fsPath. */
+    function findFileTab(filePath: string): vscode.Tab | undefined {
+        for (const group of vscode.window.tabGroups.all) {
+            for (const tab of group.tabs) {
+                const uri = (tab.input as { uri?: vscode.Uri } | undefined)?.uri;
+                if (uri?.fsPath === filePath) { return tab; }
+            }
+        }
+        return undefined;
+    }
+
+    /** Main-target open (user click — always column 1, close+reopen if elsewhere). */
+    async function openAtMain(uri: vscode.Uri, sessionName: string): Promise<void> {
+        const existing = findSessionTab(sessionName);
+        if (existing && existing.group.viewColumn !== MAIN_COLUMN) {
+            // AC-5: close the tab wherever it is, then reopen fresh at Main
+            await vscode.window.tabGroups.close(existing);
+        }
+        await vscode.commands.executeCommand('vscode.open', uri, {
+            preview: false,
+            viewColumn: MAIN_COLUMN,
+        });
+    }
+
+    /** Docs-target open (always column 2, focus-in-place if already open elsewhere). */
+    async function openAtDocs(uri: vscode.Uri): Promise<void> {
+        const existing = findFileTab(uri.fsPath);
+        const viewColumn = existing ? existing.group.viewColumn : DOCS_COLUMN;
+        await vscode.commands.executeCommand('vscode.open', uri, {
+            preview: false,
+            viewColumn,
+        });
+    }
+
+    /** Secondary-target open (system delivery — focus-in-place if open anywhere, else last column). */
+    async function openAtSecondary(uri: vscode.Uri, sessionName: string): Promise<void> {
+        const existing = findSessionTab(sessionName);
+        const viewColumn = existing ? existing.group.viewColumn : resolveSecondaryColumn();
+        await vscode.commands.executeCommand('vscode.open', uri, {
+            preview: false,
+            viewColumn,
+        });
+    }
+
+    // --- Focus-Snapshot and Restore Helper (SPEC_MSG_FOCUSRESTORE) ---
+
+    type FocusSnapshot =
+        | { kind: 'editor'; uri: vscode.Uri; viewColumn: vscode.ViewColumn }
+        | { kind: 'terminal'; terminal: vscode.Terminal }
+        | undefined;
+
+    async function snapshotFocus(): Promise<FocusSnapshot> {
+        const activeTab = vscode.window.tabGroups.activeTabGroup.activeTab;
+        if (activeTab) {
+            // Chat-editor tabs expose no .uri on tab.input — resolve the real
+            // session UUID via lookupSessionUUID(tab.label), the same
+            // mechanism used for Main/Secondary placement
+            // (SPEC_MSG_EDITORPLACEMENT, REQ_MSG_FOCUSRESTORE AC-2). The
+            // tab's label is the session *name*, not a UUID — it must be
+            // resolved, never encoded directly.
+            const existingUri = (activeTab.input as { uri?: vscode.Uri } | undefined)?.uri;
+            let uri = existingUri;
+            if (!uri) {
+                const uuid = await lookupSessionUUID(activeTab.label);
+                if (!uuid) { return undefined; } // unresolvable chat tab — nothing to restore
+                uri = vscode.Uri.parse(
+                    `vscode-chat-session://local/${Buffer.from(uuid).toString('base64')}`
+                );
+            }
+            return {
+                kind: 'editor',
+                uri,
+                viewColumn: activeTab.group.viewColumn,
+            };
+        }
+        if (vscode.window.activeTerminal) {
+            return { kind: 'terminal', terminal: vscode.window.activeTerminal };
+        }
+        return undefined;
+    }
+
+    // No artificial delay between disrupt and restore — an earlier spike
+    // revision's defensive setTimeout(800) measurably worsened both latency
+    // (839ms→~520ms once removed) and keystroke-leak count (23→0-1 once
+    // removed). Do not reintroduce it defensively.
+    async function restoreFocus(snapshot: FocusSnapshot): Promise<void> {
+        if (!snapshot) { return; }
+        if (snapshot.kind === 'editor') {
+            await vscode.commands.executeCommand('vscode.open', snapshot.uri, {
+                preview: false,
+                viewColumn: snapshot.viewColumn,
+                preserveFocus: false,
+            });
+        } else {
+            snapshot.terminal.show();
+        }
+    }
+
+    // --- Auto-Delivery Active-Use Opt-Out Check (SPEC_MSG_AUTODELIVERY_OPTOUT) ---
+    // No new persisted state — reuses vscode.window.tabGroups already read by
+    // the placement helpers above. Only called from the poll loop's tick logic
+    // — does not affect jarvis.sendMessages (manual delivery).
+    function isSessionActiveTab(sessionName: string): boolean {
+        const activeTab = vscode.window.tabGroups.activeTabGroup.activeTab;
+        return activeTab?.label === sessionName;
+    }
+
     // Shared entity-chat opener (SPEC_EXP_ENTITY_TREECLICK / SPEC_SES_NEWENTITY)
     async function openChatForEntity(
         name: string,
@@ -349,7 +503,9 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             if (uuid) {
                 const b64 = Buffer.from(uuid).toString('base64');
                 const uri = vscode.Uri.parse(`vscode-chat-session://local/${b64}`);
-                await vscode.commands.executeCommand('vscode.open', uri);
+                // Main placement: close+reopen at column 1 if open elsewhere
+                // (SPEC_MSG_EDITORPLACEMENT, REQ_MSG_SEND AC-9)
+                await openAtMain(uri, node.destination);
                 await new Promise(resolve => setTimeout(resolve, 800));
             } else {
                 const entityForSend = kindDrivenScanner.entities.find(e => e.name === node.destination);
@@ -416,11 +572,11 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             if (!pick) { return; }
             const b64 = Buffer.from(pick.description!).toString('base64');
             const uri = vscode.Uri.parse(`vscode-chat-session://local/${b64}`);
-            await vscode.commands.executeCommand('vscode.open', uri);
+            await openPinnedResource(uri);
         }
     );
 
-    // Open agent session command (SPEC_EXP_AGENTSESSION)
+    // Open agent session command (SPEC_ENT_AGENTSESSION)
     const openAgentSessionCommand = vscode.commands.registerCommand(
         'jarvis.openAgentSession',
         async (element: LeafNode) => {
@@ -430,9 +586,11 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             const uuid = await lookupSessionUUID(entity.name);
 
             if (uuid) {
+                // Open existing session, always at Main (column 1) — close+reopen
+                // if currently open elsewhere (SPEC_MSG_EDITORPLACEMENT)
                 const b64 = Buffer.from(uuid).toString('base64');
                 const uri = vscode.Uri.parse(`vscode-chat-session://local/${b64}`);
-                await vscode.commands.executeCommand('vscode.open', uri);
+                await openAtMain(uri, entity.name);
             } else {
                 const kind = entity.kind ?? 'session';
                 const folder = entity.folder ?? path.dirname(element.id);
@@ -558,14 +716,16 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         }
     );
 
-    // Open entity file command (SPEC_EXP_ENTITY_FILE_CHILDREN) — fail-open, no auto-creation
+    // Open entity file command (SPEC_ENT_ENTITY_FILE_CHILDREN) — fail-open, no auto-creation
     const openEntityFileCommand = vscode.commands.registerCommand(
         'jarvis.openEntityFile',
         async (node: { filePath: string }) => {
             const uri = vscode.Uri.file(node.filePath);
             try {
-                const doc = await vscode.workspace.openTextDocument(uri);
-                await vscode.window.showTextDocument(doc, { preview: false });
+                await vscode.workspace.openTextDocument(uri); // validates existence first
+                // Docs placement: fixed column 2, focus-in-place if already open
+                // elsewhere (SPEC_MSG_EDITORPLACEMENT)
+                await openAtDocs(uri);
             } catch {
                 vscode.window.showWarningMessage(`Jarvis: Cannot open file: ${node.filePath}`);
             }
@@ -888,7 +1048,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
 
 
 
-    // Auto-delivery poll loop (SPEC_MSG_AUTODELIVERY)
+    // Auto-delivery poll loop (SPEC_MSG_AUTODELIVER_POLL)
     const pollInterval = setInterval(async () => {
         const messagesPath = resolveMessagesPath();
         const autoDeliverySessions = readAutoDelivery(messagesPath);
@@ -897,13 +1057,18 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             for (const sessionName of autoDeliverySessions) {
                 const pending = messages.filter(m => m.destination === sessionName && !m.notified);
                 if (pending.length === 0) { continue; }
+                if (isSessionActiveTab(sessionName)) { continue; } // SPEC_MSG_AUTODELIVERY_OPTOUT
+
+                // Snapshot focus before the disruptive delivery (SPEC_MSG_FOCUSRESTORE)
+                const focus = await snapshotFocus();
                 try {
                     const uuid = await lookupSessionUUID(sessionName);
                     if (uuid) {
+                        // Open at Secondary placement — focus-in-place if already
+                        // open anywhere, else the last existing column (SPEC_MSG_EDITORPLACEMENT)
                         const b64 = Buffer.from(uuid).toString('base64');
                         const uri = vscode.Uri.parse(`vscode-chat-session://local/${b64}`);
-                        await vscode.commands.executeCommand('vscode.open', uri);
-                        await new Promise(resolve => setTimeout(resolve, 800));
+                        await openAtSecondary(uri, sessionName);
                     } else {
                         const entityForPoll = kindDrivenScanner.entities.find(e => e.name === sessionName);
                         if (entityForPoll?.agent) {
@@ -944,6 +1109,10 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
                     let changed = false;
                     for (const m of updated) { if (m.destination === sessionName && !m.notified) { m.notified = true; changed = true; } }
                     if (changed) { writeQueue(messagesPath, updated); messageProvider.reload(); }
+
+                    // Restore the user's prior focus immediately, no artificial
+                    // delay (SPEC_MSG_FOCUSRESTORE)
+                    await restoreFocus(focus);
                 } catch (err) { log.warn(`[MSG] autoDelivery: delivery failed for "${sessionName}": ${err}`); }
                 break; // max 1 delivery per tick
             }

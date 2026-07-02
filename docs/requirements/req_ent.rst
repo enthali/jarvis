@@ -32,12 +32,15 @@ generic/user-facing, ``ENG`` = kind-agnostic plumbing, no US level).
    :id: REQ_ENT_AGENTSESSION
    :status: draft
    :priority: optional
-   :links: US_ENT_AGENTSESSION; US_MSG_STABLESESSION; REQ_MSG_SESSIONLOOKUP; REQ_ENT_OPENYAML; REQ_MSG_PINNED; REQ_MSG_OPENCHAT; REQ_ENT_AGENTPROMPT_TEMPLATE
+   :links: US_ENT_AGENTSESSION; US_MSG_STABLESESSION; REQ_MSG_SESSIONLOOKUP; REQ_ENT_OPENYAML; REQ_MSG_PINNED; REQ_MSG_OPENCHAT; REQ_ENT_AGENTPROMPT_TEMPLATE; REQ_MSG_EDITORPLACEMENT
 
    **Description:**
    Every project and event leaf item SHALL provide an inline action button that
    opens the agent chat session for that item. The session open/create mechanism
-   is specified in ``US_MSG_STABLESESSION`` and its requirements.
+   is specified in ``US_MSG_STABLESESSION`` and its requirements. This command
+   (``jarvis.openAgentSession``) is user-initiated (tree click or inline
+   button) and therefore always targets the Main placement column
+   (``REQ_MSG_EDITORPLACEMENT`` AC-1).
 
    **Acceptance Criteria:**
 
@@ -56,6 +59,20 @@ generic/user-facing, ``ENG`` = kind-agnostic plumbing, no US level).
    * AC-4: Folder nodes SHALL NOT display the button
    * AC-5: The command SHALL NOT appear in the Command Palette (it requires a
      tree element argument and would fail without one)
+   * AC-6: When the session's chat tab already exists (AC-2, existing-session
+     branch), it SHALL always be resolved to the Main placement column
+     (view column 1) — if currently open in a different column, it SHALL be
+     closed and reopened fresh in column 1 (``REQ_MSG_EDITORPLACEMENT`` AC-5).
+     This is a user-initiated action, distinct from Auto-Delivery's
+     Secondary-column, already-open-anywhere behavior.
+   * AC-7: When a new session is created (AC-2, no existing session found),
+     Main-column placement is **best-effort, not guaranteed**: VS Code
+     provides no API to force the view column of a freshly created chat
+     editor produced by ``workbench.action.openChat``/``openNewChatEditor()``
+     (``REQ_MSG_OPENCHAT``). The new session is born in whatever column is
+     currently active, which is Main in the common case (the button is
+     clicked from a tree view, and Main is typically the last-focused editor
+     column) but is not enforced by this requirement.
 
 
 .. req:: Rescan Button in Title Bar
@@ -314,7 +331,7 @@ generic/user-facing, ``ENG`` = kind-agnostic plumbing, no US level).
    :id: REQ_ENT_ENTITY_FILE_CHILDREN
    :status: approved
    :priority: mandatory
-   :links: US_ENT_ENTITY_FILES_TREE; US_ACT_ACTORS; US_ENT_ENTITYPARITY; REQ_EXP_TREEVIEW
+   :links: US_ENT_ENTITY_FILES_TREE; US_ACT_ACTORS; US_ENT_ENTITYPARITY; REQ_EXP_TREEVIEW; REQ_MSG_EDITORPLACEMENT
 
    **Description:**
    Actor, Project, and Event tree leaf nodes SHALL be expandable and show
@@ -336,7 +353,11 @@ generic/user-facing, ``ENG`` = kind-agnostic plumbing, no US level).
    * AC-4: Each file child ``TreeItem`` SHALL have ``tooltip`` set to the full
      absolute filesystem path of that file.
    * AC-5: Each file child ``TreeItem.command`` SHALL open that file in the
-     VS Code editor (``preview: false``).
+     VS Code editor (``preview: false``), targeting the Docs placement
+     column (view column 2, fixed — ``REQ_MSG_EDITORPLACEMENT`` AC-2). If
+     the file is already open in a different column (including one the
+     user moved it to manually), the existing tab SHALL be focused in
+     place rather than moved (``REQ_MSG_EDITORPLACEMENT`` AC-4).
    * AC-6: File child nodes SHALL have ``collapsibleState = None`` (no further
      descent) and a distinct ``contextValue`` (e.g. ``jarvisEntityFile``) so
      they are excluded from entity-node context-menu actions.

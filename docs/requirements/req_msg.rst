@@ -45,7 +45,7 @@ Message Queue Requirements
    :id: REQ_MSG_SEND
    :status: draft
    :priority: optional
-   :links: US_MSG_CHATQUEUE; REQ_MSG_SESSIONLOOKUP; REQ_MSG_QUEUE; REQ_ENT_AGENTPROMPT_TEMPLATE
+   :links: US_MSG_CHATQUEUE; REQ_MSG_SESSIONLOOKUP; REQ_MSG_QUEUE; REQ_ENT_AGENTPROMPT_TEMPLATE; REQ_MSG_EDITORPLACEMENT
 
    **Description:**
    The extension SHALL provide a command to notify a VS Code Chat session about
@@ -65,8 +65,10 @@ Message Queue Requirements
    * AC-5: The Messages tree view SHALL refresh after send completes
    * AC-6: The extension SHALL focus the target session via
      ``vscode.commands.executeCommand('vscode.open',
-     Uri.parse('vscode-chat-session://local/<b64uuid>'))`` where the UUID is
-     obtained from ``REQ_MSG_SESSIONLOOKUP``
+     Uri.parse('vscode-chat-session://local/<b64uuid>'), { viewColumn })``
+     where the UUID is obtained from ``REQ_MSG_SESSIONLOOKUP`` and
+     ``viewColumn`` is resolved per the Main placement target (AC-9,
+     ``REQ_MSG_EDITORPLACEMENT``)
    * AC-7: If ``REQ_MSG_SESSIONLOOKUP`` returns ``undefined`` for the target
      session, the extension SHALL open a new editor chat via
      ``REQ_MSG_OPENCHAT`` instead of raising an error
@@ -82,6 +84,12 @@ Message Queue Requirements
      placeholder substitution, and agent-mode binding as
      ``REQ_ENT_AGENTPROMPT_TEMPLATE`` — **before** sending the notification stub
      (AC-3). If no entity matches the destination name, the init prompt is skipped.
+   * AC-9: The target chat tab (AC-2/AC-6) SHALL be focused at the Main
+     placement target (view column 1, fixed), including the Main-target
+     close+reopen rule when the tab is open in a different column
+     (``REQ_MSG_EDITORPLACEMENT`` AC-1/AC-5/AC-9) — the same target used for
+     an Actor tree click, since this command is likewise a user-initiated
+     action.
 
 .. req:: Delete Individual Message
    :id: REQ_MSG_DELETE
@@ -318,11 +326,15 @@ Message Queue Requirements
    :id: REQ_MSG_AUTODELIVER_POLL
    :status: draft
    :priority: optional
-   :links: US_MSG_AUTODELIVERY; REQ_MSG_AUTODELIVER_CONFIG; REQ_MSG_AUTODELIVER_TAG; REQ_MSG_SEND; REQ_ENT_AGENTPROMPT_TEMPLATE
+   :links: US_MSG_AUTODELIVERY; REQ_MSG_AUTODELIVER_CONFIG; REQ_MSG_AUTODELIVER_TAG; REQ_MSG_SEND; REQ_ENT_AGENTPROMPT_TEMPLATE; REQ_MSG_EDITORPLACEMENT; REQ_MSG_FOCUSRESTORE; REQ_MSG_AUTODELIVERY_OPTOUT
 
    **Description:**
    The extension SHALL run a background poll loop that automatically sends
-   notifications for sessions listed in ``autodelivery.json``.
+   notifications for sessions listed in ``autodelivery.json``. Each
+   notification is a system-initiated delivery: it SHALL apply the
+   Editor-Group Placement Model (``REQ_MSG_EDITORPLACEMENT``), be wrapped
+   in Focus-Snapshot/Restore (``REQ_MSG_FOCUSRESTORE``), and SHALL honor
+   the active-use opt-out (``REQ_MSG_AUTODELIVERY_OPTOUT``).
 
    **Acceptance Criteria:**
 
@@ -331,8 +343,16 @@ Message Queue Requirements
    * AC-2: On each tick the loop SHALL read the current ``messages.json`` and
      ``autodelivery.json``
    * AC-3: For each session in the auto-delivery list, if at least one message
-     exists with ``notified !== true``, the loop SHALL execute
-     ``jarvis.sendMessages`` for that session node
+     exists with ``notified !== true`` **and** the session is not currently
+     the active tab (``REQ_MSG_AUTODELIVERY_OPTOUT`` AC-1/AC-2), the loop
+     SHALL deliver the notification directly via its own inlined logic —
+     it does **not** invoke ``jarvis.sendMessages`` (``REQ_MSG_SEND``), which
+     remains a separate, manually-triggered command — opening the session's
+     chat tab using the Secondary placement target
+     (``REQ_MSG_EDITORPLACEMENT`` AC-3/AC-4), wrapped in a
+     Focus-Snapshot/Restore cycle (``REQ_MSG_FOCUSRESTORE``). If the session
+     is currently the active tab, it is skipped for this tick (message
+     remains queued, retried next tick).
    * AC-4: After notification the loop SHALL set ``notified: true`` on all
      messages that were just notified for that session and persist the queue
    * AC-5: The loop SHALL process at most one session per tick (first-found order)
@@ -351,6 +371,10 @@ Message Queue Requirements
      a context initialization prompt per ``REQ_ENT_AGENTPROMPT_TEMPLATE`` —
      **before** sending the notification stub. If no entity matches the session
      name, the init prompt is skipped.
+   * AC-9: The Focus-Snapshot (``REQ_MSG_FOCUSRESTORE`` AC-1/AC-2) SHALL be
+     taken once per tick, immediately before AC-3's delivery action; the
+     Focus-Restore (``REQ_MSG_FOCUSRESTORE`` AC-3) SHALL run immediately
+     after that delivery action's promise resolves, before the tick ends.
 
 
 .. req:: Notified Flag on Queued Message
@@ -472,16 +496,174 @@ Message Queue Requirements
      written, it SHALL be created automatically
 
 
+.. req:: Editor-Group Placement Model
+   :id: REQ_MSG_EDITORPLACEMENT
+   :status: approved
+   :priority: mandatory
+   :links: US_MSG_EDITORPLACEMENT; US_MSG_STABLESESSION; REQ_MSG_PINNED; REQ_MSG_SEND
+
+   **Description:**
+   The extension SHALL place chat and entity-file editor tabs into one of
+   three semantic targets — **Main**, **Docs**, **Secondary** — derived
+   entirely at runtime from the current VS Code editor-group layout
+   (``vscode.window.tabGroups``). No new persisted state, YAML flag, or
+   runtime map is introduced; every placement decision is computed fresh
+   from "does a tab already exist, and where."
+
+   **Acceptance Criteria:**
+
+   * AC-1: **Main** target: view column 1 (fixed). A click on an Actor node
+     in the entity tree (``jarvis.openAgentSession``) targeting an
+     **existing** session's chat tab SHALL always result in that tab being
+     open and focused in column 1 (``REQ_ENT_AGENTSESSION`` AC-6). This
+     guarantee applies to the existing-session branch only; placement for a
+     newly created session is best-effort (``REQ_ENT_AGENTSESSION`` AC-7) —
+     VS Code exposes no API to force the view column of a chat editor at
+     creation time.
+   * AC-2: **Docs** target: view column 2 (fixed). Opening a `context.md`,
+     YAML config, or agent file from the entity tree
+     (``jarvis.openEntityFile``, per ``REQ_ENT_ENTITY_FILE_CHILDREN``) SHALL
+     open that file in column 2.
+   * AC-3: **Secondary** target: the **last existing** view column at the
+     time of the action (dynamic, not fixed) — used for delivering a
+     message to a session with no currently-open tab. The column number
+     SHALL be computed as ``Math.max(2, tabGroups.all.length)`` — **never**
+     ``tabGroups.all.length`` alone (which would collapse Secondary into
+     Main when only 1 column is open — Secondary and Main SHALL never be
+     the same column) and **not** ``tabGroups.all.length + 1`` (which
+     creates a new column on every single delivery — runaway column
+     creation). The ``Math.max(2, ...)`` floor guarantees Secondary always
+     splits at least column 2 the first time, then reuses the existing
+     last column for subsequent deliveries once 2+ columns exist, allowing
+     multiple Secondary sessions to stack as tabs within the same group.
+   * AC-4: **Already-open-anywhere rule**: if a tab for the target resource
+     (chat session or file) is already open in ANY column — including a
+     column the user manually moved it to — the extension SHALL focus that
+     existing tab in place. It SHALL NOT move, close, or reopen it, except
+     as required by AC-5 (Main-target close+reopen).
+   * AC-5: **Main-target close+reopen rule**: when a Main-target click
+     (AC-1) finds the session's tab open in a column other than 1, the
+     extension SHALL close that tab and reopen it fresh in column 1. This
+     is the one exception to AC-4 — Main is the only target that actively
+     relocates an existing tab.
+   * AC-6: VS Code's automatic column materialization (auto-split) SHALL be
+     relied upon rather than manually created — requesting
+     ``viewColumn: <N>`` when fewer than ``N`` columns currently exist
+     SHALL reliably create the missing column(s), including across
+     Auxiliary (detached) windows, which remain part of
+     ``tabGroups.all`` and require no special-case handling.
+   * AC-7: The three targets SHALL correctly degenerate with no
+     special-case code: with only 1 column open, Secondary SHALL split a
+     new column 2 (never collapse into Main/column 1 — Secondary and Main
+     are never the same column); with 2 columns open, Secondary resolves
+     to the existing column 2 (shared with Docs); with 3+ columns open,
+     Secondary has its own stable last-existing column, reused for all
+     subsequent Secondary placements.
+   * AC-8: The placement logic SHALL only act on tabs whose label matches a
+     known Actor/entity session name (via ``REQ_MSG_SESSIONLOOKUP``) or a
+     known entity file path — arbitrary files the user opens manually are
+     entirely outside this system's contract and are never moved, closed,
+     or reused as a placement target.
+   * AC-9: The manual Play-button send command (``jarvis.sendMessages``,
+     ``REQ_MSG_SEND``) SHALL target Main (column 1, fixed) — the same
+     target as an Actor tree click (AC-1) — including the Main-target
+     close+reopen rule (AC-5) when the tab is open elsewhere. Rationale:
+     the Play button is an active, user-initiated action, so the result
+     SHALL land where the user is looking; only background automation
+     (Auto-Delivery's poll loop) uses Secondary (AC-3).
+
+
+.. req:: Focus-Snapshot and Restore
+   :id: REQ_MSG_FOCUSRESTORE
+   :status: approved
+   :priority: mandatory
+   :links: US_MSG_EDITORPLACEMENT; REQ_MSG_EDITORPLACEMENT; REQ_MSG_SESSIONLOOKUP
+
+   **Description:**
+   Before any system-initiated delivery (Auto-Delivery poll tick), the
+   extension SHALL snapshot the user's current focus (an editor tab or an
+   integrated terminal) and automatically restore it immediately after the
+   delivery completes — eliminating the "where did I land?" disorientation
+   that a focus-jumping delivery would otherwise cause.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Immediately before a system-initiated delivery action, the
+     extension SHALL capture a snapshot of the currently active focus:
+     either the active editor tab (with its view column) or the active
+     integrated terminal, whichever currently holds focus.
+   * AC-2: For a chat-editor tab, since ``tab.input`` does not expose a
+     ``.uri`` (unlike normal file tabs), the snapshot SHALL resolve the
+     tab's identity via ``lookupSessionUUID(tab.label)`` — the same
+     mechanism already used for Main/Secondary placement (``REQ_MSG_EDITORPLACEMENT``).
+   * AC-3: Immediately after the delivery action's promise resolves (no
+     artificial delay — see Design rationale below), the extension SHALL
+     restore the snapshotted focus: re-open/focus the captured chat tab via
+     ``vscode.open(uri, { viewColumn, preserveFocus: false })``, or
+     re-focus the captured terminal via ``terminal.show()``.
+   * AC-4: If no focus can be captured (e.g. no active editor or terminal),
+     the extension SHALL skip both snapshot and restore without error.
+   * AC-5: Restore timing SHALL NOT include any artificial delay (e.g.
+     ``setTimeout``) beyond awaiting the delivery action's own promise —
+     an earlier spike revision with an artificial 800 ms pause measured
+     839 ms snapshot-to-restore and up to 23 leaked keystrokes during
+     active typing; removing the artificial pause reduced this to ~520 ms
+     and 0-1 leaked keystrokes.
+   * AC-6: **Accepted limitation**: within the ~520 ms disrupt+restore
+     window, a keystroke typed at the exact moment of the focus shift MAY
+     be misrouted to the wrong window (an OS-level input-routing property,
+     not fixable by restore speed alone). This is accepted as a v1
+     limitation because the delivery mechanism injects into a VS Code Chat
+     query — consumed by an LLM, which tolerates a stray/misplaced
+     character trivially, unlike a rigid format (file path, command, code).
+     A fully focus-free injection mechanism (e.g. AHP) would eliminate this
+     but currently only covers CLI sessions, not this Editor-tab substrate.
+
+
+.. req:: Auto-Delivery Active-Use Opt-Out
+   :id: REQ_MSG_AUTODELIVERY_OPTOUT
+   :status: approved
+   :priority: required
+   :links: US_MSG_AUTODELIVERY_OPTOUT; REQ_MSG_AUTODELIVER_POLL
+
+   **Description:**
+   The Auto-Delivery poll loop SHALL skip delivering to a session that the
+   user is currently actively using, to avoid interrupting an in-progress
+   conversation (e.g. PM/Research mid-chat).
+
+   **Acceptance Criteria:**
+
+   * AC-1: On each poll tick, before delivering to a given session (per
+     ``REQ_MSG_AUTODELIVER_POLL`` AC-3), the poll loop SHALL check whether
+     that session's chat tab is the currently active (focused) editor tab.
+   * AC-2: If the target session's tab is the currently active tab, the
+     poll loop SHALL skip delivery for that session on this tick — the
+     message remains queued (``notified`` stays unset) and SHALL be
+     retried on a subsequent tick once the session is no longer active.
+   * AC-3: This check SHALL use no new persisted state — it is derived at
+     runtime from ``vscode.window.tabGroups`` (the active tab) compared
+     against the session's resolved UUID/label, the same mechanism used by
+     ``REQ_MSG_EDITORPLACEMENT``.
+   * AC-4: The opt-out check SHALL NOT affect the manual ``jarvis.sendMessages``
+     command — manual delivery always proceeds regardless of active-use
+     state (per ``REQ_MSG_AUTODELIVER_TAG`` AC-4, unaffected by this REQ).
+   * AC-5: If the skip causes a session to never be delivered while
+     continuously active, this is accepted — the user is, by definition,
+     already engaged with that session and can read queued messages
+     manually via `jarvis_readMessage` at any time.
+
+
 .. req:: Pinned Resource Open Helper
    :id: REQ_MSG_PINNED
    :status: implemented
    :priority: optional
-   :links: US_MSG_STABLESESSION; US_MSG_CHATQUEUE; REQ_MSG_SESSIONLOOKUP
+   :links: US_MSG_STABLESESSION; US_MSG_CHATQUEUE; REQ_MSG_SESSIONLOOKUP; REQ_MSG_EDITORPLACEMENT
 
    **Description:**
    The extension SHALL open any ``vscode-chat-session://`` URI in a pinned
    (non-preview) editor tab so that VS Code does not silently reuse a transient
-   editor slot.
+   editor slot. The helper SHALL accept an optional target view column,
+   supplied by callers per the placement model (``REQ_MSG_EDITORPLACEMENT``).
 
    **Acceptance Criteria:**
 
@@ -493,6 +675,13 @@ Message Queue Requirements
    * AC-3: The helper SHALL be used consistently by all commands that open chat
      sessions: ``jarvis.sendMessages``, ``jarvis.openSession``, and
      ``jarvis.openAgentSession``
+   * AC-4: The helper SHALL accept an optional ``viewColumn`` parameter,
+     included in the options object passed to ``vscode.open`` alongside
+     ``preview: false`` (e.g. ``{ preview: false, viewColumn }``), so
+     callers can direct the open to a specific placement target per
+     ``REQ_MSG_EDITORPLACEMENT``. When omitted, the existing behavior
+     (VS Code's default column resolution) is unchanged — this AC is
+     additive, not a breaking change to existing callers.
 
 
 .. req:: New Chat Editor Helper

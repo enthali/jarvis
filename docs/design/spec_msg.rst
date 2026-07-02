@@ -151,14 +151,16 @@ Message Queue Design Specifications
 .. spec:: Send Messages Command
    :id: SPEC_MSG_SENDCOMMAND
    :status: draft
-   :links: REQ_MSG_SEND; REQ_MSG_SESSIONLOOKUP; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_QUEUESTORE; REQ_MSG_AUTODELIVER_TAG; REQ_MSG_NOTIFICATION_TEMPLATE; REQ_ENT_AGENTPROMPT_TEMPLATE; SPEC_ENT_AGENTSESSION_INITPROMPT
+   :links: REQ_MSG_SEND; REQ_MSG_SESSIONLOOKUP; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_QUEUESTORE; REQ_MSG_AUTODELIVER_TAG; REQ_MSG_NOTIFICATION_TEMPLATE; REQ_ENT_AGENTPROMPT_TEMPLATE; SPEC_ENT_AGENTSESSION_INITPROMPT; SPEC_MSG_EDITORPLACEMENT
 
    **Description:**
    Register ``jarvis.sendMessages`` in ``extension.ts``. Invoked from the session
-   group node's inline action. Focuses the chat session tab, submits a single
-   notification stub informing the session about pending messages, then refreshes
-   the tree. Messages remain in the queue — the session consumes them via
-   ``jarvis_readMessage``.
+   group node's inline action. Focuses the chat session tab at the Main
+   placement target (``SPEC_MSG_EDITORPLACEMENT`` — same target as an Actor
+   tree click, since this is likewise a user-initiated action), submits a
+   single notification stub informing the session about pending messages,
+   then refreshes the tree. Messages remain in the queue — the session
+   consumes them via ``jarvis_readMessage``.
 
    When invoked from the Command Palette (without a node argument), a warning is
    shown and the command returns early.
@@ -198,7 +200,9 @@ Message Queue Design Specifications
             const uri = vscode.Uri.parse(
               `vscode-chat-session://local/${b64}`
             );
-            await openPinnedResource(uri);  // SPEC_MSG_PINNED
+            // Main placement: close+reopen at column 1 if open elsewhere
+            // (SPEC_MSG_EDITORPLACEMENT, REQ_MSG_SEND AC-9)
+            await openAtMain(uri, node.destination);
             await new Promise(resolve => setTimeout(resolve, 800));
           } else {
             // Resolve entity first (needed for mode-prime and init-prompt)
@@ -256,6 +260,17 @@ Message Queue Design Specifications
    Also registers ``jarvis.deleteMessage`` for single message deletion.
    The ``jarvis.openSession`` command is specified separately in
    ``SPEC_MSG_OPENSESSION``.
+
+   **Design notes:**
+
+   * ``openAtMain`` (``SPEC_MSG_EDITORPLACEMENT``) replaces the prior
+     ``openPinnedResource`` call for the existing-session branch — the same
+     helper used by ``jarvis.openAgentSession`` (``SPEC_ENT_AGENTSESSION``),
+     since both are user-initiated actions that SHALL land at Main
+     (``REQ_MSG_SEND`` AC-9). The fresh-session-creation branch
+     (``openNewChatEditor``/``renameFocusedChatSession``) is unchanged for
+     the same reason documented in ``SPEC_ENT_AGENTSESSION``: no VS Code API
+     exists to force the view column of a chat editor at creation time.
 
 
 .. spec:: Read Message LM Tool
@@ -1023,17 +1038,22 @@ Message Queue Design Specifications
 .. spec:: Auto-Delivery Poll Loop
    :id: SPEC_MSG_AUTODELIVER_POLL
    :status: draft
-   :links: REQ_MSG_AUTODELIVER_POLL; SPEC_MSG_AUTODELIVER_STORE; SPEC_MSG_AUTODELIVER_TAG; SPEC_MSG_SENDCOMMAND; REQ_MSG_NOTIFICATION_TEMPLATE; SPEC_MSG_OPENCHAT; REQ_ENT_AGENTPROMPT_TEMPLATE; SPEC_ENT_AGENTSESSION_INITPROMPT
+   :links: REQ_MSG_AUTODELIVER_POLL; SPEC_MSG_AUTODELIVER_STORE; SPEC_MSG_AUTODELIVER_TAG; SPEC_MSG_SENDCOMMAND; REQ_MSG_NOTIFICATION_TEMPLATE; SPEC_MSG_OPENCHAT; REQ_ENT_AGENTPROMPT_TEMPLATE; SPEC_ENT_AGENTSESSION_INITPROMPT; SPEC_MSG_EDITORPLACEMENT; SPEC_MSG_FOCUSRESTORE; SPEC_MSG_AUTODELIVERY_OPTOUT
 
    **Description:**
 
    A ``setInterval`` poll loop started in ``extension.ts`` during ``activate()``.
-   Each tick finds the first auto-delivery session that has un-notified messages,
-   opens the chat session directly, sends the notification stub, and marks those
-   messages as notified. If the destination session cannot be found, the poll
-   loop opens a **fresh** chat editor via ``openNewChatEditor()``
-   (``SPEC_MSG_OPENCHAT``) and first calls ``renameFocusedChatSession(sessionName)`` so future
-   deliveries can resolve the session by name.
+   Each tick finds the first auto-delivery session that has un-notified messages
+   and is not the currently active tab (``SPEC_MSG_AUTODELIVERY_OPTOUT``), opens
+   the chat session at its placement target (``SPEC_MSG_EDITORPLACEMENT`` —
+   Secondary column if not yet open, else focus in place), sends the
+   notification stub, and marks those messages as notified. The user's prior
+   focus is snapshotted before the disruptive open and restored immediately
+   after (``SPEC_MSG_FOCUSRESTORE``). If the destination session cannot be
+   found, the poll loop opens a **fresh** chat editor via
+   ``openNewChatEditor()`` (``SPEC_MSG_OPENCHAT``) and first calls
+   ``renameFocusedChatSession(sessionName)`` so future deliveries can resolve
+   the session by name.
 
    **Rationale — URI-reuse bug fix:**
    ``openNewChatEditor()`` (``SPEC_MSG_OPENCHAT``) ensures each auto-delivery
@@ -1055,11 +1075,19 @@ Message Queue Design Specifications
             m => m.destination === sessionName && !m.notified
           );
           if (pending.length === 0) { continue; }
+          if (isSessionActiveTab(sessionName)) { continue; } // SPEC_MSG_AUTODELIVERY_OPTOUT
+
+          // Snapshot focus before the disruptive delivery (SPEC_MSG_FOCUSRESTORE)
+          const focus = await snapshotFocus();
 
           // Open chat session directly via UUID lookup
           const uuid = await lookupSessionUUID(sessionName);
           if (uuid) {
-            // ... open session tab ...
+            // Open at Secondary placement — focus-in-place if already open
+            // anywhere, else the last existing column (SPEC_MSG_EDITORPLACEMENT)
+            const b64 = Buffer.from(uuid).toString('base64');
+            const uri = vscode.Uri.parse(`vscode-chat-session://local/${b64}`);
+            await openAtSecondary(uri, sessionName);
           } else {
             // Resolve entity first (needed for mode-prime and init-prompt)
             const entity = scanner?.entities.find(e => e.name === sessionName);
@@ -1112,6 +1140,10 @@ Message Queue Design Specifications
           }
           writeQueue(messagesPath, updated);
           messageProvider.reload();
+
+          // Restore the user's prior focus immediately, no artificial delay
+          // (SPEC_MSG_FOCUSRESTORE)
+          await restoreFocus(focus);
           break; // max one session per tick
         }
       }, 5000);
@@ -1131,6 +1163,13 @@ Message Queue Design Specifications
      ensures the timer is cleared on deactivation
    * The ``log`` reference is the shared ``LogOutputChannel`` already created
      during ``activate()``
+   * The active-use opt-out check (``isSessionActiveTab``) runs before the
+     focus snapshot — an actively-focused session is skipped entirely, so no
+     snapshot/restore cycle is triggered for it
+   * ``openAtSecondary`` (``SPEC_MSG_EDITORPLACEMENT``) replaces the prior
+     ad-hoc tab-opening logic for the UUID-found branch; the fresh-session
+     branch (``openNewChatEditor``) is intentionally left unchanged — a
+     brand-new session has no prior tab to place relative to
 
 
 .. spec:: Auto-Delivery Message Tree Provider
@@ -1376,23 +1415,302 @@ Message Queue Design Specifications
      ``deleteByDestination()`` — audit trail integrity is maintained by omission
 
 
-.. spec:: Pinned Resource Open Helper
-   :id: SPEC_MSG_PINNED
-   :status: implemented
-   :links: REQ_MSG_PINNED; SPEC_MSG_SESSIONLOOKUP
+.. spec:: Editor-Group Placement Helper
+   :id: SPEC_MSG_EDITORPLACEMENT
+   :status: approved
+   :links: REQ_MSG_EDITORPLACEMENT; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_PINNED
 
    **Description:**
-   Private async helper ``openPinnedResource`` in ``extension.ts`` opens any
-   ``vscode-chat-session://`` URI in a pinned (non-preview) editor tab. The
-   ``{ preview: false }`` option prevents VS Code from silently reusing a
-   transient editor slot ("ghost editor" issue).
+   A set of helper functions in ``extension.ts`` computing the three
+   placement targets (Main/Docs/Secondary) at call time from
+   ``vscode.window.tabGroups.all`` — no persisted state. Validated on the
+   throwaway spike branch ``experiment/editor-group-placement`` (6 test
+   commands; reference only, never merged).
+
+   **Column constants:**
+
+   .. code-block:: typescript
+
+      const MAIN_COLUMN = vscode.ViewColumn.One;
+      const DOCS_COLUMN = vscode.ViewColumn.Two;
+
+   **Secondary column resolution (the runaway-column and Main-collision bug fixes):**
+
+   .. code-block:: typescript
+
+      function resolveSecondaryColumn(): vscode.ViewColumn {
+          // Math.max(2, N) — NOT N alone, and NOT N + 1.
+          // - N alone collapses Secondary into Main (column 1) when only 1
+          //   column is open — Secondary and Main must never be the same
+          //   column (confirmed regression found by PM in manual testing).
+          // - N + 1 creates a brand-new column on every delivery (confirmed
+          //   regression during spike validation).
+          // The floor of 2 guarantees Secondary always splits at least
+          // column 2 the first time; once 2+ columns exist, Secondary
+          // reuses the existing last column, letting Secondary sessions
+          // stack as tabs within the same group once 3+ columns exist.
+          const groupCount = vscode.window.tabGroups.all.length;
+          return Math.max(2, groupCount) as vscode.ViewColumn;
+      }
+
+   **Existing-tab lookup (shared by all 3 targets):**
+
+   .. code-block:: typescript
+
+      /** Finds an already-open tab for a chat session, by resolving the
+       *  tab's label via lookupSessionUUID (chat tabs expose no .uri). */
+      function findSessionTab(sessionName: string): vscode.Tab | undefined {
+          for (const group of vscode.window.tabGroups.all) {
+              for (const tab of group.tabs) {
+                  if (tab.label === sessionName) { return tab; }
+              }
+          }
+          return undefined;
+      }
+
+      /** Finds an already-open tab for a file, by comparing fsPath. */
+      function findFileTab(filePath: string): vscode.Tab | undefined {
+          for (const group of vscode.window.tabGroups.all) {
+              for (const tab of group.tabs) {
+                  const uri = (tab.input as { uri?: vscode.Uri } | undefined)?.uri;
+                  if (uri?.fsPath === filePath) { return tab; }
+              }
+          }
+          return undefined;
+      }
+
+   **Main-target open (user click — always column 1, close+reopen if elsewhere):**
+
+   .. code-block:: typescript
+
+      async function openAtMain(uri: vscode.Uri, sessionName: string): Promise<void> {
+          const existing = findSessionTab(sessionName);
+          if (existing && existing.group.viewColumn !== MAIN_COLUMN) {
+              // AC-5: close the tab wherever it is, then reopen fresh at Main
+              await vscode.window.tabGroups.close(existing);
+          }
+          await vscode.commands.executeCommand('vscode.open', uri, {
+              preview: false,
+              viewColumn: MAIN_COLUMN,
+          });
+      }
+
+   **Docs-target open (always column 2, focus-in-place if already open elsewhere):**
+
+   .. code-block:: typescript
+
+      async function openAtDocs(uri: vscode.Uri): Promise<void> {
+          const existing = findFileTab(uri.fsPath);
+          const viewColumn = existing ? existing.group.viewColumn : DOCS_COLUMN;
+          await vscode.commands.executeCommand('vscode.open', uri, {
+              preview: false,
+              viewColumn,
+          });
+      }
+
+   **Secondary-target open (system delivery — focus-in-place if open anywhere, else last column):**
+
+   .. code-block:: typescript
+
+      async function openAtSecondary(uri: vscode.Uri, sessionName: string): Promise<void> {
+          const existing = findSessionTab(sessionName);
+          const viewColumn = existing ? existing.group.viewColumn : resolveSecondaryColumn();
+          await vscode.commands.executeCommand('vscode.open', uri, {
+              preview: false,
+              viewColumn,
+          });
+      }
+
+   **Design notes:**
+
+   * VS Code auto-materializes missing columns: requesting ``viewColumn: N``
+     when fewer than ``N`` groups exist reliably creates the missing
+     group(s) (confirmed across 1/2/3/4/5+ starting layouts on the spike).
+   * Auxiliary (detached) windows remain part of ``tabGroups.all`` — no
+     special-case handling needed; the close/reuse logic works transparently
+     across window boundaries.
+   * These helpers only ever act on tabs whose label matches a known session
+     name (via ``lookupSessionUUID``) or a known entity file path — any file
+     the user opens manually is entirely outside this contract.
+   * ``openAtMain``/``openAtDocs``/``openAtSecondary`` replace ad-hoc
+     ``vscode.open(uri, { preview: false })`` calls at their respective call
+     sites (``SPEC_ENT_AGENTSESSION``, ``SPEC_ENT_ENTITY_FILE_CHILDREN``,
+     ``SPEC_MSG_AUTODELIVER_POLL``) — see each spec's updated handler.
+
+
+.. spec:: Focus-Snapshot and Restore Helper
+   :id: SPEC_MSG_FOCUSRESTORE
+   :status: approved
+   :links: REQ_MSG_FOCUSRESTORE; SPEC_MSG_EDITORPLACEMENT; SPEC_MSG_SESSIONLOOKUP
+
+   **Description:**
+   Helper functions capturing and restoring the user's focus around a
+   system-initiated delivery. Validated on the spike (6th test command,
+   ``chatInjectRetryTest``) — restore is reliable, including under
+   keyboard-autofire stress; see the Research Finding for full test detail.
+
+   **Snapshot type:**
+
+   .. code-block:: typescript
+
+      type FocusSnapshot =
+          | { kind: 'editor'; uri: vscode.Uri; viewColumn: vscode.ViewColumn }
+          | { kind: 'terminal'; terminal: vscode.Terminal }
+          | undefined;
+
+   **Snapshot capture:**
+
+   .. code-block:: typescript
+
+      async function snapshotFocus(): Promise<FocusSnapshot> {
+          const activeTab = vscode.window.tabGroups.activeTabGroup.activeTab;
+          if (activeTab) {
+              // Chat-editor tabs expose no .uri on tab.input — resolve the
+              // real session UUID via lookupSessionUUID(tab.label), the same
+              // mechanism used for Main/Secondary placement
+              // (SPEC_MSG_EDITORPLACEMENT, REQ_MSG_FOCUSRESTORE AC-2). The
+              // tab's label is the session *name*, not a UUID — it must be
+              // resolved, never encoded directly.
+              const existingUri = (activeTab.input as { uri?: vscode.Uri } | undefined)?.uri;
+              let uri = existingUri;
+              if (!uri) {
+                  const uuid = await lookupSessionUUID(activeTab.label);
+                  if (!uuid) { return undefined; } // unresolvable chat tab — nothing to restore
+                  uri = vscode.Uri.parse(
+                      `vscode-chat-session://local/${Buffer.from(uuid).toString('base64')}`
+                  );
+              }
+              return {
+                  kind: 'editor',
+                  uri,
+                  viewColumn: activeTab.group.viewColumn,
+              };
+          }
+          if (vscode.window.activeTerminal) {
+              return { kind: 'terminal', terminal: vscode.window.activeTerminal };
+          }
+          return undefined;
+      }
+
+   **Restore (no artificial delay — see Design notes):**
+
+   .. code-block:: typescript
+
+      async function restoreFocus(snapshot: FocusSnapshot): Promise<void> {
+          if (!snapshot) { return; }
+          if (snapshot.kind === 'editor') {
+              await vscode.commands.executeCommand('vscode.open', snapshot.uri, {
+                  preview: false,
+                  viewColumn: snapshot.viewColumn,
+                  preserveFocus: false,
+              });
+          } else {
+              snapshot.terminal.show();
+          }
+      }
+
+   **Usage pattern (poll loop):**
+
+   .. code-block:: typescript
+
+      const focus = await snapshotFocus();
+      await deliverToSession(sessionName);  // the disruptive action
+      await restoreFocus(focus);            // immediately after, no delay
+
+   **Design notes:**
+
+   * ``snapshotFocus()`` is ``async`` because resolving a chat tab's real
+     UUID requires ``lookupSessionUUID`` (a ``state.vscdb`` read,
+     ``SPEC_MSG_SESSIONLOOKUP``) — the tab's ``label`` is the session
+     *name*, never the UUID itself, so it must always be resolved, never
+     encoded directly into the restore URI (``REQ_MSG_FOCUSRESTORE`` AC-2).
+     An earlier design draft encoded ``activeTab.label`` directly, which
+     would have produced a malformed, non-navigable URI at restore time —
+     corrected here.
+   * **No artificial delay between disrupt and restore.** An earlier spike
+     revision added a defensive ``setTimeout(800)`` before restore; removing
+     it (relying solely on awaiting the disruptive action's own promise)
+     reduced snapshot-to-restore time from 839 ms to ~520 ms and reduced
+     leaked keystrokes during active typing from 23 to 0-1.
+   * The remaining ~520 ms is the real Extension-Host↔Renderer IPC round
+     trip for two sequential ``open()`` calls (disrupt + restore) —
+     considered the practical lower bound for a UI-based restore mechanism.
+   * **Accepted limitation**: a keystroke typed at the exact moment of the
+     transient focus shift may be misrouted (OS-level input-routing
+     property, not a bug in this mechanism). Accepted because the delivery
+     target is a VS Code Chat query consumed by an LLM, which tolerates a
+     stray/misplaced character trivially.
+
+
+.. spec:: Auto-Delivery Active-Use Opt-Out Check
+   :id: SPEC_MSG_AUTODELIVERY_OPTOUT
+   :status: approved
+   :links: REQ_MSG_AUTODELIVERY_OPTOUT; SPEC_MSG_AUTODELIVER_POLL; SPEC_MSG_EDITORPLACEMENT
+
+   **Description:**
+   A predicate checked by the poll loop before delivering to a session,
+   skipping delivery if that session's tab is the currently active
+   (focused) editor tab.
 
    **Implementation:**
 
    .. code-block:: typescript
 
-      async function openPinnedResource(uri: vscode.Uri): Promise<void> {
-          await vscode.commands.executeCommand('vscode.open', uri, { preview: false });
+      function isSessionActiveTab(sessionName: string): boolean {
+          const activeTab = vscode.window.tabGroups.activeTabGroup.activeTab;
+          return activeTab?.label === sessionName;
+      }
+
+   **Usage in the poll loop:**
+
+   .. code-block:: typescript
+
+      for (const sessionName of autoList) {
+          const pending = messages.filter(
+              m => m.destination === sessionName && !m.notified
+          );
+          if (pending.length === 0) { continue; }
+          if (isSessionActiveTab(sessionName)) { continue; } // AC-1/AC-2: skip, retry next tick
+          // ... proceed to delivery (SPEC_MSG_AUTODELIVER_POLL) ...
+      }
+
+   **Design notes:**
+
+   * No new persisted state — reuses ``vscode.window.tabGroups`` already
+     read by ``SPEC_MSG_EDITORPLACEMENT``'s helpers.
+   * Does not affect ``jarvis.sendMessages`` (manual delivery) — the check
+     is only called from the poll loop's tick logic.
+   * A session that stays continuously active is never auto-delivered to
+     while active; this is accepted (``REQ_MSG_AUTODELIVERY_OPTOUT`` AC-5) —
+     the user can always read queued messages manually via
+     ``jarvis_readMessage``.
+
+
+.. spec:: Pinned Resource Open Helper
+   :id: SPEC_MSG_PINNED
+   :status: implemented
+   :links: REQ_MSG_PINNED; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_EDITORPLACEMENT
+
+   **Description:**
+   Private async helper ``openPinnedResource`` in ``extension.ts`` opens any
+   ``vscode-chat-session://`` URI in a pinned (non-preview) editor tab. The
+   ``{ preview: false }`` option prevents VS Code from silently reusing a
+   transient editor slot ("ghost editor" issue). Accepts an optional target
+   view column so callers can direct the open per the placement model
+   (``SPEC_MSG_EDITORPLACEMENT``).
+
+   **Implementation:**
+
+   .. code-block:: typescript
+
+      async function openPinnedResource(
+          uri: vscode.Uri,
+          viewColumn?: vscode.ViewColumn
+      ): Promise<void> {
+          await vscode.commands.executeCommand('vscode.open', uri, {
+              preview: false,
+              ...(viewColumn !== undefined ? { viewColumn } : {}),
+          });
       }
 
    **Callers:**
@@ -1405,11 +1723,14 @@ Message Queue Design Specifications
 
    **Design decisions:**
 
-   * ``{ preview: false }`` as the third argument to ``vscode.open`` is the sole
-     purpose of this helper — it ensures the tab is permanently pinned and not
-     recycled by the editor group
+   * ``{ preview: false }`` as part of the options object to ``vscode.open`` is
+     the sole original purpose of this helper — it ensures the tab is
+     permanently pinned and not recycled by the editor group
    * Extracted into a named helper (rather than inlined) for consistency across
      all three callers
+   * The optional ``viewColumn`` parameter is additive — omitting it preserves
+     prior behavior (VS Code's default column resolution) for any caller not
+     yet updated to pass a placement target
 
 
 .. spec:: New Chat Editor Helper
