@@ -3,7 +3,7 @@ name: "Trace Engineer"
 agent: syspilot.trace
 description: "Subagent that traces one specification element vertically through all levels (US → REQ → SPEC) and checks traceability completeness."
 tools: [execute, read, enthali.jarvis-core, search]
-model: Claude Haiku 4.5 (copilot)
+model: ['NVIDIA: Nemotron 3 Ultra (free) (openrouter)', 'Claude Haiku 4.5 (copilot)']
 user-invocable: true
 agents: []
 ---

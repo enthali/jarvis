@@ -3,7 +3,7 @@ name: "Release Engineer"
 agent: syspilot.release
 description: "Subagent that guides the release process: squash merge, version bump, validation, release notes, change doc archival, git tagging."
 tools: [read, edit, search, execute]
-model: Claude Sonnet 4.6 (copilot)
+model: ['NVIDIA: Nemotron 3 Ultra (free) (openrouter)',  'Claude Sonnet 5 (copilot)']
 user-invocable: true
 agents: []
 ---

@@ -1,5 +1,5 @@
 name: "Release Engineer"
-agent: "syspilot.release"
+agent: "Release Engineer"
 summary: >-
   Guides the release process: squash merge, version bump, validation, release
   notes, change doc archival, git tagging. Aligned with

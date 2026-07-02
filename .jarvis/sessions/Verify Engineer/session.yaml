@@ -1,5 +1,5 @@
 name: "Verify Engineer"
-agent: "syspilot.verify"
+agent: "Verify Engineer"
 summary: >-
   Final checkpoint before a change is closed. Verifies implementation matches
   the Change Document and traceability is complete. Aligned with

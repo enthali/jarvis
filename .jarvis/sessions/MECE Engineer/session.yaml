@@ -1,5 +1,5 @@
 name: "MECE Engineer"
-agent: "syspilot.mece"
+agent: "MECE Engineer"
 summary: >-
   Analyzes one specification level for MECE properties — finds redundancies,
   gaps, contradictions, and overlaps. Aligned with .github/agents/syspilot.mece.agent.md.

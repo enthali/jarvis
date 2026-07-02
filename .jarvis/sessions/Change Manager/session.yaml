@@ -1,5 +1,5 @@
 name: "Change Manager"
-agent: "syspilot.cm"
+agent: "Change Manager"
 summary: >-
   Central orchestrator of the Jarvis change workflow. Receives Change Requests
   from the Project Manager, invokes engineer subagents (design, uat, implement,

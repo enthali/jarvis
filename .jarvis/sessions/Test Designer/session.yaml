@@ -1,5 +1,5 @@
 name: "Test Designer"
-agent: "syspilot.uat"
+agent: "Test Designer"
 summary: >-
   Designs User Acceptance Test artifacts (stories, requirements, design specs)
   for a Change Document. Designs test scenarios for human execution. Aligned

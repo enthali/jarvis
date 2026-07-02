@@ -37,7 +37,7 @@ Hook Engine Requirements
 
 .. req:: Hook Event Logging
    :id: REQ_HOOK_LOG
-   :status: draft
+   :status: implemented
    :priority: optional
    :links: US_HOOK_OBSERVE; REQ_DEV_LOGGING
 
@@ -50,14 +50,20 @@ Hook Engine Requirements
 
    * AC-1: Each received hook event SHALL produce a log entry on the single "Jarvis"
      ``LogOutputChannel`` with the ``[Hook]`` tag.
-   * AC-2: The log entry SHALL include the event type and its payload so the
-     delivered data is observable.
+   * AC-2: At the default ``info`` log level, the log entry SHALL include only
+     the event name (and session id, when present) — not the payload. The
+     full payload SHALL additionally be logged at ``trace`` level (event name
+     + session id + full payload, unchanged from the original single-entry
+     format), visible only when trace logging is explicitly enabled
+     (``hook-log-level-reduction`` CR: reduces default-visible verbosity
+     without losing full observability for troubleshooting).
    * AC-3: The MVP SHALL take no other action — no event bus dispatch, no triggered
      actions, no memory injection, no per-session routing.
    * AC-4: No separate output channel SHALL be created — the "Jarvis" channel from
      ``SPEC_DEV_LOGCHANNEL`` is reused.
-   * AC-5: The log entry SHALL include the event name (e.g., ``UserPromptSubmit``,
-     ``PreToolUse``) extracted from the payload, not ``Unknown``.
+   * AC-5: The log entry (both ``info`` and ``trace`` levels) SHALL include the
+     event name (e.g., ``UserPromptSubmit``, ``PreToolUse``) extracted from
+     the payload, not ``Unknown``.
 
 
 .. req:: Hook Auto-Install Setting
