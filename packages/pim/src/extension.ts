@@ -319,11 +319,18 @@ export function activate(context: vscode.ExtensionContext): void {
     // --- PIM LM tools (registered via engine API, renamed with _pim_ infix) ---
 
     // Helper: collect leaves from a tree
+    // SPEC_PRJ_LISTPROJECTS design note: TreeNode is a 3-variant union
+    // (folder/leaf/file, per SPEC_ENT_ENTITY_FILE_CHILDREN) — exhaustive
+    // handling required. FileNode carries no .children and is not a
+    // descent target for leaf-collection purposes.
     function collectLeaves(nodes: TreeNode[]): LeafNode[] {
         const result: LeafNode[] = [];
         for (const node of nodes) {
             if (node.kind === 'leaf') { result.push(node); }
-            else { result.push(...collectLeaves(node.children)); }
+            else if (node.kind === 'folder') { result.push(...collectLeaves(node.children)); }
+            // node.kind === 'file' — no-op, file children are not part of the
+            // project/event tree walked here (they're computed on-demand
+            // elsewhere by the tree provider, not returned by getTreeForKind()).
         }
         return result;
     }

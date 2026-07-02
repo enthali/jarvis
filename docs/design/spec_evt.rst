@@ -31,7 +31,7 @@ Event Design Specifications
 .. spec:: List Events LM+MCP Tool
    :id: SPEC_EVT_LISTEVENTS
    :status: draft
-   :links: REQ_EVT_LISTEVENTS; SPEC_ENG_SCANNER; SPEC_MSG_DUALREGISTRATION; SPEC_PRJ_LISTPROJECTS
+   :links: REQ_EVT_LISTEVENTS; SPEC_ENG_SCANNER; SPEC_MSG_DUALREGISTRATION; SPEC_PRJ_LISTPROJECTS; SPEC_ENT_ENTITY_FILE_CHILDREN
 
    **Description:**
    Register ``jarvis_listEvents`` as a dual LM + MCP tool in ``extension.ts``.
@@ -131,7 +131,10 @@ Event Design Specifications
 
    **Design notes:**
 
-   * Reuses ``collectLeaves()`` helper defined in ``SPEC_PRJ_LISTPROJECTS``
+   * Reuses ``collectLeaves()`` helper defined in ``SPEC_PRJ_LISTPROJECTS`` —
+     see that spec's design notes for the ``TreeNode``/``FileNode``
+     exhaustive-handling requirement (``SPEC_ENT_ENTITY_FILE_CHILDREN``),
+     which applies equally here since this tool calls the same helper
    * ``folder`` uses forward slashes for cross-platform consistency
    * ``summary`` and ``agent`` default to ``""`` when absent — never ``null``
      or ``undefined`` in the output

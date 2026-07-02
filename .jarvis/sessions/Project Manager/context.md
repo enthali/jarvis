@@ -8,6 +8,19 @@ the user and I actually agree on what happened and what we're describing.
 Misread test scenarios (e.g. conflating two different code paths) look like
 bugs but aren't — verify first, dispatch second.
 
+## Working Principle: Bugs Are (Almost Always) Spec Problems (2026-07-02)
+
+Jarvis is spec-driven — implementation is steered by the spec, not written
+freehand. So when something breaks in code, don't just look at the code:
+assume the spec is imprecise or has a traceability gap until proven
+otherwise. Concrete case: a v0.15.0 CI build broke because `entity-files-tree`
+extended the shared `TreeNode` union (added `FileNode`) without linking
+`SPEC_ENT_ENTITY_FILE_CHILDREN` to `SPEC_PRJ_LISTPROJECTS`/`SPEC_EVT` (the
+specs owning the downstream consumer, `pim`'s `collectLeaves()`). Impact
+analysis never had a link to follow, so the affected consumer was invisible
+to it — the bug was a missing spec link, not a one-off coding mistake. When
+debugging: check traceability/links first, not just the code diff.
+
 ---
 
 ## Issue #18 — Files Touched by Agent (in progress)
