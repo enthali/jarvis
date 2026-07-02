@@ -33,6 +33,7 @@ Three files, strict separation of concerns:
 - BREAKING renames: verify the OLD name is GONE in code + package.json, not just the NEW name present
 - Artefakt-Removal-Check (b) active-docs class often misses `docs/releasenotes.md` — re-grep this file in every removal-CR review; classify hits as (c) historic stranding
 - Gate routing: gate signal (CLEAR/BLOCK) → CM; Findings Report → PM. CM asking QM to "report back" does NOT override this routing rule — CM gets the verdict, PM gets the findings.
+- **Full-suite build (PM directive, 2026-07-02)**: for any CR touching code (not spec-only), run the full package-suite build — not just the directly-affected package — before clearing. Use the `compile all` task (`npx tsc -p packages/core && npx tsc -p packages/pim && npx tsc -p packages/recorder && npx tsc -p packages/mcp`). Rationale: cross-package coupling is real (e.g. `packages/pim/package.json` contributing menu entries for commands registered in `packages/core`, per entity-open-context-cleanup/editor-group-placement) — checking only the touched package can miss a break in a consumer package. Run once per review, after independent code-vs-spec verification, before the CLEAR/BLOCK verdict.
 
 ## Active Reviews
 
