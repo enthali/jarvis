@@ -360,7 +360,7 @@ generic/user-facing, ``ENG`` = kind-agnostic plumbing, no US level).
    :id: REQ_ENT_ENTITY_CONTEXTMENU
    :status: draft
    :priority: optional
-   :links: US_ENT_ENTITYPARITY; US_ENT_ENTITY_FILES_TREE; US_ENT_OPENCONTEXT; REQ_ENT_ENTITY_FILE_CHILDREN; REQ_ENT_ENTITY_TREECLICK; REQ_ENT_AGENTSESSION; REQ_ENT_OPENYAML; REQ_ENT_OPENCONTEXT
+   :links: US_ENT_ENTITYPARITY; US_ENT_ENTITY_FILES_TREE; US_ENT_OPENCONTEXT; REQ_ENT_ENTITY_FILE_CHILDREN; REQ_ENT_ENTITY_TREECLICK; REQ_ENT_AGENTSESSION; REQ_ENT_OPENYAML; REQ_ENT_OPENCONTEXT; REQ_EXP_TREEVIEW; REQ_MSG_EDITORPLACEMENT
 
    **Description:**
    Right-clicking (a) a file-child tree node (``context.md``/YAML/agent
@@ -395,12 +395,48 @@ generic/user-facing, ``ENG`` = kind-agnostic plumbing, no US level).
    * AC-6: The context menu SHALL appear for ``contextValue`` values
      ``jarvisProject``, ``jarvisEvent``, ``jarvisSession`` (root nodes) and
      ``jarvisEntityFile`` (file children).
-   * AC-7: Folder nodes (``contextValue = 'jarvisFolder'``) SHALL NOT show
-     this context menu.
+   * AC-7: Folder/category nodes (``contextValue = 'jarvisFolder'``) SHALL
+     NOT show the 3-entry Open/Copy Path/Copy Full Path menu — they show a
+     separate, single-entry menu instead (AC-9, ``ui-improvements`` CR).
    * AC-8: The Copy Path / Copy Full Path commands SHALL NOT appear in the
      Command Palette (they require a tree node argument).
+   * AC-9 (``ui-improvements`` CR): Folder/category nodes SHALL show a
+     single-entry right-click context menu: **Copy**, which copies the
+     node's display name (the category/grouping label shown in the tree,
+     e.g. a subfolder name under Projects/Events/Actors) to the clipboard —
+     not a filesystem path. This is a distinct, smaller menu from AC-1–AC-8;
+     it does not gain Open/Copy Path/Copy Full Path.
+   * AC-10 (``ui-improvements`` CR): File-child nodes (``jarvisEntityFile``)
+     gain a 4th right-click entry, **Copy File Name**, which copies the
+     bare filename (e.g. ``context.md``, ``project.yaml``) to the clipboard
+     — no path, full or partial. Entity root nodes do **not** gain this
+     entry (they have no filename — see AC-4).
+   * AC-11 (``ui-improvements`` CR): When **Open** (AC-1) is invoked on the
+     ``context.md`` file-child node specifically, the file SHALL open via
+     VS Code's rendered Markdown preview rather than the raw text editor,
+     still honoring the Docs (column 2) placement guarantee on first open
+     (``REQ_MSG_EDITORPLACEMENT`` AC-2) — the preview is opened with an
+     explicit target column rather than silently bypassing placement.
+     ``session.yaml``/convention-YAML and the agent-file file-child nodes
+     SHALL continue to open as raw text (structured/code-like content, not
+     meant to be rendered) — the distinction is by exact basename match
+     (``context.md``), not by file extension, since the agent-file child is
+     also a ``.md`` file (``*.agent.md``) and must NOT be rendered.
 
    **Decisions:**
+
+   * (``ui-improvements`` CR) AC-9's "Copy" copies the folder node's
+     *display name*, not its filesystem path — unlike file-child/root-node
+     Copy Path/Copy Full Path (AC-3/AC-4), a category/grouping node's most
+     useful clipboard payload is the label itself (e.g. for pasting into a
+     chat prompt or search), not its path; a path-copy variant was not
+     requested and would duplicate AC-3's mechanism for a node kind that
+     wasn't in this CR's scope.
+   * (``ui-improvements`` CR) AC-11's file check is an exact basename match
+     (``context.md``), not an extension check — the agent-file file-child
+     is also markdown (``*.agent.md``) but must stay as raw text, so
+     extension alone cannot distinguish the two; deliberately narrow and
+     explicit rather than inferring "render all markdown."
 
    * ``jarvis.openContext`` and ``jarvis.openYamlFile`` are **not** reused as
      the "Open" handler for entity root nodes — the root node's established

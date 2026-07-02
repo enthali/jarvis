@@ -7,17 +7,21 @@ Entity Tree Context Menu UAT Design Specifications
    :links: REQ_UAT_ENTITY_CONTEXTMENU
 
    **Description:**
-   Step-by-step procedures and expected outcomes for all ten entity tree
-   context-menu acceptance test scenarios: menu contents on file-child and
-   root nodes, Open parity with left-click for both node kinds, Copy
-   Path/Copy Full Path correctness (folder-only vs. incl. filename), the
-   root-node Copy Path == Copy Full Path equivalence, folder-node exclusion,
-   and Command Palette exclusion.
+   Step-by-step procedures and expected outcomes for all thirteen entity
+   tree context-menu acceptance test scenarios: menu contents on file-child
+   and root nodes, Open parity with left-click for both node kinds
+   (including ``context.md``'s rendered Markdown preview), Copy Path/Copy
+   Full Path correctness (folder-only vs. incl. filename), the root-node
+   Copy Path == Copy Full Path equivalence, the folder/category node's
+   single-entry "Copy" menu (name, not path), Copy File Name on file
+   children, and Command Palette exclusion.
 
    **Test Setup:**
 
-   * Extension Development Host launched from
-     ``feature/entity-tree-context-menu`` via F5.
+   * Extension Development Host launched from ``feature/ui-improvements``
+     via F5 (context-menu behavior originates on
+     ``feature/entity-tree-context-menu``, extended by ``ui-improvements``
+     with Copy Category Name, Copy File Name, and context.md preview).
    * Workspace: ``testdata/test.code-workspace``.
    * All three entity sections (Sessions, Projects, Events) expanded;
      ``alpha``/``DevCon 2026``/``copilot-cm`` expanded to show file
@@ -119,13 +123,15 @@ Entity Tree Context Menu UAT Design Specifications
 
       * - T-9
 
-          Folder node exclusion
+          Folder node single-entry "Copy" menu
 
           *CR AC: 9*
         - Right-click a grouping/folder node (e.g. a year folder under
           Events, if present in the tree; any ``jarvisFolder`` node).
-        - None of Open, Copy Path, Copy Full Path appear in the context
-          menu.
+        - Exactly one entry, **Copy**, appears in the context menu. None of
+          Open, Copy Path, Copy Full Path, or Copy File Name are present
+          (updated by ``ui-improvements`` — previously no menu at all
+          appeared for this node kind).
 
       * - T-10
 
@@ -135,3 +141,50 @@ Entity Tree Context Menu UAT Design Specifications
         - Open the Command Palette (``Ctrl+Shift+P``) and search "Copy
           Path" and "Copy Full Path".
         - Neither Jarvis command appears in the palette results.
+
+      * - T-11
+
+          Copy Category Name (name, not path)
+
+          *CR AC: 11*
+
+          *Spec under test:* ``SPEC_ENT_ENTITY_CONTEXTMENU``
+        - Right-click the "Projects" category/folder node in the sidebar.
+          Click **Copy**. Paste the clipboard into a scratch tab.
+        - Clipboard contains the literal display name (e.g. ``Projects``)
+          — NOT a filesystem path. Same result for the "Events" and
+          "Actors" category headers.
+
+      * - T-12
+
+          Copy File Name on file-child node
+
+          *CR AC: 12*
+
+          *Spec under test:* ``SPEC_ENT_ENTITY_CONTEXTMENU``
+        - Right-click the ``context.md`` child under ``alpha``. Observe the
+          menu. Click **Copy File Name**. Paste the clipboard into a
+          scratch tab.
+        - The menu now shows 4 entries: Open, Copy Path, Copy Full Path,
+          **Copy File Name** (in the same ``clipboard`` group, after Copy
+          Full Path). Clipboard contains only ``context.md`` — no
+          directory path component.
+
+      * - T-13
+
+          context.md renders as Markdown preview; other file kinds
+          unaffected
+
+          *CR AC: 13*
+
+          *Spec under test:* ``SPEC_ENT_ENTITY_FILE_CHILDREN``
+        - Click (or right-click → Open) the ``context.md`` child under
+          ``alpha``. Then open ``copilot-cm``'s ``session.yaml`` child, and
+          then its agent-file child.
+        - **context.md:** opens in VS Code's rendered Markdown preview pane
+          (``markdown.showPreview``), not the raw text editor.
+
+          **session.yaml / agent-file:** both continue to open as raw text
+          in the Docs-column editor, unaffected — confirming the render
+          check is an exact basename match on ``context.md`` (not a
+          ``.md``-extension check, since the agent-file is also ``.md``).

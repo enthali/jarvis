@@ -51,6 +51,7 @@ end-to-end verification of each feature.
    req_uat_modular_install
    req_uat_entity_files_tree
    req_uat_entity_contextmenu
+   req_uat_collapseall
 
 All UAT Requirements
 --------------------

@@ -163,11 +163,11 @@ export function activate(context: vscode.ExtensionContext): void {
     const eventProvider = api.getTreeDataProvider('event');
 
     if (projectProvider) {
-        const projectView = vscode.window.createTreeView('jarvisProjects', { treeDataProvider: projectProvider });
+        const projectView = vscode.window.createTreeView('jarvisProjects', { treeDataProvider: projectProvider, showCollapseAll: true });
         context.subscriptions.push(projectView);
     }
     if (eventProvider) {
-        const eventView = vscode.window.createTreeView('jarvisEvents', { treeDataProvider: eventProvider });
+        const eventView = vscode.window.createTreeView('jarvisEvents', { treeDataProvider: eventProvider, showCollapseAll: true });
         context.subscriptions.push(eventView);
     }
 

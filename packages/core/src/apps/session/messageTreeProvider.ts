@@ -137,6 +137,13 @@ export class MessageTreeProvider implements vscode.TreeDataProvider<MessageNode>
                 vscode.TreeItemCollapsibleState.Collapsed
             );
             item.contextValue = element.isAutoDeliver ? 'jarvisSessionAutoDeliver' : 'jarvisSessionManual';
+            // ui-improvements CR: clicking the label opens the session's chat
+            // at Main (SPEC_MSG_EDITORPLACEMENT) — previously unset.
+            item.command = {
+                command: 'jarvis.openMessageSession',
+                title: 'Open Session',
+                arguments: [element]
+            };
             return item;
         }
 

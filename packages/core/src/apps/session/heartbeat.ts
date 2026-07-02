@@ -561,7 +561,8 @@ export function activateHeartbeat(
     heartbeatTreeProvider.setJobs(scheduler.currentJobs);
     scheduler.setTreeProvider(heartbeatTreeProvider);
     const heartbeatView = vscode.window.createTreeView('jarvisHeartbeat', {
-        treeDataProvider: heartbeatTreeProvider
+        treeDataProvider: heartbeatTreeProvider,
+        showCollapseAll: true
     });
     context.subscriptions.push(heartbeatView);
 

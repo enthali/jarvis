@@ -121,7 +121,10 @@
       { "command": "jarvis.openReminderFile", "title": "Jarvis: Open Reminder File" },
       { "command": "jarvis.cancelReminder", "title": "Jarvis: Cancel Reminder", "icon": "$(trash)" },
       { "command": "jarvis.copyPath", "title": "Copy Path" },
-      { "command": "jarvis.copyFullPath", "title": "Copy Full Path" }
+      { "command": "jarvis.copyFullPath", "title": "Copy Full Path" },
+      { "command": "jarvis.copyFileName", "title": "Copy File Name" },
+      { "command": "jarvis.copyCategoryName", "title": "Copy" },
+      { "command": "jarvis.openMessageSession", "title": "Jarvis: Open Message Session" }
     ],
     "menus": {
       "commandPalette": [
@@ -144,7 +147,10 @@
         { "command": "jarvis.disableAutoDelivery", "when": "false" },
         { "command": "jarvis.cancelReminder", "when": "false" },
         { "command": "jarvis.copyPath", "when": "false" },
-        { "command": "jarvis.copyFullPath", "when": "false" }
+        { "command": "jarvis.copyFullPath", "when": "false" },
+        { "command": "jarvis.copyFileName", "when": "false" },
+        { "command": "jarvis.copyCategoryName", "when": "false" },
+        { "command": "jarvis.openMessageSession", "when": "false" }
       ],
       "view/title": [
         { "command": "jarvis.newSession", "when": "view == jarvisSessions", "group": "navigation@1" },
@@ -167,9 +173,11 @@
         { "command": "jarvis.openEntityFile", "when": "viewItem == jarvisEntityFile", "group": "open" },
         { "command": "jarvis.copyPath", "when": "viewItem == jarvisEntityFile", "group": "clipboard@1" },
         { "command": "jarvis.copyFullPath", "when": "viewItem == jarvisEntityFile", "group": "clipboard@2" },
+        { "command": "jarvis.copyFileName", "when": "viewItem == jarvisEntityFile", "group": "clipboard@3" },
         { "command": "jarvis.openAgentSession", "when": "viewItem =~ /^jarvisSession$/", "group": "open" },
         { "command": "jarvis.copyPath", "when": "viewItem =~ /^jarvisSession$/", "group": "clipboard@1" },
-        { "command": "jarvis.copyFullPath", "when": "viewItem =~ /^jarvisSession$/", "group": "clipboard@2" }
+        { "command": "jarvis.copyFullPath", "when": "viewItem =~ /^jarvisSession$/", "group": "clipboard@2" },
+        { "command": "jarvis.copyCategoryName", "when": "viewItem == jarvisFolder", "group": "clipboard@1" }
       ]
     },
     "configuration": [

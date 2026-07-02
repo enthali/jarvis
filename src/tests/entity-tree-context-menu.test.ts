@@ -127,9 +127,11 @@ describe('SPEC_ENT_ENTITY_CONTEXTMENU: package.json menu bindings (core)', () =>
         expect(palette).toContainEqual({ command: 'jarvis.copyFullPath', when: 'false' });
     });
 
-    it('no menu entries target jarvisFolder (REQ_ENT_ENTITY_CONTEXTMENU AC-7)', () => {
-        const folderEntries = items.filter(i => i.when?.includes('jarvisFolder'));
-        expect(folderEntries.length).toBe(0);
+    it('jarvisFolder has only the Copy entry (jarvis.copyCategoryName) — no Open/Copy Path/Copy Full Path/Copy File Name (ui-improvements CR, REQ_ENT_ENTITY_CONTEXTMENU AC-7/AC-9)', () => {
+        const folderEntries = items.filter(i => i.when === 'viewItem == jarvisFolder');
+        expect(folderEntries).toEqual([
+            { command: 'jarvis.copyCategoryName', when: 'viewItem == jarvisFolder', group: 'clipboard@1' }
+        ]);
     });
 });
 
@@ -149,8 +151,10 @@ describe('SPEC_ENT_ENTITY_CONTEXTMENU: package.json menu bindings (pim)', () => 
         expect(items).toContainEqual({ command: 'jarvis.copyFullPath', when: 'viewItem == jarvisEvent', group: 'clipboard@2' });
     });
 
-    it('no menu entries target jarvisFolder (REQ_ENT_ENTITY_CONTEXTMENU AC-7)', () => {
-        const folderEntries = items.filter(i => i.when?.includes('jarvisFolder'));
-        expect(folderEntries.length).toBe(0);
+    it('jarvisFolder has only the Copy entry (jarvis.copyCategoryName) — no Open/Copy Path/Copy Full Path/Copy File Name (ui-improvements CR, REQ_ENT_ENTITY_CONTEXTMENU AC-7/AC-9)', () => {
+        const folderEntries = items.filter(i => i.when === 'viewItem == jarvisFolder');
+        expect(folderEntries).toEqual([
+            { command: 'jarvis.copyCategoryName', when: 'viewItem == jarvisFolder', group: 'clipboard@1' }
+        ]);
     });
 });

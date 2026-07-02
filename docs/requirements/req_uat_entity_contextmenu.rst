@@ -15,7 +15,7 @@ Entity Tree Context Menu UAT Requirements
    **Test Data Requirements:**
 
    * Open ``testdata/test.code-workspace`` in the Extension Development Host
-     (F5 from VS Code with ``feature/entity-tree-context-menu`` checked out).
+     (F5 from VS Code with ``feature/ui-improvements`` checked out).
    * Pre-existing entity test data:
 
      - ``testdata/projects/alpha/project.yaml`` — ``agent: syspilot.cm``,
@@ -29,7 +29,10 @@ Entity Tree Context Menu UAT Requirements
      Jarvis sidebar, with ``alpha``/``DevCon 2026``/``copilot-cm`` expanded
      to show their file children.
    * A clipboard-inspection method available (paste into a scratch editor
-     tab or terminal to verify contents) for T-3/T-4/T-7/T-8.
+     tab or terminal to verify contents) for T-3/T-4/T-7/T-8/T-11/T-12.
+   * ``testdata/.jarvis/sessions/copilot-cm/session.yaml`` used for T-13's
+     "raw text unaffected" check (YAML) alongside its ``context.md`` (the
+     rendered-preview target).
 
    **Acceptance Criteria:**
 
@@ -78,12 +81,38 @@ Entity Tree Context Menu UAT Requirements
      both Copy Path and Copy Full Path remain visible in the menu (neither
      is conditionally hidden for root nodes).
 
-   * AC-9 (REQ_ENT_ENTITY_CONTEXTMENU AC-7 — folder node exclusion):
+   * AC-9 (REQ_ENT_ENTITY_CONTEXTMENU AC-7/AC-9 — folder-node single-entry
+     "Copy" menu, updated by ``ui-improvements``):
      For T-9, the tester SHALL right-click a grouping/folder node (e.g. a
      year folder under Events, if present, or any ``jarvisFolder`` node)
-     and verify none of Open/Copy Path/Copy Full Path appear.
+     and verify exactly one entry, "Copy", appears — none of
+     Open/Copy Path/Copy Full Path/Copy File Name are present.
 
    * AC-10 (REQ_ENT_ENTITY_CONTEXTMENU AC-8 — Command Palette exclusion):
      For T-10, the tester SHALL open the Command Palette
      (``Ctrl+Shift+P``) and search for "Copy Path" / "Copy Full Path" and
      verify neither Jarvis command appears.
+
+   * AC-11 (REQ_ENT_ENTITY_CONTEXTMENU AC-9 — Copy Category Name, name not
+     path):
+     For T-11, the tester SHALL click "Copy" on a folder/category node
+     (e.g. the "Projects" header) and verify the clipboard contains the
+     category's display name (e.g. ``Projects``) — NOT a filesystem path.
+
+   * AC-12 (REQ_ENT_ENTITY_CONTEXTMENU AC-10 — Copy File Name on
+     file-child):
+     For T-12, the tester SHALL right-click the ``context.md`` child under
+     ``alpha`` and verify a 4th entry, "Copy File Name", is present
+     alongside Open/Copy Path/Copy Full Path; clicking it SHALL copy only
+     the bare filename (``context.md``) to the clipboard — no path
+     component.
+
+   * AC-13 (REQ_ENT_ENTITY_CONTEXTMENU AC-11 — context.md rendered
+     preview, exact-basename match):
+     For T-13, the tester SHALL open ``alpha``'s ``context.md`` child (via
+     left-click or the context menu's Open) and verify it renders in VS
+     Code's Markdown preview pane, not the raw text editor. The tester
+     SHALL then open ``copilot-cm``'s ``session.yaml`` and agent-file
+     children and verify both continue to open as raw text (unaffected —
+     the render check is an exact basename match on ``context.md``, not an
+     extension check, since the agent-file is also ``.md``).

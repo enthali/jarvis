@@ -927,9 +927,23 @@ level).
           const uri = vscode.Uri.file(node.filePath);
           try {
             await vscode.workspace.openTextDocument(uri); // validates existence first
-            // Docs placement: fixed column 2, focus-in-place if already open
-            // elsewhere (SPEC_MSG_EDITORPLACEMENT)
-            await openAtDocs(uri);
+            if (path.basename(node.filePath) === 'context.md') {
+              // ui-improvements CR: render context.md as Markdown preview
+              // instead of the raw text editor. Exact-basename check, NOT
+              // an extension check — the agent-file child is also .md
+              // (*.agent.md) and must continue to open as raw text.
+              // MECE finding fix: pass DOCS_COLUMN explicitly so the
+              // preview still honors the Docs (column 2) placement
+              // guarantee (REQ_MSG_EDITORPLACEMENT AC-2) on first open;
+              // markdown.showPreview's own built-in behavior reuses an
+              // already-open preview tab for the same file on subsequent
+              // invocations (VS Code framework behavior, not custom logic).
+              await vscode.commands.executeCommand('markdown.showPreview', uri, DOCS_COLUMN);
+            } else {
+              // Docs placement: fixed column 2, focus-in-place if already open
+              // elsewhere (SPEC_MSG_EDITORPLACEMENT)
+              await openAtDocs(uri);
+            }
           } catch {
             vscode.window.showWarningMessage(`Jarvis: Cannot open file: ${node.filePath}`);
           }
@@ -952,10 +966,12 @@ level).
    * ``contributes.menus.commandPalette``: hidden (``"when": "false"``) —
      reachable only via tree-item click, same pattern as
      ``jarvis.openHeartbeatJob`` (``SPEC_EXP_HEARTBEAT_OPENFILE``).
-   * No ``view/item/context`` menu entries are added for
-     ``jarvisEntityFile`` — file children expose no context-menu actions in
-     this CR (right-click on a file child shows the default VS Code
-     tree-item context menu only, i.e. nothing custom).
+   * **Historical, superseded:** an earlier revision of this spec stated no
+     ``view/item/context`` menu entries were added for ``jarvisEntityFile``
+     in this CR. That has since changed — ``entity-tree-context-menu`` added
+     Open/Copy Path/Copy Full Path, and ``ui-improvements`` added Copy File
+     Name (see ``SPEC_ENT_ENTITY_CONTEXTMENU`` for the current, authoritative
+     menu contents).
 
    **Acceptance Criteria:**
 
@@ -980,7 +996,16 @@ level).
       the file at the fixed Docs column (column 2), focusing an already-open
       tab in place if the file is open elsewhere (``SPEC_MSG_EDITORPLACEMENT``),
       or shows a warning if the file does not exist. No file is created as a
-      side effect.
+      side effect. **Variant (``ui-improvements`` CR):** when the file is
+      ``context.md`` specifically (exact basename match), it opens via VS
+      Code's rendered Markdown preview (``markdown.showPreview``) instead of
+      the raw text editor, but the Docs-column (column 2) placement
+      guarantee (``REQ_MSG_EDITORPLACEMENT`` AC-2) still applies on first
+      open — the preview command is called with an explicit ``viewColumn``
+      argument. Reuse of an already-open preview tab for the same file on
+      subsequent invocations is VS Code's own built-in ``markdown.showPreview``
+      behavior, not custom Jarvis logic. All other file children (YAML,
+      agent-file) are unaffected by this variant.
    8. File child tooltip shows the full absolute path with forward slashes.
    9. File child ``contextValue`` is ``jarvisEntityFile`` (distinct from
       ``jarvisProject`` / ``jarvisEvent`` / ``jarvisSession`` / ``jarvisFolder``)
@@ -1100,13 +1125,16 @@ level).
    :links: REQ_ENT_ENTITY_CONTEXTMENU; SPEC_ENT_ENTITY_FILE_CHILDREN; SPEC_ENT_AGENTSESSION; SPEC_EXP_EXTENSION
 
    **Description:**
-   Register ``jarvis.copyPath`` and ``jarvis.copyFullPath`` in ``extension.ts``,
-   plus ``view/item/context`` bindings that add "Open" / "Copy Path" / "Copy
-   Full Path" to the right-click menu of file-child nodes
+   Register ``jarvis.copyPath``, ``jarvis.copyFullPath``, ``jarvis.copyFileName``,
+   and ``jarvis.copyCategoryName`` in ``extension.ts``, plus ``view/item/context``
+   bindings that add "Open" / "Copy Path" / "Copy Full Path" / "Copy File Name"
+   (file children only) to the right-click menu of file-child nodes
    (``jarvisEntityFile``) and entity root nodes (``jarvisProject``,
-   ``jarvisEvent``, ``jarvisSession``). "Open" reuses existing commands
-   (``jarvis.openEntityFile`` for file children, ``jarvis.openAgentSession``
-   for root nodes) — no new "Open" command is introduced.
+   ``jarvisEvent``, ``jarvisSession``), plus a separate single-entry "Copy"
+   menu for folder/category nodes (``jarvisFolder``, ``ui-improvements`` CR).
+   "Open" reuses existing commands (``jarvis.openEntityFile`` for file
+   children, ``jarvis.openAgentSession`` for root nodes) — no new "Open"
+   command is introduced.
 
    **Path resolution helper** (shared by both new commands):
 
@@ -1148,6 +1176,28 @@ level).
         }
       );
 
+   **Copy File Name handler** (file-child nodes only, ``ui-improvements`` CR):
+
+   .. code-block:: typescript
+
+      vscode.commands.registerCommand(
+        'jarvis.copyFileName',
+        async (node: FileNode) => {
+          await vscode.env.clipboard.writeText(path.basename(node.filePath));
+        }
+      );
+
+   **Copy Category Name handler** (folder/category nodes, ``ui-improvements`` CR):
+
+   .. code-block:: typescript
+
+      vscode.commands.registerCommand(
+        'jarvis.copyCategoryName',
+        async (node: FolderNode) => {
+          await vscode.env.clipboard.writeText(node.name);
+        }
+      );
+
    **Registration in package.json:**
 
    * ``contributes.commands``:
@@ -1156,15 +1206,20 @@ level).
 
         [
           { "command": "jarvis.copyPath", "title": "Copy Path" },
-          { "command": "jarvis.copyFullPath", "title": "Copy Full Path" }
+          { "command": "jarvis.copyFullPath", "title": "Copy Full Path" },
+          { "command": "jarvis.copyFileName", "title": "Copy File Name" },
+          { "command": "jarvis.copyCategoryName", "title": "Copy" }
         ]
 
-   * ``contributes.menus.view/item/context``: for each of the 4
-     ``contextValue`` patterns (``jarvisEntityFile``, ``jarvisProject``,
-     ``jarvisEvent``, ``viewItem =~ /^jarvisSession$/``), 3 entries — Open,
-     Copy Path, Copy Full Path — in two groups (``open`` for the single
-     Open entry, ``clipboard`` for the two Copy entries, so VS Code renders
-     a visual separator between them):
+   * ``contributes.menus.view/item/context``: for the 3 root-node
+     ``contextValue`` patterns (``jarvisProject``, ``jarvisEvent``,
+     ``viewItem =~ /^jarvisSession$/``), 3 entries — Open, Copy Path, Copy
+     Full Path. For ``jarvisEntityFile``, 4 entries — Open, Copy Path, Copy
+     Full Path, **Copy File Name** (``ui-improvements`` CR addition). For
+     ``jarvisFolder``, a single entry — **Copy** (``jarvis.copyCategoryName``,
+     ``ui-improvements`` CR addition), in its own group since there is no
+     Open/Copy Path/Copy Full Path set for this node kind
+     (``REQ_ENT_ENTITY_CONTEXTMENU`` AC-7/AC-9):
 
      .. code-block:: json
 
@@ -1172,6 +1227,7 @@ level).
           { "command": "jarvis.openEntityFile", "when": "viewItem == jarvisEntityFile", "group": "open" },
           { "command": "jarvis.copyPath", "when": "viewItem == jarvisEntityFile", "group": "clipboard@1" },
           { "command": "jarvis.copyFullPath", "when": "viewItem == jarvisEntityFile", "group": "clipboard@2" },
+          { "command": "jarvis.copyFileName", "when": "viewItem == jarvisEntityFile", "group": "clipboard@3" },
 
           { "command": "jarvis.openAgentSession", "when": "viewItem == jarvisProject", "group": "open" },
           { "command": "jarvis.copyPath", "when": "viewItem == jarvisProject", "group": "clipboard@1" },
@@ -1183,26 +1239,36 @@ level).
 
           { "command": "jarvis.openAgentSession", "when": "viewItem =~ /^jarvisSession$/", "group": "open" },
           { "command": "jarvis.copyPath", "when": "viewItem =~ /^jarvisSession$/", "group": "clipboard@1" },
-          { "command": "jarvis.copyFullPath", "when": "viewItem =~ /^jarvisSession$/", "group": "clipboard@2" }
+          { "command": "jarvis.copyFullPath", "when": "viewItem =~ /^jarvisSession$/", "group": "clipboard@2" },
+
+          { "command": "jarvis.copyCategoryName", "when": "viewItem == jarvisFolder", "group": "clipboard@1" }
         ]
 
-     The ``jarvisProject``/``jarvisEvent`` entries are contributed by
-     ``packages/pim/package.json``; the ``jarvisEntityFile`` and
-     ``jarvisSession`` entries are contributed by ``packages/core/package.json``
-     (matching the existing PIM/core split for other shared commands, e.g.
-     ``jarvis.openContext``, per ``SPEC_ENT_OPENCONTEXT_CMD``'s design note).
-     The ``jarvis.openEntityFile``/``jarvis.openAgentSession`` entries here
-     are additive bindings on already-registered commands — no new command
-     registration for "Open".
+     The ``jarvisProject``/``jarvisEvent``/``jarvisFolder`` entries are
+     contributed by ``packages/pim/package.json``; the ``jarvisEntityFile``
+     and ``jarvisSession`` entries are contributed by
+     ``packages/core/package.json`` (matching the existing PIM/core split
+     for other shared commands, e.g. ``jarvis.openContext``, per
+     ``SPEC_ENT_OPENCONTEXT_CMD``'s design note). Note: ``jarvisFolder``
+     nodes appear in both the Projects/Events trees (PIM) and the Actors
+     tree (core) — Dev Engineer adds the ``jarvis.copyCategoryName`` entry
+     to **both** ``packages/pim/package.json`` and
+     ``packages/core/package.json`` (``viewItem == jarvisFolder`` in each),
+     mirroring how other folder-node-agnostic entries are duplicated across
+     the two packages. The ``jarvis.openEntityFile``/``jarvis.openAgentSession``
+     entries here are additive bindings on already-registered commands — no
+     new command registration for "Open".
 
-   * ``contributes.menus.commandPalette``: hide both new commands (they
+   * ``contributes.menus.commandPalette``: hide all four new commands (they
      require a tree node argument):
 
      .. code-block:: json
 
         [
           { "command": "jarvis.copyPath", "when": "false" },
-          { "command": "jarvis.copyFullPath", "when": "false" }
+          { "command": "jarvis.copyFullPath", "when": "false" },
+          { "command": "jarvis.copyFileName", "when": "false" },
+          { "command": "jarvis.copyCategoryName", "when": "false" }
         ]
 
    **Design notes:**
@@ -1211,19 +1277,23 @@ level).
      duplicated or re-implemented — this spec only adds new
      ``view/item/context`` bindings for them; their handlers
      (``SPEC_ENT_ENTITY_FILE_CHILDREN``, ``SPEC_ENT_AGENTSESSION``) are
-     unchanged.
-   * Folder nodes (``contextValue == 'jarvisFolder'``) intentionally have no
-     ``when`` clause match here — no menu entries are added for them
+     unchanged, except for ``jarvis.openEntityFile``'s ``context.md``
+     rendered-preview branch — see ``SPEC_ENT_ENTITY_FILE_CHILDREN``'s
+     updated handler (``ui-improvements`` CR).
+   * Folder nodes (``contextValue == 'jarvisFolder'``) now show the
+     single-entry "Copy" menu (``jarvis.copyCategoryName``,
+     ``ui-improvements`` CR) instead of no menu at all — still excluded
+     from the Open/Copy Path/Copy Full Path/Copy File Name set
      (``REQ_ENT_ENTITY_CONTEXTMENU`` AC-7).
    * ``vscode.env.clipboard.writeText()`` is the standard VS Code clipboard
      API — no OS-specific clipboard handling needed.
-   * Group naming (``open``, ``clipboard@1``/``clipboard@2``) follows the
-     same numbered-suffix convention already used for ``inline@1``/``inline@2``
-     elsewhere in this file — the ``@N`` suffix controls order within a
-     group, not the group's separation from others.
+   * Group naming (``open``, ``clipboard@1``/``clipboard@2``/``clipboard@3``)
+     follows the same numbered-suffix convention already used for
+     ``inline@1``/``inline@2`` elsewhere in this file — the ``@N`` suffix
+     controls order within a group, not the group's separation from others.
    * This spec does not touch the existing ``context-actions`` group
      (``SPEC_ENT_CONTEXTACTIONS`` — Reveal in Explorer/OS/Terminal); Open and
-     Copy Path/Full Path are visually separate menu sections.
+     Copy Path/Full Path/File Name are visually separate menu sections.
 
 
 .. spec:: Open Context File Command — Retired

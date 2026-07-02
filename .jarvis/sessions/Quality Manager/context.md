@@ -38,4 +38,4 @@ Three files, strict separation of concerns:
 
 ## Active Reviews
 
-None currently. All recent CRs cleared, including hook-log-level-reduction, entity-tree-context-menu, and the pim-treenode-filenode-fix hotfix (all 2026-07-02, all CLEAR — see scan-state.md).
+None currently. All recent CRs cleared, including ui-improvements, hook-log-level-reduction, entity-tree-context-menu, and the pim-treenode-filenode-fix hotfix (all 2026-07-02, all CLEAR — see scan-state.md).

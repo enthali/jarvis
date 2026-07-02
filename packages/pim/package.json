@@ -242,6 +242,7 @@
         { "command": "jarvis.openAgentSession", "when": "viewItem == jarvisEvent", "group": "open" },
         { "command": "jarvis.copyPath", "when": "viewItem == jarvisEvent", "group": "clipboard@1" },
         { "command": "jarvis.copyFullPath", "when": "viewItem == jarvisEvent", "group": "clipboard@2" },
+        { "command": "jarvis.copyCategoryName", "when": "viewItem == jarvisFolder", "group": "clipboard@1" },
         {
           "command": "jarvis.renameCategory",
           "when": "viewItem == jarvisCategory",

@@ -7,13 +7,15 @@ Chat Editor Reuse — Session Open UAT Design Specifications
    :links: REQ_UAT_CHATEDITORREUSE
 
    **Description:**
-   Step-by-step procedures and expected outcomes for all nine
+   Step-by-step procedures and expected outcomes for all ten
    ``chat-editor-reuse-on-session-open`` and ``editor-group-placement``
    acceptance test scenarios, covering the existing-UUID regression guard,
    fresh-editor creation via ``jarvis_createSession``, the UI "New Session"
    command, successive new-session opens, the auto-delivery new-editor path,
    the Main-target close+reopen rule, the Docs-target fixed column, the
-   already-open-anywhere rule, and the Play-button's Main placement.
+   already-open-anywhere rule, the Play-button's Main placement, and the
+   Messages tree group-node label click's Main placement + no-op-on-miss
+   behavior (``ui-improvements`` CR).
 
    **Test Setup:**
 
@@ -35,6 +37,9 @@ Chat Editor Reuse — Session Open UAT Design Specifications
      Editor" on any 2 unrelated files) before the scenario starts.
    * For T-9, a message must be queued for a session in the manual root of
      the Messages tree (Play button visible) — see ``REQ_MSG_QUEUE``.
+   * For T-10, one session in the Messages tree has a live chat already
+     open (in a non-1 column), and a second destination has queued
+     messages but no chat ever opened.
    * Note the number of open chat editor tabs before each scenario (baseline
      tab count).
    * Between scenarios: close any session-specific chat editors opened
@@ -308,3 +313,39 @@ Chat Editor Reuse — Session Open UAT Design Specifications
           throughout, in column 1.
 
           *Clean up: close the* ``dev-feature-x`` *editor tab.*
+
+      * - T-10
+
+          Messages group-node label click targets Main; no-op on miss
+
+          *CR AC: 10*
+
+          *Spec under test:* ``SPEC_MSG_TREEPROVIDER``, ``SPEC_MSG_EDITORPLACEMENT``
+        - Precondition: at least 2 editor columns open. Queue a message for
+          ``dev-feature-x``; open its chat and manually drag it to column 2.
+
+          Click the ``dev-feature-x`` group-node **label** (not the Play
+          icon) in the Messages tree.
+
+          Observe which column the chat tab ends up in. Then click the
+          label again while already at Main.
+
+          Finally, queue a message for a destination that has never had a
+          chat session opened (e.g. a new, never-opened session name), and
+          click that group-node's label.
+        - **First click (close+reopen):** The ``dev-feature-x`` chat tab
+          that was in column 2 is closed, and a fresh tab opens in column
+          1, focused — identical to the T-6/T-9 close+reopen behavior.
+
+          **Second click (focus-in-place):** With the tab already at Main,
+          clicking the label again simply focuses the existing tab — no
+          close+reopen, no duplicate tab.
+
+          **No-op on miss:** Clicking the label for a destination with no
+          live session yet produces no new chat editor, no error toast, and
+          no change in the Jarvis Output Channel beyond routine logging.
+          The node's expand/collapse behavior (clicking the arrow, or the
+          label when no command applies) is unaffected.
+
+          *Clean up: close the* ``dev-feature-x`` *editor tab; clear the
+          test message from the never-opened destination.*
