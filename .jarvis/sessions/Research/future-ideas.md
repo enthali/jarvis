@@ -31,7 +31,7 @@ Sortierung: jüngste oben.
 - „resume your job ... complete it ... send when done" statt „send RESPOND now" — verhindert eine hastige, unfertige Antwort; der Agent soll erst die eigentliche Arbeit fortsetzen.
 - Muss als **Disziplin-Regel** in `syspilot.orchestration-jarvis` (SEND/RESPOND-Vokabular-Skill), nicht nur als lose Idee — sonst gilt's nicht einheitlich für alle Agenten.
 
-**Status:** Bereit für einen praktischen Live-Test (Reminder-Text s.o., über `jarvis_setReminder`).
+**Status:** ✅ **Live validiert (2026-07-03).** Test-Reminder an „Quality Manager" gesetzt (`jarvis_setReminder`, generisches Template s.o.). Während der Wartezeit trat *zufällig* ein echter Vorfall auf derselben Session ein — exakt dieselbe „Response contained no choices"-LLM-Inferenz-Fehlerklasse wie beim ursprünglichen Trigger. Der Reminder feuerte kurz danach; QM nahm die Arbeit direkt wieder auf (Dateien gelesen/editiert) — **vollständige Recovery**, kein manuelles Eingreifen nötig. Bestätigt beide Hypothesen: (1) Reset-Kick funktioniert, (2) generisches Template ohne Recipient/Task-Parameter liest sich sauber im Self-Check. Nächster Schritt: als Disziplin-Regel in `syspilot.orchestration-jarvis` verankern (siehe Verfeinerungen oben).
 
 ---
 
