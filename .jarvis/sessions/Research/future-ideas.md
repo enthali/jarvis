@@ -19,7 +19,9 @@ Sortierung: jüngste oben.
 [Jarvis Watchdog] Self-check: Did I already send a RESPOND to the last message I received?
 
 - If YES: do nothing — this reminder is stale.
-- If NO: resume my job where I left off, complete it, and send the RESPOND when done.
+- If NO: set the next watchdog reminder now (in case this attempt stalls too), then resume my
+  job where I left off, complete it, and send the RESPOND — cancelling this reminder chain
+  once the RESPOND is sent.
 ```
 
 **Doppelter Nutzen:**
@@ -27,9 +29,11 @@ Sortierung: jüngste oben.
 2. **Wartende Agenten** (z.B. QM) merken über ihre eigene Reminder, dass eine erwartete RESPOND noch aussteht — unabhängig von der Ausfallursache beim Partner.
 
 **Verfeinerungen:**
-- Reminder feuern **einmalig** — kein explizites Canceln im „YES"-Fall nötig (nichts nagt wiederholt). Proaktives Canceln bei erfolgreichem RESPOND bleibt eine **optionale Effizienz-Optimierung** (spart einen unnötigen Turn), ist aber keine Korrektheits-Voraussetzung mehr.
-- „resume your job ... complete it ... send when done" statt „send RESPOND now" — verhindert eine hastige, unfertige Antwort; der Agent soll erst die eigentliche Arbeit fortsetzen.
-- Muss als **Disziplin-Regel** in `syspilot.orchestration-jarvis` (SEND/RESPOND-Vokabular-Skill), nicht nur als lose Idee — sonst gilt's nicht einheitlich für alle Agenten.
+- **Nicht alle Hänger sind gleich (2026-07-03, zweiter Fund):** Lokales Modell (qwen3.6 27b) hängt aus einem anderen Grund — KV-Cache-Laden dauert länger als GH Copilots Timeout erlaubt. Das ist **nicht transient**, ein einzelner Reset-Kick reicht nicht, der nächste Versuch würde genauso timeouten. Ein einmaliger Reminder ist dafür zu schwach.
+- **Fix: Self-Renewing Chain statt Einmal-Reminder.** Im „NO"-Zweig setzt der Agent sofort den **nächsten** Watchdog-Reminder (bevor er die eigentliche Arbeit fortsetzt) — falls auch dieser Versuch hängt, greift der nächste. Die Kette bricht erst, wenn RESPOND tatsächlich gesendet wird.
+- Canceln bei erfolgreichem RESPOND ist damit wieder **notwendig** (nicht mehr nur optionale Effizienz) — sonst läuft die Kette nach Erledigung der Aufgabe einfach weiter.
+- „resume my job ... complete it ... send when done" statt „send RESPOND now" — verhindert eine hastige, unfertige Antwort; der Agent soll erst die eigentliche Arbeit fortsetzen.
+- Bleibt eine **Disziplin-Regel auf Orchestrierungs-Ebene** in `syspilot.orchestration-jarvis` (SEND/RESPOND-Vokabular-Skill) — hängt komplett an der SEND/RESPOND-Semantik, kein Jarvis-Kern-Thema.
 
 **Status:** ✅ **Live validiert (2026-07-03).** Test-Reminder an „Quality Manager" gesetzt (`jarvis_setReminder`, generisches Template s.o.). Während der Wartezeit trat *zufällig* ein echter Vorfall auf derselben Session ein — exakt dieselbe „Response contained no choices"-LLM-Inferenz-Fehlerklasse wie beim ursprünglichen Trigger. Der Reminder feuerte kurz danach; QM nahm die Arbeit direkt wieder auf (Dateien gelesen/editiert) — **vollständige Recovery**, kein manuelles Eingreifen nötig. Bestätigt beide Hypothesen: (1) Reset-Kick funktioniert, (2) generisches Template ohne Recipient/Task-Parameter liest sich sauber im Self-Check. Nächster Schritt: als Disziplin-Regel in `syspilot.orchestration-jarvis` verankern (siehe Verfeinerungen oben).
 
