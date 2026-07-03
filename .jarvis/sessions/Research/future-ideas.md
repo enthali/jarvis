@@ -16,12 +16,11 @@ Sortierung: jüngste oben.
 **Bessere Idee (PM, 2026-07-03): Self-Reminder statt Hook-Detection.** Prozessunabhängig, nutzt nur bestehende Werkzeuge (`jarvis_setReminder`, `jarvis_cancelReminder`, dieselbe Delivery-Pipeline wie normale Messages — reitet auf der gestern validierten Editor-Group-Placement-Infrastruktur). Jeder Agent setzt sich **bei jedem SEND** einen Reminder, der später prüft, ob er selbst geantwortet hat:
 
 ```
-[Jarvis Watchdog] Self-check: Did you already send a RESPOND for your SEND to "<recipient>"
+[Jarvis Watchdog] Self-check: Did I already send a RESPOND for my SEND to "<recipient>"
 (re: <task summary>)?
 
-- If YES: this reminder is stale. Cancel it now with jarvis_cancelReminder and do nothing else.
-- If NO: continue exactly where you left off and send the RESPOND now — with your results,
-  or an honest status if the task is still incomplete.
+- If YES: do nothing — this reminder is stale.
+- If NO: resume my job where I left off, complete it, and send the RESPOND when done.
 ```
 
 **Doppelter Nutzen:**
@@ -29,7 +28,8 @@ Sortierung: jüngste oben.
 2. **Wartende Agenten** (z.B. QM) merken über ihre eigene Reminder, dass eine erwartete RESPOND noch aussteht — unabhängig von der Ausfallursache beim Partner.
 
 **Verfeinerungen:**
-- Reminder **proaktiv canceln** bei erfolgreichem RESPOND (`jarvis_cancelReminder`), sonst nervt's auch auf dem Happy Path.
+- Reminder feuern **einmalig** — kein explizites Canceln im „YES"-Fall nötig (nichts nagt wiederholt). Proaktives Canceln bei erfolgreichem RESPOND bleibt eine **optionale Effizienz-Optimierung** (spart einen unnötigen Turn), ist aber keine Korrektheits-Voraussetzung mehr.
+- „resume your job ... complete it ... send when done" statt „send RESPOND now" — verhindert eine hastige, unfertige Antwort; der Agent soll erst die eigentliche Arbeit fortsetzen.
 - Muss als **Disziplin-Regel** in `syspilot.orchestration-jarvis` (SEND/RESPOND-Vokabular-Skill), nicht nur als lose Idee — sonst gilt's nicht einheitlich für alle Agenten.
 
 **Status:** Bereit für einen praktischen Live-Test (Reminder-Text s.o., über `jarvis_setReminder`).
