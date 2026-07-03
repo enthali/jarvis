@@ -22,6 +22,8 @@ docs/_build/
 .jarvis/logs/
 .jarvis/message-log.json
 .jarvis/autodelivery.json
+.jarvis/messages.json
+.jarvis/reminders.yaml
 
 # OS
 Thumbs.db
