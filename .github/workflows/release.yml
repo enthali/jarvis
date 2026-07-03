@@ -45,6 +45,10 @@ jobs:
       - name: Package enthali.jarvis-flow
         run: cd packages/flow && npx vsce package --no-dependencies
 
+      # ── Package extension pack (no build step, extensionPack only) ───────
+      - name: Package enthali.jarvis-suite
+        run: cd packages/suite && npx vsce package --no-dependencies
+
       # ── GitHub Release — all VSIXs ───────────────────────────────────────────
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -56,6 +60,7 @@ jobs:
             packages/recorder/*.vsix
             packages/mcp/*.vsix
             packages/flow/*.vsix
+            packages/suite/*.vsix
           generate_release_notes: true
 
       # ── Marketplace publish — jarvis-core + add-ons (NOT legacy jarvis) ──────
@@ -79,4 +84,8 @@ jobs:
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: npx vsce publish --packagePath packages/flow/jarvis-flow-*.vsix --no-dependencies
+      - name: Publish enthali.jarvis-suite to Marketplace
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: npx vsce publish --packagePath packages/suite/jarvis-suite-*.vsix --no-dependencies
 
