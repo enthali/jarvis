@@ -1,5 +1,27 @@
 # Release Notes
 
+## v0.16.0 — Message Flow Diagram, Canonical Message API, Time Lens
+
+*2026-07-03*
+
+### Features
+
+- **message-flow-diagram**: Adds a new package (`jarvis-flow`, "Jarvis Message Flow") with an interactive D3 chord-diagram visualization of inter-agent message traffic, sourced from `.jarvis/message-log.json`. Ships as a VS Code Webview Panel, opened via an icon button on the Messages tree-view title bar. Nodes are sessions/actors, edges are directional message counts, with a "Fog of Time" age-based opacity fade and hover tooltips (message count, time range, sample text). Refreshes via a 5s poll of the log file. Clicking an actor node opens that actor's chat at Main; the diagram itself occupies the shared "Content Tab" (column 2) alongside entity docs.
+
+- **flow-time-lens**: Replaces the Fog-of-Time single fade slider in the Message Flow Diagram with a two-handle message-index range lens (start/end, indexed by message rank from the newest loaded message). The start handle live-tracks the newest message at rank 1 and anchors-by-identity elsewhere; the end handle always anchors-by-identity. Adds a "+500" cap-expansion button to load further history, a drag tooltip showing the message timestamp, and lowers the minimum opacity floor from 15% to 5%.
+
+### Breaking Changes
+
+- **message-api-rename**: Introduces canonical `jarvis_sendMessage`/`jarvis_receiveMessage` tools (LM + MCP), replacing `jarvis_sendToSession`/`jarvis_readMessage`. The old tool names remain registered (for discoverability) but are now **hard-deprecated** — every invocation throws `"This tool is deprecated and no longer functional. Use jarvis_sendMessage/jarvis_receiveMessage instead."` with no fallback behavior. Full removal of the old registrations is tracked separately (GitHub Issue #13, earliest 2026-09-30). The new `jarvis_sendMessage` also requires `senderSession` (no more silent fallback to the active editor tab, which produced incorrect sender attribution, e.g. after Focus-Snapshot/Restore) — validated against the same session list used for `destination`. All `.github/agents/*.agent.md` files and the `syspilot.orchestration-jarvis` skill were updated to pass `senderSession` explicitly.
+  *(Supersedes the standalone `sendtosession-required-sender` CR, folded into this one per PM decision — "better now and hard than later and soft".)*
+
+### Infrastructure
+
+- Added missing package READMEs for `pim`, `recorder`, and `flow`.
+- `release.yml` now packages and publishes `flow` and `suite` alongside the existing packages.
+
+---
+
 ## v0.15.2 — Entity Context Menu, Log-Level Cleanup, UI Conveniences & venv Autodetect
 
 *2026-07-03*
