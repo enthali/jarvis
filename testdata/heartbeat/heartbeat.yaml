@@ -25,6 +25,11 @@ jobs:
     steps:
       - type: powershell
         run: scripts/fail-exit1.ps1
+  - name: t4b-fail-with-stderr
+    schedule: manual
+    steps:
+      - type: python
+        run: scripts/fail-with-stderr.py
   - name: t7-agent-hello
     schedule: manual
     steps:

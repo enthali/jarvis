@@ -24,6 +24,13 @@ Heartbeat User Acceptance Tests
      runtime causes the scheduler to restart with the new interval
    * AC-5: At least one test covers the ``agent`` step type — sends a prompt to
      ``vscode.lm`` and verifies the response is written to an output file
+   * AC-6: At least one test verifies the 3-tier ``python`` interpreter resolution
+     order (``python.defaultInterpreterPath`` → auto-detected ``.venv``/``venv`` →
+     bare ``python``), including precedence when more than one tier is available
+     (``heartbeat-venv-autodetect`` CR)
+   * AC-7: The job-failure test (AC-3) also verifies that captured stderr output
+     (up to the last 3 lines) is included in the failure toast when the failing
+     step produced any (``heartbeat-venv-autodetect`` CR)
 
    **Test Scenarios:**
 
@@ -40,7 +47,7 @@ Heartbeat User Acceptance Tests
      Action: Run ``Jarvis: Run Heartbeat Job`` from command palette; select the job.
      Expected: Command palette opens (command executed); no cron tick required.
 
-   **T-3 — Python step uses active venv**
+   **T-3 — Python step uses configured interpreter (tier 1: defaultInterpreterPath)**
      Setup: ``heartbeat.yaml`` with a Python step that imports a third-party package
      present only in the workspace venv; ``python.defaultInterpreterPath`` points to
      that venv.
@@ -48,10 +55,40 @@ Heartbeat User Acceptance Tests
      Expected: Step succeeds; package import resolves; output visible in channel.
 
    **T-4 — Job failure triggers toast**
-     Setup: ``heartbeat.yaml`` with a PowerShell step that calls ``exit 1``.
-     Action: Wait for tick.
-     Expected: Error toast appears with job name and exit code; Output Channel logs
-     the failure; subsequent steps (if any) are skipped.
+
+     * (a) No stderr output.
+       Setup: ``heartbeat.yaml`` with a PowerShell step that calls ``exit 1``
+       without writing to stderr.
+       Action: Wait for tick.
+       Expected: Error toast shows job name, step type, and exit code only (no
+       stderr tail appended — none was captured); Output Channel logs the failure;
+       subsequent steps (if any) are skipped.
+     * (b) With captured stderr (``heartbeat-venv-autodetect`` CR).
+       Setup: ``heartbeat.yaml`` with a Python step whose script prints several
+       lines to stderr (more than 3) then exits non-zero (e.g. simulates a
+       ``ModuleNotFoundError`` traceback).
+       Action: Trigger the job.
+       Expected: Error toast shows job name, step type, and exit code, followed by
+       the **last 3 lines** of captured stderr (earlier lines are not shown — the
+       ring buffer is bounded); Output Channel logs the full stderr stream in full
+       at debug level; subsequent steps (if any) are skipped.
+
+   **T-8 — Python interpreter auto-detection (tiers 2 & 3) and precedence**
+     Setup: ``python.defaultInterpreterPath`` unset (empty string counts as unset).
+
+     * (a) Workspace root contains only a ``.venv/`` folder with the interpreter and
+       the test package installed.
+       Action: Trigger a Python step importing the test package.
+       Expected: Step succeeds; printed ``sys.executable`` resolves inside ``.venv``.
+     * (b) Workspace root contains **both** ``.venv/`` and ``venv/`` folders (test
+       package installed in ``venv`` only, not in ``.venv``).
+       Action: Trigger the same step.
+       Expected: ``.venv`` still takes precedence — the import fails (package not in
+       ``.venv``), demonstrating tier-2 ordering (``.venv`` checked before ``venv``).
+     * (c) Neither ``.venv/`` nor ``venv/`` exists at the workspace root.
+       Action: Trigger the same step.
+       Expected: Bare ``python`` on ``PATH`` is used (tier 3 fallback); printed
+       ``sys.executable`` resolves to the system interpreter, not a workspace venv.
 
    **T-5 — Config file override via setting**
      Setup: Place ``heartbeat.yaml`` at an arbitrary absolute path; set

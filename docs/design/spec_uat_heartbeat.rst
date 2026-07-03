@@ -18,16 +18,29 @@ Heartbeat UAT Design Specifications
       * - File
         - Purpose
       * - ``heartbeat.yaml``
-        - Job definitions for T-1..T-4, T-7, and T-8 (cron, manual command, python,
-          fail, agent, queue)
+        - Job definitions for T-1..T-4, T-7, T-8, and T-8-queue-message (cron,
+          manual command, python, fail, agent, queue)
       * - ``scripts/write-sentinel.ps1``
         - T-1: PowerShell step; writes sentinel.txt to verify cron dispatch
       * - ``scripts/venv-check.py``
-        - T-3: Python step; prints sys.executable to verify interpreter resolution
+        - T-3, T-8: Python step; prints ``sys.executable`` to verify interpreter
+          resolution (tier-1 configured path, and tier-2/tier-3 auto-detection —
+          ``heartbeat-venv-autodetect`` CR)
       * - ``scripts/fail-exit1.ps1``
-        - T-4: PowerShell step; exits with code 1 to trigger failure toast
+        - T-4(a): PowerShell step; exits with code 1 and no stderr output, to
+          trigger a plain (no-tail) failure toast
+      * - ``scripts/fail-with-stderr.py``
+        - T-4(b): Python step; prints more than 3 lines to stderr then exits
+          non-zero, to verify the bounded stderr tail in the failure toast
+          (``heartbeat-venv-autodetect`` CR)
       * - ``prompts/hello.md``
         - T-7: Prompt file sent to vscode.lm agent step
+
+   **Interpreter auto-detection setup (T-8, not checked into the repo):**
+   ``.venv/`` and ``venv/`` folders are created/removed by the tester directly
+   under the workspace root for the duration of T-8(a)/(b)/(c) — they are
+   environment-specific and intentionally excluded from ``testdata/``.
+
 
    **Queue step test entry in heartbeat.yaml:**
 

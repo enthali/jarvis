@@ -161,11 +161,10 @@ Automation Design Specifications
 
    **Step dispatch** (``runStep``):
 
-   - ``python``: resolve executable via
-     ``vscode.workspace.getConfiguration('python').get('defaultInterpreterPath')``;
-     fall back to ``'python'`` if the setting is absent or empty.
-     Run via ``child_process.spawn``; stdout/stderr appended to Output Channel
-     line-by-line; resolve on ``close`` event; non-zero exit code →
+   - ``python``: resolve executable via ``resolvePythonInterpreter()``
+     (``heartbeat-venv-autodetect`` CR — see below); run via ``child_process.spawn``;
+     stdout/stderr appended to Output Channel line-by-line; resolve on ``close`` event;
+     non-zero exit code →
      ``{ success: false, stepType: 'python', error: \`exit \${code}\` }``
    - ``powershell``: same ``child_process.spawn`` pattern with ``pwsh`` (fallback
      ``powershell``) as the executable
@@ -175,6 +174,37 @@ Automation Design Specifications
      ``{ success: true }`` — see ``SPEC_AUT_HEARTBEAT_COMMAND_SOFTSKIP``.
    - ``agent``: delegated to ``executeAgentStep()`` (see ``SPEC_AUT_AGENTEXEC``)
    - ``queue``: delegated to ``executeQueueStep()`` (see ``SPEC_AUT_QUEUEEXEC``)
+
+   **Python interpreter resolution** (``resolvePythonInterpreter()``,
+   ``heartbeat-venv-autodetect`` CR, ``REQ_AUT_JOBEXEC`` AC-1):
+
+   .. code-block:: typescript
+
+      function resolvePythonInterpreter(): string {
+        const configured = vscode.workspace
+          .getConfiguration('python')
+          .get<string>('defaultInterpreterPath', '');
+        if (configured) { return configured; }
+
+        const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        if (workspaceRoot) {
+          const candidates = process.platform === 'win32'
+            ? ['.venv/Scripts/python.exe', 'venv/Scripts/python.exe']
+            : ['.venv/bin/python', 'venv/bin/python'];
+          for (const rel of candidates) {
+            const candidate = path.join(workspaceRoot, rel);
+            if (fs.existsSync(candidate)) { return candidate; }
+          }
+        }
+
+        return 'python';
+      }
+
+   Called once per ``python`` step (no caching — venvs are cheap to stat and may
+   change between heartbeat ticks, e.g. after a workspace reload). Resolution order
+   is strictly sequential: an empty/whitespace-only ``defaultInterpreterPath`` is
+   treated as "not set" (falls through to auto-detection), mirroring the prior
+   ``|| 'python'`` truthiness check.
 
 
 .. spec:: Manual Job VS Code Command
@@ -277,6 +307,18 @@ Automation Design Specifications
    (see ``SPEC_DEV_LOGCHANNEL``) and passed into ``activateHeartbeat()`` as a
    parameter. ``activateHeartbeat`` no longer creates its own channel.
    Failure notification uses ``channel.error()``.
+
+   **Stderr tail capture** (``heartbeat-venv-autodetect`` CR, ``REQ_AUT_OUTPUT`` AC-5):
+   ``spawnStep()`` accumulates stderr chunks into a bounded ring buffer (last 3
+   lines) alongside the existing per-line ``outputChannel.debug()`` logging — the
+   full stream is still logged in full at debug level, only the last 3 lines are
+   retained in memory. On non-zero exit, ``ExecResult.error`` is extended to
+   ``\`exit \${code}\${stderrTail ? '\\n' + stderrTail : ''}\`}`` so
+   ``notifyFailure()`` (unchanged itself) surfaces the tail via the existing
+   ``result.error`` field in the error notification. ``ExecResult`` gains no new
+   field — the tail is folded into ``error`` to avoid touching every ``ExecResult``
+   producer (``agent``/``command``/``queue`` steps are unaffected and continue to
+   report plain messages).
 
    .. code-block:: typescript
 

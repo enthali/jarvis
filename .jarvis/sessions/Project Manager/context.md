@@ -32,22 +32,22 @@
   one-line pointer here. Current release/version info lives in
   `docs/changes/` (revision history), not here.
 
-## Backlog: Entity Tree Context Menu — Follow-ups (queued for next CR)
+## Backlog: Session Watchdog / Non-Responding Session Ping (idea, unscoped)
 
-1. Right-click on a category node (Projects/Events/Actors headers) → "Copy"
-   (category name).
-2. Right-click on a file-child node → add "Copy File Name" (bare filename,
-   no path) alongside existing Copy Path/Copy Full Path.
-3. `context.md` should open in rendered Markdown preview, not raw editor.
-   Our own code (`jarvis.openContext` in extension.ts uses
-   `showTextDocument`) — needs `vscode.commands.executeCommand('markdown.showPreview', uri)`
-   instead/in addition. Note: existing `{ preview: false }` param is the
-   unrelated editor-tab-preview concept, not Markdown rendering.
-4. Collapse All across all tree views (Projects/Events/Actors/Messages/
-   Reminders). Trivial — native VS Code feature via `showCollapseAll: true`
-   on `createTreeView()`, currently unset on all our views (one-line fix
-   each). Expand All dropped from scope (no native API, not important
-   enough to justify custom recursive reveal() logic).
+Idea from a Nemotron/OpenRouter-via-MECE/Trace/QM experiment (rate limits
+occasionally cause a session to hang mid-turn): some kind of watchdog that
+pings a session that's had the ball for a while without responding. NOT
+ready to implement — deliberately no active intervention into sessions yet.
+Natural follow-on once `/freshmind`/`/housekeeping` (#3) has its first
+working version; revisit then, not now.
+
+## Delivered: Entity Tree Context Menu + UI Improvements (2026-07-02)
+
+Items 1-5 (category-node copy, copy-file-name, context.md rendered preview,
+Collapse All, Messages-tree group-node click-to-Main) all shipped via
+`entity-tree-context-menu` + `ui-improvements`, both merged to develop,
+user-confirmed working in Dev Host. No longer a backlog — see
+`docs/changes/ui-improvements.md` for full details if needed.
 
 ## Known Issue: Custom Agents Disappear (since 2026-06-30, unresolved)
 

@@ -62,7 +62,14 @@ Automation Requirements
 
    **Acceptance Criteria:**
 
-   * AC-1: Steps of type ``python`` SHALL be executed via the workspace Python interpreter
+   * AC-1: Steps of type ``python`` SHALL be executed via a resolved Python interpreter,
+     chosen in this priority order (``heartbeat-venv-autodetect`` CR):
+
+     1. ``python.defaultInterpreterPath`` (VS Code Python extension setting), if set
+     2. An auto-detected virtual environment relative to the workspace root — checked
+        in order: ``.venv/Scripts/python.exe`` (Windows) / ``.venv/bin/python`` (POSIX),
+        then ``venv/Scripts/python.exe`` / ``venv/bin/python``
+     3. Bare ``python`` on ``PATH`` (last-resort fallback)
    * AC-2: Steps of type ``powershell`` SHALL be executed via a PowerShell process
    * AC-3: Steps of type ``command`` SHALL be executed via
      ``vscode.commands.executeCommand``
@@ -131,6 +138,10 @@ Automation Requirements
      (``vscode.window.showErrorMessage``) containing the job name
    * AC-4: The error notification SHALL also include the failed step type and exit code
      or exception message
+   * AC-5: For a failed step whose executable produced captured stderr output
+     (``heartbeat-venv-autodetect`` CR), the error notification SHALL also include the
+     last few lines (up to 3) of that captured stderr, so the underlying cause (e.g. a
+     Python ``ModuleNotFoundError``) is visible without opening the Output Channel
 
 
 .. req:: Heartbeat Tree View
