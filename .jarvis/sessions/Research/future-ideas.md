@@ -7,6 +7,16 @@ Sortierung: jüngste oben.
 
 ---
 
+## FI-2026-07-03 — Actor Monitoring / Supervision-Fallback-Strategie
+
+**Trigger:** Zweiter Vorfall eines hängenden Agenten (diesmal Claude Haiku via GH Copilot). Bisher kein Mechanismus, das automatisch zu bemerken oder zu recovern.
+
+**Kurz:** Die „Supervision"-Hälfte der North-Star-These aus [FI-2026-06-28-hook-engine.md](FI-2026-06-28-hook-engine.md) ist noch unausgearbeitet. Nächster Schritt (nicht jetzt): Hook-Logs beim nächsten Vorfall auswerten, ob sich ein Hänger/Fehler dort erkennen lässt. Grobe Fallback-Idee: bei LLM-Fehler 2-3x retry, danach Modellwechsel + erneuter Versuch. Fehler passieren — wir müssen sie nur catchen.
+
+**Status:** Idee, noch nicht erarbeitet. Nächstes Research-Thema.
+
+---
+
 ## FI-2026-06-28 — Hook Engine (Jarvis Core) · Layer 1
 
 **Status:** MVP in Arbeit (`hook-engine-mvp`, observe/log-only). API verifiziert, MVP-Architektur steht (`.jarvis/hooks/` + HTTP-Listener, ephemeral Port).  
