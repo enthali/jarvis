@@ -52,6 +52,7 @@ end-to-end verification of each feature.
    req_uat_entity_files_tree
    req_uat_entity_contextmenu
    req_uat_collapseall
+   req_uat_flow
 
 All UAT Requirements
 --------------------

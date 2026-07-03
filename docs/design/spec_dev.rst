@@ -7,7 +7,17 @@ Developer Tooling Design Specifications
    :links: REQ_DEV_LAUNCHCONFIG
 
    **Description:**
-   Create ``.vscode/launch.json`` with:
+   ``.vscode/launch.json`` provides one progressive multi-root
+   ``extensionHost`` configuration per install combination, each pairing
+   ``--extensionDevelopmentPath`` args (one per package) with a matching
+   ``outFiles`` glob and a ``preLaunchTask`` from ``.vscode/tasks.json``
+   that compiles exactly that combination's packages in dependency order.
+   Rewritten across the modular-delivery CRs (PIM/Recorder/MCP) and,
+   as of ``message-flow-diagram``, extended to include ``packages/flow``
+   — this rewrite also reconciles the spec text with the monorepo reality
+   for the first time since those earlier CRs (a pre-existing drift,
+   flagged and closed here rather than deferred, since the same file is
+   already being touched by this CR).
 
    .. code-block:: json
 
@@ -15,9 +25,32 @@ Developer Tooling Design Specifications
         "version": "0.2.0",
         "configurations": [
           {
-            "name": "Run Extension",
+            "name": "Run Core (enthali.jarvis)",
             "type": "extensionHost",
-            "request": "launch",
+            "args": ["--extensionDevelopmentPath=${workspaceFolder}/packages/core"],
+            "outFiles": ["${workspaceFolder}/packages/core/out/**/*.js"],
+            "preLaunchTask": "compile core"
+          },
+          {
+            "name": "Run Core + PIM",
+            "args": [
+              "--extensionDevelopmentPath=${workspaceFolder}/packages/core",
+              "--extensionDevelopmentPath=${workspaceFolder}/packages/pim"
+            ],
+            "preLaunchTask": "compile core+pim"
+          },
+          {
+            "name": "Run Core + PIM + Recorder",
+            "args": ["...core", "...pim", "...recorder"],
+            "preLaunchTask": "compile core+pim+recorder"
+          },
+          {
+            "name": "Run All (Core + PIM + Recorder + MCP + Flow)",
+            "args": ["...core", "...pim", "...recorder", "...mcp", "...flow"],
+            "preLaunchTask": "compile all"
+          },
+          {
+            "name": "Run Extension (monolith — retired, S4b)",
             "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
             "outFiles": ["${workspaceFolder}/out/**/*.js"],
             "preLaunchTask": "npm: compile"
@@ -25,7 +58,54 @@ Developer Tooling Design Specifications
         ]
       }
 
-   Also create ``.vscode/tasks.json`` with the compile task if not present.
+   (``type``/``request``/full ``outFiles`` arrays omitted above for
+   brevity — see ``.vscode/launch.json`` for the literal file.)
+
+   **``.vscode/tasks.json`` compile-task chain:**
+
+   Each launch config's ``preLaunchTask`` is a ``shell`` task chaining
+   ``npx tsc -p packages/<pkg>`` invocations in dependency order (core
+   first, always), one task per progressive combination — ``compile
+   core``, ``compile core+pim``, ``compile core+pim+recorder``,
+   ``compile all``. As of this CR, ``compile all`` also chains a
+   post-``tsc`` bundling step for ``packages/flow`` — the first package
+   requiring more than ``tsc`` to produce a runnable ``out/``, since its
+   webview script is esbuild-bundled rather than emitted 1:1 by ``tsc``:
+
+   .. code-block:: text
+
+      npx tsc -p packages/core && npx tsc -p packages/pim &&
+      npx tsc -p packages/recorder && npx tsc -p packages/mcp &&
+      npx tsc -p packages/flow &&
+      cd packages/flow && node build.js && node webview-build.js && cd ../..
+
+   The original ``npm: compile``/``npm: watch`` tasks remain for the
+   retired monolith (S4b) config only.
+
+   **Acceptance Criteria:**
+
+   * AC-1: One ``extensionHost`` launch configuration exists per supported
+     install combination (currently: Core; Core+PIM; Core+PIM+Recorder;
+     Run All).
+   * AC-2: Each configuration's ``preLaunchTask`` compiles/builds exactly
+     the packages it launches — no more, no fewer — in dependency order
+     (core first); for a package whose build requires steps beyond
+     ``tsc`` (e.g. ``packages/flow``'s ``build.js``/``webview-build.js``
+     esbuild bundling), those steps SHALL be chained immediately after
+     that package's own ``tsc`` invocation.
+   * AC-3: "Run All" SHALL always include every package added by a
+     subsequent add-on CR (PIM → Recorder → MCP → Flow, in that order);
+     each new add-on package SHALL both (a) get its own progressive
+     configuration if it introduces a meaningfully distinct debugging
+     combination, and (b) always be added to "Run All"/``compile all``.
+   * AC-4: The retired monolith configuration/task (S4b) remains present
+     for compatibility but is not extended with new packages — it targets
+     the pre-split root build only.
+   * AC-5: This spec's code sample SHALL be kept in sync with the literal
+     ``.vscode/launch.json``/``.vscode/tasks.json`` content whenever either
+     file is modified by a CR — the drift closed by this CR (spec had not
+     been updated since before the PIM/Recorder/MCP splits) SHALL NOT
+     recur.
 
 
 .. spec:: Implement Agent Manual Test Step

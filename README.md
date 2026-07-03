@@ -31,7 +31,15 @@ Cron-based job scheduling configured via YAML:
 - Messages from heartbeat jobs (or any source) are queued and displayed in the Messages tree
 - **Send to Chat**: Deliver messages to named VS Code chat sessions
 - **Open Session**: Browse and open named sessions via QuickPick (`Jarvis: Open Chat Session`)
-- **LM Tools**: `#listSessions` for session discovery, `#sendToSession` for inter-session messaging, `#jarvis_listSessionEntities` to list entities in a session (includes `agent` field), `#jarvis_createSession` to programmatically create a new session folder with optional `agent` binding — validated against user-invocable agents in `.github/agents/` (idempotent, headless; both require `jarvis.sessions.enabled`)
+- **LM Tools**: `#listSessions` for session discovery, `#sendMessage`/`#receiveMessage` for inter-session messaging (`#sendToSession`/`#readMessage` are deprecated and disabled — they now throw an error directing callers to the new names, scheduled for full removal), `#jarvis_listSessionEntities` to list entities in a session (includes `agent` field), `#jarvis_createSession` to programmatically create a new session folder with optional `agent` binding — validated against user-invocable agents in `.github/agents/` (idempotent, headless; both require `jarvis.sessions.enabled`)
+
+### Message Flow Diagram (add-on: Jarvis Message Flow)
+
+An interactive D3 chord-diagram visualization of inter-agent message traffic, sourced from the message queue (loads the most recent 500 entries by default, expandable via a "+500" button). Open it via the icon button on the Messages tree-view title bar or the Command Palette. Nodes are sessions/actors, edges are message counts; a two-handle "time lens" slider (indexed by message rank, newest = rank 1) narrows the view to a window of messages — leaving the start handle at rank 1 keeps it live-tracking new messages, moving it anchors to a specific message. Hovering an edge shows message count, time range, and a sample. Clicking an actor node opens that actor's chat.
+
+The diagram opens as an editor tab in the same fixed column used for entity docs (`context.md`, YAML config, agent files) — if you only have 2 editor columns open, both the diagram and entity docs share that second column until you open a third.
+
+
 
 ## Configuration
 

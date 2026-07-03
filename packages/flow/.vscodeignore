@@ -1,0 +1,10 @@
+.vscode/**
+src/**
+webview/**
+node_modules/**
+tsconfig.json
+build.js
+webview-build.js
+**/*.map
+**/*.ts
+!out/**

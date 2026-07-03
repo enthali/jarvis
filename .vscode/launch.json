@@ -42,20 +42,22 @@
             "preLaunchTask": "compile core+pim+recorder"
         },
         {
-            "name": "Run All (Core + PIM + Recorder + MCP)",
+            "name": "Run All (Core + PIM + Recorder + MCP + Flow)",
             "type": "extensionHost",
             "request": "launch",
             "args": [
                 "--extensionDevelopmentPath=${workspaceFolder}/packages/core",
                 "--extensionDevelopmentPath=${workspaceFolder}/packages/pim",
                 "--extensionDevelopmentPath=${workspaceFolder}/packages/recorder",
-                "--extensionDevelopmentPath=${workspaceFolder}/packages/mcp"
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/mcp",
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/flow"
             ],
             "outFiles": [
                 "${workspaceFolder}/packages/core/out/**/*.js",
                 "${workspaceFolder}/packages/pim/out/**/*.js",
                 "${workspaceFolder}/packages/recorder/out/**/*.js",
-                "${workspaceFolder}/packages/mcp/out/**/*.js"
+                "${workspaceFolder}/packages/mcp/out/**/*.js",
+                "${workspaceFolder}/packages/flow/out/**/*.js"
             ],
             "preLaunchTask": "compile all"
         },

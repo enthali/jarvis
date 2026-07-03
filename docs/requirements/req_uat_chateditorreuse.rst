@@ -5,7 +5,7 @@ Chat Editor Reuse — Session Open UAT Requirements
    :id: REQ_UAT_CHATEDITORREUSE
    :status: implemented
    :priority: required
-   :links: US_UAT_CHATEDITORREUSE; REQ_ENT_AGENTSESSION; REQ_MSG_AUTODELIVER_POLL; REQ_MSG_EDITORPLACEMENT; REQ_MSG_SEND; REQ_MSG_EXPLORER
+   :links: US_UAT_CHATEDITORREUSE; REQ_ENT_AGENTSESSION; REQ_MSG_AUTODELIVER_POLL; REQ_MSG_EDITORPLACEMENT; REQ_MSG_SEND; REQ_MSG_EXPLORER; REQ_FLOW_WEBVIEWPANEL
 
    **Description:**
    Specifies the test data, workspace state, and per-AC verification criteria
@@ -41,6 +41,13 @@ Chat Editor Reuse — Session Open UAT Requirements
      already open (in a non-1 column, for the close+reopen check), and a
      second destination SHALL have queued messages but no chat ever opened
      for it (for the no-op-on-miss check).
+   * For T-11 (``message-flow-diagram`` CR), the Extension Development Host
+     SHALL be launched with ``enthali.jarvis-flow`` installed alongside the
+     core; an entity's ``context.md`` SHALL already be open in the Content
+     column, and at least one Secondary-target session (a destination with
+     no live chat yet, delivered to via auto-delivery) SHALL be available
+     to verify Secondary-column placement is unperturbed by opening the
+     diagram panel.
    * Between scenarios, close any chat editors opened during the scenario and
      delete any session folders created under ``testdata/.jarvis/sessions/``
      that were not pre-existing, to reset state.
@@ -130,3 +137,21 @@ Chat Editor Reuse — Session Open UAT Requirements
         but no chat session ever opened, and verify the click is a silent
         no-op — no new chat editor is created, no error is shown, and the
         node's expand/collapse behavior on subsequent clicks is unaffected.
+
+   * AC-11 (REQ_MSG_EDITORPLACEMENT AC-11 — message-flow diagram
+     Content-column coexistence, ``message-flow-diagram`` CR):
+     For T-11, the tester SHALL:
+
+     a. With an entity's ``context.md`` already open in the Content column
+        (column 2), open the message-flow diagram and verify it opens as a
+        separate tab within the same column (column 2) — the existing
+        ``context.md`` tab is not closed, moved, or replaced.
+     b. With only 2 columns open (diagram now occupying one of the tabs in
+        column 2), trigger an auto-delivery to a Secondary-target session
+        with no live chat yet, and verify it still lands in column 2
+        (``Math.max(2, tabGroups.all.length)``) — the diagram panel's tab
+        is not miscounted as an additional distinct column.
+     c. With 3 columns open (diagram in column 2, a 3rd column open from an
+        unrelated file), trigger a second Secondary-target delivery and
+        verify it resolves to the existing last column (column 3) as
+        normal — the diagram tab does not perturb the column count.

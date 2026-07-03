@@ -1,8 +1,8 @@
 {
   "name": "jarvis-suite",
   "displayName": "Jarvis Suite",
-  "description": "Install all Jarvis capabilities: core, PIM, recorder, and MCP server.",
-  "version": "0.15.2",
+  "description": "Install all Jarvis capabilities: core, PIM, recorder, MCP server, and message flow.",
+  "version": "0.16.0",
   "publisher": "enthali",
   "repository": {
     "type": "git",
@@ -19,7 +19,8 @@
     "enthali.jarvis-core",
     "enthali.jarvis-pim",
     "enthali.jarvis-recorder",
-    "enthali.jarvis-mcp"
+    "enthali.jarvis-mcp",
+    "enthali.jarvis-flow"
   ],
   "scripts": {
     "package": "vsce package --no-dependencies"

@@ -33,6 +33,11 @@ Modular Delivery Acceptance Tests
      is absent.
    * AC-6: At least one scenario proves MCP lights up when ``enthali.jarvis-mcp``
      is installed alongside core.
+   * AC-7 (``message-flow-diagram`` CR): At least one scenario proves
+     ``enthali.jarvis-flow`` zero-trace when absent.
+   * AC-8 (``message-flow-diagram`` CR): At least one scenario proves
+     ``enthali.jarvis-flow`` lights up when installed alongside core, and
+     that it cannot activate without the core.
 
    **Test Scenarios (install combinations, extension host):**
 
@@ -80,3 +85,20 @@ Modular Delivery Acceptance Tests
      Setup: host with core + MCP (no PIM, no recorder).
      Expected: MCP server starts; ``jarvis.mcpPort`` setting is present and
      visible in the Settings UI; MCP status bar item appears.
+
+   **T-10 — Core + PIM + recorder WITHOUT flow: zero flow trace (``message-flow-diagram`` CR)**
+     Setup: host with core + PIM + recorder (no ``enthali.jarvis-flow``).
+     Expected: no diagram icon button on the ``jarvisMessages`` view title
+     bar, no ``jarvis.openMessageFlow`` command in the palette, no
+     "Message Flow" webview can be opened.
+
+   **T-11 — Core + flow: diagram lights up (``message-flow-diagram`` CR)**
+     Setup: host with core + ``enthali.jarvis-flow`` (no PIM, no recorder,
+     no MCP).
+     Expected: the diagram icon button appears on the ``jarvisMessages``
+     view title bar; ``jarvis.openMessageFlow`` opens the diagram panel.
+
+   **T-12 — Flow add-on requires core (``message-flow-diagram`` CR)**
+     Setup: attempt to activate ``enthali.jarvis-flow`` without
+     ``enthali.jarvis`` installed.
+     Expected: ``extensionDependencies`` blocks activation.

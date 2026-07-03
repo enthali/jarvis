@@ -19,9 +19,8 @@ Sortierung: jüngste oben.
 [Jarvis Watchdog] Self-check: Did I already send a RESPOND to the last message I received?
 
 - If YES: do nothing — this reminder is stale.
-- If NO: set the next watchdog reminder now (in case this attempt stalls too), then resume my
-  job where I left off, complete it, and send the RESPOND — cancelling this reminder chain
-  once the RESPOND is sent.
+- If NO: set the next watchdog reminder now, then resume my job where I left off, complete it,
+  and send the RESPOND.
 ```
 
 **Doppelter Nutzen:**
@@ -31,11 +30,21 @@ Sortierung: jüngste oben.
 **Verfeinerungen:**
 - **Nicht alle Hänger sind gleich (2026-07-03, zweiter Fund):** Lokales Modell (qwen3.6 27b) hängt aus einem anderen Grund — KV-Cache-Laden dauert länger als GH Copilots Timeout erlaubt. Das ist **nicht transient**, ein einzelner Reset-Kick reicht nicht, der nächste Versuch würde genauso timeouten. Ein einmaliger Reminder ist dafür zu schwach.
 - **Fix: Self-Renewing Chain statt Einmal-Reminder.** Im „NO"-Zweig setzt der Agent sofort den **nächsten** Watchdog-Reminder (bevor er die eigentliche Arbeit fortsetzt) — falls auch dieser Versuch hängt, greift der nächste. Die Kette bricht erst, wenn RESPOND tatsächlich gesendet wird.
-- Canceln bei erfolgreichem RESPOND ist damit wieder **notwendig** (nicht mehr nur optionale Effizienz) — sonst läuft die Kette nach Erledigung der Aufgabe einfach weiter.
+- Canceln bei erfolgreichem RESPOND ist damit wieder **notwendig** (nicht mehr nur optionale Effizienz) — sonst läuft die Kette nach Erledigung der Aufgabe einfach weiter. Aber: das gehört nicht in den Reminder-Text selbst, sondern in die **Definition von RESPOND** („einen RESPOND senden heisst auch: den eigenen pending Watchdog-Reminder canceln"). Falls das Cancel mal zu spät kommt und der Reminder trotzdem feuert: harmloser No-op („If YES: do nothing"), kein Risiko.
 - „resume my job ... complete it ... send when done" statt „send RESPOND now" — verhindert eine hastige, unfertige Antwort; der Agent soll erst die eigentliche Arbeit fortsetzen.
+- **Generisches Pattern, kein Sonderfall:** jeder Agent, der ein SEND empfängt, muss RESPONDen — auch der PM. Kein Akteur ist ausgenommen.
+- **Nebeneffekt:** die Menge offener Watchdog-Reminder ist quasi ein Live-Abbild davon, welche Agenten gerade aktiv sein sollten — ein informelles „wer ist gerade dran"-Register, geschenkt durch den Mechanismus. Nicht wasserdicht, aber ein zusätzliches Netz.
 - Bleibt eine **Disziplin-Regel auf Orchestrierungs-Ebene** in `syspilot.orchestration-jarvis` (SEND/RESPOND-Vokabular-Skill) — hängt komplett an der SEND/RESPOND-Semantik, kein Jarvis-Kern-Thema.
+- **Layering noch präziser (2026-07-03, Live-Experiment):** der reine Reset-Kick braucht gar kein SEND/RESPOND-Wissen — er funktioniert schon rein über den generischen Notification-Prompt (`jarvis.messages.notificationTemplate`: "...dann setz dir einen Self-Check-Reminder..."), ganz ohne Skill. Sauberer Schnitt:
+  - **Jarvis (Pflicht):** Notification-Prompt trägt den Reset-Kick selbst — reine Infrastruktur, kein Orchestrierungs-Wissen nötig.
+  - **Jarvis (optional):** die Reminder-Kette (Re-Arm statt Einmal-Reminder) — ebenfalls generisch, kein SEND/RESPOND-Bezug.
+  - **syspilot (optional, "rounder"):** der Skill fügt die SEND/RESPOND-spezifische Präzisierung hinzu (was genau "did I respond" heisst, wann canceln) — macht's robuster, ist aber nicht Voraussetzung fürs Überleben eines hängenden Turns.
+- **Live-Beobachtung (Change Manager/System Designer, 2026-07-03):** CM interpretierte das Pattern als Supervisor-Variante — setzte nicht nur einen Self-Check für sich selbst, sondern auch einen externen Reminder direkt auf die Zielsession ("verify System Designer session is still active/on-task"). Nicht falsch, aber eine Erweiterung über den reinen Self-Check hinaus — wert, im Auge zu behalten.
+- **5 Minuten sind zu knapp für längere/user-guided Arbeit** (Design-Sessions laufen oft länger) — Intervall muss ggf. rollen-/kontextabhängig angepasst werden, statt fix.
 
-**Status:** ✅ **Live validiert (2026-07-03).** Test-Reminder an „Quality Manager" gesetzt (`jarvis_setReminder`, generisches Template s.o.). Während der Wartezeit trat *zufällig* ein echter Vorfall auf derselben Session ein — exakt dieselbe „Response contained no choices"-LLM-Inferenz-Fehlerklasse wie beim ursprünglichen Trigger. Der Reminder feuerte kurz danach; QM nahm die Arbeit direkt wieder auf (Dateien gelesen/editiert) — **vollständige Recovery**, kein manuelles Eingreifen nötig. Bestätigt beide Hypothesen: (1) Reset-Kick funktioniert, (2) generisches Template ohne Recipient/Task-Parameter liest sich sauber im Self-Check. Nächster Schritt: als Disziplin-Regel in `syspilot.orchestration-jarvis` verankern (siehe Verfeinerungen oben).
+**Status:** ✅ **Live validiert (2026-07-03).** Test-Reminder an „Quality Manager" gesetzt (`jarvis_setReminder`, generisches Template s.o.). Während der Wartezeit trat *zufällig* ein echter Vorfall auf derselben Session ein — exakt dieselbe „Response contained no choices"-LLM-Inferenz-Fehlerklasse wie beim ursprünglichen Trigger. Der Reminder feuerte kurz danach; QM nahm die Arbeit direkt wieder auf (Dateien gelesen/editiert) — **vollständige Recovery**, kein manuelles Eingreifen nötig. Bestätigt beide Hypothesen: (1) Reset-Kick funktioniert, (2) generisches Template ohne Recipient/Task-Parameter liest sich sauber im Self-Check. Nächster Schritt: probeweise lokal in `syspilot.orchestration-jarvis` einbauen und live am Quality Manager testen (Skill-Änderung + Hinweis-Message an laufende Sessions, da Skills nicht automatisch neu eingelesen werden).
+
+**Update (2026-07-03, laufendes Experiment):** Skill probeweise auf Branch `experiment/self-reminder-watchdog-skill` umgesetzt (SEND/RECEIVE/RESPOND konsolidiert, Watchdog in RECEIVE/RESPOND eingebettet, `readMessage`-Signaturfehler + toter `runSubagent`-Rest + `agents:`-Frontmatter-Sektion entfernt). Zusätzlich `jarvis.messages.notificationTemplate` in `.vscode/settings.json` testweise erweitert, damit der Reset-Kick bereits ohne Skill-Kenntnis greift. PM per Message über das Experiment informiert.
 
 ---
 

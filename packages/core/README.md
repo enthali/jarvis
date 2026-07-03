@@ -17,6 +17,7 @@ Jarvis is a personal assistant extension for Visual Studio Code that helps you m
 | [Jarvis PIM](https://marketplace.visualstudio.com/items?itemName=enthali.jarvis-pim) | Project & event management with task tracking |
 | [Jarvis Recorder](https://marketplace.visualstudio.com/items?itemName=enthali.jarvis-recorder) | Audio recording with Whisper transcription |
 | [Jarvis MCP](https://marketplace.visualstudio.com/items?itemName=enthali.jarvis-mcp) | Model Context Protocol server exposing Jarvis tools to AI agents |
+| [Jarvis Message Flow](https://marketplace.visualstudio.com/items?itemName=enthali.jarvis-flow) | Interactive D3 chord-diagram visualization of inter-agent message traffic |
 
 Install all at once with the [Jarvis Suite](https://marketplace.visualstudio.com/items?itemName=enthali.jarvis-suite) extension pack.
 
