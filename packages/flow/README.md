@@ -1,12 +1,13 @@
 # Jarvis Message Flow
 
-An interactive D3 chord-diagram visualization of inter-agent message traffic, sourced from the Jarvis message queue (most recent 500 entries).
+An interactive D3 chord-diagram visualization of inter-agent message traffic, sourced from the Jarvis message queue (loads the most recent 500 entries by default, expandable via the **+500** button).
 
 ## Features
 
 - Open via the icon button on the Messages tree-view title bar, or **Jarvis: Open Message Flow** in the Command Palette
 - Nodes are sessions/actors, edges are message counts between them
-- **Fog of Time** slider fades older activity so recent patterns stand out
+- **Time lens**: a two-handle range slider indexed by message rank (newest = rank 1) narrows the diagram to a window of messages. Dragging a handle shows a tooltip with the message's timestamp. Leaving the start handle at rank 1 keeps the view live-tracking new messages; moving it anchors the window to a specific message instead
+- **+500** button loads another 500 older messages into the queue (500 → 1000 → 1500 → ...) so the lens can reach further back
 - Hover an edge for message count, time range, and a sample message
 - Click an actor node to open that actor's chat session
 

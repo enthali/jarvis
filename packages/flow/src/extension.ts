@@ -3,7 +3,7 @@
 
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { loadFlowData } from './dataService';
+import { loadFlowData, DEFAULT_CAP } from './dataService';
 
 const FLOW_VIEWTYPE = 'jarvisMessageFlow';
 const DOCS_COLUMN = vscode.ViewColumn.Two; // aka "Content" column (SPEC_MSG_EDITORPLACEMENT)
@@ -61,11 +61,12 @@ function makeOpenMessageFlow(
 ): () => void {
     let panel: vscode.WebviewPanel | undefined;
     let pollHandle: ReturnType<typeof setInterval> | undefined;
+    let currentCap = DEFAULT_CAP; // SPEC_FLOW_LOADMORE, SPEC_FLOW_WEBVIEW
 
     function postData(): void {
         if (!panel) { return; }
         const logPath = resolveMessageLogPath();
-        const payload = logPath ? loadFlowData(logPath) : { nodes: [], edges: [] };
+        const payload = logPath ? loadFlowData(logPath, currentCap) : { nodes: [], edges: [], entries: [] };
         panel.webview.postMessage({ type: 'data', payload });
     }
 
@@ -74,6 +75,7 @@ function makeOpenMessageFlow(
             panel.reveal(DOCS_COLUMN);
             return;
         }
+        currentCap = DEFAULT_CAP; // reset cap on new panel creation
         panel = vscode.window.createWebviewPanel(
             FLOW_VIEWTYPE,
             'Message Flow',
@@ -89,6 +91,11 @@ function makeOpenMessageFlow(
         panel.webview.onDidReceiveMessage(msg => {
             if (msg?.type === 'actorClick' && typeof msg.name === 'string') {
                 handleActorClick(msg.name).catch(e => log.warn(`[Flow] actorClick failed: ${e}`));
+            } else if (msg?.type === 'increaseCap') {
+                // SPEC_FLOW_LOADMORE AC-1: increase cap by 500, immediate reload + push
+                currentCap += 500;
+                log.info(`[Flow] cap increased to ${currentCap}`);
+                postData();
             }
         });
 

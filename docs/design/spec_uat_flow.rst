@@ -16,13 +16,21 @@ Message Flow Visualization UAT Design Specifications
       * - File
         - Purpose
       * - ``message-log-flow-cap.json``
-        - T-4: 520 entries; oldest 20 reference a sender/destination value
-          (``"old-only-sender"``) that appears in no other entry, to verify
-          the 500-entry cap excludes it.
+        - T-4, T-10, T-14: 520 entries; oldest 20 reference a
+          sender/destination value (``"old-only-sender"``) that appears in
+          no other entry, to verify the 500-entry cap excludes it, the
+          lens's default rank-1..500 window, and the "+500" cap-increase
+          (500 → 1000, all 520 reachable).
       * - ``message-log-flow-sample.json``
-        - T-5, T-6: A handful of entries between two known sessions, spread
-          across old (multi-day) and recent timestamps, to verify normal
-          rendering, hover tooltip content, and the Fog-of-Time fade.
+        - T-5, T-6, T-15: A handful of entries (well under 500) between two
+          known sessions, spread across old (multi-day) and recent
+          timestamps, to verify normal rendering, hover tooltip content,
+          the lens's gradient fade, and the small-dataset lens edge case.
+
+   T-11/T-12/T-13 (live-tracking, anchoring, drag) require no dedicated
+   fixture — they are exercised procedurally against whichever fixture is
+   already active, by triggering additional heartbeat ``queue`` deliveries
+   or handle drags.
 
    **Empty-state setup (T-3, not a fixture file):**
    Verified by ensuring no ``message-log.json`` exists at the configured
@@ -38,7 +46,7 @@ Message Flow Visualization UAT Design Specifications
    :links: REQ_UAT_FLOW_TESTS; SPEC_UAT_FLOW_FILES
 
    **Description:**
-   Step-by-step procedures and expected outcomes for the nine message-flow
+   Step-by-step procedures and expected outcomes for the fifteen message-flow
    diagram acceptance scenarios, executed in an Extension Development Host
    with ``enthali.jarvis-flow`` installed alongside the core.
 
@@ -114,14 +122,16 @@ Message Flow Visualization UAT Design Specifications
 
       * - T-6
 
-          Fog-of-Time fade and slider (no re-fetch)
+          Lens gradient fade within window, opacity floor 0.05
 
-          *AC: REQ_FLOW_CHORDVIEW 2-3*
+          *AC: REQ_FLOW_TIMELENS 6*
         - With ``message-log-flow-sample.json`` active (old + recent
-          entries), observe edge opacity; move the fade slider.
-        - Older edges appear visually faded relative to newer ones; moving
-          the slider re-renders immediately with no additional Output
-          Channel log entries or file reads triggered by the slider itself.
+          entries), open the diagram; observe edge opacity from near
+          (newest) to far (oldest) edge of the window.
+        - Edges nearer the far/oldest edge are progressively more faded;
+          the far-edge message renders at ~0.05 (5%) opacity, never fully
+          invisible; no additional Output Channel log entries or file
+          reads are triggered merely by observing the render.
 
       * - T-7
 
@@ -152,3 +162,74 @@ Message Flow Visualization UAT Design Specifications
           currently shown as a node.
         - Within ~5 seconds, the new node/edge appears without any manual
           refresh action.
+
+      * - T-10
+
+          Lens default state matches original default window
+
+          *AC: REQ_FLOW_TIMELENS 5*
+        - With ``message-log-flow-cap.json`` (520 entries) active, open the
+          diagram; inspect the lens handle positions.
+        - Start handle at rank 1 (live-tracking); end handle at rank 500
+          (``min(520, 500)``); rendered set identical to T-4 (``"old-only-
+          sender"`` excluded).
+
+      * - T-11
+
+          Live-tracking at rank 1 auto-advances on poll
+
+          *AC: REQ_FLOW_TIMELENS 3*
+        - With the default lens open (start at rank 1), trigger delivery of
+          a new message to a session not yet shown; wait one poll interval
+          (~5 s).
+        - New node/edge appears with no user action; start handle remains
+          at rank 1 and now represents the new true-latest message.
+
+      * - T-12
+
+          Anchored handle rank updates without window jump
+
+          *AC: REQ_FLOW_TIMELENS 4*
+        - Drag the start handle away from rank 1 to an interior message
+          (e.g. rank 5); trigger delivery of 3–5 new messages via repeated
+          heartbeat ``queue`` steps; wait for polling.
+        - Start handle's displayed rank number increases (e.g. rank 5 → 8)
+          but the rendered window's near boundary stays anchored to the
+          same message identity — no visual jump.
+
+      * - T-13
+
+          Dragging handles is zero-round-trip, shows timestamp tooltip
+
+          *AC: REQ_FLOW_TIMELENS 7-8*
+        - Drag the start handle to a new position, then the end handle to
+          a new position; observe the UI during each drag.
+        - A tooltip shows the actual timestamp of the message at the
+          handle's current position while dragging; window/fade updates
+          live; no new Output Channel log entries or file reads occur as a
+          result of the drag.
+
+      * - T-14
+
+          "+500" button increases cap without moving the lens
+
+          *AC: REQ_FLOW_LOADMORE 1-3*
+        - With ``message-log-flow-cap.json`` (520 entries) and the default
+          lens (T-10) active, click the "+500" button next to the lens.
+        - Cap increases to 1000 (all 520 entries loaded); lens handles'
+          rendered window is visually unchanged immediately after the
+          click; dragging the end handle further now reaches
+          ``"old-only-sender"`` entries beyond rank 500.
+
+      * - T-15
+
+          Lens window larger than loaded data (small dataset)
+
+          *AC: REQ_FLOW_TIMELENS 5*
+        - With ``message-log-flow-sample.json`` (well under 500 entries)
+          active, open the diagram; inspect lens handle positions and try
+          dragging the end handle past the last loaded entry.
+        - End handle defaults to the rank of the last loaded entry (not a
+          fixed 500), with no error; end handle cannot be dragged past that
+          rank; the full small dataset renders within the window by
+          default.

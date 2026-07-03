@@ -97,6 +97,25 @@ ready to implement — deliberately no active intervention into sessions yet.
 Natural follow-on once `/freshmind`/`/housekeeping` (#3) has its first
 working version; revisit then, not now.
 
+## Backlog: Consequent Actor Renaming (idea, unscoped, user 2026-07-03)
+
+`entity-taxonomy-rename` (v0.15.0) renamed the internal/spec concept
+Session → Actor (Hewitt actor model), but deliberately left the VS Code
+UI-facing label as "Sessions Tree" per a documented storage/UI-decoupling
+rule — at the time, justified partly by storage still being
+`.jarvis/sessions/` + `session.yaml`.
+
+User's actual long-term intent (revisited 2026-07-03, also prepping a
+LinkedIn series on Actors): move consequently to "Actor" wording
+everywhere, not just internally. Floated idea: honor/support the old
+`.jarvis/sessions/`/`session.yaml` names for existing projects (backward
+compat), but use the new Actor-based naming (folder + UI label + file
+names) for anything created from now on. Explicitly NOT scoping or
+deciding this tonight — "too much for this night" — just parking the
+intent so it isn't lost. Revisit when there's bandwidth for a real design
+discussion (storage migration path, back-compat shim design, UI label
+change, docs/naming-convention updates).
+
 ## Delivered: Entity Tree Context Menu + UI Improvements (2026-07-02)
 
 Items 1-5 (category-node copy, copy-file-name, context.md rendered preview,

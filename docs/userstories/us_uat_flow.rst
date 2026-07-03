@@ -38,10 +38,12 @@ Message Flow Visualization User Acceptance Tests
      nodes for each distinct sender/destination, directional edges sized by
      message count — and that hovering a node/edge shows a tooltip with
      message count, time range, and a sample of message text.
-   * AC-5: A test verifies the "Fog of Time" age-based fade — older edges
-     are visually de-emphasized — and that the in-webview slider changes
-     the fade aggressiveness without triggering any new data fetch from the
-     extension host.
+   * AC-5: A test verifies the two-handle time lens's default state on
+     open: ``start`` = rank 1 (live-tracking), ``end`` = rank
+     ``min(loaded total, 500)`` — the same effective window as the
+     diagram's original (pre-lens) default (``flow-time-lens`` CR;
+     supersedes this AC's original "Fog of Time" single-slider wording —
+     the day-based fade slider no longer exists).
    * AC-6: A test verifies that clicking an actor/session node opens that
      session's chat at Main (column 1), using the same close+reopen
      behavior as an entity-tree Actor click.
@@ -50,6 +52,26 @@ Message Flow Visualization User Acceptance Tests
    * AC-8: A test verifies the diagram reflects a newly queued/delivered
      message within one poll interval (~5 s) without the user manually
      refreshing.
+   * AC-9: A test verifies live-tracking — while the lens's start handle is
+     at rank 1, the window's near edge automatically includes newly
+     arrived messages on each poll, with no user action required
+     (``flow-time-lens`` CR).
+   * AC-10: A test verifies identity-anchoring — a handle set away from
+     rank 1 (start) or the end handle (always) stays locked to the
+     specific message it was set to as new messages arrive; only its
+     displayed rank number changes, the rendered window does not visually
+     jump (``flow-time-lens`` CR).
+   * AC-11: A test verifies dragging either lens handle is a zero-round-trip
+     client-side operation (no new extension-host request) and shows a
+     drag tooltip with the actual timestamp of the message at the handle's
+     current position (``flow-time-lens`` CR).
+   * AC-12: A test verifies the lens's gradient fade floor is 0.05 (5%) for
+     the message at the window's far/oldest edge — lowered from the prior
+     single-slider design's 0.15 (``flow-time-lens`` CR).
+   * AC-13: A test verifies the "+500" button increases the data-load cap
+     by 500 without moving the existing lens position, and that the newly
+     reachable history becomes draggable-to via the end handle
+     (``flow-time-lens`` CR).
 
    **Test Scenarios:**
 
@@ -92,15 +114,17 @@ Message Flow Visualization User Acceptance Tests
      connects them; a tooltip shows count ``3``, the earliest–latest
      timestamp range, and a truncated sample of one message's text.
 
-   **T-6 — Fog of Time fade and slider (no re-fetch)**
-     Setup: ``message-log.json`` with both old (several days) and recent
-     entries.
-     Action: Open the diagram; observe edge opacity/color; adjust the fade
-     slider.
-     Expected: Older edges appear visually faded relative to newer ones;
-     moving the slider changes the fade immediately and only client-side —
-     no new request is sent to the extension host (no additional Output
-     Channel log entries or log-file reads triggered by the slider).
+   **T-6 — Lens gradient fade within window, opacity floor 0.05 (no re-fetch)**
+     Setup: ``message-log-flow-sample.json`` with entries spread across old
+     (multi-day) and recent timestamps active as ``message-log.json``.
+     Action: Open the diagram; observe edge opacity across the window from
+     near (newest) to far (oldest) edge; note the value at the far edge.
+     Expected: Edges nearer the window's far/oldest edge are progressively
+     more faded than those nearer the near/newest edge; the message at the
+     far edge renders at approximately 0.05 (5%) opacity, never fully
+     invisible; no new request is sent to the extension host merely from
+     observing the render (no additional Output Channel log entries or
+     log-file reads).
 
    **T-7 — Actor node click opens chat at Main**
      Setup: A session with an existing chat editor open in a non-1 column;
@@ -123,3 +147,63 @@ Message Flow Visualization User Acceptance Tests
      step) to a session not yet shown as a node.
      Expected: Within ~5 seconds (next poll), the new node/edge appears
      without any manual refresh action.
+
+   **T-10 — Lens default state matches original default window**
+     Setup: ``message-log-flow-cap.json`` (520 entries) active as
+     ``message-log.json``.
+     Action: Open the diagram; inspect the lens handle positions.
+     Expected: Start handle is at rank 1 (live-tracking); end handle is at
+     rank 500 (``min(520, 500)``); the rendered node/edge set is identical
+     to T-4's expectation (``"old-only-sender"`` excluded).
+
+   **T-11 — Live-tracking at rank 1 auto-advances on poll**
+     Setup: Diagram open with the default lens (start at rank 1, from T-10
+     or a fresh fixture).
+     Action: Trigger delivery of a new message (heartbeat ``queue`` step) to
+     a session not yet shown; wait one poll interval (~5 s).
+     Expected: The new message's node/edge appears without any user action;
+     the start handle remains at rank 1 and still represents the (now new)
+     true-latest message — no manual re-drag needed.
+
+   **T-12 — Anchored handle rank updates without window jump**
+     Setup: Diagram open; drag the start handle away from rank 1 to a
+     specific interior message (e.g. rank 5); note which message/edge it
+     now excludes/includes at the near edge.
+     Action: Trigger delivery of several new messages (repeat a heartbeat
+     ``queue`` step 3–5 times); wait for polling to pick them up.
+     Expected: The start handle's displayed rank number increases (e.g.
+     rank 5 → rank 8) to reflect the new messages ahead of it, but the
+     rendered window's near boundary does not visually jump — it remains
+     anchored to the same message identity throughout.
+
+   **T-13 — Dragging handles is zero-round-trip and shows a timestamp tooltip**
+     Setup: Diagram open with ``message-log-flow-sample.json`` or
+     ``message-log-flow-cap.json`` active.
+     Action: Drag the start handle to a new position, then the end handle
+     to a new position; observe the UI during each drag.
+     Expected: While dragging, a tooltip shows the actual timestamp of the
+     message currently at that handle's position; the window/fade updates
+     live as the handle moves; no new Output Channel log entries or
+     log-file reads occur as a result of the drag (client-side only).
+
+   **T-14 — "+500" button increases cap without moving the lens**
+     Setup: ``message-log-flow-cap.json`` (520 entries) active; diagram open
+     with the default lens (start rank 1, end rank 500, per T-10).
+     Action: Click the "+500" button next to the lens.
+     Expected: The data-load cap increases to 1000 (all 520 entries now
+     loaded, including the previously-excluded ``"old-only-sender"``
+     entries); the lens handles' rendered window is visually unchanged
+     immediately after the click (still showing the same 500-entry range);
+     dragging the end handle further now reaches the newly-loaded entries
+     (e.g. ``"old-only-sender"`` becomes reachable/visible once the end
+     handle is dragged past rank 500).
+
+   **T-15 — Lens window larger than loaded data (small dataset)**
+     Setup: ``message-log-flow-sample.json`` (a handful of entries, well
+     under 500) active as ``message-log.json``.
+     Action: Open the diagram; inspect the lens handle positions and try
+     dragging the end handle past the last loaded entry.
+     Expected: End handle defaults to the rank of the last loaded entry
+     (not 500) with no error; the end handle cannot be dragged past that
+     rank (no out-of-range state); the full small dataset is rendered
+     within the window by default.

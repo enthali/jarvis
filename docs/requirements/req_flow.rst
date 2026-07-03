@@ -79,13 +79,17 @@ Message Flow Visualization Requirements
 
    * AC-1: Nodes (sessions/actors) SHALL be arranged around a circle; edges
      SHALL be directional chords sized by message count (weight).
-   * AC-2: Chord/edge color and opacity SHALL fade based on the age of the
-     underlying messages ("Fog of Time") — older edges are visually
-     de-emphasized relative to newer ones.
-   * AC-3: The diagram SHALL provide an in-webview slider control that
-     adjusts how aggressively the age-based fade is applied (a rendering
-     parameter only — it does not re-query or change the underlying capped
-     data set from ``REQ_FLOW_DATASOURCE`` AC-2).
+   * AC-2: Chord/edge color and opacity SHALL fade based on position within
+     the currently visible lens window (``REQ_FLOW_TIMELENS``) — edges whose
+     underlying messages are nearer the window's far/oldest edge are
+     visually de-emphasized relative to those nearer its near/newest edge.
+   * AC-3: The diagram SHALL provide the two-handle rank-based "time lens"
+     control specified in full by ``REQ_FLOW_TIMELENS`` — **replacing** the
+     original single fade-rate slider design (superseded; see
+     ``REQ_FLOW_TIMELENS`` for the current, sole windowing/fade control).
+     Moving either handle is a rendering-only operation (re-runs the fade
+     calculation over already-loaded data); it does not re-query
+     ``REQ_FLOW_DATASOURCE``'s capped data set.
    * AC-4: Hovering a node or edge SHALL show a tooltip with: message count,
      time range (earliest/latest timestamp in that group), and a truncated
      sample of message text.
@@ -96,6 +100,97 @@ Message Flow Visualization Requirements
    * AC-6: The D3 library SHALL be vendored locally within the extension
      package — the webview's Content-Security-Policy does not permit
      fetching it from a CDN.
+
+
+.. req:: Time Lens (Rank-Based Message Window)
+   :id: REQ_FLOW_TIMELENS
+   :status: draft
+   :priority: medium
+   :links: US_FLOW_CHORDVIEW; REQ_FLOW_CHORDVIEW; REQ_FLOW_DATASOURCE
+
+   **Description:**
+   The extension SHALL replace the diagram's single fade-rate slider with a
+   two-handle range control ("lens") that lets the user restrict and scrub
+   the visible message window by **position** (rank), counted from the
+   true-latest loaded message, rather than by wall-clock age. This flow-time-lens
+   CR **fully supersedes** ``REQ_FLOW_CHORDVIEW`` AC-3's original single-slider
+   design — there is no day/hour/minute unit selector and no VS Code setting;
+   all lens state lives in the webview only.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Every loaded message entry has a **rank**, counted from the
+     true-latest loaded entry (rank 1) growing toward history (rank 2, 3,
+     ... up to the currently loaded total). Ranks are recomputed whenever
+     the loaded entry set changes (poll update, or ``REQ_FLOW_LOADMORE``
+     cap increase) — they are a derived position, not a stored value.
+   * AC-2: The lens exposes two handles: a **start** handle (near/newest
+     edge of the window) and an **end** handle (far/oldest edge). At all
+     times ``start`` SHALL be less than or equal to ``end`` in rank number
+     (the window never inverts).
+   * AC-3: **Live-tracking:** while the start handle is at rank 1, the
+     window's near edge SHALL always include the current true-latest
+     message — as new messages arrive via the diagram's periodic refresh
+     (``US_FLOW_CHORDVIEW`` AC-6), the window automatically extends to keep
+     including them, with no user action required.
+   * AC-4: **Anchoring:** whenever the start handle is at any rank other
+     than 1, and for the end handle at all times, the handle SHALL be
+     anchored to the **specific message identity** it was set to — not to
+     the numeric rank it happened to have at that moment. As new messages
+     arrive and shift what rank number that same message now has, the
+     handle's displayed rank number SHALL update accordingly, but the
+     window SHALL NOT visually jump to include or exclude different
+     messages as a side effect of that renumbering.
+   * AC-5: **Default window on open:** ``start`` = rank 1 (live-tracking),
+     ``end`` = the rank corresponding to ``min(currently loaded total, 500)``
+     — i.e. on first open, the diagram shows exactly the same message set as
+     the pre-lens default (the full initial 500-entry-or-fewer load).
+   * AC-6: The fade gradient (``REQ_FLOW_CHORDVIEW`` AC-2) SHALL be computed
+     over position **within the current lens window only** — the message at
+     the window's near edge (start) renders at full opacity, the message at
+     the window's far edge (end) renders at the fade floor, with a linear
+     interpolation in between. The fade floor SHALL be 0.05 (5% minimum
+     opacity) — lowered from the prior single-slider design's 0.15 (15%).
+   * AC-7: While a handle is being dragged, the diagram SHALL display the
+     actual timestamp of the message currently at that handle's position, as
+     a drag tooltip — for human orientation only; the underlying unit
+     remains message rank/count, not time.
+   * AC-8: Moving either handle SHALL be a client-side-only operation — it
+     SHALL NOT send any request to the extension host and SHALL NOT change
+     which raw entries are loaded (``REQ_FLOW_DATASOURCE`` AC-2); it only
+     changes which of the already-loaded entries are included in the
+     rendered window and how they are faded.
+
+
+.. req:: Expand Loaded History ("+500")
+   :id: REQ_FLOW_LOADMORE
+   :status: draft
+   :priority: medium
+   :links: US_FLOW_CHORDVIEW; REQ_FLOW_DATASOURCE; REQ_FLOW_TIMELENS
+
+   **Description:**
+   The extension SHALL provide an in-diagram control that lets the user
+   increase how much message history is loaded, beyond the default cap
+   (``REQ_FLOW_DATASOURCE`` AC-2), without leaving the diagram.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A control (e.g. a "+500" button) SHALL be available alongside the
+     time lens. Activating it SHALL increase the diagram's data-load cap by
+     500 entries (500 → 1000 → 1500 → ...), with no upper limit imposed by
+     this requirement.
+   * AC-2: After a cap increase, the underlying sliding-window mechanic
+     (``REQ_FLOW_DATASOURCE`` AC-2 — most-recent-N entries, no time
+     boundary) is unchanged in kind, just applied at the new, larger N.
+   * AC-3: A cap increase SHALL re-derive ranks (``REQ_FLOW_TIMELENS`` AC-1)
+     over the newly (larger) loaded entry set; any existing lens window
+     (live-tracking or anchored, per ``REQ_FLOW_TIMELENS`` AC-3/AC-4) SHALL
+     remain visually unchanged immediately after the increase — the cap
+     increase only makes *more history reachable* by dragging the end
+     handle further, it does not itself move either handle.
+   * AC-4: The increased cap SHALL NOT persist across closing and reopening
+     the diagram panel — no VS Code setting is introduced for this CR; each
+     new panel instance starts back at the default cap (500).
 
 
 .. req:: Message Flow Webview Panel

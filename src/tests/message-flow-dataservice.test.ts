@@ -14,17 +14,17 @@ function tmpLogPath(): string {
 }
 
 describe('SPEC_FLOW_DATASERVICE: loadFlowData', () => {
-    it('AC-1: missing message-log.json -> empty { nodes: [], edges: [] }, no throw', () => {
+    it('AC-1: missing message-log.json -> empty { nodes: [], edges: [], entries: [] }, no throw', () => {
         const logPath = path.join(os.tmpdir(), 'jarvis-flow-does-not-exist', 'message-log.json');
         const result = loadFlowData(logPath);
-        expect(result).toEqual({ nodes: [], edges: [] });
+        expect(result).toEqual({ nodes: [], edges: [], entries: [] });
     });
 
-    it('AC-1: unparsable message-log.json -> empty { nodes: [], edges: [] }, no throw', () => {
+    it('AC-1: unparsable message-log.json -> empty { nodes: [], edges: [], entries: [] }, no throw', () => {
         const logPath = tmpLogPath();
         fs.writeFileSync(logPath, '{not valid json');
         const result = loadFlowData(logPath);
-        expect(result).toEqual({ nodes: [], edges: [] });
+        expect(result).toEqual({ nodes: [], edges: [], entries: [] });
     });
 
     it('AC-3: aggregates by (sender, destination) with count/first/last/sample', () => {

@@ -4,6 +4,12 @@
 // vscode or DOM dependency — so this file can be imported unmodified by
 // both esbuild bundles (node/cjs extension host, browser/iife webview).
 
+export interface FlowMessageEntry {
+    sender: string;
+    destination: string;
+    timestamp: string; // ISO 8601
+}
+
 export interface FlowEdge {
     source: string;
     target: string;
@@ -14,6 +20,7 @@ export interface FlowEdge {
 }
 
 export interface FlowData {
-    nodes: string[]; // distinct union of sender/destination
-    edges: FlowEdge[];
+    nodes: string[];            // distinct union of sender/destination
+    edges: FlowEdge[];          // full-cap aggregation
+    entries: FlowMessageEntry[]; // capped raw entries, chronological ascending (oldest first)
 }

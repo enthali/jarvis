@@ -2,7 +2,7 @@
 // Requirements: REQ_FLOW_DATASOURCE
 
 import * as fs from 'fs';
-import { FlowData, FlowEdge } from './types';
+import { FlowData, FlowEdge, FlowMessageEntry } from './types';
 
 /** Same {destination, sender, text, timestamp} shape as messages.json/message-log.json (SPEC_MSG_QUEUESTORE). */
 interface LoggedMessage {
@@ -12,7 +12,7 @@ interface LoggedMessage {
     timestamp: string;
 }
 
-const MAX_ENTRIES = 500;
+export const DEFAULT_CAP = 500;
 
 /**
  * Tolerant reader for message-log.json — mirrors the existing
@@ -34,7 +34,7 @@ function readMessageLog(logPath: string): LoggedMessage[] {
  * firstTimestamp/lastTimestamp (min/max), and sample (text of the
  * chronologically-last entry in the group) — AC-3.
  */
-function aggregate(entries: LoggedMessage[]): FlowData {
+function aggregate(entries: LoggedMessage[]): { nodes: string[]; edges: FlowEdge[] } {
     const nodeSet = new Set<string>();
     const groups = new Map<string, FlowEdge & { lastTime: number }>();
 
@@ -76,12 +76,16 @@ function aggregate(entries: LoggedMessage[]): FlowData {
  * Reads message-log.json and aggregates it into the node/edge shape the
  * renderer consumes. Read-only — never writes to the log.
  *
- * AC-1: missing/unparsable log -> { nodes: [], edges: [] }, no thrown error.
- * AC-2: the 500-entry cap is applied BEFORE aggregation (most recent
- *       MAX_ENTRIES, no time-based boundary).
+ * AC-1: missing/unparsable log -> { nodes: [], edges: [], entries: [] }, no thrown error.
+ * AC-2: the entry cap is applied BEFORE aggregation (most recent
+ *       cap entries, no time-based boundary).
+ * AC-4: cap defaults to DEFAULT_CAP (500) for the first load.
  */
-export function loadFlowData(logPath: string): FlowData {
+export function loadFlowData(logPath: string, cap: number = DEFAULT_CAP): FlowData {
     const raw = readMessageLog(logPath);
-    const capped = raw.slice(-MAX_ENTRIES);
-    return aggregate(capped);
+    const capped = raw.slice(-cap);
+    return {
+        ...aggregate(capped),
+        entries: capped.map(e => ({ sender: e.sender, destination: e.destination, timestamp: e.timestamp }))
+    };
 }
