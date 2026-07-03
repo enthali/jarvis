@@ -7,13 +7,32 @@ Sortierung: jüngste oben.
 
 ---
 
-## FI-2026-07-03 — Actor Monitoring / Supervision-Fallback-Strategie
+## FI-2026-07-03 — Actor Monitoring: Self-Reminder-Watchdog (statt Hook-basiert)
 
-**Trigger:** Zweiter Vorfall eines hängenden Agenten (diesmal Claude Haiku via GH Copilot). Bisher kein Mechanismus, das automatisch zu bemerken oder zu recovern.
+**Trigger:** Dritter Vorfall eines hängenden Agenten (Nemotron via GH Copilot, „Response contained no choices" — LLM-Inferenz-Fehler). Hook-Log analysiert: Sequenz bricht nach dem letzten `PostToolUse` einfach ab, kein `Stop`-Hook.
 
-**Kurz:** Die „Supervision"-Hälfte der North-Star-These aus [FI-2026-06-28-hook-engine.md](FI-2026-06-28-hook-engine.md) ist noch unausgearbeitet. Nächster Schritt (nicht jetzt): Hook-Logs beim nächsten Vorfall auswerten, ob sich ein Hänger/Fehler dort erkennen lässt. Grobe Fallback-Idee: bei LLM-Fehler 2-3x retry, danach Modellwechsel + erneuter Versuch. Fehler passieren — wir müssen sie nur catchen.
+**Befund — Hooks decken diese Fehlerklasse strukturell nicht ab:** Der Fehler passiert **zwischen** Prompt und Antwort, auf LLM-Inferenz-Ebene (interner Copilot-Chat-Code, `_provideLanguageModelResponse`) — keiner der 8 Hook-Events (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, PreCompact, SubagentStart, SubagentStop, Stop) instrumentiert diese Schicht. Ein Hook-basierter Watchdog würde hier **nichts** sehen — nicht übersehen, sondern strukturell blind.
 
-**Status:** Idee, noch nicht erarbeitet. Nächstes Research-Thema.
+**Bessere Idee (PM, 2026-07-03): Self-Reminder statt Hook-Detection.** Prozessunabhängig, nutzt nur bestehende Werkzeuge (`jarvis_setReminder`, `jarvis_cancelReminder`, dieselbe Delivery-Pipeline wie normale Messages — reitet auf der gestern validierten Editor-Group-Placement-Infrastruktur). Jeder Agent setzt sich **bei jedem SEND** einen Reminder, der später prüft, ob er selbst geantwortet hat:
+
+```
+[Jarvis Watchdog] Self-check: Did you already send a RESPOND for your SEND to "<recipient>"
+(re: <task summary>)?
+
+- If YES: this reminder is stale. Cancel it now with jarvis_cancelReminder and do nothing else.
+- If NO: continue exactly where you left off and send the RESPOND now — with your results,
+  or an honest status if the task is still incomplete.
+```
+
+**Doppelter Nutzen:**
+1. Der **hängende Agent selbst** bekommt durch die eigene Reminder-Nachricht potenziell den Reset-Kick aus dem gescheiterten Turn (neue eingehende Message → frischer Turn-Versuch, transienter Provider-Fehler vermutlich vorbei).
+2. **Wartende Agenten** (z.B. QM) merken über ihre eigene Reminder, dass eine erwartete RESPOND noch aussteht — unabhängig von der Ausfallursache beim Partner.
+
+**Verfeinerungen:**
+- Reminder **proaktiv canceln** bei erfolgreichem RESPOND (`jarvis_cancelReminder`), sonst nervt's auch auf dem Happy Path.
+- Muss als **Disziplin-Regel** in `syspilot.orchestration-jarvis` (SEND/RESPOND-Vokabular-Skill), nicht nur als lose Idee — sonst gilt's nicht einheitlich für alle Agenten.
+
+**Status:** Bereit für einen praktischen Live-Test (Reminder-Text s.o., über `jarvis_setReminder`).
 
 ---
 
