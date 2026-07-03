@@ -281,8 +281,13 @@ Message Queue Design Specifications
 
 .. spec:: Read Message LM Tool
    :id: SPEC_MSG_READMESSAGE
-   :status: implemented
+   :status: deprecated
    :links: REQ_MSG_READ; SPEC_MSG_QUEUESTORE; SPEC_MSG_SESSIONLOOKUP
+
+   **Deprecated by:** ``SPEC_MSG_RECEIVEMESSAGE`` (message-api-rename CR). Kept
+   registered and functionally unchanged until removed in a separate future
+   change (GH Issue #13). Only the deprecation-warning addition (see Design
+   notes) is new.
 
    **Description:**
    Register ``jarvis_readMessage`` as a Language Model Tool in ``extension.ts``.
@@ -339,6 +344,13 @@ Message Queue Design Specifications
    * ``messageProvider.reload()`` is called after each pop to keep the Messages
      tree in sync
    * Disposable pushed to ``context.subscriptions``
+   * **Deprecation warning (message-api-rename CR, REQ_MSG_READ AC-7):** the
+     ``modelDescription`` above SHALL be prefixed with ``"[DEPRECATED — use
+     jarvis_receiveMessage instead.]"``; the success payload SHALL include an
+     additional ``warning`` field with the text ``"jarvis_readMessage is
+     deprecated; use jarvis_receiveMessage instead."`` (added alongside the
+     existing ``message``/``remaining`` fields). This applies to both the
+     message-found and no-messages (``message: null``) response shapes.
 
 
 .. spec:: Session UUID Resolver
@@ -2452,8 +2464,13 @@ Message Queue Design Specifications
 
 .. spec:: Send-to-Session LM / MCP Tool
    :id: SPEC_MSG_SENDTOSESSION
-   :status: draft
+   :status: deprecated
    :links: REQ_MSG_SENDTOSESSION; REQ_MSG_DEST_ERROR; SPEC_MSG_DUALREGISTRATION; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_QUEUESTORE
+
+   **Deprecated by:** ``SPEC_MSG_SENDMESSAGE`` (message-api-rename CR). Kept
+   registered and functionally unchanged (including the active-tab sender
+   fallback below) until removed in a separate future change (GH Issue #13).
+   Only the deprecation-warning additions (see Design notes) are new.
 
    **Description:**
    Implements the ``jarvis_sendToSession`` Language Model and MCP Tool in
@@ -2647,5 +2664,211 @@ Message Queue Design Specifications
      requiring a schema change.
    * Backward compatibility: the handler code path for valid destinations is
      identical to the previous implementation; no queue-file format changes.
+   * **Deprecation warning (message-api-rename CR, REQ_MSG_SENDTOSESSION
+     AC-8):** the ``modelDescription`` above SHALL be prefixed with
+     ``"[DEPRECATED — use jarvis_sendMessage instead.]"``; both the LM and MCP
+     success payloads SHALL include an additional ``warning`` field with the
+     text ``"jarvis_sendToSession is deprecated; use jarvis_sendMessage
+     instead."``. This applies only to the success path — error throws are
+     unchanged.
+
+
+.. spec:: Send Message LM / MCP Tool (Canonical)
+   :id: SPEC_MSG_SENDMESSAGE
+   :status: draft
+   :links: REQ_MSG_SENDMESSAGE; REQ_MSG_DEST_ERROR; REQ_MSG_SENDER_ERROR; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_QUEUESTORE
+
+   **Description:**
+   Implements the canonical ``jarvis_sendMessage`` tool in
+   ``packages/core/src/extension.ts`` via ``engine.registerTool()`` — the same
+   registration helper already used for ``jarvis_sendToSession`` (a single LM
+   handler; the tool is automatically exposed over MCP too via
+   ``packages/mcp``'s dynamic tool-descriptor bridge, which derives the MCP
+   input schema from this tool's ``package.json`` ``inputSchema`` at server
+   start and forwards MCP calls into the same handler through
+   ``JarvisCoreApi.invokeTool()`` — see ``SPEC_MOD_MCP_PKG``/
+   ``SPEC_ENG_TOOLREGISTRY``). There is **no** separate MCP handler or Zod
+   schema to author; one handler serves both surfaces.
+
+   Identical destination validation to ``jarvis_sendToSession``, plus a
+   mandatory, validated ``senderSession`` — no active-tab fallback.
+
+   **Handler (in the ``activate()`` core-tools section, alongside the existing
+   ``sendToSessionTool``):**
+
+   .. code-block:: typescript
+
+      // sendMessage (canonical — REQ_MSG_SENDMESSAGE)
+      const sendMessageTool = engine.registerTool('jarvis_sendMessage',
+          'Queues a text message for delivery to a destination identified by name. senderSession is required and validated.',
+          async (options: vscode.LanguageModelToolInvocationOptions<any>, _token: vscode.CancellationToken) => {
+              const { session, text, senderSession } = options.input;
+              const validNames = await getValidDestinations(kindDrivenScanner);
+              const sortedNames = () => {
+                  const sorted = [...validNames].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+                  return sorted.length > 0 ? sorted.join(', ') : '(none)';
+              };
+
+              // Destination validation (REQ_MSG_SENDMESSAGE AC-3/4)
+              if (!validNames.includes(session)) {
+                  throw new Error(`Destination session "${session}" does not exist.\nValid destinations: ${sortedNames()}`);
+              }
+
+              // Sender validation (REQ_MSG_SENDMESSAGE AC-5/6, REQ_MSG_SENDER_ERROR)
+              if (!senderSession || String(senderSession).trim() === '') {
+                  throw new Error(
+                      'senderSession is required. Callers must explicitly provide their session name — do not rely on the active editor tab.'
+                  );
+              }
+              if (!validNames.includes(senderSession)) {
+                  throw new Error(`Sender session "${senderSession}" does not exist.\nValid senders: ${sortedNames()}`);
+              }
+
+              // Both valid — queue the message (REQ_MSG_SENDMESSAGE AC-7)
+              appendMessage(resolveMessagesPath(), session, senderSession, text);
+              log.info(`[MSG] sendMessage: destination="${session}", sender="${senderSession}"`);
+              messageProvider.reload();
+              return new vscode.LanguageModelToolResult([
+                  new vscode.LanguageModelTextPart(`Message queued for destination "${session}" from "${senderSession}"`)
+              ]);
+          }
+      );
+
+   **Registration in package.json (``languageModelTools`` contribution):**
+
+   .. code-block:: json
+
+      {
+        "name": "jarvis_sendMessage",
+        "displayName": "Send Message",
+        "modelDescription": "Queues a text message for delivery to a destination identified by name. Valid destinations are VS Code chat session tabs AND YAML entity names (sessions, projects, events). senderSession is required and validated against the same set — callers must pass their own session name explicitly. Fails immediately with an error if the destination or sender does not exist.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "sendMessage",
+        "icon": "$(mail)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "session": {
+              "type": "string",
+              "description": "The exact name of the target (VS Code chat session title or YAML entity name)"
+            },
+            "text": {
+              "type": "string",
+              "description": "The message text to queue"
+            },
+            "senderSession": {
+              "type": "string",
+              "description": "Required: the exact name of the sending session — must not be omitted or inferred from the active tab"
+            }
+          },
+          "required": ["session", "text", "senderSession"]
+        }
+      }
+
+   **Design notes:**
+
+   * Validation order is destination-first, sender-second (REQ_MSG_SENDMESSAGE
+     AC-8).
+   * ``getValidDestinations()`` is reused unmodified from the existing
+     ``jarvis_sendToSession`` handler — the sender is checked against the exact
+     same set as the destination (REQ_MSG_SENDER_ERROR AC-3); no new resolver
+     is introduced.
+   * Unlike ``jarvis_sendToSession``, there is no ``activeTab?.label``
+     fallback — ``senderSession`` is a required ``inputSchema`` field, so a
+     missing value is normally caught by schema validation before the handler
+     runs; the explicit runtime check (empty-string guard) is a
+     defense-in-depth backstop.
+   * The queued message's ``sender`` field is the caller-supplied
+     ``senderSession`` verbatim — this is the mechanism that fixes the
+     misattribution bug described in the message-api-rename CD (e.g.
+     ``sender: "message-log.json"``), since the value no longer depends on
+     which editor tab happens to be focused.
+   * No ``warning`` field is added to this tool's success payload — it is the
+     canonical, non-deprecated tool.
+   * **MCP surface:** no new file/schema is needed in ``packages/mcp`` — the
+     tool becomes available over MCP automatically the moment it is
+     registered via ``engine.registerTool()`` with a ``package.json``
+     ``inputSchema``, following the same path as every other core tool
+     (``buildToolDescriptors()`` in ``packages/mcp/src/extension.ts``). The
+     CD Appendix's mention of "MCP schema (Zod) in packages/mcp" does not
+     apply to core tools under the current (post-monorepo-split) engine
+     tool-registry architecture; it describes an earlier design
+     (``SPEC_MSG_DUALREGISTRATION``) that predates the split and is not what
+     ``packages/core/src/extension.ts`` currently implements.
+
+
+.. spec:: Receive Message LM / MCP Tool (Canonical)
+   :id: SPEC_MSG_RECEIVEMESSAGE
+   :status: draft
+   :links: REQ_MSG_RECEIVEMESSAGE; SPEC_MSG_QUEUESTORE; SPEC_MSG_SESSIONLOOKUP
+
+   **Description:**
+   Implements the canonical ``jarvis_receiveMessage`` tool in
+   ``packages/core/src/extension.ts`` via ``engine.registerTool()`` — a rename
+   of the existing ``jarvis_readMessage`` handler, with **no other functional
+   change**. Pops the oldest queued message for a given destination session
+   and returns it along with the remaining count. Automatically available over
+   MCP the same way as ``jarvis_sendMessage`` (see ``SPEC_MSG_SENDMESSAGE``
+   Design notes) — no separate MCP handler or schema.
+
+   **Handler (in the ``activate()`` core-tools section, alongside the existing
+   ``readMessageTool``):**
+
+   .. code-block:: typescript
+
+      // receiveMessage (canonical — REQ_MSG_RECEIVEMESSAGE)
+      const receiveMessageTool = engine.registerTool('jarvis_receiveMessage',
+          'Reads and removes the oldest message from the Jarvis message queue for the given destination session.',
+          async (options: vscode.LanguageModelToolInvocationOptions<any>, _token: vscode.CancellationToken) => {
+              const result = popMessage(resolveMessagesPath(), options.input.destination);
+              log.info(`[MSG] receiveMessage: destination="${options.input.destination}", remaining=${result.remaining}`);
+              messageProvider.reload();
+              if (result.message) {
+                  return new vscode.LanguageModelToolResult([
+                      new vscode.LanguageModelTextPart(JSON.stringify({
+                          message: { sender: result.message.sender, text: result.message.text, timestamp: result.message.timestamp },
+                          remaining: result.remaining
+                      }))
+                  ]);
+              }
+              return new vscode.LanguageModelToolResult([
+                  new vscode.LanguageModelTextPart(JSON.stringify({ message: null, remaining: 0 }))
+              ]);
+          }
+      );
+
+   **Registration in package.json (``languageModelTools`` contribution):**
+
+   .. code-block:: json
+
+      {
+        "name": "jarvis_receiveMessage",
+        "displayName": "Receive Message from Inbox",
+        "modelDescription": "Reads and removes the oldest message from the Jarvis inbox for the given destination session. Returns { message: { sender, text, timestamp } | null, remaining: number }. Call repeatedly until remaining === 0.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "receiveMessage",
+        "icon": "$(mail-read)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "destination": {
+              "type": "string",
+              "description": "The exact name/title of the chat session whose inbox to read"
+            }
+          },
+          "required": ["destination"]
+        }
+      }
+
+   **Design notes:**
+
+   * Behaviour is identical to the existing ``jarvis_readMessage`` handler in
+     every respect other than the tool name.
+   * Pop-oldest semantics: ``findIndex`` returns the first match (FIFO order)
+   * ``messageProvider.reload()`` is called after each pop to keep the
+     Messages tree in sync
+   * Disposable returned by ``engine.registerTool()``, pushed to
+     ``context.subscriptions`` by the caller (consistent with all other core
+     tools)
 
 

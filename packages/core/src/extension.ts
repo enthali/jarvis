@@ -538,7 +538,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             const count = node.children.length;
             const defaultNotifTemplate =
                 `[Jarvis Message Service] You have \${count} new message(s) in your inbox.\n` +
-                `Read them with the enthali.jarvis-core/readMessage tool (destination: "\${destination}") until remaining = 0.`;
+                `Read them with the enthali.jarvis-core/receiveMessage tool (destination: "\${destination}") until remaining = 0.`;
             const rawNotifTemplate = vscode.workspace.getConfiguration('jarvis').get<string>('messages.notificationTemplate') ?? '';
             const notifTemplate = rawNotifTemplate.trim() ? rawNotifTemplate : defaultNotifTemplate;
             const stub = applyTemplate(notifTemplate, { count: String(count), destination: node.destination });
@@ -760,7 +760,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
 
     // --- Core LM tools ---
 
-    // sendToSession
+    // sendToSession (DEPRECATED)
     const sendToSessionTool = engine.registerTool('jarvis_sendToSession',
         'Queues a message for delivery to another VS Code chat session identified by name.',
         async (options: vscode.LanguageModelToolInvocationOptions<any>, _token: vscode.CancellationToken) => {
@@ -777,17 +777,78 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             log.info(`[MSG] sendToSession: destination="${session}", sender="${sender}"`);
             messageProvider.reload();
             return new vscode.LanguageModelToolResult([
-                new vscode.LanguageModelTextPart(`Message queued for destination "${session}" from "${sender}"`)
+                new vscode.LanguageModelTextPart(JSON.stringify({
+                    message: `Message queued for destination "${session}" from "${sender}"`,
+                    warning: 'jarvis_sendToSession is deprecated; use jarvis_sendMessage instead.'
+                }))
             ]);
         }
     );
 
-    // readMessage
+    // sendMessage (canonical)
+    const sendMessageTool = engine.registerTool('jarvis_sendMessage',
+        'Queues a text message for delivery to a destination identified by name. senderSession is required and validated.',
+        async (options: vscode.LanguageModelToolInvocationOptions<any>, _token: vscode.CancellationToken) => {
+            const { session, text, senderSession } = options.input;
+            const validNames = await getValidDestinations(kindDrivenScanner);
+            const sortedNames = () => {
+                const sorted = [...validNames].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+                return sorted.length > 0 ? sorted.join(', ') : '(none)';
+            };
+
+            // Destination validation (REQ_MSG_SENDMESSAGE AC-3/4)
+            if (!validNames.includes(session)) {
+                throw new Error(`Destination session "${session}" does not exist.\nValid destinations: ${sortedNames()}`);
+            }
+
+            // Sender validation (REQ_MSG_SENDMESSAGE AC-5/6, REQ_MSG_SENDER_ERROR)
+            if (!senderSession || String(senderSession).trim() === '') {
+                throw new Error(
+                    'senderSession is required. Callers must explicitly provide their session name — do not rely on the active editor tab.'
+                );
+            }
+            if (!validNames.includes(senderSession)) {
+                throw new Error(`Sender session "${senderSession}" does not exist.\nValid senders: ${sortedNames()}`);
+            }
+
+            // Both valid — queue the message (REQ_MSG_SENDMESSAGE AC-7)
+            appendMessage(resolveMessagesPath(), session, senderSession, text);
+            log.info(`[MSG] sendMessage: destination="${session}", sender="${senderSession}"`);
+            messageProvider.reload();
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`Message queued for destination "${session}" from "${senderSession}"`)
+            ]);
+        }
+    );
+
+    // readMessage (DEPRECATED)
     const readMessageTool = engine.registerTool('jarvis_readMessage',
         'Reads and removes the oldest message from the Jarvis message queue for the given destination session.',
         async (options: vscode.LanguageModelToolInvocationOptions<any>, _token: vscode.CancellationToken) => {
             const result = popMessage(resolveMessagesPath(), options.input.destination);
             log.info(`[MSG] readMessage: destination="${options.input.destination}", remaining=${result.remaining}`);
+            messageProvider.reload();
+            if (result.message) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart(JSON.stringify({
+                        message: { sender: result.message.sender, text: result.message.text, timestamp: result.message.timestamp },
+                        remaining: result.remaining,
+                        warning: 'jarvis_readMessage is deprecated; use jarvis_receiveMessage instead.'
+                    }))
+                ]);
+            }
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(JSON.stringify({ message: null, remaining: 0, warning: 'jarvis_readMessage is deprecated; use jarvis_receiveMessage instead.' }))
+            ]);
+        }
+    );
+
+    // receiveMessage (canonical)
+    const receiveMessageTool = engine.registerTool('jarvis_receiveMessage',
+        'Reads and removes the oldest message from the Jarvis message queue for the given destination session.',
+        async (options: vscode.LanguageModelToolInvocationOptions<any>, _token: vscode.CancellationToken) => {
+            const result = popMessage(resolveMessagesPath(), options.input.destination);
+            log.info(`[MSG] receiveMessage: destination="${options.input.destination}", remaining=${result.remaining}`);
             messageProvider.reload();
             if (result.message) {
                 return new vscode.LanguageModelToolResult([
@@ -1126,7 +1187,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
                         }
                     }
                     const count = pending.length;
-                    const defaultNotifTemplate = `[Jarvis Message Service] You have \${count} new message(s) in your inbox.\nRead them with the jarvis_readMessage tool (destination: "\${destination}") until remaining = 0.`;
+                    const defaultNotifTemplate = `[Jarvis Message Service] You have \${count} new message(s) in your inbox.\nRead them with the jarvis_receiveMessage tool (destination: "\${destination}") until remaining = 0.`;
                     const rawNotifTemplate = vscode.workspace.getConfiguration('jarvis').get<string>('messages.notificationTemplate') ?? '';
                     const notifTemplate = rawNotifTemplate.trim() ? rawNotifTemplate : defaultNotifTemplate;
                     const stub = applyTemplate(notifTemplate, { count: String(count), destination: sessionName });
