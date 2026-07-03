@@ -2,14 +2,29 @@
 
 ## CR Queue (dispatch after message-flow-diagram merges)
 
-1. **sendtosession-required-sender** — Breaking change: `senderSession` on
-   `jarvis_sendToSession` becomes required + validated against
-   `getValidDestinations()`. Fixes wrong sender attribution in
-   message-log.json caused by active-tab fallback. Draft CD at
-   `docs/changes/sendtosession-required-sender.md` (locally committed, not
-   pushed yet). Error messages agreed with user:
-   - Missing → `"senderSession is required"`
-   - Invalid → `"Sender session \"${name}\" does not exist. Valid senders: ${list}"`
+1. **message-api-rename** — supersedes sendtosession-required-sender; combines
+   GH issue #12 (API rename Phase 1) with the senderSession fix, per user
+   2026-07-03: "better now and hard than later and soft" — one adoption pass
+   instead of two.
+   - New canonical `jarvis_sendMessage`: `senderSession` required + validated
+     against `getValidDestinations()` (exact check, same as destination).
+     Fails with error, not silent fallback:
+     - Missing → `"senderSession is required"`
+     - Invalid → `"Sender session \"${name}\" does not exist. Valid senders: ${list}"`
+   - New canonical `jarvis_receiveMessage`: same behavior as today's
+     `jarvis_readMessage`, renamed only.
+   - Old `jarvis_sendToSession`/`jarvis_readMessage`: stay registered,
+     UNCHANGED behavior (including the old active-tab-fallback bug — not
+     worth fixing code scheduled for removal), just add deprecation warning.
+   - Notification template default → `jarvis_receiveMessage`.
+   - All `.github/agents/*.agent.md` + session `context.md` files updated to
+     new names, always passing explicit `senderSession`.
+   - `syspilot.orchestration-jarvis/SKILL.md` SEND/RECEIVE sections updated.
+   - Phase 2 (GH issue #13, full removal of old names) stays a SEPARATE
+     future CR, unchanged timeline (earliest 2026-09-30) — not part of this.
+   - Old draft CD `docs/changes/sendtosession-required-sender.md` (commit
+     `4c8d422`) is now superseded/obsolete — do not dispatch as-is, rewrite
+     as message-api-rename instead.
 
 2. **flow-time-lens** — Replaces the Fog-of-Time single fade slider (amends
    SPEC_FLOW_CHORDRENDER) with a two-handle message-index range slider
