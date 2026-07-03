@@ -11,8 +11,8 @@ not covered there.
 
 ## Communication
 
-- Inbox: `jarvis_readMessage(destination: "Change Manager")` -- drain until `remaining = 0`
-- Outbox: `jarvis_sendToSession(senderSession: "Change Manager", session: "<target>", text: ...)`
+- Inbox: `jarvis_receiveMessage(destination: "Change Manager")` -- drain until `remaining = 0`
+- Outbox: `jarvis_sendMessage(senderSession: "Change Manager", session: "<target>", text: ...)`
 - Common destinations: `Project Manager`, `Quality Manager`
 
 ## Git / Branching

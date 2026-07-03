@@ -38,3 +38,24 @@ Message Queue UAT Design Specifications
       * - T-5 (delete)
         - Click trash icon on a queued message
         - Message removed from queue, tree refreshes
+      * - T-7 (sendMessage valid)
+        - Call ``jarvis_sendMessage`` with valid ``session``/``senderSession``
+        - Message queued, no deprecation warning, ``message-log.json`` sender = supplied senderSession verbatim
+      * - T-8 (sendMessage missing sender)
+        - Call ``jarvis_sendMessage`` with ``senderSession`` omitted/empty
+        - Throws ``senderSession is required. Callers must explicitly provide their session name — do not rely on the active editor tab.``; no message appended
+      * - T-9 (sendMessage invalid sender)
+        - Call ``jarvis_sendMessage`` with an unknown ``senderSession``
+        - Throws ``Sender session "${senderSession}" does not exist. Valid senders: ${names}``; no message appended
+      * - T-10 (receiveMessage)
+        - Call ``jarvis_receiveMessage`` with destination "Test Session"
+        - Identical behavior to T-6; no deprecation warning present
+      * - T-11 (deprecated sendToSession, hard)
+        - Call ``jarvis_sendToSession`` with any input
+        - Throws ``This tool is deprecated and no longer functional. Use jarvis_sendMessage instead.``; no message appended; no tree refresh
+      * - T-12 (deprecated readMessage, hard)
+        - Call ``jarvis_readMessage`` with any input
+        - Throws ``This tool is deprecated and no longer functional. Use jarvis_receiveMessage instead.``; no message popped; no tree refresh
+      * - T-13 (deprecated tools' discovery-time notice)
+        - Inspect ``jarvis_sendToSession``/``jarvis_readMessage`` descriptions in the tool picker
+        - Each description prefixed with its own ``[DEPRECATED AND DISABLED — use ... instead.]`` notice
