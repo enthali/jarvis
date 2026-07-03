@@ -42,6 +42,8 @@ jobs:
         run: cd packages/recorder && npx vsce package --no-dependencies
       - name: Package enthali.jarvis-mcp
         run: cd packages/mcp && npx vsce package --no-dependencies
+      - name: Package enthali.jarvis-flow
+        run: cd packages/flow && npx vsce package --no-dependencies
 
       # ── GitHub Release — all VSIXs ───────────────────────────────────────────
       - name: Create GitHub Release
@@ -53,6 +55,7 @@ jobs:
             packages/pim/*.vsix
             packages/recorder/*.vsix
             packages/mcp/*.vsix
+            packages/flow/*.vsix
           generate_release_notes: true
 
       # ── Marketplace publish — jarvis-core + add-ons (NOT legacy jarvis) ──────
@@ -72,4 +75,8 @@ jobs:
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: npx vsce publish --packagePath packages/mcp/jarvis-mcp-*.vsix --no-dependencies
+      - name: Publish enthali.jarvis-flow to Marketplace
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: npx vsce publish --packagePath packages/flow/jarvis-flow-*.vsix --no-dependencies
 

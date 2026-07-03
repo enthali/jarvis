@@ -31,7 +31,7 @@ Cron-based job scheduling configured via YAML:
 - Messages from heartbeat jobs (or any source) are queued and displayed in the Messages tree
 - **Send to Chat**: Deliver messages to named VS Code chat sessions
 - **Open Session**: Browse and open named sessions via QuickPick (`Jarvis: Open Chat Session`)
-- **LM Tools**: `#listSessions` for session discovery, `#sendMessage`/`#receiveMessage` for inter-session messaging (`#sendToSession`/`#readMessage` are deprecated aliases, still functional but scheduled for removal), `#jarvis_listSessionEntities` to list entities in a session (includes `agent` field), `#jarvis_createSession` to programmatically create a new session folder with optional `agent` binding — validated against user-invocable agents in `.github/agents/` (idempotent, headless; both require `jarvis.sessions.enabled`)
+- **LM Tools**: `#listSessions` for session discovery, `#sendMessage`/`#receiveMessage` for inter-session messaging (`#sendToSession`/`#readMessage` are deprecated and disabled — they now throw an error directing callers to the new names, scheduled for full removal), `#jarvis_listSessionEntities` to list entities in a session (includes `agent` field), `#jarvis_createSession` to programmatically create a new session folder with optional `agent` binding — validated against user-invocable agents in `.github/agents/` (idempotent, headless; both require `jarvis.sessions.enabled`)
 
 ### Message Flow Diagram (add-on: Jarvis Message Flow)
 
