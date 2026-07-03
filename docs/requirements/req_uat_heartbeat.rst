@@ -22,6 +22,13 @@ Heartbeat UAT Requirements
      under ``testdata/heartbeat/prompts/``
    * AC-5: A manual job with a ``queue`` step exists, specifying ``session`` and
      ``text`` fields for message queue testing
+   * AC-6: A Python step and script exist for tier-1/tier-2/tier-3 interpreter
+     resolution testing (``heartbeat-venv-autodetect`` CR) — the script prints
+     ``sys.executable`` so the tester can identify which interpreter ran, without
+     depending on a third-party package that must be pre-installed
+   * AC-7: A failing Python script exists that writes more than 3 lines to stderr
+     before exiting non-zero (``heartbeat-venv-autodetect`` CR), to verify the
+     bounded (last-3-lines) stderr tail in the failure notification
 
 
 .. req:: Heartbeat Tree View Test Procedures

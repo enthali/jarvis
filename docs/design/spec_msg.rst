@@ -85,7 +85,7 @@ Message Queue Design Specifications
 .. spec:: Message Tree Data Provider
    :id: SPEC_MSG_TREEPROVIDER
    :status: implemented
-   :links: REQ_MSG_EXPLORER; REQ_MSG_DELETE; REQ_EXP_TREEVIEW; SPEC_MSG_QUEUESTORE
+   :links: REQ_MSG_EXPLORER; REQ_MSG_DELETE; REQ_EXP_TREEVIEW; SPEC_MSG_QUEUESTORE; SPEC_MSG_EDITORPLACEMENT
 
    **Description:**
    Class ``MessageTreeProvider`` in ``src/messageTreeProvider.ts`` implements
@@ -130,7 +130,13 @@ Message Queue Design Specifications
    **getTreeItem(element):**
 
    * ``SessionGroupNode`` → collapsible, label = ``"${destination} (${count})"``,
-     contextValue = ``'messageSession'`` (enables send button)
+     contextValue = ``'messageSession'`` (enables send button).
+     **``ui-improvements`` CR**: ``item.command`` is now set, invoking a new
+     handler that resolves ``element.destination`` via
+     ``lookupSessionUUID()`` and opens the chat at Main via ``openAtMain``
+     (``SPEC_MSG_EDITORPLACEMENT``, same helper already used by
+     ``jarvis.openAgentSession`` and ``jarvis.sendMessages``) — previously
+     no command was set (label click only expanded/collapsed).
    * ``MessageLeafNode`` → non-collapsible, label = truncated text (max 80 chars),
      contextValue = ``'messageItem'`` (enables trash button)
    * ``EmptyNode`` → non-collapsible, label = ``"nothing to deliver"``
@@ -1418,7 +1424,7 @@ Message Queue Design Specifications
 .. spec:: Editor-Group Placement Helper
    :id: SPEC_MSG_EDITORPLACEMENT
    :status: approved
-   :links: REQ_MSG_EDITORPLACEMENT; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_PINNED
+   :links: REQ_MSG_EDITORPLACEMENT; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_PINNED; SPEC_MSG_TREEPROVIDER
 
    **Description:**
    A set of helper functions in ``extension.ts`` computing the three
@@ -1535,7 +1541,43 @@ Message Queue Design Specifications
    * ``openAtMain``/``openAtDocs``/``openAtSecondary`` replace ad-hoc
      ``vscode.open(uri, { preview: false })`` calls at their respective call
      sites (``SPEC_ENT_AGENTSESSION``, ``SPEC_ENT_ENTITY_FILE_CHILDREN``,
-     ``SPEC_MSG_AUTODELIVER_POLL``) — see each spec's updated handler.
+     ``SPEC_MSG_AUTODELIVER_POLL``, ``SPEC_MSG_SENDCOMMAND``,
+     ``SPEC_MSG_TREEPROVIDER``) — see each spec's updated handler.
+
+   **New call site (``ui-improvements`` CR): Messages tree group-node click**
+
+   ``SessionGroupNode``'s ``TreeItem.command`` (previously unset,
+   ``SPEC_MSG_TREEPROVIDER``) is bound to a new command that opens the
+   session's chat at Main, mirroring ``jarvis.openAgentSession``'s and
+   ``jarvis.sendMessages``'s existing-session branches:
+
+   .. code-block:: typescript
+
+      vscode.commands.registerCommand(
+        'jarvis.openMessageSession',
+        async (node: SessionGroupNode) => {
+          const uuid = await lookupSessionUUID(node.destination);
+          if (!uuid) { return; } // no live session yet — nothing to open
+          const b64 = Buffer.from(uuid).toString('base64');
+          const uri = vscode.Uri.parse(`vscode-chat-session://local/${b64}`);
+          await openAtMain(uri, node.destination); // REQ_MSG_EDITORPLACEMENT AC-10
+        }
+      );
+
+   Registered in ``TreeItem.command`` (``SPEC_MSG_TREEPROVIDER``'s
+   ``getTreeItem()``), not via a ``view/item/context`` menu entry — same
+   pattern as the entity tree's click-to-chat binding
+   (``REQ_ENT_ENTITY_TREECLICK``), not a right-click action.
+
+   **Design note:** if no session UUID resolves (the destination has no
+   live chat session yet — e.g. all messages are still queued and no
+   session has ever been opened for that destination), the handler is a
+   silent no-op rather than creating a new session. This differs
+   deliberately from ``jarvis.openAgentSession``/``jarvis.sendMessages``,
+   which both create a fresh session on miss — a label click in the
+   Messages tree is a lower-intent, exploratory action (unlike explicitly
+   clicking "Play" to send), so silently doing nothing is preferred over
+   surprising the user with a brand-new chat session.
 
 
 .. spec:: Focus-Snapshot and Restore Helper

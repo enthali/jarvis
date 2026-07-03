@@ -25,7 +25,7 @@ Message Queue Requirements
    :id: REQ_MSG_EXPLORER
    :status: implemented
    :priority: optional
-   :links: US_MSG_CHATQUEUE; REQ_EXP_TREEVIEW
+   :links: US_MSG_CHATQUEUE; REQ_EXP_TREEVIEW; REQ_MSG_EDITORPLACEMENT
 
    **Description:**
    The Messages tree view SHALL display queued messages grouped by target session
@@ -40,6 +40,13 @@ Message Queue Requirements
    * AC-3: Each child node SHALL display a truncated preview of the message text
    * AC-4: When the queue is empty, a single node with label ``nothing to deliver``
      SHALL be shown (per ``REQ_EXP_TREEVIEW`` AC-8)
+   * AC-5 (``ui-improvements`` CR): Clicking a session group node's label
+     SHALL open that session's chat at the Main placement target when a
+     live session already exists for that destination, or SHALL be a
+     silent no-op (no session created) otherwise — full behavior specified
+     by ``REQ_MSG_EDITORPLACEMENT`` AC-10. The node remains expandable
+     (AC-1) independent of this click binding, same pattern as
+     ``REQ_ENT_ENTITY_TREECLICK`` AC-4 for entity leaf nodes.
 
 .. req:: Send Messages to Chat Session
    :id: REQ_MSG_SEND
@@ -571,6 +578,21 @@ Message Queue Requirements
      the Play button is an active, user-initiated action, so the result
      SHALL land where the user is looking; only background automation
      (Auto-Delivery's poll loop) uses Secondary (AC-3).
+   * AC-10 (``ui-improvements`` CR): Clicking a session/actor group node's
+     label in the Messages tree (``SessionGroupNode``, the row itself —
+     not the inline Play button) SHALL open that session's chat at Main
+     (column 1, fixed) — the same target and close+reopen rule as AC-1/AC-9
+     — **only when a live chat session already exists** for that
+     destination (resolvable via ``REQ_MSG_SESSIONLOOKUP``). If no session
+     exists yet (the destination has only queued messages and no session
+     has ever been opened for it), the click SHALL be a silent no-op — it
+     SHALL NOT create a new session, unlike AC-1/AC-9's existing-or-create
+     behavior. Rationale: a label click is a lower-intent, exploratory
+     action, unlike explicitly clicking "Play" to send, so silently
+     creating a new chat session would be a surprising side effect.
+     Previously ``SessionGroupNode`` had no click command at all (label
+     click only expanded/collapsed the node's message children); this AC
+     adds one without changing the expand/collapse behavior itself.
 
 
 .. req:: Focus-Snapshot and Restore

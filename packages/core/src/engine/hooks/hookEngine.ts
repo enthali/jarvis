@@ -64,6 +64,10 @@ export class HookEngine {
 
     private _sink(event: HookEvent): void {
         const sid = event.sessionId ? ` session=${event.sessionId}` : '';
-        this.logger.info(`[Hook] ${event.eventName}${sid} — ${JSON.stringify(event.payload)}`);
+        // trace: full payload, unchanged from the original single-entry
+        // format — only visible when trace logging is explicitly enabled
+        this.logger.trace(`[Hook] ${event.eventName}${sid} — ${JSON.stringify(event.payload)}`);
+        // info: event name + session id only, no payload — default-visible
+        this.logger.info(`[Hook] ${event.eventName}${sid}`);
     }
 }

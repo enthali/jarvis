@@ -144,11 +144,24 @@ function spawnStep(
 ): Promise<ExecResult> {
     return new Promise(resolve => {
         const proc = cp.spawn(executable, args, { shell: false });
+        // Stderr tail capture (heartbeat-venv-autodetect CR, REQ_AUT_OUTPUT AC-5):
+        // bounded ring buffer of the last 3 stderr lines, folded into
+        // ExecResult.error on non-zero exit. Full stream still logged in
+        // full at debug level below — this buffer is memory-only.
+        const stderrTail: string[] = [];
         proc.stdout.on('data', (d: Buffer) => outputChannel.debug('[Heartbeat] stdout: ' + d.toString().trimEnd()));
-        proc.stderr.on('data', (d: Buffer) => outputChannel.debug('[Heartbeat] stderr: ' + d.toString().trimEnd()));
+        proc.stderr.on('data', (d: Buffer) => {
+            const text = d.toString().trimEnd();
+            outputChannel.debug('[Heartbeat] stderr: ' + text);
+            for (const line of text.split('\n')) {
+                stderrTail.push(line);
+                if (stderrTail.length > 3) { stderrTail.shift(); }
+            }
+        });
         proc.on('close', (code: number | null) => {
             if (code !== 0) {
-                resolve({ success: false, stepType, error: `exit ${code ?? 'null'}` });
+                const tail = stderrTail.join('\n');
+                resolve({ success: false, stepType, error: `exit ${code ?? 'null'}${tail ? '\n' + tail : ''}` });
             } else {
                 resolve({ success: true });
             }
@@ -162,6 +175,31 @@ function spawnStep(
 function resolveScriptPath(run: string, configDir: string): string {
     if (path.isAbsolute(run)) { return run; }
     return path.join(configDir, run);
+}
+
+// ---------------------------------------------------------------------------
+// Python interpreter resolution (SPEC_AUT_EXECUTOR, heartbeat-venv-autodetect CR,
+// REQ_AUT_JOBEXEC AC-1)
+// ---------------------------------------------------------------------------
+
+function resolvePythonInterpreter(): string {
+    const configured = vscode.workspace
+        .getConfiguration('python')
+        .get<string>('defaultInterpreterPath', '');
+    if (configured) { return configured; }
+
+    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    if (workspaceRoot) {
+        const candidates = process.platform === 'win32'
+            ? ['.venv/Scripts/python.exe', 'venv/Scripts/python.exe']
+            : ['.venv/bin/python', 'venv/bin/python'];
+        for (const rel of candidates) {
+            const candidate = path.join(workspaceRoot, rel);
+            if (fs.existsSync(candidate)) { return candidate; }
+        }
+    }
+
+    return 'python';
 }
 
 // ---------------------------------------------------------------------------
@@ -280,9 +318,7 @@ async function runStep(
     }
 
     if (step.type === 'python') {
-        const interp = vscode.workspace
-            .getConfiguration('python')
-            .get<string>('defaultInterpreterPath', '') || 'python';
+        const interp = resolvePythonInterpreter();
         return spawnStep(interp, [resolveScriptPath(step.run!, configDir)], outputChannel, 'python');
     }
 
@@ -561,7 +597,8 @@ export function activateHeartbeat(
     heartbeatTreeProvider.setJobs(scheduler.currentJobs);
     scheduler.setTreeProvider(heartbeatTreeProvider);
     const heartbeatView = vscode.window.createTreeView('jarvisHeartbeat', {
-        treeDataProvider: heartbeatTreeProvider
+        treeDataProvider: heartbeatTreeProvider,
+        showCollapseAll: true
     });
     context.subscriptions.push(heartbeatView);
 

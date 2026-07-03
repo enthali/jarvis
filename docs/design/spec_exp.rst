@@ -4,7 +4,7 @@ Explorer Design Specifications
 .. spec:: Extension Manifest & Activation
    :id: SPEC_EXP_EXTENSION
    :status: implemented
-   :links: REQ_EXP_ACTIVITYBAR, REQ_CFG_FOLDERPATHS, REQ_CFG_SCANINTERVAL, REQ_PRJ_FILTERPERSIST, REQ_EVT_EVENTFILTERPERSIST, REQ_ENT_OPENYAML, REQ_PRJ_NEWPROJECT, REQ_EVT_NEWEVENT, REQ_ENT_SCANREFRESH, REQ_EXP_FEATURETOGGLE, REQ_CFG_DEFAULTPATHS, REQ_ENT_CONTEXTACTIONS
+   :links: REQ_EXP_ACTIVITYBAR, REQ_CFG_FOLDERPATHS, REQ_CFG_SCANINTERVAL, REQ_PRJ_FILTERPERSIST, REQ_EVT_EVENTFILTERPERSIST, REQ_PRJ_NEWPROJECT, REQ_EVT_NEWEVENT, REQ_ENT_SCANREFRESH, REQ_EXP_FEATURETOGGLE, REQ_CFG_DEFAULTPATHS, REQ_ENT_CONTEXTACTIONS
 
    **Description:**
    The extension is scaffolded as a standard VS Code TypeScript extension.
@@ -196,6 +196,88 @@ Explorer Design Specifications
    * After filtering, ``FolderNode``\s with zero remaining children SHALL be excluded
      from the result (empty-branch pruning). This applies recursively — a
      ``FolderNode`` containing only pruned ``FolderNode``\s is itself pruned.
+
+
+.. spec:: Collapse All Title-Bar Button (All Tree Views)
+   :id: SPEC_EXP_COLLAPSEALL
+   :status: approved
+   :links: REQ_EXP_TREEVIEW; SPEC_EXP_PROVIDER; SPEC_ACT_TREE
+
+   **Description:**
+   Every ``vscode.window.createTreeView()`` call in the extension SHALL pass
+   ``showCollapseAll: true`` in its options object, adding VS Code's native
+   "Collapse All" title-bar button to each tree view
+   (``REQ_EXP_TREEVIEW`` AC-12, ``ui-improvements`` CR). Purely additive UI
+   convenience — no ``TreeDataProvider`` interface change, no new command,
+   no change to node content or click behavior.
+
+   **Call sites** (6 total, confirmed via repo-wide grep):
+
+   .. list-table::
+      :header-rows: 1
+      :widths: 30 35 35
+
+      * - View ID
+        - File
+        - Package
+      * - ``jarvisProjects``
+        - ``extension.ts`` (``vscode.window.createTreeView``)
+        - ``packages/pim``
+      * - ``jarvisEvents``
+        - ``extension.ts`` (``vscode.window.createTreeView``)
+        - ``packages/pim``
+      * - ``jarvisSessions``
+        - ``extension.ts`` (``vscode.window.createTreeView``)
+        - ``packages/core``
+      * - ``jarvisMessages``
+        - ``extension.ts`` (``vscode.window.createTreeView``)
+        - ``packages/core``
+      * - ``jarvisReminders``
+        - ``extension.ts`` (``vscode.window.createTreeView``)
+        - ``packages/core``
+      * - ``jarvisHeartbeat``
+        - ``apps/session/heartbeat.ts`` (``vscode.window.createTreeView``)
+        - ``packages/core``
+
+   **Example change** (representative — same pattern at all 6 sites):
+
+   .. code-block:: typescript
+
+      // Before:
+      const projectView = vscode.window.createTreeView('jarvisProjects', {
+          treeDataProvider: projectProvider
+      });
+
+      // After:
+      const projectView = vscode.window.createTreeView('jarvisProjects', {
+          treeDataProvider: projectProvider,
+          showCollapseAll: true
+      });
+
+   **Acceptance Criteria:**
+
+   1. All 6 ``createTreeView()`` call sites listed above pass
+      ``showCollapseAll: true``.
+   2. No other option on any ``createTreeView()`` call is changed.
+   3. VS Code's built-in "Collapse All" command (auto-provided by the
+      ``showCollapseAll`` option) requires no explicit command
+      registration or ``package.json`` contribution — it is a framework
+      feature, not a Jarvis command.
+   4. No tree view is newly created or removed by this spec — the 6 call
+      sites are exhaustive as of this CR; a future 7th tree view SHALL
+      also set ``showCollapseAll: true`` for consistency (not verifiable at
+      spec-review time, noted for future authors).
+
+   **Design notes:**
+
+   * ``showCollapseAll`` has no interaction with ``showCollapseAll``'s
+     sibling option ``canSelectMany`` or any other existing
+     ``createTreeView()`` option at any of the 6 sites — purely additive.
+   * VS Code renders the button automatically in the view's title bar
+     when 2+ top-level nodes are expandable; for trees with 0-1 expandable
+     root nodes the button may be visually absent per VS Code's own
+     rendering rules — this is standard VS Code behavior, not a defect in
+     this spec.
 
 
 .. spec:: Feature-Toggled Sidebar Views

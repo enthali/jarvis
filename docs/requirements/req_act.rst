@@ -151,7 +151,7 @@ Sessions Requirements
    :id: REQ_ACT_CONTEXTMENU
    :status: implemented
    :priority: required
-   :links: US_ACT_ACTORS
+   :links: US_ACT_ACTORS; REQ_ENT_ENTITY_CONTEXTMENU
 
    **Description:**
    Session tree leaf nodes (``contextValue: jarvisSession``) SHALL expose the same
@@ -159,8 +159,14 @@ Sessions Requirements
 
    **Acceptance Criteria:**
 
-   * AC-1: The context menu for a ``jarvisSession`` node SHALL contain **Open Context**
-     (``jarvis.openContext``, inline group).
+   * AC-1: The context menu for a ``jarvisSession`` node SHALL contain the
+     right-click **Open** / **Copy Path** / **Copy Full Path** entries per
+     ``REQ_ENT_ENTITY_CONTEXTMENU`` (entity-tree-context-menu CR). The
+     earlier **Open Context** entry (``jarvis.openContext``, inline group)
+     is **retired** — ``jarvis.openContext`` no longer exists (see
+     ``REQ_ACT_OPENCONTEXT``, ``REQ_ENT_OPENCONTEXT``); "Open" on a
+     ``jarvisSession`` node now invokes ``jarvis.openAgentSession``
+     (``REQ_ENT_ENTITY_CONTEXTMENU`` AC-2), not a dedicated context.md command.
    * AC-2: The context menu SHALL contain **Open Agent Session**
      (``jarvis.openAgentSession``, inline group).
    * AC-3: The context menu SHALL contain **Reveal in Explorer**
@@ -171,7 +177,8 @@ Sessions Requirements
      (``jarvis.openInTerminal``, context-actions group).
    * AC-6: All five command implementations are unchanged; only the
      ``when``-clauses in ``package.json`` are extended to include
-     ``viewItem == jarvisSession``.
+     ``viewItem == jarvisSession``. (Historical — AC-1's command has since
+     been retired per the note above; AC-2 through AC-5 remain accurate.)
 
 
 .. req:: Agent-Session Identity Prompt
@@ -201,25 +208,34 @@ Sessions Requirements
      and sessions — no per-kind divergence in wording structure.
 
 
-.. req:: openContext on Session Nodes
+.. req:: openContext on Session Nodes — Retired
    :id: REQ_ACT_OPENCONTEXT
    :status: implemented
    :priority: required
-   :links: US_ACT_ACTORS
+   :links: US_ACT_ACTORS; REQ_ENT_OPENCONTEXT
 
-   **Description:**
-   The existing ``jarvis.openContext`` command SHALL work on session tree nodes.
+   **Retired (entity-tree-context-menu CR):** ``jarvis.openContext`` is fully
+   retired (see ``REQ_ENT_OPENCONTEXT``) — the command no longer exists for
+   any entity kind, including sessions/actors. ``context.md`` on a
+   ``jarvisSession`` node is reachable via the entity's expandable file
+   children (``jarvis.openEntityFile``, ``REQ_ENT_ENTITY_FILE_CHILDREN``)
+   and the right-click "Open"/"Copy Path"/"Copy Full Path" menu
+   (``REQ_ENT_ENTITY_CONTEXTMENU``).
 
-   **Acceptance Criteria:**
+   **Historical Description** (kept for traceability): the ``jarvis.openContext``
+   command worked on session tree nodes, identically to project and event
+   nodes.
 
-   * AC-1: When invoked on a ``jarvisSession`` node, the command SHALL open the
-     ``context.md`` file located in the same folder as ``session.yaml``.
-   * AC-2: The file SHALL open in the editor (preview:false), analogous to the
-     behaviour for project and event nodes.
-   * AC-3: The ``jarvis.openContext`` command SHALL handle a session tree node
-     argument identically to a project node, dispatching on the ``folder``
-     property (verifiable by inspecting the tree item's
-     ``command.arguments[0]`` shape).
+   **Historical Acceptance Criteria:**
+
+   * AC-1: (historical) When invoked on a ``jarvisSession`` node, the command
+     opened the ``context.md`` file located in the same folder as
+     ``session.yaml``.
+   * AC-2: (historical) The file opened in the editor (``preview: false``),
+     analogous to the behaviour for project and event nodes.
+   * AC-3: (historical) The ``jarvis.openContext`` command handled a session
+     tree node argument identically to a project node, dispatching on the
+     ``folder`` property.
 
 
 .. req:: jarvis_createSession LM+MCP Tool
@@ -292,35 +308,41 @@ Sessions Requirements
    :id: REQ_ACT_TREECLICK
    :status: implemented
    :priority: required
-   :links: US_ENT_ENTITYPARITY; REQ_ACT_OPENCONTEXT
+   :links: US_ENT_ENTITYPARITY; REQ_ACT_OPENCONTEXT; REQ_ENT_ENTITY_CONTEXTMENU
 
    **Description:**
    The `jarvisSession` tree leaf node's primary action (single click) SHALL
-   open the agent-chat editor. Opening `context.md` remains reachable via the
-   existing inline `jarvis.openContext` icon — no dedicated command is
-   introduced for Actor nodes.
+   open the agent-chat editor. Opening `context.md` is reachable via the
+   entity's expandable file children and the right-click context menu (see
+   AC-2) — no dedicated command is introduced for Actor nodes.
 
    **Acceptance Criteria:**
 
    * AC-1: The `command` property of every `jarvisSession` `TreeItem` SHALL
      be bound to `jarvis.openAgentSession` (replacing the previous binding to
      `jarvis.openContext`).
-   * AC-2: The existing `jarvis.openContext` command (per `REQ_ACT_OPENCONTEXT`)
-     remains the inline `context.md` icon for `jarvisSession` nodes — the
-     same shared command used by Project and Event nodes. No separate
-     Actor-specific command exists or is introduced.
+   * AC-2: **Historical, superseded (entity-tree-context-menu CR):** an
+     earlier revision of this AC stated `jarvis.openContext` "remains the
+     inline `context.md` icon for `jarvisSession` nodes." `jarvis.openContext`
+     is now fully retired (`REQ_ACT_OPENCONTEXT`, `REQ_ENT_OPENCONTEXT`) —
+     `context.md` is reached via file children (`jarvis.openEntityFile`) and
+     the right-click Open/Copy Path/Copy Full Path menu
+     (`REQ_ENT_ENTITY_CONTEXTMENU`) instead. No separate Actor-specific
+     command exists or is introduced.
    * AC-3: Double-click on a session node SHALL exhibit the same behaviour as
      single click. This is satisfied by VS Code's default TreeView mapping and
      requires no explicit implementation; it SHALL be verified in UAT only.
-   * AC-4: All existing `view/item/context` menu entries for
-     `viewItem == jarvisSession` SHALL remain unchanged (`jarvis.openContext`,
-     `jarvis.openAgentSession`, `jarvis.revealInExplorer`,
-     `jarvis.revealInOS`, `jarvis.openInTerminal`).
-   * AC-5: `jarvis.openContext`'s missing-file behaviour is unchanged for
-     Actor nodes: it uses the same discovery-only resolution (direct hit →
-     sibling-folder search → picker → "not found" message) as Project and
-     Event nodes — no auto-creation of `context.md` occurs on any kind (see
-     `entity-open-context-cleanup` CR: `REQ_ENT_OPENCONTEXT` AC-2/AC-6).
+   * AC-4: **Historical, superseded (entity-tree-context-menu CR):** an
+     earlier revision of this AC asserted all existing `view/item/context`
+     menu entries for `viewItem == jarvisSession` "SHALL remain unchanged,"
+     listing `jarvis.openContext` among them. `jarvis.openContext`'s entry is
+     retired along with the command; the current menu entries are specified
+     by `REQ_ACT_CONTEXTMENU` and `REQ_ENT_ENTITY_CONTEXTMENU`.
+   * AC-5: **Historical, superseded (entity-tree-context-menu CR):**
+     `jarvis.openContext`'s missing-file discovery behaviour (described here
+     for Actor nodes, citing `entity-open-context-cleanup`'s
+     `REQ_ENT_OPENCONTEXT` AC-2/AC-6) is moot — the command itself no longer
+     exists. Kept for historical traceability only.
    * AC-6: Making the session node expandable (``collapsibleState = Collapsed``,
      per ``REQ_ENT_ENTITY_FILE_CHILDREN``) does not interfere with this
      binding — clicking the label still invokes ``jarvis.openAgentSession``;

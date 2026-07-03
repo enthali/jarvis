@@ -1,5 +1,5 @@
 name: "Documentation Engineer"
-agent: "syspilot.docu"
+agent: "Documentation Engineer"
 summary: >-
   Keeps internal and external documentation in sync with reality. Updates
   copilot-instructions.md, context.md, README, and methodology docs. Aligned

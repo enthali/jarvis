@@ -4,8 +4,13 @@
  * Validates SPEC_EXP_ENTITY_ICONS negative ACs:
  * - No jarvis.openRecording command in package.json or extension.ts
  * - No +recording contextValue suffix in tree providers
- * - Exactly 2 inline icons per entity kind (openContext, openYamlFile)
  * - when-clauses use anchored regex without +recording optional group
+ *
+ * Note: the original "exactly 2 inline icons (openContext, openYamlFile)"
+ * assertion was retired by the entity-tree-context-menu CR — both commands
+ * are now fully retired (SPEC_ENT_OPENCONTEXT_CMD / SPEC_ENT_OPENYAML_CMD),
+ * replaced by the right-click Open/Copy Path/Copy Full Path context menu
+ * (SPEC_ENT_ENTITY_CONTEXTMENU). See the updated AC-1..AC-3 block below.
  */
 import { describe, it, expect } from 'vitest';
 import * as fs from 'fs';
@@ -64,7 +69,11 @@ describe('SPEC_EXP_ENTITY_ICONS AC-6: no +recording contextValue', () => {
     }
 });
 
-// --- SPEC_EXP_ENTITY_ICONS AC-1/AC-2/AC-3: Exactly 2 inline icons ----------
+// --- SPEC_EXP_ENTITY_ICONS AC-1/AC-2/AC-3: entity inline icon count and order ----
+// Updated by entity-tree-context-menu CR: jarvis.openContext/jarvis.openYamlFile
+// are fully retired (SPEC_ENT_OPENCONTEXT_CMD/SPEC_ENT_OPENYAML_CMD) — there are
+// no longer any inline@N icons for session entity items. Reachable instead via
+// the right-click Open/Copy Path/Copy Full Path menu (SPEC_ENT_ENTITY_CONTEXTMENU).
 describe('SPEC_EXP_ENTITY_ICONS AC-1..AC-3: entity inline icon count and order', () => {
     const entityInlineItems: { command: string; group: string; when: string }[] =
         packageJson.contributes.menus['view/item/context'].filter(
@@ -73,24 +82,26 @@ describe('SPEC_EXP_ENTITY_ICONS AC-1..AC-3: entity inline icon count and order',
                 entry.when?.includes('jarvisSession')
         );
 
-    it('at least 2 inline icon entries for session entity items', () => {
-        expect(entityInlineItems.length).toBeGreaterThanOrEqual(2);
+    it('no inline@N icon entries remain for session entity items (openContext/openYamlFile retired)', () => {
+        expect(entityInlineItems.length).toBe(0);
     });
 
-    it('inline@1 is openContext ($(notebook))', () => {
-        const item = entityInlineItems.find(e => e.group === 'inline@1');
-        expect(item).toBeDefined();
-        expect(item!.command).toBe('jarvis.openContext');
+    it('jarvis.openContext is fully retired — no command declaration remains', () => {
+        const commands: { command: string }[] = packageJson.contributes.commands;
+        expect(commands.find(c => c.command === 'jarvis.openContext')).toBeUndefined();
     });
 
-    it('inline@2 is openYamlFile ($(go-to-file))', () => {
-        const item = entityInlineItems.find(e => e.group === 'inline@2');
-        expect(item).toBeDefined();
-        expect(item!.command).toBe('jarvis.openYamlFile');
+    it('jarvis.openYamlFile is fully retired — no command declaration remains', () => {
+        const commands: { command: string }[] = packageJson.contributes.commands;
+        expect(commands.find(c => c.command === 'jarvis.openYamlFile')).toBeUndefined();
     });
 
     it('when-clauses use anchored regex without +recording optional group', () => {
-        for (const item of entityInlineItems) {
+        const sessionItems: { when: string }[] =
+            packageJson.contributes.menus['view/item/context'].filter(
+                (entry: { when?: string }) => entry.when?.includes('=~ /^jarvisSession')
+            );
+        for (const item of sessionItems) {
             expect(item.when).not.toContain('+recording');
             expect(item.when).toMatch(/\$\/$/); // ends with $/ (anchored)
         }

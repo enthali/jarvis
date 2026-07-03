@@ -8,7 +8,7 @@ import * as path from 'path';
 import * as configPaths from './engine/core/configPaths';
 import { MessageTreeProvider, SessionGroupNode, MessageLeafNode } from './apps/session/messageTreeProvider';
 import { RemindersTreeProvider, ReminderNode } from './apps/session/remindersTreeProvider';
-import { KindDrivenScanner, LeafNode, TreeNode } from './engine/sessions/yamlScanner';
+import { KindDrivenScanner, LeafNode, TreeNode, FileNode, FolderNode } from './engine/sessions/yamlScanner';
 import { activateHeartbeat, HeartbeatScheduler, HeartbeatJob, HeartbeatStep } from './apps/session/heartbeat';
 import { JobNode } from './apps/session/heartbeatTreeProvider';
 import { JarvisEngine } from './engine/core/coreApi';
@@ -415,6 +415,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         const sessionView = vscode.window.createTreeView('jarvisSessions', {
             treeDataProvider: sessionTreeProvider,
             canSelectMany: false,
+            showCollapseAll: true,
         });
         context.subscriptions.push(sessionView);
         log.info('[CFG] Sessions feature enabled (via engine)');
@@ -438,12 +439,12 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     let remindersProvider: RemindersTreeProvider | undefined;
 
     if (cfg.get<boolean>('messages.enabled', true)) {
-        const messageView = vscode.window.createTreeView('jarvisMessages', { treeDataProvider: messageProvider });
+        const messageView = vscode.window.createTreeView('jarvisMessages', { treeDataProvider: messageProvider, showCollapseAll: true });
         context.subscriptions.push(messageView);
 
         if (cfg.get<boolean>('reminders.enabled', true)) {
             remindersProvider = new RemindersTreeProvider(resolveMessagesPath);
-            const remindersView = vscode.window.createTreeView('jarvisReminders', { treeDataProvider: remindersProvider });
+            const remindersView = vscode.window.createTreeView('jarvisReminders', { treeDataProvider: remindersProvider, showCollapseAll: true });
             context.subscriptions.push(remindersView);
         } else {
             log.info('[CFG] Reminders feature disabled');
@@ -470,12 +471,6 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     const rescanCommand = vscode.commands.registerCommand('jarvis.rescan', async () => {
         await kindDrivenScanner.rescan();
         log.info('[Scanner] manual rescan triggered');
-    });
-
-    // Open YAML command (SPEC_EXP_OPENYAML_CMD) — generic, used by any entity
-    const openYamlCommand = vscode.commands.registerCommand('jarvis.openYamlFile', (element: LeafNode) => {
-        const uri = vscode.Uri.file(element.id);
-        vscode.commands.executeCommand('vscode.open', uri);
     });
 
     // Context actions (SPEC_EXP_CONTEXTACTIONS) — generic, used by any entity
@@ -555,6 +550,21 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         }
     );
 
+    // Open message session command (SPEC_MSG_EDITORPLACEMENT / SPEC_MSG_TREEPROVIDER,
+    // ui-improvements CR) — clicking a SessionGroupNode's label opens that
+    // actor's chat at Main. Silent no-op if no live session exists yet
+    // (lower-intent than clicking Play, so no create-on-miss).
+    const openMessageSessionCommand = vscode.commands.registerCommand(
+        'jarvis.openMessageSession',
+        async (node: SessionGroupNode) => {
+            const uuid = await lookupSessionUUID(node.destination);
+            if (!uuid) { return; }
+            const b64 = Buffer.from(uuid).toString('base64');
+            const uri = vscode.Uri.parse(`vscode-chat-session://local/${b64}`);
+            await openAtMain(uri, node.destination);
+        }
+    );
+
     // Open session command (SPEC_MSG_OPENSESSION)
     const openSessionCommand = vscode.commands.registerCommand(
         'jarvis.openSession',
@@ -596,50 +606,6 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
                 const folder = entity.folder ?? path.dirname(element.id);
                 await openChatForEntity(entity.name, kind, folder, entity.agent);
             }
-        }
-    );
-
-    // Open context command (SPEC_ENT_OPENCONTEXT_CMD)
-    const openContextCommand = vscode.commands.registerCommand(
-        'jarvis.openContext',
-        async (element: LeafNode) => {
-            const folder = path.dirname(element.id);
-            const direct = path.join(folder, 'context.md');
-
-            if (fs.existsSync(direct)) {
-                await vscode.window.showTextDocument(vscode.Uri.file(direct), { preview: false });
-                return;
-            }
-
-            const found: string[] = [];
-            try {
-                for (const entry of fs.readdirSync(folder, { withFileTypes: true })) {
-                    if (!entry.isDirectory() || entry.name.startsWith('.')) { continue; }
-                    const candidate = path.join(folder, entry.name, 'context.md');
-                    if (fs.existsSync(candidate)) { found.push(candidate); }
-                }
-            } catch { /* fall through */ }
-
-            if (found.length === 1) {
-                await vscode.window.showTextDocument(vscode.Uri.file(found[0]), { preview: false });
-                return;
-            }
-
-            if (found.length > 1) {
-                const picked = await vscode.window.showQuickPick(
-                    found.map(p => ({
-                        label: path.relative(folder, p).replace(/\\/g, '/'),
-                        fullPath: p,
-                    })),
-                    { placeHolder: 'Multiple context.md found — pick one' }
-                );
-                if (picked) {
-                    await vscode.window.showTextDocument(vscode.Uri.file(picked.fullPath), { preview: false });
-                }
-                return;
-            }
-
-            vscode.window.showInformationMessage('No context.md found for this entity');
         }
     );
 
@@ -719,16 +685,76 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     // Open entity file command (SPEC_ENT_ENTITY_FILE_CHILDREN) — fail-open, no auto-creation
     const openEntityFileCommand = vscode.commands.registerCommand(
         'jarvis.openEntityFile',
-        async (node: { filePath: string }) => {
+        async (node: FileNode) => {
             const uri = vscode.Uri.file(node.filePath);
             try {
                 await vscode.workspace.openTextDocument(uri); // validates existence first
-                // Docs placement: fixed column 2, focus-in-place if already open
-                // elsewhere (SPEC_MSG_EDITORPLACEMENT)
-                await openAtDocs(uri);
+                if (path.basename(node.filePath) === 'context.md') {
+                    // ui-improvements CR: render context.md as Markdown preview
+                    // instead of the raw text editor. Exact-basename check, NOT
+                    // an extension check — the agent-file child is also .md
+                    // (*.agent.md) and must continue to open as raw text.
+                    // MECE finding fix: pass DOCS_COLUMN explicitly so the
+                    // preview still honors the Docs (column 2) placement
+                    // guarantee (REQ_MSG_EDITORPLACEMENT AC-2) on first open;
+                    // markdown.showPreview's own built-in behavior reuses an
+                    // already-open preview tab for the same file on subsequent
+                    // invocations (VS Code framework behavior, not custom logic).
+                    await vscode.commands.executeCommand('markdown.showPreview', uri, DOCS_COLUMN);
+                } else {
+                    // Docs placement: fixed column 2, focus-in-place if already open
+                    // elsewhere (SPEC_MSG_EDITORPLACEMENT)
+                    await openAtDocs(uri);
+                }
             } catch {
                 vscode.window.showWarningMessage(`Jarvis: Cannot open file: ${node.filePath}`);
             }
+        }
+    );
+
+    // Copy Path / Copy Full Path (SPEC_ENT_ENTITY_CONTEXTMENU) — shared path
+    // resolution helper for file-child nodes and entity root nodes.
+    function resolveCopyPaths(node: FileNode | LeafNode): { folder: string; full: string } {
+        if (node.kind === 'file') {
+            return { folder: path.dirname(node.filePath), full: node.filePath };
+        }
+        // Entity root (LeafNode): node.id is the convention file's absolute
+        // path (project.yaml/event.yaml/session.yaml) — the entity's own
+        // folder is its dirname; there is no separate "full path" for a
+        // root node, so both resolve to the folder.
+        const folder = path.dirname(node.id);
+        return { folder, full: folder };
+    }
+
+    const copyPathCommand = vscode.commands.registerCommand(
+        'jarvis.copyPath',
+        async (node: FileNode | LeafNode) => {
+            const { folder } = resolveCopyPaths(node);
+            await vscode.env.clipboard.writeText(folder);
+        }
+    );
+
+    const copyFullPathCommand = vscode.commands.registerCommand(
+        'jarvis.copyFullPath',
+        async (node: FileNode | LeafNode) => {
+            const { full } = resolveCopyPaths(node);
+            await vscode.env.clipboard.writeText(full);
+        }
+    );
+
+    // Copy File Name (file-child nodes only, SPEC_ENT_ENTITY_CONTEXTMENU, ui-improvements CR)
+    const copyFileNameCommand = vscode.commands.registerCommand(
+        'jarvis.copyFileName',
+        async (node: FileNode) => {
+            await vscode.env.clipboard.writeText(path.basename(node.filePath));
+        }
+    );
+
+    // Copy Category Name (folder/category nodes, SPEC_ENT_ENTITY_CONTEXTMENU, ui-improvements CR)
+    const copyCategoryNameCommand = vscode.commands.registerCommand(
+        'jarvis.copyCategoryName',
+        async (node: FolderNode) => {
+            await vscode.env.clipboard.writeText(node.name);
         }
     );
 
@@ -1133,18 +1159,21 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
 
     context.subscriptions.push(
         rescanCommand,
-        openYamlCommand,
         revealInExplorerCommand,
         revealInOSCommand,
         openInTerminalCommand,
         sendMessagesCommand,
+        openMessageSessionCommand,
         deleteMessageCommand,
         openHeartbeatJobCommand,
         openMessageFileCommand,
         openEntityFileCommand,
+        copyPathCommand,
+        copyFullPathCommand,
+        copyFileNameCommand,
+        copyCategoryNameCommand,
         openSessionCommand,
         openAgentSessionCommand,
-        openContextCommand,
         newSessionCommand,
         { dispose: () => void stopHookIntake() },
         checkForUpdatesCommand,

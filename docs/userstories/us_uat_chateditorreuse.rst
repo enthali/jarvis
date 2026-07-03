@@ -55,6 +55,12 @@ Chat Editor Reuse — Session Open User Acceptance Tests
      tab is open in a different column, and simple focus-in-place when it is
      already at Main (maps to REQ_MSG_EDITORPLACEMENT AC-9 / REQ_MSG_SEND
      AC-9 / T-9).
+   * AC-10: A test verifies that clicking a session/actor group node's
+     label in the Messages tree (not the Play button) opens that session's
+     chat at Main (column 1), mirroring the Play-button and Actor-tree-click
+     targets, and that no live session yet results in a silent no-op rather
+     than creating a new session (maps to REQ_MSG_EDITORPLACEMENT AC-10 /
+     REQ_MSG_EXPLORER AC-5 / T-10, ``ui-improvements`` CR).
 
    **Test Scenarios (summary):**
 
@@ -88,3 +94,9 @@ Chat Editor Reuse — Session Open User Acceptance Tests
      for a session open in a non-1 column → close+reopen at column 1; click
      Play again while already at Main → simple focus-in-place, no
      close+reopen. (SPEC_MSG_SENDCOMMAND)
+   * T-10: Messages tree group-node label click → Main — click a session
+     group node's label (not Play) for a session with a live chat open
+     elsewhere → close+reopen at column 1; click the label for a
+     destination with no live session yet → silent no-op, no new session
+     created. (SPEC_MSG_TREEPROVIDER, SPEC_MSG_EDITORPLACEMENT,
+     ``ui-improvements`` CR)

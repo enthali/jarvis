@@ -5,7 +5,7 @@ Chat Editor Reuse — Session Open UAT Requirements
    :id: REQ_UAT_CHATEDITORREUSE
    :status: implemented
    :priority: required
-   :links: US_UAT_CHATEDITORREUSE; REQ_ENT_AGENTSESSION; REQ_MSG_AUTODELIVER_POLL; REQ_MSG_EDITORPLACEMENT; REQ_MSG_SEND
+   :links: US_UAT_CHATEDITORREUSE; REQ_ENT_AGENTSESSION; REQ_MSG_AUTODELIVER_POLL; REQ_MSG_EDITORPLACEMENT; REQ_MSG_SEND; REQ_MSG_EXPLORER
 
    **Description:**
    Specifies the test data, workspace state, and per-AC verification criteria
@@ -37,6 +37,10 @@ Chat Editor Reuse — Session Open UAT Requirements
      (manual root, not Auto Delivery group) so the Play button is available;
      at least 2 columns must be open with the target session's chat tab
      open in a non-1 column for the close+reopen part of the check.
+   * For T-10, one session in the Messages tree SHALL have a live chat
+     already open (in a non-1 column, for the close+reopen check), and a
+     second destination SHALL have queued messages but no chat ever opened
+     for it (for the no-op-on-miss check).
    * Between scenarios, close any chat editors opened during the scenario and
      delete any session folders created under ``testdata/.jarvis/sessions/``
      that were not pre-existing, to reset state.
@@ -109,3 +113,20 @@ Chat Editor Reuse — Session Open UAT Requirements
      d. Queue a second message for the same session (now at Main). Click
         Play again and verify the existing column-1 tab is simply focused
         in place — no close+reopen, no second tab created.
+
+   * AC-10 (REQ_MSG_EDITORPLACEMENT AC-10 / REQ_MSG_EXPLORER AC-5 —
+     Messages group-node label click targets Main, ``ui-improvements`` CR):
+     For T-10, the tester SHALL:
+
+     a. Open a session's chat tab, manually move it to a column other than
+        1, then click that session's group-node **label** (not the Play
+        icon) in the Messages tree.
+     b. Verify the tab closes in its manually-moved column and reopens
+        fresh, focused, in column 1 — identical to the T-6/T-9 close+reopen
+        rule.
+     c. Click the group-node label again while already at Main and verify
+        simple focus-in-place (no close+reopen, no duplicate tab).
+     d. Click the group-node label for a destination with queued messages
+        but no chat session ever opened, and verify the click is a silent
+        no-op — no new chat editor is created, no error is shown, and the
+        node's expand/collapse behavior on subsequent clicks is unaffected.

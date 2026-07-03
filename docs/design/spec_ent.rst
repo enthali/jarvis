@@ -20,18 +20,25 @@ level).
    ``jarvis.openSessionContext`` command was retired as dead code by the
    ``entity-open-context-cleanup`` CR).
 
-.. spec:: Open YAML Command
+.. spec:: Open YAML Command — Retired
    :id: SPEC_ENT_OPENYAML_CMD
    :status: implemented
-   :links: REQ_ENT_OPENYAML
+   :links: REQ_ENT_OPENYAML; SPEC_ENT_ENTITY_CONTEXTMENU
 
-   **Description:**
-   A command ``jarvis.openYamlFile`` opens the YAML file associated with a tree leaf item.
+   **Retired (entity-tree-context-menu CR, PM decision 2026-07-02):**
+   ``jarvis.openYamlFile`` is fully retired — the command registration, its
+   handler, and all ``package.json`` contributions are removed entirely, not
+   just its inline menu placement. The YAML file is reachable via the
+   entity's expandable file children (``jarvis.openEntityFile``,
+   ``REQ_ENT_ENTITY_FILE_CHILDREN``). Zero remaining callers confirmed
+   before retirement (verified via ``get_need_links.py``).
 
-   **Handler:**
+   **Historical description** (kept for traceability): a command
+   ``jarvis.openYamlFile`` opened the YAML file associated with a tree leaf
+   item.
 
-   The command receives the selected ``LeafNode`` as its argument (VS Code passes the
-   element from the ``TreeDataProvider`` when the inline action is triggered).
+   **Historical handler** (to be deleted from ``extension.ts`` by Dev
+   Engineer, not modified):
 
    .. code-block:: typescript
 
@@ -40,26 +47,15 @@ level).
           vscode.commands.executeCommand('vscode.open', uri);
       });
 
-   **Registration in package.json:**
+   **Removal (code, this CR):**
 
-   * ``contributes.commands``: ``jarvis.openYamlFile`` with title "Open YAML File"
-     and icon ``$(go-to-file)``
-   * ``contributes.menus.view/item/context``: two entries, both with ``group: "inline"``
-
-     .. code-block:: json
-
-        [
-          {
-            "command": "jarvis.openYamlFile",
-            "when": "viewItem == jarvisProject",
-            "group": "inline"
-          },
-          {
-            "command": "jarvis.openYamlFile",
-            "when": "viewItem == jarvisEvent",
-            "group": "inline"
-          }
-        ]
+   * ``src/extension.ts``: delete the ``jarvis.openYamlFile`` command
+     registration and its ``context.subscriptions.push(...)`` entry entirely.
+   * ``packages/core/package.json`` and ``packages/pim/package.json``: delete
+     the ``jarvis.openYamlFile`` entry from ``contributes.commands`` and its
+     ``view/item/context`` entries (already removed from the menu section by
+     the earlier revision of this CR; the ``contributes.commands`` entry
+     itself is what remains to be deleted).
 
 
 .. spec:: Open Agent Session Command
@@ -181,8 +177,10 @@ level).
 
    * ``contextValue`` uses namespaced values (``jarvisProject``, ``jarvisEvent``,
      ``jarvisFolder``) to prevent collisions with other extensions — the button
-     appears on all ``jarvisProject`` and ``jarvisEvent`` items alongside the
-     existing ``$(go-to-file)`` button
+     appears on all ``jarvisProject`` and ``jarvisEvent`` items and is now the
+     only inline icon on those items (entity-tree-context-menu CR retired the
+     ``$(go-to-file)``/``$(notebook)`` inline icons — see ``SPEC_ENT_OPENYAML_CMD``/
+     ``SPEC_ENT_OPENCONTEXT_CMD``)
    * No changes to ``yamlScanner.ts`` — uses existing ``entity.name`` from the
      entity store
    * ``openAtMain`` (``SPEC_MSG_EDITORPLACEMENT``) replaces the prior
@@ -657,16 +655,28 @@ level).
       ``TreeItem.command`` binding — no kind-specific branching.
 
 
-.. spec:: Uniform Inline Icons for All Entities
+.. spec:: Uniform Inline Icons for All Entities — Superseded
    :id: SPEC_ENT_ENTITY_ICONS
    :status: draft
-   :links: REQ_ENT_ENTITY_ICONS; SPEC_EXP_EXTENSION; SPEC_EXP_PROVIDER; SPEC_ENT_CONTEXTACTIONS
+   :links: REQ_ENT_ENTITY_ICONS; SPEC_EXP_EXTENSION; SPEC_EXP_PROVIDER; SPEC_ENT_CONTEXTACTIONS; SPEC_ENT_ENTITY_CONTEXTMENU
 
-   **Description:**
-   Every leaf node across all three entity types (project, event, actor) SHALL
-   display two inline icons: YAML and context.md. No recording icon is shown.
+   **Superseded (entity-tree-context-menu CR):** the two inline icons this
+   spec mandated (``$(go-to-file)`` → ``jarvis.openYamlFile``, ``$(notebook)``
+   → ``jarvis.openContext``) are retired — see ``SPEC_ENT_OPENYAML_CMD`` /
+   ``SPEC_ENT_OPENCONTEXT_CMD`` (both now fully retired, not just
+   inline-placement-removed) and ``SPEC_ENT_ENTITY_CONTEXTMENU`` (the
+   replacement right-click Open/Copy Path/Copy Full Path menu). **The
+   ``jarvis.openRecording``-removal content below (icon table's absence,
+   "Removed" section, ACs 4-6/9) is unrelated to this supersession and
+   remains in force** — that removal predates this CR and concerns a
+   different icon (``$(record)``), not the two retired here.
 
-   **Icon identifiers and commands:**
+   **Historical description** (kept for traceability, no longer enforced):
+   every leaf node across all three entity types (project, event, actor)
+   displayed two inline icons: YAML and context.md. No recording icon was
+   shown.
+
+   **Historical icon identifiers and commands** (retired):
 
    .. list-table::
       :header-rows: 1
@@ -678,14 +688,15 @@ level).
         - Purpose
       * - YAML
         - ``$(go-to-file)``
-        - ``jarvis.openYaml``
-        - Opens the entity's convention YAML file
+        - ``jarvis.openYamlFile``
+        - (historical) Opened the entity's convention YAML file
       * - context.md
         - ``$(notebook)``
         - ``jarvis.openContext``
-        - Opens ``context.md`` in the entity's folder
+        - (historical) Opened ``context.md`` in the entity's folder
 
-   **Icon order** (left to right in the tree item inline area):
+   **Historical icon order** (left to right in the tree item inline area,
+   no longer applicable — no inline icons remain):
 
    ``$(notebook)`` → ``$(go-to-file)``
 
@@ -717,7 +728,9 @@ level).
    Where ``baseContextValue`` is ``jarvisProject``, ``jarvisEvent``, or
    ``jarvisSession`` depending on the entity kind. No suffix logic.
 
-   **Manifest entries** (``package.json`` ``contributes.menus.view/item/context``):
+   **Historical manifest entries** (``package.json``
+   ``contributes.menus.view/item/context`` — both entries retired, see
+   ``SPEC_ENT_OPENYAML_CMD``/``SPEC_ENT_OPENCONTEXT_CMD``):
 
    .. code-block:: json
 
@@ -736,20 +749,20 @@ level).
 
    **Acceptance Criteria:**
 
-   1. Every leaf node shows ``$(go-to-file)`` inline icon for opening the
-      entity YAML file.
-   2. Every leaf node shows ``$(notebook)`` inline icon for opening
-      ``context.md``.
-   3. Icon order (left to right): ``$(notebook)``, ``$(go-to-file)``.
+   1. (historical) Every leaf node showed a ``$(go-to-file)`` inline icon
+      for opening the entity YAML file.
+   2. (historical) Every leaf node showed a ``$(notebook)`` inline icon for
+      opening ``context.md``.
+   3. (historical) Icon order (left to right): ``$(notebook)``, ``$(go-to-file)``.
    4. The ``$(record)`` icon SHALL NOT appear on any entity tree item,
       regardless of whether a ``recording/`` subfolder exists.
    5. No ``jarvis.openRecording`` command exists in ``package.json`` or is
       registered at runtime.
    6. No ``+recording`` suffix is appended to any ``contextValue``.
-   7. All three entity kinds (project, event, actor) use the same icon set
-      — no kind-specific branching.
-   8. Actor nodes already have these icons; this spec extends the pattern to
-      project and event nodes.
+   7. (historical) All three entity kinds (project, event, actor) used the
+      same icon set — no kind-specific branching.
+   8. (historical) Actor nodes already had these icons; this spec extended
+      the pattern to project and event nodes.
    9. Start/stop recording inline icons (``jarvis.startRecording``,
       ``jarvis.stopRecording``) and active-recording highlight remain
       unchanged — this removal targets only the dead "Open Recording" icon.
@@ -914,9 +927,23 @@ level).
           const uri = vscode.Uri.file(node.filePath);
           try {
             await vscode.workspace.openTextDocument(uri); // validates existence first
-            // Docs placement: fixed column 2, focus-in-place if already open
-            // elsewhere (SPEC_MSG_EDITORPLACEMENT)
-            await openAtDocs(uri);
+            if (path.basename(node.filePath) === 'context.md') {
+              // ui-improvements CR: render context.md as Markdown preview
+              // instead of the raw text editor. Exact-basename check, NOT
+              // an extension check — the agent-file child is also .md
+              // (*.agent.md) and must continue to open as raw text.
+              // MECE finding fix: pass DOCS_COLUMN explicitly so the
+              // preview still honors the Docs (column 2) placement
+              // guarantee (REQ_MSG_EDITORPLACEMENT AC-2) on first open;
+              // markdown.showPreview's own built-in behavior reuses an
+              // already-open preview tab for the same file on subsequent
+              // invocations (VS Code framework behavior, not custom logic).
+              await vscode.commands.executeCommand('markdown.showPreview', uri, DOCS_COLUMN);
+            } else {
+              // Docs placement: fixed column 2, focus-in-place if already open
+              // elsewhere (SPEC_MSG_EDITORPLACEMENT)
+              await openAtDocs(uri);
+            }
           } catch {
             vscode.window.showWarningMessage(`Jarvis: Cannot open file: ${node.filePath}`);
           }
@@ -939,10 +966,12 @@ level).
    * ``contributes.menus.commandPalette``: hidden (``"when": "false"``) —
      reachable only via tree-item click, same pattern as
      ``jarvis.openHeartbeatJob`` (``SPEC_EXP_HEARTBEAT_OPENFILE``).
-   * No ``view/item/context`` menu entries are added for
-     ``jarvisEntityFile`` — file children expose no context-menu actions in
-     this CR (right-click on a file child shows the default VS Code
-     tree-item context menu only, i.e. nothing custom).
+   * **Historical, superseded:** an earlier revision of this spec stated no
+     ``view/item/context`` menu entries were added for ``jarvisEntityFile``
+     in this CR. That has since changed — ``entity-tree-context-menu`` added
+     Open/Copy Path/Copy Full Path, and ``ui-improvements`` added Copy File
+     Name (see ``SPEC_ENT_ENTITY_CONTEXTMENU`` for the current, authoritative
+     menu contents).
 
    **Acceptance Criteria:**
 
@@ -967,7 +996,16 @@ level).
       the file at the fixed Docs column (column 2), focusing an already-open
       tab in place if the file is open elsewhere (``SPEC_MSG_EDITORPLACEMENT``),
       or shows a warning if the file does not exist. No file is created as a
-      side effect.
+      side effect. **Variant (``ui-improvements`` CR):** when the file is
+      ``context.md`` specifically (exact basename match), it opens via VS
+      Code's rendered Markdown preview (``markdown.showPreview``) instead of
+      the raw text editor, but the Docs-column (column 2) placement
+      guarantee (``REQ_MSG_EDITORPLACEMENT`` AC-2) still applies on first
+      open — the preview command is called with an explicit ``viewColumn``
+      argument. Reuse of an already-open preview tab for the same file on
+      subsequent invocations is VS Code's own built-in ``markdown.showPreview``
+      behavior, not custom Jarvis logic. All other file children (YAML,
+      agent-file) are unaffected by this variant.
    8. File child tooltip shows the full absolute path with forward slashes.
    9. File child ``contextValue`` is ``jarvisEntityFile`` (distinct from
       ``jarvisProject`` / ``jarvisEvent`` / ``jarvisSession`` / ``jarvisFolder``)
@@ -1081,26 +1119,211 @@ level).
    **Disposables** pushed to ``context.subscriptions``.
 
 
-.. spec:: Open Context File Command
-   :id: SPEC_ENT_OPENCONTEXT_CMD
+.. spec:: Entity Tree Context Menu — Open / Copy Path / Copy Full Path
+   :id: SPEC_ENT_ENTITY_CONTEXTMENU
    :status: draft
-   :links: REQ_ENT_OPENCONTEXT; REQ_ACT_OPENCONTEXT; SPEC_ENT_OPENYAML_CMD; SPEC_ENT_AGENTSESSION; SPEC_EXP_EXTENSION
+   :links: REQ_ENT_ENTITY_CONTEXTMENU; SPEC_ENT_ENTITY_FILE_CHILDREN; SPEC_ENT_AGENTSESSION; SPEC_EXP_EXTENSION
 
    **Description:**
-   A single command ``jarvis.openContext`` resolves and opens the
-   ``context.md`` file associated with a project, event, **or actor** leaf
-   item using a 3-step discovery process. This is the one shared command
-   for all 3 entity kinds — there is no per-kind variant
-   (``jarvis.openSessionContext`` was retired in the
-   ``entity-open-context-cleanup`` CR; see ``SPEC_ACT_TREECLICK``). If no
-   file is found, an information message is shown; the command never
-   creates a file as a side effect.
+   Register ``jarvis.copyPath``, ``jarvis.copyFullPath``, ``jarvis.copyFileName``,
+   and ``jarvis.copyCategoryName`` in ``extension.ts``, plus ``view/item/context``
+   bindings that add "Open" / "Copy Path" / "Copy Full Path" / "Copy File Name"
+   (file children only) to the right-click menu of file-child nodes
+   (``jarvisEntityFile``) and entity root nodes (``jarvisProject``,
+   ``jarvisEvent``, ``jarvisSession``), plus a separate single-entry "Copy"
+   menu for folder/category nodes (``jarvisFolder``, ``ui-improvements`` CR).
+   "Open" reuses existing commands (``jarvis.openEntityFile`` for file
+   children, ``jarvis.openAgentSession`` for root nodes) — no new "Open"
+   command is introduced.
 
-   **Handler:**
+   **Path resolution helper** (shared by both new commands):
 
-   The command receives the selected ``LeafNode`` as its argument (VS Code
-   passes the element from the ``TreeDataProvider`` when the inline action is
-   triggered).
+   .. code-block:: typescript
+
+      /** Resolves the containing folder (Copy Path) and the full path
+       *  (Copy Full Path) for either a file-child node or an entity root
+       *  node. Root nodes have no filename, so both resolve to the same
+       *  folder path. */
+      function resolveCopyPaths(node: FileNode | LeafNode): { folder: string; full: string } {
+          if (node.kind === 'file') {
+              return { folder: path.dirname(node.filePath), full: node.filePath };
+          }
+          // Entity root (LeafNode): node.id is the convention file's absolute
+          // path (project.yaml/event.yaml/session.yaml) — the entity's own
+          // folder is its dirname; there is no separate "full path" for a
+          // root node, so both resolve to the folder.
+          const folder = path.dirname(node.id);
+          return { folder, full: folder };
+      }
+
+   **Handlers:**
+
+   .. code-block:: typescript
+
+      vscode.commands.registerCommand(
+        'jarvis.copyPath',
+        async (node: FileNode | LeafNode) => {
+          const { folder } = resolveCopyPaths(node);
+          await vscode.env.clipboard.writeText(folder);
+        }
+      );
+
+      vscode.commands.registerCommand(
+        'jarvis.copyFullPath',
+        async (node: FileNode | LeafNode) => {
+          const { full } = resolveCopyPaths(node);
+          await vscode.env.clipboard.writeText(full);
+        }
+      );
+
+   **Copy File Name handler** (file-child nodes only, ``ui-improvements`` CR):
+
+   .. code-block:: typescript
+
+      vscode.commands.registerCommand(
+        'jarvis.copyFileName',
+        async (node: FileNode) => {
+          await vscode.env.clipboard.writeText(path.basename(node.filePath));
+        }
+      );
+
+   **Copy Category Name handler** (folder/category nodes, ``ui-improvements`` CR):
+
+   .. code-block:: typescript
+
+      vscode.commands.registerCommand(
+        'jarvis.copyCategoryName',
+        async (node: FolderNode) => {
+          await vscode.env.clipboard.writeText(node.name);
+        }
+      );
+
+   **Registration in package.json:**
+
+   * ``contributes.commands``:
+
+     .. code-block:: json
+
+        [
+          { "command": "jarvis.copyPath", "title": "Copy Path" },
+          { "command": "jarvis.copyFullPath", "title": "Copy Full Path" },
+          { "command": "jarvis.copyFileName", "title": "Copy File Name" },
+          { "command": "jarvis.copyCategoryName", "title": "Copy" }
+        ]
+
+   * ``contributes.menus.view/item/context``: for the 3 root-node
+     ``contextValue`` patterns (``jarvisProject``, ``jarvisEvent``,
+     ``viewItem =~ /^jarvisSession$/``), 3 entries — Open, Copy Path, Copy
+     Full Path. For ``jarvisEntityFile``, 4 entries — Open, Copy Path, Copy
+     Full Path, **Copy File Name** (``ui-improvements`` CR addition). For
+     ``jarvisFolder``, a single entry — **Copy** (``jarvis.copyCategoryName``,
+     ``ui-improvements`` CR addition), in its own group since there is no
+     Open/Copy Path/Copy Full Path set for this node kind
+     (``REQ_ENT_ENTITY_CONTEXTMENU`` AC-7/AC-9):
+
+     .. code-block:: json
+
+        [
+          { "command": "jarvis.openEntityFile", "when": "viewItem == jarvisEntityFile", "group": "open" },
+          { "command": "jarvis.copyPath", "when": "viewItem == jarvisEntityFile", "group": "clipboard@1" },
+          { "command": "jarvis.copyFullPath", "when": "viewItem == jarvisEntityFile", "group": "clipboard@2" },
+          { "command": "jarvis.copyFileName", "when": "viewItem == jarvisEntityFile", "group": "clipboard@3" },
+
+          { "command": "jarvis.openAgentSession", "when": "viewItem == jarvisProject", "group": "open" },
+          { "command": "jarvis.copyPath", "when": "viewItem == jarvisProject", "group": "clipboard@1" },
+          { "command": "jarvis.copyFullPath", "when": "viewItem == jarvisProject", "group": "clipboard@2" },
+
+          { "command": "jarvis.openAgentSession", "when": "viewItem == jarvisEvent", "group": "open" },
+          { "command": "jarvis.copyPath", "when": "viewItem == jarvisEvent", "group": "clipboard@1" },
+          { "command": "jarvis.copyFullPath", "when": "viewItem == jarvisEvent", "group": "clipboard@2" },
+
+          { "command": "jarvis.openAgentSession", "when": "viewItem =~ /^jarvisSession$/", "group": "open" },
+          { "command": "jarvis.copyPath", "when": "viewItem =~ /^jarvisSession$/", "group": "clipboard@1" },
+          { "command": "jarvis.copyFullPath", "when": "viewItem =~ /^jarvisSession$/", "group": "clipboard@2" },
+
+          { "command": "jarvis.copyCategoryName", "when": "viewItem == jarvisFolder", "group": "clipboard@1" }
+        ]
+
+     The ``jarvisProject``/``jarvisEvent``/``jarvisFolder`` entries are
+     contributed by ``packages/pim/package.json``; the ``jarvisEntityFile``
+     and ``jarvisSession`` entries are contributed by
+     ``packages/core/package.json`` (matching the existing PIM/core split
+     for other shared commands, e.g. ``jarvis.openContext``, per
+     ``SPEC_ENT_OPENCONTEXT_CMD``'s design note). Note: ``jarvisFolder``
+     nodes appear in both the Projects/Events trees (PIM) and the Actors
+     tree (core) — Dev Engineer adds the ``jarvis.copyCategoryName`` entry
+     to **both** ``packages/pim/package.json`` and
+     ``packages/core/package.json`` (``viewItem == jarvisFolder`` in each),
+     mirroring how other folder-node-agnostic entries are duplicated across
+     the two packages. The ``jarvis.openEntityFile``/``jarvis.openAgentSession``
+     entries here are additive bindings on already-registered commands — no
+     new command registration for "Open".
+
+   * ``contributes.menus.commandPalette``: hide all four new commands (they
+     require a tree node argument):
+
+     .. code-block:: json
+
+        [
+          { "command": "jarvis.copyPath", "when": "false" },
+          { "command": "jarvis.copyFullPath", "when": "false" },
+          { "command": "jarvis.copyFileName", "when": "false" },
+          { "command": "jarvis.copyCategoryName", "when": "false" }
+        ]
+
+   **Design notes:**
+
+   * ``jarvis.openEntityFile`` and ``jarvis.openAgentSession`` are NOT
+     duplicated or re-implemented — this spec only adds new
+     ``view/item/context`` bindings for them; their handlers
+     (``SPEC_ENT_ENTITY_FILE_CHILDREN``, ``SPEC_ENT_AGENTSESSION``) are
+     unchanged, except for ``jarvis.openEntityFile``'s ``context.md``
+     rendered-preview branch — see ``SPEC_ENT_ENTITY_FILE_CHILDREN``'s
+     updated handler (``ui-improvements`` CR).
+   * Folder nodes (``contextValue == 'jarvisFolder'``) now show the
+     single-entry "Copy" menu (``jarvis.copyCategoryName``,
+     ``ui-improvements`` CR) instead of no menu at all — still excluded
+     from the Open/Copy Path/Copy Full Path/Copy File Name set
+     (``REQ_ENT_ENTITY_CONTEXTMENU`` AC-7).
+   * ``vscode.env.clipboard.writeText()`` is the standard VS Code clipboard
+     API — no OS-specific clipboard handling needed.
+   * Group naming (``open``, ``clipboard@1``/``clipboard@2``/``clipboard@3``)
+     follows the same numbered-suffix convention already used for
+     ``inline@1``/``inline@2`` elsewhere in this file — the ``@N`` suffix
+     controls order within a group, not the group's separation from others.
+   * This spec does not touch the existing ``context-actions`` group
+     (``SPEC_ENT_CONTEXTACTIONS`` — Reveal in Explorer/OS/Terminal); Open and
+     Copy Path/Full Path/File Name are visually separate menu sections.
+
+
+.. spec:: Open Context File Command — Retired
+   :id: SPEC_ENT_OPENCONTEXT_CMD
+   :status: draft
+   :links: REQ_ENT_OPENCONTEXT; REQ_ACT_OPENCONTEXT; SPEC_ENT_OPENYAML_CMD; SPEC_ENT_AGENTSESSION; SPEC_EXP_EXTENSION; SPEC_ENT_ENTITY_CONTEXTMENU
+
+   **Retired (entity-tree-context-menu CR, PM decision 2026-07-02):**
+   ``jarvis.openContext`` is fully retired — the command registration, its
+   handler, and all ``package.json`` contributions are removed entirely, not
+   just its inline menu placement. ``context.md`` is reachable via the
+   entity's expandable file children (``jarvis.openEntityFile``,
+   ``REQ_ENT_ENTITY_FILE_CHILDREN``). Zero remaining callers confirmed
+   before retirement (verified via ``get_need_links.py``).
+
+   **Historical description** (kept for traceability): a single command
+   ``jarvis.openContext`` resolved and opened the ``context.md`` file
+   associated with a project, event, or actor leaf item using a 3-step
+   discovery process (direct hit → one-level subfolder search → QuickPick
+   if multiple matches → information message if none found). It was the
+   one shared command for all 3 entity kinds — there was no per-kind
+   variant (``jarvis.openSessionContext`` was retired in the
+   ``entity-open-context-cleanup`` CR; see ``SPEC_ACT_TREECLICK``). It
+   never created a file as a side effect (no auto-create — see
+   ``SPEC_ACT_TREECLICK``'s "Auto-create decision" for the rationale,
+   which remains a valid historical design decision independent of this
+   retirement).
+
+   **Historical handler** (to be deleted from ``extension.ts`` by Dev
+   Engineer, not modified — algorithm kept here for reference only):
 
    .. code-block:: typescript
 
@@ -1108,36 +1331,24 @@ level).
         'jarvis.openContext',
         async (element: LeafNode) => {
           const folder = path.dirname(element.id);
-
-          // Step 1: direct hit
           const direct = path.join(folder, 'context.md');
           if (fs.existsSync(direct)) {
             await vscode.window.showTextDocument(vscode.Uri.file(direct), { preview: false });
             return;
           }
-
-          // Step 2: one-level subfolder search (hidden folders excluded)
           const candidates: string[] = [];
           try {
             for (const entry of fs.readdirSync(folder, { withFileTypes: true })) {
               if (!entry.isDirectory() || entry.name.startsWith('.')) { continue; }
               const candidate = path.join(folder, entry.name, 'context.md');
-              if (fs.existsSync(candidate)) {
-                candidates.push(candidate);
-              }
+              if (fs.existsSync(candidate)) { candidates.push(candidate); }
             }
-          } catch {
-            // entity folder unreadable — fall through to "not found"
-          }
-
+          } catch { /* entity folder unreadable — fall through to "not found" */ }
           if (candidates.length === 1) {
-            // Step 2a: exactly one match — open without prompting
             await vscode.window.showTextDocument(vscode.Uri.file(candidates[0]), { preview: false });
             return;
           }
-
           if (candidates.length > 1) {
-            // Step 3: multiple matches — let user pick
             const items = candidates.map(c => ({
               label: path.relative(folder, c).replace(/\\/g, '/'),
               fullPath: c
@@ -1150,88 +1361,16 @@ level).
             }
             return;
           }
-
-          // Step 4: nothing found
           vscode.window.showInformationMessage('No context.md found for this entity');
         }
       );
 
-   **Registration in package.json:**
+   **Removal (code, this CR):**
 
-   * ``contributes.commands``: ``jarvis.openContext`` with title
-     "Jarvis: Open Context" and icon ``$(notebook)``
-
-     .. code-block:: json
-
-        {
-          "command": "jarvis.openContext",
-          "title": "Jarvis: Open Context",
-          "icon": "$(notebook)"
-        }
-
-   * ``contributes.menus.view/item/context``: two entries, both with
-     ``group: "inline"``
-
-     .. code-block:: json
-
-        [
-          {
-            "command": "jarvis.openContext",
-            "when": "viewItem == jarvisProject",
-            "group": "inline"
-          },
-          {
-            "command": "jarvis.openContext",
-            "when": "viewItem == jarvisEvent",
-            "group": "inline"
-          },
-          {
-            "command": "jarvis.openContext",
-            "when": "viewItem =~ /^jarvisSession$/",
-            "group": "inline@1"
-          }
-        ]
-
-   * ``contributes.menus.commandPalette``: hide from Command Palette (the
-     command requires a ``LeafNode`` argument and would fail without one)
-
-     .. code-block:: json
-
-        [
-          {
-            "command": "jarvis.openContext",
-            "when": "false"
-          }
-        ]
-
-   **Design notes:**
-
-   * Same inline-button pattern as ``SPEC_ENT_OPENYAML_CMD`` and
-     ``SPEC_ENT_AGENTSESSION`` — three icons will be shown on leaf nodes:
-     ``$(go-to-file)``, ``$(comment-discussion)``, and ``$(notebook)``
-   * The Project/Event menu entries are contributed by the PIM package
-     (``packages/pim/package.json``); the Actor (``jarvisSession``) entry is
-     contributed by the core package (``packages/core/package.json``). Both
-     invoke the same ``jarvis.openContext`` command registered once in core.
-   * ``fs.existsSync()`` is used synchronously for all existence checks — this
-     is acceptable because the subfolder count is small (project/event folders
-     typically contain fewer than 20 entries)
-   * ``fs.readdirSync`` with ``{ withFileTypes: true }`` avoids a second stat
-     call to determine whether an entry is a directory
-   * Hidden subfolders (names starting with ``.``) are excluded to avoid
-     scanning ``.git``, ``.vscode``, and similar tool directories
-   * Discovery is limited to exactly one level of depth — no recursion — to
-     keep the search predictable and fast
-   * The QuickPick label uses a forward-slash-normalised relative path so it
-     looks consistent on Windows and macOS (e.g. ``pm/context.md``)
-   * If the entity folder itself cannot be read (permissions, missing dir),
-     the ``readdirSync`` error is silently swallowed and the "not found"
-     info message is shown — no error dialog is raised
-   * The ``$(notebook)`` icon visually suggests "documentation" or "notes" and
-     is distinct from the existing icons
-   * No tree provider changes required — purely a command + menu contribution
-   * ``{ preview: false }`` is passed on every ``showTextDocument()`` call so
-     opening ``context.md`` never reuses/clobbers a preview tab, consistent
-     across all 3 entity kinds (entity-open-context-cleanup CR)
-   * No auto-creation of ``context.md`` occurs on any kind — see
-     ``SPEC_ACT_TREECLICK``'s "Auto-create decision" for the rationale
+   * ``src/extension.ts``: delete the ``jarvis.openContext`` command
+     registration and its ``context.subscriptions.push(...)`` entry entirely.
+   * ``packages/core/package.json`` and ``packages/pim/package.json``: delete
+     the ``jarvis.openContext`` entry from ``contributes.commands`` and its
+     ``commandPalette`` ``"when": "false"`` entry. Its ``view/item/context``
+     entries were already removed from the menu section by the earlier
+     revision of this CR.

@@ -2,7 +2,7 @@
   "name": "jarvis-pim",
   "displayName": "Jarvis PIM",
   "description": "Jarvis Personal Information Manager — projects, events, categories, tasks",
-  "version": "0.15.1",
+  "version": "0.15.2",
   "publisher": "enthali",
   "icon": "resources/jarvis-128.png",
   "engines": {
@@ -233,11 +233,16 @@
         }
       ],
       "view/item/context": [
-        { "command": "jarvis.openContext", "when": "viewItem =~ /^jarvis(Project|Event)$/", "group": "inline@1" },
-        { "command": "jarvis.openYamlFile", "when": "viewItem =~ /^jarvis(Project|Event)$/", "group": "inline@2" },
         { "command": "jarvis.revealInExplorer", "when": "viewItem =~ /^jarvis(Project|Event)$/", "group": "context-actions" },
         { "command": "jarvis.revealInOS", "when": "viewItem =~ /^jarvis(Project|Event)$/", "group": "context-actions" },
         { "command": "jarvis.openInTerminal", "when": "viewItem =~ /^jarvis(Project|Event)$/", "group": "context-actions" },
+        { "command": "jarvis.openAgentSession", "when": "viewItem == jarvisProject", "group": "open" },
+        { "command": "jarvis.copyPath", "when": "viewItem == jarvisProject", "group": "clipboard@1" },
+        { "command": "jarvis.copyFullPath", "when": "viewItem == jarvisProject", "group": "clipboard@2" },
+        { "command": "jarvis.openAgentSession", "when": "viewItem == jarvisEvent", "group": "open" },
+        { "command": "jarvis.copyPath", "when": "viewItem == jarvisEvent", "group": "clipboard@1" },
+        { "command": "jarvis.copyFullPath", "when": "viewItem == jarvisEvent", "group": "clipboard@2" },
+        { "command": "jarvis.copyCategoryName", "when": "viewItem == jarvisFolder", "group": "clipboard@1" },
         {
           "command": "jarvis.renameCategory",
           "when": "viewItem == jarvisCategory",

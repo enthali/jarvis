@@ -50,6 +50,8 @@ for each feature. Each file corresponds to one feature or change.
    us_uat_heartbeat_dest_valid
    us_uat_modular_install
    us_uat_entity_files_tree
+   us_uat_entity_contextmenu
+   us_uat_collapseall
 
 All UAT User Stories
 --------------------

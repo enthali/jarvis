@@ -1,5 +1,30 @@
 # Release Notes
 
+## v0.15.2 — Entity Context Menu, Log-Level Cleanup, UI Conveniences & venv Autodetect
+
+*2026-07-03*
+
+### Features
+
+- **entity-tree-context-menu**: Removes the 2 inline icon buttons (`jarvis.openContext`, `jarvis.openYamlFile`) on Project/Event/Actor root tree nodes — redundant since `entity-files-tree` already exposes these as file children. Adds a right-click context menu (Open / Copy Path / Copy Full Path) on both file-children nodes and entity root nodes, giving quick access to absolute filesystem paths.
+  *(US_ENT_ENTITYPARITY; US_ENT_ENTITY_FILES_TREE; US_ENT_OPENCONTEXT)*
+
+- **ui-improvements**: Five additive tree-view conveniences — copy category name from grouping nodes; "Copy File Name" entry on file-child nodes; `context.md` now opens in VS Code's rendered Markdown preview instead of raw text; "Collapse All" title-bar button on all 6 Jarvis tree views; clicking a session/actor group node's label in the Messages tree now opens that actor's chat at Main.
+
+### Fixes
+
+- **heartbeat-venv-autodetect**: Fixes GitHub Issue #20 — Python heartbeat steps now auto-detect a workspace virtual environment (`.venv`/`venv`) before falling back to bare `python` on PATH, fixing silent failures caused by the system interpreter lacking project dependencies. Failure notifications now include a stderr tail so the real error (e.g. `ModuleNotFoundError`) is visible without opening the debug-level output channel.
+  *(US_AUT_HEARTBEAT)*
+
+### Infrastructure
+
+- **hook-log-level-reduction**: Hook event logging at the default `info` level is reduced to event-name-only (`[Hook] PreToolUse`); the full JSON payload moves to `trace` level, only visible when trace logging is explicitly enabled. Pure log-verbosity change, no functional impact.
+  *(REQ_HOOK_LOG; SPEC_HOOK_LOG)*
+
+- **repo hygiene**: Stopped tracking workspace-runtime/scratch files (`.jarvis/messages.json`, `.jarvis/heartbeat.yaml`, `testdata/.jarvis/{messages.json,autodelivery.json,heartbeat.yaml}`) — `.gitignore` + `git rm --cached` only, not a functional change.
+
+---
+
 ## v0.15.1 — collectLeaves() TreeNode Exhaustiveness Hotfix
 
 *2026-07-02*

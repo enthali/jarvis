@@ -7,6 +7,38 @@ Sortierung: jüngste oben.
 
 ---
 
+## FI-2026-07-03 — Actor Monitoring: Self-Reminder-Watchdog (statt Hook-basiert)
+
+**Trigger:** Dritter Vorfall eines hängenden Agenten (Nemotron via GH Copilot, „Response contained no choices" — LLM-Inferenz-Fehler). Hook-Log analysiert: Sequenz bricht nach dem letzten `PostToolUse` einfach ab, kein `Stop`-Hook.
+
+**Befund — Hooks decken diese Fehlerklasse strukturell nicht ab:** Der Fehler passiert **zwischen** Prompt und Antwort, auf LLM-Inferenz-Ebene (interner Copilot-Chat-Code, `_provideLanguageModelResponse`) — keiner der 8 Hook-Events (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, PreCompact, SubagentStart, SubagentStop, Stop) instrumentiert diese Schicht. Ein Hook-basierter Watchdog würde hier **nichts** sehen — nicht übersehen, sondern strukturell blind.
+
+**Bessere Idee (PM, 2026-07-03): Self-Reminder statt Hook-Detection.** Prozessunabhängig, nutzt nur bestehende Werkzeuge (`jarvis_setReminder`, `jarvis_cancelReminder`, dieselbe Delivery-Pipeline wie normale Messages — reitet auf der gestern validierten Editor-Group-Placement-Infrastruktur). Jeder Agent setzt sich **bei jedem SEND** einen Reminder, der später prüft, ob er selbst geantwortet hat:
+
+```
+[Jarvis Watchdog] Self-check: Did I already send a RESPOND to the last message I received?
+
+- If YES: do nothing — this reminder is stale.
+- If NO: set the next watchdog reminder now (in case this attempt stalls too), then resume my
+  job where I left off, complete it, and send the RESPOND — cancelling this reminder chain
+  once the RESPOND is sent.
+```
+
+**Doppelter Nutzen:**
+1. Der **hängende Agent selbst** bekommt durch die eigene Reminder-Nachricht potenziell den Reset-Kick aus dem gescheiterten Turn (neue eingehende Message → frischer Turn-Versuch, transienter Provider-Fehler vermutlich vorbei).
+2. **Wartende Agenten** (z.B. QM) merken über ihre eigene Reminder, dass eine erwartete RESPOND noch aussteht — unabhängig von der Ausfallursache beim Partner.
+
+**Verfeinerungen:**
+- **Nicht alle Hänger sind gleich (2026-07-03, zweiter Fund):** Lokales Modell (qwen3.6 27b) hängt aus einem anderen Grund — KV-Cache-Laden dauert länger als GH Copilots Timeout erlaubt. Das ist **nicht transient**, ein einzelner Reset-Kick reicht nicht, der nächste Versuch würde genauso timeouten. Ein einmaliger Reminder ist dafür zu schwach.
+- **Fix: Self-Renewing Chain statt Einmal-Reminder.** Im „NO"-Zweig setzt der Agent sofort den **nächsten** Watchdog-Reminder (bevor er die eigentliche Arbeit fortsetzt) — falls auch dieser Versuch hängt, greift der nächste. Die Kette bricht erst, wenn RESPOND tatsächlich gesendet wird.
+- Canceln bei erfolgreichem RESPOND ist damit wieder **notwendig** (nicht mehr nur optionale Effizienz) — sonst läuft die Kette nach Erledigung der Aufgabe einfach weiter.
+- „resume my job ... complete it ... send when done" statt „send RESPOND now" — verhindert eine hastige, unfertige Antwort; der Agent soll erst die eigentliche Arbeit fortsetzen.
+- Bleibt eine **Disziplin-Regel auf Orchestrierungs-Ebene** in `syspilot.orchestration-jarvis` (SEND/RESPOND-Vokabular-Skill) — hängt komplett an der SEND/RESPOND-Semantik, kein Jarvis-Kern-Thema.
+
+**Status:** ✅ **Live validiert (2026-07-03).** Test-Reminder an „Quality Manager" gesetzt (`jarvis_setReminder`, generisches Template s.o.). Während der Wartezeit trat *zufällig* ein echter Vorfall auf derselben Session ein — exakt dieselbe „Response contained no choices"-LLM-Inferenz-Fehlerklasse wie beim ursprünglichen Trigger. Der Reminder feuerte kurz danach; QM nahm die Arbeit direkt wieder auf (Dateien gelesen/editiert) — **vollständige Recovery**, kein manuelles Eingreifen nötig. Bestätigt beide Hypothesen: (1) Reset-Kick funktioniert, (2) generisches Template ohne Recipient/Task-Parameter liest sich sauber im Self-Check. Nächster Schritt: als Disziplin-Regel in `syspilot.orchestration-jarvis` verankern (siehe Verfeinerungen oben).
+
+---
+
 ## FI-2026-06-28 — Hook Engine (Jarvis Core) · Layer 1
 
 **Status:** MVP in Arbeit (`hook-engine-mvp`, observe/log-only). API verifiziert, MVP-Architektur steht (`.jarvis/hooks/` + HTTP-Listener, ephemeral Port).  

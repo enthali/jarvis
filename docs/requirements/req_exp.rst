@@ -52,6 +52,11 @@ Explorer Requirements
      expandable (``collapsibleState = Collapsed``) to show file children
      (see ``REQ_ENT_ENTITY_FILE_CHILDREN``). Expandability does not change
      leaf-node identity — AC-6 still applies unmodified.
+   * AC-12 (``ui-improvements`` CR): Every Jarvis tree view (Projects,
+     Events, Actors, Messages, Reminders, Heartbeat) SHALL show VS Code's
+     native "Collapse All" title-bar button (``showCollapseAll: true`` on
+     ``createTreeView()``). This is additive UI convenience only — no
+     change to tree content, node structure, or click behavior.
 
 
 .. req:: Static Dummy Data

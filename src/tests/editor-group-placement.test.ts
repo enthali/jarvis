@@ -60,10 +60,10 @@ describe('SPEC_MSG_EDITORPLACEMENT: placement helpers', () => {
         expect(handlerSlice).toContain('await openAtMain(uri, entity.name);');
     });
 
-    it('jarvis.openEntityFile calls openAtDocs', () => {
+    it('jarvis.openEntityFile calls openAtDocs (non-context.md branch)', () => {
         const idx = extensionSrc.indexOf("'jarvis.openEntityFile'");
         expect(idx).toBeGreaterThan(-1);
-        const handlerSlice = extensionSrc.slice(idx, idx + 800);
+        const handlerSlice = extensionSrc.slice(idx, idx + 1700);
         expect(handlerSlice).toContain('await openAtDocs(uri);');
     });
 

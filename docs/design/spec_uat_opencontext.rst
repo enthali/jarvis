@@ -6,7 +6,15 @@ Open Context UAT Design Specifications
    :status: approved
    :links: REQ_UAT_OPENCONTEXT_TESTDATA; SPEC_ENT_OPENCONTEXT_CMD
 
-   **Description:**
+   **Superseded by the ``entity-tree-context-menu`` CR (2026-07-02).** See
+   ``US_UAT_OPENCONTEXT`` for the full retirement rationale. Kept for
+   historical traceability; the test data and outcomes below describe
+   behavior of the now fully-retired ``jarvis.openContext`` command
+   (``SPEC_ENT_OPENCONTEXT_CMD`` — Retired) and are no longer executable
+   against current code. See ``SPEC_UAT_ENTITY_CONTEXTMENU`` for the
+   surviving right-click "Open"/"Copy Path"/"Copy Full Path" coverage.
+
+   **Description (historical):**
    A ``context.md`` test file is added to the ``alpha`` project testdata folder.
    Other project folders intentionally lack a ``context.md`` to support
    the missing-file test scenario without additional setup.

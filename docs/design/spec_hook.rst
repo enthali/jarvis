@@ -279,34 +279,56 @@ Hook Engine Design Specifications
    **Description:**
    The MVP's only sink logs each received ``HookEvent`` to the existing "Jarvis"
    ``LogOutputChannel`` (SPEC_DEV_LOGCHANNEL) with a ``[Hook]`` module tag. No
-   separate channel is created and no other action is taken.
+   separate channel is created and no other action is taken. At the default
+   ``info`` level only the event name (and session id) is logged; the full
+   payload is logged at ``trace`` level only (``hook-log-level-reduction`` CR
+   — reduces default-visible verbosity without losing full observability).
 
    **Log format:**
 
    .. code-block:: typescript
 
-      function logHookEvent(log: vscode.LogOutputChannel, e: HookEvent): void {
-          const sid = e.sessionId ? ` session=${e.sessionId}` : '';
-          log.info(`[Hook] ${e.eventName}${sid} â€” ${JSON.stringify(e.payload)}`);
+      private _sink(event: HookEvent): void {
+          const sid = event.sessionId ? ` session=${event.sessionId}` : '';
+          // trace: full payload, unchanged from the original single-entry
+          // format — only visible when trace logging is explicitly enabled
+          this.logger.trace(`[Hook] ${event.eventName}${sid} — ${JSON.stringify(event.payload)}`);
+          // info: event name + session id only, no payload — default-visible
+          this.logger.info(`[Hook] ${event.eventName}${sid}`);
       }
 
-   Example output:
+   Example output (``info`` level, default-visible):
 
    .. code-block:: text
 
-      [Hook] SessionStart session=abc-123 â€” {"hook_event_name":"SessionStart","cwd":"â€¦"}
-      [Hook] PostToolUse session=abc-123 â€” {"tool_name":"replace_string_in_file",â€¦}
+      [Hook] SessionStart session=abc-123
+      [Hook] PostToolUse session=abc-123
+
+   Example output (``trace`` level, only when trace logging is enabled):
+
+   .. code-block:: text
+
+      [Hook] SessionStart session=abc-123 — {"hook_event_name":"SessionStart","cwd":"…"}
+      [Hook] PostToolUse session=abc-123 — {"tool_name":"replace_string_in_file",…}
 
    **Acceptance Criteria:**
 
-   * AC-1: Each received ``HookEvent`` produces one log entry on the single "Jarvis"
+   * AC-1: Each received ``HookEvent`` produces one log entry at ``info`` level
+     and one at ``trace`` level, both on the single "Jarvis"
      ``LogOutputChannel`` with the ``[Hook]`` tag.
-   * AC-2: The entry includes the event name and the full payload so the delivered
-     data is observable; the session id is included when present.
-   * AC-3: The sink takes no other action â€” no bus dispatch, no triggered actions,
+   * AC-2: The ``info``-level entry includes the event name and session id
+     (when present) only — no payload. The ``trace``-level entry includes the
+     event name, session id (when present), and the full JSON payload — the
+     same content and format as the original single-entry implementation.
+   * AC-3: The sink takes no other action — no bus dispatch, no triggered actions,
      no memory injection, no per-session routing.
-   * AC-4: No new output channel is created â€” the "Jarvis" channel from
+   * AC-4: No new output channel is created — the "Jarvis" channel from
      ``SPEC_DEV_LOGCHANNEL`` is reused.
+   * AC-5: This is a pure log-level/verbosity split — no functional or
+     behavioral change. The method itself is ``HookEngine``'s private
+     ``_sink(event)`` (not a standalone ``logHookEvent()`` function as an
+     earlier revision of this spec described — corrected to match the actual
+     implementation in ``packages/core/src/engine/hooks/hookEngine.ts``).
 
 
 .. spec:: Hook Auto-Install Setting
