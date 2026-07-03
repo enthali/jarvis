@@ -257,16 +257,9 @@
       {
         "name": "jarvis_sendToSession",
         "displayName": "Send Message to Chat Session",
-        "modelDescription": "[DEPRECATED — use jarvis_sendMessage instead.] Queues a message for delivery to another VS Code chat session identified by name.",
+        "modelDescription": "Queues a message for delivery to another VS Code chat session identified by name.",
         "canBeReferencedInPrompt": true, "toolReferenceName": "sendToSession", "icon": "$(comment-discussion)",
         "inputSchema": { "type": "object", "required": ["session", "text"], "properties": { "session": { "type": "string" }, "senderSession": { "type": "string" }, "text": { "type": "string" } } }
-      },
-      {
-        "name": "jarvis_sendMessage",
-        "displayName": "Send Message",
-        "modelDescription": "Queues a text message for delivery to a destination identified by name. Valid destinations are VS Code chat session tabs AND YAML entity names (sessions, projects, events). senderSession is required and validated against the same set — callers must pass their own session name explicitly. Fails immediately with an error if the destination or sender does not exist.",
-        "canBeReferencedInPrompt": true, "toolReferenceName": "sendMessage", "icon": "$(mail)",
-        "inputSchema": { "type": "object", "required": ["session", "text", "senderSession"], "properties": { "session": { "type": "string", "description": "The exact name of the target (VS Code chat session title or YAML entity name)" }, "text": { "type": "string", "description": "The message text to queue" }, "senderSession": { "type": "string", "description": "Required: the exact name of the sending session — must not be omitted or inferred from the active tab" } } }
       },
       {
         "name": "jarvis_listSessions",
@@ -285,16 +278,9 @@
       {
         "name": "jarvis_readMessage",
         "displayName": "Read Message from Inbox",
-        "modelDescription": "[DEPRECATED — use jarvis_receiveMessage instead.] Reads and removes the oldest message from the Jarvis message queue for the given destination session.",
+        "modelDescription": "Reads and removes the oldest message from the Jarvis message queue for the given destination session.",
         "canBeReferencedInPrompt": true, "toolReferenceName": "readMessage", "icon": "$(mail-read)",
         "inputSchema": { "type": "object", "required": ["destination"], "properties": { "destination": { "type": "string" } } }
-      },
-      {
-        "name": "jarvis_receiveMessage",
-        "displayName": "Receive Message from Inbox",
-        "modelDescription": "Reads and removes the oldest message from the Jarvis inbox for the given destination session. Returns { message: { sender, text, timestamp } | null, remaining: number }. Call repeatedly until remaining === 0.",
-        "canBeReferencedInPrompt": true, "toolReferenceName": "receiveMessage", "icon": "$(mail-read)",
-        "inputSchema": { "type": "object", "required": ["destination"], "properties": { "destination": { "type": "string", "description": "The exact name/title of the chat session whose inbox to read" } } }
       },
       {
         "name": "jarvis_registerJob",

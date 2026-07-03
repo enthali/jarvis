@@ -382,15 +382,14 @@ Messaging User Stories
    :links: US_MSG_CHATQUEUE; US_MSG_LISTSESSIONS
 
    **As a** LLM agent or Jarvis User,
-   **I want** the send-message tool (``jarvis_sendToSession`` and its canonical
-   replacement ``jarvis_sendMessage``) to fail immediately with a descriptive
-   error when the destination session name is unknown,
+   **I want** the ``jarvis_sendToSession`` tool to fail immediately with a
+   descriptive error when the destination session name is unknown,
    **so that** I am never silently misled into believing a message was delivered
    when it was in fact lost in an unmonitored queue slot.
 
    **Acceptance Criteria:**
 
-   * AC-1: Invoking the send-message tool with a destination that does not
+   * AC-1: Invoking ``jarvis_sendToSession`` with a destination that does not
      exist causes the tool call to end in an error, not a success response
    * AC-2: The error message names the supplied destination and lists the
      currently valid destination names so the caller can immediately correct
@@ -406,38 +405,3 @@ Messaging User Stories
      session titles from ``state.vscdb``} ∪ {YAML entity names from the scanner
      (sessions, projects, events)}. A destination is valid if it appears in
      either subset.
-
-
-.. story:: Trustworthy Sender Attribution (Sender Validation)
-   :id: US_MSG_SENDER_REQUIRED
-   :status: draft
-   :priority: mandatory
-   :links: US_MSG_CHATQUEUE; US_MSG_SAFE_SEND
-
-   **As a** LLM agent, Jarvis User, or downstream consumer of the message log
-   (e.g. the Message Flow diagram),
-   **I want** the canonical send-message tool to require and validate an
-   explicit ``senderSession`` rather than falling back to whatever editor tab
-   happens to be active,
-   **so that** every queued message's recorded sender is trustworthy, and I am
-   never left debugging a misattributed message (e.g. ``sender:
-   "message-log.json"`` or ``sender: "Keyboard Shortcuts"``) caused by a
-   fallback that has nothing to do with the actual calling agent.
-
-   **Acceptance Criteria:**
-
-   * AC-1: Invoking the canonical send-message tool without a ``senderSession``
-     causes the tool call to end in an error, not a success response — there is
-     no active-tab fallback
-   * AC-2: Invoking the canonical send-message tool with a ``senderSession``
-     that does not match any valid destination/session name causes the tool
-     call to end in an error, not a success response
-   * AC-3: When ``senderSession`` is missing or invalid, no message is appended
-     to the queue (no side effect)
-   * AC-4: When ``senderSession`` is valid, all existing send behaviour is
-     unchanged — the message is queued with the correct sender, auto-delivery
-     continues to work, and the tool returns a success response as before
-   * AC-5: This requirement applies **only** to the new canonical tool. The
-     deprecated predecessor tool keeps its current (unfixed) active-tab
-     fallback behaviour unchanged until it is removed in a separate future
-     change (GH Issue #13)

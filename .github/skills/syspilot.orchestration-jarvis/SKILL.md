@@ -10,39 +10,23 @@ This is the **asynchronous** variant: SEND/RECEIVE map to Jarvis session
 messaging. It runs each orchestrating agent as its own persistent session.
 
 ## SEND
-Pass work to another agent. Always provide the **senderSession** parameter explicitly — do not rely on the active editor tab.
+Pass work to another agent. The installed variant decides whether this is asynchronous message delivery or a synchronous call
 
-```typescript
-jarvis_sendMessage({
-  senderSession: "<your session name>",
-  session: "<destination session>",
-  text: "<message>"
-})
 ```
-
-**Deprecated:** The old `jarvis_sendToSession` tool is still available but deprecated. It will be removed in a future release. Use `jarvis_sendMessage` instead.
+jarvis-core_sendToSession("<session>", "<message>")
+```
 
 ## RECEIVE
-Obtain the instructions that triggered this run — read from your inbox until remaining = 0.
+Obtain the instructions that triggered this run — a pending inbox message or the task the agent was started with.
 
-```typescript
-jarvis_receiveMessage({
-  destination: "<your session name>"
-})
 ```
-
-Returns `{ message: { sender, text, timestamp } | null, remaining: number }`. Call repeatedly until `remaining === 0`.
-
-**Deprecated:** The old `jarvis_readMessage` tool is still available but deprecated. It will be removed in a future release. Use `jarvis_receiveMessage` instead.
+jarvis-core_readMessage("<your session name>")
+```
 
 ## RESPOND
 
-Deliver your result to whoever sent you the triggering message. Always pass your session name explicitly as **senderSession**.
+Deliver your result to whoever sent you the triggering message:
 
-```typescript
-jarvis_sendMessage({
-  senderSession: "<your session name>",
-  session: "<original sender>",
-  text: "<result>"
-})
+```
+jarvis-core_sendToSession("<original sender>", "<result>")
 ```

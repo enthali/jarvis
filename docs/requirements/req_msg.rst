@@ -66,9 +66,7 @@ Message Queue Requirements
    * AC-3: The extension SHALL submit a single notification stub via
      ``workbench.action.chat.open({ query })`` informing the session about the
      number of pending messages and instructing it to read them via the
-     ``jarvis_receiveMessage`` tool (message-api-rename CR — was
-     ``jarvis_readMessage``; the underlying stub text is the same one governed
-     by ``REQ_MSG_NOTIFICATION_TEMPLATE`` AC-7)
+     ``jarvis_readMessage`` tool
    * AC-4: Messages SHALL remain in the queue after notification — the session
      is responsible for consuming them via ``REQ_MSG_READ``
    * AC-5: The Messages tree view SHALL refresh after send completes
@@ -252,15 +250,9 @@ Message Queue Requirements
 
 .. req:: Read Message LM Tool
    :id: REQ_MSG_READ
-   :status: deprecated
+   :status: implemented
    :priority: mandatory
    :links: US_MSG_CHATQUEUE; REQ_MSG_QUEUE
-
-   **Deprecated by:** ``REQ_MSG_RECEIVEMESSAGE`` (message-api-rename CR, rename
-   only — behaviour is otherwise identical). The tool stays registered and
-   fully functional; it is scheduled for removal in a separate future change
-   (GH Issue #13, earliest 2026-09-30). Only the deprecation-warning behaviour
-   below (AC-7) is added; no other AC changes.
 
    **Description:**
    The extension SHALL register a Language Model Tool that pops the oldest queued
@@ -280,11 +272,6 @@ Message Queue Requirements
    * AC-5: If no messages exist for the destination, the tool SHALL return
      ``{ message: null, remaining: 0 }``
    * AC-6: The Messages tree view SHALL refresh after each read
-   * AC-7: The tool's response SHALL include a deprecation warning (as an
-     additional field alongside the existing payload) pointing callers to
-     ``jarvis_receiveMessage``; the tool's ``modelDescription`` SHALL likewise
-     note the deprecation. This is the only behavioural change made to this
-     tool by the message-api-rename CR — AC-1 through AC-6 are unchanged.
 
 
 .. req:: Embedded MCP Server
@@ -928,7 +915,7 @@ Message Queue Requirements
    .. code-block:: text
 
       [Jarvis Message Service] You have ${count} new message(s) in your inbox.
-      Read them with the enthali.jarvis-core/receiveMessage tool (destination: "${destination}") until remaining = 0.
+      Read them with the enthali.jarvis-core/readMessage tool (destination: "${destination}") until remaining = 0.
 
    **Acceptance Criteria:**
 
@@ -946,12 +933,6 @@ Message Queue Requirements
      deliver-now command and the auto-delivery poll loop use identical logic
    * AC-6: The setting SHALL be read from VS Code configuration on each delivery
      call — no caching — so changes take effect without an extension restart
-   * AC-7: (message-api-rename CR) The built-in default text SHALL reference
-     ``jarvis_receiveMessage`` (the canonical tool) rather than the deprecated
-     ``jarvis_readMessage`` — this is a one-time default-text update; the
-     setting's substitution logic (AC-1 through AC-6) is otherwise unaffected.
-     Users with a customized (non-default) template are unaffected — the
-     built-in default only changes for users who have never overridden it.
 
 
 .. req:: Reminders Tree View
@@ -983,15 +964,9 @@ Message Queue Requirements
 
 .. req:: Send-to-Session LM / MCP Tool
    :id: REQ_MSG_SENDTOSESSION
-   :status: deprecated
+   :status: draft
    :priority: mandatory
    :links: US_MSG_SAFE_SEND; REQ_MSG_QUEUE; REQ_MSG_SESSIONLOOKUP; REQ_MSG_SESSIONFILTER
-
-   **Deprecated by:** ``REQ_MSG_SENDMESSAGE`` (message-api-rename CR). The tool
-   stays registered with its existing behaviour **unchanged, including the
-   active-tab sender-fallback bug** — it is scheduled for removal in a
-   separate future change (GH Issue #13, earliest 2026-09-30). Only the
-   deprecation-warning behaviour below (AC-8) is added; no other AC changes.
 
    **Description:**
    The extension SHALL register a Language Model Tool (and corresponding MCP
@@ -1029,11 +1004,6 @@ Message Queue Requirements
      (``activeTab?.label``), falling back to ``'unknown'``
    * AC-7b: (MCP path) When ``senderSession`` is absent, the sender defaults to
      ``'mcp-client'``
-   * AC-8: The tool's response SHALL include a deprecation warning (as an
-     additional field alongside the existing success payload) pointing callers
-     to ``jarvis_sendMessage``; the tool's ``modelDescription`` SHALL likewise
-     note the deprecation. This is the only behavioural change made to this
-     tool by the message-api-rename CR — AC-1 through AC-7b are unchanged.
 
 
 .. req:: Destination Validation Error Contract
@@ -1066,126 +1036,5 @@ Message Queue Requirements
      session titles joined with ``", "``; if the set is empty
      ``${names}`` is replaced by the literal string ``"(none)"``
    * AC-5: The error SHALL be raised as a JavaScript ``Error`` object so that
-     both the VS Code LM tool invocation and the MCP handler surface the
-     message text to the caller unchanged
-
-
-.. req:: Send Message LM / MCP Tool (Canonical)
-   :id: REQ_MSG_SENDMESSAGE
-   :status: draft
-   :priority: mandatory
-   :links: US_MSG_SAFE_SEND; US_MSG_SENDER_REQUIRED; REQ_MSG_QUEUE; REQ_MSG_SESSIONLOOKUP; REQ_MSG_SESSIONFILTER
-
-   **Description:**
-   The extension SHALL register a Language Model Tool (and corresponding MCP
-   Tool) named ``jarvis_sendMessage`` that queues a text message for delivery
-   to a named VS Code chat session. This is the canonical replacement for the
-   deprecated ``jarvis_sendToSession`` (``REQ_MSG_SENDTOSESSION``): it performs
-   the same destination validation, but additionally **requires** and
-   validates ``senderSession`` — there is no active-tab fallback.
-
-   **Acceptance Criteria:**
-
-   * AC-1: A Language Model Tool named ``jarvis_sendMessage`` SHALL be
-     registered via ``vscode.lm.registerTool`` (dual-registered as an MCP tool
-     via ``registerDualTool``) with ``canBeReferencedInPrompt: true``
-   * AC-2: The tool SHALL accept three input parameters: ``session`` (string,
-     required — the exact title of the target VS Code chat session or the name
-     of a YAML entity), ``text`` (string, required — the message body), and
-     ``senderSession`` (string, **required** — name of the originating session)
-   * AC-3: Before appending to the queue, the tool SHALL verify that
-     ``session`` is a member of the **valid destination set** — identical
-     semantics to ``REQ_MSG_SENDTOSESSION`` AC-5
-   * AC-4: If ``session`` is not in the valid destination set, the tool SHALL
-     throw an error (not return a success response); no message SHALL be
-     appended to the queue; the error message SHALL satisfy
-     ``REQ_MSG_DEST_ERROR``
-   * AC-5: If ``senderSession`` is missing or an empty string, the tool SHALL
-     throw an error (not return a success response); no message SHALL be
-     appended to the queue; the error message SHALL satisfy
-     ``REQ_MSG_SENDER_ERROR`` (missing case)
-   * AC-6: If ``senderSession`` is present but is not a member of the valid
-     destination set (``getValidDestinations()`` — same set used for
-     ``session``), the tool SHALL throw an error (not return a success
-     response); no message SHALL be appended to the queue; the error message
-     SHALL satisfy ``REQ_MSG_SENDER_ERROR`` (invalid case)
-   * AC-7: If both ``session`` and ``senderSession`` are valid, the tool SHALL
-     append the message to the queue via ``appendMessage`` using the supplied
-     ``senderSession`` verbatim as the ``sender`` field, and return a success
-     response; all existing queuing behaviour (auto-delivery, audit log, tree
-     refresh) SHALL be unaffected
-   * AC-8: The validation order SHALL be: destination first (AC-3/AC-4), then
-     sender (AC-5/AC-6) — a request with both an invalid destination and a
-     missing/invalid sender SHALL fail with the destination error
-
-
-.. req:: Receive Message LM / MCP Tool (Canonical)
-   :id: REQ_MSG_RECEIVEMESSAGE
-   :status: draft
-   :priority: mandatory
-   :links: US_MSG_CHATQUEUE; REQ_MSG_QUEUE
-
-   **Description:**
-   The extension SHALL register a Language Model Tool (and corresponding MCP
-   Tool) named ``jarvis_receiveMessage`` that pops the oldest queued message
-   for a given destination session. This is the canonical replacement for the
-   deprecated ``jarvis_readMessage`` (``REQ_MSG_READ``) — a rename only, with
-   no functional change.
-
-   **Acceptance Criteria:**
-
-   * AC-1: A Language Model Tool named ``jarvis_receiveMessage`` SHALL be
-     registered via ``vscode.lm.registerTool`` (dual-registered as an MCP tool
-     via ``registerDualTool``) with ``canBeReferencedInPrompt: true``
-   * AC-2: The tool SHALL accept a ``destination`` parameter (string)
-     identifying the target session name
-   * AC-3: The tool SHALL return a JSON object with ``message`` (containing
-     ``sender``, ``text``, ``timestamp``, or ``null`` if no messages) and
-     ``remaining`` (number of messages still queued for that destination)
-   * AC-4: The tool SHALL remove the returned message from the queue file
-     (pop-oldest semantics)
-   * AC-5: If no messages exist for the destination, the tool SHALL return
-     ``{ message: null, remaining: 0 }``
-   * AC-6: The Messages tree view SHALL refresh after each read
-   * AC-7: Behaviour SHALL be identical to ``REQ_MSG_READ`` in every respect
-     other than the tool name — no new parameters, no new response fields, no
-     deprecation warning (this is the canonical, non-deprecated tool)
-
-
-.. req:: Sender Validation Error Contract
-   :id: REQ_MSG_SENDER_ERROR
-   :status: draft
-   :priority: mandatory
-   :links: US_MSG_SENDER_REQUIRED; REQ_MSG_SENDMESSAGE; REQ_MSG_SESSIONFILTER
-
-   **Description:**
-   The error thrown by ``jarvis_sendMessage`` when ``senderSession`` is missing
-   or invalid SHALL be self-contained enough for the calling agent to correct
-   the invocation immediately, mirroring ``REQ_MSG_DEST_ERROR``'s contract for
-   the destination side.
-
-   **Acceptance Criteria:**
-
-   * AC-1: If ``senderSession`` is missing or an empty string, the error
-     message SHALL be exactly::
-
-        senderSession is required. Callers must explicitly provide their
-        session name — do not rely on the active editor tab.
-
-   * AC-2: If ``senderSession`` is present but not a member of the valid
-     destination set, the error message SHALL be::
-
-        Sender session "${senderSession}" does not exist.
-        Valid senders: ${names}
-
-     where ``${senderSession}`` is replaced by the supplied (invalid) name,
-     and ``${names}`` is replaced by the alphabetically sorted list of valid
-     session/entity names joined with ``", "``; if the set is empty
-     ``${names}`` is replaced by the literal string ``"(none)"``
-   * AC-3: The valid destination set used for sender validation SHALL be the
-     same ``getValidDestinations()`` union already defined by
-     ``REQ_MSG_SENDTOSESSION`` AC-5 — no separate sender-specific set is
-     introduced
-   * AC-4: The error SHALL be raised as a JavaScript ``Error`` object so that
      both the VS Code LM tool invocation and the MCP handler surface the
      message text to the caller unchanged
