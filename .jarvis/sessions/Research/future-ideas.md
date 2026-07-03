@@ -16,8 +16,7 @@ Sortierung: jüngste oben.
 **Bessere Idee (PM, 2026-07-03): Self-Reminder statt Hook-Detection.** Prozessunabhängig, nutzt nur bestehende Werkzeuge (`jarvis_setReminder`, `jarvis_cancelReminder`, dieselbe Delivery-Pipeline wie normale Messages — reitet auf der gestern validierten Editor-Group-Placement-Infrastruktur). Jeder Agent setzt sich **bei jedem SEND** einen Reminder, der später prüft, ob er selbst geantwortet hat:
 
 ```
-[Jarvis Watchdog] Self-check: Did I already send a RESPOND for my SEND to "<recipient>"
-(re: <task summary>)?
+[Jarvis Watchdog] Self-check: Did I already send a RESPOND to the last message I received?
 
 - If YES: do nothing — this reminder is stale.
 - If NO: resume my job where I left off, complete it, and send the RESPOND when done.
