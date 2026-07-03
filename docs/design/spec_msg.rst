@@ -1438,7 +1438,7 @@ Message Queue Design Specifications
    .. code-block:: typescript
 
       const MAIN_COLUMN = vscode.ViewColumn.One;
-      const DOCS_COLUMN = vscode.ViewColumn.Two;
+      const DOCS_COLUMN = vscode.ViewColumn.Two; // aka "Content" column (message-flow-diagram CR)
 
    **Secondary column resolution (the runaway-column and Main-collision bug fixes):**
 
@@ -1455,6 +1455,18 @@ Message Queue Design Specifications
           // column 2 the first time; once 2+ columns exist, Secondary
           // reuses the existing last column, letting Secondary sessions
           // stack as tabs within the same group once 3+ columns exist.
+          //
+          // message-flow-diagram CR: the diagram Webview Panel is not a
+          // chat tab (no lookupSessionUUID match) or a plain file tab (no
+          // .uri) — it is identified by viewType instead. It intentionally
+          // is NOT excluded from tabGroups.all.length here: it occupies
+          // column 2 (same as Docs/Content), so a workspace with only
+          // Main+Content open still reports groupCount 2 either way, and
+          // Math.max(2, ...) already floors at 2. No special-case filtering
+          // is needed as long as the diagram panel is always opened at the
+          // fixed CONTENT_COLUMN (REQ_MSG_EDITORPLACEMENT AC-11) rather than
+          // via resolveSecondaryColumn() itself — it must never be treated
+          // as a Secondary target.
           const groupCount = vscode.window.tabGroups.all.length;
           return Math.max(2, groupCount) as vscode.ViewColumn;
       }
@@ -1513,6 +1525,10 @@ Message Queue Design Specifications
               viewColumn,
           });
       }
+
+   The message-flow diagram Webview Panel (``SPEC_FLOW_WEBVIEW``) uses the
+   analogous ``vscode.window.createWebviewPanel(FLOW_VIEWTYPE, ..., DOCS_COLUMN, ...)``
+   — always the fixed column, never routed through ``resolveSecondaryColumn()``.
 
    **Secondary-target open (system delivery — focus-in-place if open anywhere, else last column):**
 

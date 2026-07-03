@@ -5,7 +5,7 @@ Chat Editor Reuse — Session Open User Acceptance Tests
    :id: US_UAT_CHATEDITORREUSE
    :status: implemented
    :priority: required
-   :links: US_ENT_AGENTSESSION; US_MSG_AUTODELIVERY; US_MSG_EDITORPLACEMENT
+   :links: US_ENT_AGENTSESSION; US_MSG_AUTODELIVERY; US_MSG_EDITORPLACEMENT; US_FLOW_CHORDVIEW
 
    **As a** Jarvis Test Engineer running in the Extension Development Host,
    **I want** a set of manual acceptance test scenarios for the
@@ -61,6 +61,12 @@ Chat Editor Reuse — Session Open User Acceptance Tests
      targets, and that no live session yet results in a silent no-op rather
      than creating a new session (maps to REQ_MSG_EDITORPLACEMENT AC-10 /
      REQ_MSG_EXPLORER AC-5 / T-10, ``ui-improvements`` CR).
+   * AC-11: A test verifies that the message-flow diagram Webview Panel
+     coexists with an already-open entity-doc tab in the same Content
+     column (rather than replacing it), and that opening the diagram does
+     not perturb Secondary-column placement for unrelated Actor sessions
+     (maps to REQ_MSG_EDITORPLACEMENT AC-11 / T-11, ``message-flow-diagram``
+     CR).
 
    **Test Scenarios (summary):**
 
@@ -100,3 +106,11 @@ Chat Editor Reuse — Session Open User Acceptance Tests
      destination with no live session yet → silent no-op, no new session
      created. (SPEC_MSG_TREEPROVIDER, SPEC_MSG_EDITORPLACEMENT,
      ``ui-improvements`` CR)
+   * T-11: Message-flow diagram Content-column coexistence — open the
+     diagram while an entity's ``context.md`` is already open in column 2
+     → diagram opens as a separate tab in the same column, existing doc tab
+     untouched; with only 2 columns open, an unrelated Secondary-target
+     delivery still resolves to column 2; with 3 columns open, it resolves
+     to the existing 3rd column — the diagram tab never miscounts as an
+     extra column. (SPEC_MSG_EDITORPLACEMENT, SPEC_FLOW_WEBVIEW,
+     ``message-flow-diagram`` CR)

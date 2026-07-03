@@ -78,6 +78,10 @@ Theme Abbreviations
    * - ``HOOK``
      - Hook Engine (agent lifecycle hook intake, dispatch foundation in jarvis-core)
      - ``US_HOOK_OBSERVE``, ``REQ_HOOK_INTAKE``, ``SPEC_HOOK_PROXY``
+   * - ``FLOW``
+     - Message Flow Visualization (separate add-on module, D3 chord diagram of
+       inter-agent message flow, Webview Panel editor tab)
+     - ``US_FLOW_CHORDVIEW``, ``REQ_FLOW_WEBVIEWPANEL``, ``SPEC_FLOW_CHORDRENDER``
    * - ``UAT``
      - User Acceptance Tests
      - ``US_UAT_SAMPLEDATA``, ``REQ_UAT_VALID_SAMPLES``

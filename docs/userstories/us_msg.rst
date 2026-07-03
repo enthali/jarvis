@@ -243,7 +243,10 @@ Messaging User Stories
      chat in a fixed Main column (column 1), regardless of where else it may
      currently be open.
    * AC-2: Opening a `context.md`/YAML/agent file from the entity tree always
-     opens/focuses it in a fixed Docs column (column 2).
+     opens/focuses it in a fixed Content column (column 2) — shared, since
+     the ``message-flow-diagram`` CR, with the message-flow diagram Webview
+     Panel (both are non-Main "read/reference" content and coexist as
+     separate tabs within the same column; see ``US_FLOW_CHORDVIEW``).
    * AC-3: A system-initiated delivery to a session with no open tab opens it
      in the current last-existing column (Secondary) — no runaway column
      creation, no manual configuration required.

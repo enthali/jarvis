@@ -113,3 +113,35 @@ Modular Delivery UAT Design Specifications
           bar, Output channel.
         - MCP server starts; ``jarvis.mcpPort`` setting present and visible;
           MCP status bar item appears.
+
+      * - T-10
+
+          Core + PIM + recorder WITHOUT flow: zero flow trace
+
+          *AC: REQ_MOD_ZEROTRACE 6*
+        - Host with core+pim+recorder (no ``enthali.jarvis-flow``). Open the
+          ``jarvisMessages`` view title bar and Command Palette.
+        - No diagram icon button on the view title bar, no
+          ``jarvis.openMessageFlow`` command in the palette, no "Message
+          Flow" webview can be opened.
+
+      * - T-11
+
+          Core + flow: diagram lights up
+
+          *AC: REQ_MOD_ADDONS 6*
+        - Host with core + ``enthali.jarvis-flow`` (no PIM, no recorder, no
+          MCP). Open the ``jarvisMessages`` view; click the diagram icon
+          button.
+        - Diagram icon button appears on the view title bar;
+          ``jarvis.openMessageFlow`` opens the "Message Flow" webview panel.
+
+      * - T-12
+
+          Flow add-on requires core
+
+          *AC: REQ_MOD_ADDONS 6*
+        - Attempt to activate ``enthali.jarvis-flow`` without
+          ``enthali.jarvis`` installed.
+        - ``extensionDependencies`` blocks activation without
+          ``enthali.jarvis``.

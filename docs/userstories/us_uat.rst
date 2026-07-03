@@ -52,6 +52,7 @@ for each feature. Each file corresponds to one feature or change.
    us_uat_entity_files_tree
    us_uat_entity_contextmenu
    us_uat_collapseall
+   us_uat_flow
 
 All UAT User Stories
 --------------------

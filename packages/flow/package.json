@@ -1,0 +1,59 @@
+{
+  "name": "jarvis-flow",
+  "displayName": "Jarvis Message Flow",
+  "description": "Jarvis Message Flow — interactive D3 chord-diagram visualization of inter-agent message traffic",
+  "version": "0.15.2",
+  "publisher": "enthali",
+  "icon": "resources/jarvis-128.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/enthali/Jarvis.git"
+  },
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "main": "./out/extension.js",
+  "extensionDependencies": [
+    "enthali.jarvis-core"
+  ],
+  "activationEvents": [
+    "onView:jarvisMessages"
+  ],
+  "categories": [
+    "Other"
+  ],
+  "scripts": {
+    "compile": "tsc -p ./",
+    "bundle": "node build.js && node webview-build.js",
+    "package": "vsce package --no-dependencies",
+    "vscode:prepublish": "npm run compile && npm run bundle"
+  },
+  "devDependencies": {
+    "@types/d3": "^7.4.3",
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "d3": "^7.9.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.5.0"
+  },
+  "dependencies": {
+    "jarvis-core": "*"
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "jarvis.openMessageFlow",
+        "title": "Jarvis: Open Message Flow",
+        "icon": "$(graph)"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        { "command": "jarvis.openMessageFlow", "when": "config.jarvis.messages.enabled == true" }
+      ],
+      "view/title": [
+        { "command": "jarvis.openMessageFlow", "when": "view == jarvisMessages", "group": "navigation@2" }
+      ]
+    }
+  }
+}

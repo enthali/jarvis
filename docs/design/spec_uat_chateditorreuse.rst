@@ -7,15 +7,17 @@ Chat Editor Reuse — Session Open UAT Design Specifications
    :links: REQ_UAT_CHATEDITORREUSE
 
    **Description:**
-   Step-by-step procedures and expected outcomes for all ten
-   ``chat-editor-reuse-on-session-open`` and ``editor-group-placement``
-   acceptance test scenarios, covering the existing-UUID regression guard,
-   fresh-editor creation via ``jarvis_createSession``, the UI "New Session"
-   command, successive new-session opens, the auto-delivery new-editor path,
-   the Main-target close+reopen rule, the Docs-target fixed column, the
-   already-open-anywhere rule, the Play-button's Main placement, and the
-   Messages tree group-node label click's Main placement + no-op-on-miss
-   behavior (``ui-improvements`` CR).
+   Step-by-step procedures and expected outcomes for all eleven
+   ``chat-editor-reuse-on-session-open``, ``editor-group-placement``, and
+   ``message-flow-diagram`` acceptance test scenarios, covering the
+   existing-UUID regression guard, fresh-editor creation via
+   ``jarvis_createSession``, the UI "New Session" command, successive
+   new-session opens, the auto-delivery new-editor path, the Main-target
+   close+reopen rule, the Docs-target fixed column, the already-open-
+   anywhere rule, the Play-button's Main placement, the Messages tree
+   group-node label click's Main placement + no-op-on-miss behavior
+   (``ui-improvements`` CR), and the message-flow diagram's Content-column
+   coexistence + Secondary-column exclusion (``message-flow-diagram`` CR).
 
    **Test Setup:**
 
@@ -40,6 +42,9 @@ Chat Editor Reuse — Session Open UAT Design Specifications
    * For T-10, one session in the Messages tree has a live chat already
      open (in a non-1 column), and a second destination has queued
      messages but no chat ever opened.
+   * For T-11, ``enthali.jarvis-flow`` is installed alongside the core; an
+     entity's ``context.md`` is already open in column 2 (Content) before
+     the scenario starts.
    * Note the number of open chat editor tabs before each scenario (baseline
      tab count).
    * Between scenarios: close any session-specific chat editors opened
@@ -349,3 +354,39 @@ Chat Editor Reuse — Session Open UAT Design Specifications
 
           *Clean up: close the* ``dev-feature-x`` *editor tab; clear the
           test message from the never-opened destination.*
+
+      * - T-11
+
+          Message-flow diagram Content-column coexistence
+
+          *CR AC: 11*
+
+          *Spec under test:* ``SPEC_MSG_EDITORPLACEMENT``, ``SPEC_FLOW_WEBVIEW``
+        - Precondition: ``alpha``'s ``context.md`` is already open in column
+          2 (Content). Only 2 editor columns are open.
+
+          Open the message-flow diagram (title-bar button or
+          ``jarvis.openMessageFlow``).
+
+          With the diagram now occupying a tab in column 2 (2 columns still
+          open total), trigger an auto-delivery to a Secondary-target
+          session with no live chat yet.
+
+          Then open a 3rd column (any unrelated file, "Split Editor"), and
+          trigger a second Secondary-target delivery to a different
+          never-opened destination.
+        - **Coexistence:** The diagram opens as a separate tab within
+          column 2 — the existing ``context.md`` tab is not closed, moved,
+          or replaced. Both tabs are visible in the column-2 tab bar.
+
+          **Secondary unperturbed at 2 columns:** The first auto-delivery
+          still resolves to column 2 (``Math.max(2, tabGroups.all.length)``
+          with 2 columns open) — the diagram's extra tab does not inflate
+          the column count.
+
+          **Secondary unperturbed at 3 columns:** With a 3rd column open,
+          the second auto-delivery resolves to the existing column 3 (the
+          true last column) — not miscounted due to the diagram tab.
+
+          *Clean up: close the diagram tab and any new chat editor tabs
+          opened for the Secondary-target deliveries.*

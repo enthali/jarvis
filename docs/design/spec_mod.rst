@@ -7,10 +7,11 @@ Modular Delivery Design Specifications
    :links: REQ_MOD_CORE; REQ_MOD_ADDONS
 
    **Description:**
-   The repository is an npm-workspaces monorepo producing three extension
-   packages plus shared internals. Internal module seams created before the
-   physical split match the future package boundaries, so no throwaway structure
-   is needed.
+   The repository is an npm-workspaces monorepo producing four extension
+   packages plus shared internals (``message-flow-diagram`` CR added
+   ``packages/flow`` as the fourth). Internal module seams created before
+   the physical split match the future package boundaries, so no throwaway
+   structure is needed.
 
    **Target layout:**
 
@@ -22,11 +23,12 @@ Modular Delivery Design Specifications
         pim/         -> enthali.jarvis-pim
         recorder/    -> enthali.jarvis-recorder
         mcp/         -> enthali.jarvis-mcp
+        flow/        -> enthali.jarvis-flow
         suite/       -> enthali.jarvis-suite  (extension pack)
 
    **Acceptance Criteria:**
 
-   * AC-1: ``npm run build`` builds all three packages in one invocation.
+   * AC-1: ``npm run build`` builds all packages in one invocation.
    * AC-2: Module boundaries (``engine`` / ``apps`` / ``shared``) align with the
      eventual package boundaries.
    * AC-3: Versioning is lockstep across the packages (the concrete version is
@@ -106,21 +108,46 @@ Modular Delivery Design Specifications
    * AC-4: When the recorder is not installed, none of its contributions exist.
 
 
-.. spec:: Suite Extension Pack
-   :id: SPEC_MOD_SUITE
-   :status: approved
-   :links: REQ_MOD_ADDONS
+.. spec:: Flow Package
+   :id: SPEC_MOD_FLOW_PKG
+   :status: draft
+   :links: REQ_FLOW_PACKAGE; REQ_MOD_ADDONS; REQ_MOD_ZEROTRACE; SPEC_REL_PKGCONTRACT
 
    **Description:**
-   ``enthali.jarvis-suite`` is an extension pack referencing core, PIM,
-   recorder, and MCP, offering a one-click "install everything" path. Individual
-   extensions remain independently installable.
+   ``packages/flow`` builds ``enthali.jarvis-flow`` with
+   ``extensionDependencies: ["enthali.jarvis-core"]``. On activation it
+   contributes a title-bar button to the core's existing ``jarvisMessages``
+   tree view (via a ``menus`` contribution keyed to that view id, not by
+   modifying the core's manifest) and a Webview Panel command. It reads
+   ``message-log.json`` directly from the workspace — it registers no new
+   engine tools and does not require PIM or the recorder.
 
    **Acceptance Criteria:**
 
-   * AC-1: Installing the pack installs all four extensions.
+   * AC-1: Manifest declares ``extensionDependencies: ["enthali.jarvis-core"]``.
+   * AC-2: The ``jarvis.openMessageFlow`` command and its title-bar button
+     are contributed entirely from this package's ``package.json``.
+   * AC-3: Functions with core alone (no PIM/recorder dependency).
+   * AC-4: When not installed, none of its contributions exist (per
+     ``REQ_MOD_ZEROTRACE`` AC-6).
+
+
+.. spec:: Suite Extension Pack
+   :id: SPEC_MOD_SUITE
+   :status: approved
+   :links: REQ_MOD_ADDONS; REQ_FLOW_PACKAGE
+
+   **Description:**
+   ``enthali.jarvis-suite`` is an extension pack referencing core, PIM,
+   recorder, MCP, and flow (``message-flow-diagram`` CR), offering a
+   one-click "install everything" path. Individual extensions remain
+   independently installable.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Installing the pack installs all five extensions.
    * AC-2: Each extension remains independently installable without the pack.
-   * AC-3: The build emits the pack alongside the four extension VSIXes.
+   * AC-3: The build emits the pack alongside the five extension VSIXes.
 
 
 .. spec:: MCP Package

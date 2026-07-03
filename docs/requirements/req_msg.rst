@@ -507,7 +507,7 @@ Message Queue Requirements
    :id: REQ_MSG_EDITORPLACEMENT
    :status: approved
    :priority: mandatory
-   :links: US_MSG_EDITORPLACEMENT; US_MSG_STABLESESSION; REQ_MSG_PINNED; REQ_MSG_SEND
+   :links: US_MSG_EDITORPLACEMENT; US_MSG_STABLESESSION; REQ_MSG_PINNED; REQ_MSG_SEND; REQ_FLOW_WEBVIEWPANEL
 
    **Description:**
    The extension SHALL place chat and entity-file editor tabs into one of
@@ -527,10 +527,11 @@ Message Queue Requirements
      newly created session is best-effort (``REQ_ENT_AGENTSESSION`` AC-7) —
      VS Code exposes no API to force the view column of a chat editor at
      creation time.
-   * AC-2: **Docs** target: view column 2 (fixed). Opening a `context.md`,
-     YAML config, or agent file from the entity tree
-     (``jarvis.openEntityFile``, per ``REQ_ENT_ENTITY_FILE_CHILDREN``) SHALL
-     open that file in column 2.
+   * AC-2: **Docs** target: view column 2 (fixed) — renamed **Content** by
+     the ``message-flow-diagram`` CR to reflect that it now hosts more than
+     entity docs (see AC-11). Opening a `context.md`, YAML config, or agent
+     file from the entity tree (``jarvis.openEntityFile``, per
+     ``REQ_ENT_ENTITY_FILE_CHILDREN``) SHALL open that file in column 2.
    * AC-3: **Secondary** target: the **last existing** view column at the
      time of the action (dynamic, not fixed) — used for delivering a
      message to a session with no currently-open tab. The column number
@@ -593,6 +594,22 @@ Message Queue Requirements
      Previously ``SessionGroupNode`` had no click command at all (label
      click only expanded/collapsed the node's message children); this AC
      adds one without changing the expand/collapse behavior itself.
+   * AC-11 (``message-flow-diagram`` CR): The message-flow diagram Webview
+     Panel (``REQ_FLOW_WEBVIEWPANEL``) SHALL also target the Content column
+     (AC-2) as a fixed target, coexisting with any already-open entity-doc
+     tab as a separate tab within the same column rather than replacing it.
+     Because a Webview Panel tab exposes neither ``lookupSessionUUID``
+     resolution (not a chat tab) nor a ``.uri`` (not a plain file tab), the
+     Secondary-column resolution helper (``resolveSecondaryColumn``) SHALL
+     recognize and exclude it (via its VS Code ``viewType``) from any group-
+     count logic used to compute the dynamic Secondary target, so that
+     opening the diagram panel never perturbs Secondary placement for
+     unrelated Actor sessions. Content-tab coexistence (docs + diagram
+     sharing column 2, and Secondary sharing column 2 when only 2 columns
+     are open) is documented for the user in the README's Explorer Sidebar
+     section rather than surfaced via a first-run in-app hint dialog — v1
+     scope decision, consistent with no other feature in this codebase
+     using first-run dialogs.
 
 
 .. req:: Focus-Snapshot and Restore

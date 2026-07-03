@@ -52,6 +52,7 @@ outcome tables** for each feature's acceptance tests.
    spec_uat_entity_files_tree
    spec_uat_entity_contextmenu
    spec_uat_collapseall
+   spec_uat_flow
 
 All UAT Specifications
 ----------------------

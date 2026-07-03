@@ -30,9 +30,9 @@ Modular Delivery Requirements
    :links: US_MOD_INSTALL
 
    **Description:**
-   PIM, the recorder, and MCP SHALL each be packaged as a separate extension
-   that depends on the core via ``extensionDependencies: ["enthali.jarvis"]``
-   and cannot activate without it.
+   PIM, the recorder, MCP, and the message-flow diagram SHALL each be packaged
+   as a separate extension that depends on the core via
+   ``extensionDependencies: ["enthali.jarvis"]`` and cannot activate without it.
 
    **Acceptance Criteria:**
 
@@ -47,6 +47,9 @@ Modular Delivery Requirements
      its kinds and tools through the contract.
    * AC-5: ``enthali.jarvis-mcp`` is a separate extension declaring
      ``extensionDependencies: ["enthali.jarvis"]``.
+   * AC-6 (``message-flow-diagram`` CR): ``enthali.jarvis-flow`` is a separate
+     extension declaring ``extensionDependencies: ["enthali.jarvis"]`` — see
+     ``REQ_FLOW_PACKAGE``.
 
 
 .. req:: Zero-Trace When Not Installed
@@ -75,6 +78,9 @@ Modular Delivery Requirements
    * AC-5: Persisted heartbeat jobs referencing add-on commands that are not
      registered SHALL degrade gracefully — the step is soft-skipped (warning
      logged, job continues), with no user-facing error notification.
+   * AC-6 (``message-flow-diagram`` CR): With ``enthali.jarvis-flow`` not
+     installed, no title-bar button, command, or webview it contributes
+     appears anywhere — same guarantee as AC-1 through AC-3 for PIM/recorder.
 
 
 .. req:: No Migration Across the Transition

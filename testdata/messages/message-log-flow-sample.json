@@ -1,0 +1,38 @@
+[
+  {
+    "destination": "Dev Engineer",
+    "sender": "Change Manager",
+    "text": "CR: kickoff message from 20 days ago",
+    "timestamp": "2026-06-13T13:23:56.734Z"
+  },
+  {
+    "destination": "Change Manager",
+    "sender": "Dev Engineer",
+    "text": "Ack, starting implementation",
+    "timestamp": "2026-06-14T13:23:56.734Z"
+  },
+  {
+    "destination": "Dev Engineer",
+    "sender": "Change Manager",
+    "text": "Any blockers?",
+    "timestamp": "2026-06-23T13:23:56.734Z"
+  },
+  {
+    "destination": "Change Manager",
+    "sender": "Dev Engineer",
+    "text": "None so far, on track",
+    "timestamp": "2026-06-24T13:23:56.734Z"
+  },
+  {
+    "destination": "Dev Engineer",
+    "sender": "Change Manager",
+    "text": "Great, ping me when ready for MECE",
+    "timestamp": "2026-07-02T13:23:56.734Z"
+  },
+  {
+    "destination": "Change Manager",
+    "sender": "Dev Engineer",
+    "text": "Ready for MECE/Trace review now",
+    "timestamp": "2026-07-03T12:23:56.734Z"
+  }
+]

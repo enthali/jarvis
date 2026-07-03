@@ -1,5 +1,35 @@
 # Project Manager — Jarvis
 
+## CR Queue (dispatch after message-flow-diagram merges)
+
+1. **sendtosession-required-sender** — Breaking change: `senderSession` on
+   `jarvis_sendToSession` becomes required + validated against
+   `getValidDestinations()`. Fixes wrong sender attribution in
+   message-log.json caused by active-tab fallback. Draft CD at
+   `docs/changes/sendtosession-required-sender.md` (locally committed, not
+   pushed yet). Error messages agreed with user:
+   - Missing → `"senderSession is required"`
+   - Invalid → `"Sender session \"${name}\" does not exist. Valid senders: ${list}"`
+
+2. **flow-time-lens** — Replaces the Fog-of-Time single fade slider (amends
+   SPEC_FLOW_CHORDRENDER) with a two-handle message-index range slider
+   ("lens": start = near/newest edge, end = far/oldest edge). Design agreed
+   with user:
+   - Ranks counted from true latest = rank 1, growing toward history.
+   - Start handle at rank 1 = live-tracking (auto-advances on poll); anywhere
+     else = anchored to that specific message, displayed rank grows as newer
+     messages arrive. End handle always anchored-to-message the same way.
+   - Default on open: start=rank 1, end=`min(loaded total, 500)`.
+   - Gradient fade preserved within [start,end], floor lowered 0.15 → 0.05.
+   - Drag tooltip shows the message's actual timestamp.
+   - "+500" button: increases the sliding-window cap by 500 per press
+     (500→1000→1500...), still slides at the new size (oldest drops off once
+     full). No auto-load-near-edge (flagged as a future idea, not v1).
+   - Dropped from original ask (deliberately, to keep scope small): no
+     day/hour/minute unit selector, no VS Code settings (max-range,
+     default-width, transparency config) — everything lives in the webview.
+   - No CD drafted yet — discussed with user, not yet written up.
+
 ## Working Principles
 
 - **Shared Git Workspace — Finger weg outside own folder while a CR runs**:
@@ -26,6 +56,17 @@
   common root cause (see `pim-treenode-filenode-fix`).
 - **No-Blame, Verify-Before-Send**: confirm shared understanding of a finding
   with the user before dispatching it into any process.
+- **Ask first, then communicate**: for any open design/scope decision flagged
+  back to PM (e.g. by CM/System Designer), ask the user FIRST and wait for
+  their answer — don't decide unilaterally and send it onward, even with
+  a seemingly-reasonable rationale. Mistake made 2026-07-03: decided
+  SPEC_MOD_SUITE (defer jarvis-flow from the suite pack) alone and sent it
+  to CM without asking; user's actual intent was the opposite (include it),
+  requiring a correction round-trip. Decisions with real product/scope
+  weight are the user's call, not PM's to make and announce.
+  **Why this matters beyond correctness**: every CM round-trip is slow
+  (full pipeline turn) — minimizing round-trips is itself a goal, so always
+  ask before dispatching rather than guess-then-correct later.
 - **context.md discipline**: keep this file short/scannable, stick-note style.
   Commit every change immediately (survives branch switches/corruption). Only
   keep what's relevant within ~2 weeks; larger topics → separate file with a
