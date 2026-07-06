@@ -27,9 +27,6 @@ If REQ/SPEC doesn't match the actual implementation, don't release — even if U
 ### CM is not a chore servant (2026-05-20)
 CM handles product changes and feature branches only. Repo housekeeping, session state refresh, .jarvis/ cleanup are PM's own responsibility or delegated to the relevant session directly.
 
-### .jarvis/ is per-installation private (2026-05-20)
-.jarvis/ belongs in .gitignore. Default configs go in resources/ + init logic on first start.
-
 ### Race condition in PM message threads (2026-05-22)
 Messages are queued; recipient works strictly serially. SUPERSEDES markers don't help (recipient reads the old one first and acts on it). Only defense: think carefully before sending. With parallel CM threads: read both fully, then send ONE consolidated reply.
 
