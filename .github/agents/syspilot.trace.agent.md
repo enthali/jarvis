@@ -2,8 +2,7 @@
 name: "Trace Engineer"
 agent: syspilot.trace
 description: "Subagent that traces one specification element vertically through all levels (US → REQ → SPEC) and checks traceability completeness."
-tools: [execute, read, enthali.jarvis-core, search]
-model: ['NVIDIA: Nemotron 3 Ultra (free) (openrouter)', 'Claude Haiku 4.5 (copilot)']
+model: Claude Haiku 4.5 (copilot)
 user-invocable: true
 agents: []
 ---
@@ -31,9 +30,16 @@ and read-only.
 3. **Link Validation** — Verify all `:links:` references resolve to
    existing specification elements
 4. **Semantic Consistency** — Check that the intent of a User Story is
-   faithfully represented in its linked Requirements and Design Specs
+   faithfully represented in its linked Requirements and Design Specs,
+   AND that any element's content agrees with every other element named
+   in its `:links:` field — including cross-references outside the
+   direct structural parent chain
 5. **Orphan Detection** — Find elements with no upward or downward links
-6. **Report Generation** — Produce a structured trace report with the
+6. **Modified-Element Re-verification** — When invoked on an element
+   that a change modified, check its content against all currently-linked
+   elements, not only links newly created by the same change — catching
+   drift where only one side of an existing link was updated
+7. **Report Generation** — Produce a structured trace report with the
    complete chain and any gaps found
 
 ## Workflow

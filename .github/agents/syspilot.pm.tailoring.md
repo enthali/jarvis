@@ -4,6 +4,22 @@
 
 GitHub Issues is the single source of truth for the backlog. No separate backlog file.
 
+## Change Initialization — GitHub Issue Reference
+
+If a Change Document addresses tracked GitHub issue(s), add a
+`**GitHub Issue(s)**:` line under the Summary section (e.g. `**GitHub
+Issue(s)**: #12, #13`). This lets the Release Engineer close those issues
+automatically when the change ships (see `syspilot.release.tailoring.md`).
+
+## CR-Merge-Time Checkpoint
+
+When a CR merges (workflow step 13), before moving on:
+- Comment on the GitHub issue(s) it addresses noting it merged to develop
+  and will ship in the next release (do not close yet — closure happens at
+  release time, see `syspilot.release.tailoring.md`).
+- Reflect on the roadmap: review Ideas/open GitHub Issues and pick the next
+  candidate for the queue.
+
 ## One CR at a Time
 
 Send one CR to CM, wait for merge confirmation, then send the next.

@@ -1,5 +1,8 @@
 # PM Lessons Learned
 
+### Release agent change-doc archival can leave duplicates (v0.14.0)
+Verify after release that archived change docs land only under `docs/changes/v{x.y.z}/`, not also duplicated at the `docs/changes/` root. Happened once (v0.14.0), cleaned up manually — check this every release until the release agent guards against it itself.
+
 ### Release agent only bumps root package.json — spec gap (2026-06-24)
 SPEC_REL_RELEASEACTION does not require bumping ALL workspace package.json files — only the root. In an npm monorepo, each sub-package (core, pim, recorder, mcp, core-gh) has its own version field. The release agent missed them all, CI built v0.11.2 VSIXs under the v0.12.0 tag. Fix: add an AC to SPEC_REL_RELEASEACTION requiring the version bump to cover every `packages/*/package.json` in the workspace.
 

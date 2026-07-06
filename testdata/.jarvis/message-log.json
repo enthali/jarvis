@@ -142,5 +142,65 @@
     "sender": "Project: Beta Rollout",
     "text": "Beta here — got your check-in. All good on our end. Standing by.",
     "timestamp": "2026-06-03T04:21:56.039Z"
+  },
+  {
+    "destination": "Session 2",
+    "sender": "Session 1",
+    "text": "ping",
+    "timestamp": "2026-07-03T16:53:55.525Z"
+  },
+  {
+    "destination": "Session 1",
+    "sender": "Session 2",
+    "text": "pong",
+    "timestamp": "2026-07-03T16:54:06.608Z"
+  },
+  {
+    "destination": "Session 2",
+    "sender": "Session 1",
+    "text": "ping",
+    "timestamp": "2026-07-03T16:55:46.636Z"
+  },
+  {
+    "destination": "Session 1",
+    "sender": "Session 2",
+    "text": "pong",
+    "timestamp": "2026-07-03T16:55:56.335Z"
+  },
+  {
+    "destination": "Session 1",
+    "sender": "Session 3",
+    "text": "Ping",
+    "timestamp": "2026-07-03T16:57:01.379Z"
+  },
+  {
+    "destination": "Session 2",
+    "sender": "Session 3",
+    "text": "Pong",
+    "timestamp": "2026-07-03T17:00:47.935Z"
+  },
+  {
+    "destination": "Session 2",
+    "sender": "Session 3",
+    "text": "ping",
+    "timestamp": "2026-07-03T17:48:40.798Z"
+  },
+  {
+    "destination": "Session 3",
+    "sender": "Session 2",
+    "text": "pong",
+    "timestamp": "2026-07-03T17:49:01.752Z"
+  },
+  {
+    "destination": "Session 1",
+    "sender": "Session 2",
+    "text": "ping",
+    "timestamp": "2026-07-03T17:49:43.977Z"
+  },
+  {
+    "destination": "Session 3",
+    "sender": "Session 1",
+    "text": "ping",
+    "timestamp": "2026-07-03T17:50:41.833Z"
   }
 ]
