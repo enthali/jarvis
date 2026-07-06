@@ -77,3 +77,28 @@ is further still just a discussion, not a design. Revisit when there's
 bandwidth for a real design pass (storage migration/back-compat shim,
 tree/search mechanics, per-kind filter placement, docs/naming-convention
 updates).
+
+## Migration Phasing (agreed 2026-07-06)
+
+Clarification first: "read-only" for old `.jarvis/sessions/`/`session.yaml`
+projects means the **naming convention** (folder/file name) is never
+auto-migrated — it does NOT mean the folder becomes generally unwritable.
+`context.md` and everything else inside it stays fully live/writable as
+today, forever, for old-named actors too.
+
+Four clean, independently testable CRs, done one at a time:
+
+1. **Terminology only** — UI labels, command titles, code identifiers,
+   spec language → "Actor" wherever purely cosmetic. No storage/path
+   change. Lowest risk, ships first.
+2. **Dual-path scanner** — scanner reads both `.jarvis/sessions/*/session.yaml`
+   (existing) and `.jarvis/actors/*/actor.yaml` (new), merging into one
+   logical actor list. "New Actor" creation command switches to writing
+   only the new convention. Old-named actors remain fully functional
+   forever — no forced migration, no end date.
+3. **Unified Entity Tree UI** — the actual "Jarvis Entities" single tree
+   with conditional category grouping, global search (mechanism TBD),
+   per-kind filters relocated onto the Projects/Events category nodes.
+4. **(Optional, not required)** manual "migrate this actor to the new
+   naming" command per actor (folder + file rename) — opt-in only, no
+   pressure to use it.
