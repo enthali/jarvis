@@ -7,11 +7,11 @@ Sessions Feature UAT Design Specifications
    :links: REQ_UAT_ACT_TREE; REQ_UAT_ACT_NEWENTITY; REQ_UAT_ACT_TOOL; REQ_UAT_ACT_TOGGLE; REQ_UAT_ACT_AGENTPROMPT
 
    **Description:**
-   Step-by-step procedures and expected outcomes for all ten sessions-feature
+   Step-by-step procedures and expected outcomes for all thirteen sessions-feature
    acceptance test scenarios, covering the Sessions tree view toggle, folder
    configuration, context file opening, context menu, new-entity session creation,
-   JSON schema validation, LM tool, MCP tool, tool-deregistration on disable, and
-   feature independence.
+   JSON schema validation, LM tool, MCP tool, tool-deregistration on disable,
+   feature independence, and the actor-terminology-rename UI-label verification.
 
    **Test Setup:**
 
@@ -154,3 +154,23 @@ Sessions Feature UAT Design Specifications
           the absolute path of ``context.md`` as an inline code span
           (backtick-quoted), and instructs the agent to read and update it.
           Repeat for a project node to verify ``You are the project "..."``.
+      * - T-12 (Actor terminology)
+        - With T-2 setup active, observe the Jarvis sidebar view title. Open
+          the Command Palette and search "actor". Open Settings
+          (``Ctrl+,``) and search ``jarvis.sessions``.
+        - Sidebar view title reads "Actors" (not "Sessions"). Command Palette
+          lists "Jarvis: New Actor" and "Jarvis: Open Actor Chat" (not "New
+          Session"/"Open Agent Session"). Settings UI group titled "Actors";
+          setting descriptions (e.g. ``jarvis.sessions.enabled``) use
+          "Actor" wording (e.g. "Enable the Actors feature").
+      * - T-13 (internal IDs unchanged)
+        - With T-12 setup active, hover the Settings gear icon for the
+          renamed setting and choose **Copy Setting ID**; inspect
+          ``package.json``'s ``contributes.views``/``contributes.commands``
+          entries for the view/command IDs; confirm the on-disk session
+          folder path.
+        - View ID is still ``jarvisSessions``; command IDs are still
+          ``jarvis.newSession``/``jarvis.openAgentSession``; setting key is
+          still ``jarvis.sessions.enabled``; storage path is still
+          ``testdata/.jarvis/sessions/`` — no internal identifier changed as
+          a side effect of the label rename.

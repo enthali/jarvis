@@ -76,7 +76,7 @@
       "jarvis-explorer": [
         {
           "id": "jarvisSessions",
-          "name": "Sessions",
+          "name": "Actors",
           "when": "config.jarvis.sessions.enabled == true"
         },
         {
@@ -103,9 +103,9 @@
       { "command": "jarvis.disableAutoDelivery", "title": "Disable Direct Delivery", "icon": "$(zap)" },
       { "command": "jarvis.deleteMessage", "title": "Jarvis: Delete Queued Message", "icon": "$(trash)" },
       { "command": "jarvis.openSession", "title": "Jarvis: Open Chat Session" },
-      { "command": "jarvis.openAgentSession", "title": "Jarvis: Open Agent Session", "icon": "$(comment-discussion)" },
+      { "command": "jarvis.openAgentSession", "title": "Jarvis: Open Actor Chat", "icon": "$(comment-discussion)" },
       { "command": "jarvis.newEntity", "title": "Jarvis: New Entity", "icon": "$(add)" },
-      { "command": "jarvis.newSession", "title": "Jarvis: New Session", "icon": "$(add)" },
+      { "command": "jarvis.newSession", "title": "Jarvis: New Actor", "icon": "$(add)" },
       { "command": "jarvis.checkForUpdates", "title": "Jarvis: Check for Updates" },
       { "command": "jarvis.rescan", "title": "Jarvis: Rescan", "icon": "$(refresh)" },
       { "command": "jarvis.runJob", "title": "Jarvis: Run Job", "icon": "$(play)" },
@@ -182,9 +182,9 @@
     },
     "configuration": [
       {
-        "title": "Sessions",
+        "title": "Actors",
         "properties": {
-          "jarvis.sessions.enabled": { "type": "boolean", "default": true, "description": "Enable the Sessions feature." }
+          "jarvis.sessions.enabled": { "type": "boolean", "default": true, "description": "Enable the Actors feature." }
         }
       },
       {

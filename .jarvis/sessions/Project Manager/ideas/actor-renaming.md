@@ -88,9 +88,18 @@ today, forever, for old-named actors too.
 
 Four clean, independently testable CRs, done one at a time:
 
-1. **Terminology only** — UI labels, command titles, code identifiers,
-   spec language → "Actor" wherever purely cosmetic. No storage/path
-   change. Lowest risk, ships first.
+1. **Terminology — human-facing strings** (`actor-terminology-rename`,
+   started 2026-07-06) — tree view title, command titles, settings UI
+   text → "Actor". No storage/path change, no internal identifier change.
+   Lowest risk, ships first.
+   - **1b (not yet scoped, discussion 2026-07-06):** internal code
+     identifiers with zero data-compat risk — view ID (`jarvisSessions`),
+     command IDs (`jarvis.newSession`), TypeScript class/type names. These
+     carry no on-disk backward-compat concern (nothing is persisted under
+     these names) — the only friction is a one-time reset of user
+     keybindings/view-collapse state. Deliberately kept OUT of CR 1
+     (human-facing strings only), but noted here as a natural, low-risk
+     follow-up — not folded silently into CR 1's scope.
 2. **Dual-path scanner** — scanner reads both `.jarvis/sessions/*/session.yaml`
    (existing) and `.jarvis/actors/*/actor.yaml` (new), merging into one
    logical actor list. "New Actor" creation command switches to writing
@@ -102,3 +111,17 @@ Four clean, independently testable CRs, done one at a time:
 4. **(Optional, not required)** manual "migrate this actor to the new
    naming" command per actor (folder + file rename) — opt-in only, no
    pressure to use it.
+5. **LM/MCP tool name rename (not yet scoped, discussion 2026-07-06)** —
+   any `jarvis_*` tool names still containing "Session" (e.g.
+   `listSessions`/`createSession`, if present) are where the *original*
+   agent-facing confusion actually lives (agents call tools, not UI
+   labels). This is a different kind of change from 1/1b — it needs the
+   same careful deprecation-cycle treatment as the `sendMessage`/
+   `receiveMessage` rename (soft warning → hard failure), not a silent
+   rename. Deserves its own explicit phase/CR, not bundled into any of
+   the above.
+
+Background note: the root cause of why this ambiguity still exists in code
+at all — `entity-taxonomy-rename` (v0.15.0) was explicitly scoped as
+"spec-only cleanup... no code changes," so the Session→Actor rename never
+reached the implementation layer until now.

@@ -59,7 +59,7 @@ Sessions Requirements
    :links: US_ACT_ACTORS
 
    **Description:**
-   A new TreeView ``jarvisSessions`` SHALL display all session entities.
+   A new TreeView ``jarvisSessions`` SHALL display all actor entities.
 
    **Acceptance Criteria:**
 
@@ -75,6 +75,22 @@ Sessions Requirements
    * AC-6: Session leaf nodes SHALL be expandable (``collapsibleState = Collapsed``)
      to show file children (see ``REQ_ENT_ENTITY_FILE_CHILDREN``). This does
      not change the leaf-node identity defined in AC-3.
+   * AC-7: (actor-terminology-rename CR) The tree view's user-visible **display
+     name** (``package.json`` ``views`` → ``name`` field) SHALL be ``"Actors"``
+     (not "Sessions") — aligning the VS Code sidebar label with the Actor
+     entity-kind terminology established at the concept level by
+     ``US_ACT_ACTORS``. The internal view ID (``jarvisSessions``), setting key
+     (``jarvis.sessions.enabled``), and storage paths remain unchanged (Phase
+     2+ scope).
+   * AC-8: (actor-terminology-rename CR) The command title for
+     ``jarvis.newSession`` SHALL be ``"Jarvis: New Actor"`` (not "New
+     Session"); the command title for ``jarvis.openAgentSession`` SHALL be
+     ``"Jarvis: Open Actor Chat"`` (not "Open Agent Session"). The underlying
+     command IDs themselves are unchanged (Phase 2+ scope).
+   * AC-9: (actor-terminology-rename CR) The settings-group title for the
+     ``jarvis.sessions.*`` configuration block SHALL be ``"Actors"`` (not
+     "Sessions"); individual setting descriptions SHALL use "Actor" instead of
+     "Session" where referring to the entity kind.
 
 
 .. req:: newEntity Command — Session Support

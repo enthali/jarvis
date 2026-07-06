@@ -4,7 +4,7 @@ Jarvis is a personal assistant extension for Visual Studio Code that helps you m
 
 ## Features
 
-- **Sessions** — Track your Copilot chat sessions and jump back to context quickly
+- **Actors** — Track your Copilot chat sessions and jump back to context quickly
 - **Messaging** — Pass messages between Copilot sessions via a simple queue
 - **Reminders** — Set cron-based or one-off reminders with VS Code notifications
 - **Heartbeat** — Periodic background jobs with a live status view in the activity bar

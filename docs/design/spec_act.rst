@@ -11,6 +11,15 @@ Sessions Design Specifications
    ``src/projectTreeProvider.ts``. It consumes ``YamlScanner.getSessionTree()``
    and renders session leaf nodes.
 
+   **(actor-terminology-rename CR amendment):** The ``package.json``
+   contribution for this view uses the user-visible display name ``"Actors"``
+   (not "Sessions") per ``REQ_ACT_TREE`` AC-7. The internal view ID
+   (``jarvisSessions``), module filename, class name, and storage paths are
+   unchanged — only the human-facing label in the sidebar/activity bar is
+   updated. Similarly, command titles are updated per AC-8: ``jarvis.newSession``
+   → ``"Jarvis: New Actor"``, ``jarvis.openAgentSession`` → ``"Jarvis: Open
+   Actor Chat"``. The settings-group title is ``"Actors"`` per AC-9.
+
    **Skeleton** (``src/sessionTreeProvider.ts``):
 
    .. note::

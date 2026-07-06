@@ -37,6 +37,15 @@ Sessions Feature UAT Requirements
      **Reveal in OS**, and **Open in Terminal** (T-4).
    * AC-5: A ``session.yaml`` with missing ``name`` field SHALL produce a YAML schema
      validation error in the Problems panel (T-6).
+   * AC-6: (actor-terminology-rename CR) The tree view's display name, the
+     ``jarvis.newSession``/``jarvis.openAgentSession`` command titles, and the
+     settings-group title/descriptions SHALL use "Actor" terminology, per
+     ``REQ_ACT_TREE`` AC-7/AC-8/AC-9 (T-12).
+   * AC-7: (actor-terminology-rename CR) The view ID (``jarvisSessions``),
+     command IDs (``jarvis.newSession``, ``jarvis.openAgentSession``), setting
+     key (``jarvis.sessions.enabled``), and storage path
+     (``.jarvis/sessions/``) SHALL remain unchanged by the terminology rename
+     (negative test, T-13).
 
 
 .. req:: Sessions New Entity UAT Requirements
