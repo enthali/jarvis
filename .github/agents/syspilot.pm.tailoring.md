@@ -21,9 +21,15 @@ capability tracked in GH #23:
 1. **GitHub issue comment**: comment on the issue(s) this CR addressed —
    merged to develop, ships in the next release (do not close yet —
    closure happens at release time, see `syspilot.release.tailoring.md`).
-2. **Session file review**: re-read `context.md` and its affiliated files
-   (`ideas/*.md`, `lessons-learned.md`, any other working notes from this
-   session folder):
+2. **Session file review** — actively re-read `context.md` and
+   `lessons-learned.md` from disk right now, rather than relying on what
+   was read earlier in this conversation. Unlike agent `.md` files, these
+   are not injected automatically every turn — an earlier in-session read
+   can be stale, and this checkpoint is also the natural moment to refresh
+   working memory before a future `/compact` might trim away the history
+   that held it. (The `ideas/*.md` link list in `context.md` is enough on
+   its own to know what ideas exist — no need to re-read every individual
+   idea file here, only when one becomes a real candidate.)
    - Drop stale/superseded content.
    - Capture new lessons learned from this CR, if any.
    - Check for contradictions between an existing recorded lesson and how
