@@ -11,14 +11,28 @@ If a Change Document addresses tracked GitHub issue(s), add a
 Issue(s)**: #12, #13`). This lets the Release Engineer close those issues
 automatically when the change ships (see `syspilot.release.tailoring.md`).
 
-## CR-Merge-Time Checkpoint
+## Post-Merge Housekeeping Checkpoint
 
-When a CR merges (workflow step 13), before moving on:
-- Comment on the GitHub issue(s) it addresses noting it merged to develop
-  and will ship in the next release (do not close yet — closure happens at
-  release time, see `syspilot.release.tailoring.md`).
-- Reflect on the roadmap: review Ideas/open GitHub Issues and pick the next
-  candidate for the queue.
+When a CR merges (workflow step 13), before moving on to the next CR, do
+the following **interactively with the user** — this is a deliberate
+experiment (not yet a generic mechanism) feeding the future housekeeping
+capability tracked in GH #23:
+
+1. **GitHub issue comment**: comment on the issue(s) this CR addressed —
+   merged to develop, ships in the next release (do not close yet —
+   closure happens at release time, see `syspilot.release.tailoring.md`).
+2. **Session file review**: re-read `context.md` and its affiliated files
+   (`ideas/*.md`, `lessons-learned.md`, any other working notes from this
+   session folder):
+   - Drop stale/superseded content.
+   - Capture new lessons learned from this CR, if any.
+   - Check for contradictions between an existing recorded lesson and how
+     this CR actually played out. If found, don't resolve it silently —
+     bring both sides to the user and reflect together on whether the old
+     lesson still holds, or whether the new experience should refine or
+     replace it.
+3. **Roadmap reflection**: review Ideas + open GitHub Issues together with
+   the user, pick the next candidate for the queue.
 
 ## One CR at a Time
 
