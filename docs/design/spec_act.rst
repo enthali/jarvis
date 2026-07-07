@@ -228,6 +228,16 @@ Actor Design Specifications
           // Editor creation (always) — SPEC_MSG_OPENCHAT
           await openNewChatEditor();
 
+   .. note::
+
+      (``project-actor-click-placement-fix`` CR) This creation flow funnels
+      through the same shared ``openChatForEntity()`` helper as
+      ``jarvis.openAgentSession``'s fresh-session-creation branch
+      (``SPEC_ENT_AGENTSESSION``) — it automatically gains that helper's
+      guaranteed Main-placement relocate step (rename + init-prompt, then
+      ``lookupSessionUUID`` + ``openAtMain``) with no separate change needed
+      here.
+
    **``jarvis.newEntity`` Session branch** (``src/extension.ts`` newEntityCommand):
 
    When the user selects **Session** in the QuickPick, the handler immediately

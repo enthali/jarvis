@@ -360,6 +360,26 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         const initPrompt = applyTemplate(initTemplate, { kind, name, contextPath });
         await vscode.commands.executeCommand(
             'workbench.action.chat.open', { query: initPrompt });
+
+        // project-actor-click-placement-fix CR: guarantee Main placement
+        // even for a freshly created session (REQ_ENT_AGENTSESSION AC-7,
+        // REQ_MSG_EDITORPLACEMENT AC-12/AC-13). The rename above has
+        // already completed, so the session is now resolvable by name —
+        // reuse the exact same close+reopen mechanism as the
+        // existing-session branch instead of trying to influence which
+        // column the chat editor was born in (VS Code exposes no API
+        // for that — see SPEC_MSG_OPENCHAT).
+        const newUuid = await lookupSessionUUID(name);
+        if (newUuid) {
+            const newB64 = Buffer.from(newUuid).toString('base64');
+            const newUri = vscode.Uri.parse(
+                `vscode-chat-session://local/${newB64}`
+            );
+            await openAtMain(newUri, name);  // SPEC_MSG_EDITORPLACEMENT
+        }
+        // Silent no-op if newUuid is still unresolved (rare rename-
+        // propagation edge case, REQ_MSG_EDITORPLACEMENT AC-13) — the
+        // session is still fully usable, just not repositioned.
     }
 
     // Engine (kind-driven scanner + generic tree factory) for session kind

@@ -50,4 +50,18 @@ Stable Session Open UAT Design Specifications
         - Chat input receives prompt containing absolute path to context.md
       * - T-5 (rename)
         - Run command on "alpha" with no existing session
-        - Chat session tab is renamed to "alpha" after creation
+        - Chat session tab is renamed to "alpha" after creation      * - T-6 (Project fresh, Main placement)
+        - Fresh session from Project tree; observe column placement
+        - New chat tab appears in column 1 (Main)
+      * - T-7 (Event fresh, Main placement)
+        - Fresh session from Event tree; observe column placement
+        - New chat tab appears in column 1 (Main)
+      * - T-8 (Actor fresh, Main placement)
+        - Fresh session from Actor tree; observe column placement
+        - New chat tab appears in column 1 (Main); consistent with Project/Event
+      * - T-9 (repeat-open all kinds)
+        - Existing sessions in various columns; repeat-open from Project/Event/Actor nodes
+        - All sessions refocus and move to column 1 (Main); unchanged behavior (regression guard)
+      * - T-10 (silent no-op, UUID fail)
+        - Fresh session created; observe logs during relocate step if UUID resolution fails
+        - Session remains usable; no error shown; graceful degradation is silent

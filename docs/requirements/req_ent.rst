@@ -77,14 +77,22 @@ generic/user-facing, ``ENG`` = kind-agnostic plumbing, no US level).
      closed and reopened fresh in column 1 (``REQ_MSG_EDITORPLACEMENT`` AC-5).
      This is a user-initiated action, distinct from Auto-Delivery's
      Secondary-column, already-open-anywhere behavior.
-   * AC-7: When a new session is created (AC-2, no existing session found),
-     Main-column placement is **best-effort, not guaranteed**: VS Code
-     provides no API to force the view column of a freshly created chat
-     editor produced by ``workbench.action.openChat``/``openNewChatEditor()``
+   * AC-7: (**project-actor-click-placement-fix CR — corrected**) When a new
+     session is created (AC-2, no existing session found), Main-column
+     placement is now **guaranteed, not best-effort**: after the new session
+     is created, renamed, and initialized (AC-2/AC-3), a follow-up relocate
+     step resolves the session's UUID (now guaranteed to exist) and applies
+     the identical Main-target close+reopen mechanism used for the
+     existing-session branch (AC-6) — see ``REQ_MSG_EDITORPLACEMENT``
+     AC-12/AC-13 for the full mechanism. ~~Main-column placement is
+     best-effort, not guaranteed: VS Code provides no API to force the view
+     column of a freshly created chat editor produced by
+     ``workbench.action.openChat``/``openNewChatEditor()``
      (``REQ_MSG_OPENCHAT``). The new session is born in whatever column is
-     currently active, which is Main in the common case (the button is
-     clicked from a tree view, and Main is typically the last-focused editor
-     column) but is not enforced by this requirement.
+     currently active...~~ — this remains true (no such VS Code API exists),
+     but is no longer the deciding factor: the guarantee is now achieved by
+     relocating *after* creation instead of trying to influence *where* the
+     session is created.
 
 
 .. req:: Rescan Button in Title Bar
