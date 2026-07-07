@@ -404,7 +404,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     if (cfg.get<boolean>('sessions.enabled', true)) {
         const sessionKindConfig: EntityKindConfig = {
             kind: 'session',
-            viewId: 'jarvisSessions',
+            viewId: 'jarvisActors',
             folderSettingKey: 'jarvis.sessions.folder',
             label: (name: string) => name,
         };
@@ -412,7 +412,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         context.subscriptions.push(sessionKindDisposable);
 
         const sessionTreeProvider = engine.treeFactory.getProvider('session')!;
-        const sessionView = vscode.window.createTreeView('jarvisSessions', {
+        const sessionView = vscode.window.createTreeView('jarvisActors', {
             treeDataProvider: sessionTreeProvider,
             canSelectMany: false,
             showCollapseAll: true,
@@ -1048,7 +1048,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
 
     // New session command (SPEC_SES_NEWENTITY)
     const newSessionCommand = vscode.commands.registerCommand(
-        'jarvis.newSession',
+        'jarvis.newActor',
         async () => {
             const targetFolder = configPaths.ensureSessionsDir();
             if (!targetFolder) { vscode.window.showWarningMessage('Jarvis: No workspace open.'); return; }

@@ -50,10 +50,16 @@ describe('SPEC_EXP_ENTITY_ICONS AC-5: no openRecording command', () => {
 
 // --- SPEC_EXP_ENTITY_ICONS AC-6: No +recording contextValue suffix ---------
 describe('SPEC_EXP_ENTITY_ICONS AC-6: no +recording contextValue', () => {
+    // Note (actor-internal-identifiers-rename CR): the session/actor kind's
+    // legacy standalone SessionTreeProvider (apps/session/sessionTreeProvider.ts)
+    // was removed — it was a deliberately-kept but unused-in-production
+    // reference implementation (only referenced by the now-also-removed
+    // sessionTreeEquivalence.test.ts). Session/Actor contextValue is now
+    // derived purely by the generic factory from EntityKindConfig, same as
+    // Project/Event — no per-kind file to grep here any more.
     const treeProviders = [
         { file: path.join('src', 'projectKind.ts'), base: path.resolve(__dirname, '..', '..', 'packages', 'pim') },
         { file: path.join('src', 'eventKind.ts'), base: path.resolve(__dirname, '..', '..', 'packages', 'pim') },
-        { file: path.join('apps', 'session', 'sessionTreeProvider.ts'), base: coreSrcDir },
     ];
 
     for (const { file, base } of treeProviders) {
@@ -110,14 +116,19 @@ describe('SPEC_EXP_ENTITY_ICONS AC-1..AC-3: entity inline icon count and order',
 
 // --- SPEC_EXP_ENTITY_ICONS AC-7: All three entity kinds use same icon set ---
 describe('SPEC_EXP_ENTITY_ICONS AC-7: uniform icon set across entity kinds', () => {
-    it('contextValue in kind configs and session tree provider is plain (no conditional branching)', () => {
+    it('extension.ts registers the session/actor EntityKindConfig without a recording-conditional contextValue', () => {
         // Project and event kinds use the generic factory which derives contextValue from
         // EntityKindConfig.kind — verified by projectTreeExpectation.test.ts and eventTreeExpectation.test.ts.
-        // Here we verify the session tree provider still has the correct contextValue.
-        const sessionFile = path.join(coreSrcDir, 'apps', 'session', 'sessionTreeProvider.ts');
-        const content = fs.readFileSync(sessionFile, 'utf-8');
-        expect(content).toContain("item.contextValue = 'jarvisSession'");
-        // No ternary for contextValue
-        expect(content).not.toMatch(/contextValue\s*=.*\?/);
+        // Session/Actor also uses the generic factory (its own standalone legacy provider was
+        // removed by the actor-internal-identifiers-rename CR — see AC-6 note above); there is
+        // no dedicated sessionTreeExpectation.test.ts yet (coverage gap, flagged for Test Designer
+        // as a follow-up, mirroring projectTreeExpectation.test.ts/eventTreeExpectation.test.ts).
+        // Here we verify at minimum that extension.ts's session EntityKindConfig registration has
+        // no conditional/ternary branching on contextValue (the generic factory always derives it
+        // plainly from `kind`, matching AC-7's "no conditional branching" requirement).
+        const extensionSrc = fs.readFileSync(path.join(coreSrcDir, 'extension.ts'), 'utf-8');
+        const sessionKindConfigMatch = extensionSrc.match(/const sessionKindConfig[\s\S]*?\n {8}\};/);
+        expect(sessionKindConfigMatch).not.toBeNull();
+        expect(sessionKindConfigMatch![0]).not.toMatch(/contextValue\s*=.*\?/);
     });
 });

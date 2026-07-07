@@ -46,6 +46,14 @@ Sessions Feature UAT Requirements
      key (``jarvis.sessions.enabled``), and storage path
      (``.jarvis/sessions/``) SHALL remain unchanged by the terminology rename
      (negative test, T-13).
+   * AC-8: (actor-internal-identifiers-rename CR) The view ID SHALL be
+     ``jarvisActors`` (not ``jarvisSessions``), the command ID
+     ``jarvis.newSession`` SHALL be renamed to ``jarvis.newActor``, the
+     command ID ``jarvis.openAgentSession`` SHALL remain unchanged, and its
+     title SHALL be corrected from "Jarvis: Open Actor Chat" to
+     "Jarvis: Open Agent Chat" (entity-neutral, same across Project/Event/Actor).
+     The previous keybindings and tree-collapse state SHALL be reset to
+     defaults as a one-time side effect of the ID changes (T-14, T-15, T-16).
 
 
 .. req:: Sessions New Entity UAT Requirements

@@ -34,7 +34,7 @@
     "onView:jarvisMessages",
     "onView:jarvisReminders",
     "onView:jarvisHeartbeat",
-    "onView:jarvisSessions"
+    "onView:jarvisActors"
   ],
   "main": "./out/extension.js",
   "types": "./out/engine/index.d.ts",
@@ -75,7 +75,7 @@
     "views": {
       "jarvis-explorer": [
         {
-          "id": "jarvisSessions",
+          "id": "jarvisActors",
           "name": "Actors",
           "when": "config.jarvis.sessions.enabled == true"
         },
@@ -103,9 +103,9 @@
       { "command": "jarvis.disableAutoDelivery", "title": "Disable Direct Delivery", "icon": "$(zap)" },
       { "command": "jarvis.deleteMessage", "title": "Jarvis: Delete Queued Message", "icon": "$(trash)" },
       { "command": "jarvis.openSession", "title": "Jarvis: Open Chat Session" },
-      { "command": "jarvis.openAgentSession", "title": "Jarvis: Open Actor Chat", "icon": "$(comment-discussion)" },
+      { "command": "jarvis.openAgentSession", "title": "Jarvis: Open Chat", "icon": "$(comment-discussion)" },
       { "command": "jarvis.newEntity", "title": "Jarvis: New Entity", "icon": "$(add)" },
-      { "command": "jarvis.newSession", "title": "Jarvis: New Actor", "icon": "$(add)" },
+      { "command": "jarvis.newActor", "title": "Jarvis: New Actor", "icon": "$(add)" },
       { "command": "jarvis.checkForUpdates", "title": "Jarvis: Check for Updates" },
       { "command": "jarvis.rescan", "title": "Jarvis: Rescan", "icon": "$(refresh)" },
       { "command": "jarvis.runJob", "title": "Jarvis: Run Job", "icon": "$(play)" },
@@ -130,7 +130,7 @@
       "commandPalette": [
         { "command": "jarvis.openAgentSession", "when": "false" },
         { "command": "jarvis.newEntity", "when": "false" },
-        { "command": "jarvis.newSession", "when": "false" },
+        { "command": "jarvis.newActor", "when": "false" },
         { "command": "jarvis.rescan", "when": "false" },
         { "command": "jarvis.runJob", "when": "false" },
         { "command": "jarvis.pauseHeartbeatJob", "when": "false" },
@@ -153,8 +153,8 @@
         { "command": "jarvis.openMessageSession", "when": "false" }
       ],
       "view/title": [
-        { "command": "jarvis.newSession", "when": "view == jarvisSessions", "group": "navigation@1" },
-        { "command": "jarvis.rescan", "when": "view == jarvisSessions", "group": "navigation@3" },
+        { "command": "jarvis.newActor", "when": "view == jarvisActors", "group": "navigation@1" },
+        { "command": "jarvis.rescan", "when": "view == jarvisActors", "group": "navigation@3" },
         { "command": "jarvis.refreshHeartbeat", "when": "view == jarvisHeartbeat", "group": "navigation@1" }
       ],
       "view/item/context": [

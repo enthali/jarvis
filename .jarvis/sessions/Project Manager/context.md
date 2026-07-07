@@ -37,6 +37,14 @@
   **Why this matters beyond correctness**: every CM round-trip is slow
   (full pipeline turn) — minimizing round-trips is itself a goal, so always
   ask before dispatching rather than guess-then-correct later.
+- **User talks directly to other sessions (2026-07-06)**: async messaging
+  means the user can address any actor session directly — PM does NOT need
+  to relay CM/Designer/etc. messages back to the user verbatim. When an
+  actor needs to pause for user approval (e.g. after design, before
+  dispatch), PM's job is just to say WHO to talk to and that they're
+  waiting — not to summarize/forward the content. If PM needs to know
+  whether a decision came from the user, just ask the user directly rather
+  than inferring.
 - **context.md discipline**: keep this file short/scannable, stick-note style.
   Commit every change immediately (survives branch switches/corruption). Only
   keep what's relevant within ~2 weeks; larger topics → separate file with a

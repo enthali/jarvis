@@ -103,8 +103,8 @@ describe('Item 4: Collapse All — showCollapseAll: true at all 6 createTreeView
         expect(pimExtensionSrc.slice(eventIdx, eventIdx + 150)).toContain('showCollapseAll: true');
     });
 
-    it('packages/core/src/extension.ts: jarvisSessions, jarvisMessages, jarvisReminders', () => {
-        for (const viewId of ['jarvisSessions', 'jarvisMessages', 'jarvisReminders']) {
+    it('packages/core/src/extension.ts: jarvisActors, jarvisMessages, jarvisReminders', () => {
+        for (const viewId of ['jarvisActors', 'jarvisMessages', 'jarvisReminders']) {
             const idx = extensionSrc.indexOf(`createTreeView('${viewId}'`);
             expect(idx, `${viewId} createTreeView call site`).toBeGreaterThan(-1);
             expect(extensionSrc.slice(idx, idx + 200)).toContain('showCollapseAll: true');

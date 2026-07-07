@@ -7,11 +7,12 @@ Sessions Feature UAT Design Specifications
    :links: REQ_UAT_ACT_TREE; REQ_UAT_ACT_NEWENTITY; REQ_UAT_ACT_TOOL; REQ_UAT_ACT_TOGGLE; REQ_UAT_ACT_AGENTPROMPT
 
    **Description:**
-   Step-by-step procedures and expected outcomes for all thirteen sessions-feature
+   Step-by-step procedures and expected outcomes for all sixteen sessions-feature
    acceptance test scenarios, covering the Sessions tree view toggle, folder
    configuration, context file opening, context menu, new-entity session creation,
    JSON schema validation, LM tool, MCP tool, tool-deregistration on disable,
-   feature independence, and the actor-terminology-rename UI-label verification.
+   feature independence, actor-terminology-rename UI-label verification, and
+   actor-internal-identifiers-rename (view ID, command IDs, bug fix, state reset).
 
    **Test Setup:**
 
@@ -174,3 +175,28 @@ Sessions Feature UAT Design Specifications
           still ``jarvis.sessions.enabled``; storage path is still
           ``testdata/.jarvis/sessions/`` — no internal identifier changed as
           a side effect of the label rename.
+      * - T-14 (internal ID renames)
+        - After updating to this CR, open VS Code. Run **Developer: Inspect
+          Context Keys**, search ``view`` scope for ``jarvisActors``. Run
+          **Developer: Show All Commands** and search for ``jarvis.newActor``.
+          Attempt to invoke any keybindings previously bound to
+          ``jarvis.newSession`` (if any).
+        - The Actors tree is present in the sidebar (view ID
+          ``jarvisActors``). The Command Palette lists ``jarvis.newActor``.
+          Previous keybindings to ``jarvis.newSession`` are cleared/inactive;
+          the user must re-bind to ``jarvis.newActor`` if desired.
+      * - T-15 (bug fix: entity-neutral title)
+        - With Project, Event, and Actor/Session nodes all visible in the
+          sidebar, right-click each one and compare the context-menu command
+          labels.
+        - All three entity kinds show the same label:
+          "Jarvis: Open Agent Chat" (not "Open Actor Chat", which would
+          mislabel Project/Event). The label is consistent across all kinds.
+      * - T-16 (tree-collapse state reset)
+        - Before this CR update, collapse/expand the Sessions tree to a custom
+          state and note it. After restarting VS Code with this CR, observe
+          the Actors tree's expansion state.
+        - The tree's expansion state is reset to the default; the memorized
+          collapse state from the pre-update ``jarvisSessions`` view is not
+          carried over. This is a one-time side effect; future state is
+          preserved normally under the new ``jarvisActors`` view ID.

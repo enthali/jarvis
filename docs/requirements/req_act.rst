@@ -1,5 +1,5 @@
-Sessions Requirements
-=====================
+Actor Requirements
+==================
 
 .. req:: Sessions Feature Toggle
    :id: REQ_ACT_TOGGLE
@@ -82,15 +82,76 @@ Sessions Requirements
      ``US_ACT_ACTORS``. The internal view ID (``jarvisSessions``), setting key
      (``jarvis.sessions.enabled``), and storage paths remain unchanged (Phase
      2+ scope).
-   * AC-8: (actor-terminology-rename CR) The command title for
+   * AC-8: (actor-terminology-rename CR; **corrected by actor-internal-
+     identifiers-rename CR** — see AC-13) The command title for
      ``jarvis.newSession`` SHALL be ``"Jarvis: New Actor"`` (not "New
-     Session"); the command title for ``jarvis.openAgentSession`` SHALL be
-     ``"Jarvis: Open Actor Chat"`` (not "Open Agent Session"). The underlying
-     command IDs themselves are unchanged (Phase 2+ scope).
+     Session"). ~~the command title for jarvis.openAgentSession SHALL be
+     "Jarvis: Open Actor Chat"~~ — **this clause was a bug**: identified
+     during the actor-internal-identifiers-rename CR that
+     ``jarvis.openAgentSession`` is bound to Project and Event context menus
+     as well (``packages/pim/package.json``), not just Actor — an
+     Actor-specific title on a shared command mislabeled the Project/Event
+     "Open" action. See AC-13 for the correction.
    * AC-9: (actor-terminology-rename CR) The settings-group title for the
      ``jarvis.sessions.*`` configuration block SHALL be ``"Actors"`` (not
      "Sessions"); individual setting descriptions SHALL use "Actor" instead of
      "Session" where referring to the entity kind.
+   * AC-10: (actor-internal-identifiers-rename CR) The tree view's
+     **internal** VS Code view ID SHALL be renamed from ``jarvisSessions`` to
+     ``jarvisActors`` — in ``package.json`` (``views`` id, activation event
+     ``onView:jarvisActors``, all ``when: "view == jarvisActors"`` menu
+     clauses) and in the corresponding ``createTreeView('jarvisActors', ...)``
+     call and ``EntityKindConfig.viewId`` in ``extension.ts``. This is
+     distinct from AC-7's display **name** (already "Actors" since Phase 1) —
+     AC-10 renames the machine identifier itself. The entity ``kind`` string
+     passed to ``registerEntityKind``/``treeFactory.getProvider`` (currently
+     ``'session'``) and the per-leaf-node ``contextValue`` (``jarvisSession``,
+     singular) are explicitly **unchanged** in this CR — seen as a Phase 5
+     concern alongside the LM/MCP tool names (``jarvis_listSessions`` etc.),
+     since ``kind`` values are echoed in tool-facing JSON output
+     (``jarvis_listJarvisSessions``), which is out of scope here.
+   * AC-11: (actor-internal-identifiers-rename CR) The command ID
+     ``jarvis.newSession`` SHALL be renamed to ``jarvis.newActor`` (title
+     "Jarvis: New Actor" unchanged from AC-8) — this command is exclusively
+     bound to the Actor tree (``view == jarvisActors`` per AC-10), so renaming
+     its ID carries no cross-entity-kind risk, unlike
+     ``jarvis.openAgentSession`` (see AC-13).
+   * AC-12: (actor-internal-identifiers-rename CR — **corrected during
+     design**, see below) The TypeScript class ``SessionTreeProvider``
+     (``packages/core/src/apps/session/sessionTreeProvider.ts``) SHALL be
+     **removed**, along with its sole consumer,
+     ``src/tests/sessionTreeEquivalence.test.ts``. Impact analysis found this
+     class is not used by the running extension at all — the actual live
+     Actor tree provider comes from the generic ``engine.treeFactory.
+     getProvider('session')`` (``EntityKindConfig``-driven factory, same
+     mechanism as Project/Event). ``SessionTreeProvider`` was a deliberately
+     preserved "legacy reference implementation" whose only purpose was to
+     let ``sessionTreeEquivalence.test.ts`` prove the new generic factory
+     behaves the same as the old hand-written provider — a one-time
+     migration proof from a prior CR (the "S5 engine generalization"),
+     already superseded for Project/Event by their own
+     ``projectTreeExpectation.test.ts``/``eventTreeExpectation.test.ts``.
+     Renaming a class with no production caller would have added a
+     misleading impression of live code; removal (not rename) is correct
+     (user-confirmed). ``src/tests/remove-open-recording-icon.test.ts``'s two
+     assertions that read this file's contents directly are updated to check
+     ``extension.ts``'s session ``EntityKindConfig`` registration instead —
+     verified passing (214/214 vitest). **Follow-up gap flagged for Test
+     Designer:** unlike Project/Event, there is no
+     ``sessionTreeExpectation.test.ts`` for the session/actor kind — this CR
+     does not add one (out of System Designer's role), but it is the natural
+     next step to fully close the coverage this removed equivalence test
+     used to (partially) provide.
+   * AC-13: (actor-internal-identifiers-rename CR — bug fix, see AC-8)
+     ``jarvis.openAgentSession`` is used to open the bound agent chat for
+     **any** entity kind (Project, Event, Actor alike — see
+     ``REQ_ENT_AGENTSESSION``), not just Actor. Its command ID SHALL remain
+     ``jarvis.openAgentSession`` (no rename — this CR's internal-identifier
+     scope is Actor-specific commands only) and its title SHALL be corrected
+     from the erroneous "Jarvis: Open Actor Chat" (AC-8, now struck through)
+     to the entity-neutral ``"Jarvis: Open Agent Chat"``, so Project/Event
+     context menus no longer show an Actor-specific label for a shared
+     action.
 
 
 .. req:: newEntity Command — Session Support

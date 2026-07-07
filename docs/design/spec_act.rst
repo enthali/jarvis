@@ -1,5 +1,5 @@
-Sessions Design Specifications
-================================
+Actor Design Specifications
+============================
 
 .. spec:: sessions-feature: SessionTreeProvider Module
    :id: SPEC_ACT_TREE
@@ -11,16 +11,47 @@ Sessions Design Specifications
    ``src/projectTreeProvider.ts``. It consumes ``YamlScanner.getSessionTree()``
    and renders session leaf nodes.
 
-   **(actor-terminology-rename CR amendment):** The ``package.json``
+   **(actor-terminology-rename CR amendment, Phase 1):** The ``package.json``
    contribution for this view uses the user-visible display name ``"Actors"``
    (not "Sessions") per ``REQ_ACT_TREE`` AC-7. The internal view ID
-   (``jarvisSessions``), module filename, class name, and storage paths are
-   unchanged — only the human-facing label in the sidebar/activity bar is
-   updated. Similarly, command titles are updated per AC-8: ``jarvis.newSession``
-   → ``"Jarvis: New Actor"``, ``jarvis.openAgentSession`` → ``"Jarvis: Open
-   Actor Chat"``. The settings-group title is ``"Actors"`` per AC-9.
+   (``jarvisSessions``), module filename, class name, and storage paths were
+   unchanged in Phase 1 — only the human-facing label in the sidebar/activity
+   bar was updated. Command title for ``jarvis.newSession`` was updated per
+   AC-8 to ``"Jarvis: New Actor"``. The settings-group title is ``"Actors"``
+   per AC-9.
 
-   **Skeleton** (``src/sessionTreeProvider.ts``):
+   **(actor-internal-identifiers-rename CR amendment, Phase 1b):** the
+   internal view ID left unchanged by Phase 1 is now renamed:
+   ``jarvisSessions`` → ``jarvisActors`` (``REQ_ACT_TREE`` AC-10); the command
+   ID ``jarvis.newSession`` → ``jarvis.newActor`` (AC-11). The entity
+   ``kind`` string (``'session'``)/``contextValue`` (``jarvisSession``) are
+   explicitly **not** renamed in this CR — see AC-10's rationale.
+   **Bug fix (AC-13):** ``jarvis.openAgentSession``'s title, incorrectly
+   changed to "Jarvis: Open Actor Chat" by Phase 1 (that command is shared by
+   Project/Event/Actor, not Actor-specific — see ``REQ_ENT_AGENTSESSION``),
+   is corrected here to the entity-neutral ``"Jarvis: Open Agent Chat"``; its
+   command ID is unchanged.
+
+   **Class removed, not renamed (AC-12, corrected during design):** the
+   ``SessionTreeProvider`` class shown in the "Skeleton" below (and the
+   module it lived in, ``src/apps/session/sessionTreeProvider.ts``) is
+   **removed entirely** by this CR, along with its sole consumer
+   ``src/tests/sessionTreeEquivalence.test.ts``. Impact analysis found this
+   class was never wired into the running extension — the real, live Actor
+   tree provider is produced by the generic
+   ``engine.treeFactory.getProvider('session')`` (the same
+   ``EntityKindConfig``-driven factory used for Project/Event). This class
+   was a deliberately-kept "legacy reference implementation" retained solely
+   so the now-also-removed equivalence test could prove the generic factory
+   behaves like the original hand-written provider — a one-time migration
+   proof whose job is done (Project/Event already have their own
+   ``projectTreeExpectation.test.ts``/``eventTreeExpectation.test.ts``
+   replacing their own equivalent legacy classes/tests the same way).
+   Renaming dead code would have been misleading; removal is correct.
+
+   **Skeleton (HISTORICAL — this module/class no longer exists, removed by
+   actor-internal-identifiers-rename; kept below only as a description of
+   what the generic factory replaced):**
 
    .. note::
 
@@ -39,7 +70,8 @@ Sessions Design Specifications
 
    .. code-block:: typescript
 
-      // Implementation: SPEC_ACT_TREE
+      // Implementation: SPEC_ACT_TREE (HISTORICAL — file/class removed,
+      // actor-internal-identifiers-rename CR)
       // Requirements: REQ_ACT_TREE
 
       import * as path from 'path';
@@ -111,8 +143,12 @@ Sessions Design Specifications
      ``jarvis.openAgentSession``), then ``jarvis.openContext`` itself was
      fully retired (``SPEC_ENT_OPENCONTEXT_CMD``, entity-tree-context-menu
      CR) — neither the command nor this binding exist any more.
-   * ``SessionTreeProvider`` is registered in ``extension.ts`` inside the
-     ``if (sessions.enabled)`` block, same pattern as Projects/Events.
+   * ``SessionTreeProvider`` (HISTORICAL) used to be a candidate for
+     registration in ``extension.ts`` inside the ``if (sessions.enabled)``
+     block, but in the actual shipped implementation that block instead
+     registers via ``engine.registerEntityKind()`` + ``engine.treeFactory.
+     getProvider('session')`` — this class was never the live registration
+     path (see the class-removal note above).
    * **Design rationale (REQ_ACT_OPENCONTEXT, historical):** No change to
      ``jarvis.openContext`` was needed at the time because both project and
      session tree nodes passed ``{ folder: <dir> }`` as the command
@@ -123,6 +159,16 @@ Sessions Design Specifications
    :id: SPEC_ACT_NEWENTITY
    :status: draft
    :links: REQ_ACT_NEWENTITY
+
+   **(actor-internal-identifiers-rename CR amendment):** the command ID
+   ``jarvis.newSession`` referenced throughout this spec is renamed to
+   ``jarvis.newActor`` (``REQ_ACT_TREE`` AC-11). The handler function name
+   (``newSessionCommand``), file location, and all internal logic below are
+   otherwise unchanged — only the string passed to
+   ``vscode.commands.registerCommand``/``executeCommand`` and the matching
+   ``package.json`` ``command`` fields change. Wherever this spec's prose
+   below says ```jarvis.newSession```, read it as the (unchanged-behavior)
+   predecessor of the now-current ``jarvis.newActor``.
 
    **Description:**
    Two commands implement session creation. ``jarvis.newSession`` is the actual
@@ -331,80 +377,99 @@ Sessions Design Specifications
    commands are added (``jarvis.newEntity`` is shared; ``jarvis_listSessionEntities``
    is a tool).
 
-   **1. ``contributes.configuration`` — Sessions group**:
+   **(actor-internal-identifiers-rename CR amendment):** the code samples
+   below were never updated after ``actor-terminology-rename`` (Phase 1)
+   shipped the display-name/title changes, and are now updated a second time
+   for this CR's (Phase 1b) internal-identifier renames. Both sets of changes
+   are reflected together below so the samples match the current real
+   ``package.json`` content exactly:
 
-   The Sessions group contains only ``jarvis.sessions.enabled``. Paths are
-   fixed under ``.jarvis/sessions/`` (no folder setting):
+   * Phase 1 (shipped): settings-group title "Sessions" → "Actors"; setting
+     description "Enable the Sessions feature." → "Enable the Actors
+     feature."; view display ``name`` "Sessions" → "Actors"; command title
+     "Jarvis: New Session" → "Jarvis: New Actor" (``REQ_ACT_TREE`` AC-7/AC-9).
+   * Phase 1b (this CR): view ``id`` ``jarvisSessions`` → ``jarvisActors``
+     (and its activation event / ``when``-clauses); command id
+     ``jarvis.newSession`` → ``jarvis.newActor`` (``REQ_ACT_TREE``
+     AC-10/AC-11).
+
+   **1. ``contributes.configuration`` — Actors group**:
+
+   The Actors group contains only ``jarvis.sessions.enabled`` (setting key
+   itself unchanged — Phase 2+ scope). Paths are fixed under
+   ``.jarvis/sessions/`` (no folder setting):
 
    .. code-block:: json
 
       {
-        "title": "Sessions",
+        "title": "Actors",
         "properties": {
           "jarvis.sessions.enabled": {
             "type": "boolean",
             "default": true,
-            "description": "Enable the Sessions feature. When false, no Sessions tree view, commands, or tools are registered."
+            "description": "Enable the Actors feature. When false, no Actors tree view, commands, or tools are registered."
           }
         }
       }
 
-   **2. ``contributes.views.jarvis-explorer``** — insert ``jarvisSessions``
+   **2. ``contributes.views.jarvis-explorer``** — insert ``jarvisActors``
    between ``jarvisProjects`` and ``jarvisEvents``:
 
    .. code-block:: json
 
       {
-        "id": "jarvisSessions",
-        "name": "Sessions",
+        "id": "jarvisActors",
+        "name": "Actors",
         "when": "config.jarvis.sessions.enabled == true"
       }
 
-   **3. ``contributes.activationEvents``** — add ``onView:jarvisSessions``
+   **3. ``contributes.activationEvents``** — add ``onView:jarvisActors``
    analogous to the existing ``onView:jarvisProjects`` and
    ``onView:jarvisEvents`` entries.
 
    **4. ``contributes.languageModelTools``** — add the
    ``jarvis_listSessionEntities`` entry (full detail in ``SPEC_ACT_TOOLS``).
+   Tool name unchanged — Phase 5 scope (LM/MCP tool renaming).
 
    **5. ``contributes.yamlValidation``** — add the ``session.yaml`` entry
-   (full detail in ``SPEC_ACT_SCHEMA``).
+   (full detail in ``SPEC_ACT_SCHEMA``). File name unchanged — Phase 2+ scope
+   (storage paths).
 
-   **6. ``contributes.commands``** — add ``jarvis.newSession``:
+   **6. ``contributes.commands``** — add ``jarvis.newActor``:
 
    .. code-block:: json
 
       {
-        "command": "jarvis.newSession",
-        "title": "Jarvis: New Session",
+        "command": "jarvis.newActor",
+        "title": "Jarvis: New Actor",
         "icon": "$(add)"
       }
 
    **7. ``contributes.menus.view/title``** — add two entries for the
-   ``jarvisSessions`` view:
+   ``jarvisActors`` view:
 
    .. code-block:: json
 
       [
         {
-          "command": "jarvis.newSession",
-          "when": "view == jarvisSessions",
+          "command": "jarvis.newActor",
+          "when": "view == jarvisActors",
           "group": "navigation@1"
         },
         {
           "command": "jarvis.rescan",
-          "when": "view == jarvisSessions",
+          "when": "view == jarvisActors",
           "group": "navigation@3"
         }
       ]
 
-   **8. ``contributes.menus.commandPalette``** — hide ``jarvis.newSession``
+   **8. ``contributes.menus.commandPalette``** — hide ``jarvis.newActor``
    from the Command Palette (same pattern as ``jarvis.newProject`` /
    ``jarvis.newEvent``):
 
    .. code-block:: json
 
-      { "command": "jarvis.newSession", "when": "false" }
+      { "command": "jarvis.newActor", "when": "false" }
 
 
 .. spec:: sessions-feature: Session Tree-Node Context Menu — Partially Retired
@@ -754,6 +819,18 @@ Sessions Design Specifications
    spec originally described as the remaining way to reach ``context.md``.
 
    **1. ``src/sessionTreeProvider.ts`` --- ``getTreeItem()`` change**
+
+   .. note::
+
+      (actor-internal-identifiers-rename CR) ``src/sessionTreeProvider.ts``/
+      ``SessionTreeProvider`` referenced throughout this spec element no
+      longer exists — it was removed (see ``SPEC_ACT_TREE``'s "Class
+      removed, not renamed" note); it was never the live registration path
+      for the running tree (that's the generic ``engine.treeFactory``). The
+      *behavior* this section describes (leaf-node click → ``jarvis.
+      openAgentSession``) is unaffected and still accurate — it now lives in
+      the generic factory's ``EntityKindConfig`` rather than this removed
+      standalone class.
 
    Replace the ``command`` binding on the session leaf ``TreeItem``:
 

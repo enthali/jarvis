@@ -50,6 +50,14 @@ Sessions Feature User Acceptance Tests
      settings-group title/descriptions use "Actor" terminology — while the
      underlying view ID, command IDs, setting key, and storage paths remain
      unchanged (negative test, Phase 2+ scope).
+   * AC-12: (actor-internal-identifiers-rename CR) A test verifies that the
+     view ID is ``jarvisActors`` (not ``jarvisSessions``), the command IDs are
+     ``jarvis.newActor`` (not ``jarvis.newSession``) and
+     ``jarvis.openAgentSession`` (unchanged), the command title for
+     ``jarvis.openAgentSession`` is now "Jarvis: Open Agent Chat"
+     (entity-neutral, not "Open Actor Chat"), and the previous keybindings
+     and tree-collapse state are reset to defaults (one-time user-visible
+     side effect).
 
    **Test Scenarios:**
 
@@ -175,6 +183,43 @@ Sessions Feature User Acceptance Tests
      ``jarvis.openAgentSession`` on a project node for which no session exists yet.
      Expected: prompt starts with ``You are the project "<name>"``.
      Clean up: close the auto-opened chat tabs after verification.
+
+   **T-14 — View ID is jarvisActors, command IDs updated, keybindings reset**
+     Setup: After updating to this CR's version, open VS Code and inspect the
+     Jarvis sidebar. Attempt to invoke a keybinding you previously bound to
+     ``jarvis.newSession`` (if any). Open Command Palette and search for
+     command IDs.
+     Action: Look for the view ID in the sidebar or in
+     ``vscode context-keys.``  Run **Developer: Inspect Context Keys** and
+     search ``view`` scope for ``jarvisActors``. Search Command Palette for
+     ``jarvis.newActor``.
+     Expected: The Actors tree is present in the sidebar (view ID
+     ``jarvisActors``). Any keybindings previously bound to
+     ``jarvis.newSession`` do not trigger a command (they were automatically
+     cleared by VS Code due to the command ID change); the user must
+     re-bind to ``jarvis.newActor`` if desired. The Command Palette lists
+     ``jarvis.newActor`` (and ``jarvis.openAgentSession``, unchanged).
+
+   **T-15 — Command title "Open Agent Chat" is entity-neutral**
+     Setup: Sessions tree populated; also have a Project and an Event entity
+     with their nodes visible in the Jarvis sidebar.
+     Action: Right-click a Project node, an Event node, and an Actor/Session
+     node in the tree. Compare the context-menu labels.
+     Expected: All three entity kinds show the same command label:
+     "Jarvis: Open Agent Chat" (not "Open Actor Chat", which would be
+     mislabeling for Project/Event). The menu is consistent across all three
+     entity kinds.
+
+   **T-16 — Tree-collapse state reset (side effect)**
+     Setup: Before this CR: expand and collapse the Sessions tree view to a
+     custom state; remember the expansion state.
+     Action: After updating to this CR (restart VS Code), observe the Actors
+     tree view's expansion state.
+     Expected: The tree's expansion state is reset to the default (no
+     memorized collapse from the pre-update state); the view's tree-collapse
+     memory was cleared when the view ID changed from ``jarvisSessions`` to
+     ``jarvisActors``. This is a one-time side effect; future state will be
+     preserved normally.
 
    **T-12 — Tree view, command titles, and settings show "Actor" terminology**
      Setup: Sessions tree populated as in T-2.
