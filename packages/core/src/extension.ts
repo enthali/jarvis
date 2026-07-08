@@ -389,6 +389,9 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             if (settingKey === 'jarvis.sessions.folder') {
                 return configPaths.getSessionsDir() ?? '';
             }
+            if (settingKey === 'jarvis.actors.folder') {
+                return configPaths.getActorsDir() ?? '';
+            }
             return vscode.workspace.getConfiguration().get<string>(settingKey, '');
         }
     );
@@ -427,6 +430,9 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             viewId: 'jarvisActors',
             folderSettingKey: 'jarvis.sessions.folder',
             label: (name: string) => name,
+            additionalScanRoots: [
+                { folderSettingKey: 'jarvis.actors.folder', conventionFile: 'actor.yaml' }
+            ],
         };
         sessionKindDisposable = engine.registerEntityKind(sessionKindConfig);
         context.subscriptions.push(sessionKindDisposable);
@@ -1014,16 +1020,16 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
                 }
             }
 
-            const sessionsDir = configPaths.ensureSessionsDir();
+            const sessionsDir = configPaths.ensureActorsDir();
             if (!sessionsDir) { throw new Error('jarvis_createSession: no workspace open'); }
 
             const targetPath = path.join(sessionsDir, name);
-            const relPath = `.jarvis/sessions/${name}`;
+            const relPath = `.jarvis/actors/${name}`;
 
             if (fs.existsSync(targetPath)) {
                 log.info(`[SES] createSession: idempotent skip for "${name}"`);
                 try {
-                    const sessionYamlPath = path.join(targetPath, 'session.yaml');
+                    const sessionYamlPath = path.join(targetPath, 'actor.yaml');
                     const leaf: LeafNode = { kind: 'leaf', id: sessionYamlPath };
                     await vscode.commands.executeCommand('jarvis.openAgentSession', leaf);
                 } catch (err) { log.warn(`[SES] createSession: auto-open failed for "${name}": ${err}`); }
@@ -1035,7 +1041,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             if (summary) { yamlLines.push(`summary: ${yamlString(summary)}`); }
             if (agent) { yamlLines.push(`agent: ${yamlString(agent)}`); }
             yamlLines.push('');
-            await fs.promises.writeFile(path.join(targetPath, 'session.yaml'), yamlLines.join('\n'), 'utf-8');
+            await fs.promises.writeFile(path.join(targetPath, 'actor.yaml'), yamlLines.join('\n'), 'utf-8');
             const contextContent = summary ? `# ${name}\n\n${summary}\n` : `# ${name}\n\n`;
             await fs.promises.writeFile(path.join(targetPath, 'context.md'), contextContent, 'utf-8');
 
@@ -1046,7 +1052,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
 
             await kindDrivenScanner.rescan();
             try {
-                const sessionYamlPath = path.join(targetPath, 'session.yaml');
+                const sessionYamlPath = path.join(targetPath, 'actor.yaml');
                 const leaf: LeafNode = { kind: 'leaf', id: sessionYamlPath };
                 await vscode.commands.executeCommand('jarvis.openAgentSession', leaf);
                 log.info(`[SES] createSession: auto-opened new session "${name}"`);
@@ -1070,7 +1076,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     const newSessionCommand = vscode.commands.registerCommand(
         'jarvis.newActor',
         async () => {
-            const targetFolder = configPaths.ensureSessionsDir();
+            const targetFolder = configPaths.ensureActorsDir();
             if (!targetFolder) { vscode.window.showWarningMessage('Jarvis: No workspace open.'); return; }
 
             const nameInput = await vscode.window.showInputBox({ prompt: 'Session name', placeHolder: 'My Session', validateInput: validateSessionName });
@@ -1081,14 +1087,14 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
 
             const sessionName = nameInput.trim();
             const targetPath = path.join(targetFolder, sessionName);
-            if (fs.existsSync(targetPath)) { vscode.window.showErrorMessage(`Folder '${sessionName}' already exists in sessions folder`); return; }
+            if (fs.existsSync(targetPath)) { vscode.window.showErrorMessage(`Folder '${sessionName}' already exists in actors folder`); return; }
 
             await fs.promises.mkdir(targetPath, { recursive: true });
             const yamlLines = [`name: ${yamlString(nameInput)}`];
             if (summaryInput) { yamlLines.push(`summary: ${yamlString(summaryInput)}`); }
             yamlLines.push(`agent: ${yamlString(agentInput)}`);
             yamlLines.push('');
-            await fs.promises.writeFile(path.join(targetPath, 'session.yaml'), yamlLines.join('\n'), 'utf-8');
+            await fs.promises.writeFile(path.join(targetPath, 'actor.yaml'), yamlLines.join('\n'), 'utf-8');
             const contextContent = `# ${nameInput}\n\n${summaryInput ?? ''}\n`;
             await fs.promises.writeFile(path.join(targetPath, 'context.md'), contextContent, 'utf-8');
             await kindDrivenScanner.rescan();

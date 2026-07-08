@@ -2,6 +2,11 @@
 
 ## Working Principles
 
+- **Public repo — nothing goes out without user approval (2026-07-08)**:
+  the jarvis repo is public. Anything posted externally (GitHub issue
+  creation, comments, closing issues, PRs, releases) requires explicit
+  user sign-off on the exact content BEFORE it's posted — draft first,
+  ask, then post. Never fire-and-report.
 - **Shared Git Workspace — Finger weg outside own folder while a CR runs**:
   while another CR is actively in the pipeline (CM/Designer/Dev Engineer
   working on a feature branch), PM may ONLY `git commit` files inside its own

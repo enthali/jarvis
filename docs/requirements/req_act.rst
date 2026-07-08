@@ -154,6 +154,68 @@ Actor Requirements
      action.
 
 
+.. req:: Dual-Path Actor Storage Convention Scanner
+   :id: REQ_ACT_DUALPATH_SCANNER
+   :status: draft
+   :priority: required
+   :links: US_ACT_DUALPATH_STORAGE; REQ_ACT_TREE
+
+   **Description:**
+   The Actor entity scanner SHALL recognize and merge two on-disk naming
+   conventions into a single logical Actor list: the existing
+   ``<workspaceRoot>/.jarvis/sessions/<name>/session.yaml`` convention, and a
+   new ``<workspaceRoot>/.jarvis/actors/<name>/actor.yaml`` convention. Both
+   are scanned on every rescan; the union of entities found is presented as
+   one Actor tree/list with no user-visible distinction based on which
+   convention a given Actor uses.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The scanner SHALL scan **both** ``<workspaceRoot>/.jarvis/
+     sessions/`` (matching ``session.yaml``) and ``<workspaceRoot>/.jarvis/
+     actors/`` (matching ``actor.yaml``) on every rescan, for as long as the
+     Actor feature (``jarvis.sessions.enabled``) is on — regardless of
+     whether either folder currently contains any entities.
+   * AC-2: Entities found under either convention SHALL be merged into one
+     combined, alphabetically-sorted-by-name Actor tree/list (``REQ_ACT_TREE``
+     AC-4) — the merge SHALL NOT group or visually separate entities by
+     which convention they came from.
+   * AC-3: The two conventions SHALL never produce a colliding entity
+     identity: since an entity's identity (used as the scanner's internal
+     map key) is the absolute path of its convention file, and the two
+     conventions live under different parent folders with different
+     filenames, no path collision is possible even if a folder of the same
+     ``<name>`` exists under both ``.jarvis/sessions/`` and
+     ``.jarvis/actors/`` simultaneously — both SHALL appear as two distinct
+     Actor entities (same display name, different underlying files) rather
+     than being merged or one silently shadowing the other.
+   * AC-4: **New** Actor creation (``jarvis.newActor`` command,
+     ``jarvis_createSession`` tool — ``REQ_ACT_NEWENTITY``/
+     ``REQ_ACT_CREATETOOL``) SHALL write **only** the new convention
+     (``.jarvis/actors/<name>/actor.yaml``) going forward. Neither creation
+     path SHALL ever write a new ``session.yaml``.
+   * AC-5: Actors already stored under the old convention
+     (``.jarvis/sessions/<name>/session.yaml``) SHALL continue to be fully
+     readable and writable — reading/opening ``context.md``, the file
+     children tree, the right-click context menu, and click-to-chat
+     (``jarvis.openAgentSession``) SHALL all work identically regardless of
+     which convention an Actor uses. No auto-migration, auto-rename, or
+     any other mutation of old-convention folders SHALL ever be performed
+     by this requirement.
+   * AC-6: This is a **permanent** dual-convention support — not a
+     transition window with an implied deadline. No sunset date, deprecation
+     warning, or migration prompt SHALL be introduced for old-convention
+     Actors by this requirement.
+   * AC-7: If a subfolder of the same name exists as a non-leaf grouping
+     ("category") folder under both ``.jarvis/sessions/`` and
+     ``.jarvis/actors/`` (e.g. both have a subfolder named ``"archive"``),
+     the merged tree SHALL show two separate category folder nodes with
+     that same display name (one per source convention) rather than merging
+     their contents into a single folder node — accepted as a rare,
+     cosmetically-imperfect edge case rather than adding cross-convention
+     folder-identity merging complexity for uncertain benefit.
+
+
 .. req:: newEntity Command — Session Support
    :id: REQ_ACT_NEWENTITY
    :status: draft
@@ -164,26 +226,34 @@ Actor Requirements
    The existing ``jarvis.newEntity`` command SHALL offer "Session" as a third
    QuickPick option alongside "Project" and "Event".
 
+   **(actor-dualpath-scanner CR amendment):** AC-2/AC-3 below are rewritten
+   to target the new storage convention (``.jarvis/actors/``/``actor.yaml``)
+   per ``REQ_ACT_DUALPATH_SCANNER`` AC-4 — new Actors are no longer written
+   under the old ``.jarvis/sessions/``/``session.yaml`` convention. The
+   command ID (``jarvis.newSession``/``jarvis.newActor`` — already renamed
+   by the ``actor-internal-identifiers-rename`` CR) is unaffected.
+
    **Acceptance Criteria:**
 
    * AC-1: When the user selects "Session", a prompt SHALL ask for the session
      name.
    * AC-2: The extension SHALL create a new folder using the session name
      **verbatim** (no lowercase transformation, no slug, no character
-     substitution) under the fixed path ``<workspaceRoot>/.jarvis/sessions/``,
-     creating the parent directory on demand if absent.  The folder name is
-     storage only; session identity is the ``name:`` field inside
-     ``session.yaml``.
-   * AC-3: Inside the new folder, the extension SHALL create ``session.yaml``
-     with ``name`` and ``summary`` (empty) fields, and an empty ``context.md``.
+     substitution) under the fixed path ``<workspaceRoot>/.jarvis/actors/``
+     (was ``.jarvis/sessions/`` — changed by this CR), creating the parent
+     directory on demand if absent. The folder name is storage only; Actor
+     identity is the ``name:`` field inside ``actor.yaml``.
+   * AC-3: Inside the new folder, the extension SHALL create ``actor.yaml``
+     (was ``session.yaml`` — changed by this CR) with ``name`` and
+     ``summary`` (empty) fields, and an empty ``context.md``.
    * AC-4: If no workspace is open, the command SHALL show a warning and abort.
    * AC-5: After creation the scanner SHALL be triggered to rescan so the new
      session appears in the tree immediately.
-   * AC-6: A standalone ``jarvis.newSession`` command SHALL exist (icon ``$(add)``,
+   * AC-6: A standalone ``jarvis.newActor`` command SHALL exist (icon ``$(add)``,
      hidden from the Command Palette). ``jarvis.newEntity`` Session branch SHALL
-     delegate to ``jarvis.newSession`` — no duplicate creation logic.
+     delegate to ``jarvis.newActor`` — no duplicate creation logic.
    * AC-7: The Sessions view title SHALL show a ``+`` button bound to
-     ``jarvis.newSession`` (``navigation@1`` group) and a **Rescan** button bound to
+     ``jarvis.newActor`` (``navigation@1`` group) and a **Rescan** button bound to
      ``jarvis.rescan`` (``navigation@3`` group).
    * AC-8: On successful creation the new Session SHALL be auto-opened as an agent
      chat session via ``jarvis.openAgentSession`` (no manual action required).
@@ -326,6 +396,13 @@ Actor Requirements
    programmatically create a session entity under the fixed path
    ``<workspaceRoot>/.jarvis/sessions/<name>/``.
 
+   **(actor-dualpath-scanner CR amendment):** AC-2/AC-5 below are rewritten
+   to target the new storage convention per ``REQ_ACT_DUALPATH_SCANNER``
+   AC-4 — this tool now writes new Actors under
+   ``.jarvis/actors/<name>/actor.yaml``. The tool's own name
+   (``jarvis_createSession``) is unaffected — LM/MCP tool renames are
+   Phase 5, a separate deprecation-cycle CR.
+
    **Acceptance Criteria:**
 
    * AC-1: The tool SHALL be registered via ``registerDualTool()`` inside the
@@ -333,10 +410,12 @@ Actor Requirements
      ``jarvis.sessions.enabled`` is ``false``.
    * AC-2: On a successful create, the tool SHALL:
 
-     a. Create the directory ``<workspaceRoot>/.jarvis/sessions/<name>/`` where
-        the folder name is the verbatim ``name`` parameter — no slug transformation.
-     b. Write ``session.yaml`` containing the ``name`` field (always) and the
-        ``summary`` field (only when the supplied summary is non-blank).
+     a. Create the directory ``<workspaceRoot>/.jarvis/actors/<name>/`` (was
+        ``.jarvis/sessions/<name>/`` — changed by this CR) where the folder
+        name is the verbatim ``name`` parameter — no slug transformation.
+     b. Write ``actor.yaml`` (was ``session.yaml`` — changed by this CR)
+        containing the ``name`` field (always) and the ``summary`` field
+        (only when the supplied summary is non-blank).
      c. Write an empty ``context.md`` containing only ``# <name>\n\n``.
 
    * AC-3: After creation, the tool SHALL call ``scanner.rescan()`` so the
@@ -346,11 +425,17 @@ Actor Requirements
      ``"jarvis_createSession"`` as the sender, after the folder is created and
      before the response is returned.  The message SHALL NOT be enqueued when
      the session already existed (idempotency guard).
-   * AC-5: When a folder ``<workspaceRoot>/.jarvis/sessions/<name>/`` already
-     exists, the tool SHALL return
+   * AC-5: When a folder ``<workspaceRoot>/.jarvis/actors/<name>/`` (was
+     ``.jarvis/sessions/<name>/`` — changed by this CR) already exists, the
+     tool SHALL return
      ``{ created: false, reason: "session \"<name>\" already exists; no action taken",
-     path: ".jarvis/sessions/<name>" }`` without modifying any file or enqueuing
-     any message.
+     path: ".jarvis/actors/<name>" }`` (path prefix likewise changed from
+     ``.jarvis/sessions/``) without modifying any file or enqueuing any
+     message. **Note:** this idempotency check now only guards against a
+     name collision in the *new* convention folder — it does NOT check
+     whether an old-convention (``.jarvis/sessions/<name>/``) Actor of the
+     same name already exists (see ``REQ_ACT_DUALPATH_SCANNER`` Decisions
+     for the accepted same-name-across-conventions edge case).
    * AC-6: The tool SHALL validate ``name`` before attempting any filesystem
      operation.  An empty string or a string containing any of the characters
      ``/ \ : * ? " < > |`` or a null/control character SHALL result in a thrown
@@ -371,7 +456,8 @@ Actor Requirements
    * AC-10: Auto-open — After successful creation (``created: true``) the tool
      MUST trigger opening of the new session's agent chat via the
      ``jarvis.openAgentSession`` command, passing a ``LeafNode`` constructed as
-     ``{ kind: 'leaf', id: path.join(targetPath, 'session.yaml') }``.
+     ``{ kind: 'leaf', id: path.join(targetPath, 'actor.yaml') }`` (was
+     ``session.yaml`` — changed by this CR to match the new convention).
      The auto-delivery heartbeat loop (existing 5 s poll) is responsible for
      subsequently delivering any queued ``initialMessage`` into that chat.
      On idempotent skip (``created: false``), the tool MUST also trigger the

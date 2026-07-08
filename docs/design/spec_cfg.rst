@@ -480,7 +480,12 @@ Configuration Design Specifications
 .. spec:: settings-cleanup: Central Path Resolver Module (configPaths.ts)
    :id: SPEC_CFG_PATHRESOLVER
    :status: implemented
-   :links: REQ_CFG_FIXEDPATHS
+   :links: REQ_CFG_FIXEDPATHS; REQ_ACT_DUALPATH_SCANNER
+
+   **(actor-dualpath-scanner CR amendment):** adds ``getActorsDir()``/
+   ``ensureActorsDir()`` below, mirroring the existing
+   ``getSessionsDir()``/``ensureSessionsDir()`` pair — see
+   ``SPEC_ACT_DUALPATH_SCANNER`` for how these are wired into the scanner.
 
    **Description:**
    New module ``src/configPaths.ts`` provides all runtime file-path resolution
@@ -553,6 +558,25 @@ Configuration Design Specifications
       /** Ensures <workspaceRoot>/.jarvis/sessions exists (mkdir -p) and returns its path, or undefined. */
       export function ensureSessionsDir(): string | undefined {
         const dir = getSessionsDir();
+        if (!dir) { return undefined; }
+        fs.mkdirSync(dir, { recursive: true });
+        return dir;
+      }
+
+      /** (actor-dualpath-scanner CR) Returns <workspaceRoot>/.jarvis/actors,
+       *  or undefined when no workspace is open. Mirrors getSessionsDir() —
+       *  a fixed path, no folder setting, same pattern as the existing
+       *  session convention. */
+      export function getActorsDir(): string | undefined {
+        const dir = getJarvisDir();
+        return dir ? path.join(dir, 'actors') : undefined;
+      }
+
+      /** (actor-dualpath-scanner CR) Ensures <workspaceRoot>/.jarvis/actors
+       *  exists (mkdir -p) and returns its path, or undefined. Mirrors
+       *  ensureSessionsDir(). */
+      export function ensureActorsDir(): string | undefined {
+        const dir = getActorsDir();
         if (!dir) { return undefined; }
         fs.mkdirSync(dir, { recursive: true });
         return dir;

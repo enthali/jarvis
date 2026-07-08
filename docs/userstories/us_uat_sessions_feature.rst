@@ -221,6 +221,94 @@ Sessions Feature User Acceptance Tests
      ``jarvisActors``. This is a one-time side effect; future state will be
      preserved normally.
 
+   * AC-13: (actor-dualpath-scanner CR) Test scenarios verify that the scanner
+     reads both old-convention (``.jarvis/sessions/*/session.yaml``) and
+     new-convention (``.jarvis/actors/*/actor.yaml``) Actor folders, merges
+     them into a single tree (no visible distinction), creates new Actors only
+     under the new convention, and handles edge cases (same-name-across
+     -conventions, mixed workspaces) correctly; Project/Event scanners remain
+     unaffected (covered by T-17 through T-24).
+
+   **T-17 — Old-convention only: scanner finds all actors**
+     Setup: Delete or move aside any ``.jarvis/actors/`` folder to ensure only
+     old-convention exists. Populate ``.jarvis/sessions/`` with two old-convention
+     actors (e.g. ``old-alpha/session.yaml`` and ``old-beta/session.yaml``).
+     Action: Open the workspace and observe the Actors tree.
+     Expected: The tree displays both ``old-alpha`` and ``old-beta`` in
+     alphabetical order. No error appears. The behavior is unchanged from the
+     pre-Phase-2 state (backward compatibility).
+
+   **T-18 — New-convention only: scanner finds all actors**
+     Setup: Delete or archive the old-convention ``.jarvis/sessions/`` folder.
+     Populate ``.jarvis/actors/`` with two new-convention actors (e.g.
+     ``new-alpha/actor.yaml`` and ``new-beta/actor.yaml``).
+     Action: Open the workspace and observe the Actors tree.
+     Expected: The tree displays both ``new-alpha`` and ``new-beta`` in
+     alphabetical order, discovered from ``.jarvis/actors/``. No error appears.
+
+   **T-19 — Mixed workspace: scanner merges both conventions**
+     Setup: Have both ``.jarvis/sessions/`` and ``.jarvis/actors/`` folders
+     populated with a mix of old- and new-convention actors (e.g.
+     ``.jarvis/sessions/old-actor-1/``, ``.jarvis/actors/new-actor-1/``,
+     ``.jarvis/sessions/old-actor-2/``, ``.jarvis/actors/new-actor-2/``).
+     Action: Open the workspace and observe the Actors tree.
+     Expected: The tree displays all four actors in alphabetical order
+     (``new-actor-1``, ``new-actor-2``, ``old-actor-1``, ``old-actor-2``),
+     merging the two convention sources. No visible distinction between old
+     and new actors. No error appears.
+
+   **T-20 — New Actor creation uses new convention**
+     Setup: Mixed workspace as in T-19. Before creating, verify the folder
+     structure.
+     Action: Run ``Jarvis: New Actor`` (or ``Jarvis: New Entity`` > Session).
+     Enter name ``created-actor`` and summary ``Created via Phase 2``.
+     Expected: A new folder is created under ``.jarvis/actors/`` only (not
+     ``.jarvis/sessions/``). The new folder contains ``actor.yaml`` (not
+     ``session.yaml``) with the provided ``name`` and ``summary``. The node
+     ``created-actor`` appears in the tree. Old-convention actors remain
+     untouched.
+
+   **T-21 — jarvis_createSession tool uses new convention**
+     Setup: Mixed workspace as in T-19. Open an agent chat.
+     Action: Invoke ``jarvis_createSession`` tool (or via MCP) with
+     ``name: "tool-created"``, ``summary: "Created via tool"``. Confirm
+     the tool call.
+     Expected: A new folder ``.jarvis/actors/tool-created/`` is created
+     (not ``.jarvis/sessions/tool-created/``). The folder contains
+     ``actor.yaml`` and ``context.md``. The node appears in the tree. No
+     old-convention folder is created as a side effect.
+
+   **T-22 — Same-name actor in both conventions: both appear**
+     Setup: Create two actors with the same name under different conventions:
+     ``.jarvis/sessions/shared-name/session.yaml`` and
+     ``.jarvis/actors/shared-name/actor.yaml`` (both with valid ``name: shared-name
+     `` fields).
+     Action: Open the workspace and observe the Actors tree.
+     Expected: Two separate nodes both labeled ``shared-name`` appear in the
+     tree (this is an accepted edge case — they are not deduplicated). The
+     user can interact with both independently (open context.md from either,
+     open agent session from either). No error appears.
+
+   **T-23 — Old-convention actor's context.md remains fully live/writable**
+     Setup: Mixed workspace as in T-19. Open the Actors tree and locate an
+     old-convention actor (e.g. ``old-actor-1``).
+     Action: Click the actor node to open its ``context.md``. Edit the file
+     (e.g. add a line "Modified during Phase 2 UAT") and save.
+     Expected: The file is writable; the edit is saved successfully. No
+     warning or notification about the file being frozen or read-only appears.
+     The actor remains fully operational after the edit.
+
+   **T-24 — Project/Event scanners unaffected (regression)**
+     Setup: Mixed Actor workspace (both conventions). Also have Projects and
+     Events in the workspace.
+     Action: Open the Projects and Events tree views. Verify that creating a
+     new Project or Event works normally (via ``Jarvis: New Entity`` > Project/
+     Event, or the view's ``+`` button).
+     Expected: New Projects are created under ``.jarvis/projects/`` only
+     (not under any alternative folder). New Events are created under
+     ``.jarvis/events/`` only. No cross-convention logic appears in Project/
+     Event behavior. These views are unaffected by the Actor phase-2 change.
+
    **T-12 — Tree view, command titles, and settings show "Actor" terminology**
      Setup: Sessions tree populated as in T-2.
      Action: Observe the view title in the Jarvis sidebar. Open the Command

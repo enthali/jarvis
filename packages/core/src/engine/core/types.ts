@@ -48,6 +48,17 @@ export interface EntityKindConfig {
      *  that derive labels from entity fields (e.g. event datesStart prefix). */
     label(name: string, entity?: { data: Record<string, unknown> }): string;
 
+    /**
+     * Additional (folderSettingKey, conventionFile) roots scanned and
+     * merged into this kind's tree/entities, alongside the primary
+     * (folderSettingKey, `${kind}.yaml`) root. Optional; unused by
+     * Project/Event. Used by the session/actor kind
+     * (actor-dualpath-scanner CR) to add the `.jarvis/actors/`/
+     * `actor.yaml` convention without touching the primary
+     * `.jarvis/sessions/`/`session.yaml` root.
+     */
+    additionalScanRoots?: { folderSettingKey: string; conventionFile: string }[];
+
     // --- Optional tree-rendering hooks (S5 generalization) ---
 
     /**

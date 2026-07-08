@@ -155,10 +155,169 @@ Actor Design Specifications
      argument — moot now that the command is retired.
 
 
+.. spec:: Dual-Path Actor Storage Convention Scanner
+   :id: SPEC_ACT_DUALPATH_SCANNER
+   :status: draft
+   :links: REQ_ACT_DUALPATH_SCANNER; SPEC_CFG_PATHRESOLVER
+
+   **Description:**
+   Extends ``KindDrivenScanner`` (``packages/core/src/engine/sessions/
+   yamlScanner.ts``) and ``EntityKindConfig`` (``packages/core/src/engine/
+   core/types.ts``) with an optional **additional scan roots** mechanism,
+   used exclusively by the session/actor kind's config to add the new
+   ``.jarvis/actors/*/actor.yaml`` convention alongside the existing
+   ``.jarvis/sessions/*/session.yaml`` primary root, without changing the
+   generic engine's single-root contract for Project/Event (they simply
+   never set this new optional field).
+
+   **``EntityKindConfig`` addition (``types.ts``):**
+
+   .. code-block:: typescript
+
+      export interface EntityKindConfig {
+          kind: string;
+          viewId: string;
+          folderSettingKey: string;
+          label(name: string, entity?: { data: Record<string, unknown> }): string;
+          // ...existing optional hooks unchanged...
+
+          /**
+           * Additional (folderSettingKey, conventionFile) roots scanned and
+           * merged into this kind's tree/entities, alongside the primary
+           * (folderSettingKey, `${kind}.yaml`) root. Optional; unused by
+           * Project/Event. Used by the session/actor kind
+           * (actor-dualpath-scanner CR) to add the `.jarvis/actors/`/
+           * `actor.yaml` convention without touching the primary
+           * `.jarvis/sessions/`/`session.yaml` root.
+           */
+          additionalScanRoots?: { folderSettingKey: string; conventionFile: string }[];
+      }
+
+   **``KindDrivenScanner`` changes (``yamlScanner.ts``):**
+
+   .. code-block:: typescript
+
+      export interface KindScanConfig {
+          kind: string;
+          folderSettingKey: string;
+          conventionFile: string;
+          additionalScanRoots?: { folderSettingKey: string; conventionFile: string }[];
+      }
+
+      addKind(config: EntityKindConfig): void {
+          const conventionFile = `${config.kind}.yaml`;
+          this._kinds.set(config.kind, {
+              kind: config.kind,
+              folderSettingKey: config.folderSettingKey,
+              conventionFile,
+              additionalScanRoots: config.additionalScanRoots,
+          });
+          this._trees.set(config.kind, []);
+          this.rescan();
+      }
+
+      async rescan(): Promise<void> {
+          let changed = false;
+          const newEntities = new Map<string, EntityEntry>();
+
+          for (const [kind, scanConfig] of this._kinds) {
+              // Primary root (unchanged behavior for Project/Event; also the
+              // existing .jarvis/sessions/ root for session/actor)
+              const folder = this._folderResolver(scanConfig.folderSettingKey);
+              let newTree = await this._buildTree(folder, newEntities, scanConfig.conventionFile, kind as 'project' | 'event' | 'session');
+
+              // Additional roots (actor-dualpath-scanner CR) — merge in place
+              for (const root of scanConfig.additionalScanRoots ?? []) {
+                  const altFolder = this._folderResolver(root.folderSettingKey);
+                  const altTree = await this._buildTree(altFolder, newEntities, root.conventionFile, kind as 'project' | 'event' | 'session');
+                  newTree = this._mergeSortedTrees(newTree, altTree);
+              }
+
+              const oldTree = this._trees.get(kind) ?? [];
+              if (!treesEqual(newTree, oldTree)) {
+                  this._trees.set(kind, newTree);
+                  changed = true;
+              }
+          }
+
+          // ...entity-diff check + _onCacheChanged() unchanged...
+      }
+
+      /**
+       * Merges two already-name-sorted node lists (each independently
+       * produced by _buildTree, which sorts its own root's nodes) into one
+       * combined, still name-sorted list — a simple sorted-merge, not a
+       * concatenate-then-resort, to avoid re-deriving each node's sort key.
+       * Folder nodes with the same display name from different roots are
+       * NOT merged into one folder — they appear as two sibling folder
+       * nodes with that name (REQ_ACT_DUALPATH_SCANNER AC-7, accepted
+       * cosmetic edge case).
+       */
+      private _mergeSortedTrees(a: TreeNode[], b: TreeNode[]): TreeNode[] {
+          const keyOf = (n: TreeNode) => n.kind === 'folder' ? n.name.toLowerCase() : (this._entities.get(n.id)?.name?.toLowerCase() ?? '');
+          const merged: TreeNode[] = [];
+          let i = 0, j = 0;
+          while (i < a.length && j < b.length) {
+              merged.push(keyOf(a[i]).localeCompare(keyOf(b[j])) <= 0 ? a[i++] : b[j++]);
+          }
+          return merged.concat(a.slice(i), b.slice(j));
+      }
+
+   **``extension.ts`` wiring — session/actor kind config gains the new root:**
+
+   .. code-block:: typescript
+
+      const sessionKindConfig: EntityKindConfig = {
+          kind: 'session',
+          viewId: 'jarvisActors',
+          folderSettingKey: 'jarvis.sessions.folder',   // primary (legacy) root — unchanged
+          label: (name: string) => name,
+          additionalScanRoots: [
+              { folderSettingKey: 'jarvis.actors.folder', conventionFile: 'actor.yaml' }
+          ],
+      };
+
+   The shared folder-resolver callback (already present in ``extension.ts``,
+   used for ``folderSettingKey`` lookups) gains one new case:
+
+   .. code-block:: typescript
+
+      if (settingKey === 'jarvis.actors.folder') {
+          return configPaths.getActorsDir() ?? '';
+      }
+
+   **Design notes:**
+
+   * ``kind`` and ``contextValue`` are unaffected by which root an entity
+     came from — ``_buildTree`` is called with the same ``kind`` string
+     (``'session'``) for both roots, so downstream tree-rendering code
+     (``GenericTreeDataProvider``) treats all Actor entities identically
+     regardless of source convention, satisfying ``REQ_ACT_DUALPATH_SCANNER``
+     AC-2's "no visible distinction" requirement.
+   * No new persisted state, no new setting for enabling/disabling the
+     additional root — the second convention is always scanned whenever
+     the session/actor kind itself is enabled (``jarvis.sessions.enabled``).
+     No new ``jarvis.actors.folder`` *user-facing* setting is introduced
+     either — like ``jarvis.sessions.folder``, it resolves to a fixed path
+     (``<workspaceRoot>/.jarvis/actors/``) with no override, mirroring the
+     existing session convention's "no folder setting" pattern
+     (``US_ACT_ACTORS`` AC-1).
+   * Entity-map merging is automatic and collision-free: both calls to
+     ``_buildTree`` share the same ``newEntities`` map instance, and entity
+     IDs are the convention file's absolute path — since the two roots live
+     under different parent directories with different filenames, no two
+     entities from different roots can ever produce the same ID
+     (``REQ_ACT_DUALPATH_SCANNER`` AC-3).
+   * Project and Event kinds never populate ``additionalScanRoots``, so
+     ``rescan()``'s new loop body (``for (const root of scanConfig.
+     additionalScanRoots ?? [])``) is a no-op for them — zero behavior
+     change to their scanning.
+
+
 .. spec:: sessions-feature: newEntity Command — Session Branch
    :id: SPEC_ACT_NEWENTITY
    :status: draft
-   :links: REQ_ACT_NEWENTITY
+   :links: REQ_ACT_NEWENTITY; SPEC_ACT_DUALPATH_SCANNER
 
    **(actor-internal-identifiers-rename CR amendment):** the command ID
    ``jarvis.newSession`` referenced throughout this spec is renamed to
@@ -170,14 +329,23 @@ Actor Design Specifications
    below says ```jarvis.newSession```, read it as the (unchanged-behavior)
    predecessor of the now-current ``jarvis.newActor``.
 
+   **(actor-dualpath-scanner CR amendment):** steps 1 and 7 below are
+   rewritten — this command now writes new Actors under the new storage
+   convention (``configPaths.ensureActorsDir()`` / ``actor.yaml``,
+   ``SPEC_CFG_PATHRESOLVER``/``SPEC_ACT_DUALPATH_SCANNER``) instead of the
+   old ``ensureSessionsDir()``/``session.yaml`` pair. This command never
+   writes a new ``session.yaml`` going forward; old-convention Actors
+   elsewhere in the workspace are entirely unaffected.
+
    **Description:**
    Two commands implement session creation. ``jarvis.newSession`` is the actual
    implementation; ``jarvis.newEntity`` is a unified QuickPick that delegates to it.
 
    **``jarvis.newSession`` command** (``src/extension.ts`` newSessionCommand):
 
-   1. Call ``configPaths.ensureSessionsDir()`` to get the fixed sessions path
-      (``<workspaceRoot>/.jarvis/sessions/``), creating the directory if absent.
+   1. Call ``configPaths.ensureActorsDir()`` (was ``ensureSessionsDir()`` —
+      changed by ``actor-dualpath-scanner``) to get the fixed actors path
+      (``<workspaceRoot>/.jarvis/actors/``), creating the directory if absent.
    2. If the return value is ``undefined`` (no workspace open) → show
       ``vscode.window.showWarningMessage('Jarvis: No workspace open.')`` and abort.
    3. Prompt for ``name`` (required, non-empty). Abort if the user cancels or
@@ -194,12 +362,14 @@ Actor Design Specifications
       button is disabled until the user enters a valid name; pressing Escape
       cancels creation.  Do NOT silently sanitize and do NOT show a separate
       ``showErrorMessage`` notification.
-   6. Construct ``<ensureSessionsDir()>/<name>/`` (``name`` used verbatim—no
-      transformation).
-   7. Write ``session.yaml``::
+   6. Construct ``<ensureActorsDir()>/<name>/`` (was ``<ensureSessionsDir()>/
+      <name>/`` — changed by ``actor-dualpath-scanner``; ``name`` used
+      verbatim — no transformation).
+   7. Write ``actor.yaml`` (was ``session.yaml`` — changed by
+      ``actor-dualpath-scanner``)::
 
-          name: <name>
-          summary: <summary>
+         name: <name>
+         summary: <summary>
 
    8. Write ``context.md``::
 
@@ -559,7 +729,14 @@ Actor Design Specifications
 .. spec:: jarvis_createSession: LM+MCP Tool Registration
    :id: SPEC_ACT_CREATETOOL
    :status: implemented
-   :links: REQ_ACT_CREATETOOL
+   :links: REQ_ACT_CREATETOOL; SPEC_ACT_DUALPATH_SCANNER
+
+   **(actor-dualpath-scanner CR amendment):** the idempotency check, file
+   layout, and ``actor.yaml``-format sections below are rewritten — this
+   tool now writes new Actors under ``configPaths.ensureActorsDir()`` /
+   ``actor.yaml`` instead of ``ensureSessionsDir()``/``session.yaml``. The
+   tool's own name (``jarvis_createSession``) and input schema are
+   unaffected — only its internal write target changes.
 
    **Description:**
    Register ``jarvis_createSession`` via ``registerDualTool()`` in
@@ -595,7 +772,7 @@ Actor Design Specifications
       * - ``summary``
         - ``string``
         - no
-        - Short description written to ``session.yaml``
+        - Short description written to ``actor.yaml``
           (omitted from the file when blank or absent).
       * - ``initialMessage``
         - ``string``
@@ -620,20 +797,29 @@ Actor Design Specifications
 
    .. code-block:: typescript
 
-      const sessionsDir = configPaths.ensureSessionsDir();
-      if (!sessionsDir) { throw new Error('jarvis_createSession: no workspace open'); }
-      const targetPath = path.join(sessionsDir, name);
+      const actorsDir = configPaths.ensureActorsDir();
+      if (!actorsDir) { throw new Error('jarvis_createSession: no workspace open'); }
+      const targetPath = path.join(actorsDir, name);
       if (fs.existsSync(targetPath)) {
           // Auto-open even on idempotent skip (AC-10)
-          const leaf: LeafNode = { kind: 'leaf', id: path.join(targetPath, 'session.yaml') };
+          const leaf: LeafNode = { kind: 'leaf', id: path.join(targetPath, 'actor.yaml') };
           try { await vscode.commands.executeCommand('jarvis.openAgentSession', leaf); }
           catch (e) { log.warn(`[SES] createSession: auto-open failed (idempotent): ${e}`); }
           return {
               created: false,
               reason: `session "${name}" already exists; no action taken`,
-              path: `.jarvis/sessions/${name}`,
+              path: `.jarvis/actors/${name}`,
           };
       }
+
+   **Note (actor-dualpath-scanner):** this check only guards against a
+   name collision in the *new* convention folder (``.jarvis/actors/<name>/``)
+   — it does not check whether an old-convention Actor
+   (``.jarvis/sessions/<name>/``) of the same name already exists. Per
+   ``REQ_ACT_CREATETOOL`` AC-5 and ``REQ_ACT_DUALPATH_SCANNER`` AC-3, this is
+   an accepted edge case: both would appear as two distinct (same-named)
+   Actor entities in the merged tree, rather than one silently shadowing the
+   other or the tool refusing to create the new one.
 
    **File layout after creation:**
 
@@ -641,12 +827,12 @@ Actor Design Specifications
 
       <workspaceRoot>/
         .jarvis/
-          sessions/
+          actors/
             <name>/
-              session.yaml    ← name field always; summary field when non-blank
+              actor.yaml      ← name field always; summary field when non-blank
               context.md      ← always; starts with "# <name>\n\n"
 
-   **``session.yaml`` format** (mirrors ``jarvis.newSession`` command):
+   **``actor.yaml`` format** (mirrors ``jarvis.newActor`` command):
 
    .. code-block:: yaml
 
@@ -695,7 +881,7 @@ Actor Design Specifications
 
    .. code-block:: typescript
 
-      const leaf: LeafNode = { kind: 'leaf', id: path.join(targetPath, 'session.yaml') };
+      const leaf: LeafNode = { kind: 'leaf', id: path.join(targetPath, 'actor.yaml') };
       try { await vscode.commands.executeCommand('jarvis.openAgentSession', leaf); }
       catch (e) { log.warn(`[SES] createSession: auto-open failed: ${e}`); }
 
@@ -711,7 +897,7 @@ Actor Design Specifications
 
    .. code-block:: json
 
-      { "created": true, "path": ".jarvis/sessions/<name>" }
+      { "created": true, "path": ".jarvis/actors/<name>" }
 
    *Already existed (idempotent):*
 
@@ -720,7 +906,7 @@ Actor Design Specifications
       {
         "created": false,
         "reason": "session \"<name>\" already exists; no action taken",
-        "path": ".jarvis/sessions/<name>"
+        "path": ".jarvis/actors/<name>"
       }
 
    *Invalid name / no workspace:* thrown ``Error`` — surfaces as LM tool error
@@ -748,7 +934,7 @@ Actor Design Specifications
                   new vscode.LanguageModelTextPart(JSON.stringify(result))
               ]);
           },
-          'Creates a new Jarvis session folder with session.yaml and context.md under <workspace>/.jarvis/sessions/<name>/. Idempotent: returns success if session already exists.',
+          'Creates a new Jarvis actor folder with actor.yaml and context.md under <workspace>/.jarvis/actors/<name>/. Idempotent: returns success if the actor already exists.',
           {
               name: z.string().describe('Session name; used verbatim as the folder name'),
               summary: z.string().optional().describe('Optional short description'),
@@ -776,7 +962,7 @@ Actor Design Specifications
       {
         "name": "jarvis_createSession",
         "displayName": "Create Session",
-        "modelDescription": "Creates a new Jarvis session folder with session.yaml and context.md. Idempotent: safe to call if the session already exists.",
+        "modelDescription": "Creates a new Jarvis actor folder with actor.yaml and context.md under .jarvis/actors/<name>/. Idempotent: safe to call if the actor already exists.",
         "canBeReferencedInPrompt": true,
         "toolReferenceName": "createSession",
         "icon": "$(add)",
@@ -790,7 +976,7 @@ Actor Design Specifications
             },
             "summary": {
               "type": "string",
-              "description": "Optional short description written to session.yaml."
+              "description": "Optional short description written to actor.yaml."
             },
             "initialMessage": {
               "type": "string",

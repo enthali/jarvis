@@ -9,11 +9,16 @@ Actor User Stories
    Jarvis concept name and belongs to the platform (VS Code / Copilot chat
    sessions) instead. Storage paths and filenames
    (``.jarvis/sessions/``, ``session.yaml``, ``jarvis.sessions.enabled``,
-   ``jarvis_listSessions``, ``jarvis.newSession``) are **unchanged** in this
-   CR — that is a separate, future code migration. Where this file says
-   "session folder" or "``session.yaml``" it refers to the literal,
-   unchanged storage layer; where it says "Actor" it refers to the entity
-   kind concept.
+   ``jarvis_listSessions``, ``jarvis.newSession``) were **unchanged** as of
+   this note's original CR (``actor-terminology-rename``, Phase 1) — flagged
+   there as "a separate, future code migration." That migration is
+   ``US_ACT_DUALPATH_STORAGE`` below (``actor-dualpath-scanner`` CR, Phase 2):
+   a **soft**, permanent-coexistence migration, not a hard rename — existing
+   ``.jarvis/sessions/``/``session.yaml`` actors are never touched or
+   forced to move. Where this file says "session folder" or
+   "``session.yaml``" it refers to the literal (still-live, still-written-
+   by-old-actors) storage layer; where it says "Actor" it refers to the
+   entity kind concept.
 
 .. story:: Actor Entity Type
    :id: US_ACT_ACTORS
@@ -57,6 +62,52 @@ Actor User Stories
      Reveal in OS, Open in Terminal).
    * AC-9: Opening a new agent session for any entity kind sends a kind-aware
      identity prompt naming the entity and its ``context.md`` path.
+
+
+.. story:: Soft Actor Storage-Convention Migration
+   :id: US_ACT_DUALPATH_STORAGE
+   :status: draft
+   :priority: required
+   :links: US_ACT_ACTORS
+
+   **As a** Jarvis user (and the agents/tooling that operate on my
+   workspace),
+   **I want** new Actor entities to be created under a dedicated
+   ``.jarvis/actors/`` naming convention that matches the "Actor" concept,
+   while every Actor I already have under the older ``.jarvis/sessions/``
+   convention keeps working fully and forever with no forced migration,
+   **so that** the codebase's own storage layer finally catches up to the
+   "Actor" terminology for new entities, without ever requiring me to
+   rename, move, or otherwise disturb existing ones — a workspace mixing
+   both conventions indefinitely is a normal, permanently supported state,
+   not a transitional inconvenience.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A new fixed storage convention, ``<workspaceRoot>/.jarvis/actors/
+     <name>/actor.yaml``, is recognized alongside the existing
+     ``<workspaceRoot>/.jarvis/sessions/<name>/session.yaml`` convention —
+     both are scanned, and their entities are merged into one logical Actor
+     list/tree with no visible distinction to the user based on which
+     convention a given Actor happens to use.
+   * AC-2: Creating a **new** Actor (via the tree's "New Actor" button or
+     the ``jarvis_createSession`` tool) writes only the new convention
+     (``.jarvis/actors/<name>/actor.yaml``) going forward — it never writes
+     a new ``session.yaml``.
+   * AC-3: Actors already stored under the old convention are **never**
+     auto-migrated, auto-renamed, or otherwise mutated by this capability —
+     their ``context.md`` and all other content remain fully readable and
+     writable exactly as before, indefinitely, with no deprecation
+     timeline.
+   * AC-4: A workspace containing a mix of old- and new-convention Actor
+     folders is a normal, fully supported, permanent state — not a
+     transition window with an implied end state where every Actor is
+     eventually expected to use the new convention.
+   * AC-5: This capability is storage/scanner-level only — it does not
+     change the Actor tree's visual structure (that is a separate, future
+     capability — Unified Entity Tree, Phase 3) and does not rename any
+     LM/MCP tool (``jarvis_listSessions``, ``jarvis_createSession``, etc. —
+     Phase 5, a separate deprecation-cycle CR).
 
 
 .. story:: Programmatic Session Creation Tool
