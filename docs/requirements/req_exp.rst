@@ -267,16 +267,22 @@ Explorer Requirements
 
 .. req:: Search Projects via QuickPick
    :id: REQ_EXP_SEARCHPROJECTS
-   :status: implemented
+   :status: deprecated
    :priority: optional
-   :links: US_EXP_TREESEARCH
+   :links: US_EXP_TREESEARCH; REQ_EXP_SEARCHENTITIES
 
-   **Description:**
-   The Projects tree view SHALL provide a search command, triggered by a
+   **Description (HISTORICAL — superseded by unified-entity-tree CR):**
+   ~~The Projects tree view SHALL provide a search command, triggered by a
    ``$(search)`` icon in its title bar, that opens a QuickPick listing all
-   projects. Selecting a project SHALL reveal and focus it in the tree.
+   projects. Selecting a project SHALL reveal and focus it in the tree.~~
+   The dedicated ``jarvisProjects`` view (and its ``jarvis.searchProjects``
+   command) no longer exists as a standalone view — Projects are now one
+   entity kind among others inside the unified "Jarvis Entities" tree. See
+   ``REQ_EXP_SEARCHENTITIES`` for the current, authoritative requirement.
+   Kept here (not deleted) for traceability of the historical acceptance
+   criteria below.
 
-   **Acceptance Criteria:**
+   **Acceptance Criteria (historical, no longer authoritative):**
 
    * AC-1: A ``$(search)`` icon button in the Projects title bar triggers the
      command ``jarvis.searchProjects``
@@ -299,16 +305,22 @@ Explorer Requirements
 
 .. req:: Search Events via QuickPick
    :id: REQ_EXP_SEARCHEVENTS
-   :status: implemented
+   :status: deprecated
    :priority: optional
-   :links: US_EXP_TREESEARCH
+   :links: US_EXP_TREESEARCH; REQ_EXP_SEARCHENTITIES
 
-   **Description:**
-   The Events tree view SHALL provide a search command, triggered by a
+   **Description (HISTORICAL — superseded by unified-entity-tree CR):**
+   ~~The Events tree view SHALL provide a search command, triggered by a
    ``$(search)`` icon in its title bar, that opens a QuickPick listing all
-   events. Selecting an event SHALL reveal and focus it in the tree.
+   events. Selecting an event SHALL reveal and focus it in the tree.~~
+   The dedicated ``jarvisEvents`` view (and its ``jarvis.searchEvents``
+   command) no longer exists as a standalone view — Events are now one
+   entity kind among others inside the unified "Jarvis Entities" tree. See
+   ``REQ_EXP_SEARCHENTITIES`` for the current, authoritative requirement.
+   Kept here (not deleted) for traceability of the historical acceptance
+   criteria below.
 
-   **Acceptance Criteria:**
+   **Acceptance Criteria (historical, no longer authoritative):**
 
    * AC-1: A ``$(search)`` icon button in the Events title bar triggers the
      command ``jarvis.searchEvents``
@@ -327,5 +339,166 @@ Explorer Requirements
      required
    * AC-8: Pressing Escape or clicking outside the QuickPick SHALL dismiss it
      without any side effects on the tree view or scanner state
+
+
+.. req:: Unified Entities Tree
+   :id: REQ_EXP_UNIFIEDTREE
+   :status: approved
+   :priority: mandatory
+   :links: US_EXP_SIDEBAR; REQ_ACT_TREE; REQ_PRJ_PROJECTFILTER; REQ_EVT_EVENTFILTER
+
+   **Description:**
+   A single TreeView ``jarvisEntities`` ("Jarvis Entities") SHALL replace the
+   three standalone views ``jarvisActors``, ``jarvisProjects``, and
+   ``jarvisEvents``, presenting all registered entity kinds through one
+   presentation-layer wrapper. The underlying per-kind scanning and data model
+   (``KindDrivenScanner``, ``EntityKindConfig``, ``engine.treeFactory``) is
+   unchanged — this requirement is additive at the view-registration layer
+   only.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``jarvisEntities`` SHALL be registered and owned by
+     ``packages/core`` (the always-active extension), since core's engine
+     already receives Project/Event kind registrations from ``packages/pim``
+     via the existing cross-extension ``JarvisCoreApi.registerEntityKind()``
+     call — no new cross-package data API is introduced by this requirement.
+   * AC-2: ``packages/pim`` SHALL NOT contribute its own ``jarvisProjects``/
+     ``jarvisEvents`` views in ``package.json`` and SHALL NOT call
+     ``vscode.window.createTreeView()`` for them; it SHALL continue calling
+     ``api.registerEntityKind()`` for the ``project`` and ``event`` kinds
+     exactly as before.
+   * AC-3: A kind SHALL be considered "registered" for category-node purposes
+     if ``registerEntityKind`` was called for it (which already reflects each
+     kind's own enabled-setting gate). Each registered kind SHALL always be
+     represented by a category root node, regardless of whether it currently
+     contains entities. ~~(historical: earlier draft had a "present" concept
+     requiring at least one entity — superseded by PM decision to always show
+     categories)~~
+   * AC-4: Each registered kind SHALL be represented by one category root
+     node, labelled with the kind's plural display name
+     ("Actors"/"Projects"/"Events"), ``contextValue`` of
+     ``jarvisEntityCategory:<kind>``, default ``collapsibleState`` of
+     ``Expanded``, whose children are exactly that kind's existing root tree
+     nodes (unchanged rendering below the category node). If a kind has no
+     entities, its category node SHALL be shown with an empty children list
+     (collapsed, no expand arrow).
+   * AC-5: ~~When at most 1 kind is present, no category node SHALL be
+     rendered~~ — **superseded**: category nodes are unconditional (see AC-3/
+     AC-4). There is no flattened mode.
+   * AC-6: The wrapper provider SHALL forward refresh: firing
+     ``onDidChangeTreeData(undefined)`` (whole-tree refresh) whenever any
+     wrapped per-kind provider fires its own change event. No partial/subtree
+     refresh optimization is required.
+   * AC-7: ``package.json`` ``activationEvents`` SHALL include
+     ``onView:jarvisEntities`` (replacing ``onView:jarvisActors``,
+     ``onView:jarvisProjects``, ``onView:jarvisEvents``).
+   * AC-8: The ``jarvisEntities`` view contribution SHALL NOT carry a
+     ``when``-clause of its own (it is unconditionally visible, matching
+     today's Projects/Actors precedent of no view-level gate) — per-kind
+     presence is decided entirely at runtime per AC-3, not via
+     ``package.json``. As a consequence, ``packages/pim`` SHALL gate its
+     ``registerEntityKind(buildEventKindConfig(...))`` call behind
+     ``jarvis.events.enabled`` at runtime (mirroring the existing Actor
+     pattern in ``packages/core``), since the view-level ``when``-clause that
+     previously gated ``jarvisEvents`` visibility no longer exists. The
+     Projects kind registration remains unconditional (Projects has never had
+     an enabled-gate).
+   * AC-9: Existing per-leaf-node behaviour (labels, tooltips, context values,
+     click actions, file-children expansion) SHALL be completely unchanged —
+     this requirement only changes what sits *above* each kind's existing
+     root nodes in the tree.
+   * AC-10: (unified-entity-tree amendment) Per-kind "New" entity actions
+     (``jarvis.newActor``, ``jarvis.newProject``, ``jarvis.newEvent``) SHALL
+     be triggered via an inline icon (``$(add)``) on their respective
+     category node (``contextValue == jarvisEntityCategory:<kind>``), NOT
+     from the ``jarvisEntities`` view title bar. Each "New" command SHALL
+     also remain reachable via the Command Palette. The view title bar SHALL
+     only host the cross-kind search icon (``$(search)``, see
+     ``REQ_EXP_SEARCHENTITIES``).
+   * AC-11: (unified-entity-tree fix) ``packages/pim/package.json``
+     ``activationEvents`` SHALL include ``onView:jarvisEntities`` — replacing
+     the removed ``onView:jarvisProjects``/``onView:jarvisEvents`` triggers
+     and ensuring PIM activates reliably whenever the unified tree is
+     visible. ``onStartupFinished`` is NOT added (PIM activation outside the
+     Jarvis sidebar context is unnecessary overhead).
+   * AC-12: (unified-entity-tree fix) The unified wrapper provider SHALL
+     handle late-arriving kind registrations: when a new kind is added to
+     ``GenericTreeFactory`` after the wrapper is already constructed, the
+     wrapper SHALL (a) subscribe to the new kind provider's
+     ``onDidChangeTreeData`` event and (b) fire a whole-tree refresh
+     (``onDidChangeTreeData(undefined)``) so that the new kind's category
+     node appears immediately. This avoids a race condition where PIM's
+     ``registerEntityKind()`` call executes after core has already
+     constructed the ``UnifiedEntityTreeProvider``.
+
+
+.. req:: Live Filter Entities in Tree
+   :id: REQ_EXP_SEARCHENTITIES
+   :status: approved
+   :priority: optional
+   :links: US_EXP_TREESEARCH; REQ_EXP_UNIFIEDTREE
+
+   **Description (unified-entity-tree — pivoted from reveal-based search to
+   live tree filter):** The unified ``jarvisEntities`` tree view SHALL
+   provide a live filter command, triggered by a ``$(search)`` icon in its
+   title bar, that opens a QuickPick **input box** (not an item-picker list).
+   As the user types, the tree filters in real time to show only matching
+   entities (and their ancestor folders/categories), across all registered
+   kinds (Actors, Projects, Events). This supersedes
+   ``REQ_EXP_SEARCHPROJECTS``/``REQ_EXP_SEARCHEVENTS`` and extends filtering
+   to Actors for the first time.
+
+   **Pivot rationale:** the originally specified reveal-based approach
+   (QuickPick item list, selecting an item calls ``TreeView.reveal()``) was
+   found to be blocked — ``TreeView.reveal()`` requires
+   ``TreeDataProvider.getParent()``, which is not implemented by
+   ``GenericTreeDataProvider``. Implementing ``getParent()`` was judged a
+   larger rework; the team pivoted to a live tree filter instead, which needs
+   no ``getParent()`` support since it filters ``getChildren()`` results
+   directly rather than revealing a specific node.
+
+   **Scope note:** this requirement covers only the basic live filter that
+   has shipped (name/summary substring match, auto-expand, clear-on-close).
+   Additional search/filter capabilities (e.g. more match fields, filter
+   history, keyboard navigation between matches) are explicitly deferred to
+   a separate follow-up CR and are NOT specified here.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A single ``$(search)`` icon button in the ``jarvisEntities`` title
+     bar triggers the command ``jarvis.searchEntities`` (replacing
+     ``jarvis.searchProjects``/``jarvis.searchEvents``, which are removed).
+     The command SHALL NOT appear in the Command Palette.
+   * AC-2: Invoking the command SHALL open a ``vscode.QuickPick`` used purely
+     as a live text-input box — it SHALL NOT populate ``items`` with an
+     entity list. There is no pick-and-select step; filtering happens in the
+     ``jarvisEntities`` tree itself, not in the QuickPick.
+   * AC-3: On every keystroke (``onDidChangeValue``), the current input value
+     (trimmed) SHALL be applied as a search filter to every registered kind's
+     provider (Actor, Project, Event alike).
+   * AC-4: A leaf entity SHALL match the filter if its ``name`` OR its
+     ``summary`` field (case-insensitive substring match) contains the
+     trimmed query. An empty query matches everything (no filtering).
+   * AC-5: Filtering SHALL be recursive through folder/grouping nodes: a
+     folder is included in the filtered tree if and only if at least one of
+     its descendant leaves matches (empty-branch pruning, same principle as
+     the existing Event future-filter). File-child nodes and other
+     non-leaf/non-folder nodes are passed through unfiltered.
+   * AC-6: While a filter is active (non-empty query), folder nodes SHALL
+     auto-expand (``TreeItemCollapsibleState.Expanded``) so that matching
+     descendants are immediately visible without manual expansion. When no
+     filter is active, folders SHALL use their normal collapsed default.
+   * AC-7: When the QuickPick is dismissed (``onDidHide`` — Escape, clicking
+     outside, or losing focus), the filter SHALL be cleared (empty string)
+     on every provider, restoring the tree to its unfiltered state.
+   * AC-8: If no entities match the current filter, the affected kind's
+     section of the tree SHALL simply show no children — no error or empty
+     placeholder message is required.
+   * AC-9: The per-kind Project folder filter (``REQ_PRJ_PROJECTFILTER``) and
+     Event future-only filter (``REQ_EVT_EVENTFILTER``) SHALL continue to
+     apply independently — the live search filter is applied in addition to,
+     not instead of, those existing per-kind filters (both are combined at
+     the provider level; a node must pass both to be shown).
 
 

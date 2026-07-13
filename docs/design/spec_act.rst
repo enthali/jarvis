@@ -49,6 +49,16 @@ Actor Design Specifications
    replacing their own equivalent legacy classes/tests the same way).
    Renaming dead code would have been misleading; removal is correct.
 
+   **View registration retired into unified tree (unified-entity-tree CR,
+   AC-14):** the ``createTreeView('jarvisActors', ...)`` call in
+   ``packages/core/src/extension.ts`` (shown in AC-14's rationale) is removed;
+   ``engine.treeFactory.getProvider('session')`` is instead wrapped by the new
+   unified-tree provider registered as ``jarvisEntities`` — see
+   ``SPEC_EXP_UNIFIEDTREE``. ``sessionKindConfig`` (``kind: 'session'``,
+   ``viewId``) itself is unchanged; ``viewId: 'jarvisActors'`` on the config
+   object becomes informational only (no longer used to create a standalone
+   view) since the unified wrapper now owns view creation.
+
    **Skeleton (HISTORICAL — this module/class no longer exists, removed by
    actor-internal-identifiers-rename; kept below only as a description of
    what the generic factory replaced):**

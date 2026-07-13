@@ -31,6 +31,10 @@ export class GenericTreeFactory {
     private readonly _providers = new Map<string, GenericTreeDataProvider>();
     private readonly _decorators = new Map<string, TreeItemDecorator[]>();
     private readonly _scanner: KindDrivenScanner;
+    private readonly _onDidAddKind = new vscode.EventEmitter<string>();
+
+    /** Fired when a new entity kind is registered. */
+    readonly onDidAddKind = this._onDidAddKind.event;
 
     constructor(scanner: KindDrivenScanner) {
         this._scanner = scanner;
@@ -42,6 +46,8 @@ export class GenericTreeFactory {
         if (!this._providers.has(config.kind)) {
             const provider = new GenericTreeDataProvider(config, this._scanner, this._decorators);
             this._providers.set(config.kind, provider);
+            // AC-12: Fire event for late-registration handling
+            this._onDidAddKind.fire(config.kind);
         }
     }
 
@@ -95,6 +101,11 @@ export class GenericTreeFactory {
             provider.refresh();
         }
     }
+
+    /** Get the list of registered entity kinds. */
+    get registeredKinds(): string[] {
+        return Array.from(this._providers.keys());
+    }
 }
 
 /**
@@ -108,6 +119,11 @@ export class GenericTreeDataProvider implements vscode.TreeDataProvider<Provider
     private readonly _config: EntityKindConfig;
     private readonly _scanner: KindDrivenScanner;
     private readonly _decorators: Map<string, TreeItemDecorator[]>;
+    
+    // Filter state (SPEC_PRJ_FILTERCOMMAND, SPEC_EVT_EVENTFILTER_CMD)
+    private _hiddenFolders: Set<string> = new Set();
+    private _futureOnly: boolean = false;
+    private _searchQuery: string = '';
 
     constructor(
         config: EntityKindConfig,
@@ -121,6 +137,36 @@ export class GenericTreeDataProvider implements vscode.TreeDataProvider<Provider
 
     refresh(): void {
         this._onDidChangeTreeData.fire();
+    }
+
+    // Filter methods (SPEC_PRJ_FILTERCOMMAND)
+    setHiddenFolders(folders: Set<string>): void {
+        this._hiddenFolders = folders;
+        this.refresh();
+    }
+
+    getHiddenFolders(): Set<string> {
+        return this._hiddenFolders;
+    }
+
+    // Filter methods (SPEC_EVT_EVENTFILTER_CMD)
+    setFutureOnly(value: boolean): void {
+        this._futureOnly = value;
+        this.refresh();
+    }
+
+    isFutureOnly(): boolean {
+        return this._futureOnly;
+    }
+
+    // Live search filter
+    setSearchFilter(query: string): void {
+        this._searchQuery = query.toLowerCase().trim();
+        this.refresh();
+    }
+
+    getSearchFilter(): string {
+        return this._searchQuery;
     }
 
     getTreeItem(element: ProviderNode): vscode.TreeItem {
@@ -155,7 +201,11 @@ export class GenericTreeDataProvider implements vscode.TreeDataProvider<Provider
         }
 
         if (element.kind === 'folder') {
-            const item = new vscode.TreeItem(element.name, vscode.TreeItemCollapsibleState.Collapsed);
+            // Auto-expand folders when search filter is active (so matches are visible)
+            const collapsibleState = this._searchQuery 
+                ? vscode.TreeItemCollapsibleState.Expanded 
+                : vscode.TreeItemCollapsibleState.Collapsed;
+            const item = new vscode.TreeItem(element.name, collapsibleState);
             item.contextValue = 'jarvisFolder';
             return item;
         }
@@ -217,9 +267,17 @@ export class GenericTreeDataProvider implements vscode.TreeDataProvider<Provider
 
     getChildren(element?: ProviderNode): ProviderNode[] | Promise<ProviderNode[]> {
         if (!element) {
-            return this._scanner.getTreeForKind(this._config.kind);
+            let rootNodes = this._scanner.getTreeForKind(this._config.kind);
+            // Apply filters at root level
+            rootNodes = this._applyFilters(rootNodes);
+            return rootNodes;
         }
         if (element.kind === 'folder') {
+            // For event kind with future-only filter, also filter folder children
+            if (this._config.kind === 'event' && this._futureOnly) {
+                const filtered = this._applyEventFilter(element.children);
+                return filtered;
+            }
             return element.children;
         }
         if (element.kind === 'child') {
@@ -239,6 +297,77 @@ export class GenericTreeDataProvider implements vscode.TreeDataProvider<Provider
             return this._getLeafChildren(element);
         }
         return [];
+    }
+
+    private _applyFilters(nodes: TreeNode[]): TreeNode[] {
+        // Apply kind-specific filters first
+        if (this._config.kind === 'project' && this._hiddenFolders.size > 0) {
+            // Filter out hidden root-level folders
+            nodes = nodes.filter(n => n.kind !== 'folder' || !this._hiddenFolders.has(n.name));
+        } else if (this._config.kind === 'event' && this._futureOnly) {
+            nodes = this._applyEventFilter(nodes);
+        }
+
+        // Apply search filter if active
+        if (this._searchQuery) {
+            nodes = this._applySearchFilter(nodes);
+        }
+
+        return nodes;
+    }
+
+    private _applySearchFilter(nodes: TreeNode[]): TreeNode[] {
+        const filtered: TreeNode[] = [];
+
+        for (const node of nodes) {
+            if (node.kind === 'leaf') {
+                // Check if entity name matches search query
+                const entity = this._scanner.getEntity(node.id);
+                const name = entity?.name?.toLowerCase() ?? '';
+                const summary = entity?.summary?.toLowerCase() ?? '';
+                if (name.includes(this._searchQuery) || summary.includes(this._searchQuery)) {
+                    filtered.push(node);
+                }
+            } else if (node.kind === 'folder') {
+                // Recursively filter folder children
+                const filteredChildren = this._applySearchFilter(node.children);
+                if (filteredChildren.length > 0) {
+                    filtered.push({ ...node, children: filteredChildren });
+                }
+            } else {
+                // file nodes - pass through
+                filtered.push(node);
+            }
+        }
+
+        return filtered;
+    }
+
+    private _applyEventFilter(nodes: TreeNode[]): TreeNode[] {
+        const today = new Date().toISOString().slice(0, 10);
+        const filtered: TreeNode[] = [];
+
+        for (const node of nodes) {
+            if (node.kind === 'leaf') {
+                // Filter out past events
+                const entity = this._scanner.getEntity(node.id);
+                const datesEnd = entity?.datesEnd;
+                if (!datesEnd || datesEnd >= today) {
+                    filtered.push(node);
+                }
+            } else if (node.kind === 'folder') {
+                // Recursively filter folder children, prune if empty
+                const filteredChildren = this._applyEventFilter(node.children);
+                if (filteredChildren.length > 0) {
+                    filtered.push({ ...node, children: filteredChildren });
+                }
+            } else {
+                // file nodes, etc - pass through
+                filtered.push(node);
+            }
+        }
+
+        return filtered;
     }
 
     private async _getLeafChildren(element: import('../sessions/yamlScanner').LeafNode): Promise<ProviderNode[]> {

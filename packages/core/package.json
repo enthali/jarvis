@@ -34,7 +34,7 @@
     "onView:jarvisMessages",
     "onView:jarvisReminders",
     "onView:jarvisHeartbeat",
-    "onView:jarvisActors"
+    "onView:jarvisEntities"
   ],
   "main": "./out/extension.js",
   "types": "./out/engine/index.d.ts",
@@ -75,9 +75,8 @@
     "views": {
       "jarvis-explorer": [
         {
-          "id": "jarvisActors",
-          "name": "Actors",
-          "when": "config.jarvis.sessions.enabled == true"
+          "id": "jarvisEntities",
+          "name": "Jarvis Entities"
         },
         {
           "id": "jarvisMessages",
@@ -106,6 +105,7 @@
       { "command": "jarvis.openAgentSession", "title": "Jarvis: Open Chat", "icon": "$(comment-discussion)" },
       { "command": "jarvis.newEntity", "title": "Jarvis: New Entity", "icon": "$(add)" },
       { "command": "jarvis.newActor", "title": "Jarvis: New Actor", "icon": "$(add)" },
+      { "command": "jarvis.searchEntities", "title": "Jarvis: Search Entities", "icon": "$(search)" },
       { "command": "jarvis.checkForUpdates", "title": "Jarvis: Check for Updates" },
       { "command": "jarvis.rescan", "title": "Jarvis: Rescan", "icon": "$(refresh)" },
       { "command": "jarvis.runJob", "title": "Jarvis: Run Job", "icon": "$(play)" },
@@ -131,6 +131,7 @@
         { "command": "jarvis.openAgentSession", "when": "false" },
         { "command": "jarvis.newEntity", "when": "false" },
         { "command": "jarvis.newActor", "when": "false" },
+        { "command": "jarvis.searchEntities", "when": "false" },
         { "command": "jarvis.rescan", "when": "false" },
         { "command": "jarvis.runJob", "when": "false" },
         { "command": "jarvis.pauseHeartbeatJob", "when": "false" },
@@ -153,11 +154,12 @@
         { "command": "jarvis.openMessageSession", "when": "false" }
       ],
       "view/title": [
-        { "command": "jarvis.newActor", "when": "view == jarvisActors", "group": "navigation@1" },
-        { "command": "jarvis.rescan", "when": "view == jarvisActors", "group": "navigation@3" },
+        { "command": "jarvis.searchEntities", "when": "view == jarvisEntities", "group": "navigation@1" },
+        { "command": "jarvis.rescan", "when": "view == jarvisEntities", "group": "navigation@2" },
         { "command": "jarvis.refreshHeartbeat", "when": "view == jarvisHeartbeat", "group": "navigation@1" }
       ],
       "view/item/context": [
+        { "command": "jarvis.newActor", "when": "viewItem == jarvisEntityCategory:session", "group": "inline" },
         { "command": "jarvis.sendMessages", "when": "viewItem == messageSession || viewItem == jarvisSessionManual || viewItem == jarvisSessionAutoDeliver", "group": "inline" },
         { "command": "jarvis.enableAutoDelivery", "when": "viewItem == jarvisSessionManual", "group": "inline" },
         { "command": "jarvis.disableAutoDelivery", "when": "viewItem == jarvisSessionAutoDeliver", "group": "inline" },

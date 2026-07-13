@@ -71,6 +71,7 @@ occurrences with context when seen.
 - [Kanban Board](ideas/kanban-board.md) — roadmap/CR visual board
 - [Session Watchdog](ideas/session-watchdog.md) — ping a non-responding session
 - [Consequent Actor Renaming + Unified Entity Tree](ideas/actor-renaming.md) — Session→Actor wording (soft transition) + collapsing the 3 top-level trees into one "Jarvis Entities" tree
+- [PIM Modularization](ideas/pim-modularization.md) — drop per-component enable/disable settings, go installable-sub-extensions instead
 - [Session Recording](ideas/recording-design.md) — meeting recording + transcription pipeline
 
 ## Lessons Learned

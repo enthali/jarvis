@@ -125,3 +125,16 @@ Background note: the root cause of why this ambiguity still exists in code
 at all — `entity-taxonomy-rename` (v0.15.0) was explicitly scoped as
 "spec-only cleanup... no code changes," so the Session→Actor rename never
 reached the implementation layer until now.
+
+## Release Sequencing (decided 2026-07-13)
+
+Ship the WHOLE story (Phases 1–5) in a SINGLE release — do NOT cut a
+release after Phase 3. A partial rename is worse than none: if the UI/tree
+say "Actor" but the LM/MCP tool names still say `listSessions`/
+`createSession`, customers/agents get exactly the confusion this initiative
+is meant to remove. Hold the release until Phase 5 (tool rename) lands so
+the rename is complete and coherent end-to-end.
+
+Status (2026-07-13): Phases 1, 1b, 2 merged to develop; Phase 3
+(unified-entity-tree) in final amendment round. Next: Phase 4, then Phase 5,
+then release the full Actor Renaming story together.

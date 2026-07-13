@@ -104,6 +104,32 @@ export class JarvisEngine implements JarvisCoreApi {
         await this._scanner.rescan();
     }
 
+    // --- Filter API (SPEC_PRJ_FILTERCOMMAND, SPEC_EVT_EVENTFILTER_CMD) ---
+
+    setHiddenFolders(kind: string, folders: Set<string>): void {
+        const provider = this._treeFactory.getProvider(kind);
+        if (provider) {
+            provider.setHiddenFolders(folders);
+        }
+    }
+
+    getHiddenFolders(kind: string): Set<string> {
+        const provider = this._treeFactory.getProvider(kind);
+        return provider ? provider.getHiddenFolders() : new Set();
+    }
+
+    setFutureOnly(kind: string, value: boolean): void {
+        const provider = this._treeFactory.getProvider(kind);
+        if (provider) {
+            provider.setFutureOnly(value);
+        }
+    }
+
+    isFutureOnly(kind: string): boolean {
+        const provider = this._treeFactory.getProvider(kind);
+        return provider ? provider.isFutureOnly() : false;
+    }
+
     // --- Session listing API (SPEC_ENG_SESSIONLIST, SPEC_MSG_JARVISSESSIONS) ---
 
     listJarvisSessions(): { name: string; summary: string; agent: string; kind: string; folder: string }[] {

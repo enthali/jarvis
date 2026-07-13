@@ -13,6 +13,7 @@ import { activateHeartbeat, HeartbeatScheduler, HeartbeatJob, HeartbeatStep } fr
 import { JobNode } from './apps/session/heartbeatTreeProvider';
 import { JarvisEngine } from './engine/core/coreApi';
 import { GenericTreeFactory } from './engine/core/treeFactory';
+import { UnifiedEntityTreeProvider } from './engine/core/unifiedEntityTreeProvider';
 import type { EntityKindConfig, JarvisCoreApi } from './engine/core/types';
 import { deleteMessage, appendMessage, popMessage, readAutoDelivery, addAutoDelivery, removeAutoDelivery, readQueue, writeQueue } from './engine/sessions/messageQueue';
 import { addReminder, readReminders, removeReminder, popDueReminders, setRemindersLogger } from './apps/session/reminders';
@@ -427,7 +428,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     if (cfg.get<boolean>('sessions.enabled', true)) {
         const sessionKindConfig: EntityKindConfig = {
             kind: 'session',
-            viewId: 'jarvisActors',
+            viewId: 'jarvisEntities',
             folderSettingKey: 'jarvis.sessions.folder',
             label: (name: string) => name,
             additionalScanRoots: [
@@ -436,18 +437,19 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         };
         sessionKindDisposable = engine.registerEntityKind(sessionKindConfig);
         context.subscriptions.push(sessionKindDisposable);
-
-        const sessionTreeProvider = engine.treeFactory.getProvider('session')!;
-        const sessionView = vscode.window.createTreeView('jarvisActors', {
-            treeDataProvider: sessionTreeProvider,
-            canSelectMany: false,
-            showCollapseAll: true,
-        });
-        context.subscriptions.push(sessionView);
         log.info('[CFG] Sessions feature enabled (via engine)');
     } else {
         log.info('[CFG] Sessions feature disabled');
     }
+
+    // ------- UNIFIED ENTITIES TREE (SPEC_EXP_UNIFIEDTREE) -------
+    // Create unified tree view after all kinds are registered
+    const unifiedProvider = new UnifiedEntityTreeProvider(engine.treeFactory);
+    const entitiesView = vscode.window.createTreeView('jarvisEntities', {
+        treeDataProvider: unifiedProvider,
+        showCollapseAll: true,
+    });
+    context.subscriptions.push(entitiesView, unifiedProvider);
 
     // Trigger initial scan for registered kinds
     kindDrivenScanner.rescan();
@@ -497,6 +499,39 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     const rescanCommand = vscode.commands.registerCommand('jarvis.rescan', async () => {
         await kindDrivenScanner.rescan();
         log.info('[Scanner] manual rescan triggered');
+    });
+
+    // Search Entities command (SPEC_EXP_SEARCH_ENTITIES_CMD)
+    // Search Entities command - live tree filtering (REQ_EXP_SEARCHENTITIES)
+    const searchEntitiesCommand = vscode.commands.registerCommand('jarvis.searchEntities', () => {
+        const qp = vscode.window.createQuickPick();
+        qp.placeholder = 'Type to filter entities in the tree...';
+        qp.matchOnDescription = false;
+        qp.matchOnDetail = false;
+        
+        // Apply search filter to all providers on every keystroke
+        qp.onDidChangeValue((query) => {
+            const trimmed = query.trim();
+            for (const kind of ['session', 'project', 'event']) {
+                const provider = engine.treeFactory.getProvider(kind);
+                if (provider) {
+                    provider.setSearchFilter(trimmed);
+                }
+            }
+        });
+
+        // Clear filter when closed
+        qp.onDidHide(() => {
+            for (const kind of ['session', 'project', 'event']) {
+                const provider = engine.treeFactory.getProvider(kind);
+                if (provider) {
+                    provider.setSearchFilter('');
+                }
+            }
+            qp.dispose();
+        });
+
+        qp.show();
     });
 
     // Context actions (SPEC_EXP_CONTEXTACTIONS) — generic, used by any entity
@@ -1079,9 +1114,9 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             const targetFolder = configPaths.ensureActorsDir();
             if (!targetFolder) { vscode.window.showWarningMessage('Jarvis: No workspace open.'); return; }
 
-            const nameInput = await vscode.window.showInputBox({ prompt: 'Session name', placeHolder: 'My Session', validateInput: validateSessionName });
+            const nameInput = await vscode.window.showInputBox({ prompt: 'Actor name', placeHolder: 'My Actor', validateInput: validateSessionName });
             if (!nameInput) { return; }
-            const summaryInput = await vscode.window.showInputBox({ prompt: 'Session summary (optional)', placeHolder: 'Short description' });
+            const summaryInput = await vscode.window.showInputBox({ prompt: 'Summary (optional)', placeHolder: 'Short description' });
             const agentInput = await pickAgentMode();
             if (agentInput === undefined) { return; }
 
@@ -1219,6 +1254,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
 
     context.subscriptions.push(
         rescanCommand,
+        searchEntitiesCommand,
         revealInExplorerCommand,
         revealInOSCommand,
         openInTerminalCommand,

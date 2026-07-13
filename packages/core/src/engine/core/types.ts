@@ -148,6 +148,17 @@ export interface JarvisCoreApi {
     /** Trigger a full rescan of all registered kinds. */
     rescan(): Promise<void>;
 
+    // --- Filter API (SPEC_PRJ_FILTERCOMMAND, SPEC_EVT_EVENTFILTER_CMD) ---
+
+    /** Set hidden folders for project kind filter. */
+    setHiddenFolders(kind: string, folders: Set<string>): void;
+    /** Get hidden folders for project kind filter. */
+    getHiddenFolders(kind: string): Set<string>;
+    /** Set future-only filter for event kind. */
+    setFutureOnly(kind: string, value: boolean): void;
+    /** Get future-only filter state for event kind. */
+    isFutureOnly(kind: string): boolean;
+
     // --- Session listing API (SPEC_ENG_SESSIONLIST, SPEC_MSG_JARVISSESSIONS) ---
 
     /** List all Jarvis sessions across all kinds (Sessions, Projects, Events, ...). */

@@ -13,9 +13,8 @@
     "enthali.jarvis-core"
   ],
   "activationEvents": [
-    "onView:jarvisProjects",
-    "onView:jarvisEvents",
-    "onView:jarvisCategories"
+    "onView:jarvisCategories",
+    "onView:jarvisEntities"
   ],
   "scripts": {
     "compile": "tsc -p ./",
@@ -58,16 +57,6 @@
     "views": {
       "jarvis-explorer": [
         {
-          "id": "jarvisProjects",
-          "name": "Projects",
-          "when": "config.jarvis.projects.enabled == true"
-        },
-        {
-          "id": "jarvisEvents",
-          "name": "Events",
-          "when": "config.jarvis.events.enabled == true"
-        },
-        {
           "id": "jarvisCategories",
           "name": "Categories",
           "when": "config.jarvis.pim.showCategories == true && config.jarvis.outlook.enabled == true"
@@ -106,16 +95,6 @@
         "icon": "$(filter-filled)"
       },
       {
-        "command": "jarvis.searchProjects",
-        "title": "Search Projects",
-        "icon": "$(search)"
-      },
-      {
-        "command": "jarvis.searchEvents",
-        "title": "Search Events",
-        "icon": "$(search)"
-      },
-      {
         "command": "jarvis.refreshCategories",
         "title": "Jarvis: Refresh Categories",
         "icon": "$(refresh)"
@@ -137,14 +116,6 @@
     "menus": {
       "commandPalette": [
         {
-          "command": "jarvis.newProject",
-          "when": "false"
-        },
-        {
-          "command": "jarvis.newEvent",
-          "when": "false"
-        },
-        {
           "command": "jarvis.refreshCategories",
           "when": "false"
         },
@@ -161,78 +132,25 @@
           "when": "false"
         },
         {
-          "command": "jarvis.searchProjects",
-          "when": "false"
+          "command": "jarvis.filterProjectFolders"
         },
         {
-          "command": "jarvis.searchEvents",
-          "when": "false"
+          "command": "jarvis.filterProjectFoldersActive"
         },
         {
-          "command": "jarvis.filterProjectFolders",
-          "when": "false"
+          "command": "jarvis.filterFutureEvents"
         },
         {
-          "command": "jarvis.filterProjectFoldersActive",
-          "when": "false"
-        },
-        {
-          "command": "jarvis.filterFutureEvents",
-          "when": "false"
-        },
-        {
-          "command": "jarvis.filterFutureEventsActive",
-          "when": "false"
-        }
-      ],
-      "view/title": [
-        {
-          "command": "jarvis.newProject",
-          "when": "view == jarvisProjects",
-          "group": "navigation@1"
-        },
-        {
-          "command": "jarvis.filterProjectFolders",
-          "when": "view == jarvisProjects && !jarvis.projectFilterActive",
-          "group": "navigation@2"
-        },
-        {
-          "command": "jarvis.filterProjectFoldersActive",
-          "when": "view == jarvisProjects && jarvis.projectFilterActive",
-          "group": "navigation@2"
-        },
-        {
-          "command": "jarvis.searchProjects",
-          "when": "view == jarvisProjects",
-          "group": "navigation"
-        },
-        {
-          "command": "jarvis.newEvent",
-          "when": "view == jarvisEvents",
-          "group": "navigation@1"
-        },
-        {
-          "command": "jarvis.filterFutureEvents",
-          "when": "view == jarvisEvents && !jarvis.eventFilterActive",
-          "group": "navigation@2"
-        },
-        {
-          "command": "jarvis.filterFutureEventsActive",
-          "when": "view == jarvisEvents && jarvis.eventFilterActive",
-          "group": "navigation@2"
-        },
-        {
-          "command": "jarvis.searchEvents",
-          "when": "view == jarvisEvents",
-          "group": "navigation"
-        },
-        {
-          "command": "jarvis.refreshCategories",
-          "when": "view == jarvisCategories",
-          "group": "navigation@1"
+          "command": "jarvis.filterFutureEventsActive"
         }
       ],
       "view/item/context": [
+        { "command": "jarvis.newProject", "when": "viewItem == jarvisEntityCategory:project", "group": "inline" },
+        { "command": "jarvis.newEvent", "when": "viewItem == jarvisEntityCategory:event", "group": "inline" },
+        { "command": "jarvis.filterProjectFolders", "when": "viewItem == jarvisEntityCategory:project && !jarvis.projectFilterActive", "group": "inline" },
+        { "command": "jarvis.filterProjectFoldersActive", "when": "viewItem == jarvisEntityCategory:project && jarvis.projectFilterActive", "group": "inline" },
+        { "command": "jarvis.filterFutureEvents", "when": "viewItem == jarvisEntityCategory:event && !jarvis.eventFilterActive", "group": "inline" },
+        { "command": "jarvis.filterFutureEventsActive", "when": "viewItem == jarvisEntityCategory:event && jarvis.eventFilterActive", "group": "inline" },
         { "command": "jarvis.revealInExplorer", "when": "viewItem =~ /^jarvis(Project|Event)$/", "group": "context-actions" },
         { "command": "jarvis.revealInOS", "when": "viewItem =~ /^jarvis(Project|Event)$/", "group": "context-actions" },
         { "command": "jarvis.openInTerminal", "when": "viewItem =~ /^jarvis(Project|Event)$/", "group": "context-actions" },

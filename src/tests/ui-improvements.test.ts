@@ -93,18 +93,9 @@ describe('Item 3: context.md rendered preview (SPEC_ENT_ENTITY_FILE_CHILDREN AC-
     });
 });
 
-describe('Item 4: Collapse All — showCollapseAll: true at all 6 createTreeView() sites', () => {
-    it('packages/pim/src/extension.ts: jarvisProjects and jarvisEvents', () => {
-        const projectIdx = pimExtensionSrc.indexOf("createTreeView('jarvisProjects'");
-        const eventIdx = pimExtensionSrc.indexOf("createTreeView('jarvisEvents'");
-        expect(projectIdx).toBeGreaterThan(-1);
-        expect(eventIdx).toBeGreaterThan(-1);
-        expect(pimExtensionSrc.slice(projectIdx, projectIdx + 150)).toContain('showCollapseAll: true');
-        expect(pimExtensionSrc.slice(eventIdx, eventIdx + 150)).toContain('showCollapseAll: true');
-    });
-
-    it('packages/core/src/extension.ts: jarvisActors, jarvisMessages, jarvisReminders', () => {
-        for (const viewId of ['jarvisActors', 'jarvisMessages', 'jarvisReminders']) {
+describe('Item 4: Collapse All — showCollapseAll: true at all createTreeView() sites', () => {
+    it('packages/core/src/extension.ts: jarvisEntities (unified), jarvisMessages, jarvisReminders', () => {
+        for (const viewId of ['jarvisEntities', 'jarvisMessages', 'jarvisReminders']) {
             const idx = extensionSrc.indexOf(`createTreeView('${viewId}'`);
             expect(idx, `${viewId} createTreeView call site`).toBeGreaterThan(-1);
             expect(extensionSrc.slice(idx, idx + 200)).toContain('showCollapseAll: true');

@@ -56,7 +56,7 @@ Actor Requirements
    :id: REQ_ACT_TREE
    :status: implemented
    :priority: required
-   :links: US_ACT_ACTORS
+   :links: US_ACT_ACTORS; REQ_EXP_UNIFIEDTREE
 
    **Description:**
    A new TreeView ``jarvisSessions`` SHALL display all actor entities.
@@ -152,6 +152,17 @@ Actor Requirements
      to the entity-neutral ``"Jarvis: Open Agent Chat"``, so Project/Event
      context menus no longer show an Actor-specific label for a shared
      action.
+   * AC-14: (unified-entity-tree CR) The standalone ``jarvisActors`` view
+     SHALL be retired: ``createTreeView('jarvisActors', ...)`` is replaced by
+     the unified ``jarvisEntities`` registration (see ``REQ_EXP_UNIFIEDTREE``).
+     The view ID ``jarvisActors`` (AC-10), the entity ``kind`` string
+     ``'session'``, the ``contextValue`` ``jarvisSession``, and all leaf-node
+     behavior (AC-3 through AC-6) are **unchanged** — only the top-level
+     ``createTreeView()`` call and its ``package.json`` view/activation-event
+     contribution move into the unified tree's registration. Actor entities
+     always render under a category node (label "Actors") — Actors gains no
+     special-casing beyond what ``REQ_EXP_UNIFIEDTREE`` already defines
+     generically for every kind.
 
 
 .. req:: Dual-Path Actor Storage Convention Scanner

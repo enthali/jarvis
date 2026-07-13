@@ -39,15 +39,17 @@ Explorer Design Specifications
    ``syncRescanJob()`` when ``jarvis.scanInterval`` changes, and ``startScanner()`` when
    folder paths change.
 
-   **New-entity manifest additions:**
+   **New-entity manifest additions (unified-entity-tree CR — relocated):**
 
    * ``contributes.commands``: ``jarvis.newProject`` (title "Jarvis: New Project",
      icon ``$(add)``) and ``jarvis.newEvent`` (title "Jarvis: New Event",
      icon ``$(add)``)
-   * ``contributes.menus.view/title``: two entries —
-     ``jarvis.newProject`` with ``when: "view == jarvisProjects"`` (group ``navigation``)
-     and ``jarvis.newEvent`` with ``when: "view == jarvisEvents"`` (group ``navigation``)
-   * ``contributes.menus.commandPalette``: hide both commands (``when: "false"``)
+   * ``contributes.menus.view/item/context``: inline entries —
+     ``jarvis.newProject`` with ``when: "view == jarvisEntities && viewItem == jarvisEntityCategory:project"`` (group ``inline``)
+     and ``jarvis.newEvent`` with ``when: "view == jarvisEntities && viewItem == jarvisEntityCategory:event"`` (group ``inline``)
+   * ``contributes.menus.commandPalette``: both commands SHALL be reachable
+     (no ``when: "false"`` exclusion) — previously hidden, now also available
+     via the Command Palette as a keyboard-driven alternative
 
    **Rescan-button manifest additions (scanner-refresh change):**
 
@@ -669,8 +671,13 @@ Explorer Design Specifications
 
 .. spec:: Tree Search — Manifest
    :id: SPEC_EXP_SEARCH_MANIFEST
-   :status: implemented
-   :links: REQ_EXP_SEARCHPROJECTS; REQ_EXP_SEARCHEVENTS; SPEC_EXP_EXTENSION
+   :status: deprecated
+   :links: REQ_EXP_SEARCHPROJECTS; REQ_EXP_SEARCHEVENTS; SPEC_EXP_EXTENSION; SPEC_EXP_SEARCH_ENTITIES_MANIFEST
+
+   **(HISTORICAL — superseded by unified-entity-tree CR, see**
+   **``SPEC_EXP_SEARCH_ENTITIES_MANIFEST``.) The** ``jarvisProjects``/
+   ``jarvisEvents`` **views these menus targeted no longer exist as
+   standalone views. Kept below for traceability.**
 
    **Description:**
    Package.json additions for the two tree search commands.
@@ -721,8 +728,11 @@ Explorer Design Specifications
 
 .. spec:: Tree Search — Command Handlers
    :id: SPEC_EXP_SEARCH_CMD
-   :status: implemented
-   :links: REQ_EXP_SEARCHPROJECTS; REQ_EXP_SEARCHEVENTS; SPEC_ENG_SCANNER; SPEC_EXP_PROVIDER; SPEC_EXP_SEARCH_MANIFEST
+   :status: deprecated
+   :links: REQ_EXP_SEARCHPROJECTS; REQ_EXP_SEARCHEVENTS; SPEC_ENG_SCANNER; SPEC_EXP_PROVIDER; SPEC_EXP_SEARCH_MANIFEST; SPEC_EXP_SEARCH_ENTITIES_CMD
+
+   **(HISTORICAL — superseded by unified-entity-tree CR, see**
+   **``SPEC_EXP_SEARCH_ENTITIES_CMD``.) Kept below for traceability.**
 
    **Description:**
    Register ``jarvis.searchProjects`` and ``jarvis.searchEvents`` in
@@ -822,5 +832,356 @@ Explorer Design Specifications
    * ``projectTreeView`` and ``eventTreeView`` are ``vscode.TreeView<TreeNode>``
      references already held in ``extension.ts``
    * Both disposables are pushed to ``context.subscriptions``
+
+
+.. spec:: Unified Jarvis Entities Tree Provider
+   :id: SPEC_EXP_UNIFIEDTREE
+   :status: approved
+   :links: REQ_EXP_UNIFIEDTREE; SPEC_EXP_EXTENSION
+
+   **Description:**
+   A new wrapper ``TreeDataProvider``, ``UnifiedEntityTreeProvider``, lives in
+   ``packages/core`` and composes the per-kind providers already produced by
+   ``engine.treeFactory.getProvider(kind)`` for every kind the engine knows
+   about (``'session'``, ``'project'``, ``'event'``). It is the single
+   ``treeDataProvider`` passed to ``createTreeView('jarvisEntities', ...)``,
+   replacing the three separate ``createTreeView()`` calls for
+   ``jarvisActors``/``jarvisProjects``/``jarvisEvents``.
+
+   **Root node type union:**
+
+   .. code-block:: typescript
+
+      type UnifiedRootNode =
+          | { kind: 'category'; entityKind: string; label: string }
+          | TreeNode;  // existing per-kind root node, unchanged
+
+   **``getChildren(element?)``:**
+
+   .. code-block:: typescript
+
+      getChildren(element?: UnifiedRootNode): UnifiedRootNode[] {
+          if (element === undefined) {
+              // Root level: always emit one category node per registered kind
+              // (REQ_EXP_UNIFIEDTREE AC-3/4 — no flattening, categories unconditional)
+              return this._registeredKinds().map(kind => ({
+                  kind: 'category', entityKind: kind, label: this._pluralLabel(kind)
+              }));
+          }
+          if ('entityKind' in element) {
+              // Category node expands into that kind's existing root nodes, unchanged
+              return this._kindProvider(element.entityKind).getChildren();
+          }
+          // Any other node: delegate straight to its owning kind's provider
+          return this._kindProvider(this._kindOf(element)).getChildren(element);
+      }
+
+   **``getTreeItem(element)``:** for category nodes, returns a
+   ``vscode.TreeItem`` with ``label``, ``contextValue: 'jarvisEntityCategory:' + entityKind``,
+   ``collapsibleState: vscode.TreeItemCollapsibleState.Expanded`` (or
+   ``None`` if that kind's provider returns an empty root — so the empty
+   category shows no expand arrow per AC-4). For any other node, delegates
+   to the owning kind's provider's own ``getTreeItem()`` unchanged (AC-9 —
+   no per-leaf behavior change).
+
+   **Refresh forwarding (AC-6):**
+
+   .. code-block:: typescript
+
+      // Subscribe to already-registered kinds at construction time
+      for (const kind of engine.treeFactory.registeredKinds) {
+          const provider = engine.treeFactory.getProvider(kind);
+          if (provider) {
+              this._subscriptions.push(
+                  provider.onDidChangeTreeData(() => {
+                      this._onDidChangeTreeData.fire(undefined);
+                  })
+              );
+          }
+      }
+
+      // Late-registration handling (AC-12): subscribe to kinds added after
+      // construction (e.g. PIM registers project/event after core activates)
+      this._subscriptions.push(
+          engine.treeFactory.onDidAddKind(kind => {
+              const provider = engine.treeFactory.getProvider(kind);
+              if (provider) {
+                  this._subscriptions.push(
+                      provider.onDidChangeTreeData(() => {
+                          this._onDidChangeTreeData.fire(undefined);
+                      })
+                  );
+              }
+              // Refresh entire tree so new category node appears
+              this._onDidChangeTreeData.fire(undefined);
+          })
+      );
+
+   **``GenericTreeFactory.onDidAddKind`` (new, AC-12):**
+
+   ``GenericTreeFactory`` SHALL expose a ``readonly onDidAddKind: vscode.Event<string>``
+   event, fired from ``addKind()`` after the new provider is created. This is a
+   one-line addition to ``addKind()`` (fire the emitter with ``config.kind``)
+   plus a private ``EventEmitter<string>`` field.
+
+   **Registration (``packages/core/src/extension.ts``, replacing the three
+   standalone ``createTreeView()`` blocks):**
+
+   .. code-block:: typescript
+
+      const unifiedProvider = new UnifiedEntityTreeProvider(engine.treeFactory);
+      const entitiesView = vscode.window.createTreeView('jarvisEntities', {
+          treeDataProvider: unifiedProvider,
+          showCollapseAll: true,
+      });
+      context.subscriptions.push(entitiesView, unifiedProvider);
+
+   **Design notes:**
+
+   * ``packages/pim/src/extension.ts`` no longer calls ``createTreeView()``
+     for ``'jarvisProjects'``/``'jarvisEvents'`` (``SPEC_EXP_EXTENSION``'s
+     manifest sample is amended accordingly); it continues to call
+     ``api.registerEntityKind(buildProjectKindConfig(...))``/
+     ``api.registerEntityKind(buildEventKindConfig(...))`` unchanged, now
+     additionally guarding the Event registration behind
+     ``jarvis.events.enabled`` (REQ_EXP_UNIFIEDTREE AC-8) — mirroring
+     ``packages/core``'s existing ``if (cfg.get('sessions.enabled', true))``
+     pattern for Actors.
+   * ``packages/pim/package.json`` ``activationEvents`` SHALL include
+     ``onView:jarvisEntities`` (AC-11) — this replaces the removed
+     ``onView:jarvisProjects``/``onView:jarvisEvents`` triggers and ensures
+     PIM activates whenever the unified tree is opened. Together with the
+     existing ``onView:jarvisCategories`` (for Outlook-enabled workspaces),
+     PIM has two reliable lazy-activation paths. ``onStartupFinished`` is
+     deliberately NOT added: PIM activation outside the Jarvis sidebar
+     context is unnecessary overhead.
+   * ``_pluralLabel(kind)`` is a small fixed lookup (``session`` → "Actors",
+     ``project`` → "Projects", ``event`` → "Events") local to the new
+     provider — no change to ``EntityKindConfig`` itself is required for this
+     CR.
+   * Category nodes are unconditional — ``_hasEntities()`` is no longer
+     consulted for grouping/flatten decisions (earlier draft's flatten logic
+     removed by PM decision). An empty kind simply expands to an empty list.
+   * The wrapper never re-implements scanning, sorting, filtering, or
+     leaf-node rendering — all of that remains exactly as implemented per
+     kind today (Project's folder filter, Event's future filter and
+     date-sort, Actor's file-children expansion all continue to work
+     unmodified beneath their respective root nodes).
+
+   **Per-kind "New" action placement (REQ_EXP_UNIFIEDTREE AC-10):**
+
+   The per-kind "New" commands (``jarvis.newActor``, ``jarvis.newProject``,
+   ``jarvis.newEvent``) are placed as inline icons (``$(add)``) on their
+   respective category nodes, not on the ``jarvisEntities`` view title bar.
+
+   ``contributes.menus.view/item/context`` entries:
+
+   .. code-block:: json
+
+      [
+        {
+          "command": "jarvis.newActor",
+          "when": "view == jarvisEntities && viewItem == jarvisEntityCategory:session",
+          "group": "inline"
+        },
+        {
+          "command": "jarvis.newProject",
+          "when": "view == jarvisEntities && viewItem == jarvisEntityCategory:project",
+          "group": "inline"
+        },
+        {
+          "command": "jarvis.newEvent",
+          "when": "view == jarvisEntities && viewItem == jarvisEntityCategory:event",
+          "group": "inline"
+        }
+      ]
+
+   The ``view/title`` entries for these three commands are removed. Each
+   command remains in the Command Palette (``when: "true"`` or no exclusion)
+   so it can be invoked without clicking the tree.
+
+
+.. spec:: Live Filter Entities \u2014 Manifest
+   :id: SPEC_EXP_SEARCH_ENTITIES_MANIFEST
+   :status: approved
+   :links: REQ_EXP_SEARCHENTITIES; SPEC_EXP_UNIFIEDTREE
+
+   **``contributes.commands``:**
+
+   .. code-block:: json
+
+      [
+        {
+          "command": "jarvis.searchEntities",
+          "title": "Jarvis: Search Entities",
+          "icon": "$(search)"
+        }
+      ]
+
+   **``contributes.menus.view/title``:**
+
+   .. code-block:: json
+
+      [
+        {
+          "command": "jarvis.searchEntities",
+          "when": "view == jarvisEntities",
+          "group": "navigation"
+        }
+      ]
+
+   **``contributes.menus.commandPalette``:**
+
+   .. code-block:: json
+
+      [
+        { "command": "jarvis.searchEntities", "when": "false" }
+      ]
+
+   ``jarvis.searchProjects``/``jarvis.searchEvents`` and their manifest
+   entries (``SPEC_EXP_SEARCH_MANIFEST``) are removed entirely (not merely
+   hidden) — see the Artefakt-Removal-Check in this CR's Change Document.
+
+
+.. spec:: Live Filter Entities \u2014 Command Handler
+   :id: SPEC_EXP_SEARCH_ENTITIES_CMD
+   :status: approved
+   :links: REQ_EXP_SEARCHENTITIES; SPEC_EXP_UNIFIEDTREE; SPEC_EXP_SEARCH_ENTITIES_MANIFEST
+
+   **Description (pivoted — see REQ_EXP_SEARCHENTITIES "Pivot rationale"):**
+   The originally specified reveal-based QuickPick-item-list approach was
+   blocked by the missing ``TreeDataProvider.getParent()`` implementation.
+   The shipped command instead uses a ``vscode.QuickPick`` purely as a live
+   text-input box, applying the typed value as a search filter directly on
+   each kind's ``GenericTreeDataProvider``, which re-renders its
+   ``getChildren()`` output through a recursive name/summary filter.
+
+   **Command handler (``packages/core/src/extension.ts``):**
+
+   .. code-block:: typescript
+
+      const searchEntitiesCommand = vscode.commands.registerCommand('jarvis.searchEntities', () => {
+          const qp = vscode.window.createQuickPick();
+          qp.placeholder = 'Type to filter entities in the tree...';
+          qp.matchOnDescription = false;
+          qp.matchOnDetail = false;
+
+          // Apply search filter to all providers on every keystroke
+          qp.onDidChangeValue((query) => {
+              const trimmed = query.trim();
+              for (const kind of ['session', 'project', 'event']) {
+                  const provider = engine.treeFactory.getProvider(kind);
+                  if (provider) {
+                      provider.setSearchFilter(trimmed);
+                  }
+              }
+          });
+
+          // Clear filter when closed
+          qp.onDidHide(() => {
+              for (const kind of ['session', 'project', 'event']) {
+                  const provider = engine.treeFactory.getProvider(kind);
+                  if (provider) {
+                      provider.setSearchFilter('');
+                  }
+              }
+              qp.dispose();
+          });
+
+          qp.show();
+      });
+
+   **``GenericTreeDataProvider`` additions (``packages/core/src/engine/core/treeFactory.ts``):**
+
+   .. code-block:: typescript
+
+      private _searchQuery: string = '';
+
+      setSearchFilter(query: string): void {
+          this._searchQuery = query.toLowerCase().trim();
+          this.refresh();
+      }
+
+      getSearchFilter(): string {
+          return this._searchQuery;
+      }
+
+   **Filtering logic — ``_applyFilters()``/``_applySearchFilter()`` (same file):**
+
+   .. code-block:: typescript
+
+      private _applyFilters(nodes: TreeNode[]): TreeNode[] {
+          // Kind-specific filters first (Project folder filter / Event future-only)
+          if (this._config.kind === 'project' && this._hiddenFolders.size > 0) {
+              nodes = nodes.filter(n => n.kind !== 'folder' || !this._hiddenFolders.has(n.name));
+          } else if (this._config.kind === 'event' && this._futureOnly) {
+              nodes = this._applyEventFilter(nodes);
+          }
+          // Search filter applied on top (REQ_EXP_SEARCHENTITIES AC-9: combined, not exclusive)
+          if (this._searchQuery) {
+              nodes = this._applySearchFilter(nodes);
+          }
+          return nodes;
+      }
+
+      private _applySearchFilter(nodes: TreeNode[]): TreeNode[] {
+          const filtered: TreeNode[] = [];
+          for (const node of nodes) {
+              if (node.kind === 'leaf') {
+                  const entity = this._scanner.getEntity(node.id);
+                  const name = entity?.name?.toLowerCase() ?? '';
+                  const summary = entity?.summary?.toLowerCase() ?? '';
+                  if (name.includes(this._searchQuery) || summary.includes(this._searchQuery)) {
+                      filtered.push(node);
+                  }
+              } else if (node.kind === 'folder') {
+                  // Recursive: keep folder only if it has at least one matching descendant
+                  const filteredChildren = this._applySearchFilter(node.children);
+                  if (filteredChildren.length > 0) {
+                      filtered.push({ ...node, children: filteredChildren });
+                  }
+              } else {
+                  filtered.push(node); // file nodes pass through unfiltered
+              }
+          }
+          return filtered;
+      }
+
+   **Auto-expand while filtering — ``getTreeItem()`` folder branch:**
+
+   .. code-block:: typescript
+
+      if (element.kind === 'folder') {
+          const collapsibleState = this._searchQuery
+              ? vscode.TreeItemCollapsibleState.Expanded
+              : vscode.TreeItemCollapsibleState.Collapsed;
+          const item = new vscode.TreeItem(element.name, collapsibleState);
+          item.contextValue = 'jarvisFolder';
+          return item;
+      }
+
+   **Design notes:**
+
+   * The QuickPick never populates ``items`` and never handles
+     ``onDidAccept`` — there is no "select a result" step. The QuickPick
+     exists solely to host a live text field; all visible feedback happens
+     in the ``jarvisEntities`` tree via re-rendering.
+   * ``TreeView.reveal()`` is NOT used by this command (superseded design
+     decision — see REQ_EXP_SEARCHENTITIES "Pivot rationale"). No
+     ``entitiesView`` reference or ``getParent()`` implementation is
+     required by this feature.
+   * The search filter and the existing per-kind filters (Project hidden
+     folders, Event future-only) are applied in the same ``_applyFilters()``
+     pipeline, in sequence — a node must pass both to remain visible
+     (REQ_EXP_SEARCHENTITIES AC-9).
+   * Filter state lives per-provider (``_searchQuery`` field on each
+     ``GenericTreeDataProvider`` instance), not on the unified wrapper —
+     ``UnifiedEntityTreeProvider`` is unaffected by this feature beyond
+     forwarding the resulting ``refresh()`` calls (already covered by
+     ``SPEC_EXP_UNIFIEDTREE`` AC-6's refresh forwarding).
+   * Scope note: only basic substring matching on ``name``/``summary`` is
+     implemented. Fuzzy matching, additional match fields, or a persistent
+     filter history are out of scope for this CR (see REQ_EXP_SEARCHENTITIES
+     "Scope note") and deferred to a follow-up CR.
 
 
