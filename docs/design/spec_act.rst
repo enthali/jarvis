@@ -1008,6 +1008,147 @@ Actor Design Specifications
      ``contributes.languageModelTools``.
 
 
+.. spec:: Opt-In Actor Migration Command
+   :id: SPEC_ACT_MIGRATIONCOMMAND
+   :status: approved
+   :links: REQ_ACT_MIGRATIONCOMMAND; SPEC_ACT_DUALPATH_SCANNER; SPEC_ACT_CREATETOOL
+
+   **Description:**
+   A plain VS Code command (not an LM/MCP tool) registered as
+   ``jarvis.migrateSessionToActor``, Command Palette-only. Enumerates
+   old-convention Actors, lets the user pick one, moves its folder/file to
+   the new convention, rescans, and queues a notification message directly
+   via the internal ``appendMessage()`` function.
+
+   **Enumerating old-convention Actors (AC-2):**
+
+   .. code-block:: typescript
+
+      function listOldConventionActors(): { name: string; folderPath: string }[] {
+          const provider = engine.treeFactory.getProvider('session');
+          if (!provider) { return []; }
+          const roots = provider.getChildren();
+          const leaves = flattenLeaves(Array.isArray(roots) ? roots as TreeNode[] : []);
+          return leaves
+              .filter(leaf => leaf.id.endsWith('session.yaml'))  // old convention only
+              .map(leaf => ({
+                  name: kindDrivenScanner.getEntity(leaf.id)?.name
+                      ?? path.basename(path.dirname(leaf.id)),
+                  folderPath: path.dirname(leaf.id),
+              }));
+      }
+
+   The ``leaf.id.endsWith('session.yaml')`` check is the same technique
+   already used by ``UnifiedEntityTreeProvider._kindOf()`` to distinguish
+   conventions — no new scanner API is required.
+
+   **Command handler:**
+
+   .. code-block:: typescript
+
+      const migrateSessionToActorCommand = vscode.commands.registerCommand(
+          'jarvis.migrateSessionToActor',
+          async () => {
+              const candidates = listOldConventionActors();
+              if (candidates.length === 0) {
+                  vscode.window.showInformationMessage(
+                      'No session-convention Actors to migrate.'
+                  );
+                  return;
+              }
+
+              const picked = await vscode.window.showQuickPick(
+                  candidates.map(c => ({ label: c.name, description: c.folderPath, c })),
+                  { placeHolder: 'Select an Actor to migrate to the new .jarvis/actors/ convention' }
+              );
+              if (!picked) { return; }  // user cancelled
+
+              const { name, folderPath } = picked.c;
+              const actorsDir = configPaths.ensureActorsDir();
+              if (!actorsDir) {
+                  vscode.window.showErrorMessage('jarvis.migrateSessionToActor: no workspace open');
+                  return;
+              }
+              const targetFolder = path.join(actorsDir, name);
+
+              // AC-5: name-collision guard — abort cleanly, touch nothing
+              if (fs.existsSync(targetFolder)) {
+                  vscode.window.showErrorMessage(
+                      `Cannot migrate "${name}": an Actor already exists at .jarvis/actors/${name}/`
+                  );
+                  return;
+              }
+
+              // AC-4(a)/(b): move folder, then rename convention file inside it
+              await fs.promises.mkdir(path.dirname(targetFolder), { recursive: true });
+              await fs.promises.rename(folderPath, targetFolder);
+              await fs.promises.rename(
+                  path.join(targetFolder, 'session.yaml'),
+                  path.join(targetFolder, 'actor.yaml')
+              );
+
+              // AC-4(c): rescan so the tree reflects the new convention immediately
+              await kindDrivenScanner.rescan();
+
+              // AC-6: unconditional fire-and-forget notification
+              appendMessage(
+                  resolveMessagesPath(),
+                  name,
+                  'Jarvis',
+                  `Your Actor has been migrated to the new storage convention.\n` +
+                  `New folder: .jarvis/actors/${name}/\n` +
+                  `context.md: .jarvis/actors/${name}/context.md`
+              );
+              messageProvider.reload();
+
+              vscode.window.showInformationMessage(`Migrated "${name}" to .jarvis/actors/${name}/`);
+              log.info(`[ACT] migrateSessionToActor: "${name}" moved to new convention`);
+          }
+      );
+      context.subscriptions.push(migrateSessionToActorCommand);
+
+   **Why ``appendMessage()`` directly, not the ``jarvis_sendMessage`` LM
+   tool (AC-6 design note):**
+
+   ``jarvis_sendMessage`` (``REQ_MSG_SENDMESSAGE`` AC-5/AC-6) requires
+   ``senderSession`` to be a member of ``getValidDestinations()`` — a
+   deliberate safety rail for **model-invoked** calls. ``"Jarvis"`` is not
+   itself a registered session or entity name, so routing through that tool
+   would incorrectly throw. This is not a gap: internal, non-model-invoked
+   system notifications already bypass that tool entirely and call
+   ``appendMessage()`` directly with a free-form sender string — the exact
+   same pattern used by ``heartbeat.ts`` (sender ``'heartbeat'``),
+   ``jarvis_createSession``'s initial-message enqueue (sender
+   ``'jarvis_createSession'``), and the Reminder feature (sender
+   ``'Reminder'``). This command follows that established precedent with
+   sender ``"Jarvis"``.
+
+   **Manifest additions (``packages/core/package.json``):**
+
+   * ``contributes.commands``: ``jarvis.migrateSessionToActor`` (title
+     "Jarvis: Migrate Session to Actor", no icon — Command Palette only)
+   * ``contributes.menus.commandPalette``: no exclusion entry needed (default
+     visibility is "shown in palette"); explicitly NOT added to any
+     ``view/title`` or ``view/item/context`` menu (REQ_ACT_MIGRATIONCOMMAND
+     AC-7 — no tree/context-menu surface)
+
+   **Design notes:**
+
+   * ``fs.promises.rename()`` is used for both the folder move and the
+     in-place file rename — a same-filesystem rename is atomic and
+     preserves all file contents (``context.md`` and any other files)
+     untouched, satisfying AC-4's "no other file touched" requirement.
+   * The command performs no idempotency merge logic beyond the AC-5
+     collision guard — if the target folder already exists, the migration
+     for that Actor is simply refused; the user can resolve the naming
+     conflict manually (out of scope for this minimal command per
+     ``US_ACT_MIGRATIONCOMMAND`` AC-5).
+   * No auto-open of a chat session occurs after migration (unlike
+     ``jarvis_createSession``) — this command only relocates an existing
+     Actor's storage; if a chat session for that Actor is already open, it
+     is unaffected by the file move.
+
+
 .. spec:: session-tree-click-behavior: Inverted Click Semantics
    :id: SPEC_ACT_TREECLICK
    :status: implemented

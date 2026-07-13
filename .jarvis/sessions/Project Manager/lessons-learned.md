@@ -1,5 +1,8 @@
 # PM Lessons Learned
 
+### Preparing the next CR while one is autonomously running still requires a status check first (2026-07-13)
+Repeated the "Finger weg" mistake from 2026-07-02, in a new shape: dispatched `actor-migration-command` autonomously, then — without checking whether it had actually completed — did `git checkout develop` + created a new branch for the next CR (`actor-tool-rename`) "in parallel while it runs." System Designer was mid-design on the still-running CR, uncommitted; the checkout yanked the shared working tree out from under it. No data was lost (uncommitted mods travel with `git checkout` when there's no conflict), but it could easily have gone wrong. Fix: before creating any new branch or switching branches, always `git log --oneline <branch> -3` (or check the inbox) to confirm the currently-running CR has actually reached a commit/checkpoint — autonomous mode doesn't mean "safe to ignore," it just means fewer PM checkpoints.
+
 ### Release agent change-doc archival can leave duplicates (v0.14.0)
 Verify after release that archived change docs land only under `docs/changes/v{x.y.z}/`, not also duplicated at the `docs/changes/` root. Happened once (v0.14.0), cleaned up manually — check this every release until the release agent guards against it itself.
 

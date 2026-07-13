@@ -110,6 +110,46 @@ Actor User Stories
      Phase 5, a separate deprecation-cycle CR).
 
 
+.. story:: Opt-In Actor Storage-Convention Migration Command
+   :id: US_ACT_MIGRATIONCOMMAND
+   :status: draft
+   :priority: optional
+   :links: US_ACT_DUALPATH_STORAGE
+
+   **As a** Jarvis user with one or more Actors still stored under the old
+   ``.jarvis/sessions/`` convention,
+   **I want** a deliberately minimal, opt-in Command Palette command that
+   migrates a single chosen Actor to the new ``.jarvis/actors/`` convention
+   on demand,
+   **so that** I can move individual Actors forward when *I* decide to,
+   without any automatic nudging, bulk operation, or tree/context-menu UI
+   surface pressuring me to do so — migration remains entirely optional per
+   ``US_ACT_DUALPATH_STORAGE`` AC-3/AC-4.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A single Command Palette-only command lets the user pick one
+     Actor currently stored under the old convention
+     (``.jarvis/sessions/<name>/session.yaml``) from a list; Actors already
+     using the new convention are never offered, since there is nothing to
+     migrate for them.
+   * AC-2: If no old-convention Actor exists, the command tells the user so
+     instead of presenting an empty picker.
+   * AC-3: Choosing an Actor moves its folder and convention file to the new
+     location/name (``.jarvis/actors/<name>/actor.yaml``) without touching
+     ``context.md`` or any other file inside the folder, then refreshes the
+     Actor tree so the migrated Actor immediately appears under its new
+     convention.
+   * AC-4: After a successful migration, the migrated Actor is notified (via
+     the existing message-queue mechanism) of its new folder and
+     ``context.md`` path — sent unconditionally and without waiting for or
+     requiring the Actor to currently be an open chat session.
+   * AC-5: This command does not provide bulk migration, does not appear
+     anywhere in the tree or a context menu, does not run automatically or
+     on a schedule, and does not change how new Actors are created
+     (``US_ACT_DUALPATH_STORAGE`` AC-2 is unaffected).
+
+
 .. story:: Programmatic Session Creation Tool
    :id: US_ACT_CREATETOOL
    :status: implemented

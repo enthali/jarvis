@@ -26,7 +26,7 @@ Install all at once with the [Jarvis Suite](https://marketplace.visualstudio.com
 1. Install **Jarvis** from the VS Code Marketplace
 2. Open the Jarvis view in the activity bar (sidebar icon)
 3. Configure the data folder paths in **Settings → Extensions → Jarvis**:
-   - `jarvis.sessionsFolder` — folder containing Actor entities. New Actors are created as `actor.yaml` (current naming convention); pre-existing `session.yaml` folders are still fully recognized and supported side by side, permanently — no migration required
+   - `jarvis.sessionsFolder` — folder containing Actor entities. New Actors are created as `actor.yaml` (current naming convention); pre-existing `session.yaml` folders are still fully recognized and supported side by side, permanently — no migration required. To convert an old-named actor to the new convention, run **Jarvis: Migrate Session to Actor** from the Command Palette (optional, one actor at a time)
    - `jarvis.heartbeatFolder` — folder for heartbeat job files
 4. Jarvis will scan your folders and populate the tree views automatically
 

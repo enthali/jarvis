@@ -105,6 +105,7 @@
       { "command": "jarvis.openAgentSession", "title": "Jarvis: Open Chat", "icon": "$(comment-discussion)" },
       { "command": "jarvis.newEntity", "title": "Jarvis: New Entity", "icon": "$(add)" },
       { "command": "jarvis.newActor", "title": "Jarvis: New Actor", "icon": "$(add)" },
+      { "command": "jarvis.migrateSessionToActor", "title": "Jarvis: Migrate Session to Actor" },
       { "command": "jarvis.searchEntities", "title": "Jarvis: Search Entities", "icon": "$(search)" },
       { "command": "jarvis.checkForUpdates", "title": "Jarvis: Check for Updates" },
       { "command": "jarvis.rescan", "title": "Jarvis: Rescan", "icon": "$(refresh)" },

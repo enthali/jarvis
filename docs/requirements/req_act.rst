@@ -227,6 +227,69 @@ Actor Requirements
      folder-identity merging complexity for uncertain benefit.
 
 
+.. req:: Opt-In Actor Migration Command
+   :id: REQ_ACT_MIGRATIONCOMMAND
+   :status: approved
+   :priority: optional
+   :links: US_ACT_MIGRATIONCOMMAND; REQ_ACT_DUALPATH_SCANNER
+
+   **Description:**
+   A single Command Palette-only command SHALL let a user migrate one
+   old-convention Actor (``.jarvis/sessions/<name>/session.yaml``) to the
+   new convention (``.jarvis/actors/<name>/actor.yaml``) on demand. This is
+   the only migration mechanism this CR introduces — it does not add any
+   tree/context-menu entry point, bulk operation, or automatic/scheduled
+   migration.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A command ``jarvis.migrateSessionToActor`` (title "Jarvis:
+     Migrate Session to Actor") SHALL be registered, reachable only via the
+     Command Palette — no tree node, context-menu entry, or title-bar icon
+     SHALL trigger it.
+   * AC-2: Invoking the command SHALL open a QuickPick listing every Actor
+     entity whose convention file is ``session.yaml`` (old convention) —
+     determined by checking each Actor leaf's underlying file path suffix,
+     the same technique already used elsewhere to distinguish conventions
+     (e.g. ``UnifiedEntityTreeProvider._kindOf()``). Actors already stored
+     under ``actor.yaml`` (new convention) SHALL NOT appear in this list —
+     there is nothing to migrate for them.
+   * AC-3: If the list from AC-2 is empty, the command SHALL show an
+     informative message (e.g. "No session-convention Actors to migrate")
+     instead of opening an empty QuickPick.
+   * AC-4: Upon selecting an Actor, the command SHALL:
+     (a) move the Actor's folder from
+     ``.jarvis/sessions/<name>/`` to ``.jarvis/actors/<name>/`` (preserving
+     ``context.md`` and any other files inside unchanged),
+     (b) rename the convention file from ``session.yaml`` to ``actor.yaml``
+     within that folder (content unchanged — same ``name``/``summary``
+     fields as before),
+     (c) trigger a scanner rescan so the migrated Actor immediately appears
+     under the new convention in the Actor tree.
+   * AC-5: If the target path ``.jarvis/actors/<name>/`` already exists
+     (name collision with an existing new-convention Actor of the same
+     name), the command SHALL abort the migration for that Actor with an
+     error notification and SHALL NOT delete, overwrite, or partially move
+     any files — the old-convention folder remains fully intact and
+     untouched.
+   * AC-6: After a successful migration (AC-4 completes without error), the
+     command SHALL unconditionally queue a message via the message-queue's
+     internal ``appendMessage()`` function (the same underlying mechanism
+     used by ``jarvis_sendMessage``, called directly rather than through the
+     LM-tool wrapper — see ``SPEC_ACT_MIGRATIONCOMMAND`` for why this
+     bypasses the LM tool's ``senderSession`` validation, precedented by
+     the existing ``heartbeat``/``jarvis_createSession``/``Reminder``
+     senders), addressed to the migrated Actor's name, with sender
+     ``"Jarvis"``, informing it of its new folder and ``context.md`` path.
+     This send SHALL happen regardless of whether a chat session by that
+     name is currently open — a harmless queued-but-unread message is the
+     accepted outcome when it is not.
+   * AC-7: This command SHALL NOT provide bulk/multi-select migration, SHALL
+     NOT appear in any tree node's context menu, SHALL NOT run automatically
+     or on any schedule, and SHALL NOT change how new Actors are created
+     (``REQ_ACT_DUALPATH_SCANNER`` AC-4 is unaffected).
+
+
 .. req:: newEntity Command — Session Support
    :id: REQ_ACT_NEWENTITY
    :status: draft

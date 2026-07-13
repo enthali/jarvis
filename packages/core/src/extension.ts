@@ -1138,6 +1138,96 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         }
     );
 
+    // Helper: flatten tree to leaf nodes (SPEC_ACT_MIGRATIONCOMMAND)
+    function flattenLeaves(nodes: TreeNode[]): LeafNode[] {
+        const leaves: LeafNode[] = [];
+        for (const node of nodes) {
+            if (node.kind === 'leaf') {
+                leaves.push(node);
+            } else if (node.kind === 'folder') {
+                leaves.push(...flattenLeaves(node.children));
+            }
+        }
+        return leaves;
+    }
+
+    // Helper: enumerate old-convention actors (SPEC_ACT_MIGRATIONCOMMAND)
+    function listOldConventionActors(): { name: string; folderPath: string }[] {
+        const provider = engine.treeFactory.getProvider('session');
+        if (!provider) { return []; }
+        const roots = provider.getChildren();
+        const leaves = flattenLeaves(Array.isArray(roots) ? roots as TreeNode[] : []);
+        return leaves
+            .filter(leaf => leaf.id.endsWith('session.yaml'))  // old convention only
+            .map(leaf => ({
+                name: kindDrivenScanner.getEntity(leaf.id)?.name
+                    ?? path.basename(path.dirname(leaf.id)),
+                folderPath: path.dirname(leaf.id),
+            }));
+    }
+
+    // Migrate session to actor command (SPEC_ACT_MIGRATIONCOMMAND)
+    const migrateSessionToActorCommand = vscode.commands.registerCommand(
+        'jarvis.migrateSessionToActor',
+        async () => {
+            const candidates = listOldConventionActors();
+            if (candidates.length === 0) {
+                vscode.window.showInformationMessage(
+                    'No session-convention Actors to migrate.'
+                );
+                return;
+            }
+
+            const picked = await vscode.window.showQuickPick(
+                candidates.map(c => ({ label: c.name, description: c.folderPath, c })),
+                { placeHolder: 'Select an Actor to migrate to the new .jarvis/actors/ convention' }
+            );
+            if (!picked) { return; }  // user cancelled
+
+            const { name, folderPath } = picked.c;
+            const actorsDir = configPaths.ensureActorsDir();
+            if (!actorsDir) {
+                vscode.window.showErrorMessage('jarvis.migrateSessionToActor: no workspace open');
+                return;
+            }
+            const targetFolder = path.join(actorsDir, name);
+
+            // AC-5: name-collision guard — abort cleanly, touch nothing
+            if (fs.existsSync(targetFolder)) {
+                vscode.window.showErrorMessage(
+                    `Cannot migrate "${name}": an Actor already exists at .jarvis/actors/${name}/`
+                );
+                return;
+            }
+
+            // AC-4(a)/(b): move folder, then rename convention file inside it
+            await fs.promises.mkdir(path.dirname(targetFolder), { recursive: true });
+            await fs.promises.rename(folderPath, targetFolder);
+            await fs.promises.rename(
+                path.join(targetFolder, 'session.yaml'),
+                path.join(targetFolder, 'actor.yaml')
+            );
+
+            // AC-4(c): rescan so the tree reflects the new convention immediately
+            await kindDrivenScanner.rescan();
+
+            // AC-6: unconditional fire-and-forget notification
+            appendMessage(
+                resolveMessagesPath(),
+                name,
+                'Jarvis',
+                `Your Actor has been migrated to the new storage convention.\n` +
+                `New folder: .jarvis/actors/${name}/\n` +
+                `context.md: .jarvis/actors/${name}/context.md`
+            );
+            messageProvider.reload();
+
+            vscode.window.showInformationMessage(`Migrated "${name}" to .jarvis/actors/${name}/`);
+            log.info(`[ACT] migrateSessionToActor: "${name}" moved to new convention`);
+        }
+    );
+    context.subscriptions.push(migrateSessionToActorCommand);
+
     // enableAutoDelivery / disableAutoDelivery commands
     const enableAutoDeliveryCommand = vscode.commands.registerCommand('jarvis.enableAutoDelivery', (node: SessionGroupNode) => { addAutoDelivery(resolveMessagesPath(), node.destination); messageProvider.reload(); });
     const disableAutoDeliveryCommand = vscode.commands.registerCommand('jarvis.disableAutoDelivery', (node: SessionGroupNode) => { removeAutoDelivery(resolveMessagesPath(), node.destination); messageProvider.reload(); });
