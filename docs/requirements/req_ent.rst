@@ -212,7 +212,8 @@ generic/user-facing, ``ENG`` = kind-agnostic plumbing, no US level).
      ``{ preview: false }`` — no kind showed a preview-mode tab, and no kind
      auto-created a missing ``context.md`` on open (creation happened only
      at entity-creation time, via
-     ``jarvis_createProject``/``jarvis_createEvent``/``jarvis_createSession``
+     ``jarvis_createProject``/``jarvis_createEvent``/``jarvis_createActor``
+     (was ``jarvis_createSession`` before the actor-tool-rename CR, Phase 5)
      and their UI equivalents — never as a side effect of opening).
    * AC-7: (historical) Folder nodes did not display the button
    * AC-8: (historical) The command did not appear in the Command Palette

@@ -1,7 +1,7 @@
-``jarvis_createSession`` Tool User Acceptance Tests
+``jarvis_createActor`` Tool User Acceptance Tests
 =====================================================
 
-.. story:: jarvis_createSession Tool Acceptance Tests
+.. story:: jarvis_createActor Tool Acceptance Tests
    :id: US_UAT_CREATESESSIONTOOL
    :status: draft
    :priority: required
@@ -9,7 +9,7 @@
 
    **As a** Jarvis Test Engineer running in the Extension Development Host,
    **I want** a set of manual acceptance test scenarios for the
-   ``jarvis_createSession`` LM+MCP tool,
+   ``jarvis_createActor`` LM+MCP tool,
    **so that** I can verify end-to-end that the tool creates session folders
    correctly, validates input, enforces idempotency, handles the disabled-gate
    case, uses verbatim folder names (no slugging), supports the
@@ -18,7 +18,7 @@
 
    **Acceptance Criteria:**
 
-   * AC-1: A test verifies that ``jarvis_createSession`` appears in the VS Code
+   * AC-1: A test verifies that ``jarvis_createActor`` appears in the VS Code
      Chat tool picker when ``jarvis.sessions.enabled=true`` and is absent when
      ``false`` (maps to REQ AC-1).
    * AC-2: A test verifies that a successful call creates the session folder,
@@ -39,9 +39,9 @@
    * AC-8: A test verifies verbatim (non-slugged) folder naming and the
      round-trip consistency with ``jarvis_sendToSession`` (maps to REQ AC-2a
      and the no-workspace / no-session error path).
-   * AC-9: As tester, I can verify that calling ``jarvis_createSession`` with
+   * AC-9: As tester, I can verify that calling ``jarvis_createActor`` with
      no workspace open produces an error whose message begins with
-     ``jarvis_createSession: no workspace open``, distinct from the
+     ``jarvis_createActor: no workspace open``, distinct from the
      ``invalid session name:`` prefix used for name validation (maps to
      REQ AC-9).
    * AC-10: A test verifies that after a successful call the new session's
@@ -66,7 +66,7 @@
    * T-9: Verbatim folder naming — ``"Test Session"`` creates folder with space,
      unlike slugged ``jarvis.newSession`` UI output.
    * T-10: No workspace open → error with
-     ``"jarvis_createSession: no workspace open"`` prefix.
+     ``"jarvis_createActor: no workspace open"`` prefix.
    * T-11: Round-trip — create with space in name, then
      ``jarvis_sendToSession`` to same exact name → message lands in inbox.
    * T-12: Auto-open + delivery — create with ``initialMessage``; verify chat

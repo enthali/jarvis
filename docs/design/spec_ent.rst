@@ -369,7 +369,8 @@ level).
    QuickPick. All SHALL call ``pickAgentMode()``.
 
    **Programmatic-validation consumer pattern (separate, no picker):**
-   ``jarvis_createProject``, ``jarvis_createEvent``, ``jarvis_createSession``
+   ``jarvis_createProject``, ``jarvis_createEvent``, ``jarvis_createActor``
+   (was ``jarvis_createSession`` before the actor-tool-rename CR, Phase 5)
    LM tools — receive ``agent`` parameter, validate via ``discoverAgents()``
    (per ``SPEC_ACT_AGENT_DISCOVERY``), no picker invocation. Anti-drift rule
    does NOT apply here (different mechanism by design).

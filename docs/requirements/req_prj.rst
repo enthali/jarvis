@@ -77,7 +77,8 @@ Project Requirements
      to the project directory)
    * AC-4: If no projects exist, the tool SHALL return an empty array
    * AC-5: The tool SHALL be simultaneously available via the MCP server
-   * AC-6: The output object shape SHALL match ``jarvis_listSessions``
+   * AC-6: The output object shape SHALL match ``jarvis_listActors`` (was
+     ``jarvis_listSessions`` before the actor-tool-rename CR, Phase 5)
      (``{name, summary, agent, folder}``)
 
 
@@ -105,7 +106,8 @@ Project Requirements
    * AC-5: If the folder already exists, return
      ``{ created: false, reason: "project \"<name>\" already exists" }``.
    * AC-6: Name validation SHALL use the same rules as
-     ``jarvis_createSession`` (empty, illegal chars, dot-only, Windows
+     ``jarvis_createActor`` (was ``jarvis_createSession`` before the
+     actor-tool-rename CR, Phase 5) (empty, illegal chars, dot-only, Windows
      reserved names).
    * AC-7: When ``agent`` is non-blank, validate against
      ``REQ_ACT_AGENT_DISCOVERY``; if invalid, throw error with available

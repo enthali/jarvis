@@ -134,7 +134,7 @@ Sessions Feature UAT Design Specifications
           Window**. Open an agent chat. Type ``#listSessionEntities`` and
           observe the autocomplete dropdown.
         - ``listSessionEntities`` does **not** appear in the autocomplete
-          suggestions. The existing ``jarvis_listSessions`` (chat-session tool)
+          suggestions. The existing ``jarvis_listActors`` (chat-session tool)
           may still appear. Re-enable (``jarvis.sessions.enabled=true``) and
           reload — ``listSessionEntities`` reappears in autocomplete.
           Note: tool registration changes require a window reload in the current
@@ -236,7 +236,7 @@ Sessions Feature UAT Design Specifications
           Old-convention actors remain untouched.
       * - T-21 (tool uses new convention)
         - Open an agent chat in the mixed-workspace setup. Invoke
-          ``jarvis_createSession`` tool with ``name: "tool-created"``,
+          ``jarvis_createActor`` tool with ``name: "tool-created"``,
           ``summary: "Via tool"``. Confirm the tool call. Then verify the
           folder structure.
         - New folder ``.jarvis/actors/tool-created/`` is created (not

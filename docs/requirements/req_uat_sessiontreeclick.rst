@@ -31,7 +31,7 @@ Session Tree Click Behaviour UAT Requirements
      (``testdata/events/2026-06-15_DevCon 2026``) must also be visible for
      T-10 (cross-kind consistency check).
    * An agent chat session must be open in the EDH (any name) for T-8 so that
-     ``jarvis_createSession`` can be invoked.
+     ``jarvis_createActor`` can be invoked.
    * Between scenarios that create or delete files, restore the original state
      before proceeding to the next scenario.
 
@@ -96,7 +96,7 @@ Session Tree Click Behaviour UAT Requirements
      unchanged for both files, confirming no auto-create side effect).
 
    * AC-8 (cross-CR sanity — freshly created session):
-     For T-8, the tester SHALL invoke ``jarvis_createSession`` with a unique
+     For T-8, the tester SHALL invoke ``jarvis_createActor`` with a unique
      test name and immediately verify that the newly created session node in
      the Sessions Tree responds to single click by opening the agent chat (not
      ``context.md``), confirming uniform treatment of all session leaves.

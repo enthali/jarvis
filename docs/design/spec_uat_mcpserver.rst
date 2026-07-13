@@ -31,7 +31,7 @@ MCP Server Test Data Specifications
         - Launch Extension Host with defaults
         - Status bar: ``Jarvis MCP: 31415``; log: ``[MCP] server started``
       * - T-2 (List sessions)
-        - MCP call ``jarvis_listSessions`` via curl
+        - MCP call ``jarvis_listActors`` via curl
         - JSON array of session title strings
       * - T-3 (Send message)
         - MCP call ``jarvis_sendToSession``

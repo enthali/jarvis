@@ -10,7 +10,7 @@ List Sessions Tool Swap UAT Requirements
    **Description:**
    Specifies the test data and per-AC verification criteria for manually
    validating the v0.7.0 breaking rename of the list-sessions tools:
-   ``jarvis_listSessions`` now returns YAML entities; ``jarvis_listChatSessions``
+   ``jarvis_listActors`` now returns YAML entities; ``jarvis_listChatSessions``
    is the new tool for VS Code chat tab titles.
 
    **Test Data Requirements:**
@@ -27,8 +27,8 @@ List Sessions Tool Swap UAT Requirements
 
    **Acceptance Criteria:**
 
-   * AC-1 (``jarvis_listSessions`` returns YAML entities):
-     For T-1, the tester SHALL invoke ``jarvis_listSessions`` and verify the
+   * AC-1 (``jarvis_listActors`` returns YAML entities):
+     For T-1, the tester SHALL invoke ``jarvis_listActors`` and verify the
      response is an array of **objects** (not strings) each with ``name``,
      ``summary``, and ``folder`` fields. Both ``copilot-cm`` and
      ``dev-feature-x`` SHALL be present. No chat tab titles SHALL appear in

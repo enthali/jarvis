@@ -64,7 +64,7 @@ Project User Stories
      projects folder)
    * AC-3: The tool requires no input parameters
    * AC-4: The tool is also available via the MCP server (dual registration)
-   * AC-5: The output shape matches ``jarvis_listSessions``
+   * AC-5: The output shape matches ``jarvis_listActors``
      (``{name, summary, agent, folder}``)
 
 
@@ -93,7 +93,7 @@ Project User Stories
      is overwritten.
    * AC-5: A ``name`` value that is empty, contains filesystem-illegal
      characters, or is a reserved name results in an error — same rules as
-     ``jarvis_createSession``.
+     ``jarvis_createActor``.
    * AC-6: An optional ``agent`` parameter is validated against available agents
      before any filesystem operation.
 

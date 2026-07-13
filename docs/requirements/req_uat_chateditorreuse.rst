@@ -61,7 +61,7 @@ Chat Editor Reuse — Session Open UAT Requirements
      ``vscode-chat-session://local/<uuid>`` path must continue to work
      as before (T-1).
 
-   * AC-2 (CR AC-2 — ``jarvis_createSession`` fresh editor):
+   * AC-2 (CR AC-2 — ``jarvis_createActor`` fresh editor):
      After T-2, the tester SHALL verify:
 
      a. A new chat editor tab for the session is visible in the EDH.

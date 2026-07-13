@@ -1,14 +1,21 @@
-``jarvis_createSession`` Tool UAT Design Specifications
+``jarvis_createActor`` Tool UAT Design Specifications
 =========================================================
 
-.. spec:: jarvis_createSession Tool Test Scenarios and Expected Outcomes
+.. note::
+
+   **(actor-tool-rename CR, Phase 5):** this tool was renamed from
+   ``jarvis_createSession`` to ``jarvis_createActor`` (hard cutover, old
+   name removed entirely). All test prompts/scenarios below have been
+   updated to use the new tool name.
+
+.. spec:: jarvis_createActor Tool Test Scenarios and Expected Outcomes
    :id: SPEC_UAT_CREATESESSIONTOOL
    :status: draft
    :links: REQ_UAT_CREATESESSIONTOOL
 
    **Description:**
    Step-by-step procedures and expected outcomes for all thirteen
-   ``jarvis_createSession`` acceptance test scenarios, covering the happy path,
+   ``jarvis_createActor`` acceptance test scenarios, covering the happy path,
    full-parameter call, idempotency, name validation, disabled-gate, verbatim
    naming, no-workspace error, round-trip consistency with
    ``jarvis_sendToSession``, and auto-open behaviour (post-headless-pivot).
@@ -28,7 +35,7 @@
    * An agent chat session is open in the EDH (any name; the test engineer's
      own session is sufficient).
    * All tool calls are issued via the VS Code Chat input bar using direct
-     prompts such as *"Call jarvis_createSession with name 'MySes'"* or the
+     prompts such as *"Call jarvis_createActor with name 'MySes'"* or the
      ``#createSession`` tool reference.  Observe both the tool response rendered
      in the chat thread and the filesystem / sidebar state.
    * Between scenarios, delete any folders created under
@@ -55,7 +62,7 @@
           In the VS Code Chat input bar, type ``#createSession`` and confirm it
           resolves.  Then prompt the model:
 
-          *"Call jarvis_createSession with name 'happy-path-test'. No summary.
+          *"Call jarvis_createActor with name 'happy-path-test'. No summary.
           No initialMessage."*
 
           Observe the tool response in the chat thread and the Sessions tree in
@@ -96,7 +103,7 @@
 
           Prompt the model:
 
-          *"Call jarvis_createSession with name 'full-params', summary
+          *"Call jarvis_createActor with name 'full-params', summary
           'Integration test session', initialMessage 'Hello from T-2'."*
 
           After the tool returns, prompt: *"Call jarvis_readMessage for session
@@ -116,7 +123,7 @@
           a message with:
 
           * ``text``: ``"Hello from T-2"``
-          * ``sender``: ``"jarvis_createSession"``
+          * ``sender``: ``"jarvis_createActor"``
           * ``destination``: ``"full-params"``
 
           **Sessions tree:** node ``full-params`` appears within 2 seconds.
@@ -134,7 +141,7 @@
 
           Prompt the model:
 
-          *"Call jarvis_createSession with name 'full-params', summary 'Changed
+          *"Call jarvis_createActor with name 'full-params', summary 'Changed
           summary', initialMessage 'Second message'."*
 
           After the tool returns, check the inbox again.
@@ -161,7 +168,7 @@
 
           Prompt the model:
 
-          *"Call jarvis_createSession with name ''."* (empty string)
+          *"Call jarvis_createActor with name ''."* (empty string)
         - **Response:** Error (tool error or model-surfaced error) whose
           message begins with ``"invalid session name:"``.
 
@@ -175,7 +182,7 @@
           *CR AC: 6*
         - Prompt the model:
 
-          *"Call jarvis_createSession with name 'bad/name'."*
+          *"Call jarvis_createActor with name 'bad/name'."*
         - **Response:** Error beginning with ``"invalid session name:"``.
 
           **Filesystem:** no new folder created.
@@ -189,9 +196,9 @@
           Invalid names — ``.`` and ``..``
 
           *CR AC: 6, 8*
-        - Step 1 — Prompt: *"Call jarvis_createSession with name '.'."*
+        - Step 1 — Prompt: *"Call jarvis_createActor with name '.'."*
 
-          Step 2 — Prompt: *"Call jarvis_createSession with name '..'."*
+          Step 2 — Prompt: *"Call jarvis_createActor with name '..'."*
         - **Step 1 response:** Error beginning with ``"invalid session name:"``.
 
           **Step 2 response:** Error beginning with ``"invalid session name:"``.
@@ -203,9 +210,9 @@
           Windows reserved device names
 
           *CR AC: 6, 8*
-        - Step 1 — Prompt: *"Call jarvis_createSession with name 'CON'."*
+        - Step 1 — Prompt: *"Call jarvis_createActor with name 'CON'."*
 
-          Step 2 — Prompt: *"Call jarvis_createSession with name 'LPT9'."*
+          Step 2 — Prompt: *"Call jarvis_createActor with name 'LPT9'."*
         - **Step 1 response:** Error beginning with ``"invalid session name:"``.
 
           **Step 2 response:** Error beginning with ``"invalid session name:"``.
@@ -232,7 +239,7 @@
           and reload window again.  Repeat the tool-picker check.
         - **Step 2 expected:** ``createSession`` does NOT appear in the
           tool picker.  Attempting to prompt the model to call
-          ``jarvis_createSession`` results in a "tool not found" or
+          ``jarvis_createActor`` results in a "tool not found" or
           equivalent failure.
 
           **Step 3 expected:** ``createSession`` reappears in the tool
@@ -250,7 +257,7 @@
 
           Step 1 — Prompt the model:
 
-          *"Call jarvis_createSession with name 'Test Session' (with the
+          *"Call jarvis_createActor with name 'Test Session' (with the
           space)."*
 
           Step 2 — Open a terminal in the EDH and run::
@@ -286,12 +293,12 @@
 
           In a Chat session in that windowless instance, prompt:
 
-          *"Call jarvis_createSession with name 'nws-test'."*
+          *"Call jarvis_createActor with name 'nws-test'."*
         - **Response:** Error whose message begins with
-          ``"jarvis_createSession: no workspace open"`` (NOT
+          ``"jarvis_createActor: no workspace open"`` (NOT
           ``"invalid session name:"``) — confirming that the workspace guard
           fires after name validation but before the idempotency check, and
-          that the ``jarvis_createSession: no workspace open`` prefix is
+          that the ``jarvis_createActor: no workspace open`` prefix is
           distinct from ``invalid session name:``.
 
           No folder is created anywhere.
@@ -304,7 +311,7 @@
         - Precondition: ``testdata/.jarvis/sessions/Round Trip Test/`` does
           not exist.
 
-          Step 1 — Prompt: *"Call jarvis_createSession with name 'Round Trip
+          Step 1 — Prompt: *"Call jarvis_createActor with name 'Round Trip
           Test'."*
 
           Step 2 — Prompt: *"Call jarvis_sendToSession with destination 'Round
@@ -320,7 +327,7 @@
           **Step 3 response:** Message with text ``"Round-trip check"`` is
           returned from the inbox of session ``"Round Trip Test"``.
 
-          This confirms that ``jarvis_createSession`` and
+          This confirms that ``jarvis_createActor`` and
           ``jarvis_sendToSession`` share the same verbatim-name addressing
           scheme (CR Decision 1 rationale).
 
@@ -339,7 +346,7 @@
 
           Step 1 — Prompt the model:
 
-          *"Call jarvis_createSession with name 'auto-open-test',
+          *"Call jarvis_createActor with name 'auto-open-test',
           initialMessage 'Auto-delivered hello'."*
 
           Step 2 — Wait up to 7 seconds (5 s heartbeat poll + buffer).
@@ -369,7 +376,7 @@
 
           Step 1 — Prompt the model:
 
-          *"Call jarvis_createSession with name 'idempotent-open'."*
+          *"Call jarvis_createActor with name 'idempotent-open'."*
         - **Response:** JSON object that includes ``"created": false``.
 
           **Auto-open:** A chat editor for ``idempotent-open`` is opened

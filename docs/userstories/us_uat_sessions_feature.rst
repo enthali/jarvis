@@ -151,7 +151,7 @@ Sessions Feature User Acceptance Tests
      Action: Open an agent chat. Type ``#listSessionEntities`` and observe the autocomplete
      suggestions.
      Expected: ``listSessionEntities`` does NOT appear in the autocomplete
-     suggestions. Only the existing ``jarvis_listSessions`` (chat-session tool) may
+     suggestions. Only the existing ``jarvis_listActors`` (chat-session tool) may
      appear. Re-enable (``jarvis.sessions.enabled = true``) and reload — the tool
      reappears. (Note: tool registration changes currently require a window reload.)
 
@@ -268,9 +268,9 @@ Sessions Feature User Acceptance Tests
      ``created-actor`` appears in the tree. Old-convention actors remain
      untouched.
 
-   **T-21 — jarvis_createSession tool uses new convention**
+   **T-21 — jarvis_createActor tool uses new convention**
      Setup: Mixed workspace as in T-19. Open an agent chat.
-     Action: Invoke ``jarvis_createSession`` tool (or via MCP) with
+     Action: Invoke ``jarvis_createActor`` tool (or via MCP) with
      ``name: "tool-created"``, ``summary: "Created via tool"``. Confirm
      the tool call.
      Expected: A new folder ``.jarvis/actors/tool-created/`` is created

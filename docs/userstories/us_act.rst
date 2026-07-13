@@ -18,7 +18,14 @@ Actor User Stories
    forced to move. Where this file says "session folder" or
    "``session.yaml``" it refers to the literal (still-live, still-written-
    by-old-actors) storage layer; where it says "Actor" it refers to the
-   entity kind concept.
+   entity kind concept. **(actor-tool-rename CR, Phase 5 addendum):** the
+   LM/MCP tool names flagged above as unchanged in Phase 1
+   (``jarvis_listSessions``, and separately ``jarvis_createSession``) have
+   now been renamed to ``jarvis_listActors``/``jarvis_createActor`` by
+   Phase 5 — the "future code migration" foreshadowed by this note is
+   complete for the tool-name layer specifically (storage paths/filenames
+   remain unchanged, per ``US_ACT_DUALPATH_STORAGE``'s permanent
+   dual-convention design).
 
 .. story:: Actor Entity Type
    :id: US_ACT_ACTORS
@@ -48,9 +55,11 @@ Actor User Stories
      Schema is provided for editor validation.
    * AC-4: The existing ``jarvis.openContext`` command works on actor tree
      nodes and opens the ``context.md`` file adjacent to ``session.yaml``.
-   * AC-5: A new LM+MCP tool ``jarvis_listSessions`` returns the list of
-     actor entities (``name``, ``summary``, ``folder``). It is distinct from
-     ``jarvis_listChatSessions``, which lists VS Code chat tab titles.
+   * AC-5: A new LM+MCP tool ``jarvis_listActors`` (renamed from
+     ``jarvis_listSessions`` by the actor-tool-rename CR, Phase 5) returns
+     the list of actor entities (``name``, ``summary``, ``folder``). It is
+     distinct from ``jarvis_listChatSessions``, which lists VS Code chat tab
+     titles.
    * AC-6: The existing ``jarvis.newEntity`` command supports actor creation
      as a third option alongside Project and Event. It creates a folder with
      ``session.yaml`` and an empty ``context.md`` under the fixed path
@@ -91,7 +100,8 @@ Actor User Stories
      list/tree with no visible distinction to the user based on which
      convention a given Actor happens to use.
    * AC-2: Creating a **new** Actor (via the tree's "New Actor" button or
-     the ``jarvis_createSession`` tool) writes only the new convention
+     the ``jarvis_createActor`` tool — renamed from ``jarvis_createSession``
+     by the actor-tool-rename CR, Phase 5) writes only the new convention
      (``.jarvis/actors/<name>/actor.yaml``) going forward — it never writes
      a new ``session.yaml``.
    * AC-3: Actors already stored under the old convention are **never**
@@ -104,10 +114,11 @@ Actor User Stories
      transition window with an implied end state where every Actor is
      eventually expected to use the new convention.
    * AC-5: This capability is storage/scanner-level only — it does not
-     change the Actor tree's visual structure (that is a separate, future
-     capability — Unified Entity Tree, Phase 3) and does not rename any
-     LM/MCP tool (``jarvis_listSessions``, ``jarvis_createSession``, etc. —
-     Phase 5, a separate deprecation-cycle CR).
+     change the Actor tree's visual structure (a separate capability —
+     Unified Entity Tree, Phase 3, since completed) and does not itself
+     rename any LM/MCP tool (that was Phase 5, ``actor-tool-rename`` CR,
+     since completed — see ``jarvis_listActors``/``jarvis_createActor`` in
+     ``US_ACT_ACTORS`` AC-5 and ``US_ACT_CREATETOOL`` above).
 
 
 .. story:: Opt-In Actor Storage-Convention Migration Command
@@ -150,22 +161,24 @@ Actor User Stories
      (``US_ACT_DUALPATH_STORAGE`` AC-2 is unaffected).
 
 
-.. story:: Programmatic Session Creation Tool
+.. story:: Programmatic Actor Creation Tool
    :id: US_ACT_CREATETOOL
    :status: implemented
    :priority: required
    :links: US_ACT_ACTORS
 
    **As an** LLM operating within an active Jarvis session,
-   **I want** a tool ``jarvis_createSession`` that programmatically creates a
-   new session folder with ``session.yaml`` and ``context.md``,
+   **I want** a tool ``jarvis_createActor`` (renamed from
+   ``jarvis_createSession`` by the actor-tool-rename CR, Phase 5) that
+   programmatically creates a new session folder with ``session.yaml`` and
+   ``context.md``,
    **so that** I can orchestrate multi-session workflows (e.g. "spawn a
    research sub-session", "create a QualityManager session") without requiring
    the human to click through the Sessions Tree UI.
 
    **Acceptance Criteria:**
 
-   * AC-1: The tool ``jarvis_createSession`` is registered via LM and MCP when
+   * AC-1: The tool ``jarvis_createActor`` is registered via LM and MCP when
      ``jarvis.sessions.enabled=true``; it is absent when the setting is ``false``.
    * AC-2: A successful call creates ``<workspace>/.jarvis/sessions/<name>/``,
      ``session.yaml`` (with ``name`` and optional ``summary``), and an empty

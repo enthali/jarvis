@@ -67,7 +67,7 @@ Project Design Specifications
    **Description:**
    Register ``jarvis_listProjects`` as a dual LM + MCP tool in ``extension.ts``.
    Returns the list of projects from the scanner with their name, summary,
-   agent, and relative folder path. Output shape matches ``jarvis_listSessions``
+   agent, and relative folder path. Output shape matches ``jarvis_listActors``
    (``{name, summary, agent, folder}``).
 
    **Leaf extraction helper** (local to ``activate()``):
@@ -163,9 +163,9 @@ Project Design Specifications
 
    **Design notes:**
 
-   * Output shape: ``{name, summary, agent, folder}`` — matches ``jarvis_listSessions``
+   * Output shape: ``{name, summary, agent, folder}`` — matches ``jarvis_listActors``
    * ``summary`` and ``agent`` use ``entity?.field ?? ''`` fallback (same as ``jarvis_listEvents``)
-   * No input parameters — mirrors ``jarvis_listSessions`` pattern
+   * No input parameters — mirrors ``jarvis_listActors`` pattern
    * ``folder`` uses forward slashes for cross-platform consistency
    * Falls back to folder basename if entity lookup fails (defensive)
    * Disposable pushed to ``context.subscriptions``

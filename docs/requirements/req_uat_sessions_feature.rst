@@ -1,6 +1,13 @@
 Sessions Feature UAT Requirements
 ==================================
 
+.. note::
+
+   **(actor-tool-rename CR, Phase 5):** ``jarvis_createSession`` and
+   ``jarvis_listSessions`` were renamed to ``jarvis_createActor`` and
+   ``jarvis_listActors`` respectively (hard cutover, old names removed
+   entirely). References below have been updated.
+
 .. req:: Sessions Tree View UAT Requirements
    :id: REQ_UAT_ACT_TREE
    :status: implemented
@@ -59,7 +66,7 @@ Sessions Feature UAT Requirements
      (``.jarvis/actors/*/actor.yaml``) Actor folders, merge them into a single
      tree with no visible distinction, and display all actors alphabetically
      regardless of source convention (T-17, T-18, T-19). New actors created
-     via ``Jarvis: New Actor`` or ``jarvis_createSession`` tool SHALL write to
+     via ``Jarvis: New Actor`` or ``jarvis_createActor`` tool SHALL write to
      the new convention only (T-20, T-21). Project and Event scanners SHALL
      remain unaffected (regression check, T-24).
 
@@ -213,7 +220,7 @@ Sessions Feature UAT Requirements
    * AC-4: New actors created via ``Jarvis: New Actor`` command SHALL be written to the
      new convention (``.jarvis/actors/``) only, not to old-convention (``.jarvis/sessions/``)
      (T-20).
-   * AC-5: Actors created via ``jarvis_createSession`` tool SHALL be written to the new
+   * AC-5: Actors created via ``jarvis_createActor`` tool SHALL be written to the new
      convention (``.jarvis/actors/``) only (T-21).
    * AC-6: When same-name actor exists under both conventions (edge case), both SHALL
      appear as two separate distinct nodes in the tree, not merged or deduplicated (T-22).

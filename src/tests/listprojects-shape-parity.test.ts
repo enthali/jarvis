@@ -6,7 +6,7 @@
  * TC-3: Project with missing agent returns "" fallback
  * TC-4: Project with missing summary and agent returns "" fallback
  * TC-5: MCP variant returns same shape (verified via source inspection)
- * TC-6: jarvis_listSessions output shape unaffected
+ * TC-6: jarvis_listActors output shape unaffected
  * TC-7: jarvis_listEvents output shape unaffected
  */
 import { describe, it, expect } from 'vitest';
@@ -106,15 +106,15 @@ describe('TC-5: MCP variant uses same mapping (source verification)', () => {
     });
 });
 
-describe('TC-6: jarvis_listSessions output shape unaffected', () => {
-    it('listSessions mapping still uses {name, summary, agent, folder}', () => {
+describe('TC-6: jarvis_listActors output shape unaffected', () => {
+    it('listActors mapping still uses {name, summary, agent, folder}', () => {
         const extensionSrc = fs.readFileSync(
             path.resolve(__dirname, '..', '..', 'packages', 'core', 'src', 'extension.ts'),
             'utf-8'
         );
         const sessionsSection = extensionSrc.slice(
-            extensionSrc.indexOf("'jarvis_listSessions'"),
-            extensionSrc.indexOf("'jarvis_listSessions'") + 600
+            extensionSrc.indexOf("'jarvis_listActors'"),
+            extensionSrc.indexOf("'jarvis_listActors'") + 600
         );
         // Must have exactly the four session fields
         expect(sessionsSection).toContain('name: e.name');

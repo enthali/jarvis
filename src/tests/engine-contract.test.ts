@@ -91,7 +91,7 @@ describe('SPEC_ENG_REGISTER_TOOL: registerTool validation', () => {
     });
 
     it('accepts names starting with jarvis_', () => {
-        const disposable = engine.registerTool('jarvis_listSessions', 'List sessions', dummyHandler);
+        const disposable = engine.registerTool('jarvis_listActors', 'List actors', dummyHandler);
         expect(disposable).toBeDefined();
         expect(typeof disposable.dispose).toBe('function');
     });

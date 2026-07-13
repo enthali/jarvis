@@ -226,7 +226,7 @@ Session Tree Click Behaviour UAT Design Specifications
 
           In the VS Code Chat input bar, prompt the model:
 
-          *"Call jarvis_createSession with name 'click-test-new'."*
+          *"Call jarvis_createActor with name 'click-test-new'."*
 
           Wait for the Sessions Tree to show the new ``click-test-new``
           node (within 2 seconds).

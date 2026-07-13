@@ -73,7 +73,7 @@ Messaging User Stories
    **Acceptance Criteria:**
 
    * AC-1: A Language Model Tool ``jarvis_listChatSessions`` is available in the
-     Chat tool picker (renamed from ``jarvis_listSessions`` which now refers to
+     Chat tool picker (renamed from ``jarvis_listActors`` which now refers to
      YAML session entities)
    * AC-2: The tool returns a list of chat session names (titles) from the current
      workspace's ``state.vscdb``
@@ -87,7 +87,7 @@ Messaging User Stories
    :links: US_MSG_LISTSESSIONS; US_ENT_AGENTSESSION
 
    *Context: Generalises the kind-specific enumeration tools
-   (``jarvis_listSessions`` for the ``session`` kind, ``jarvis_listProjects`` for
+   (``jarvis_listActors`` for the ``session`` kind, ``jarvis_listProjects`` for
    the ``project`` kind) into a single cross-kind tool. The central scanner
    already holds every entity of every registered kind; this story publishes that
    already-existing list via the platform API — no new scanner, provider, or
@@ -303,7 +303,7 @@ Messaging User Stories
 
    * AC-1: ``openAgentSession`` finds an existing named session in a devcontainer
      workspace — no duplicate sessions are created
-   * AC-2: The ``jarvis_listSessions`` MCP/LM Tool returns the correct sessions
+   * AC-2: The ``jarvis_listActors`` MCP/LM Tool returns the correct sessions
      when the extension runs inside a devcontainer or Remote SSH window
    * AC-3: Local usage (non-remote workspace) is unaffected — session lookup
      continues to work as before

@@ -898,14 +898,14 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         }
     );
 
-    // listSessions — returns YAML session entities
-    const listSessionsTool = engine.registerTool('jarvis_listSessions',
-        'Returns all Jarvis session entities (YAML-based) with name, summary, agent, and folder path.',
+    // listActors — returns YAML session entities
+    const listActorsTool = engine.registerTool('jarvis_listActors',
+        'Returns all Jarvis Actor entities (YAML-based) with name, summary, agent, and folder path.',
         async (_options: vscode.LanguageModelToolInvocationOptions<any>, _token: vscode.CancellationToken) => {
             const sessions = kindDrivenScanner.entities
                 .filter(e => e.kind === 'session')
                 .map(e => ({ name: e.name, summary: e.summary ?? '', agent: e.agent ?? '', folder: e.folder }));
-            log.info(`[SES] listSessions: ${sessions.length} session(s)`);
+            log.info(`[SES] listActors: ${sessions.length} Actor(s)`);
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(JSON.stringify({ sessions }))
             ]);
@@ -1035,8 +1035,8 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         }
     );
 
-    // createSession tool
-    let createSessionTool: vscode.Disposable | undefined;
+    // createActor tool
+    let createActorTool: vscode.Disposable | undefined;
     if (cfg.get<boolean>('sessions.enabled', true)) {
         const createSession = async (args: { name: string; summary?: string; agent?: string; initialMessage?: string }): Promise<{ created: boolean; reason?: string; path: string }> => {
             const { name, summary, agent, initialMessage } = args;
@@ -1056,7 +1056,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             }
 
             const sessionsDir = configPaths.ensureActorsDir();
-            if (!sessionsDir) { throw new Error('jarvis_createSession: no workspace open'); }
+            if (!sessionsDir) { throw new Error('jarvis_createActor: no workspace open'); }
 
             const targetPath = path.join(sessionsDir, name);
             const relPath = `.jarvis/actors/${name}`;
@@ -1081,7 +1081,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             await fs.promises.writeFile(path.join(targetPath, 'context.md'), contextContent, 'utf-8');
 
             if (initialMessage) {
-                appendMessage(resolveMessagesPath(), name, 'jarvis_createSession', initialMessage);
+                appendMessage(resolveMessagesPath(), name, 'jarvis_createActor', initialMessage);
                 messageProvider.reload();
             }
 
@@ -1097,11 +1097,11 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             return { created: true, path: relPath };
         };
 
-        createSessionTool = engine.registerTool('jarvis_createSession',
-        'Creates a new Jarvis session folder with session.yaml and context.md.',
+        createActorTool = engine.registerTool('jarvis_createActor',
+        'Creates a new Jarvis Actor folder with actor.yaml and context.md.',
         async (options: vscode.LanguageModelToolInvocationOptions<any>, _token: vscode.CancellationToken) => {
                 const result = await createSession(options.input);
-                log.info(`[SES] createSession: created=${result.created}, path=${result.path}`);
+                log.info(`[SES] createActor: created=${result.created}, path=${result.path}`);
                 return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart(JSON.stringify(result))]);
             }
     );
@@ -1365,8 +1365,8 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         checkForUpdatesCommand,
         sendToSessionTool,
         readMessageTool,
-        listSessionsTool,
-        ...(createSessionTool ? [createSessionTool] : []),
+        listActorsTool,
+        ...(createActorTool ? [createActorTool] : []),
         registerJobTool,
         unregisterJobTool,
         listJobsTool,

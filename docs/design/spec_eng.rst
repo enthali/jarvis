@@ -35,7 +35,7 @@ Engine Design Specifications
       /**
        * A flat, public-API view of a single scanned entity, used by
        * ``listJarvisSessions()``. Optional source fields are normalised to
-       * empty strings so the shape matches ``jarvis_listSessions`` /
+       * empty strings so the shape matches ``jarvis_listActors`` /
        * ``jarvis_listProjects``.
        */
       export interface JarvisSession {
@@ -518,7 +518,7 @@ Engine Design Specifications
 
       /** Descriptor returned by getRegisteredTools(). */
       export interface ToolDescriptor {
-          /** Tool name (e.g. 'jarvis_listSessions', 'jarvis_pim_listProjects'). */
+          /** Tool name (e.g. 'jarvis_listActors', 'jarvis_pim_listProjects'). */
           name: string;
           /** Human-readable description (as passed to registerTool). */
           description: string;
@@ -634,7 +634,7 @@ Engine Design Specifications
      and its convention YAML was found. A non-session capability (e.g. a recorder
      recording) is simply not scanned as an entity and therefore never appears.
    * **Shape parity** — the ``{name, summary, agent, kind, folder}`` shape matches
-     the existing ``jarvis_listSessions`` / ``jarvis_listProjects`` output (plus
+     the existing ``jarvis_listActors`` / ``jarvis_listProjects`` output (plus
      ``kind`` to distinguish), so consumers see a consistent contract.
    * **Additive** — ``version`` stays ``1``; no existing API method changes.
 

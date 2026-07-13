@@ -251,10 +251,10 @@
     ],
     "languageModelTools": [
       {
-        "name": "jarvis_createSession",
-        "displayName": "Create Session",
-        "modelDescription": "Creates a new Jarvis session folder with session.yaml and context.md under <workspace>/.jarvis/sessions/<name>/. Idempotent.",
-        "canBeReferencedInPrompt": true, "toolReferenceName": "createSession", "icon": "$(add)", "tags": ["jarvis"],
+        "name": "jarvis_createActor",
+        "displayName": "Create Actor",
+        "modelDescription": "Creates a new Jarvis Actor folder with actor.yaml and context.md under <workspace>/.jarvis/actors/<name>/. Idempotent.",
+        "canBeReferencedInPrompt": true, "toolReferenceName": "createActor", "icon": "$(add)", "tags": ["jarvis"],
         "inputSchema": { "type": "object", "required": ["name"], "properties": { "name": { "type": "string" }, "summary": { "type": "string" }, "agent": { "type": "string" }, "initialMessage": { "type": "string" } } }
       },
       {
@@ -272,10 +272,10 @@
         "inputSchema": { "type": "object", "required": ["session", "text", "senderSession"], "properties": { "session": { "type": "string", "description": "The exact name of the target (VS Code chat session title or YAML entity name)" }, "text": { "type": "string", "description": "The message text to queue" }, "senderSession": { "type": "string", "description": "Required: the exact name of the sending session — must not be omitted or inferred from the active tab" } } }
       },
       {
-        "name": "jarvis_listSessions",
-        "displayName": "List Sessions",
-        "modelDescription": "Returns all Jarvis session entities (YAML-based) with name, summary, agent, and folder path.",
-        "canBeReferencedInPrompt": true, "toolReferenceName": "listSessions", "icon": "$(list-unordered)",
+        "name": "jarvis_listActors",
+        "displayName": "List Actors",
+        "modelDescription": "Returns all Jarvis Actor entities (YAML-based) with name, summary, agent, and folder path.",
+        "canBeReferencedInPrompt": true, "toolReferenceName": "listActors", "icon": "$(list-unordered)",
         "inputSchema": { "type": "object", "properties": {} }
       },
       {

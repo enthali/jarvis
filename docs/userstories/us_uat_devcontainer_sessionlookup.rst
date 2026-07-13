@@ -44,7 +44,7 @@ Devcontainer Session Lookup User Acceptance Tests
      (e.g. by copying the database file out and deleting it). Reload the Extension
      Development Host.
      Action: Right-click any project node and select
-     ``Jarvis: Open Agent Session``, or invoke the ``jarvis_listSessions`` tool
+     ``Jarvis: Open Agent Session``, or invoke the ``jarvis_listActors`` tool
      from a chat session.
      Expected: The Jarvis output log (``Output > Jarvis``) shows a warning
      message indicating ``state.vscdb`` was not found. The operation does not
@@ -63,7 +63,7 @@ Devcontainer Session Lookup User Acceptance Tests
    **T-4 — listSessions tool returns sessions correctly**
      Setup: Ensure at least one named chat session exists in the Extension
      Development Host (e.g. "alpha").
-     Action: In a Copilot agent chat, invoke the ``jarvis_listSessions`` tool
+     Action: In a Copilot agent chat, invoke the ``jarvis_listActors`` tool
      (e.g. ``@jarvis list sessions``).
      Expected: The tool response contains the existing session(s) by name.
      No error or empty result is returned when ``state.vscdb`` is accessible.

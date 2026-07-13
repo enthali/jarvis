@@ -11,7 +11,7 @@ Chat Editor Reuse — Session Open UAT Design Specifications
    ``chat-editor-reuse-on-session-open``, ``editor-group-placement``, and
    ``message-flow-diagram`` acceptance test scenarios, covering the
    existing-UUID regression guard, fresh-editor creation via
-   ``jarvis_createSession``, the UI "New Session" command, successive
+   ``jarvis_createActor``, the UI "New Session" command, successive
    new-session opens, the auto-delivery new-editor path, the Main-target
    close+reopen rule, the Docs-target fixed column, the already-open-
    anywhere rule, the Play-button's Main placement, the Messages tree
@@ -90,7 +90,7 @@ Chat Editor Reuse — Session Open UAT Design Specifications
 
       * - T-2
 
-          ``jarvis_createSession`` happy path
+          ``jarvis_createActor`` happy path
 
           *CR AC: 2*
 
@@ -101,7 +101,7 @@ Chat Editor Reuse — Session Open UAT Design Specifications
 
           In the VS Code Chat input bar, prompt the model:
 
-          *"Call jarvis_createSession with name 'uat-new-session',
+          *"Call jarvis_createActor with name 'uat-new-session',
           initialMessage 'Hello from T-2'."*
 
           Wait for the tool to return (~2 s).  Observe the editor area.
@@ -164,11 +164,11 @@ Chat Editor Reuse — Session Open UAT Design Specifications
           Note the baseline tab count.
 
           **Step 1:** In the VS Code Chat input bar, prompt the model:
-          *"Call jarvis_createSession with name 'uat-sess-a'."*
+          *"Call jarvis_createActor with name 'uat-sess-a'."*
           Wait for the tool to return.
 
           **Step 2:** Immediately after, prompt:
-          *"Call jarvis_createSession with name 'uat-sess-b'."*
+          *"Call jarvis_createActor with name 'uat-sess-b'."*
           Wait for the tool to return.
 
           Observe the editor area and tab bar.
@@ -178,7 +178,7 @@ Chat Editor Reuse — Session Open UAT Design Specifications
 
           **Tab count:** baseline + 2.
 
-          **No reuse:** the second ``jarvis_createSession`` call did not
+          **No reuse:** the second ``jarvis_createActor`` call did not
           navigate within the tab opened by the first call; both tabs are
           distinct and independently focusable.
 

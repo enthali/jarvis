@@ -9,7 +9,7 @@ List Sessions Tool Swap User Acceptance Tests
 
    **As a** Jarvis Test Engineer,
    **I want** manual acceptance test scenarios for the breaking v0.7.0 tool
-   rename — ``jarvis_listSessions`` now returns YAML session entities while
+   rename — ``jarvis_listActors`` now returns YAML session entities while
    the new ``jarvis_listChatSessions`` returns VS Code chat tab titles,
    **so that** I can verify the swap is correct, callers can discover the
    right tool for each purpose, and empty/unnamed sessions are filtered
@@ -17,7 +17,7 @@ List Sessions Tool Swap User Acceptance Tests
 
    **Acceptance Criteria:**
 
-   * AC-1: A test verifies that ``jarvis_listSessions`` now returns an array
+   * AC-1: A test verifies that ``jarvis_listActors`` now returns an array
      of YAML session entity objects (``name``, ``summary``, ``folder``),
      not chat tab title strings (maps to ``US_MSG_LISTSESSIONS`` AC-1 /
      T-1).
@@ -30,6 +30,6 @@ List Sessions Tool Swap User Acceptance Tests
 
    **Test Scenarios (summary):**
 
-   * T-1: ``jarvis_listSessions`` → YAML entity array (not chat titles).
+   * T-1: ``jarvis_listActors`` → YAML entity array (not chat titles).
    * T-2: ``jarvis_listChatSessions`` → chat tab title strings.
    * T-3: ``jarvis_listChatSessions`` → unnamed/empty sessions excluded.

@@ -1,6 +1,17 @@
 ``jarvis_listSessionEntities`` Gating UAT Design Specifications
 ===============================================================
 
+.. note::
+
+   **(actor-tool-rename CR, Phase 5):** the list tool has since been renamed
+   ``jarvis_listSessionEntities`` → ``jarvis_listSessions`` → (this CR)
+   ``jarvis_listActors``; the create tool referenced below (symmetry check)
+   is now ``jarvis_createActor`` (was ``jarvis_createSession``). This
+   historical UAT file's title/body were not fully retitled — only the
+   in-body tool-name references needed for the symmetry check were updated,
+   to keep the diff minimal for an already-``implemented``/historical test
+   protocol.
+
 .. spec:: jarvis_listSessionEntities Gating Test Scenarios and Expected Outcomes
    :id: SPEC_UAT_LISTSESSIONENTITIESGATING
    :status: implemented
@@ -10,7 +21,7 @@
    Step-by-step procedures and expected outcomes for the three
    ``jarvis_listSessionEntities`` gating acceptance test scenarios, covering
    the enabled path, the disabled path, and the symmetry regression check with
-   ``jarvis_createSession``.
+   ``jarvis_createActor``.
 
    **Test Setup:**
 
@@ -104,9 +115,9 @@
           Open the VS Code Chat **Tools** picker.
 
           Verify both ``jarvis_listSessionEntities`` and
-          ``jarvis_createSession`` in the list.
+          ``jarvis_createActor`` in the list.
         - **Both absent:** Neither ``jarvis_listSessionEntities`` nor
-          ``jarvis_createSession`` appears in the Tools picker.
+          ``jarvis_createActor`` appears in the Tools picker.
 
           This confirms that the single ``if (sessions.enabled)`` gated block
           in ``extension.ts`` controls both tools simultaneously, consistent

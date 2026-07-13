@@ -110,6 +110,14 @@ Actor Requirements
      concern alongside the LM/MCP tool names (``jarvis_listSessions`` etc.),
      since ``kind`` values are echoed in tool-facing JSON output
      (``jarvis_listJarvisSessions``), which is out of scope here.
+     **(actor-tool-rename CR, Phase 5 update):** Phase 5 renamed the two
+     LM/MCP tool names themselves (``jarvis_listSessions``→
+     ``jarvis_listActors``, ``jarvis_createSession``→``jarvis_createActor``
+     — see ``REQ_ACT_LISTTOOL``/``REQ_ACT_CREATETOOL``). The internal
+     ``kind`` string (``'session'``) and ``contextValue``
+     (``jarvisSession``) were explicitly OUT of that CR's scope and remain
+     unchanged — there is no further planned phase to rename them; they are
+     now a permanent internal identifier, not a deferred item.
    * AC-11: (actor-internal-identifiers-rename CR) The command ID
      ``jarvis.newSession`` SHALL be renamed to ``jarvis.newActor`` (title
      "Jarvis: New Actor" unchanged from AC-8) — this command is exclusively
@@ -201,7 +209,8 @@ Actor Requirements
      Actor entities (same display name, different underlying files) rather
      than being merged or one silently shadowing the other.
    * AC-4: **New** Actor creation (``jarvis.newActor`` command,
-     ``jarvis_createSession`` tool — ``REQ_ACT_NEWENTITY``/
+     ``jarvis_createActor`` tool (renamed from ``jarvis_createSession`` by
+     the actor-tool-rename CR, Phase 5) — ``REQ_ACT_NEWENTITY``/
      ``REQ_ACT_CREATETOOL``) SHALL write **only** the new convention
      (``.jarvis/actors/<name>/actor.yaml``) going forward. Neither creation
      path SHALL ever write a new ``session.yaml``.
@@ -278,12 +287,13 @@ Actor Requirements
      used by ``jarvis_sendMessage``, called directly rather than through the
      LM-tool wrapper — see ``SPEC_ACT_MIGRATIONCOMMAND`` for why this
      bypasses the LM tool's ``senderSession`` validation, precedented by
-     the existing ``heartbeat``/``jarvis_createSession``/``Reminder``
-     senders), addressed to the migrated Actor's name, with sender
-     ``"Jarvis"``, informing it of its new folder and ``context.md`` path.
-     This send SHALL happen regardless of whether a chat session by that
-     name is currently open — a harmless queued-but-unread message is the
-     accepted outcome when it is not.
+     the existing ``heartbeat``/``jarvis_createActor`` (was
+     ``jarvis_createSession`` — renamed by the actor-tool-rename CR, Phase
+     5)/``Reminder`` senders), addressed to the migrated Actor's name, with
+     sender ``"Jarvis"``, informing it of its new folder and ``context.md``
+     path. This send SHALL happen regardless of whether a chat session by
+     that name is currently open — a harmless queued-but-unread message is
+     the accepted outcome when it is not.
    * AC-7: This command SHALL NOT provide bulk/multi-select migration, SHALL
      NOT appear in any tree node's context menu, SHALL NOT run automatically
      or on any schedule, and SHALL NOT change how new Actors are created
@@ -339,16 +349,24 @@ Actor Requirements
      name SHALL NOT be silently sanitized.
 
 
-.. req:: jarvis_listSessions LM+MCP Tool
+.. req:: jarvis_listActors LM+MCP Tool
    :id: REQ_ACT_LISTTOOL
-   :status: draft
+   :status: approved
    :priority: required
    :links: US_ACT_ACTORS
 
    **Description:**
-   A Language Model and MCP tool ``jarvis_listSessions`` SHALL return
-   the array of session entities known to the scanner (renamed from
-   ``jarvis_listSessionEntities``).
+   A Language Model and MCP tool ``jarvis_listActors`` SHALL return
+   the array of Actor entities known to the scanner.
+
+   **(actor-tool-rename CR, Phase 5 — hard cutover):** this tool was
+   previously named ``jarvis_listSessions`` (itself renamed from
+   ``jarvis_listSessionEntities``). The old name is REMOVED entirely — no
+   deprecated stub is kept, unlike the earlier ``sendToSession``/
+   ``readMessage`` soft-deprecation cycle (this tool sees only light,
+   occasional use, so a hard cutover was judged appropriate). All
+   ``toolReferenceName``/error-message/registration references below use
+   the new name.
 
    **Acceptance Criteria:**
 
@@ -356,16 +374,20 @@ Actor Requirements
      each element has ``name``, ``summary`` (may be empty string),
      ``agent`` (may be empty string when no binding is set), and
      ``folder`` (absolute filesystem path to the session directory, forward
-     slashes).
+     slashes). The JSON response key ``"sessions"`` is UNCHANGED by this
+     rename — only the tool's own name changes; the response shape is a
+     storage-layer/wire-format detail out of scope for Phase 5 (same
+     rationale as ``jarvis.sessions.enabled`` staying unchanged).
    * AC-2: The tool SHALL be registered only when ``jarvis.sessions.enabled``
      is ``true`` at activation time.  When the setting is ``false``, the tool
      SHALL be absent from both the LM tool catalog and the MCP tool catalog
      after extension reload.  Gating is static (activation-time only) per
      ADR ``tool-deregistration.md`` — no runtime add/remove.
    * AC-3: The tool SHALL be distinct from ``jarvis_listChatSessions`` (which
-     lists VS Code chat tab titles). Both MAY be active simultaneously.
+     lists VS Code chat tab titles, an unrelated concept — explicitly NOT
+     renamed by this CR). Both MAY be active simultaneously.
    * AC-4: The tool SHALL appear in the VS Code Chat tool picker with
-     ``toolReferenceName`` ``listSessions``.
+     ``toolReferenceName`` ``listActors`` (was ``listSessions``).
 
 
 .. req:: Session Tree-Node Context Menu Parity
@@ -459,23 +481,27 @@ Actor Requirements
      ``folder`` property.
 
 
-.. req:: jarvis_createSession LM+MCP Tool
+.. req:: jarvis_createActor LM+MCP Tool
    :id: REQ_ACT_CREATETOOL
    :status: implemented
    :priority: required
    :links: US_ACT_CREATETOOL
 
    **Description:**
-   A new Language Model and MCP tool ``jarvis_createSession`` SHALL
-   programmatically create a session entity under the fixed path
-   ``<workspaceRoot>/.jarvis/sessions/<name>/``.
+   A Language Model and MCP tool ``jarvis_createActor`` SHALL
+   programmatically create an Actor entity under the fixed path
+   ``<workspaceRoot>/.jarvis/actors/<name>/``.
 
    **(actor-dualpath-scanner CR amendment):** AC-2/AC-5 below are rewritten
    to target the new storage convention per ``REQ_ACT_DUALPATH_SCANNER``
    AC-4 — this tool now writes new Actors under
-   ``.jarvis/actors/<name>/actor.yaml``. The tool's own name
-   (``jarvis_createSession``) is unaffected — LM/MCP tool renames are
-   Phase 5, a separate deprecation-cycle CR.
+   ``.jarvis/actors/<name>/actor.yaml``.
+
+   **(actor-tool-rename CR, Phase 5 — hard cutover):** the tool's own name
+   is renamed from ``jarvis_createSession`` to ``jarvis_createActor``. The
+   old name is REMOVED entirely — no deprecated stub is kept. All
+   ``toolReferenceName``/error-message/sender-string references below use
+   the new name.
 
    **Acceptance Criteria:**
 
@@ -485,45 +511,54 @@ Actor Requirements
    * AC-2: On a successful create, the tool SHALL:
 
      a. Create the directory ``<workspaceRoot>/.jarvis/actors/<name>/`` (was
-        ``.jarvis/sessions/<name>/`` — changed by this CR) where the folder
-        name is the verbatim ``name`` parameter — no slug transformation.
-     b. Write ``actor.yaml`` (was ``session.yaml`` — changed by this CR)
-        containing the ``name`` field (always) and the ``summary`` field
-        (only when the supplied summary is non-blank).
+        ``.jarvis/sessions/<name>/`` — changed by the actor-dualpath-scanner
+        CR) where the folder name is the verbatim ``name`` parameter — no
+        slug transformation.
+     b. Write ``actor.yaml`` (was ``session.yaml`` — changed by the
+        actor-dualpath-scanner CR) containing the ``name`` field (always)
+        and the ``summary`` field (only when the supplied summary is
+        non-blank).
      c. Write an empty ``context.md`` containing only ``# <name>\n\n``.
 
    * AC-3: After creation, the tool SHALL call ``scanner.rescan()`` so the
-     Sessions Tree refreshes within 2 seconds without a manual action.
+     Actor tree refreshes within 2 seconds without a manual action.
    * AC-4: When ``initialMessage`` is provided, the tool SHALL enqueue it via
-     ``appendMessage()`` using the session ``name`` as the destination and
-     ``"jarvis_createSession"`` as the sender, after the folder is created and
-     before the response is returned.  The message SHALL NOT be enqueued when
-     the session already existed (idempotency guard).
+     ``appendMessage()`` using the Actor's ``name`` as the destination and
+     ``"jarvis_createActor"`` (was ``"jarvis_createSession"`` — changed by
+     this CR) as the sender, after the folder is created and before the
+     response is returned.  The message SHALL NOT be enqueued when the
+     Actor already existed (idempotency guard).
    * AC-5: When a folder ``<workspaceRoot>/.jarvis/actors/<name>/`` (was
-     ``.jarvis/sessions/<name>/`` — changed by this CR) already exists, the
-     tool SHALL return
+     ``.jarvis/sessions/<name>/`` — changed by the actor-dualpath-scanner
+     CR) already exists, the tool SHALL return
      ``{ created: false, reason: "session \"<name>\" already exists; no action taken",
      path: ".jarvis/actors/<name>" }`` (path prefix likewise changed from
      ``.jarvis/sessions/``) without modifying any file or enqueuing any
-     message. **Note:** this idempotency check now only guards against a
-     name collision in the *new* convention folder — it does NOT check
-     whether an old-convention (``.jarvis/sessions/<name>/``) Actor of the
-     same name already exists (see ``REQ_ACT_DUALPATH_SCANNER`` Decisions
-     for the accepted same-name-across-conventions edge case).
+     message. **Note:** the ``"session \"<name>\" already exists"`` wording
+     in the response is UNCHANGED by this CR (a response-payload string, not
+     the tool's own name) — out of scope for Phase 5, same rationale as
+     AC-1's response shape note in ``REQ_ACT_LISTTOOL``. This idempotency
+     check now only guards against a name collision in the *new* convention
+     folder — it does NOT check whether an old-convention
+     (``.jarvis/sessions/<name>/``) Actor of the same name already exists
+     (see ``REQ_ACT_DUALPATH_SCANNER`` Decisions for the accepted
+     same-name-across-conventions edge case).
    * AC-6: The tool SHALL validate ``name`` before attempting any filesystem
      operation.  An empty string or a string containing any of the characters
      ``/ \ : * ? " < > |`` or a null/control character SHALL result in a thrown
-     error with message ``"invalid session name: <reason>"``; this error SHALL
-     surface as an LM tool error for the LM path and as an MCP error for the
-     MCP path.
+     error with message ``"invalid session name: <reason>"`` (message text
+     UNCHANGED by this CR); this error SHALL surface as an LM tool error for
+     the LM path and as an MCP error for the MCP path.
    * AC-7: The tool SHALL appear in the VS Code Chat tool picker with
-     ``toolReferenceName`` ``createSession``.
+     ``toolReferenceName`` ``createActor`` (was ``createSession``).
    * AC-8: The ``name`` MUST NOT be ``.`` or ``..``; on Windows it MUST NOT be
      a reserved device name (``CON``, ``PRN``, ``AUX``, ``NUL``,
      ``COM1``–``COM9``, ``LPT1``–``LPT9``, case-insensitive).
    * AC-9: If no workspace folder is open when the tool is invoked, the tool
      MUST raise an error whose message begins with
-     ``"jarvis_createSession: no workspace open"``.
+     ``"jarvis_createActor: no workspace open"`` (was
+     ``"jarvis_createSession: no workspace open"`` — changed by this CR to
+     match the new tool name).
      This prefix MUST be distinct from ``"invalid session name:"`` so that
      LLM callers can unambiguously distinguish precondition failures
      (no workspace) from input-validation failures (bad name).
@@ -531,7 +566,7 @@ Actor Requirements
      MUST trigger opening of the new session's agent chat via the
      ``jarvis.openAgentSession`` command, passing a ``LeafNode`` constructed as
      ``{ kind: 'leaf', id: path.join(targetPath, 'actor.yaml') }`` (was
-     ``session.yaml`` — changed by this CR to match the new convention).
+     ``session.yaml`` — changed by the actor-dualpath-scanner CR).
      The auto-delivery heartbeat loop (existing 5 s poll) is responsible for
      subsequently delivering any queued ``initialMessage`` into that chat.
      On idempotent skip (``created: false``), the tool MUST also trigger the
@@ -688,34 +723,35 @@ Actor Requirements
      ``workbench.action.chat.open``.
 
 
-.. req:: jarvis_createSession Agent Parameter
+.. req:: jarvis_createActor Agent Parameter
    :id: REQ_ACT_AGENT_CREATETOOL
    :status: draft
    :priority: required
    :links: US_ENT_ENTITYPARITY; REQ_ACT_CREATETOOL
 
    **Description:**
-   The ``jarvis_createSession`` tool SHALL accept an optional ``agent``
-   parameter and write it to ``session.yaml`` when provided and valid.
+   The ``jarvis_createActor`` tool (renamed from ``jarvis_createSession`` by
+   the actor-tool-rename CR, Phase 5) SHALL accept an optional ``agent``
+   parameter and write it to ``actor.yaml`` when provided and valid.
 
    **Acceptance Criteria:**
 
    * AC-1: The tool input schema SHALL include an optional ``agent`` parameter
      (type ``string``).
    * AC-2: When ``agent`` is blank or absent, the tool SHALL behave exactly as
-     before (no ``agent`` field in ``session.yaml``); no validation runs.
+     before (no ``agent`` field in ``actor.yaml``); no validation runs.
    * AC-3: When ``agent`` is non-blank, the tool SHALL validate it against the
      set of available agent identities (per ``REQ_ACT_AGENT_DISCOVERY`` AC-7)
      **before** any filesystem operation.  The supplied value must exactly match
      an identity string from the discovery result (frontmatter name or filename
      stem, as applicable).  If the value is unknown, the tool SHALL throw an
-     error (see ``REQ_ACT_AGENT_VALIDATION``); the session folder SHALL NOT be
+     error (see ``REQ_ACT_AGENT_VALIDATION``); the Actor folder SHALL NOT be
      created.
    * AC-4: When ``agent`` is non-blank and valid, the tool SHALL write
-     ``agent: "<name>"`` to ``session.yaml`` after ``summary`` (if present).
+     ``agent: "<name>"`` to ``actor.yaml`` after ``summary`` (if present).
    * AC-5: Both the LM and MCP handler paths SHALL enforce AC-3 identically.
    * AC-6: The ``package.json`` ``contributes.languageModelTools`` input schema
-     for ``jarvis_createSession`` SHALL be updated to include the ``agent``
+     for ``jarvis_createActor`` SHALL be updated to include the ``agent``
      field with a clear description.
 
 
@@ -726,9 +762,11 @@ Actor Requirements
    :links: US_ENT_ENTITYPARITY; REQ_ACT_AGENT_CREATETOOL
 
    **Description:**
-   The error thrown by ``jarvis_createSession`` when an unknown agent name is
-   supplied SHALL be self-contained enough for the calling agent to correct
-   the invocation immediately.  The contract mirrors ``REQ_MSG_DEST_ERROR``.
+   The error thrown by ``jarvis_createActor`` (renamed from
+   ``jarvis_createSession`` by the actor-tool-rename CR, Phase 5) when an
+   unknown agent name is supplied SHALL be self-contained enough for the
+   calling agent to correct the invocation immediately.  The contract
+   mirrors ``REQ_MSG_DEST_ERROR``.
 
    **Acceptance Criteria:**
 

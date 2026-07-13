@@ -8,7 +8,7 @@ List Sessions Tool Swap UAT Design Specifications
 
    **Description:**
    Step-by-step procedures and expected outcomes for the v0.7.0 breaking
-   tool-name swap: ``jarvis_listSessions`` → YAML entities;
+   tool-name swap: ``jarvis_listActors`` → YAML entities;
    ``jarvis_listChatSessions`` → VS Code chat tab titles.
 
    **Test Setup:**
@@ -31,10 +31,10 @@ List Sessions Tool Swap UAT Design Specifications
 
       * - T-1
 
-          ``jarvis_listSessions`` returns YAML entity objects
+          ``jarvis_listActors`` returns YAML entity objects
 
           *AC-1*
-        - Open Chat tool picker (``#``). Invoke ``jarvis_listSessions``.
+        - Open Chat tool picker (``#``). Invoke ``jarvis_listActors``.
           Inspect response.
         - Response is a JSON **array of objects**, not strings. Each object
           has ``name``, ``summary``, ``folder``. Both ``copilot-cm`` and

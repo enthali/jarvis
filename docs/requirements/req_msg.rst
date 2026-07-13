@@ -219,7 +219,7 @@ Message Queue Requirements
 
    * AC-1: A Language Model Tool named ``jarvis_listChatSessions`` SHALL be
      registered via ``vscode.lm.registerTool`` with
-     ``canBeReferencedInPrompt: true`` (renamed from ``jarvis_listSessions``
+     ``canBeReferencedInPrompt: true`` (renamed from ``jarvis_listActors``
      which now refers to YAML session entities)
    * AC-2: The tool SHALL return the list of session titles (strings) from the
      current workspace's ``state.vscdb``
