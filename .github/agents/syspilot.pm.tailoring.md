@@ -96,3 +96,18 @@ Tooling, CI, Sphinx config, release pipeline changes are **not spec-driven**.
 - PM implements directly (does not send to CM)
 - QM review is still performed
 - PM merges to `develop` after QM sign-off
+
+This exception is **narrowly scoped** to tooling/CI/build/release-pipeline
+config — it does NOT cover actual product code fixes or features (e.g. a
+tree-provider bug, a new tree behavior), even when small and even when the
+user explicitly authorizes PM to implement directly without the full CM
+pipeline. Mistake made 2026-07-14: skipped creating a Change Document
+entirely for two direct product-code fixes (unified-tree async-children bug,
+bold category labels) landed in v0.17.2, reasoning they were "small" —
+this broke traceability/archival (`docs/changes/v0.17.x/` had nothing to
+archive for a shipped release). Rule: ANY product code change — regardless
+of who implements it or how small — gets at least a lightweight Change
+Document (same L0-L2 "N/A" pattern is fine for tiny fixes) so the Release
+Engineer has something to archive and traceability isn't silently broken.
+"User said I can skip the pipeline" only waives the CM/QM *process*, never
+the CD itself.
