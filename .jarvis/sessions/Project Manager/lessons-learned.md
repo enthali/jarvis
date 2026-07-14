@@ -1,5 +1,8 @@
 # PM Lessons Learned
 
+### Dispatching a new CR while Release Engineer was active on shared worktree (2026-07-14)
+Sent `agent-mode-persistence` to CM while the Release Engineer was mid-process (uncommitted version-bump and file renames staged/unstaged on `develop`). The "separate branches = safe in parallel" reasoning is wrong when there is only one shared working directory — any `git checkout` by any agent moves that single working tree, potentially carrying another agent's uncommitted changes to the wrong branch or creating conflicts. Rule tightened in `syspilot.pm.tailoring.md`: the Release process counts as an active CR; do not dispatch to CM while a release is in progress. No concurrent CRs on a single worktree, period.
+
 ### Preparing the next CR while one is autonomously running still requires a status check first (2026-07-13)
 Repeated the "Finger weg" mistake from 2026-07-02, in a new shape: dispatched `actor-migration-command` autonomously, then — without checking whether it had actually completed — did `git checkout develop` + created a new branch for the next CR (`actor-tool-rename`) "in parallel while it runs." System Designer was mid-design on the still-running CR, uncommitted; the checkout yanked the shared working tree out from under it. No data was lost (uncommitted mods travel with `git checkout` when there's no conflict), but it could easily have gone wrong. Fix: before creating any new branch or switching branches, always `git log --oneline <branch> -3` (or check the inbox) to confirm the currently-running CR has actually reached a commit/checkpoint — autonomous mode doesn't mean "safe to ignore," it just means fewer PM checkpoints.
 

@@ -261,6 +261,45 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         });
     }
 
+    /**
+     * Re-apply a custom agent mode to the currently-focused chat editor.
+     *
+     * VS Code silently drops the custom agent mode of a chat editor session
+     * on window reload (upstream limitation): the tab reopens but reverts to
+     * the generic assistant. VS Code registers a per-mode command
+     * `workbench.action.chat.open<ModeName>` for every discovered agent mode;
+     * unlike the generic `workbench.action.chat.open`, these carry `this.mode`
+     * and therefore target the *focused* chat editor widget instead of the
+     * sidebar view. We rebuild that command id from the entity's agent name
+     * and invoke it after the session tab has been opened+focused.
+     *
+     * Defensive: the command only exists once VS Code has registered the mode,
+     * so we probe the command registry first and no-op (with a warning) if it
+     * is not yet available, rather than throwing `command not found`.
+     *
+     * @param agent   The agent/mode name (e.g. "Test Manager"), as stored on
+     *                the entity's `agent` field.
+     * @param context Short label for logging (session name).
+     */
+    async function reapplyAgentMode(agent: string, context: string): Promise<void> {
+        try {
+            // Let the freshly-opened editor tab settle so it is the focused
+            // (active-element) chat widget before the mode-specific command runs.
+            await new Promise(resolve => setTimeout(resolve, 400));
+            const cmdId = `workbench.action.chat.open${agent}`;
+            const available = await vscode.commands.getCommands(true);
+            if (!available.includes(cmdId)) {
+                log.warn(`[MSG] reapplyAgentMode: command "${cmdId}" not registered yet — skipping for "${context}"`);
+                return;
+            }
+            await vscode.commands.executeCommand(cmdId);
+            await new Promise(resolve => setTimeout(resolve, 300));
+            log.info(`[MSG] reapplyAgentMode: re-applied agent mode "${agent}" to session "${context}"`);
+        } catch (err) {
+            log.warn(`[MSG] reapplyAgentMode: failed to re-apply agent mode "${agent}" for "${context}": ${err}`);
+        }
+    }
+
     // --- Focus-Snapshot and Restore Helper (SPEC_MSG_FOCUSRESTORE) ---
 
     type FocusSnapshot =
@@ -557,11 +596,17 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             const uuid = await lookupSessionUUID(node.destination);
 
             if (uuid) {
+                const entityForSend = kindDrivenScanner.entities.find(e => e.name === node.destination);
                 const b64 = Buffer.from(uuid).toString('base64');
                 const uri = vscode.Uri.parse(`vscode-chat-session://local/${b64}`);
                 // Main placement: close+reopen at column 1 if open elsewhere
                 // (SPEC_MSG_EDITORPLACEMENT, REQ_MSG_SEND AC-9)
                 await openAtMain(uri, node.destination);
+                // agent-mode-persistence: VS Code drops the custom agent mode
+                // on window reload; re-apply it to the focused editor.
+                if (entityForSend?.agent) {
+                    await reapplyAgentMode(entityForSend.agent, node.destination);
+                }
                 await new Promise(resolve => setTimeout(resolve, 800));
             } else {
                 const entityForSend = kindDrivenScanner.entities.find(e => e.name === node.destination);
@@ -1275,11 +1320,17 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
                 try {
                     const uuid = await lookupSessionUUID(sessionName);
                     if (uuid) {
+                        const entityForPoll = kindDrivenScanner.entities.find(e => e.name === sessionName);
                         // Open at Secondary placement — focus-in-place if already
                         // open anywhere, else the last existing column (SPEC_MSG_EDITORPLACEMENT)
                         const b64 = Buffer.from(uuid).toString('base64');
                         const uri = vscode.Uri.parse(`vscode-chat-session://local/${b64}`);
                         await openAtSecondary(uri, sessionName);
+                        // agent-mode-persistence: re-apply custom agent mode
+                        // dropped by VS Code on window reload.
+                        if (entityForPoll?.agent) {
+                            await reapplyAgentMode(entityForPoll.agent, sessionName);
+                        }
                     } else {
                         const entityForPoll = kindDrivenScanner.entities.find(e => e.name === sessionName);
                         if (entityForPoll?.agent) {

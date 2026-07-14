@@ -40,10 +40,27 @@ capability tracked in GH #23:
 3. **Roadmap reflection**: review Ideas + open GitHub Issues together with
    the user, pick the next candidate for the queue.
 
-## One CR at a Time
+## One CR at a Time (Single Worktree Constraint)
 
-Send one CR to CM, wait for merge confirmation, then send the next.
-CM is a change executor — planning and sequencing stay in the PM session.
+Jarvis currently has **one Git worktree** — all agent sessions share the same
+physical working directory. **Do not dispatch a new CR to CM while any other
+agent (CM, System Designer, Dev Engineer, Release Engineer, etc.) is actively
+working** — "actively working" means their pipeline is in flight and uncommitted
+changes may exist on disk.
+
+The fact that two CRs would use separate feature branches does NOT make it
+safe to run them concurrently — a `git checkout` by any agent will move the
+shared working directory, potentially sweeping another agent's uncommitted work
+onto the wrong branch or into an undefined state.
+
+Rule: send one CR to CM, wait until CM reports back **and** no uncommitted
+changes exist on disk (`git status` clean), then send the next.
+
+The Release process counts as an active CR for this purpose — do not dispatch
+to CM while a release is in progress.
+
+This constraint will be lifted when Git worktrees are introduced (tracked via GH
+CLI; not yet available). Until then, sequential single-CR dispatch is mandatory.
 
 ## QM Sign-off
 

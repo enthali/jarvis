@@ -157,7 +157,7 @@ Message Queue Design Specifications
 .. spec:: Send Messages Command
    :id: SPEC_MSG_SENDCOMMAND
    :status: draft
-   :links: REQ_MSG_SEND; REQ_MSG_SESSIONLOOKUP; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_QUEUESTORE; REQ_MSG_AUTODELIVER_TAG; REQ_MSG_NOTIFICATION_TEMPLATE; REQ_ENT_AGENTPROMPT_TEMPLATE; SPEC_ENT_AGENTSESSION_INITPROMPT; SPEC_MSG_EDITORPLACEMENT
+   :links: REQ_MSG_SEND; REQ_MSG_SESSIONLOOKUP; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_QUEUESTORE; REQ_MSG_AUTODELIVER_TAG; REQ_MSG_NOTIFICATION_TEMPLATE; REQ_ENT_AGENTPROMPT_TEMPLATE; SPEC_ENT_AGENTSESSION_INITPROMPT; SPEC_MSG_EDITORPLACEMENT; SPEC_MSG_OPENCHAT
 
    **Description:**
    Register ``jarvis.sendMessages`` in ``extension.ts``. Invoked from the session
@@ -209,6 +209,13 @@ Message Queue Design Specifications
             // Main placement: close+reopen at column 1 if open elsewhere
             // (SPEC_MSG_EDITORPLACEMENT, REQ_MSG_SEND AC-9)
             await openAtMain(uri, node.destination);
+            // agent-mode-persistence (GH #25): VS Code drops a session's custom
+            // agent mode on window reload; defensively re-apply it to the now
+            // focused editor. See SPEC_MSG_OPENCHAT reapplyAgentMode() note.
+            const entityForSend = scanner?.entities.find(e => e.name === node.destination);
+            if (entityForSend?.agent) {
+              await reapplyAgentMode(entityForSend.agent, node.destination);
+            }
             await new Promise(resolve => setTimeout(resolve, 800));
           } else {
             // Resolve entity first (needed for mode-prime and init-prompt)
@@ -1123,6 +1130,13 @@ Message Queue Design Specifications
             const b64 = Buffer.from(uuid).toString('base64');
             const uri = vscode.Uri.parse(`vscode-chat-session://local/${b64}`);
             await openAtSecondary(uri, sessionName);
+            // agent-mode-persistence (GH #25): re-apply the custom agent mode
+            // VS Code drops on window reload, to the now focused editor.
+            // See SPEC_MSG_OPENCHAT reapplyAgentMode() note.
+            const entityForPoll = scanner?.entities.find(e => e.name === sessionName);
+            if (entityForPoll?.agent) {
+              await reapplyAgentMode(entityForPoll.agent, sessionName);
+            }
           } else {
             // Resolve entity first (needed for mode-prime and init-prompt)
             const entity = scanner?.entities.find(e => e.name === sessionName);
@@ -1884,6 +1898,70 @@ Message Queue Design Specifications
 
    This pattern is used by all three new-session callers when ``entity.agent``
    is set. ``openNewChatEditor()`` itself remains mode-agnostic.
+
+   **Amendment — re-applying mode on an EXISTING session (agent-mode-persistence, GH #25):**
+
+   The immutable-mode assumption above holds ONLY for the generic
+   ``workbench.action.chat.open { mode }`` command: called on an already-active
+   session it reveals the sidebar chat VIEW (its underlying action carries no
+   bound mode, so it always falls back to ``revealWidget()``) and therefore has
+   no effect on a focused chat EDITOR. This is why mode could previously only be
+   bound at creation time.
+
+   However, VS Code ALSO registers an **undocumented per-mode command** for every
+   discovered agent mode, named ``workbench.action.chat.open<ModeName>`` (e.g.
+   ``workbench.action.chat.openTest Manager`` — the mode name, spaces included,
+   is appended verbatim). Unlike the generic command, this per-mode action
+   carries a bound ``this.mode`` and therefore targets the currently focused chat
+   EDITOR widget and switches its mode in place. This makes it possible to
+   RESTORE the correct agent mode on an existing session after VS Code silently
+   drops it on window reload (upstream bug ``microsoft/vscode#317276``).
+
+   **Decision:** Jarvis deliberately uses this per-mode command as a defensive
+   patch for ``microsoft/vscode#317276``. The command-name scheme
+   (``open`` + verbatim mode name) is an **undocumented VS Code implementation
+   detail** and MAY break on future VS Code updates; the helper below is written
+   defensively so that a missing command degrades to a no-op (logged warning)
+   rather than a hard failure.
+
+   **Helper — ``reapplyAgentMode(agent, context)``:**
+   Private async helper in ``extension.ts``. Given an agent/mode name (from an
+   entity's ``agent`` field) it re-applies that mode to the currently focused
+   chat editor. Semantics:
+
+   * Waits **400 ms** first, so the just-opened/focused editor tab is the active
+     chat widget before the mode-specific command runs.
+   * Builds the dynamic command id ``workbench.action.chat.open${agent}``.
+   * Probes the command registry via ``vscode.commands.getCommands(true)`` and
+     **skips** (logged warning, no throw) if the command is not registered yet —
+     this tolerates the race where the mode has not been registered immediately
+     after a reload.
+   * Executes the command, then waits **300 ms** to let the switch settle.
+   * All failures are caught and logged; the helper never throws.
+
+   .. code-block:: typescript
+
+      async function reapplyAgentMode(agent: string, context: string): Promise<void> {
+          try {
+              await new Promise(resolve => setTimeout(resolve, 400));
+              const cmdId = `workbench.action.chat.open${agent}`;
+              const available = await vscode.commands.getCommands(true);
+              if (!available.includes(cmdId)) {
+                  log.warn(`[MSG] reapplyAgentMode: command "${cmdId}" not registered yet — skipping for "${context}"`);
+                  return;
+              }
+              await vscode.commands.executeCommand(cmdId);
+              await new Promise(resolve => setTimeout(resolve, 300));
+              log.info(`[MSG] reapplyAgentMode: re-applied agent mode "${agent}" to session "${context}"`);
+          } catch (err) {
+              log.warn(`[MSG] reapplyAgentMode: failed to re-apply agent mode "${agent}" for "${context}": ${err}`);
+          }
+      }
+
+   ``reapplyAgentMode()`` is called from the existing-session (UUID) branches of
+   the two delivery paths — ``SPEC_MSG_SENDCOMMAND`` (after ``openAtMain``) and
+   ``SPEC_MSG_AUTODELIVER_POLL`` (after ``openAtSecondary``) — when the target
+   entity has an ``agent`` set.
 
 
 .. spec:: Agent Chat Prompt Helper

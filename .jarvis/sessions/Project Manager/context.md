@@ -60,11 +60,9 @@
   here. Ideas = may or may not happen — one file per idea under `ideas/`,
   listed below as a link + one-line description only (no content inline).
 
-## Known Issue: Custom Agents Disappear (since 2026-06-30, unresolved)
+## Active CR
 
-Custom agents (`.github/agents/*.agent.md`) vanish mid-session or after
-window reload, not reliably reproducible. Data collection phase — log
-occurrences with context when seen.
+`feature/agent-mode-persistence` — GH #25, Agent Mode lost after window reload. CM in pipeline.
 
 ## Ideas
 
