@@ -1,5 +1,16 @@
 # Release Notes
 
+## v0.17.2 — Entity File Children Regression Fix + Bold Category Labels
+
+*2026-07-14*
+
+### Fixes
+
+- **unified-entity-tree regression**: Restores context.md/session-yaml/agent-file children under entity nodes in the Jarvis Entities tree — these file children were silently lost in the v0.17.0 unified-entity-tree refactor due to `getChildren` not correctly passing through async results for leaf nodes. No CD (Infrastructure Changes — direct spec-adjacent fix, user-approved).
+- **bold category node labels** (GH #29): Category headers (Actors/Projects/Events) in the unified tree now render in bold via Unicode Mathematical Sans-Serif Bold character substitution (`REQ_EXP_UNIFIEDTREE` AC-13, `SPEC_EXP_UNIFIEDTREE` amended). No CD (Infrastructure Changes — user-approved direct fix).
+
+---
+
 ## v0.17.1 — Agent Mode Persistence After Window Reload
 
 *2026-07-14*

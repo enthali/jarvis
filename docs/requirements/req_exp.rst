@@ -431,6 +431,15 @@ Explorer Requirements
      node appears immediately. This avoids a race condition where PIM's
      ``registerEntityKind()`` call executes after core has already
      constructed the ``UnifiedEntityTreeProvider``.
+   * AC-13: (bold category labels) Each category node's ``label`` SHALL be
+     rendered in **bold**, to visually separate the category level
+     ("Actors"/"Projects"/"Events") from the entity nodes underneath. Since
+     VS Code's ``TreeItem`` API has no font-weight attribute (and
+     ``TreeItemLabel.highlights`` only applies a theme highlight color, not
+     bold weight), rendering SHALL be achieved by substituting Unicode
+     Mathematical Sans-Serif Bold codepoints for the label's ASCII
+     letters/digits (non-alphanumeric characters unchanged) — no other
+     visual property of the category ``TreeItem`` changes.
 
 
 .. req:: Live Filter Entities in Tree
