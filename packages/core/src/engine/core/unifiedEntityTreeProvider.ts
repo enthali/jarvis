@@ -72,7 +72,7 @@ export class UnifiedEntityTreeProvider implements vscode.TreeDataProvider<Unifie
         }
     }
 
-    getChildren(element?: UnifiedRootNode): UnifiedRootNode[] {
+    getChildren(element?: UnifiedRootNode): UnifiedRootNode[] | Promise<UnifiedRootNode[]> {
         if (element === undefined) {
             // Root level: always show category nodes (amended SPEC_EXP_UNIFIEDTREE)
             // Flattening removed per PM decision (cc676cb)
@@ -99,11 +99,10 @@ export class UnifiedEntityTreeProvider implements vscode.TreeDataProvider<Unifie
         const kindName = this._kindOf(element);
         const provider = this._kindProvider(kindName);
         if (!provider) { return []; }
-        const children = provider.getChildren(element);
-        // For non-root elements, may be async - we need to handle that
-        // But VS Code TreeDataProvider getChildren can return Promise, so we can just pass it through
-        // Actually, we need to return synchronously here. Let me check if this is an issue.
-        return Array.isArray(children) ? (children as TreeNode[]) : [];
+        // Leaf nodes resolve their file/hook children asynchronously
+        // (SPEC_EXP_ENTITY_FILE_CHILDREN) — pass the Promise through rather
+        // than discarding it, VS Code's TreeDataProvider supports this.
+        return provider.getChildren(element) as UnifiedRootNode[] | Promise<UnifiedRootNode[]>;
     }
 
     getTreeItem(element: UnifiedRootNode): vscode.TreeItem {
