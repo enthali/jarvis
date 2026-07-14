@@ -119,10 +119,12 @@ Stable Session Open User Acceptance Tests
      they're in. Have Project, Event, and Actor tree nodes corresponding to
      each session visible.
      Action: For each session tab:
+
         - (Project) Right-click "proj-open" project node and select ``Jarvis:
           Open Agent Session``
         - (Event) Right-click "evt-open" event node and select command
         - (Actor) Right-click "act-open" actor node and select command
+
      Expected: All three sessions are refocused and moved to column 1 (Main),
      regardless of which column they were previously in. The tabs are closed
      and reopened in column 1. The behavior is identical across all three
