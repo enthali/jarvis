@@ -13,7 +13,7 @@
    **so that** I can verify that the tool is registered and available when
    ``jarvis.sessions.enabled=true`` and is completely absent from the LM/MCP
    tool catalog when ``jarvis.sessions.enabled=false``, consistent with the
-   ``jarvis_createSession`` sibling tool.
+   ``jarvis_createActor`` sibling tool.
 
    **Acceptance Criteria:**
 
@@ -24,7 +24,7 @@
      the VS Code Chat tool catalog when ``jarvis.sessions.enabled=false``
      after Extension Host reload (maps to REQ AC-2).
    * AC-3: A test verifies that with ``jarvis.sessions.enabled=false`` both
-     ``jarvis_listSessionEntities`` and ``jarvis_createSession`` are absent —
+     ``jarvis_listSessionEntities`` and ``jarvis_createActor`` are absent —
      confirming that the entire session-tool gated block is disabled (maps to
      REQ AC-3).
 
@@ -37,5 +37,5 @@
      prompt → ``jarvis_listSessionEntities`` does NOT appear in the tool
      catalog; Copilot cannot invoke it.
    * T-3: Symmetry check — with ``jarvis.sessions.enabled=false``, both
-     ``jarvis_listSessionEntities`` and ``jarvis_createSession`` are absent
+     ``jarvis_listSessionEntities`` and ``jarvis_createActor`` are absent
      (regression guard).

@@ -29,7 +29,7 @@ Event Requirements
    :id: REQ_EVT_EVENTFILTER
    :status: implemented
    :priority: optional
-   :links: US_EVT_EVENTFILTER; REQ_EXP_TREEVIEW; REQ_EVT_EVENTFILTERPERSIST
+   :links: US_EVT_EVENTFILTER; REQ_EXP_TREEVIEW; REQ_EVT_EVENTFILTERPERSIST; REQ_EXP_UNIFIEDTREE
 
    **Description:**
    The Events tree view SHALL provide a toggle button that, when active,
@@ -37,11 +37,23 @@ Event Requirements
 
    **Acceptance Criteria:**
 
-   * AC-1: A filter icon in the Events title bar triggers the command ``jarvis.filterFutureEvents``
+   * AC-1: (unified-entity-tree CR, amended — F5 fix) The command
+     ``jarvis.filterFutureEvents`` SHALL be triggered via an **inline icon**
+     (``$(filter)``/``$(filter-filled)``) directly on the "Events" category
+     node (analogous to the ``$(add)`` "New" inline icon on category nodes —
+     see ``REQ_EXP_UNIFIEDTREE`` AC-10), providing one-click access without
+     requiring a right-click context menu. The same command SHALL also remain
+     reachable via the Command Palette. ~~A filter icon in the Events title
+     bar triggers the command~~ — superseded: a dedicated Events title bar
+     no longer exists once the unified tree replaces ``jarvisEvents`` (see
+     ``REQ_EXP_UNIFIEDTREE`` AC-2).
    * AC-2: The command toggles the future-only filter on and off (single click)
    * AC-3: When active, events whose ``datesEnd`` is strictly before today are hidden
    * AC-4: Events with no parseable ``datesEnd`` are always shown (fail-open)
-   * AC-5: The icon changes visually when the filter is active (``filter`` vs ``filter-filled``)
+   * AC-5: (unified-entity-tree CR, amended — F5 fix) The inline icon on
+     the category node SHALL visually toggle: ``$(filter)`` when no filter is
+     active, ``$(filter-filled)`` when a filter is active (same pair as the
+     former title-bar buttons, now relocated to the inline position).
    * AC-6: When the future-only filter is active, grouping nodes whose **every** descendant
      leaf is hidden SHALL themselves be hidden (empty-branch pruning)
 

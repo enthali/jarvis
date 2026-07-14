@@ -1,5 +1,11 @@
 # PM Lessons Learned
 
+### Preparing the next CR while one is autonomously running still requires a status check first (2026-07-13)
+Repeated the "Finger weg" mistake from 2026-07-02, in a new shape: dispatched `actor-migration-command` autonomously, then — without checking whether it had actually completed — did `git checkout develop` + created a new branch for the next CR (`actor-tool-rename`) "in parallel while it runs." System Designer was mid-design on the still-running CR, uncommitted; the checkout yanked the shared working tree out from under it. No data was lost (uncommitted mods travel with `git checkout` when there's no conflict), but it could easily have gone wrong. Fix: before creating any new branch or switching branches, always `git log --oneline <branch> -3` (or check the inbox) to confirm the currently-running CR has actually reached a commit/checkpoint — autonomous mode doesn't mean "safe to ignore," it just means fewer PM checkpoints.
+
+### Release agent change-doc archival can leave duplicates (v0.14.0)
+Verify after release that archived change docs land only under `docs/changes/v{x.y.z}/`, not also duplicated at the `docs/changes/` root. Happened once (v0.14.0), cleaned up manually — check this every release until the release agent guards against it itself.
+
 ### Release agent only bumps root package.json — spec gap (2026-06-24)
 SPEC_REL_RELEASEACTION does not require bumping ALL workspace package.json files — only the root. In an npm monorepo, each sub-package (core, pim, recorder, mcp, core-gh) has its own version field. The release agent missed them all, CI built v0.11.2 VSIXs under the v0.12.0 tag. Fix: add an AC to SPEC_REL_RELEASEACTION requiring the version bump to cover every `packages/*/package.json` in the workspace.
 
@@ -23,9 +29,6 @@ If REQ/SPEC doesn't match the actual implementation, don't release — even if U
 
 ### CM is not a chore servant (2026-05-20)
 CM handles product changes and feature branches only. Repo housekeeping, session state refresh, .jarvis/ cleanup are PM's own responsibility or delegated to the relevant session directly.
-
-### .jarvis/ is per-installation private (2026-05-20)
-.jarvis/ belongs in .gitignore. Default configs go in resources/ + init logic on first start.
 
 ### Race condition in PM message threads (2026-05-22)
 Messages are queued; recipient works strictly serially. SUPERSEDES markers don't help (recipient reads the old one first and acts on it). Only defense: think carefully before sending. With parallel CM threads: read both fully, then send ONE consolidated reply.

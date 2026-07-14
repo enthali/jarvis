@@ -1,7 +1,13 @@
-``jarvis_createSession`` Tool UAT Requirements
+``jarvis_createActor`` Tool UAT Requirements
 ===============================================
 
-.. req:: jarvis_createSession Tool — Test Data and Verification Requirements
+.. note::
+
+   **(actor-tool-rename CR, Phase 5):** this tool was renamed from
+   ``jarvis_createSession`` to ``jarvis_createActor`` (hard cutover, old
+   name removed entirely). References below have been updated.
+
+.. req:: jarvis_createActor Tool — Test Data and Verification Requirements
    :id: REQ_UAT_CREATESESSIONTOOL
    :status: draft
    :priority: required
@@ -9,7 +15,7 @@
 
    **Description:**
    Specifies the test data, workspace state, and per-AC verification criteria
-   required to manually validate ``jarvis_createSession`` in the Extension
+   required to manually validate ``jarvis_createActor`` in the Extension
    Development Host.
 
    **Test Data Requirements:**
@@ -50,9 +56,9 @@
 
    * AC-4 (REQ AC-4 — initialMessage enqueued):
      After T-2, the tester SHALL invoke ``jarvis_readMessage`` (or
-     ``jarvis_listSessions`` + ``jarvis_sendToSession`` round-trip check) to
+     ``jarvis_listActors`` + ``jarvis_sendToSession`` round-trip check) to
      confirm that the ``initialMessage`` text is present in the new session's
-     message queue and that the sender field is ``"jarvis_createSession"``
+     message queue and that the sender field is ``"jarvis_createActor"``
      (T-2, T-11).
 
    * AC-5 (REQ AC-5 — idempotency):
@@ -72,7 +78,7 @@
 
    * AC-7 (REQ AC-7 — tool picker reference name):
      The tester SHALL confirm that typing ``#createSession`` in the VS Code Chat
-     input resolves to the ``jarvis_createSession`` tool (T-1 setup step).
+     input resolves to the ``jarvis_createActor`` tool (T-1 setup step).
 
    * AC-8 (REQ AC-8 — verbatim naming / no Windows reserved names):
      T-9 verifies that a name containing a space creates a folder with that
@@ -80,13 +86,13 @@
 
    * AC-9 (REQ AC-9 — no-workspace error prefix):
      For T-10, the tester SHALL verify that the error message begins with
-     ``"jarvis_createSession: no workspace open"`` and is distinct from
+     ``"jarvis_createActor: no workspace open"`` and is distinct from
      ``"invalid session name:"`` — confirming that the workspace guard fires
      after name validation but before the idempotency check.
 
    * AC-10 (REQ AC-10 — auto-open):
      For T-12, the tester SHALL verify that after a successful
-     ``jarvis_createSession`` call (``created: true``) a new chat editor for
+     ``jarvis_createActor`` call (``created: true``) a new chat editor for
      the session opens automatically without any manual click, and that within
      ~7 seconds the ``initialMessage`` text is delivered into that chat via the
      auto-delivery loop (no manual ``jarvis_readMessage`` required).

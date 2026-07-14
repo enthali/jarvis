@@ -47,6 +47,6 @@
 
    * AC-3 (Symmetry — both session tools absent):
      The tester SHALL verify that with ``jarvis.sessions.enabled=false``, both
-     ``jarvis_listSessionEntities`` and ``jarvis_createSession`` are absent
+     ``jarvis_listSessionEntities`` and ``jarvis_createActor`` are absent
      from the **Tools** picker in the same reload, confirming that the shared
      gated block disables all session-related LM/MCP tools at once (T-3).

@@ -4,11 +4,23 @@ Project Design Specifications
 .. spec:: Project Folder Filter Command
    :id: SPEC_PRJ_FILTERCOMMAND
    :status: implemented
-   :links: REQ_PRJ_PROJECTFILTER, REQ_PRJ_FILTERPERSIST, SPEC_ENG_SCANNER, SPEC_EXP_PROVIDER
+   :links: REQ_PRJ_PROJECTFILTER, REQ_PRJ_FILTERPERSIST, SPEC_ENG_SCANNER, SPEC_EXP_PROVIDER, SPEC_EXP_UNIFIEDTREE
 
    **Description:**
    A new command ``jarvis.filterProjectFolders`` implements the filter dialog using a
    single-click toggle QuickPick (no OK button — each click applies immediately).
+
+   **(unified-entity-tree CR amendment, F5 fix):** the command's *trigger*
+   moves from a view-title-bar icon to an **inline icon** on the "Projects"
+   category node (``contributes.menus.view/item/context``, ``group: inline``,
+   ``when: "view == jarvisEntities && viewItem ==
+   jarvisEntityCategory:project"``), plus a Command Palette entry (previously
+   excluded via ``when: "false"``). Since category nodes are always present
+   (``REQ_EXP_UNIFIEDTREE`` AC-3/4), the inline icon is always reachable.
+   The command handler itself (steps 1-7 below) and persistence are
+   unchanged; step 8's ``setContext`` now drives the icon toggle between
+   ``$(filter)`` and ``$(filter-filled)`` on the inline position (same
+   visual pattern as the former title-bar, just relocated).
 
    **Flow:**
 
@@ -19,21 +31,32 @@ Project Design Specifications
    5. Re-render items with updated codicons (immediate feedback)
    6. Apply filter: ``provider.setHiddenFolders(new Set(hiddenFolders))``
    7. Persist: ``workspaceState.update('jarvis.hiddenProjectFolders', [...hiddenFolders])``
-   8. Update icon + description: ``setContext('jarvis.projectFilterActive', isActive)``,
-      ``projectView.description = isActive ? '(filtered)' : ''``
+   8. Update context key ``setContext('jarvis.projectFilterActive', isActive)`` —
+      this drives the inline icon toggle between ``$(filter)`` (inactive) and
+      ``$(filter-filled)`` (active) on the category node
    9. On ``onDidHide``: dispose QuickPick
 
-   **Registration in package.json:**
+   **Registration in package.json (unified-entity-tree F5 fix — inline
+   category-node buttons):**
 
    * ``contributes.commands``: two commands —
      ``jarvis.filterProjectFolders`` (icon ``$(filter)``) and
      ``jarvis.filterProjectFoldersActive`` (icon ``$(filter-filled)``),
      both bound to the same handler
-   * ``contributes.menus.view/title``: two entries toggled via ``jarvis.projectFilterActive``
-     context key — one with ``!jarvis.projectFilterActive``, one with ``jarvis.projectFilterActive``
+   * ``contributes.menus.view/item/context``: two entries toggled via
+     ``jarvis.projectFilterActive`` context key, both scoped to
+     ``view == jarvisEntities && viewItem == jarvisEntityCategory:project``,
+     **group ``inline``** (renders as a directly-clickable icon on the
+     category node row, not buried in a right-click menu)
+   * ``contributes.menus.commandPalette``: both commands SHALL be reachable
+     (no ``when: "false"`` exclusion), providing a keyboard-driven
+     alternative to the inline icon
 
-   **Icon toggle:** Two command definitions in ``package.json`` with different icons,
-   shown/hidden via ``when`` clauses using the ``jarvis.projectFilterActive`` context key.
+   **Icon toggle:** The ``$(filter)``/``$(filter-filled)`` icon pair is
+   retained (relocated from the title bar to the category-node inline
+   position). The two command definitions with different icons are
+   toggled via the ``jarvis.projectFilterActive`` context key, same
+   mechanism as before.
 
 
 .. spec:: List Projects LM Tool
@@ -44,7 +67,7 @@ Project Design Specifications
    **Description:**
    Register ``jarvis_listProjects`` as a dual LM + MCP tool in ``extension.ts``.
    Returns the list of projects from the scanner with their name, summary,
-   agent, and relative folder path. Output shape matches ``jarvis_listSessions``
+   agent, and relative folder path. Output shape matches ``jarvis_listActors``
    (``{name, summary, agent, folder}``).
 
    **Leaf extraction helper** (local to ``activate()``):
@@ -140,9 +163,9 @@ Project Design Specifications
 
    **Design notes:**
 
-   * Output shape: ``{name, summary, agent, folder}`` — matches ``jarvis_listSessions``
+   * Output shape: ``{name, summary, agent, folder}`` — matches ``jarvis_listActors``
    * ``summary`` and ``agent`` use ``entity?.field ?? ''`` fallback (same as ``jarvis_listEvents``)
-   * No input parameters — mirrors ``jarvis_listSessions`` pattern
+   * No input parameters — mirrors ``jarvis_listActors`` pattern
    * ``folder`` uses forward slashes for cross-platform consistency
    * Falls back to folder basename if entity lookup fails (defensive)
    * Disposable pushed to ``context.subscriptions``

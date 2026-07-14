@@ -2,7 +2,7 @@
   "name": "jarvis-core",
   "displayName": "Jarvis Core",
   "description": "Jarvis core — sessions, messaging, reminders, heartbeat, engine",
-  "version": "0.16.0",
+  "version": "0.17.0",
   "publisher": "enthali",
   "icon": "resources/jarvis-128.png",
   "keywords": [
@@ -34,7 +34,7 @@
     "onView:jarvisMessages",
     "onView:jarvisReminders",
     "onView:jarvisHeartbeat",
-    "onView:jarvisSessions"
+    "onView:jarvisEntities"
   ],
   "main": "./out/extension.js",
   "types": "./out/engine/index.d.ts",
@@ -75,9 +75,8 @@
     "views": {
       "jarvis-explorer": [
         {
-          "id": "jarvisSessions",
-          "name": "Sessions",
-          "when": "config.jarvis.sessions.enabled == true"
+          "id": "jarvisEntities",
+          "name": "Jarvis Entities"
         },
         {
           "id": "jarvisMessages",
@@ -103,9 +102,11 @@
       { "command": "jarvis.disableAutoDelivery", "title": "Disable Direct Delivery", "icon": "$(zap)" },
       { "command": "jarvis.deleteMessage", "title": "Jarvis: Delete Queued Message", "icon": "$(trash)" },
       { "command": "jarvis.openSession", "title": "Jarvis: Open Chat Session" },
-      { "command": "jarvis.openAgentSession", "title": "Jarvis: Open Agent Session", "icon": "$(comment-discussion)" },
+      { "command": "jarvis.openAgentSession", "title": "Jarvis: Open Chat", "icon": "$(comment-discussion)" },
       { "command": "jarvis.newEntity", "title": "Jarvis: New Entity", "icon": "$(add)" },
-      { "command": "jarvis.newSession", "title": "Jarvis: New Session", "icon": "$(add)" },
+      { "command": "jarvis.newActor", "title": "Jarvis: New Actor", "icon": "$(add)" },
+      { "command": "jarvis.migrateSessionToActor", "title": "Jarvis: Migrate Session to Actor" },
+      { "command": "jarvis.searchEntities", "title": "Jarvis: Search Entities", "icon": "$(search)" },
       { "command": "jarvis.checkForUpdates", "title": "Jarvis: Check for Updates" },
       { "command": "jarvis.rescan", "title": "Jarvis: Rescan", "icon": "$(refresh)" },
       { "command": "jarvis.runJob", "title": "Jarvis: Run Job", "icon": "$(play)" },
@@ -130,7 +131,8 @@
       "commandPalette": [
         { "command": "jarvis.openAgentSession", "when": "false" },
         { "command": "jarvis.newEntity", "when": "false" },
-        { "command": "jarvis.newSession", "when": "false" },
+        { "command": "jarvis.newActor", "when": "false" },
+        { "command": "jarvis.searchEntities", "when": "false" },
         { "command": "jarvis.rescan", "when": "false" },
         { "command": "jarvis.runJob", "when": "false" },
         { "command": "jarvis.pauseHeartbeatJob", "when": "false" },
@@ -153,11 +155,12 @@
         { "command": "jarvis.openMessageSession", "when": "false" }
       ],
       "view/title": [
-        { "command": "jarvis.newSession", "when": "view == jarvisSessions", "group": "navigation@1" },
-        { "command": "jarvis.rescan", "when": "view == jarvisSessions", "group": "navigation@3" },
+        { "command": "jarvis.searchEntities", "when": "view == jarvisEntities", "group": "navigation@1" },
+        { "command": "jarvis.rescan", "when": "view == jarvisEntities", "group": "navigation@2" },
         { "command": "jarvis.refreshHeartbeat", "when": "view == jarvisHeartbeat", "group": "navigation@1" }
       ],
       "view/item/context": [
+        { "command": "jarvis.newActor", "when": "viewItem == jarvisEntityCategory:session", "group": "inline" },
         { "command": "jarvis.sendMessages", "when": "viewItem == messageSession || viewItem == jarvisSessionManual || viewItem == jarvisSessionAutoDeliver", "group": "inline" },
         { "command": "jarvis.enableAutoDelivery", "when": "viewItem == jarvisSessionManual", "group": "inline" },
         { "command": "jarvis.disableAutoDelivery", "when": "viewItem == jarvisSessionAutoDeliver", "group": "inline" },
@@ -182,9 +185,9 @@
     },
     "configuration": [
       {
-        "title": "Sessions",
+        "title": "Actors",
         "properties": {
-          "jarvis.sessions.enabled": { "type": "boolean", "default": true, "description": "Enable the Sessions feature." }
+          "jarvis.sessions.enabled": { "type": "boolean", "default": true, "description": "Enable the Actors feature." }
         }
       },
       {
@@ -248,10 +251,10 @@
     ],
     "languageModelTools": [
       {
-        "name": "jarvis_createSession",
-        "displayName": "Create Session",
-        "modelDescription": "Creates a new Jarvis session folder with session.yaml and context.md under <workspace>/.jarvis/sessions/<name>/. Idempotent.",
-        "canBeReferencedInPrompt": true, "toolReferenceName": "createSession", "icon": "$(add)", "tags": ["jarvis"],
+        "name": "jarvis_createActor",
+        "displayName": "Create Actor",
+        "modelDescription": "Creates a new Jarvis Actor folder with actor.yaml and context.md under <workspace>/.jarvis/actors/<name>/. Idempotent.",
+        "canBeReferencedInPrompt": true, "toolReferenceName": "createActor", "icon": "$(add)", "tags": ["jarvis"],
         "inputSchema": { "type": "object", "required": ["name"], "properties": { "name": { "type": "string" }, "summary": { "type": "string" }, "agent": { "type": "string" }, "initialMessage": { "type": "string" } } }
       },
       {
@@ -269,10 +272,10 @@
         "inputSchema": { "type": "object", "required": ["session", "text", "senderSession"], "properties": { "session": { "type": "string", "description": "The exact name of the target (VS Code chat session title or YAML entity name)" }, "text": { "type": "string", "description": "The message text to queue" }, "senderSession": { "type": "string", "description": "Required: the exact name of the sending session — must not be omitted or inferred from the active tab" } } }
       },
       {
-        "name": "jarvis_listSessions",
-        "displayName": "List Sessions",
-        "modelDescription": "Returns all Jarvis session entities (YAML-based) with name, summary, agent, and folder path.",
-        "canBeReferencedInPrompt": true, "toolReferenceName": "listSessions", "icon": "$(list-unordered)",
+        "name": "jarvis_listActors",
+        "displayName": "List Actors",
+        "modelDescription": "Returns all Jarvis Actor entities (YAML-based) with name, summary, agent, and folder path.",
+        "canBeReferencedInPrompt": true, "toolReferenceName": "listActors", "icon": "$(list-unordered)",
         "inputSchema": { "type": "object", "properties": {} }
       },
       {

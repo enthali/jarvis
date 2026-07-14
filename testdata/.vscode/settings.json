@@ -1,5 +1,13 @@
 {
   "chat.hookFilesLocations": {
     ".github/hooks": true
-  }
+  },
+  "jarvis.projects.enabled": true,
+  "jarvis.projects.folder": "C:\\workspace\\jarvis\\testdata\\projects",
+  "jarvis.events.enabled": true,
+  "jarvis.events.folder": "C:\\workspace\\jarvis\\testdata\\events",
+  "jarvis.outlook.tasks.enabled": true,
+  "jarvis.outlook.enabled": true,
+  "jarvis.pim.showCategories": true,
+  "jarvis.scanInterval": 1
 }

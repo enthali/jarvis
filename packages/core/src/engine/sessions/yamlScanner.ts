@@ -253,6 +253,7 @@ export interface KindScanConfig {
     kind: string;
     folderSettingKey: string;
     conventionFile: string;
+    additionalScanRoots?: { folderSettingKey: string; conventionFile: string }[];
 }
 
 /**
@@ -278,6 +279,7 @@ export class KindDrivenScanner {
             kind: config.kind,
             folderSettingKey: config.folderSettingKey,
             conventionFile,
+            additionalScanRoots: config.additionalScanRoots,
         });
         this._trees.set(config.kind, []);
         // Trigger async rescan
@@ -339,8 +341,18 @@ export class KindDrivenScanner {
         const newEntities = new Map<string, EntityEntry>();
 
         for (const [kind, scanConfig] of this._kinds) {
+            // Primary root (unchanged behavior for Project/Event; also the
+            // existing .jarvis/sessions/ root for session/actor)
             const folder = this._folderResolver(scanConfig.folderSettingKey);
-            const newTree = await this._buildTree(folder, newEntities, scanConfig.conventionFile, kind as 'project' | 'event' | 'session');
+            let newTree = await this._buildTree(folder, newEntities, scanConfig.conventionFile, kind as 'project' | 'event' | 'session');
+
+            // Additional roots (actor-dualpath-scanner CR) — merge in place
+            for (const root of scanConfig.additionalScanRoots ?? []) {
+                const altFolder = this._folderResolver(root.folderSettingKey);
+                const altTree = await this._buildTree(altFolder, newEntities, root.conventionFile, kind as 'project' | 'event' | 'session');
+                newTree = this._mergeSortedTrees(newTree, altTree);
+            }
+
             const oldTree = this._trees.get(kind) ?? [];
             if (!treesEqual(newTree, oldTree)) {
                 this._trees.set(kind, newTree);
@@ -446,6 +458,30 @@ export class KindDrivenScanner {
         });
 
         return nodes;
+    }
+
+    /**
+     * Merges two already-name-sorted node lists (each independently
+     * produced by _buildTree, which sorts its own root's nodes) into one
+     * combined, still name-sorted list — a simple sorted-merge, not a
+     * concatenate-then-resort, to avoid re-deriving each node's sort key.
+     * Folder nodes with the same display name from different roots are
+     * NOT merged into one folder — they appear as two sibling folder
+     * nodes with that name (REQ_ACT_DUALPATH_SCANNER AC-7, accepted
+     * cosmetic edge case).
+     */
+    private _mergeSortedTrees(a: TreeNode[], b: TreeNode[]): TreeNode[] {
+        const keyOf = (n: TreeNode) => {
+            if (n.kind === 'folder') return n.name.toLowerCase();
+            if (n.kind === 'leaf') return this._entities.get(n.id)?.name?.toLowerCase() ?? '';
+            return ''; // FileNode case (shouldn't happen from _buildTree)
+        };
+        const merged: TreeNode[] = [];
+        let i = 0, j = 0;
+        while (i < a.length && j < b.length) {
+            merged.push(keyOf(a[i]).localeCompare(keyOf(b[j])) <= 0 ? a[i++] : b[j++]);
+        }
+        return merged.concat(a.slice(i), b.slice(j));
     }
 }
 

@@ -140,6 +140,6 @@ Engine Requirements
    * AC-3: The method performs no filesystem scan of its own — it is a read-only
      view of the scanner's existing state.
    * AC-4: Missing optional fields (``summary``, ``agent``) are returned as empty
-     strings, matching the shape of ``jarvis_listSessions`` /
+     strings, matching the shape of ``jarvis_listActors`` /
      ``jarvis_listProjects``.
    * AC-5: The addition is purely additive — no existing API method changes.

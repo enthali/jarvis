@@ -44,6 +44,20 @@ Sessions Feature User Acceptance Tests
    * AC-10: A test verifies that with ``jarvis.projects.enabled=false`` and
      ``jarvis.events.enabled=false`` the Sessions view and tool still operate
      correctly.
+   * AC-11: (actor-terminology-rename CR) A test verifies that the tree view's
+     user-visible display name is "Actors" (not "Sessions"), the command
+     titles are "Jarvis: New Actor" and "Jarvis: Open Actor Chat", and the
+     settings-group title/descriptions use "Actor" terminology — while the
+     underlying view ID, command IDs, setting key, and storage paths remain
+     unchanged (negative test, Phase 2+ scope).
+   * AC-12: (actor-internal-identifiers-rename CR) A test verifies that the
+     view ID is ``jarvisActors`` (not ``jarvisSessions``), the command IDs are
+     ``jarvis.newActor`` (not ``jarvis.newSession``) and
+     ``jarvis.openAgentSession`` (unchanged), the command title for
+     ``jarvis.openAgentSession`` is now "Jarvis: Open Agent Chat"
+     (entity-neutral, not "Open Actor Chat"), and the previous keybindings
+     and tree-collapse state are reset to defaults (one-time user-visible
+     side effect).
 
    **Test Scenarios:**
 
@@ -137,7 +151,7 @@ Sessions Feature User Acceptance Tests
      Action: Open an agent chat. Type ``#listSessionEntities`` and observe the autocomplete
      suggestions.
      Expected: ``listSessionEntities`` does NOT appear in the autocomplete
-     suggestions. Only the existing ``jarvis_listSessions`` (chat-session tool) may
+     suggestions. Only the existing ``jarvis_listActors`` (chat-session tool) may
      appear. Re-enable (``jarvis.sessions.enabled = true``) and reload — the tool
      reappears. (Note: tool registration changes currently require a window reload.)
 
@@ -169,3 +183,153 @@ Sessions Feature User Acceptance Tests
      ``jarvis.openAgentSession`` on a project node for which no session exists yet.
      Expected: prompt starts with ``You are the project "<name>"``.
      Clean up: close the auto-opened chat tabs after verification.
+
+   **T-14 — View ID is jarvisActors, command IDs updated, keybindings reset**
+     Setup: After updating to this CR's version, open VS Code and inspect the
+     Jarvis sidebar. Attempt to invoke a keybinding you previously bound to
+     ``jarvis.newSession`` (if any). Open Command Palette and search for
+     command IDs.
+     Action: Look for the view ID in the sidebar or in
+     ``vscode context-keys.``  Run **Developer: Inspect Context Keys** and
+     search ``view`` scope for ``jarvisActors``. Search Command Palette for
+     ``jarvis.newActor``.
+     Expected: The Actors tree is present in the sidebar (view ID
+     ``jarvisActors``). Any keybindings previously bound to
+     ``jarvis.newSession`` do not trigger a command (they were automatically
+     cleared by VS Code due to the command ID change); the user must
+     re-bind to ``jarvis.newActor`` if desired. The Command Palette lists
+     ``jarvis.newActor`` (and ``jarvis.openAgentSession``, unchanged).
+
+   **T-15 — Command title "Open Agent Chat" is entity-neutral**
+     Setup: Sessions tree populated; also have a Project and an Event entity
+     with their nodes visible in the Jarvis sidebar.
+     Action: Right-click a Project node, an Event node, and an Actor/Session
+     node in the tree. Compare the context-menu labels.
+     Expected: All three entity kinds show the same command label:
+     "Jarvis: Open Agent Chat" (not "Open Actor Chat", which would be
+     mislabeling for Project/Event). The menu is consistent across all three
+     entity kinds.
+
+   **T-16 — Tree-collapse state reset (side effect)**
+     Setup: Before this CR: expand and collapse the Sessions tree view to a
+     custom state; remember the expansion state.
+     Action: After updating to this CR (restart VS Code), observe the Actors
+     tree view's expansion state.
+     Expected: The tree's expansion state is reset to the default (no
+     memorized collapse from the pre-update state); the view's tree-collapse
+     memory was cleared when the view ID changed from ``jarvisSessions`` to
+     ``jarvisActors``. This is a one-time side effect; future state will be
+     preserved normally.
+
+   * AC-13: (actor-dualpath-scanner CR) Test scenarios verify that the scanner
+     reads both old-convention (``.jarvis/sessions/*/session.yaml``) and
+     new-convention (``.jarvis/actors/*/actor.yaml``) Actor folders, merges
+     them into a single tree (no visible distinction), creates new Actors only
+     under the new convention, and handles edge cases (same-name-across
+     -conventions, mixed workspaces) correctly; Project/Event scanners remain
+     unaffected (covered by T-17 through T-24).
+
+   **T-17 — Old-convention only: scanner finds all actors**
+     Setup: Delete or move aside any ``.jarvis/actors/`` folder to ensure only
+     old-convention exists. Populate ``.jarvis/sessions/`` with two old-convention
+     actors (e.g. ``old-alpha/session.yaml`` and ``old-beta/session.yaml``).
+     Action: Open the workspace and observe the Actors tree.
+     Expected: The tree displays both ``old-alpha`` and ``old-beta`` in
+     alphabetical order. No error appears. The behavior is unchanged from the
+     pre-Phase-2 state (backward compatibility).
+
+   **T-18 — New-convention only: scanner finds all actors**
+     Setup: Delete or archive the old-convention ``.jarvis/sessions/`` folder.
+     Populate ``.jarvis/actors/`` with two new-convention actors (e.g.
+     ``new-alpha/actor.yaml`` and ``new-beta/actor.yaml``).
+     Action: Open the workspace and observe the Actors tree.
+     Expected: The tree displays both ``new-alpha`` and ``new-beta`` in
+     alphabetical order, discovered from ``.jarvis/actors/``. No error appears.
+
+   **T-19 — Mixed workspace: scanner merges both conventions**
+     Setup: Have both ``.jarvis/sessions/`` and ``.jarvis/actors/`` folders
+     populated with a mix of old- and new-convention actors (e.g.
+     ``.jarvis/sessions/old-actor-1/``, ``.jarvis/actors/new-actor-1/``,
+     ``.jarvis/sessions/old-actor-2/``, ``.jarvis/actors/new-actor-2/``).
+     Action: Open the workspace and observe the Actors tree.
+     Expected: The tree displays all four actors in alphabetical order
+     (``new-actor-1``, ``new-actor-2``, ``old-actor-1``, ``old-actor-2``),
+     merging the two convention sources. No visible distinction between old
+     and new actors. No error appears.
+
+   **T-20 — New Actor creation uses new convention**
+     Setup: Mixed workspace as in T-19. Before creating, verify the folder
+     structure.
+     Action: Run ``Jarvis: New Actor`` (or ``Jarvis: New Entity`` > Session).
+     Enter name ``created-actor`` and summary ``Created via Phase 2``.
+     Expected: A new folder is created under ``.jarvis/actors/`` only (not
+     ``.jarvis/sessions/``). The new folder contains ``actor.yaml`` (not
+     ``session.yaml``) with the provided ``name`` and ``summary``. The node
+     ``created-actor`` appears in the tree. Old-convention actors remain
+     untouched.
+
+   **T-21 — jarvis_createActor tool uses new convention**
+     Setup: Mixed workspace as in T-19. Open an agent chat.
+     Action: Invoke ``jarvis_createActor`` tool (or via MCP) with
+     ``name: "tool-created"``, ``summary: "Created via tool"``. Confirm
+     the tool call.
+     Expected: A new folder ``.jarvis/actors/tool-created/`` is created
+     (not ``.jarvis/sessions/tool-created/``). The folder contains
+     ``actor.yaml`` and ``context.md``. The node appears in the tree. No
+     old-convention folder is created as a side effect.
+
+   **T-22 — Same-name actor in both conventions: both appear**
+     Setup: Create two actors with the same name under different conventions:
+     ``.jarvis/sessions/shared-name/session.yaml`` and
+     ``.jarvis/actors/shared-name/actor.yaml`` (both with valid ``name: shared-name
+     `` fields).
+     Action: Open the workspace and observe the Actors tree.
+     Expected: Two separate nodes both labeled ``shared-name`` appear in the
+     tree (this is an accepted edge case — they are not deduplicated). The
+     user can interact with both independently (open context.md from either,
+     open agent session from either). No error appears.
+
+   **T-23 — Old-convention actor's context.md remains fully live/writable**
+     Setup: Mixed workspace as in T-19. Open the Actors tree and locate an
+     old-convention actor (e.g. ``old-actor-1``).
+     Action: Click the actor node to open its ``context.md``. Edit the file
+     (e.g. add a line "Modified during Phase 2 UAT") and save.
+     Expected: The file is writable; the edit is saved successfully. No
+     warning or notification about the file being frozen or read-only appears.
+     The actor remains fully operational after the edit.
+
+   **T-24 — Project/Event scanners unaffected (regression)**
+     Setup: Mixed Actor workspace (both conventions). Also have Projects and
+     Events in the workspace.
+     Action: Open the Projects and Events tree views. Verify that creating a
+     new Project or Event works normally (via ``Jarvis: New Entity`` > Project/
+     Event, or the view's ``+`` button).
+     Expected: New Projects are created under ``.jarvis/projects/`` only
+     (not under any alternative folder). New Events are created under
+     ``.jarvis/events/`` only. No cross-convention logic appears in Project/
+     Event behavior. These views are unaffected by the Actor phase-2 change.
+
+   **T-12 — Tree view, command titles, and settings show "Actor" terminology**
+     Setup: Sessions tree populated as in T-2.
+     Action: Observe the view title in the Jarvis sidebar. Open the Command
+     Palette and search for "actor". Open Settings (``Ctrl+,``) and search for
+     ``jarvis.sessions``.
+     Expected: The sidebar view title reads "Actors" (not "Sessions"). The
+     Command Palette lists "Jarvis: New Actor" and "Jarvis: Open Actor Chat"
+     (not "New Session"/"Open Agent Session"). The Settings UI group is
+     titled "Actors"; individual setting descriptions (e.g. for
+     ``jarvis.sessions.enabled``) use "Actor" wording (e.g. "Enable the
+     Actors feature") instead of "Session".
+
+   **T-13 — Internal identifiers remain unchanged (negative test)**
+     Setup: Same as T-12.
+     Action: Inspect the underlying identifiers — e.g. hover the Settings gear
+     icon next to the renamed setting and choose **Copy Setting ID**; inspect
+     ``package.json``'s ``contributes.views``/``contributes.commands`` entries
+     (or use **Developer: Inspect Context Keys**) for the view and command
+     IDs; confirm the on-disk session folder path is unchanged.
+     Expected: The view ID is still ``jarvisSessions``; the command IDs are
+     still ``jarvis.newSession`` and ``jarvis.openAgentSession``; the setting
+     key is still ``jarvis.sessions.enabled``; the storage path is still
+     ``testdata/.jarvis/sessions/`` — none of these internal identifiers
+     changed as a side effect of the label rename.

@@ -73,3 +73,17 @@ export function ensureSessionsDir(): string | undefined {
     fs.mkdirSync(dir, { recursive: true });
     return dir;
 }
+
+/** Returns <workspaceRoot>/.jarvis/actors, or undefined when no workspace is open. */
+export function getActorsDir(): string | undefined {
+    const dir = getJarvisDir();
+    return dir ? path.join(dir, 'actors') : undefined;
+}
+
+/** Ensures <workspaceRoot>/.jarvis/actors exists (mkdir -p) and returns its path, or undefined. */
+export function ensureActorsDir(): string | undefined {
+    const dir = getActorsDir();
+    if (!dir) { return undefined; }
+    fs.mkdirSync(dir, { recursive: true });
+    return dir;
+}

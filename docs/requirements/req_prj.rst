@@ -5,7 +5,7 @@ Project Requirements
    :id: REQ_PRJ_PROJECTFILTER
    :status: implemented
    :priority: optional
-   :links: US_PRJ_PROJECTFILTER; REQ_PRJ_FILTERPERSIST
+   :links: US_PRJ_PROJECTFILTER; REQ_PRJ_FILTERPERSIST; REQ_EXP_UNIFIEDTREE
 
    **Description:**
    The Projects tree view SHALL provide a filter mechanism to show/hide
@@ -13,11 +13,27 @@ Project Requirements
 
    **Acceptance Criteria:**
 
-   * AC-1: A filter icon in the Projects title bar triggers the command ``jarvis.filterProjectFolders``
+   * AC-1: (unified-entity-tree CR, amended — F5 fix) The command
+     ``jarvis.filterProjectFolders`` SHALL be triggered via an **inline
+     icon** (``$(filter)``/``$(filter-filled)``) directly on the "Projects"
+     category node (analogous to the ``$(add)`` "New" inline icon on
+     category nodes — see ``REQ_EXP_UNIFIEDTREE`` AC-10), providing
+     one-click access without requiring a right-click context menu. The same
+     command SHALL also remain reachable via the Command Palette.
+     ~~A filter icon in the Projects title bar triggers the command~~ —
+     superseded: a dedicated Projects title bar no longer exists once the
+     unified tree replaces ``jarvisProjects`` (see ``REQ_EXP_UNIFIEDTREE``
+     AC-2).
    * AC-2: The command shows a QuickPick with ``canPickMany: true``, one entry per existing root-level folder
    * AC-3: Pre-selected = visible, deselected = hidden
    * AC-4: After confirmation the tree updates immediately
-   * AC-5: The icon changes visually when a filter is active (``filter`` vs ``filter-filled``)
+   * AC-5: (unified-entity-tree CR, amended — F5 fix) The inline icon on
+     the category node SHALL visually toggle: ``$(filter)`` when no filter is
+     active, ``$(filter-filled)`` when a filter is active (same pair as the
+     former title-bar buttons, now relocated to the inline position). This
+     replaces the earlier "label-toggle" approach which proved unworkable as
+     an inline icon.
+     filter is currently applied, otherwise "Filter Folders..."
 
 
 .. req:: Filter Persistence
@@ -61,7 +77,8 @@ Project Requirements
      to the project directory)
    * AC-4: If no projects exist, the tool SHALL return an empty array
    * AC-5: The tool SHALL be simultaneously available via the MCP server
-   * AC-6: The output object shape SHALL match ``jarvis_listSessions``
+   * AC-6: The output object shape SHALL match ``jarvis_listActors`` (was
+     ``jarvis_listSessions`` before the actor-tool-rename CR, Phase 5)
      (``{name, summary, agent, folder}``)
 
 
@@ -89,7 +106,8 @@ Project Requirements
    * AC-5: If the folder already exists, return
      ``{ created: false, reason: "project \"<name>\" already exists" }``.
    * AC-6: Name validation SHALL use the same rules as
-     ``jarvis_createSession`` (empty, illegal chars, dot-only, Windows
+     ``jarvis_createActor`` (was ``jarvis_createSession`` before the
+     actor-tool-rename CR, Phase 5) (empty, illegal chars, dot-only, Windows
      reserved names).
    * AC-7: When ``agent`` is non-blank, validate against
      ``REQ_ACT_AGENT_DISCOVERY``; if invalid, throw error with available

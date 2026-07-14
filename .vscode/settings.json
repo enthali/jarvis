@@ -4,7 +4,7 @@
   "jarvis.heartbeatConfigFile": "C:\\workspace\\Jarvis\\.jarvis\\heartbeat.yaml",
   "jarvis.messagesFile": "C:\\workspace\\Jarvis\\.jarvis\\messages.json",
   "jarvis.projectsFolder": "C:\\workspace\\Jarvis\\projects",
-  "jarvis.scanInterval": 20,
+  "jarvis.scanInterval": 1,
   "jarvis.heartbeatInterval": 300,
   "jarvis.pim.showCategories": false,
   "jarvis.outlook.tasks.enabled": false,

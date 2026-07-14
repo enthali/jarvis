@@ -23,7 +23,7 @@ Chat Editor Reuse — Session Open User Acceptance Tests
    * AC-1: A test verifies that clicking a Session-Tree entry for a session
      with a known UUID activates that session's existing editor (regression
      guard; the UUID-based path must remain unaffected by the change).
-   * AC-2: A test verifies that invoking ``jarvis_createSession`` with
+   * AC-2: A test verifies that invoking ``jarvis_createActor`` with
      ``name`` + ``initialMessage`` opens a **new** chat editor for the
      session, and that both the init-prompt and the ``initialMessage`` land
      in that new editor — not in the invoking chat.
@@ -73,7 +73,7 @@ Chat Editor Reuse — Session Open User Acceptance Tests
    * T-1: Existing-UUID regression — click Session-Tree entry for a session
      with a known UUID → that session's editor is activated; no new editor
      created.  (SPEC_ENT_AGENTSESSION)
-   * T-2: ``jarvis_createSession`` happy path — invoke with ``name`` +
+   * T-2: ``jarvis_createActor`` happy path — invoke with ``name`` +
      ``initialMessage`` → new chat editor opens; init-prompt and
      ``initialMessage`` appear in it, not in the invoking chat.
      (SPEC_ENT_AGENTSESSION)
@@ -81,7 +81,7 @@ Chat Editor Reuse — Session Open User Acceptance Tests
      title bar → new chat editor opens; no existing editor is reused.
      (SPEC_ENT_AGENTSESSION)
    * T-4: Successive new sessions — trigger "New Session" (or
-     ``jarvis_createSession``) twice → two distinct editors visible; the
+     ``jarvis_createActor``) twice → two distinct editors visible; the
      second open does not reuse the first editor.  (SPEC_ENT_AGENTSESSION)
    * T-5: Auto-delivery new-editor path — enable auto-delivery for a
      session, close its chat editor, queue a message → delivery loop opens

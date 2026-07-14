@@ -127,6 +127,26 @@ level).
             await vscode.commands.executeCommand(
                 'workbench.action.chat.open', { query: initPrompt }
             );
+
+            // project-actor-click-placement-fix CR: guarantee Main placement
+            // even for a freshly created session (REQ_ENT_AGENTSESSION AC-7,
+            // REQ_MSG_EDITORPLACEMENT AC-12/AC-13). The rename above has
+            // already completed, so the session is now resolvable by name —
+            // reuse the exact same close+reopen mechanism as the
+            // existing-session branch instead of trying to influence which
+            // column the chat editor was born in (VS Code exposes no API
+            // for that — see SPEC_MSG_OPENCHAT).
+            const newUuid = await lookupSessionUUID(entity.name);
+            if (newUuid) {
+                const newB64 = Buffer.from(newUuid).toString('base64');
+                const newUri = vscode.Uri.parse(
+                    `vscode-chat-session://local/${newB64}`
+                );
+                await openAtMain(newUri, entity.name);  // SPEC_MSG_EDITORPLACEMENT
+            }
+            // Silent no-op if newUuid is still unresolved (rare rename-
+            // propagation edge case, REQ_MSG_EDITORPLACEMENT AC-13) — the
+            // session is still fully usable, just not repositioned.
           }
         }
       );
@@ -189,12 +209,25 @@ level).
      than merely focused wherever it happens to be (``REQ_ENT_AGENTSESSION``
      AC-6 — guaranteed)
    * The fresh-session-creation branch (``openNewChatEditor`` /
-     ``renameFocusedChatSession``) is unchanged — a newly created chat editor
-     is born in the currently active column, which for a user-initiated click
-     is already Main in the common case; this is **best-effort, not
-     guaranteed** (``REQ_ENT_AGENTSESSION`` AC-7) — VS Code exposes no API to
-     force the view column of a chat editor at creation time, so no explicit
-     re-placement step is added here
+     ``renameFocusedChatSession``) now **also guarantees Main placement**
+     (``project-actor-click-placement-fix`` CR, ``REQ_ENT_AGENTSESSION``
+     AC-7 — corrected): after the rename and init-prompt steps complete, a
+     follow-up ``lookupSessionUUID`` + ``openAtMain`` call relocates the
+     newly created session exactly as the existing-session branch does.
+     VS Code still exposes no API to force the view column of a chat editor
+     *at creation time* — that fact is unchanged — but this CR closes the
+     gap by relocating *after* creation instead, using only already-proven
+     mechanisms.
+   * **Spec/implementation naming note (pre-existing, not introduced by this
+     CR):** the actual ``packages/core/src/extension.ts`` implementation
+     factors the else-branch shown above into a shared private helper,
+     ``openChatForEntity()``, called from both ``jarvis.openAgentSession``
+     and the entity-creation commands (``jarvis.newSession`` et al., see
+     ``SPEC_ACT_NEWENTITY``) — this spec's code sample inlines that logic
+     rather than naming the shared function explicitly. The relocate-step
+     fix above lives once in that shared helper, so both callers gain the
+     Main-placement guarantee automatically; not re-documented separately
+     in ``SPEC_ACT_NEWENTITY`` beyond a cross-reference note.
    * No changes to ``sessionLookup.ts`` — reuses ``lookupSessionUUID()`` as-is
    * The initialization prompt is submitted directly via
      ``workbench.action.chat.open`` (not via the message queue)
@@ -336,7 +369,8 @@ level).
    QuickPick. All SHALL call ``pickAgentMode()``.
 
    **Programmatic-validation consumer pattern (separate, no picker):**
-   ``jarvis_createProject``, ``jarvis_createEvent``, ``jarvis_createSession``
+   ``jarvis_createProject``, ``jarvis_createEvent``, ``jarvis_createActor``
+   (was ``jarvis_createSession`` before the actor-tool-rename CR, Phase 5)
    LM tools — receive ``agent`` parameter, validate via ``discoverAgents()``
    (per ``SPEC_ACT_AGENT_DISCOVERY``), no picker invocation. Anti-drift rule
    does NOT apply here (different mechanism by design).

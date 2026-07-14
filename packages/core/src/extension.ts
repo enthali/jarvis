@@ -13,6 +13,7 @@ import { activateHeartbeat, HeartbeatScheduler, HeartbeatJob, HeartbeatStep } fr
 import { JobNode } from './apps/session/heartbeatTreeProvider';
 import { JarvisEngine } from './engine/core/coreApi';
 import { GenericTreeFactory } from './engine/core/treeFactory';
+import { UnifiedEntityTreeProvider } from './engine/core/unifiedEntityTreeProvider';
 import type { EntityKindConfig, JarvisCoreApi } from './engine/core/types';
 import { deleteMessage, appendMessage, popMessage, readAutoDelivery, addAutoDelivery, removeAutoDelivery, readQueue, writeQueue } from './engine/sessions/messageQueue';
 import { addReminder, readReminders, removeReminder, popDueReminders, setRemindersLogger } from './apps/session/reminders';
@@ -360,6 +361,26 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         const initPrompt = applyTemplate(initTemplate, { kind, name, contextPath });
         await vscode.commands.executeCommand(
             'workbench.action.chat.open', { query: initPrompt });
+
+        // project-actor-click-placement-fix CR: guarantee Main placement
+        // even for a freshly created session (REQ_ENT_AGENTSESSION AC-7,
+        // REQ_MSG_EDITORPLACEMENT AC-12/AC-13). The rename above has
+        // already completed, so the session is now resolvable by name —
+        // reuse the exact same close+reopen mechanism as the
+        // existing-session branch instead of trying to influence which
+        // column the chat editor was born in (VS Code exposes no API
+        // for that — see SPEC_MSG_OPENCHAT).
+        const newUuid = await lookupSessionUUID(name);
+        if (newUuid) {
+            const newB64 = Buffer.from(newUuid).toString('base64');
+            const newUri = vscode.Uri.parse(
+                `vscode-chat-session://local/${newB64}`
+            );
+            await openAtMain(newUri, name);  // SPEC_MSG_EDITORPLACEMENT
+        }
+        // Silent no-op if newUuid is still unresolved (rare rename-
+        // propagation edge case, REQ_MSG_EDITORPLACEMENT AC-13) — the
+        // session is still fully usable, just not repositioned.
     }
 
     // Engine (kind-driven scanner + generic tree factory) for session kind
@@ -368,6 +389,9 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         (settingKey: string) => {
             if (settingKey === 'jarvis.sessions.folder') {
                 return configPaths.getSessionsDir() ?? '';
+            }
+            if (settingKey === 'jarvis.actors.folder') {
+                return configPaths.getActorsDir() ?? '';
             }
             return vscode.workspace.getConfiguration().get<string>(settingKey, '');
         }
@@ -404,24 +428,28 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     if (cfg.get<boolean>('sessions.enabled', true)) {
         const sessionKindConfig: EntityKindConfig = {
             kind: 'session',
-            viewId: 'jarvisSessions',
+            viewId: 'jarvisEntities',
             folderSettingKey: 'jarvis.sessions.folder',
             label: (name: string) => name,
+            additionalScanRoots: [
+                { folderSettingKey: 'jarvis.actors.folder', conventionFile: 'actor.yaml' }
+            ],
         };
         sessionKindDisposable = engine.registerEntityKind(sessionKindConfig);
         context.subscriptions.push(sessionKindDisposable);
-
-        const sessionTreeProvider = engine.treeFactory.getProvider('session')!;
-        const sessionView = vscode.window.createTreeView('jarvisSessions', {
-            treeDataProvider: sessionTreeProvider,
-            canSelectMany: false,
-            showCollapseAll: true,
-        });
-        context.subscriptions.push(sessionView);
         log.info('[CFG] Sessions feature enabled (via engine)');
     } else {
         log.info('[CFG] Sessions feature disabled');
     }
+
+    // ------- UNIFIED ENTITIES TREE (SPEC_EXP_UNIFIEDTREE) -------
+    // Create unified tree view after all kinds are registered
+    const unifiedProvider = new UnifiedEntityTreeProvider(engine.treeFactory);
+    const entitiesView = vscode.window.createTreeView('jarvisEntities', {
+        treeDataProvider: unifiedProvider,
+        showCollapseAll: true,
+    });
+    context.subscriptions.push(entitiesView, unifiedProvider);
 
     // Trigger initial scan for registered kinds
     kindDrivenScanner.rescan();
@@ -471,6 +499,39 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     const rescanCommand = vscode.commands.registerCommand('jarvis.rescan', async () => {
         await kindDrivenScanner.rescan();
         log.info('[Scanner] manual rescan triggered');
+    });
+
+    // Search Entities command (SPEC_EXP_SEARCH_ENTITIES_CMD)
+    // Search Entities command - live tree filtering (REQ_EXP_SEARCHENTITIES)
+    const searchEntitiesCommand = vscode.commands.registerCommand('jarvis.searchEntities', () => {
+        const qp = vscode.window.createQuickPick();
+        qp.placeholder = 'Type to filter entities in the tree...';
+        qp.matchOnDescription = false;
+        qp.matchOnDetail = false;
+        
+        // Apply search filter to all providers on every keystroke
+        qp.onDidChangeValue((query) => {
+            const trimmed = query.trim();
+            for (const kind of ['session', 'project', 'event']) {
+                const provider = engine.treeFactory.getProvider(kind);
+                if (provider) {
+                    provider.setSearchFilter(trimmed);
+                }
+            }
+        });
+
+        // Clear filter when closed
+        qp.onDidHide(() => {
+            for (const kind of ['session', 'project', 'event']) {
+                const provider = engine.treeFactory.getProvider(kind);
+                if (provider) {
+                    provider.setSearchFilter('');
+                }
+            }
+            qp.dispose();
+        });
+
+        qp.show();
     });
 
     // Context actions (SPEC_EXP_CONTEXTACTIONS) — generic, used by any entity
@@ -837,14 +898,14 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         }
     );
 
-    // listSessions — returns YAML session entities
-    const listSessionsTool = engine.registerTool('jarvis_listSessions',
-        'Returns all Jarvis session entities (YAML-based) with name, summary, agent, and folder path.',
+    // listActors — returns YAML session entities
+    const listActorsTool = engine.registerTool('jarvis_listActors',
+        'Returns all Jarvis Actor entities (YAML-based) with name, summary, agent, and folder path.',
         async (_options: vscode.LanguageModelToolInvocationOptions<any>, _token: vscode.CancellationToken) => {
             const sessions = kindDrivenScanner.entities
                 .filter(e => e.kind === 'session')
                 .map(e => ({ name: e.name, summary: e.summary ?? '', agent: e.agent ?? '', folder: e.folder }));
-            log.info(`[SES] listSessions: ${sessions.length} session(s)`);
+            log.info(`[SES] listActors: ${sessions.length} Actor(s)`);
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(JSON.stringify({ sessions }))
             ]);
@@ -974,8 +1035,8 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         }
     );
 
-    // createSession tool
-    let createSessionTool: vscode.Disposable | undefined;
+    // createActor tool
+    let createActorTool: vscode.Disposable | undefined;
     if (cfg.get<boolean>('sessions.enabled', true)) {
         const createSession = async (args: { name: string; summary?: string; agent?: string; initialMessage?: string }): Promise<{ created: boolean; reason?: string; path: string }> => {
             const { name, summary, agent, initialMessage } = args;
@@ -994,16 +1055,16 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
                 }
             }
 
-            const sessionsDir = configPaths.ensureSessionsDir();
-            if (!sessionsDir) { throw new Error('jarvis_createSession: no workspace open'); }
+            const sessionsDir = configPaths.ensureActorsDir();
+            if (!sessionsDir) { throw new Error('jarvis_createActor: no workspace open'); }
 
             const targetPath = path.join(sessionsDir, name);
-            const relPath = `.jarvis/sessions/${name}`;
+            const relPath = `.jarvis/actors/${name}`;
 
             if (fs.existsSync(targetPath)) {
                 log.info(`[SES] createSession: idempotent skip for "${name}"`);
                 try {
-                    const sessionYamlPath = path.join(targetPath, 'session.yaml');
+                    const sessionYamlPath = path.join(targetPath, 'actor.yaml');
                     const leaf: LeafNode = { kind: 'leaf', id: sessionYamlPath };
                     await vscode.commands.executeCommand('jarvis.openAgentSession', leaf);
                 } catch (err) { log.warn(`[SES] createSession: auto-open failed for "${name}": ${err}`); }
@@ -1015,18 +1076,18 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             if (summary) { yamlLines.push(`summary: ${yamlString(summary)}`); }
             if (agent) { yamlLines.push(`agent: ${yamlString(agent)}`); }
             yamlLines.push('');
-            await fs.promises.writeFile(path.join(targetPath, 'session.yaml'), yamlLines.join('\n'), 'utf-8');
+            await fs.promises.writeFile(path.join(targetPath, 'actor.yaml'), yamlLines.join('\n'), 'utf-8');
             const contextContent = summary ? `# ${name}\n\n${summary}\n` : `# ${name}\n\n`;
             await fs.promises.writeFile(path.join(targetPath, 'context.md'), contextContent, 'utf-8');
 
             if (initialMessage) {
-                appendMessage(resolveMessagesPath(), name, 'jarvis_createSession', initialMessage);
+                appendMessage(resolveMessagesPath(), name, 'jarvis_createActor', initialMessage);
                 messageProvider.reload();
             }
 
             await kindDrivenScanner.rescan();
             try {
-                const sessionYamlPath = path.join(targetPath, 'session.yaml');
+                const sessionYamlPath = path.join(targetPath, 'actor.yaml');
                 const leaf: LeafNode = { kind: 'leaf', id: sessionYamlPath };
                 await vscode.commands.executeCommand('jarvis.openAgentSession', leaf);
                 log.info(`[SES] createSession: auto-opened new session "${name}"`);
@@ -1036,11 +1097,11 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             return { created: true, path: relPath };
         };
 
-        createSessionTool = engine.registerTool('jarvis_createSession',
-        'Creates a new Jarvis session folder with session.yaml and context.md.',
+        createActorTool = engine.registerTool('jarvis_createActor',
+        'Creates a new Jarvis Actor folder with actor.yaml and context.md.',
         async (options: vscode.LanguageModelToolInvocationOptions<any>, _token: vscode.CancellationToken) => {
                 const result = await createSession(options.input);
-                log.info(`[SES] createSession: created=${result.created}, path=${result.path}`);
+                log.info(`[SES] createActor: created=${result.created}, path=${result.path}`);
                 return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart(JSON.stringify(result))]);
             }
     );
@@ -1048,27 +1109,27 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
 
     // New session command (SPEC_SES_NEWENTITY)
     const newSessionCommand = vscode.commands.registerCommand(
-        'jarvis.newSession',
+        'jarvis.newActor',
         async () => {
-            const targetFolder = configPaths.ensureSessionsDir();
+            const targetFolder = configPaths.ensureActorsDir();
             if (!targetFolder) { vscode.window.showWarningMessage('Jarvis: No workspace open.'); return; }
 
-            const nameInput = await vscode.window.showInputBox({ prompt: 'Session name', placeHolder: 'My Session', validateInput: validateSessionName });
+            const nameInput = await vscode.window.showInputBox({ prompt: 'Actor name', placeHolder: 'My Actor', validateInput: validateSessionName });
             if (!nameInput) { return; }
-            const summaryInput = await vscode.window.showInputBox({ prompt: 'Session summary (optional)', placeHolder: 'Short description' });
+            const summaryInput = await vscode.window.showInputBox({ prompt: 'Summary (optional)', placeHolder: 'Short description' });
             const agentInput = await pickAgentMode();
             if (agentInput === undefined) { return; }
 
             const sessionName = nameInput.trim();
             const targetPath = path.join(targetFolder, sessionName);
-            if (fs.existsSync(targetPath)) { vscode.window.showErrorMessage(`Folder '${sessionName}' already exists in sessions folder`); return; }
+            if (fs.existsSync(targetPath)) { vscode.window.showErrorMessage(`Folder '${sessionName}' already exists in actors folder`); return; }
 
             await fs.promises.mkdir(targetPath, { recursive: true });
             const yamlLines = [`name: ${yamlString(nameInput)}`];
             if (summaryInput) { yamlLines.push(`summary: ${yamlString(summaryInput)}`); }
             yamlLines.push(`agent: ${yamlString(agentInput)}`);
             yamlLines.push('');
-            await fs.promises.writeFile(path.join(targetPath, 'session.yaml'), yamlLines.join('\n'), 'utf-8');
+            await fs.promises.writeFile(path.join(targetPath, 'actor.yaml'), yamlLines.join('\n'), 'utf-8');
             const contextContent = `# ${nameInput}\n\n${summaryInput ?? ''}\n`;
             await fs.promises.writeFile(path.join(targetPath, 'context.md'), contextContent, 'utf-8');
             await kindDrivenScanner.rescan();
@@ -1076,6 +1137,96 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             await openChatForEntity(nameInput, 'session', targetPath, agentInput);
         }
     );
+
+    // Helper: flatten tree to leaf nodes (SPEC_ACT_MIGRATIONCOMMAND)
+    function flattenLeaves(nodes: TreeNode[]): LeafNode[] {
+        const leaves: LeafNode[] = [];
+        for (const node of nodes) {
+            if (node.kind === 'leaf') {
+                leaves.push(node);
+            } else if (node.kind === 'folder') {
+                leaves.push(...flattenLeaves(node.children));
+            }
+        }
+        return leaves;
+    }
+
+    // Helper: enumerate old-convention actors (SPEC_ACT_MIGRATIONCOMMAND)
+    function listOldConventionActors(): { name: string; folderPath: string }[] {
+        const provider = engine.treeFactory.getProvider('session');
+        if (!provider) { return []; }
+        const roots = provider.getChildren();
+        const leaves = flattenLeaves(Array.isArray(roots) ? roots as TreeNode[] : []);
+        return leaves
+            .filter(leaf => leaf.id.endsWith('session.yaml'))  // old convention only
+            .map(leaf => ({
+                name: kindDrivenScanner.getEntity(leaf.id)?.name
+                    ?? path.basename(path.dirname(leaf.id)),
+                folderPath: path.dirname(leaf.id),
+            }));
+    }
+
+    // Migrate session to actor command (SPEC_ACT_MIGRATIONCOMMAND)
+    const migrateSessionToActorCommand = vscode.commands.registerCommand(
+        'jarvis.migrateSessionToActor',
+        async () => {
+            const candidates = listOldConventionActors();
+            if (candidates.length === 0) {
+                vscode.window.showInformationMessage(
+                    'No session-convention Actors to migrate.'
+                );
+                return;
+            }
+
+            const picked = await vscode.window.showQuickPick(
+                candidates.map(c => ({ label: c.name, description: c.folderPath, c })),
+                { placeHolder: 'Select an Actor to migrate to the new .jarvis/actors/ convention' }
+            );
+            if (!picked) { return; }  // user cancelled
+
+            const { name, folderPath } = picked.c;
+            const actorsDir = configPaths.ensureActorsDir();
+            if (!actorsDir) {
+                vscode.window.showErrorMessage('jarvis.migrateSessionToActor: no workspace open');
+                return;
+            }
+            const targetFolder = path.join(actorsDir, name);
+
+            // AC-5: name-collision guard — abort cleanly, touch nothing
+            if (fs.existsSync(targetFolder)) {
+                vscode.window.showErrorMessage(
+                    `Cannot migrate "${name}": an Actor already exists at .jarvis/actors/${name}/`
+                );
+                return;
+            }
+
+            // AC-4(a)/(b): move folder, then rename convention file inside it
+            await fs.promises.mkdir(path.dirname(targetFolder), { recursive: true });
+            await fs.promises.rename(folderPath, targetFolder);
+            await fs.promises.rename(
+                path.join(targetFolder, 'session.yaml'),
+                path.join(targetFolder, 'actor.yaml')
+            );
+
+            // AC-4(c): rescan so the tree reflects the new convention immediately
+            await kindDrivenScanner.rescan();
+
+            // AC-6: unconditional fire-and-forget notification
+            appendMessage(
+                resolveMessagesPath(),
+                name,
+                'Jarvis',
+                `Your Actor has been migrated to the new storage convention.\n` +
+                `New folder: .jarvis/actors/${name}/\n` +
+                `context.md: .jarvis/actors/${name}/context.md`
+            );
+            messageProvider.reload();
+
+            vscode.window.showInformationMessage(`Migrated "${name}" to .jarvis/actors/${name}/`);
+            log.info(`[ACT] migrateSessionToActor: "${name}" moved to new convention`);
+        }
+    );
+    context.subscriptions.push(migrateSessionToActorCommand);
 
     // enableAutoDelivery / disableAutoDelivery commands
     const enableAutoDeliveryCommand = vscode.commands.registerCommand('jarvis.enableAutoDelivery', (node: SessionGroupNode) => { addAutoDelivery(resolveMessagesPath(), node.destination); messageProvider.reload(); });
@@ -1193,6 +1344,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
 
     context.subscriptions.push(
         rescanCommand,
+        searchEntitiesCommand,
         revealInExplorerCommand,
         revealInOSCommand,
         openInTerminalCommand,
@@ -1213,8 +1365,8 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         checkForUpdatesCommand,
         sendToSessionTool,
         readMessageTool,
-        listSessionsTool,
-        ...(createSessionTool ? [createSessionTool] : []),
+        listActorsTool,
+        ...(createActorTool ? [createActorTool] : []),
         registerJobTool,
         unregisterJobTool,
         listJobsTool,

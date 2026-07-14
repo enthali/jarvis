@@ -51,7 +51,7 @@ Session Tree Click Behaviour User Acceptance Tests
      ``context.md`` or ``session.yaml`` (maps to REQ AC-1 through AC-6 /
      T-7).
    * AC-8: A cross-CR sanity test verifies that a session freshly created via
-     ``jarvis_createSession`` also exhibits the new click semantics
+     ``jarvis_createActor`` also exhibits the new click semantics
      immediately after creation, confirming that all session leaves are treated
      uniformly by the tree provider (maps to REQ AC-1 + AC-2 / T-8).
    * AC-9: A test verifies that ``jarvis.openSessionContext`` no longer
@@ -81,7 +81,7 @@ Session Tree Click Behaviour User Acceptance Tests
      auto-create).
    * T-7: Pre-existing ``copilot-cm`` / ``dev-feature-x`` sessions — new
      click semantics apply (regression).
-   * T-8: Session created by ``jarvis_createSession`` — new click semantics
+   * T-8: Session created by ``jarvis_createActor`` — new click semantics
      apply immediately (cross-CR sanity).
    * T-9: ``jarvis.openSessionContext`` no longer exists — not registered,
      not in any ``package.json``, not invocable programmatically.

@@ -31,7 +31,7 @@ MCP Server User Acceptance Tests
 
    **T-2 — List sessions via MCP**
      Setup: MCP server running (T-1). At least one named chat session exists.
-     Action: Use ``curl`` or an MCP client to call ``jarvis_listSessions`` on
+     Action: Use ``curl`` or an MCP client to call ``jarvis_listActors`` on
      ``http://127.0.0.1:31415/mcp``.
      Expected: Response contains a JSON array of session title strings.
 
@@ -64,6 +64,6 @@ MCP Server User Acceptance Tests
 
    **T-7 — Dual registration (LM + MCP return same data)**
      Setup: MCP server running. At least one named chat session exists.
-     Action: Call ``jarvis_listSessions`` via both the Chat tool picker (LM)
+     Action: Call ``jarvis_listActors`` via both the Chat tool picker (LM)
      and via MCP client on localhost.
      Expected: Both return the same list of session names.

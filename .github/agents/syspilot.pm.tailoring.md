@@ -4,6 +4,42 @@
 
 GitHub Issues is the single source of truth for the backlog. No separate backlog file.
 
+## Change Initialization — GitHub Issue Reference
+
+If a Change Document addresses tracked GitHub issue(s), add a
+`**GitHub Issue(s)**:` line under the Summary section (e.g. `**GitHub
+Issue(s)**: #12, #13`). This lets the Release Engineer close those issues
+automatically when the change ships (see `syspilot.release.tailoring.md`).
+
+## Post-Merge Housekeeping Checkpoint
+
+When a CR merges (workflow step 13), before moving on to the next CR, do
+the following **interactively with the user** — this is a deliberate
+experiment (not yet a generic mechanism) feeding the future housekeeping
+capability tracked in GH #23:
+
+1. **GitHub issue comment**: comment on the issue(s) this CR addressed —
+   merged to develop, ships in the next release (do not close yet —
+   closure happens at release time, see `syspilot.release.tailoring.md`).
+2. **Session file review** — actively re-read `context.md` and
+   `lessons-learned.md` from disk right now, rather than relying on what
+   was read earlier in this conversation. Unlike agent `.md` files, these
+   are not injected automatically every turn — an earlier in-session read
+   can be stale, and this checkpoint is also the natural moment to refresh
+   working memory before a future `/compact` might trim away the history
+   that held it. (The `ideas/*.md` link list in `context.md` is enough on
+   its own to know what ideas exist — no need to re-read every individual
+   idea file here, only when one becomes a real candidate.)
+   - Drop stale/superseded content.
+   - Capture new lessons learned from this CR, if any.
+   - Check for contradictions between an existing recorded lesson and how
+     this CR actually played out. If found, don't resolve it silently —
+     bring both sides to the user and reflect together on whether the old
+     lesson still holds, or whether the new experience should refine or
+     replace it.
+3. **Roadmap reflection**: review Ideas + open GitHub Issues together with
+   the user, pick the next candidate for the queue.
+
 ## One CR at a Time
 
 Send one CR to CM, wait for merge confirmation, then send the next.

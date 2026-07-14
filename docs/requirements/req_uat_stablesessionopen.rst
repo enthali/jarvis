@@ -23,6 +23,13 @@ Stable Session Open UAT Requirements
      preview mode
    * AC-5: At least one scenario verifies the initialization prompt contains the
      correct ``context.md`` absolute path
+   * AC-6: (project-actor-click-placement-fix CR) At least four scenarios verify
+     that fresh-session creation and repeat-open from Project, Event, and Actor
+     entity trees all land chat tabs deterministically in Main (column 1),
+     covering T-6 through T-9.
+   * AC-7: (project-actor-click-placement-fix CR) At least one scenario verifies
+     the silent no-op edge case (T-10) where UUID resolution fails during the
+     fresh-session relocation step but the session remains usable.
 
 .. req:: Stable Session Open Test Data Files
    :id: REQ_UAT_MSG_STABLESESSION_FILES
@@ -31,8 +38,9 @@ Stable Session Open UAT Requirements
    :links: US_UAT_MSG_STABLESESSION
 
    **Description:**
-   Test data SHALL include a project leaf with a ``context.md`` file so that
-   initialization prompt and session naming can be verified.
+   Test data SHALL include project, event, and actor/session leaves with
+   ``context.md`` files so that initialization prompt, session naming, and
+   Main-column placement can be verified across all three entity kinds.
 
    **Acceptance Criteria:**
 
@@ -42,3 +50,10 @@ Stable Session Open UAT Requirements
      so the initialization prompt path can be verified
    * AC-3: No pre-existing chat session named "alpha" must exist at test start
      (tester closes or renames it before T-1, T-4, T-5)
+   * AC-4: (project-actor-click-placement-fix CR) At least two additional project
+     leaves (e.g., "beta" and "gamma") with ``context.md`` files for T-6, T-9
+   * AC-5: (project-actor-click-placement-fix CR) At least one event leaf (e.g.,
+     "event-2024") with ``context.md`` file for T-7, T-9
+   * AC-6: (project-actor-click-placement-fix CR) At least one actor/session
+     (e.g., "test-actor-xyz" in ``.jarvis/sessions/``) with ``context.md`` file
+     for T-8, T-9

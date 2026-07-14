@@ -1,5 +1,34 @@
 # Release Notes
 
+## v0.17.0 — Consequent Actor Renaming (Phases 1–5) + Pre-Release Polish
+
+*2026-07-14*
+
+Ships the full "Consequent Actor Renaming" initiative end-to-end — the "Session" entity kind (already renamed at the spec level in v0.15.0's `entity-taxonomy-rename`) is now also renamed throughout the UI, code, storage convention, and tool API to **Actor**.
+
+### Breaking Changes
+
+- **actor-tool-rename** (Phase 5, final): Renames the LM/MCP tools `jarvis_createSession` → `jarvis_createActor` and `jarvis_listSessions` → `jarvis_listActors`. Hard cutover — the old tool names are **removed entirely**, no deprecated stubs or aliases (light/occasional usage made a soft-deprecation cycle unnecessary, unlike the earlier `sendToSession`/`readMessage` rename). `jarvis_sendToSession` (already hard-deprecated) and `jarvis_listChatSessions` (a distinct, genuine VS Code concept) are unaffected.
+
+### Features
+
+- **actor-terminology-rename** (Phase 1): Renames all user-facing UI labels, command titles, and remaining spec/skill prose from "Session" to "Actor" for the entity kind — genuine VS Code "chat session" terminology is unaffected.
+- **actor-internal-identifiers-rename** (Phase 1b): Renames the remaining internal code identifiers (tree view ID, `jarvis.newSession` command ID, TypeScript class/type names) to their Actor equivalents. Includes a bundled fix to the shared `jarvis.openAgentSession` command title, which Phase 1 had incorrectly relabeled for its Project/Event menu entries too.
+- **actor-dualpath-scanner** (Phase 2): Introduces the new on-disk naming convention (`.jarvis/actors/*/actor.yaml`) alongside the existing one (`.jarvis/sessions/*/session.yaml`); the scanner reads and merges both. Old-named actors remain fully supported indefinitely — no forced migration, no end date.
+- **unified-entity-tree** (Phase 3): Collapses the three separate Actors/Projects/Events Explorer trees into one unified "Jarvis Entities" tree, with category sub-groups shown only when more than one entity kind is present, plus a cross-category live-filter search.
+- **actor-migration-command** (Phase 4): Adds an opt-in, Command Palette-only "Jarvis: Migrate Session to Actor" command to migrate one old-convention actor at a time to the new convention; sends a fire-and-forget notification to the migrated actor's inbox afterward.
+- **project-actor-click-placement-fix**: Fixes first-open (not just repeat-open) chat sessions to reliably land at the Main editor column across all three entity kinds, closing a gap previously accepted as a VS Code API limitation in `editor-group-placement` (v0.15.0).
+
+### Fixes
+
+- **entity-category-icon-order**: Aligns the inline icon order on category nodes in the unified tree — Filter, then New — consistently for both Projects and Events.
+
+### Infrastructure
+
+- **eslint-flat-config**: Adds the previously-missing `eslint.config.js` (ESLint 9 flat config), unblocking the release validation lint gate. Pre-existing `no-unused-vars`/`no-explicit-any` violations are demoted to warnings pending a follow-up cleanup pass.
+
+---
+
 ## v0.16.0 — Message Flow Diagram, Canonical Message API, Time Lens
 
 *2026-07-03*

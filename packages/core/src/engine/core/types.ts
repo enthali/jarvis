@@ -48,6 +48,17 @@ export interface EntityKindConfig {
      *  that derive labels from entity fields (e.g. event datesStart prefix). */
     label(name: string, entity?: { data: Record<string, unknown> }): string;
 
+    /**
+     * Additional (folderSettingKey, conventionFile) roots scanned and
+     * merged into this kind's tree/entities, alongside the primary
+     * (folderSettingKey, `${kind}.yaml`) root. Optional; unused by
+     * Project/Event. Used by the session/actor kind
+     * (actor-dualpath-scanner CR) to add the `.jarvis/actors/`/
+     * `actor.yaml` convention without touching the primary
+     * `.jarvis/sessions/`/`session.yaml` root.
+     */
+    additionalScanRoots?: { folderSettingKey: string; conventionFile: string }[];
+
     // --- Optional tree-rendering hooks (S5 generalization) ---
 
     /**
@@ -136,6 +147,17 @@ export interface JarvisCoreApi {
     getEntity(id: string): import('../sessions/yamlScanner').EntityEntry | undefined;
     /** Trigger a full rescan of all registered kinds. */
     rescan(): Promise<void>;
+
+    // --- Filter API (SPEC_PRJ_FILTERCOMMAND, SPEC_EVT_EVENTFILTER_CMD) ---
+
+    /** Set hidden folders for project kind filter. */
+    setHiddenFolders(kind: string, folders: Set<string>): void;
+    /** Get hidden folders for project kind filter. */
+    getHiddenFolders(kind: string): Set<string>;
+    /** Set future-only filter for event kind. */
+    setFutureOnly(kind: string, value: boolean): void;
+    /** Get future-only filter state for event kind. */
+    isFutureOnly(kind: string): boolean;
 
     // --- Session listing API (SPEC_ENG_SESSIONLIST, SPEC_MSG_JARVISSESSIONS) ---
 

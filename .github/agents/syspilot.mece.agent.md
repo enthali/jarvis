@@ -2,8 +2,7 @@
 name: "MECE Engineer"
 agent: syspilot.mece
 description: "Subagent that analyzes one specification level for MECE properties — finds redundancies, gaps, contradictions, and overlaps."
-tools: [read, enthali.jarvis-core, search, todo]
-model: ['NVIDIA: Nemotron 3 Ultra (free) (openrouter)', 'Claude Haiku 4.5 (copilot)']
+model: Claude Haiku 4.5 (copilot)
 user-invocable: true
 agents: []
 ---

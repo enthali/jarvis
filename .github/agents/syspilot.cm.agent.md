@@ -2,8 +2,8 @@
 name: "Change Manager"
 agent: syspilot.cm
 description: "Central orchestrator of the change workflow. Receives Change Requests, coordinates engineers in sequence, enforces quality gates, and reports completion with full traceability."
-tools: [vscode/askQuestions, execute/runNotebookCell, execute/getTerminalOutput, execute/killTerminal, execute/sendToTerminal, execute/runTask, execute/createAndRunTask, execute/runInTerminal, read/getNotebookSummary, read/problems, read/readFile, read/viewImage, read/terminalSelection, read/terminalLastCommand, read/getTaskOutput, agent, enthali.jarvis-core, edit, search, vscodeTasks/createAndRunTask, vscodeTasks/runTask, vscodeTasks/getTaskOutput, vscodeGeneral/problems, vscodeNotebooks/runNotebookCell, vscodeNotebooks/getNotebookSummary, todo]
-model: Claude Sonnet 4.6 (copilot)
+tools: [read, enthali.jarvis-core, edit, search, todo]
+model: [qwen3.6:27b-q4_K_M (ollama-models)
 user-invocable: true
 agents: []
 ---

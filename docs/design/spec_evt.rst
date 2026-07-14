@@ -4,28 +4,46 @@ Event Design Specifications
 .. spec:: Future Event Filter Command
    :id: SPEC_EVT_EVENTFILTER_CMD
    :status: implemented
-   :links: REQ_EVT_EVENTFILTER, REQ_EVT_EVENTFILTERPERSIST, SPEC_EXP_PROVIDER
+   :links: REQ_EVT_EVENTFILTER, REQ_EVT_EVENTFILTERPERSIST, SPEC_EXP_PROVIDER, SPEC_EXP_UNIFIEDTREE
 
    **Description:**
    Two commands ``jarvis.filterFutureEvents`` and ``jarvis.filterFutureEventsActive``
    are bound to the same handler that toggles the future-only filter on the EventTreeProvider.
+
+   **(unified-entity-tree CR amendment, F5 fix):** the command's *trigger*
+   moves from a view-title-bar icon to an **inline icon** on the "Events"
+   category node (``contributes.menus.view/item/context``, ``group: inline``,
+   ``when: "view == jarvisEntities && viewItem ==
+   jarvisEntityCategory:event"``), plus a Command Palette entry. Since
+   category nodes are always present (``REQ_EXP_UNIFIEDTREE`` AC-3/4), the
+   inline icon is always reachable. The handler (steps 1-3) and persistence
+   are unchanged; step 4's ``setContext`` now drives the icon toggle between
+   ``$(filter)`` and ``$(filter-filled)`` on the inline position.
 
    **Flow:**
 
    1. Toggle: ``const next = !eventProvider.isFutureOnly()``
    2. Apply: ``eventProvider.setFutureOnly(next)``
    3. Persist: ``workspaceState.update('jarvis.eventFutureFilter', next)``
-   4. Update icon + description: ``setContext('jarvis.eventFilterActive', next)``,
-      ``eventView.description = next ? '(future only)' : ''``
+   4. Update context key ``setContext('jarvis.eventFilterActive', next)`` —
+      drives the inline icon toggle between ``$(filter)`` (inactive) and
+      ``$(filter-filled)`` (active) on the category node
 
-   **Registration in package.json:**
+   **Registration in package.json (unified-entity-tree F5 fix — inline
+   category-node buttons):**
 
    * ``contributes.commands``: two commands —
      ``jarvis.filterFutureEvents`` (icon ``$(filter)``) and
      ``jarvis.filterFutureEventsActive`` (icon ``$(filter-filled)``),
      both bound to the same handler
-   * ``contributes.menus.view/title``: two entries for ``view == jarvisEvents``
-     toggled via ``jarvis.eventFilterActive`` context key
+   * ``contributes.menus.view/item/context``: two entries for
+     ``view == jarvisEntities && viewItem == jarvisEntityCategory:event``,
+     toggled via ``jarvis.eventFilterActive`` context key,
+     **group ``inline``** (renders as a directly-clickable icon on the
+     category node row, not buried in a right-click menu)
+   * ``contributes.menus.commandPalette``: both commands SHALL be reachable
+     (no exclusion), providing a keyboard-driven alternative to the
+     inline icon
 
 
 .. spec:: List Events LM+MCP Tool

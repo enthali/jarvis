@@ -219,7 +219,7 @@ Message Queue Requirements
 
    * AC-1: A Language Model Tool named ``jarvis_listChatSessions`` SHALL be
      registered via ``vscode.lm.registerTool`` with
-     ``canBeReferencedInPrompt: true`` (renamed from ``jarvis_listSessions``
+     ``canBeReferencedInPrompt: true`` (renamed from ``jarvis_listActors``
      which now refers to YAML session entities)
    * AC-2: The tool SHALL return the list of session titles (strings) from the
      current workspace's ``state.vscdb``
@@ -544,13 +544,12 @@ Message Queue Requirements
    **Acceptance Criteria:**
 
    * AC-1: **Main** target: view column 1 (fixed). A click on an Actor node
-     in the entity tree (``jarvis.openAgentSession``) targeting an
-     **existing** session's chat tab SHALL always result in that tab being
-     open and focused in column 1 (``REQ_ENT_AGENTSESSION`` AC-6). This
-     guarantee applies to the existing-session branch only; placement for a
-     newly created session is best-effort (``REQ_ENT_AGENTSESSION`` AC-7) —
-     VS Code exposes no API to force the view column of a chat editor at
-     creation time.
+     in the entity tree (``jarvis.openAgentSession``) SHALL always result in
+     that entity's chat tab being open and focused in column 1 —
+     **regardless of whether the chat session already existed or had to be
+     newly created** (``project-actor-click-placement-fix`` CR; supersedes
+     the prior "best-effort for new sessions" carve-out — see AC-12 for the
+     mechanism that makes the new-session case deterministic too).
    * AC-2: **Docs** target: view column 2 (fixed) — renamed **Content** by
      the ``message-flow-diagram`` CR to reflect that it now hosts more than
      entity docs (see AC-11). Opening a `context.md`, YAML config, or agent
@@ -634,6 +633,33 @@ Message Queue Requirements
      section rather than surfaced via a first-run in-app hint dialog — v1
      scope decision, consistent with no other feature in this codebase
      using first-run dialogs.
+   * AC-12 (``project-actor-click-placement-fix`` CR): For the **fresh
+     session creation** path (``jarvis.openAgentSession``'s no-existing-tab
+     branch, and equally the entity-creation commands that create-and-open
+     a chat — both funnel through the shared ``openChatForEntity()``
+     helper), the extension SHALL perform a **follow-up relocate step**
+     after the new session is created, renamed, and initialized: resolve
+     the now-existing session's UUID (``REQ_MSG_SESSIONLOOKUP`` —
+     guaranteed to resolve, since the rename to the entity's name has just
+     completed) and apply the identical Main-target close+reopen mechanism
+     already used for the existing-session branch (AC-5). This makes
+     Main-column placement deterministic for freshly created sessions too,
+     regardless of which column VS Code happened to create the new chat
+     editor in — closing the previously-accepted "best-effort" gap (AC-1)
+     without depending on any undocumented VS Code chat-open command option
+     (``workbench.action.openChat`` has no public, stable API surface for
+     forcing a target column at creation time — confirmed unchanged; this
+     AC works around that limitation entirely with already-proven
+     mechanisms instead of waiting for one).
+   * AC-13 (``project-actor-click-placement-fix`` CR): The relocate step in
+     AC-12 SHALL run after the initialization prompt (``REQ_ENT_AGENTSESSION``
+     AC-3) has been submitted, not before — reordering the sequence
+     (relocating first) risks disrupting the "currently focused chat"
+     target that the rename and init-prompt commands depend on. If the
+     session's UUID unexpectedly still fails to resolve at this point (rename
+     propagation edge case), the relocate step SHALL be a silent no-op
+     rather than an error — the session remains usable, just not
+     guaranteed-repositioned in that rare case.
 
 
 .. req:: Focus-Snapshot and Restore

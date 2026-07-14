@@ -644,7 +644,7 @@ Message Queue Design Specifications
 
    **Description:**
    Register ``jarvis_listChatSessions`` as a Language Model Tool in
-   ``extension.ts`` (renamed from ``jarvis_listSessions``).
+   ``extension.ts`` (renamed from ``jarvis_listActors``).
    Returns the list of named VS Code chat session tab titles from the current
    workspace so that LLM agents can discover active chat tabs.
 
@@ -673,7 +673,7 @@ Message Queue Design Specifications
       {
         "name": "jarvis_listChatSessions",
         "displayName": "List Chat Sessions",
-        "modelDescription": "Returns the list of named VS Code chat session tab titles in the current workspace. Use this to discover active chat tabs. Distinct from jarvis_listSessions which lists YAML session entities.",
+        "modelDescription": "Returns the list of named VS Code chat session tab titles in the current workspace. Use this to discover active chat tabs. Distinct from jarvis_listActors which lists YAML session entities.",
         "canBeReferencedInPrompt": true,
         "toolReferenceName": "listChatSessions",
         "icon": "$(list-unordered)",
@@ -747,7 +747,7 @@ Message Queue Design Specifications
      is simultaneously an LM Tool and an MCP Tool (dual registration,
      ``SPEC_MSG_MCPSERVER``).
    * Output shape ``{name, summary, agent, kind, folder}`` is consistent with
-     ``jarvis_listSessions`` / ``jarvis_listProjects`` plus the ``kind``
+     ``jarvis_listActors`` / ``jarvis_listProjects`` plus the ``kind``
      discriminator.
    * Distinct from ``jarvis_listChatSessions`` (VS Code chat tab titles from
      ``state.vscdb``) — this lists YAML entities held by the central scanner.
@@ -874,7 +874,7 @@ Message Queue Design Specifications
    A ``registerDualTool()`` helper function in ``extension.ts`` registers each
    tool with both ``vscode.lm.registerTool()`` and ``registerMcpTool()``
    simultaneously. Existing tool registrations (``jarvis_sendToSession``,
-   ``jarvis_listSessions``, ``jarvis_readMessage``) are refactored to use
+   ``jarvis_listActors``, ``jarvis_readMessage``) are refactored to use
    this wrapper. Handler logic stays identical; only return types differ.
 
    **Wrapper function:**

@@ -146,7 +146,11 @@ export function activate(context: vscode.ExtensionContext): void {
 
     // --- Register entity kinds ---
     context.subscriptions.push(api.registerEntityKind(buildProjectKindConfig(taskService)));
-    context.subscriptions.push(api.registerEntityKind(buildEventKindConfig(taskService)));
+    
+    // Gate Event kind registration behind jarvis.events.enabled (REQ_EXP_UNIFIEDTREE AC-8)
+    if (vscode.workspace.getConfiguration('jarvis').get<boolean>('events.enabled', true)) {
+        context.subscriptions.push(api.registerEntityKind(buildEventKindConfig(taskService)));
+    }
 
     // --- Register task badge decorator on both kinds ---
     const scanner = { getEntity: (id: string) => {
@@ -158,18 +162,9 @@ export function activate(context: vscode.ExtensionContext): void {
     context.subscriptions.push(api.registerDecorator('project', taskBadge));
     context.subscriptions.push(api.registerDecorator('event', taskBadge));
 
-    // --- Create tree views ---
-    const projectProvider = api.getTreeDataProvider('project');
-    const eventProvider = api.getTreeDataProvider('event');
-
-    if (projectProvider) {
-        const projectView = vscode.window.createTreeView('jarvisProjects', { treeDataProvider: projectProvider, showCollapseAll: true });
-        context.subscriptions.push(projectView);
-    }
-    if (eventProvider) {
-        const eventView = vscode.window.createTreeView('jarvisEvents', { treeDataProvider: eventProvider, showCollapseAll: true });
-        context.subscriptions.push(eventView);
-    }
+    // --- Tree views are now created by core's unified provider (SPEC_EXP_UNIFIEDTREE) ---
+    // pim continues to register entity kinds via api.registerEntityKind() but no longer
+    // creates its own standalone jarvisProjects/jarvisEvents views.
 
     // --- Categories tree view (PIM-owned, NOT engine-driven) ---
     context.subscriptions.push(
@@ -315,6 +310,74 @@ export function activate(context: vscode.ExtensionContext): void {
             log.warn(`[PIM] refresh failed: ${err}`);
         }
     }));
+
+    // --- Filter commands (SPEC_PRJ_FILTERCOMMAND, SPEC_EVT_EVENTFILTER_CMD) ---
+
+    // Restore persisted filter state on startup
+    const projectHiddenFolders = context.workspaceState.get<string[]>('jarvis.hiddenProjectFolders', []);
+    api.setHiddenFolders('project', new Set(projectHiddenFolders));
+    const eventFutureFilter = context.workspaceState.get<boolean>('jarvis.eventFutureFilter', false);
+    api.setFutureOnly('event', eventFutureFilter);
+    
+    // Update context keys for icon toggling
+    vscode.commands.executeCommand('setContext', 'jarvis.projectFilterActive', projectHiddenFolders.length > 0);
+    vscode.commands.executeCommand('setContext', 'jarvis.eventFilterActive', eventFutureFilter);
+
+    // Project folder filter (both commands share same handler)
+    const projectFilterHandler = async () => {
+        const rootNodes = api.getTreeForKind('project');
+        const folders = rootNodes.filter(n => n.kind === 'folder').map(n => (n as any).name as string);
+        if (folders.length === 0) {
+            vscode.window.showInformationMessage('No project folders to filter');
+            return;
+        }
+
+        const hiddenFolders = api.getHiddenFolders('project');
+        
+        const qp = vscode.window.createQuickPick<vscode.QuickPickItem & { folder: string }>();
+        qp.title = 'Filter Project Folders';
+        qp.placeholder = 'Click folders to toggle visibility';
+        qp.canSelectMany = false;
+
+        const updateItems = () => {
+            qp.items = folders.map(folder => ({
+                label: hiddenFolders.has(folder) ? `$(circle-large-outline) ${folder}` : `$(check) ${folder}`,
+                folder,
+            }));
+        };
+        updateItems();
+
+        qp.onDidAccept(() => {
+            const sel = qp.selectedItems[0];
+            if (sel) {
+                if (hiddenFolders.has(sel.folder)) {
+                    hiddenFolders.delete(sel.folder);
+                } else {
+                    hiddenFolders.add(sel.folder);
+                }
+                api.setHiddenFolders('project', hiddenFolders);
+                context.workspaceState.update('jarvis.hiddenProjectFolders', Array.from(hiddenFolders));
+                vscode.commands.executeCommand('setContext', 'jarvis.projectFilterActive', hiddenFolders.size > 0);
+                updateItems();
+            }
+        });
+
+        qp.onDidHide(() => qp.dispose());
+        qp.show();
+    };
+    context.subscriptions.push(vscode.commands.registerCommand('jarvis.filterProjectFolders', projectFilterHandler));
+    context.subscriptions.push(vscode.commands.registerCommand('jarvis.filterProjectFoldersActive', projectFilterHandler));
+
+    // Event future filter (both commands share same handler)
+    const eventFilterHandler = async () => {
+        const next = !api.isFutureOnly('event');
+        api.setFutureOnly('event', next);
+        context.workspaceState.update('jarvis.eventFutureFilter', next);
+        vscode.commands.executeCommand('setContext', 'jarvis.eventFilterActive', next);
+        log.info(`[PIM] event future filter: ${next ? 'enabled' : 'disabled'}`);
+    };
+    context.subscriptions.push(vscode.commands.registerCommand('jarvis.filterFutureEvents', eventFilterHandler));
+    context.subscriptions.push(vscode.commands.registerCommand('jarvis.filterFutureEventsActive', eventFilterHandler));
 
     // --- PIM LM tools (registered via engine API, renamed with _pim_ infix) ---
 

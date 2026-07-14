@@ -45,7 +45,7 @@ Devcontainer Session Lookup UAT Design Specifications
           pre-change behaviour
       * - T-2 (missing db)
         - Remove ``state.vscdb``; run ``Jarvis: Open Agent Session`` or
-          ``jarvis_listSessions``
+          ``jarvis_listActors``
         - Warning visible in ``Output > Jarvis``; no crash; new session opened
           or empty list returned
       * - T-3 (path via globalStorageUri)
@@ -54,6 +54,6 @@ Devcontainer Session Lookup UAT Design Specifications
         - Logged path is under ``workspaceStorage/<hash>/`` derived from
           ``globalStorageUri``, not a remote filesystem path
       * - T-4 (listSessions tool)
-        - Invoke ``jarvis_listSessions`` tool in agent chat with at least one
+        - Invoke ``jarvis_listActors`` tool in agent chat with at least one
           session present
         - Tool response lists the expected session(s) by name; no error returned
