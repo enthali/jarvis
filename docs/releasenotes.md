@@ -1,5 +1,15 @@
 # Release Notes
 
+## v0.17.1 — Agent Mode Persistence After Window Reload
+
+*2026-07-14*
+
+### Fixes
+
+- **agent-mode-persistence**: Fixes GitHub Issue #25 — GitHub Copilot Chat could silently lose the selected Agent Mode for an already-open chat session/tab, most reliably after a VS Code window reload. Since most agents are addressed via the async messaging system (`jarvis_sendMessage`/`jarvis_receiveMessage`), a chat tab that silently lost Agent Mode could respond as a generic assistant instead of running its intended workflow, with no obvious signal anything was wrong. Adds a defensive patch that re-applies the agent's mode via VS Code's undocumented per-mode command (`workbench.action.chat.open<ModeName>`), working around the upstream limitation tracked at microsoft/vscode#317276. User live-tested and confirmed.
+
+---
+
 ## v0.17.0 — Consequent Actor Renaming (Phases 1–5) + Pre-Release Polish
 
 *2026-07-14*
