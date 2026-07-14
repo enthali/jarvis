@@ -877,7 +877,9 @@ Explorer Design Specifications
       }
 
    **``getTreeItem(element)``:** for category nodes, returns a
-   ``vscode.TreeItem`` with ``label``, ``contextValue: 'jarvisEntityCategory:' + entityKind``,
+   ``vscode.TreeItem`` with ``label`` (as a ``TreeItemLabel`` with
+   ``highlights: [[0, label.length]]`` — renders the full label in **bold**,
+   REQ_EXP_UNIFIEDTREE AC-13), ``contextValue: 'jarvisEntityCategory:' + entityKind``,
    ``collapsibleState: vscode.TreeItemCollapsibleState.Expanded`` (or
    ``None`` if that kind's provider returns an empty root — so the empty
    category shows no expand arrow per AC-4). For any other node, delegates

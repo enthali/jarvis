@@ -107,8 +107,11 @@ export class UnifiedEntityTreeProvider implements vscode.TreeDataProvider<Unifie
 
     getTreeItem(element: UnifiedRootNode): vscode.TreeItem {
         if ('entityKind' in element) {
-            // Category node
-            const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.Expanded);
+            // Category node — bold label via full-range highlight (REQ_EXP_UNIFIEDTREE AC-13)
+            const item = new vscode.TreeItem(
+                { label: element.label, highlights: [[0, element.label.length]] },
+                vscode.TreeItemCollapsibleState.Expanded
+            );
             item.contextValue = `jarvisEntityCategory:${element.entityKind}`;
             return item;
         }
