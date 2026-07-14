@@ -145,12 +145,12 @@
         }
       ],
       "view/item/context": [
-        { "command": "jarvis.newProject", "when": "viewItem == jarvisEntityCategory:project", "group": "inline" },
-        { "command": "jarvis.newEvent", "when": "viewItem == jarvisEntityCategory:event", "group": "inline" },
-        { "command": "jarvis.filterProjectFolders", "when": "viewItem == jarvisEntityCategory:project && !jarvis.projectFilterActive", "group": "inline" },
-        { "command": "jarvis.filterProjectFoldersActive", "when": "viewItem == jarvisEntityCategory:project && jarvis.projectFilterActive", "group": "inline" },
-        { "command": "jarvis.filterFutureEvents", "when": "viewItem == jarvisEntityCategory:event && !jarvis.eventFilterActive", "group": "inline" },
-        { "command": "jarvis.filterFutureEventsActive", "when": "viewItem == jarvisEntityCategory:event && jarvis.eventFilterActive", "group": "inline" },
+        { "command": "jarvis.filterProjectFolders", "when": "viewItem == jarvisEntityCategory:project && !jarvis.projectFilterActive", "group": "inline@1" },
+        { "command": "jarvis.filterProjectFoldersActive", "when": "viewItem == jarvisEntityCategory:project && jarvis.projectFilterActive", "group": "inline@1" },
+        { "command": "jarvis.newProject", "when": "viewItem == jarvisEntityCategory:project", "group": "inline@2" },
+        { "command": "jarvis.filterFutureEvents", "when": "viewItem == jarvisEntityCategory:event && !jarvis.eventFilterActive", "group": "inline@1" },
+        { "command": "jarvis.filterFutureEventsActive", "when": "viewItem == jarvisEntityCategory:event && jarvis.eventFilterActive", "group": "inline@1" },
+        { "command": "jarvis.newEvent", "when": "viewItem == jarvisEntityCategory:event", "group": "inline@2" },
         { "command": "jarvis.revealInExplorer", "when": "viewItem =~ /^jarvis(Project|Event)$/", "group": "context-actions" },
         { "command": "jarvis.revealInOS", "when": "viewItem =~ /^jarvis(Project|Event)$/", "group": "context-actions" },
         { "command": "jarvis.openInTerminal", "when": "viewItem =~ /^jarvis(Project|Event)$/", "group": "context-actions" },
