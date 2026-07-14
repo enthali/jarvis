@@ -6,6 +6,33 @@ import type { GenericTreeFactory } from './treeFactory';
 import type { TreeNode } from '../sessions/yamlScanner';
 
 /**
+ * Convert ASCII letters/digits to Unicode Mathematical Sans-Serif Bold
+ * codepoints, so a plain string renders visually bold in any theme/font —
+ * VS Code's TreeItem API has no font-weight attribute (REQ_EXP_UNIFIEDTREE
+ * AC-13). Non-alphanumeric characters (spaces, punctuation) pass through
+ * unchanged.
+ */
+function toBoldUnicode(text: string): string {
+    const boldUpperA = 0x1D5D4; // Mathematical Sans-Serif Bold Capital A
+    const boldLowerA = 0x1D5EE; // Mathematical Sans-Serif Bold Small a
+    const boldDigit0 = 0x1D7EC; // Mathematical Sans-Serif Bold Digit Zero
+    let result = '';
+    for (const ch of text) {
+        const code = ch.codePointAt(0)!;
+        if (code >= 65 && code <= 90) {
+            result += String.fromCodePoint(boldUpperA + (code - 65));
+        } else if (code >= 97 && code <= 122) {
+            result += String.fromCodePoint(boldLowerA + (code - 97));
+        } else if (code >= 48 && code <= 57) {
+            result += String.fromCodePoint(boldDigit0 + (code - 48));
+        } else {
+            result += ch;
+        }
+    }
+    return result;
+}
+
+/**
  * Category node for grouping entities by kind in the unified tree.
  */
 export interface CategoryNode {
@@ -107,11 +134,11 @@ export class UnifiedEntityTreeProvider implements vscode.TreeDataProvider<Unifie
 
     getTreeItem(element: UnifiedRootNode): vscode.TreeItem {
         if ('entityKind' in element) {
-            // Category node — bold label via full-range highlight (REQ_EXP_UNIFIEDTREE AC-13)
-            const item = new vscode.TreeItem(
-                { label: element.label, highlights: [[0, element.label.length]] },
-                vscode.TreeItemCollapsibleState.Expanded
-            );
+            // Category node — bold label (REQ_EXP_UNIFIEDTREE AC-13). VS Code's
+            // TreeItem API has no real bold attribute; TreeItemLabel.highlights
+            // renders as a search-match highlight color, not font weight, so we
+            // substitute Unicode Mathematical Sans-Serif Bold characters instead.
+            const item = new vscode.TreeItem(toBoldUnicode(element.label), vscode.TreeItemCollapsibleState.Expanded);
             item.contextValue = `jarvisEntityCategory:${element.entityKind}`;
             return item;
         }

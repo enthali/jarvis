@@ -877,9 +877,13 @@ Explorer Design Specifications
       }
 
    **``getTreeItem(element)``:** for category nodes, returns a
-   ``vscode.TreeItem`` with ``label`` (as a ``TreeItemLabel`` with
-   ``highlights: [[0, label.length]]`` — renders the full label in **bold**,
-   REQ_EXP_UNIFIEDTREE AC-13), ``contextValue: 'jarvisEntityCategory:' + entityKind``,
+   ``vscode.TreeItem`` with ``label`` passed through ``toBoldUnicode()`` —
+   VS Code's ``TreeItem`` API has no font-weight attribute, and
+   ``TreeItemLabel.highlights`` renders as a search-match highlight color
+   (not bold), so bold rendering (REQ_EXP_UNIFIEDTREE AC-13) is achieved by
+   substituting Unicode Mathematical Sans-Serif Bold codepoints for ASCII
+   letters/digits (non-alphanumeric characters pass through unchanged) —
+   ``contextValue: 'jarvisEntityCategory:' + entityKind``,
    ``collapsibleState: vscode.TreeItemCollapsibleState.Expanded`` (or
    ``None`` if that kind's provider returns an empty root — so the empty
    category shows no expand arrow per AC-4). For any other node, delegates
