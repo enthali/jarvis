@@ -50,7 +50,8 @@ Stable Session Open UAT Design Specifications
         - Chat input receives prompt containing absolute path to context.md
       * - T-5 (rename)
         - Run command on "alpha" with no existing session
-        - Chat session tab is renamed to "alpha" after creation      * - T-6 (Project fresh, Main placement)
+        - Chat session tab is renamed to "alpha" after creation
+      * - T-6 (Project fresh, Main placement)
         - Fresh session from Project tree; observe column placement
         - New chat tab appears in column 1 (Main)
       * - T-7 (Event fresh, Main placement)
