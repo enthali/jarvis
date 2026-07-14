@@ -202,5 +202,11 @@
     "sender": "Session 1",
     "text": "ping",
     "timestamp": "2026-07-03T17:50:41.833Z"
+  },
+  {
+    "destination": "Session 1",
+    "sender": "Jarvis",
+    "text": "Your Actor has been migrated to the new storage convention.\nNew folder: .jarvis/actors/Session 1/\ncontext.md: .jarvis/actors/Session 1/context.md",
+    "timestamp": "2026-07-13T16:42:42.952Z"
   }
 ]
