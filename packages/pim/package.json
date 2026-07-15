@@ -2,7 +2,7 @@
   "name": "jarvis-pim",
   "displayName": "Jarvis PIM",
   "description": "Jarvis Personal Information Manager — projects, events, categories, tasks",
-  "version": "0.17.2",
+  "version": "0.17.3",
   "publisher": "enthali",
   "icon": "resources/jarvis-128.png",
   "engines": {

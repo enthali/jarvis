@@ -561,6 +561,7 @@ Release Design Specifications
       ``enthali.jarvis-pim``          ``jarvis-pim-{version}.vsix``
       ``enthali.jarvis-recorder``     ``jarvis-recorder-{version}.vsix``
       ``enthali.jarvis-mcp``          ``jarvis-mcp-{version}.vsix``
+      ``enthali.jarvis-flow``         ``jarvis-flow-{version}.vsix``
       =============================== ======================================
 
    2. Collect installed ``enthali.jarvis*`` extension IDs via
