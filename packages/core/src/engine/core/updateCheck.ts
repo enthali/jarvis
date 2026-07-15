@@ -128,6 +128,7 @@ export async function checkForUpdates(
             'enthali.jarvis-pim':      `jarvis-pim-${newVersion}.vsix`,
             'enthali.jarvis-recorder': `jarvis-recorder-${newVersion}.vsix`,
             'enthali.jarvis-mcp':      `jarvis-mcp-${newVersion}.vsix`,
+            'enthali.jarvis-flow':     `jarvis-flow-${newVersion}.vsix`,
         };
 
         const installedIds = vscode.extensions.all
