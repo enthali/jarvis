@@ -1,5 +1,15 @@
 # Release Notes
 
+## v0.17.3 — jarvis-flow Self-Update Fix
+
+*2026-07-15*
+
+### Fixes
+
+- **flow-updater-fix** (GH #30): Fixes a silent omission in the "Download & Install" self-update flow where `enthali.jarvis-flow` was missing from the extension-ID → VSIX-filename mapping in `updateCheck.ts`. Users who clicked "Download & Install" after an update notification had jarvis-core/pim/mcp/recorder updated but jarvis-flow silently skipped. Also adds the missing `jarvis-flow` row to `SPEC_REL_UPDATENOTIFY`'s VSIX mapping table.
+
+---
+
 ## v0.17.2 — Entity File Children Regression Fix + Bold Category Labels
 
 *2026-07-14*
