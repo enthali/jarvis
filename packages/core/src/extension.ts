@@ -488,6 +488,11 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         treeDataProvider: unifiedProvider,
         showCollapseAll: true,
     });
+    // Dynamic title: show first workspace folder name (the one scanned for .jarvis)
+    const firstFolder = vscode.workspace.workspaceFolders?.[0];
+    if (firstFolder) {
+        entitiesView.title = `${firstFolder.name} Entities`;
+    }
     context.subscriptions.push(entitiesView, unifiedProvider);
 
     // Trigger initial scan for registered kinds

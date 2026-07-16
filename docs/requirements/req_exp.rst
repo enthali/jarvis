@@ -440,6 +440,17 @@ Explorer Requirements
      Mathematical Sans-Serif Bold codepoints for the label's ASCII
      letters/digits (non-alphanumeric characters unchanged) — no other
      visual property of the category ``TreeItem`` changes.
+   * AC-14: (dynamic view title) The ``jarvisEntities`` ``TreeView``'s
+     ``title`` SHALL be set at activation time to
+     ``"${firstWorkspaceFolder.name} Entities"``, using
+     ``vscode.workspace.workspaceFolders[0]`` — the same folder
+     ``KindDrivenScanner`` scans for ``.jarvis`` — so the title reflects
+     which project's entities are shown, at a glance, in multi-project
+     setups with per-project themes/windows. If no workspace folder is
+     open, the static ``"Jarvis Entities"`` title from ``package.json``
+     remains unchanged. The title is set once at activation and is NOT
+     re-evaluated on workspace-folder changes (multi-root add/remove is
+     out of scope).
 
 
 .. req:: Live Filter Entities in Tree
