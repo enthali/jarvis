@@ -1,11 +1,12 @@
-// Implementation: SPEC_ENG_TREEFACTORY, SPEC_EXP_ENTITY_FILE_CHILDREN
-// Requirements: REQ_ENG_TREEFACTORY, REQ_EXP_ENTITY_FILE_CHILDREN
+// Implementation: SPEC_ENG_TREEFACTORY, SPEC_ENT_ENTITY_FILE_CHILDREN
+// Requirements: REQ_ENG_TREEFACTORY, REQ_ENT_ENTITY_FILE_CHILDREN
 
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as fs from 'fs';
 import type { EntityKindConfig, SubtreeNode, TreeItemDecorator } from './types';
-import type { TreeNode, KindDrivenScanner } from '../sessions/yamlScanner';
-import { getEntityFileChildren } from '../sessions/yamlScanner';
+import type { TreeNode, LeafNode, KindDrivenScanner } from '../sessions/yamlScanner';
+import { resolveAgentFileChild } from '../sessions/agentDiscovery';
 
 export type { TreeItemDecorator } from './types';
 
@@ -19,8 +20,67 @@ export interface ChildTreeNode {
     parentKind: string;
 }
 
-/** Union of scanner TreeNodes and internal child nodes for the provider. */
-export type ProviderNode = TreeNode | ChildTreeNode;
+// actor-owned-files-tree CR (SPEC_ENT_ENTITY_FILE_CHILDREN): provider-local
+// node types for the Agent/Files category layer. Deliberately NOT added to
+// yamlScanner.ts's exported TreeNode union — see the spec's design rationale
+// (avoids widening the v0.15.1 collectLeaves() silent-gap risk class to every
+// TreeNode-typed if/else consumer). They live here alongside ChildTreeNode,
+// exactly where the existing provider-local subtree variant already lives.
+
+/** Category node grouping "Agent"/"Files" (and future categories) under a leaf. */
+export interface EntityFileCategoryNode {
+    kind: 'entityFileCategory';
+    category: 'agent' | 'files';   // extension point: add 'recent' here later
+    label: string;                  // "Agent" | "Files"
+    entityFolder: string;           // absolute path to the entity's own folder
+    entityId: string;               // owning leaf id (convention file path) — for Agent re-resolution
+}
+
+/** A file within the recursive "Files" listing, or the Agent category's synthetic child. */
+export interface EntityFileNode {
+    kind: 'entityFile';
+    filePath: string;   // absolute path, forward-slash normalized for tooltip
+    label: string;      // basename (the parent "Agent" category node already provides context)
+}
+
+/** A subfolder within the recursive "Files" listing. */
+export interface EntityFileFolderNode {
+    kind: 'entityFileFolder';
+    folderPath: string; // absolute path
+    label: string;      // basename
+}
+
+export type EntityFilesSubtreeNode =
+    EntityFileCategoryNode | EntityFileNode | EntityFileFolderNode;
+
+/** Union of scanner TreeNodes, internal child nodes, and entity-file subtree nodes. */
+export type ProviderNode = TreeNode | ChildTreeNode | EntityFilesSubtreeNode;
+
+/**
+ * Recursive alphabetical scan of an entity's own folder (files and folders
+ * sorted together, hidden entries included — fs.promises.readdir returns
+ * dot-prefixed entries by default). Fail-open: an unreadable folder yields an
+ * empty listing rather than an error (SPEC_ENT_ENTITY_FILE_CHILDREN).
+ */
+async function scanEntityFilesRecursive(
+    folder: string
+): Promise<(EntityFileNode | EntityFileFolderNode)[]> {
+    let entries: fs.Dirent[];
+    try {
+        entries = await fs.promises.readdir(folder, { withFileTypes: true });
+    } catch {
+        return []; // fail-open: unreadable folder → empty listing, no error
+    }
+    const sorted = [...entries].sort((a, b) =>
+        a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+    );
+    return sorted.map(entry => {
+        const fullPath = path.join(folder, entry.name);
+        return entry.isDirectory()
+            ? { kind: 'entityFileFolder' as const, folderPath: fullPath, label: entry.name }
+            : { kind: 'entityFile' as const, filePath: fullPath, label: entry.name };
+    });
+}
 
 /**
  * Generic tree-provider factory driven by registered entity kinds.
@@ -210,8 +270,38 @@ export class GenericTreeDataProvider implements vscode.TreeDataProvider<Provider
             return item;
         }
 
-        // FileNode — entity file child (SPEC_EXP_ENTITY_FILE_CHILDREN)
+        // FileNode — entity file child (legacy TreeNode variant, retained for
+        // TreeNode-consumer compatibility; no longer produced by this provider
+        // since actor-owned-files-tree replaced the fixed 3-file list).
         if (element.kind === 'file') {
+            const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.None);
+            item.tooltip = element.filePath.replace(/\\/g, '/');
+            item.contextValue = 'jarvisEntityFile';
+            item.command = {
+                command: 'jarvis.openEntityFile',
+                title: 'Open File',
+                arguments: [element],
+            };
+            return item;
+        }
+
+        // actor-owned-files-tree CR (SPEC_ENT_ENTITY_FILE_CHILDREN): category node
+        if (element.kind === 'entityFileCategory') {
+            const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.Collapsed);
+            item.contextValue = `jarvisEntityFileCategory:${element.category}`;
+            return item;
+        }
+
+        // Recursive "Files" subfolder — expandable, scanned on demand
+        if (element.kind === 'entityFileFolder') {
+            const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.Collapsed);
+            item.tooltip = element.folderPath.replace(/\\/g, '/');
+            item.contextValue = 'jarvisEntityFileFolder';
+            return item;
+        }
+
+        // File child (either category) — leaf, click opens via jarvis.openEntityFile
+        if (element.kind === 'entityFile') {
             const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.None);
             item.tooltip = element.filePath.replace(/\\/g, '/');
             item.contextValue = 'jarvisEntityFile';
@@ -227,8 +317,9 @@ export class GenericTreeDataProvider implements vscode.TreeDataProvider<Provider
         const entity = this._scanner.getEntity(element.id);
         const name = entity ? entity.name : path.basename(path.dirname(element.id));
 
-        // SPEC_EXP_ENTITY_FILE_CHILDREN: leaf is always expandable — file children
-        // (context.md + YAML, at minimum) guarantee at least 2 children exist.
+        // SPEC_ENT_ENTITY_FILE_CHILDREN: leaf is always expandable — the
+        // "Files" category child is always present (and "Agent" conditionally),
+        // so at least one category node always exists under a leaf.
         const collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
 
         const item = new vscode.TreeItem(this._config.label(name, { data: (entity ?? {}) as Record<string, unknown> }), collapsibleState);
@@ -292,7 +383,22 @@ export class GenericTreeDataProvider implements vscode.TreeDataProvider<Provider
             // File nodes are leaves — no children
             return [];
         }
-        // Leaf node — file children (always) + hook-based children (if any)
+        // actor-owned-files-tree CR (SPEC_ENT_ENTITY_FILE_CHILDREN):
+        // category / recursive-folder / file expansion — computed on-the-fly.
+        if (element.kind === 'entityFileCategory') {
+            if (element.category === 'agent') {
+                return this._getAgentCategoryChildren(element);
+            }
+            // category === 'files'
+            return scanEntityFilesRecursive(element.entityFolder);
+        }
+        if (element.kind === 'entityFileFolder') {
+            return scanEntityFilesRecursive(element.folderPath);
+        }
+        if (element.kind === 'entityFile') {
+            return []; // leaf — no further descent
+        }
+        // Leaf node — category children (always) + hook-based children (if any)
         if (element.kind === 'leaf') {
             return this._getLeafChildren(element);
         }
@@ -370,20 +476,51 @@ export class GenericTreeDataProvider implements vscode.TreeDataProvider<Provider
         return filtered;
     }
 
-    private async _getLeafChildren(element: import('../sessions/yamlScanner').LeafNode): Promise<ProviderNode[]> {
+    private async _getLeafChildren(element: LeafNode): Promise<ProviderNode[]> {
         const entity = this._scanner.getEntity(element.id);
-        const fileChildren: ProviderNode[] = await getEntityFileChildren(element, entity);
+        const entityFolder = path.dirname(element.id);
+        const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
+
+        // Agent category (conditional) then Files category (always), on-the-fly
+        // per SPEC_ENT_ENTITY_FILE_CHILDREN AC-2/AC-4/AC-5. Never cached in the
+        // scanner or in YamlScanner's own tree structures.
+        const categoryNodes: EntityFileCategoryNode[] = [];
+        const agentFile = await resolveAgentFileChild(entity?.agent, workspaceRoot);
+        if (agentFile) {
+            categoryNodes.push({
+                kind: 'entityFileCategory', category: 'agent', label: 'Agent',
+                entityFolder, entityId: element.id,
+            });
+        }
+        categoryNodes.push({
+            kind: 'entityFileCategory', category: 'files', label: 'Files',
+            entityFolder, entityId: element.id,
+        });
 
         let hookChildren: ProviderNode[] = [];
         if (this._config.getChildren) {
-            const name = entity ? entity.name : path.basename(path.dirname(element.id));
+            const name = entity ? entity.name : path.basename(entityFolder);
             const entityData = { name, filePath: element.id, data: (entity ?? {}) as Record<string, unknown> };
             const descriptors = this._config.getChildren(entityData);
             if (descriptors && descriptors.length > 0) {
                 hookChildren = descriptors.map(d => ({ kind: 'child' as const, descriptor: d, parentKind: this._config.kind }));
             }
         }
-        return [...fileChildren, ...hookChildren];
+        return [...categoryNodes, ...hookChildren];
+    }
+
+    /**
+     * Re-resolves the "Agent" category's single synthetic file child. Re-resolved
+     * on every expansion (cheap: one module-level cache lookup + array find) rather
+     * than cached, per SPEC_ENT_ENTITY_FILE_CHILDREN AC-2c.
+     */
+    private async _getAgentCategoryChildren(element: EntityFileCategoryNode): Promise<ProviderNode[]> {
+        const entity = this._scanner.getEntity(element.entityId);
+        const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
+        const agentFile = await resolveAgentFileChild(entity?.agent, workspaceRoot);
+        return agentFile
+            ? [{ kind: 'entityFile' as const, filePath: agentFile.filePath, label: agentFile.label }]
+            : [];
     }
 
     getParent(_element: ProviderNode): ProviderNode | null {

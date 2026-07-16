@@ -473,36 +473,101 @@ generic/user-facing, ``ENG`` = kind-agnostic plumbing, no US level).
    :links: US_ENT_ENTITY_FILES_TREE; US_ACT_ACTORS; US_ENT_ENTITYPARITY; REQ_EXP_TREEVIEW; REQ_MSG_EDITORPLACEMENT
 
    **Description:**
-   Actor, Project, and Event tree leaf nodes SHALL be expandable and show
-   up to 3 file children: ``context.md``, the entity's YAML config file, and
-   the agent file (when configured). This is purely additive to existing
-   leaf-node behavior — inline icons and click-to-chat semantics are
-   unchanged (see ``REQ_ENT_ENTITY_TREECLICK`` AC-4, ``REQ_ACT_TREECLICK``
-   AC-7, ``REQ_EXP_TREEVIEW`` AC-11).
+   Actor, Project, and Event tree leaf nodes SHALL be expandable into two
+   category child nodes — "Agent" (conditional) and "Files" (always) — where
+   "Files" recursively reflects every file/folder actually present in the
+   entity's own folder. This is purely additive to existing leaf-node
+   behavior — inline icons and click-to-chat semantics are unchanged (see
+   ``REQ_ENT_ENTITY_TREECLICK`` AC-4, ``REQ_ACT_TREECLICK`` AC-7,
+   ``REQ_EXP_TREEVIEW`` AC-11).
+
+   **(actor-owned-files-tree CR):** this requirement is rewritten. The
+   previous design (AC-2 below, superseded) exposed a fixed, always-flat
+   3-child list (``context.md``, YAML config, agent file) as direct
+   siblings of the leaf node. That fixed list is **replaced** — not kept
+   alongside — by a category layer with a recursive, folder-driven "Files"
+   listing. The rationale: a fixed list cannot represent files a user
+   actually has (notes, generated artifacts, subfolders) and silently hides
+   them; "all files in the entity's own folder" makes the tree a true,
+   complete mirror of that folder's contents.
 
    **Acceptance Criteria:**
 
    * AC-1: Every project, event, and actor leaf node SHALL have
      ``collapsibleState = Collapsed``.
-   * AC-2: Each entity leaf node's children SHALL be, in order: ``context.md``,
-     the YAML config file (``project.yaml`` / ``event.yaml`` / ``session.yaml``),
-     and the agent file.
-   * AC-3: The agent file child SHALL be omitted when the entity has no
-     configured agent file (fail-open, no error).
-   * AC-4: Each file child ``TreeItem`` SHALL have ``tooltip`` set to the full
-     absolute filesystem path of that file.
-   * AC-5: Each file child ``TreeItem.command`` SHALL open that file in the
-     VS Code editor (``preview: false``), targeting the Docs placement
-     column (view column 2, fixed — ``REQ_MSG_EDITORPLACEMENT`` AC-2). If
-     the file is already open in a different column (including one the
-     user moved it to manually), the existing tab SHALL be focused in
-     place rather than moved (``REQ_MSG_EDITORPLACEMENT`` AC-4).
-   * AC-6: File child nodes SHALL have ``collapsibleState = None`` (no further
-     descent) and a distinct ``contextValue`` (e.g. ``jarvisEntityFile``) so
-     they are excluded from entity-node context-menu actions.
-   * AC-7: File children SHALL be shown regardless of whether the target file
-     currently exists on disk; missing-file click behavior is specified at
-     Level 2 design.
+   * AC-2 (superseded — kept for traceability): ~~Each entity leaf node's
+     children SHALL be, in order: ``context.md``, the YAML config file
+     (``project.yaml`` / ``event.yaml`` / ``session.yaml``), and the agent
+     file.~~ Replaced by AC-2a/AC-2b below.
+   * AC-2a: Each entity leaf node's direct children SHALL be, in order:
+     an "Agent" category node (only when AC-2c's condition holds) followed
+     by a "Files" category node (always present). Both category nodes
+     SHALL have ``collapsibleState = Collapsed`` and be independently
+     expandable/collapsible.
+   * AC-2b: The "Files" category node's children SHALL be computed by
+     recursively listing the entity's own folder (the directory containing
+     its YAML config file): every file and subfolder present, sorted
+     alphabetically (files and subfolders interleaved in one alphabetical
+     order — not folders-first), including hidden (dot-prefixed) entries.
+     Subfolders SHALL themselves be expandable and recurse using the same
+     listing rule.
+   * AC-2c: The "Agent" category node SHALL be shown if and only if the
+     entity's ``agent`` field is a non-empty string AND it resolves (via the
+     existing frontmatter-identity matching already used for agent
+     discovery) to an agent file that exists. When shown, it SHALL contain
+     exactly one synthetic child node labelled ``Agent File: <filename>``,
+     where ``<filename>`` is the basename of the resolved
+     ``.github/agents/*.agent.md`` file. When the condition is not met, the
+     "Agent" category node is omitted entirely (fail-open, no error) — not
+     shown empty and not shown with a broken/missing child.
+   * AC-3: Each file child ``TreeItem`` SHALL have ``tooltip`` set to the
+     full absolute filesystem path of that file (forward-slash normalized).
+     Folder children (within "Files") SHALL likewise show their full path
+     as tooltip.
+   * AC-4: Clicking a file child (in either category) SHALL open that file:
+
+     a. If its extension is ``.md`` (case-insensitive; this includes
+        ``context.md`` and any ``*.agent.md`` — the previous design's
+        carve-out that excluded agent files from Markdown Preview is
+        reversed by this CR), it SHALL open as rendered **Markdown
+        Preview** (``markdown.showPreview``), targeting the Docs placement
+        column (view column 2, fixed — ``REQ_MSG_EDITORPLACEMENT`` AC-2) on
+        first open.
+     b. Otherwise, it SHALL open in VS Code's standard editor **preview
+        mode** (``preview: true`` — single click reuses the existing
+        preview tab, double-click or edit pins it), targeting the same
+        fixed Docs column. If the file is already open in a different
+        column (including one the user moved it to manually), the existing
+        tab SHALL be focused in place rather than moved
+        (``REQ_MSG_EDITORPLACEMENT`` AC-4) — same placement guarantee as
+        before, only the preview-vs-pinned tab behavior for non-``.md``
+        files is new.
+
+   * AC-5: File child nodes SHALL have ``collapsibleState = None`` (no
+     further descent) and a distinct ``contextValue`` (``jarvisEntityFile``)
+     so they are excluded from entity-node context-menu actions. Category
+     nodes SHALL have their own distinct ``contextValue``
+     (``jarvisEntityFileCategory:agent`` / ``jarvisEntityFileCategory:files``
+     — the ``:<category>`` suffix pattern mirrors the unified entity tree's
+     ``jarvisEntityCategory:<kind>`` convention and makes adding a future
+     category, e.g. "Recently Modified", a drop-in extension). Folder
+     children within "Files" SHALL have ``collapsibleState = Collapsed`` and
+     their own ``contextValue`` (``jarvisEntityFileFolder``).
+   * AC-6: File children SHALL be shown regardless of whether the target
+     file currently exists on disk at click-time (the "Agent" category's
+     existence check at AC-2c is evaluated once per rescan/cache-population,
+     not re-verified on every click — see Level 2 design for the resulting
+     fail-open click behavior when a file is removed after that point).
+   * AC-7: Right-click "Copy Path" / "Copy Full Path" SHALL continue to
+     work, unchanged, for every file/folder child produced by this
+     requirement.
+   * AC-8: The "Files" category's listing SHALL be recomputed fresh on
+     every expansion (no caching in the entity scanner), so it reflects the
+     current on-disk state whenever the node is (re-)expanded, and reflects
+     changes whenever the wider tree refreshes (the existing scan-interval
+     rescan or manual "Jarvis: Rescan" command) — reactivity is eventually
+     consistent within that interval; a dedicated file-system watcher for
+     immediate reactivity is explicitly deferred, not part of this CR.
 
 
 

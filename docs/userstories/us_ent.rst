@@ -309,23 +309,58 @@ Jarvis Entity kinds (Project / Event / Actor). Kind-agnostic engine plumbing
 
    **As a** Jarvis User,
    **I want** each Actor, Project, and Event node in the Jarvis Explorer to
-   expand and show its core files (``context.md``, the YAML config, and the
-   agent file when one is configured) as clickable tree items with tooltips,
-   **so that** I can open any of these files directly by clicking on the file
-   child, without leaving the tree.
+   expand into an "Agent" category (when an agent is bound) and a "Files"
+   category showing every file actually present in the entity's own folder,
+   recursively,
+   **so that** I can browse and open any file that belongs to that entity
+   directly from the tree, without leaving it, and without the list being
+   artificially limited to a fixed set of "known" files.
+
+   **(actor-owned-files-tree CR):** this story is rewritten from its
+   original fixed-3-file-list scope (``context.md``, YAML config, agent
+   file, always flat siblings) to a fully recursive, folder-driven listing
+   grouped under category nodes. The fixed list is **replaced**, not
+   supplemented.
 
    **Acceptance Criteria:**
 
    * AC-1: Every Actor, Project, and Event leaf node is expandable and shows
-     up to 3 file children: ``context.md``, the entity's YAML config file
-     (``session.yaml`` / ``project.yaml`` / ``event.yaml``), and the agent
-     file.
-   * AC-2: The agent file child is shown only when the entity has a
-     configured agent file; otherwise it is omitted (fail-open, no error).
-   * AC-3: Each file child shows a tooltip with the full filesystem path of
-     that file.
-   * AC-4: Clicking a file child opens that file directly in the VS Code
-     editor.
-   * AC-5: This is purely additive — existing inline icon buttons (YAML,
-     context.md) and existing entity-node click behavior (open agent session
-     / open chat) are unchanged by this feature.
+     up to two category child nodes, each independently collapsible:
+
+     a. **"Agent"** — shown only when the entity's ``agent`` field is set
+        AND it resolves to an existing agent file (same "present = has
+        content" rule used elsewhere in the Explorer, e.g. the unified
+        entity tree's category nodes). Contains exactly one synthetic child,
+        labelled ``Agent File: <filename>``, pointing at the resolved
+        ``.github/agents/<file>.agent.md``.
+     b. **"Files"** — always shown (every entity has at least its own YAML
+        config file). Contains a live, recursive listing of every file and
+        subfolder actually present in the entity's own folder, sorted
+        alphabetically (files and folders interleaved in one alphabetical
+        order, not folders-first), including hidden (dot-prefixed) entries.
+        Subfolders are themselves expandable and recurse the same way.
+
+   * AC-2: ``.md`` files (in either category, including ``context.md`` and
+     the Agent category's ``*.agent.md`` synthetic node) open as rendered
+     **Markdown Preview**, not the raw text editor.
+   * AC-3: Non-``.md`` files open in VS Code's standard **preview mode**
+     (single click reuses the same preview tab; double-click, or editing,
+     pins it) — ordinary VS Code Explorer browsing behavior, avoiding tab
+     explosion when browsing many files.
+   * AC-4: Both open destinations are the fixed Docs column (column 2),
+     consistent with existing entity-file placement
+     (``REQ_MSG_EDITORPLACEMENT``) — unchanged from the prior fixed-list
+     behavior.
+   * AC-5: Each file/folder child shows a tooltip with its full filesystem
+     path.
+   * AC-6: Right-click "Copy Path" / "Copy Full Path" continue to work
+     exactly as before on every file child (unchanged by this CR).
+   * AC-7: The Files category's listing updates when files are added to or
+     removed from the entity's own folder or any of its subfolders — this
+     is **eventually consistent within the existing scan interval** (or
+     immediately after a manual "Jarvis: Rescan"), not instantaneous; a
+     dedicated file-system watcher for immediate reactivity is explicitly
+     deferred (not part of this CR).
+   * AC-8: This continues to be purely additive at the entity-node level —
+     existing inline icon buttons and existing entity-node click behavior
+     (open agent session / open chat) are unchanged by this feature.

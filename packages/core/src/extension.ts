@@ -242,11 +242,11 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     }
 
     /** Docs-target open (always column 2, focus-in-place if already open elsewhere). */
-    async function openAtDocs(uri: vscode.Uri): Promise<void> {
+    async function openAtDocs(uri: vscode.Uri, options?: { preview?: boolean }): Promise<void> {
         const existing = findFileTab(uri.fsPath);
         const viewColumn = existing ? existing.group.viewColumn : DOCS_COLUMN;
         await vscode.commands.executeCommand('vscode.open', uri, {
-            preview: false,
+            preview: options?.preview ?? false,
             viewColumn,
         });
     }
@@ -791,26 +791,24 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     // Open entity file command (SPEC_ENT_ENTITY_FILE_CHILDREN) — fail-open, no auto-creation
     const openEntityFileCommand = vscode.commands.registerCommand(
         'jarvis.openEntityFile',
-        async (node: FileNode) => {
+        async (node: { filePath: string; label: string }) => {
             const uri = vscode.Uri.file(node.filePath);
             try {
                 await vscode.workspace.openTextDocument(uri); // validates existence first
-                if (path.basename(node.filePath) === 'context.md') {
-                    // ui-improvements CR: render context.md as Markdown preview
-                    // instead of the raw text editor. Exact-basename check, NOT
-                    // an extension check — the agent-file child is also .md
-                    // (*.agent.md) and must continue to open as raw text.
-                    // MECE finding fix: pass DOCS_COLUMN explicitly so the
-                    // preview still honors the Docs (column 2) placement
-                    // guarantee (REQ_MSG_EDITORPLACEMENT AC-2) on first open;
-                    // markdown.showPreview's own built-in behavior reuses an
-                    // already-open preview tab for the same file on subsequent
-                    // invocations (VS Code framework behavior, not custom logic).
+                if (path.extname(node.filePath).toLowerCase() === '.md') {
+                    // actor-owned-files-tree CR: broadened from the prior
+                    // exact-basename ("context.md" only) check to any .md
+                    // extension — REQ_ENT_ENTITY_FILE_CHILDREN AC-4a now
+                    // deliberately includes *.agent.md (previously excluded).
+                    // DOCS_COLUMN passed explicitly so the preview honors the
+                    // Docs (column 2) placement guarantee; markdown.showPreview
+                    // reuses an already-open preview tab for the same file.
                     await vscode.commands.executeCommand('markdown.showPreview', uri, DOCS_COLUMN);
                 } else {
-                    // Docs placement: fixed column 2, focus-in-place if already open
-                    // elsewhere (SPEC_MSG_EDITORPLACEMENT)
-                    await openAtDocs(uri);
+                    // Non-.md: preview-mode (single-click tab reuse, double-click
+                    // pin), still fixed to the Docs column and focus-in-place if
+                    // open elsewhere (SPEC_MSG_EDITORPLACEMENT).
+                    await openAtDocs(uri, { preview: true });
                 }
             } catch {
                 vscode.window.showWarningMessage(`Jarvis: Cannot open file: ${node.filePath}`);
@@ -820,9 +818,23 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
 
     // Copy Path / Copy Full Path (SPEC_ENT_ENTITY_CONTEXTMENU) — shared path
     // resolution helper for file-child nodes and entity root nodes.
-    function resolveCopyPaths(node: FileNode | LeafNode): { folder: string; full: string } {
-        if (node.kind === 'file') {
+    // actor-owned-files-tree CR: widened to also accept the provider-local
+    // EntityFileNode/EntityFileFolderNode shapes (structurally compatible —
+    // filePath/folderPath + label). No behavior change: entity-file children
+    // carry contextValue 'jarvisEntityFile' (same menu bindings as the legacy
+    // FileNode), so only 'entityFile' actually reaches these commands today;
+    // 'entityFileFolder' is handled defensively for completeness.
+    type CopyPathNode =
+        | FileNode
+        | LeafNode
+        | { kind: 'entityFile'; filePath: string; label: string }
+        | { kind: 'entityFileFolder'; folderPath: string; label: string };
+    function resolveCopyPaths(node: CopyPathNode): { folder: string; full: string } {
+        if (node.kind === 'file' || node.kind === 'entityFile') {
             return { folder: path.dirname(node.filePath), full: node.filePath };
+        }
+        if (node.kind === 'entityFileFolder') {
+            return { folder: path.dirname(node.folderPath), full: node.folderPath };
         }
         // Entity root (LeafNode): node.id is the convention file's absolute
         // path (project.yaml/event.yaml/session.yaml) — the entity's own
@@ -834,7 +846,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
 
     const copyPathCommand = vscode.commands.registerCommand(
         'jarvis.copyPath',
-        async (node: FileNode | LeafNode) => {
+        async (node: CopyPathNode) => {
             const { folder } = resolveCopyPaths(node);
             await vscode.env.clipboard.writeText(folder);
         }
@@ -842,7 +854,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
 
     const copyFullPathCommand = vscode.commands.registerCommand(
         'jarvis.copyFullPath',
-        async (node: FileNode | LeafNode) => {
+        async (node: CopyPathNode) => {
             const { full } = resolveCopyPaths(node);
             await vscode.env.clipboard.writeText(full);
         }
@@ -851,7 +863,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     // Copy File Name (file-child nodes only, SPEC_ENT_ENTITY_CONTEXTMENU, ui-improvements CR)
     const copyFileNameCommand = vscode.commands.registerCommand(
         'jarvis.copyFileName',
-        async (node: FileNode) => {
+        async (node: { filePath: string }) => {
             await vscode.env.clipboard.writeText(path.basename(node.filePath));
         }
     );

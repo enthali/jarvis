@@ -145,40 +145,41 @@ describe('Project kind config + TaskBadgeDecorator (standalone expectations)', (
     });
 
     describe('task subtree (getChildren for entity leaf)', () => {
-        it('entity with tasks produces file children + 2 groups: open + completed', async () => {
+        it('entity with tasks produces Files category + 2 groups: open + completed', async () => {
             const children = await provider.getChildren(projectLeaf1) as ProviderNode[];
-            expect(children).toHaveLength(4);
-            expect(children[0].kind).toBe('file');
-            expect(children[1].kind).toBe('file');
+            // No agent on test entities → only the Files category prefixes the hooks.
+            expect(children).toHaveLength(3);
+            expect(children[0].kind).toBe('entityFileCategory');
+            expect(children[1].kind).toBe('child');
             expect(children[2].kind).toBe('child');
-            expect(children[3].kind).toBe('child');
         });
 
         it('open group label includes count', async () => {
             const children = await provider.getChildren(projectLeaf1) as ProviderNode[];
-            const openGroup = provider.getTreeItem(children[2]);
+            const openGroup = provider.getTreeItem(children[1]);
             expect(openGroup.label).toBe('Open Tasks (2)');
         });
 
         it('completed group label includes count', async () => {
             const children = await provider.getChildren(projectLeaf1) as ProviderNode[];
-            const completedGroup = provider.getTreeItem(children[3]);
+            const completedGroup = provider.getTreeItem(children[2]);
             expect(completedGroup.label).toBe('Completed Tasks (1)');
         });
 
         it('task leaf renders with correct label and command', async () => {
             const children = await provider.getChildren(projectLeaf1) as ProviderNode[];
-            const openChildren = provider.getChildren(children[2]) as ProviderNode[];
+            const openChildren = provider.getChildren(children[1]) as ProviderNode[];
             expect(openChildren.length).toBeGreaterThan(0);
             const taskItem = provider.getTreeItem(openChildren[0]);
             expect(taskItem.command?.command).toBe('vscode.openWith');
             expect(taskItem.contextValue).toBe('jarvisTask');
         });
 
-        it('entity without tasks returns only file children', async () => {
+        it('entity without tasks returns only the Files category', async () => {
             const children = await provider.getChildren(projectLeafNoTasks) as ProviderNode[];
-            expect(children).toHaveLength(2);
-            expect(children.every(c => c.kind === 'file')).toBe(true);
+            expect(children).toHaveLength(1);
+            expect(children[0].kind).toBe('entityFileCategory');
+            expect((children[0] as { category: string }).category).toBe('files');
         });
     });
 

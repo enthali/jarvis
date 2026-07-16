@@ -75,21 +75,21 @@ describe('Item 2: jarvis.copyFileName (SPEC_ENT_ENTITY_CONTEXTMENU AC-10)', () =
     });
 });
 
-describe('Item 3: context.md rendered preview (SPEC_ENT_ENTITY_FILE_CHILDREN AC-7 exception)', () => {
-    it('jarvis.openEntityFile branches on exact basename "context.md" to markdown.showPreview with explicit DOCS_COLUMN (MECE finding fix)', () => {
+describe('Item 3: .md rendered preview (SPEC_ENT_ENTITY_FILE_CHILDREN — actor-owned-files-tree CR)', () => {
+    it('jarvis.openEntityFile branches on .md EXTENSION to markdown.showPreview with explicit DOCS_COLUMN', () => {
         const idx = extensionSrc.indexOf("'jarvis.openEntityFile'");
         expect(idx).toBeGreaterThan(-1);
         const slice = extensionSrc.slice(idx, idx + 1700);
-        expect(slice).toContain("path.basename(node.filePath) === 'context.md'");
+        expect(slice).toContain("path.extname(node.filePath).toLowerCase() === '.md'");
         expect(slice).toContain("vscode.commands.executeCommand('markdown.showPreview', uri, DOCS_COLUMN)");
-        // Non-context.md branch still goes through openAtDocs
-        expect(slice).toContain('await openAtDocs(uri);');
+        // Non-.md branch goes through openAtDocs in preview mode
+        expect(slice).toContain('await openAtDocs(uri, { preview: true });');
     });
 
-    it('does not use an extension check (would incorrectly match *.agent.md)', () => {
+    it('uses an extension check (deliberately now includes *.agent.md), not the old exact-basename match', () => {
         const idx = extensionSrc.indexOf("'jarvis.openEntityFile'");
         const slice = extensionSrc.slice(idx, idx + 1700);
-        expect(slice).not.toMatch(/endsWith\(['"]\.md['"]\)/);
+        expect(slice).not.toContain("path.basename(node.filePath) === 'context.md'");
     });
 });
 
