@@ -45,14 +45,21 @@
         "command": "jarvis.openMessageFlow",
         "title": "Jarvis: Open Message Flow",
         "icon": "$(graph)"
+      },
+      {
+        "command": "jarvis.openMessageLog",
+        "title": "Jarvis: Open Message Log",
+        "icon": "$(list-unordered)"
       }
     ],
     "menus": {
       "commandPalette": [
-        { "command": "jarvis.openMessageFlow", "when": "config.jarvis.messages.enabled == true" }
+        { "command": "jarvis.openMessageFlow", "when": "config.jarvis.messages.enabled == true" },
+        { "command": "jarvis.openMessageLog", "when": "config.jarvis.messages.enabled == true" }
       ],
       "view/title": [
-        { "command": "jarvis.openMessageFlow", "when": "view == jarvisMessages", "group": "navigation@2" }
+        { "command": "jarvis.openMessageFlow", "when": "view == jarvisMessages", "group": "navigation@2" },
+        { "command": "jarvis.openMessageLog", "when": "view == jarvisMessages", "group": "navigation@3" }
       ]
     }
   }

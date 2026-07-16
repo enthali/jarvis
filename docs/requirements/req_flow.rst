@@ -258,3 +258,121 @@ Message Flow Visualization Requirements
      (e.g. stale data), the click SHALL be a silent no-op — consistent with
      the no-op-on-miss precedent established for label clicks elsewhere
      (``REQ_MSG_EDITORPLACEMENT`` AC-10).
+
+
+.. req:: Message Log Viewer Panel
+   :id: REQ_FLOW_LOGVIEWER
+   :status: draft
+   :priority: optional
+   :links: US_FLOW_LOGVIEWER; REQ_FLOW_PACKAGE; REQ_MSG_AUDITLOG; REQ_MSG_EDITORPLACEMENT
+
+   **Description:**
+   A command ``jarvis.openMessageLog`` SHALL create (or reveal, if already
+   open) a single ``vscode.WebviewPanel`` showing every entry of the
+   persistent audit log (``message-log.json``, ``REQ_MSG_AUDITLOG``),
+   newest first, with scroll-position-driven auto-refresh. This is the
+   read/browse half of the feature; ``REQ_FLOW_REQUEUE`` covers the
+   Requeue action.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``jarvis.openMessageLog`` SHALL create the panel on first call
+     and reveal the existing instance on subsequent calls — exactly one
+     panel instance ever exists (same singleton-panel pattern as
+     ``REQ_FLOW_WEBVIEWPANEL`` AC-1).
+   * AC-2: The panel SHALL open at the fixed Docs placement column (column
+     2, ``REQ_MSG_EDITORPLACEMENT`` AC-2) — same target as the chord
+     diagram.
+   * AC-3: An icon button on the ``jarvisMessages`` tree view's title bar
+     SHALL invoke the same command — same contribution point already used
+     for ``jarvis.openMessageFlow`` (``REQ_FLOW_WEBVIEWPANEL`` AC-3), a
+     second button alongside it, not a replacement.
+   * AC-4: If ``message-log.json`` does not exist or fails to parse, the
+     panel SHALL show an empty state (e.g. "No message history yet" /
+     "Enable message logging to populate this view") rather than an error
+     — same tolerant-empty-state precedent as ``REQ_FLOW_DATASOURCE`` AC-1.
+   * AC-5: Entries SHALL be listed newest first (reverse-chronological by
+     timestamp) — the opposite order from the chord diagram's data source
+     (``REQ_FLOW_DATASOURCE``'s ``entries`` array is chronological
+     ascending; the log viewer reverses it for display, not by changing
+     the underlying data-loading function).
+   * AC-6: Each entry SHALL display: sender, recipient (destination),
+     date/time formatted from the entry's ISO 8601 timestamp into a
+     human-readable form, and the message content, word-wrapped (not
+     truncated or scrollable-within-the-entry).
+   * AC-7: Auto-refresh SHALL be driven entirely by the webview's own
+     scroll position, with no separate toggle control:
+
+     a. While the list's scroll container is at ``scrollTop === 0``, the
+        panel SHALL poll for new entries every 5000 ms (matching
+        ``REQ_FLOW_WEBVIEWPANEL`` AC-2's existing poll interval) and
+        silently prepend any new entries found — no jump, no flash, no
+        loss of the user's (top) scroll position.
+     b. As soon as the user scrolls away from the top (``scrollTop > 0``),
+        polling SHALL pause — the currently rendered list SHALL NOT change
+        until the user returns to the top.
+     c. Scrolling back to ``scrollTop === 0`` manually, or clicking "Jump
+        to Top" (AC-8), SHALL reactivate polling AND trigger one immediate
+        refresh (not waiting for the next 5 s tick).
+
+   * AC-8: A "Jump to Top" button SHALL be visible only when the scroll
+     container is not at the top (``scrollTop > 0``); clicking it SHALL
+     scroll the list to the top and satisfy AC-7c.
+   * AC-9: Polling SHALL be skipped entirely while the panel is not
+     ``visible`` (backgrounded tab) — same resource-conscious precedent as
+     ``REQ_FLOW_WEBVIEWPANEL`` AC-2.
+   * AC-10: The panel's styling SHALL use VS Code's theme CSS variables
+     (``--vscode-editor-background``, ``--vscode-editor-foreground``,
+     ``--vscode-font-family``, etc.) for background/foreground/font, the
+     same approach already used by the chord-diagram webview
+     (``SPEC_FLOW_WEBVIEW``) — no hardcoded colors, so the panel matches
+     the user's active VS Code theme automatically, light or dark.
+
+
+.. req:: Message Requeue (Redelivery)
+   :id: REQ_FLOW_REQUEUE
+   :status: draft
+   :priority: optional
+   :links: US_FLOW_LOGVIEWER; REQ_FLOW_LOGVIEWER; REQ_MSG_QUEUE; REQ_MSG_AUDITLOG
+
+   **Description:**
+   A "Requeue" button on each log-viewer entry SHALL copy that message back
+   into the live message queue (``messages.json``), addressed to its
+   original recipient — a redelivery of a past message, not a new send.
+   This SHALL NOT create a new entry in the persistent audit log
+   (``message-log.json``), even when audit logging
+   (``jarvis.messages.logging``, ``REQ_MSG_LOGSETTING``) is enabled — a
+   deliberate, explicit divergence from the normal message-send path (which
+   always logs when enabled), since a requeue is a redelivery of an entry
+   that is already logged, not a new event to log again.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Clicking "Requeue" on an entry SHALL append a new entry to
+     ``messages.json`` with the same ``destination`` (recipient),
+     ``text`` (content), and the **same** ``timestamp`` as the original
+     entry (preserving the original send time, not stamping a new one) —
+     the redelivered entry is otherwise an exact copy of the logged entry.
+   * AC-2: The ``sender`` field of the requeued entry SHALL be the
+     original entry's ``sender`` verbatim (the redelivered message still
+     appears to come from whoever originally sent it, not from "Jarvis" or
+     the log viewer itself).
+   * AC-3: The requeue write path SHALL NOT invoke the audit-logging side
+     effect — packages/flow (a separate extension package with no
+     compile-time access to core's internal ``appendMessage()`` function)
+     SHALL implement its own minimal, local queue-append function that
+     writes only to ``messages.json``, mirroring ``QueuedMessage``'s exact
+     JSON shape (``REQ_MSG_AUDITLOG`` AC-2) — it SHALL NOT duplicate or
+     reimplement any log-writing logic, simply omit it.
+   * AC-4: After a successful requeue, the log viewer SHALL show a brief,
+     non-blocking confirmation (e.g. a status message or toast) — no modal
+     dialog, no panel reload required.
+   * AC-5: If ``messages.json``'s parent directory does not exist (no
+     workspace open, or ``.jarvis`` missing), the requeue action SHALL fail
+     open: show an error notification, and SHALL NOT throw an unhandled
+     exception or crash the panel.
+   * AC-6: Requeuing the same log entry multiple times SHALL be permitted
+     and SHALL each independently append a new ``messages.json`` entry —
+     no idempotency/deduplication guard, matching the "any number of
+     redeliveries" nature of the feature (a user may deliberately want to
+     resend the same message more than once).
