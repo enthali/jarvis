@@ -1,5 +1,18 @@
 # Release Notes
 
+## v0.18.0 — Recursive Entity File Tree + Dynamic Tree Title
+
+*2026-07-16*
+
+### Features
+
+- **actor-owned-files-tree** (GH #15): Replaces the fixed 3-file MVP (context.md/YAML/agent file) under each entity node with a two-category subtree — **Agent** (conditional: single node for the resolved agent file, only when the entity has one configured) and **Files** (always: recursive listing of all files in the entity's own folder, alphabetical, hidden files included, subfolders expandable). `.md` files (including `*.agent.md`) open as rendered Markdown Preview; all other files open in VS Code preview mode. Right-click Copy Path/Copy Full Path is available on all file and folder children. Provider-local node types intentionally kept out of the shared `TreeNode` union in `yamlScanner.ts`, avoiding the v0.15.1 `collectLeaves()` regression class.
+  *(US_ENT_ENTITY_FILES_TREE; REQ_ENT_ENTITY_FILE_CHILDREN; SPEC_ENT_ENTITY_FILE_CHILDREN)*
+
+- **dynamic-tree-title**: The Jarvis Entities tree view now shows the first workspace folder's name in its title (e.g. "my-repo Entities") instead of the static "Jarvis Entities", making it immediately clear which project's entities are displayed in multi-project environments. Falls back to "Jarvis Entities" when no workspace folder is available.
+
+---
+
 ## v0.17.3 — jarvis-flow Self-Update Fix
 
 *2026-07-15*
