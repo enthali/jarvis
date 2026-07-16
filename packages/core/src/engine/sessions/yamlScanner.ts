@@ -4,8 +4,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
-import * as vscode from 'vscode';
-import { resolveAgentFileChild } from './agentDiscovery';
 
 export interface EntityEntry {
     name: string;
@@ -483,24 +481,6 @@ export class KindDrivenScanner {
         }
         return merged.concat(a.slice(i), b.slice(j));
     }
-}
-
-// SPEC_EXP_ENTITY_FILE_CHILDREN: shared helper for file children
-export async function getEntityFileChildren(
-    leaf: LeafNode,
-    entity: EntityEntry | undefined
-): Promise<FileNode[]> {
-    const folder = path.dirname(leaf.id);
-    const children: FileNode[] = [
-        { kind: 'file', filePath: path.join(folder, 'context.md'), label: 'context.md' },
-        { kind: 'file', filePath: leaf.id, label: path.basename(leaf.id) },
-    ];
-    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
-    const agentFile = await resolveAgentFileChild(entity?.agent, workspaceRoot);
-    if (agentFile) {
-        children.push(agentFile);
-    }
-    return children;
 }
 
 // Shared tree comparison utilities

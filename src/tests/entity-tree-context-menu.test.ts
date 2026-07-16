@@ -59,9 +59,10 @@ describe('SPEC_ENT_OPENCONTEXT_CMD / SPEC_ENT_OPENYAML_CMD: fully retired', () =
 });
 
 describe('SPEC_ENT_ENTITY_CONTEXTMENU: resolveCopyPaths() + commands registered', () => {
-    it('resolveCopyPaths is defined and handles both FileNode and LeafNode', () => {
-        expect(extensionSrc).toContain('function resolveCopyPaths(node: FileNode | LeafNode)');
-        expect(extensionSrc).toContain("node.kind === 'file'");
+    it('resolveCopyPaths is defined and handles FileNode, LeafNode, and entity-file nodes', () => {
+        expect(extensionSrc).toContain('function resolveCopyPaths(node: CopyPathNode)');
+        expect(extensionSrc).toContain("node.kind === 'file' || node.kind === 'entityFile'");
+        expect(extensionSrc).toContain("node.kind === 'entityFileFolder'");
     });
 
     it('jarvis.copyPath and jarvis.copyFullPath are registered and use vscode.env.clipboard.writeText', () => {

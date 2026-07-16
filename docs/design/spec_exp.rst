@@ -940,6 +940,13 @@ Explorer Design Specifications
           treeDataProvider: unifiedProvider,
           showCollapseAll: true,
       });
+      // Dynamic title: show first workspace folder name (the one scanned
+      // for .jarvis), falling back to the static "Jarvis Entities" title
+      // from package.json if no workspace folder is open (REQ_EXP_UNIFIEDTREE AC-14).
+      const firstFolder = vscode.workspace.workspaceFolders?.[0];
+      if (firstFolder) {
+          entitiesView.title = `${firstFolder.name} Entities`;
+      }
       context.subscriptions.push(entitiesView, unifiedProvider);
 
    **Design notes:**

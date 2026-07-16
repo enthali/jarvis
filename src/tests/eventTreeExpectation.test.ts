@@ -135,24 +135,24 @@ describe('Event kind config + TaskBadgeDecorator (standalone expectations)', () 
     });
 
     describe('task subtree (getChildren for entity leaf)', () => {
-        it('event with tasks produces file children + groups: open + completed', async () => {
+        it('event with tasks produces Files category + groups: open + completed', async () => {
             const children = await provider.getChildren(eventLeaf1) as ProviderNode[];
-            expect(children).toHaveLength(4);
-            expect(children[0].kind).toBe('file');
-            expect(children[1].kind).toBe('file');
+            // No agent on test entities → only the Files category prefixes the hooks.
+            expect(children).toHaveLength(3);
+            expect(children[0].kind).toBe('entityFileCategory');
+            expect(children[1].kind).toBe('child');
             expect(children[2].kind).toBe('child');
-            expect(children[3].kind).toBe('child');
         });
 
         it('open group label includes count', async () => {
             const children = await provider.getChildren(eventLeaf1) as ProviderNode[];
-            const openGroup = provider.getTreeItem(children[2]);
+            const openGroup = provider.getTreeItem(children[1]);
             expect(openGroup.label).toBe('Open Tasks (1)');
         });
 
         it('completed group label includes count', async () => {
             const children = await provider.getChildren(eventLeaf1) as ProviderNode[];
-            const completedGroup = provider.getTreeItem(children[3]);
+            const completedGroup = provider.getTreeItem(children[2]);
             expect(completedGroup.label).toBe('Completed Tasks (1)');
         });
     });

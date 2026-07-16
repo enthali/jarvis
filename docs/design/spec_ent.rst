@@ -809,51 +809,111 @@ level).
 .. spec:: Entity File Children in Tree
    :id: SPEC_ENT_ENTITY_FILE_CHILDREN
    :status: approved
-   :links: REQ_ENT_ENTITY_FILE_CHILDREN; SPEC_EXP_PROVIDER; SPEC_ACT_TREE; SPEC_ENT_TREECLICK; SPEC_ACT_AGENT_DISCOVERY; SPEC_MSG_EDITORPLACEMENT; SPEC_PRJ_LISTPROJECTS
+   :links: REQ_ENT_ENTITY_FILE_CHILDREN; SPEC_ENG_TREEFACTORY; SPEC_ACT_TREE; SPEC_ENT_TREECLICK; SPEC_ACT_AGENT_DISCOVERY; SPEC_MSG_EDITORPLACEMENT; SPEC_PRJ_LISTPROJECTS
 
    **Description:**
-   Every project, event, and actor leaf node becomes expandable and shows
-   up to 3 file children computed on-the-fly (not cached in
-   ``YamlScanner``): ``context.md``, the entity's YAML config file, and the
-   shared agent-mode file resolved via ``discoverAgentModes()``
-   (``SPEC_ACT_AGENT_DISCOVERY``) when the entity has a non-empty ``agent``
-   field. The agent file is a **shared** file — multiple entities with the
-   same ``agent`` value point to the same path (e.g. several Actor
-   entities bound to ``agent: "Test Manager"`` all show the same
-   ``.github/agents/test-agent.agent.md`` child, resolved by matching
-   frontmatter ``name:``, not filename). This is purely additive: existing
-   inline icons, context-menu actions, and the entity-node click-to-chat
-   command are unchanged.
+   Every project, event, and actor leaf node becomes expandable into two
+   category child nodes, computed on-the-fly (not cached in
+   ``YamlScanner``): an **"Agent"** category (conditional) and a **"Files"**
+   category (always present) that recursively mirrors every file and
+   subfolder actually present in the entity's own folder.
 
-   **Amendment note:** An earlier revision of this spec constructed the
-   agent-file path as
-   ``path.join(workspaceRoot, '.github', 'agents', \`${entity.agent}.agent.md\`)``
-   — assuming ``entity.agent`` (the frontmatter ``name:`` identity) is also
-   the filename. This is false: filename and frontmatter ``name:`` are
-   independent (e.g. frontmatter ``name: Test Manager`` but file
-   ``.github/agents/test-agent.agent.md``). Confirmed broken in Dev Host
-   testing ("Cannot open file" on click). The corrected mechanism below
-   reuses ``discoverAgentModes()`` (``SPEC_ACT_AGENT_DISCOVERY``), which
-   already performs this exact identity-to-file resolution for the agent
-   picker.
+   **(actor-owned-files-tree CR — architecture correction):** this spec is
+   rewritten in two independent respects:
 
-   **New TreeNode variant** (added to ``src/yamlScanner.ts``, shared by all
-   three TreeDataProviders):
+   1. **Behavior change** (the actual point of this CR): the fixed
+      3-child flat list (``context.md``, YAML config, agent file) is
+      replaced by the Agent/Files category layer described below.
+   2. **Stale-illustration correction** (found during this CR's impact
+      analysis, fixed at zero extra cost since this spec was being rewritten
+      anyway): the previous revision's code samples described three
+      separate hand-written ``TreeDataProvider`` classes
+      (``ProjectTreeProvider``/``EventTreeProvider``/``SessionTreeProvider``).
+      That architecture no longer exists — it was superseded by the single,
+      generic ``GenericTreeDataProvider`` (``packages/core/src/engine/core/
+      treeFactory.ts``, ``SPEC_ENG_TREEFACTORY``), driven by
+      ``EntityKindConfig`` for all three kinds. The previous revision's code
+      also carried a header-comment reference to
+      ``SPEC_EXP_ENTITY_FILE_CHILDREN``/``REQ_EXP_ENTITY_FILE_CHILDREN`` —
+      **IDs that do not exist anywhere in the spec tree**, a leftover from
+      an earlier draft that was never reconciled. All code samples below
+      describe the real, current implementation.
+
+   The agent file remains a **shared** file — multiple entities with the
+   same ``agent`` value point to the same path (e.g. several Actor entities
+   bound to ``agent: "Test Manager"`` all show the same
+   ``.github/agents/test-agent.agent.md``, resolved by matching frontmatter
+   ``name:``, not filename — this identity-resolution mechanism itself is
+   unchanged from the prior revision). This remains purely additive at the
+   entity-node level: existing inline icons, context-menu actions, and the
+   entity-node click-to-chat command are unchanged.
+
+   **Node types (provider-local, added to** ``packages/core/src/engine/core/
+   treeFactory.ts`` **— deliberately NOT added to** ``yamlScanner.ts``'s
+   **exported** ``TreeNode`` **union):**
 
    .. code-block:: typescript
 
-      interface FileNode {
-          kind: 'file';
-          filePath: string;   // absolute path, forward-slash normalized for tooltip
-          label: string;      // basename shown as the tree item label
+      /** Category node grouping "Agent"/"Files" (and future categories) under a leaf. */
+      interface EntityFileCategoryNode {
+          kind: 'entityFileCategory';
+          category: 'agent' | 'files';   // extension point: add 'recent' here later
+          label: string;                  // "Agent" | "Files"
+          entityFolder: string;           // absolute path to the entity's own folder
       }
 
-      type TreeNode = FolderNode | LeafNode | FileNode;
+      /** A file within the recursive "Files" listing, or the Agent category's synthetic child. */
+      interface EntityFileNode {
+          kind: 'entityFile';
+          filePath: string;   // absolute path, forward-slash normalized for tooltip
+          label: string;      // basename (the parent "Agent" category node already provides context)
+      }
 
-   **Agent-file resolution** (module-level cache in ``src/extension.ts`` —
-   agent files are static configuration for the lifetime of the extension
-   host session, so the underlying ``discoverAgentModes()`` filesystem scan
-   is cached rather than re-run on every tree expansion):
+      /** A subfolder within the recursive "Files" listing. */
+      interface EntityFileFolderNode {
+          kind: 'entityFileFolder';
+          folderPath: string; // absolute path
+          label: string;      // basename
+      }
+
+      type EntityFilesSubtreeNode = EntityFileCategoryNode | EntityFileNode | EntityFileFolderNode;
+
+      // Extends the provider's existing node union (ProviderNode = TreeNode | ChildTreeNode):
+      export type ProviderNode = TreeNode | ChildTreeNode | EntityFilesSubtreeNode;
+
+   **Design rationale — why these nodes are NOT added to** ``yamlScanner.ts``'s
+   **shared** ``TreeNode`` **union:**
+   ``TreeNode`` (``FolderNode | LeafNode | FileNode``) is consumed by several
+   places that pattern-match on ``.kind`` with an if/else chain, not an
+   exhaustive switch+``assertNever`` — most notably
+   ``packages/pim/src/extension.ts``'s ``collectLeaves()``, which was the
+   subject of a real regression (``v0.15.1``, ``pim-treenode-filenode-fix``)
+   when ``FileNode`` was added and ``collectLeaves()`` wasn't updated for
+   it. ``collectLeaves()`` only ever walks ``KindDrivenScanner.getTreeForKind()``
+   output (``FolderNode``/``LeafNode`` only in practice — file children have
+   always been computed on-the-fly by the provider, never merged into the
+   scanner's own tree), so it was never actually at risk from the *existing*
+   ``FileNode`` variant; but a **4th** union member would widen the same
+   class of silent-gap risk to every other ``TreeNode``-typed if/else
+   consumer (``yamlScanner.ts``'s own sort/equality helpers,
+   ``unifiedEntityTreeProvider.ts``, ``packages/pim/src/extension.ts``'s
+   folder-filter). By scoping the new recursive nodes to a provider-local
+   ``ProviderNode`` extension instead (exactly where the existing ``child``
+   variant, ``ChildTreeNode``, already lives for hook-based subtree
+   rendering), none of those ``TreeNode``-only consumers are touched at
+   all — provably safe by construction, not by review.
+
+   **Dev Engineer verification step (explicit, per this CR):** grep the
+   codebase for ``.kind === 'folder'``, ``.kind === 'file'``, and
+   ``.kind === 'leaf'`` before merging, to confirm no consumer was missed
+   and that none of them receive ``ProviderNode`` values (only genuine
+   ``TreeNode`` values) where an exhaustive check might silently degrade.
+   Consider converting ``collectLeaves()``'s if/else chain to a
+   ``switch`` with a ``default: assertNever(node)`` branch as a hardening
+   follow-up (optional, not required by this CR) so a *future* ``TreeNode``
+   union addition fails to compile instead of silently no-op'ing.
+
+   **Agent-file resolution (unchanged from prior revision — reused as-is):**
 
    .. code-block:: typescript
 
@@ -870,113 +930,174 @@ level).
       async function resolveAgentFileChild(
           entityAgent: string | undefined,
           workspaceRoot: string
-      ): Promise<FileNode | undefined> {
+      ): Promise<{ filePath: string; label: string } | undefined> {
           if (!entityAgent) { return undefined; }
           const modes = await getAgentModesCached();
           const match = modes.find(m => m.name === entityAgent);
-          if (!match) { return undefined; } // fail-open: unresolved identity → no agent-file child
+          if (!match) { return undefined; } // fail-open: unresolved identity → no Agent category
           return {
-              kind: 'file',
               filePath: path.join(workspaceRoot, match.filePath),
               label: path.basename(match.filePath),
           };
       }
 
-   **File-children computation** (local helper, shared by all three
-   providers — added to ``src/yamlScanner.ts`` as an exported function so it
-   is not duplicated three times):
+   Because ``discoverAgentModes()`` only ever enumerates agent files that
+   actually exist on disk at scan time, a successful match already implies
+   "the file existed as of the last cache population" — satisfying
+   ``REQ_ENT_ENTITY_FILE_CHILDREN`` AC-2c's "present = has content" rule
+   with no additional existence check. If the file is deleted *after* the
+   cache was populated, the Agent category still renders (stale cache) but
+   the click handler's existing fail-open path (below) surfaces a warning —
+   this is the one remaining fail-open scenario for the Agent category
+   (see UAT amendment).
+
+   **Recursive folder scan (new — the actual "Files" category mechanism):**
 
    .. code-block:: typescript
 
-      export async function getEntityFileChildren(
-          leaf: LeafNode,
-          entity: EntityEntry | undefined
-      ): Promise<FileNode[]> {
-          const folder = path.dirname(leaf.id);
-          const children: FileNode[] = [
-              { kind: 'file', filePath: path.join(folder, 'context.md'), label: 'context.md' },
-              { kind: 'file', filePath: leaf.id, label: path.basename(leaf.id) },
-          ];
+      const ENTITY_FILE_CATEGORIES: Array<{ category: 'agent' | 'files'; label: string }> = [
+          { category: 'agent', label: 'Agent' },
+          { category: 'files', label: 'Files' },
+          // Future extension point: { category: 'recent', label: 'Recently Modified' } —
+          // same category-node pattern, no structural changes needed elsewhere.
+      ];
+
+      async function scanEntityFilesRecursive(
+          folder: string
+      ): Promise<(EntityFileNode | EntityFileFolderNode)[]> {
+          let entries: import('fs').Dirent[];
+          try {
+              entries = await fs.promises.readdir(folder, { withFileTypes: true });
+          } catch {
+              return []; // fail-open: unreadable folder → empty listing, no error
+          }
+          const sorted = [...entries].sort((a, b) =>
+              a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+          );
+          return sorted.map(entry => {
+              const fullPath = path.join(folder, entry.name);
+              return entry.isDirectory()
+                  ? { kind: 'entityFileFolder' as const, folderPath: fullPath, label: entry.name }
+                  : { kind: 'entityFile' as const, filePath: fullPath, label: entry.name };
+          });
+      }
+
+   ``fs.promises.readdir`` includes dot-prefixed (hidden) entries by
+   default on every platform — no extra filtering is needed to satisfy
+   ``REQ_ENT_ENTITY_FILE_CHILDREN`` AC-2b's "hidden entries included".
+   Sorting is a single alphabetical pass over files and folders together
+   (not folders-first) — a deliberate reading of the CD's literal "sorted
+   alphabetically" wording; flagged as a minor, easily-reversible UX
+   decision if folders-first is later preferred.
+
+   **``GenericTreeDataProvider._getLeafChildren()`` (replaces the old
+   ``getEntityFileChildren()`` call — same call site, new implementation):**
+
+   .. code-block:: typescript
+
+      private async _getLeafChildren(element: LeafNode): Promise<ProviderNode[]> {
+          const entity = this._scanner.getEntity(element.id);
+          const entityFolder = path.dirname(element.id);
           const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
+
+          const categoryNodes: EntityFileCategoryNode[] = [];
           const agentFile = await resolveAgentFileChild(entity?.agent, workspaceRoot);
           if (agentFile) {
-              children.push(agentFile);
+              categoryNodes.push({ kind: 'entityFileCategory', category: 'agent', label: 'Agent', entityFolder });
           }
-          return children;
+          categoryNodes.push({ kind: 'entityFileCategory', category: 'files', label: 'Files', entityFolder });
+
+          let hookChildren: ProviderNode[] = [];
+          if (this._config.getChildren) {
+              const name = entity ? entity.name : path.basename(entityFolder);
+              const entityData = { name, filePath: element.id, data: (entity ?? {}) as Record<string, unknown> };
+              const descriptors = this._config.getChildren(entityData);
+              if (descriptors && descriptors.length > 0) {
+                  hookChildren = descriptors.map(d => ({ kind: 'child' as const, descriptor: d, parentKind: this._config.kind }));
+              }
+          }
+          return [...categoryNodes, ...hookChildren];
       }
 
-   ``leaf.id`` is always the path to the entity's YAML config file (existing
-   convention — see ``SPEC_EXP_PROVIDER``), so the YAML child requires no
-   extra lookup. ``resolveAgentFileChild()`` and ``getAgentModesCached()``
-   live in ``src/extension.ts`` (same module as ``discoverAgentModes()``,
-   per ``SPEC_ACT_AGENT_DISCOVERY``) and are imported by
-   ``getEntityFileChildren()``.
-
-   **Provider changes** (``ProjectTreeProvider``, ``EventTreeProvider``,
-   ``SessionTreeProvider`` — identical change in all three):
-
-   ``getChildren(element)`` (now ``async`` — ``vscode.TreeDataProvider.getChildren``
-   already supports ``Thenable<T[]>`` as a return type, no interface change needed):
+   **``getChildren(element)`` additions (new branches, alongside the
+   existing ``'folder'``/``'child'``/``'file'``/``'leaf'`` handling shown in
+   ``SPEC_ENG_TREEFACTORY``):**
 
    .. code-block:: typescript
 
-      async getChildren(element?: TreeNode): Promise<TreeNode[]> {
-          if (element?.kind === 'leaf') {
-              const entity = scanner.getEntity(element.id);
-              return getEntityFileChildren(element, entity);
+      if (element.kind === 'entityFileCategory') {
+          if (element.category === 'agent') {
+              // Re-resolve rather than cache the single node — cheap (one
+              // cache lookup + array find, per REQ_ENT_ENTITY_FILE_CHILDREN AC-2c).
+              const entity = this._scanner.getEntity(/* owning leaf id, tracked alongside category node */);
+              const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
+              const agentFile = await resolveAgentFileChild(entity?.agent, workspaceRoot);
+              return agentFile
+                  ? [{ kind: 'entityFile' as const, filePath: agentFile.filePath, label: agentFile.label }]
+                  : [];
           }
-          if (element?.kind === 'file') {
-              return [];
-          }
-          // ...existing root / FolderNode branches unchanged...
+          // category === 'files'
+          return scanEntityFilesRecursive(element.entityFolder);
+      }
+      if (element.kind === 'entityFileFolder') {
+          return scanEntityFilesRecursive(element.folderPath);
+      }
+      if (element.kind === 'entityFile') {
+          return []; // leaf — no further descent
       }
 
-   ``getTreeItem(element)``:
+   (Implementation note for Dev Engineer: the category node's re-resolution
+   of the owning entity needs a stable reference back to the originating
+   ``LeafNode``/entity id — either carry it on ``EntityFileCategoryNode`` as
+   an additional field, or key the lookup off ``entityFolder``'s parent
+   convention file. Either is acceptable; not prescribed further here.)
+
+   **``getTreeItem(element)`` additions:**
 
    .. code-block:: typescript
 
-      if (element.kind === 'file') {
+      if (element.kind === 'entityFileCategory') {
+          const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.Collapsed);
+          item.contextValue = `jarvisEntityFileCategory:${element.category}`;
+          return item;
+      }
+      if (element.kind === 'entityFileFolder') {
+          const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.Collapsed);
+          item.tooltip = element.folderPath.replace(/\\/g, '/');
+          item.contextValue = 'jarvisEntityFileFolder';
+          return item;
+      }
+      if (element.kind === 'entityFile') {
           const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.None);
           item.tooltip = element.filePath.replace(/\\/g, '/');
           item.contextValue = 'jarvisEntityFile';
-          item.command = {
-              command: 'jarvis.openEntityFile',
-              title: 'Open File',
-              arguments: [element]
-          };
+          item.command = { command: 'jarvis.openEntityFile', title: 'Open File', arguments: [element] };
           return item;
       }
-      // LeafNode branch (existing) — collapsibleState changes:
-      const item = new vscode.TreeItem(name, vscode.TreeItemCollapsibleState.Collapsed);
-      // ...existing label/tooltip/contextValue/command assignment unchanged...
+      // LeafNode branch (existing) — collapsibleState unchanged from prior revision (Collapsed).
 
-   **New command — ``jarvis.openEntityFile``** (registered once in
-   ``extension.ts``, shared by all three providers):
+   **``jarvis.openEntityFile`` command (extended — broadened ``.md`` check,
+   new preview-mode branch for non-``.md`` files):**
 
    .. code-block:: typescript
 
       vscode.commands.registerCommand(
         'jarvis.openEntityFile',
-        async (node: FileNode) => {
+        async (node: { filePath: string; label: string }) => {
           const uri = vscode.Uri.file(node.filePath);
           try {
             await vscode.workspace.openTextDocument(uri); // validates existence first
-            if (path.basename(node.filePath) === 'context.md') {
-              // ui-improvements CR: render context.md as Markdown preview
-              // instead of the raw text editor. Exact-basename check, NOT
-              // an extension check — the agent-file child is also .md
-              // (*.agent.md) and must continue to open as raw text.
-              // MECE finding fix: pass DOCS_COLUMN explicitly so the
-              // preview still honors the Docs (column 2) placement
-              // guarantee (REQ_MSG_EDITORPLACEMENT AC-2) on first open;
-              // markdown.showPreview's own built-in behavior reuses an
-              // already-open preview tab for the same file on subsequent
-              // invocations (VS Code framework behavior, not custom logic).
+            if (path.extname(node.filePath).toLowerCase() === '.md') {
+              // Broadened from the prior exact-basename ("context.md" only)
+              // check to any .md extension — REQ_ENT_ENTITY_FILE_CHILDREN
+              // AC-4a now deliberately includes *.agent.md (previously
+              // excluded), per this CR's CD.
               await vscode.commands.executeCommand('markdown.showPreview', uri, DOCS_COLUMN);
             } else {
-              // Docs placement: fixed column 2, focus-in-place if already open
-              // elsewhere (SPEC_MSG_EDITORPLACEMENT)
-              await openAtDocs(uri);
+              // New: preview-mode (single-click reuse, double-click pin),
+              // still fixed to the Docs column and focus-in-place if open
+              // elsewhere (SPEC_MSG_EDITORPLACEMENT).
+              await openAtDocs(uri, { preview: true });
             }
           } catch {
             vscode.window.showWarningMessage(`Jarvis: Cannot open file: ${node.filePath}`);
@@ -984,68 +1105,83 @@ level).
         }
       );
 
-   Fail-open per ``REQ_ENT_ENTITY_FILE_CHILDREN`` AC-7: a missing file (e.g.
-   ``context.md`` not yet created, or no matching ``.agent.md``) shows a
-   warning notification instead of throwing or creating the file. No
-   auto-creation — this command is read/navigate-only.
+   **``openAtDocs()`` signature change (``packages/core/src/extension.ts``,
+   single existing call site — this one):**
 
-   **Registration in package.json:**
+   .. code-block:: typescript
 
-   * ``contributes.commands``:
+      async function openAtDocs(uri: vscode.Uri, options?: { preview?: boolean }): Promise<void> {
+          const existing = findFileTab(uri.fsPath);
+          const viewColumn = existing ? existing.group.viewColumn : DOCS_COLUMN;
+          await vscode.commands.executeCommand('vscode.open', uri, {
+              preview: options?.preview ?? false,   // unchanged default for any other future caller
+              viewColumn,
+          });
+      }
 
-     .. code-block:: json
+   **Copy Path / Copy Full Path (``SPEC_ENT_ENTITY_CONTEXTMENU``) — unchanged
+   behavior, small type-compatibility note:** ``resolveCopyPaths()``
+   currently types its parameter as ``FileNode | LeafNode``. Since
+   ``EntityFileNode``/``EntityFileFolderNode`` are structurally compatible
+   (``filePath``/``folderPath`` + ``label``), Dev Engineer widens the
+   parameter type (or adds a small adapter) so the existing commands keep
+   working unchanged for the new node kinds — no behavior change, no new
+   command.
 
-        { "command": "jarvis.openEntityFile", "title": "Jarvis: Open Entity File" }
-
-   * ``contributes.menus.commandPalette``: hidden (``"when": "false"``) —
-     reachable only via tree-item click, same pattern as
-     ``jarvis.openHeartbeatJob`` (``SPEC_EXP_HEARTBEAT_OPENFILE``).
-   * **Historical, superseded:** an earlier revision of this spec stated no
-     ``view/item/context`` menu entries were added for ``jarvisEntityFile``
-     in this CR. That has since changed — ``entity-tree-context-menu`` added
-     Open/Copy Path/Copy Full Path, and ``ui-improvements`` added Copy File
-     Name (see ``SPEC_ENT_ENTITY_CONTEXTMENU`` for the current, authoritative
-     menu contents).
+   **Registration in package.json:** unchanged from the prior revision —
+   ``jarvis.openEntityFile`` remains Command-Palette-hidden
+   (``"when": "false"``), reachable only via tree-item click. Context-menu
+   entries (Open/Copy Path/Copy Full Path/Copy File Name) are unaffected —
+   see ``SPEC_ENT_ENTITY_CONTEXTMENU`` for the current, authoritative menu
+   contents (unchanged by this CR per the CD).
 
    **Acceptance Criteria:**
 
-   1. ``TreeNode`` gains a ``FileNode`` variant with ``kind: 'file'``,
-      ``filePath``, and ``label``.
-   2. ``getEntityFileChildren()`` is exported from ``src/yamlScanner.ts`` and
-      reused by all three TreeDataProviders — no duplicated logic.
-   3. Every leaf node's ``collapsibleState`` changes from ``None`` to
-      ``Collapsed`` in all three providers.
-   4. File children are computed on-the-fly in ``getChildren()`` — not
-      stored in the scanner's cache or in ``YamlScanner``'s tree structures.
-   5. The agent-file child is included only when ``entity.agent`` is a
-      non-empty string **and** ``discoverAgentModes()`` resolves it to a
-      matching ``AgentModeEntry`` (by frontmatter ``name:`` identity, not
-      filename); its path is the resolved entry's ``filePath`` joined to
-      ``workspaceRoot``. If ``entity.agent`` does not resolve to any known
-      agent, the agent-file child is omitted (fail-open, no error).
-   6. ``discoverAgentModes()`` results SHALL be cached at module level for
-      the lifetime of the extension host session — the underlying
-      filesystem scan SHALL NOT re-run on every tree expansion.
-   7. Clicking a file child invokes ``jarvis.openEntityFile``, which opens
-      the file at the fixed Docs column (column 2), focusing an already-open
-      tab in place if the file is open elsewhere (``SPEC_MSG_EDITORPLACEMENT``),
-      or shows a warning if the file does not exist. No file is created as a
-      side effect. **Variant (``ui-improvements`` CR):** when the file is
-      ``context.md`` specifically (exact basename match), it opens via VS
-      Code's rendered Markdown preview (``markdown.showPreview``) instead of
-      the raw text editor, but the Docs-column (column 2) placement
-      guarantee (``REQ_MSG_EDITORPLACEMENT`` AC-2) still applies on first
-      open — the preview command is called with an explicit ``viewColumn``
-      argument. Reuse of an already-open preview tab for the same file on
-      subsequent invocations is VS Code's own built-in ``markdown.showPreview``
-      behavior, not custom Jarvis logic. All other file children (YAML,
-      agent-file) are unaffected by this variant.
-   8. File child tooltip shows the full absolute path with forward slashes.
-   9. File child ``contextValue`` is ``jarvisEntityFile`` (distinct from
-      ``jarvisProject`` / ``jarvisEvent`` / ``jarvisSession`` / ``jarvisFolder``)
-      so it is excluded from all existing entity-node context-menu ``when``-clauses.
-   10. No existing inline icon, context-menu entry, or entity-node
+   1. ``ProviderNode`` (``packages/core/src/engine/core/treeFactory.ts``)
+      gains three new provider-local variants
+      (``EntityFileCategoryNode``/``EntityFileNode``/``EntityFileFolderNode``);
+      ``yamlScanner.ts``'s exported ``TreeNode`` union is explicitly
+      **unchanged** (still ``FolderNode | LeafNode | FileNode``) — see the
+      Design Rationale above.
+   2. ``_getLeafChildren()`` (``GenericTreeDataProvider``) returns an
+      "Agent" category node (conditional) followed by a "Files" category
+      node (always), followed by any existing hook-based children — no
+      duplicated logic across kinds (single shared provider, per
+      ``SPEC_ENG_TREEFACTORY``).
+   3. Every leaf node's ``collapsibleState`` remains ``Collapsed``
+      (unchanged from the prior revision — this CR changes what the
+      children ARE, not the leaf's own collapsibility).
+   4. Category and folder listings are computed on-the-fly in
+      ``getChildren()`` on every expansion — never cached in the scanner or
+      in ``YamlScanner``'s tree structures (``REQ_ENT_ENTITY_FILE_CHILDREN``
+      AC-8).
+   5. The "Agent" category is included only when ``entity.agent`` is
+      non-empty **and** resolves via ``discoverAgentModes()`` to a matching
+      ``AgentModeEntry``; otherwise omitted entirely (fail-open, no error,
+      no empty category shown).
+   6. ``discoverAgentModes()`` results remain cached at module level for the
+      extension host session lifetime (unchanged from prior revision).
+   7. The "Files" category recursively lists the entity's own folder via
+      ``fs.promises.readdir`` (alphabetical, hidden entries included,
+      subfolders expandable and recursed identically).
+   8. Clicking any file child (either category) invokes
+      ``jarvis.openEntityFile``: ``.md`` files (by extension, not exact
+      basename) open via Markdown Preview; all other files open via
+      ``openAtDocs(uri, { preview: true })`` — both at the fixed Docs
+      column, focusing an existing tab in place if already open elsewhere,
+      or showing a warning if the file no longer exists. No file is created
+      as a side effect.
+   9. File child tooltip shows the full absolute path with forward slashes;
+      folder children likewise.
+   10. File child ``contextValue`` is ``jarvisEntityFile``; folder child
+       ``contextValue`` is ``jarvisEntityFileFolder``; category node
+       ``contextValue`` is ``jarvisEntityFileCategory:agent`` or
+       ``jarvisEntityFileCategory:files`` — all distinct from existing
+       entity-node ``contextValue``s, so none of them are picked up by
+       existing entity-node context-menu ``when``-clauses.
+   11. No existing inline icon, context-menu entry, or entity-node
        ``TreeItem.command`` binding is modified by this spec.
+
 
 
 .. spec:: Context Actions Commands

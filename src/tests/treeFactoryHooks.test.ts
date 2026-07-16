@@ -76,11 +76,14 @@ describe('AC-4: kind with no hooks (session-compatible default)', () => {
         expect(item.contextValue).toBe('jarvisThing');
     });
 
-    it('getChildren of leaf returns only file children (no hooks registered)', async () => {
+    it('getChildren of leaf returns only the Files category (no hooks, no agent)', async () => {
         const leaf: TreeNode = { kind: 'leaf', id: '/things/alpha/thing.yaml' };
         const children = await provider.getChildren(leaf) as ProviderNode[];
-        expect(children).toHaveLength(2);
-        expect(children.every(c => c.kind === 'file')).toBe(true);
+        // Test entities carry no `agent`, so the conditional Agent category is
+        // omitted; only the always-present Files category remains.
+        expect(children).toHaveLength(1);
+        expect(children[0].kind).toBe('entityFileCategory');
+        expect((children[0] as { category: string }).category).toBe('files');
     });
 });
 
@@ -124,20 +127,19 @@ describe('AC-5: kind with getChildren → Collapsed entity, recursive subtree', 
         expect(item.collapsibleState).toBe(TreeItemCollapsibleState.Collapsed);
     });
 
-    it('getChildren(entityNode) yields file children followed by top-level subtree nodes', async () => {
+    it('getChildren(entityNode) yields the Files category followed by top-level subtree nodes', async () => {
         const leaf: TreeNode = { kind: 'leaf', id: '/things/alpha/thing.yaml' };
         const children = await provider.getChildren(leaf) as ProviderNode[];
-        expect(children).toHaveLength(4);
-        expect(children[0].kind).toBe('file');
-        expect(children[1].kind).toBe('file');
+        expect(children).toHaveLength(3);
+        expect(children[0].kind).toBe('entityFileCategory');
+        expect(children[1].kind).toBe('child');
         expect(children[2].kind).toBe('child');
-        expect(children[3].kind).toBe('child');
     });
 
     it('group node renders as Collapsed with its label', async () => {
         const leaf: TreeNode = { kind: 'leaf', id: '/things/alpha/thing.yaml' };
         const children = await provider.getChildren(leaf) as ProviderNode[];
-        const groupItem = provider.getTreeItem(children[2]);
+        const groupItem = provider.getTreeItem(children[1]);
         expect(groupItem.label).toBe('Task Group A');
         expect(groupItem.collapsibleState).toBe(TreeItemCollapsibleState.Collapsed);
     });
@@ -145,7 +147,7 @@ describe('AC-5: kind with getChildren → Collapsed entity, recursive subtree', 
     it('group node children are returned recursively', async () => {
         const leaf: TreeNode = { kind: 'leaf', id: '/things/alpha/thing.yaml' };
         const children = await provider.getChildren(leaf) as ProviderNode[];
-        const groupChildren = provider.getChildren(children[2]) as ProviderNode[];
+        const groupChildren = provider.getChildren(children[1]) as ProviderNode[];
         expect(groupChildren).toHaveLength(2);
         expect(groupChildren[0].kind).toBe('child');
     });
@@ -153,7 +155,7 @@ describe('AC-5: kind with getChildren → Collapsed entity, recursive subtree', 
     it('leaf child under group renders with command and None state', async () => {
         const leaf: TreeNode = { kind: 'leaf', id: '/things/alpha/thing.yaml' };
         const children = await provider.getChildren(leaf) as ProviderNode[];
-        const groupChildren = provider.getChildren(children[2]) as ProviderNode[];
+        const groupChildren = provider.getChildren(children[1]) as ProviderNode[];
         const taskItem = provider.getTreeItem(groupChildren[0]);
         expect(taskItem.label).toBe('Task One');
         expect(taskItem.command?.command).toBe('vscode.openWith');
@@ -163,7 +165,7 @@ describe('AC-5: kind with getChildren → Collapsed entity, recursive subtree', 
     it('child node uses descriptor contextValue when provided', async () => {
         const leaf: TreeNode = { kind: 'leaf', id: '/things/alpha/thing.yaml' };
         const children = await provider.getChildren(leaf) as ProviderNode[];
-        const groupChildren = provider.getChildren(children[2]) as ProviderNode[];
+        const groupChildren = provider.getChildren(children[1]) as ProviderNode[];
         const taskItem = provider.getTreeItem(groupChildren[1]);
         expect(taskItem.contextValue).toBe('customChild');
     });
@@ -171,7 +173,7 @@ describe('AC-5: kind with getChildren → Collapsed entity, recursive subtree', 
     it('child node defaults contextValue to jarvis<Kind>Child', async () => {
         const leaf: TreeNode = { kind: 'leaf', id: '/things/alpha/thing.yaml' };
         const children = await provider.getChildren(leaf) as ProviderNode[];
-        const groupChildren = provider.getChildren(children[2]) as ProviderNode[];
+        const groupChildren = provider.getChildren(children[1]) as ProviderNode[];
         const taskItem = provider.getTreeItem(groupChildren[0]);
         expect(taskItem.contextValue).toBe('jarvisThingChild');
     });
@@ -203,7 +205,7 @@ describe('AC-7: subtree node with iconPath renders with that icon', () => {
     it('subtree node has iconPath set on TreeItem', async () => {
         const leaf: TreeNode = { kind: 'leaf', id: '/things/alpha/thing.yaml' };
         const children = await provider.getChildren(leaf) as ProviderNode[];
-        const item = provider.getTreeItem(children[2]);
+        const item = provider.getTreeItem(children[1]);
         expect(item.iconPath).toBeInstanceOf(ThemeIcon);
         expect((item.iconPath as InstanceType<typeof ThemeIcon>).id).toBe('warning');
     });

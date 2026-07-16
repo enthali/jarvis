@@ -60,11 +60,11 @@ describe('SPEC_MSG_EDITORPLACEMENT: placement helpers', () => {
         expect(handlerSlice).toContain('await openAtMain(uri, entity.name);');
     });
 
-    it('jarvis.openEntityFile calls openAtDocs (non-context.md branch)', () => {
+    it('jarvis.openEntityFile calls openAtDocs with preview (non-.md branch)', () => {
         const idx = extensionSrc.indexOf("'jarvis.openEntityFile'");
         expect(idx).toBeGreaterThan(-1);
         const handlerSlice = extensionSrc.slice(idx, idx + 1700);
-        expect(handlerSlice).toContain('await openAtDocs(uri);');
+        expect(handlerSlice).toContain('await openAtDocs(uri, { preview: true });');
     });
 
     it('jarvis.sendMessages (Play-button) existing-session branch calls openAtMain, not bare openPinnedResource', () => {
