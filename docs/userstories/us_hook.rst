@@ -100,3 +100,42 @@ Hook Engine User Stories
      the next activation.
    * AC-4: The default behaviour is unchanged — hook files are auto-installed unless
      the user explicitly opts out.
+
+
+.. story:: Activity Indicator on Entity Nodes
+   :id: US_HOOK_ACTIVITY
+   :status: approved
+   :priority: optional
+   :links: US_HOOK_ROUTE; US_EXP_SIDEBAR
+
+   *Context: The Hook Engine (US_HOOK_OBSERVE) and its typed dispatch registry
+   (US_HOOK_ROUTE) exist but have no consumer yet beyond logging. This is the
+   first consumer: a lightweight, two-state visual signal on the entity tree
+   showing whether an Actor/Project/Event currently has an active agent
+   conversation running against it.*
+
+   **As a** Jarvis User,
+   **I want** every Actor, Project, and Event node in the Jarvis Entities tree to
+   show a simple two-state indicator (Active / Inactive) reflecting whether an
+   agent is currently working in that entity's chat session,
+   **so that** I can tell at a glance which of my entities have something
+   happening right now, without opening every chat tab to check.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Every entity node (Actor, Project, Event) shows one of exactly two
+     visual states: **Active** (an agent lifecycle event was recently observed
+     for that entity's session) or **Inactive** (no such event yet, or the
+     session's agent turn has ended).
+   * AC-2: An entity becomes Active when any of the following hook events is
+     observed for its session: ``SessionStart``, ``UserPromptSubmit``,
+     ``PreToolUse``, ``PostToolUse``, ``PreCompact``, ``SubagentStart``,
+     ``SubagentStop``.
+   * AC-3: An entity becomes Inactive when a ``Stop`` event is observed for its
+     session.
+   * AC-4: An entity with no observed hook event yet (e.g. just after workspace
+     open, before any chat activity) is Inactive by default.
+   * AC-5: There is no third "Error" or "unknown" state, and no timeout-based
+     transition — the indicator only changes on the specific events in AC-2/AC-3.
+   * AC-6: This is a lightweight visual cue only — it does not gate or block any
+     existing entity-node behavior (click-to-chat, context menu, file children).

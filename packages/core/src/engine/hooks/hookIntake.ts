@@ -32,7 +32,7 @@ export class HookIntake {
                             const event: HookEvent = {
                                 eventName,
                                 timestamp: parsed.timestamp ?? new Date().toISOString(),
-                                sessionId: parsed.sessionId,
+                                sessionId: parsed.session_id,
                                 payload: parsed.payload ?? parsed,
                             };
                             this.hookEngine.receive(event);

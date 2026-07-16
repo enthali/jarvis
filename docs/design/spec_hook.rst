@@ -190,7 +190,7 @@ Hook Engine Design Specifications
       export interface HookEvent {
           /** The lifecycle event name, e.g. 'PostToolUse'. */
           eventName: string;
-          /** Session id from the payload, if present. */
+          /** Session id from the payload's `session_id` field, if present. */
           sessionId?: string;
           /** ISO 8601 timestamp from the payload. */
           timestamp?: string;
@@ -234,7 +234,15 @@ Hook Engine Design Specifications
    (added by the bridge, SPEC_HOOK_BRIDGE) and uses it as the ``eventName`` field
    in the ``HookEvent`` passed to ``HookEngine.receive()``. If ``hook_event_name``
    is absent, it falls back to ``eventName`` or ``event`` from the payload, or
-   ``'Unknown'``.
+   ``'Unknown'``. The session id is extracted from the payload's **``session_id``**
+   field (snake_case — the hook API's own JSON convention, matching
+   ``hook_event_name``) into ``HookEvent.sessionId``.
+
+   ~~*Bug, fixed by the actor-activity-indicator CR:* an earlier implementation
+   read ``parsed.sessionId`` (camelCase), a key that never exists in the payload,
+   so ``HookEvent.sessionId`` was always ``undefined``. Confirmed via trace-level
+   log inspection of a live payload, which showed ``session_id`` present at the
+   top level of the JSON body. See REQ_HOOK_INTAKE AC-8.~~
 
    **Design notes:**
 
@@ -261,8 +269,8 @@ Hook Engine Design Specifications
      (``server.listen(0)``), independent of the MCP server; the bound port is
      written to ``.github/hooks/port``.
    * AC-2: ``POST /hooks`` parses the body into a ``HookEvent`` (``eventName``,
-     ``sessionId?``, ``timestamp?``, raw ``payload``) and calls
-     ``HookEngine.receive(event)``.
+     ``sessionId?`` — read from the payload's ``session_id`` field —,
+     ``timestamp?``, raw ``payload``) and calls ``HookEngine.receive(event)``.
    * AC-3: The listener responds ``200`` with ``{"continue": true}`` â€” no
      agent-influencing output in the MVP.
    * AC-4: ``receive()`` is the single, stable intake contract behind which a future
@@ -473,3 +481,175 @@ Hook Engine Design Specifications
    * AC-3: Exceptions in handlers are caught and logged; they do not prevent other handlers from running.
    * AC-4: The logging sink (SPEC_HOOK_LOG) is always invoked after dispatch, even when no handlers are registered.
    * AC-5: The registry is internal to ``jarvis-core`` and does not depend on MCP, sessions, or other features.
+
+
+.. spec:: Hook-Driven Entity Activity Indicator
+   :id: SPEC_HOOK_ACTIVITY
+   :status: approved
+   :links: REQ_HOOK_ACTIVITY; SPEC_HOOK_ROUTE; SPEC_HOOK_INTAKE; SPEC_ENG_TREEFACTORY
+
+   **Description:**
+   A new ``ActivityTracker`` (``packages/core/src/engine/hooks/activityTracker.ts``)
+   registers handlers on the ``HookEngine`` (SPEC_HOOK_ROUTE) for all 8 lifecycle
+   events, maintains an in-memory set of currently-active entity names, and is
+   consulted by a new ``ActivityDecorator`` (a ``TreeItemDecorator``,
+   registered for the ``'session'``, ``'project'``, and ``'event'`` kinds) that
+   sets ``item.iconPath`` to a green filled circle for Active entities, and
+   leaves ``item.iconPath`` untouched for Inactive entities.
+
+   **F5 finding (superseded design correction):** the original design used a
+   codicon prefix directly in ``item.label`` (``$(circle-filled) <name>``).
+   A live F5 test found this renders as **literal text** ("$(circle-filled)
+   Alice") in a VS Code ``TreeView`` — the ``$(...)`` codicon syntax only
+   resolves inside QuickPick items and the status bar, not tree item labels.
+   PM decision: switch to ``item.iconPath`` (below).
+
+   **Session-id → entity-name resolution:**
+
+   .. code-block:: typescript
+
+      // packages/core/src/engine/sessions/sessionLookup.ts — new export
+      export async function getEntityNameForSessionId(
+          sessionId: string
+      ): Promise<string | undefined> {
+          const all = await getAllSessions();
+          return all.find(s => s.sessionId === sessionId)?.title;
+      }
+
+   This is the reverse of the existing ``lookupSessionUUID()`` (name → uuid) —
+   same data source (``getAllSessions()``), no new I/O path.
+
+   **ActivityTracker:**
+
+   .. code-block:: typescript
+
+      // packages/core/src/engine/hooks/activityTracker.ts
+      const ACTIVE_EVENTS = new Set([
+          'SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse',
+          'PreCompact', 'SubagentStart', 'SubagentStop',
+      ]);
+
+      export class ActivityTracker {
+          private readonly _activeEntityNames = new Set<string>();
+
+          constructor(
+              hookEngine: HookEngine,
+              private readonly _onChange: (entityName: string) => void,
+          ) {
+              for (const name of [...ACTIVE_EVENTS, 'Stop']) {
+                  hookEngine.on(name, (event) => this._handle(event, name === 'Stop'));
+              }
+          }
+
+          isActive(entityName: string): boolean {
+              return this._activeEntityNames.has(entityName);
+          }
+
+          private async _handle(event: HookEvent, toInactive: boolean): Promise<void> {
+              if (!event.sessionId) { return; } // REQ_HOOK_ACTIVITY AC-6
+              const entityName = await getEntityNameForSessionId(event.sessionId);
+              if (!entityName) { return; } // REQ_HOOK_ACTIVITY AC-7 / AC-9
+              const wasActive = this._activeEntityNames.has(entityName);
+              if (toInactive) { this._activeEntityNames.delete(entityName); }
+              else { this._activeEntityNames.add(entityName); }
+              if (wasActive !== this.isActive(entityName)) { this._onChange(entityName); }
+          }
+      }
+
+   **ActivityDecorator:**
+
+   .. code-block:: typescript
+
+      // packages/core/src/engine/hooks/activityDecorator.ts
+      export class ActivityDecorator implements TreeItemDecorator {
+          constructor(private readonly _tracker: ActivityTracker) {}
+
+          decorate(item: vscode.TreeItem, node: TreeNode, _kind: string): void {
+              const name = /* node's entity display name */;
+              if (this._tracker.isActive(name)) {
+                  item.iconPath = new vscode.ThemeIcon(
+                      'circle-filled',
+                      new vscode.ThemeColor('charts.green'),
+                  );
+              }
+              // Inactive: leave item.iconPath untouched — the entity's normal
+              // icon (or TaskBadgeDecorator's icon, if it set one) remains.
+          }
+      }
+
+   **Wiring (``extension.ts``):**
+
+   * ``ActivityTracker`` is constructed once, alongside ``hookEngine``, with an
+     ``_onChange`` callback that calls ``engine.refreshKind(kind)`` for whichever
+     of ``'session' | 'project' | 'event'`` currently owns an entity with that
+     name (looked up via the existing ``getTreeForKind()``/``getEntity()``
+     surface — the same one used by ``rescan()``).
+   * ``ActivityDecorator`` is registered via ``registerDecorator()`` for all
+     three kinds, alongside the existing ``TaskBadgeDecorator`` (registered for
+     ``'project'``/``'event'`` only).
+
+   **Design notes:**
+
+   * **``iconPath`` only when Active — resolves the TaskBadgeDecorator conflict
+     by time-sharing, not by field choice.** ``TaskBadgeDecorator``
+     (SPEC_PIM_TASKBADGE) already sets ``item.iconPath`` conditionally on
+     Project/Event nodes when a task is overdue/due-soon. Decorators for a
+     kind run in registration order and mutate the same ``TreeItem`` in
+     place — both decorators writing ``iconPath`` unconditionally would let
+     the later-registered one silently win. The resolution here:
+     ``ActivityDecorator`` only ever **sets** ``iconPath`` when the entity is
+     Active; when Inactive, it leaves ``iconPath`` untouched, so whatever the
+     entity's default icon (or ``TaskBadgeDecorator``'s icon, if any) was
+     stands unchanged. In effect, an Active entity's green dot takes visible
+     priority over a task-urgency icon while it's active; once it goes
+     Inactive, the task badge (if any) is visible again on the next
+     ``getTreeItem()`` call. This was the design that shipped after an
+     earlier codicon-label-prefix approach was found not to render in
+     ``TreeView`` (see the F5 finding above) — the originally-intended
+     "different field, no time-sharing needed" avoidance strategy no longer
+     applies since both decorators now use ``iconPath``, but the graceful
+     time-sharing behavior achieves the same practical non-collision outcome.
+   * **Session-id correlation — F5-confirmed (no longer just an assumption):**
+     a live F5 test by PM confirmed the session-id correlation (REQ_HOOK_ACTIVITY
+     AC-5/AC-9) holds in practice — state transitions fire correctly for real
+     chat sessions bound to Actor/Project/Event entities. The graceful
+     degradation path (AC-8/AC-9: silent all-Inactive fallback if the
+     correlation ever fails for a given entity) remains in place as a safety
+     net, but is no longer the expected/default outcome.
+   * **No per-event ``refreshKind`` storm:** ``_onChange`` only fires when the
+     tracked boolean actually flips for that entity (see ``wasActive !==
+     isActive`` guard) — a burst of ``PreToolUse``/``PostToolUse`` events
+     within one already-Active turn does not trigger repeated tree refreshes.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``ActivityTracker`` registers a handler (via SPEC_HOOK_ROUTE's
+     ``on()``) for each of the 8 lifecycle events.
+   * AC-2: The 7 events in REQ_HOOK_ACTIVITY AC-1 add the resolved entity name
+     to the active set; ``Stop`` removes it.
+   * AC-3: Entity-name resolution uses ``getEntityNameForSessionId()``
+     (new, ``sessionLookup.ts``) — the reverse of the existing
+     ``lookupSessionUUID()``, same ``getAllSessions()`` data source.
+   * AC-4: Events with no ``sessionId``, or whose resolved title matches no
+     known entity, are ignored (no state change, no error).
+   * AC-5: ``ActivityDecorator`` is registered for the ``'session'``,
+     ``'project'``, and ``'event'`` kinds via ``registerDecorator()``.
+   * AC-5a: (F5 fix) ``ActivityDecorator`` sets ``item.iconPath`` to
+     ``new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('charts.green'))``
+     when Active; when Inactive, ``item.iconPath`` is left untouched (not
+     reset to a specific "inactive" icon) — superseding the original
+     ``item.label`` codicon-prefix mechanism, which does not render inside
+     ``TreeView`` labels.
+   * AC-6: (superseded by AC-5a) ~~The decorator prefixes ``item.label`` with
+     a codicon glyph (``$(circle-filled)`` Active / ``$(circle-outline)``
+     Inactive) — it does not set ``item.iconPath`` or ``item.description``.~~
+     This was found not to render in ``TreeView`` labels during F5 testing;
+     see AC-5a for the shipped ``iconPath``-based mechanism. The decorator
+     does not set ``item.description`` (no count-style badge), consistent
+     with the original intent.
+   * AC-7: A state flip for an entity triggers exactly one ``refreshKind(kind)``
+     call for that entity's kind — not a full-tree rescan, not one call per
+     underlying hook event.
+   * AC-8: If the session-id → entity-name correlation never resolves any
+     match in practice, the tree renders exactly as it did before this CR
+     (all nodes Inactive) — no exceptions, no broken labels.

@@ -33,6 +33,17 @@ Hook Engine Requirements
      layers, explicitly out of scope for this MVP.)
    * AC-7: The hook engine SHALL extract the event name from the payload
      (``hook_event_name``) and make it available as a typed field for routing.
+   * AC-8: (actor-activity-indicator CR — bug fix) The hook engine SHALL extract
+     the session identifier from the payload's ``session_id`` field
+     (snake_case, matching the hook API's own JSON convention — see
+     ``hook_event_name``, also snake_case) and expose it as ``HookEvent.sessionId``.
+     ~~A prior implementation read ``parsed.sessionId`` (camelCase), a field that
+     never exists in the payload — ``HookEvent.sessionId`` was therefore always
+     ``undefined``, silently breaking every session-aware consumer (including the
+     logging sink's session-id suffix, ``REQ_HOOK_LOG`` AC-2) since the hook
+     engine's introduction. Confirmed via trace-level log inspection: the raw
+     payload always carries ``session_id``, but it was never read.~~ Fixed by
+     this CR.
 
 
 .. req:: Hook Event Logging
@@ -129,3 +140,91 @@ Hook Engine Requirements
      MCP, sessions, or other features.
    * AC-6: The registry SHALL be the stable extension point for future consumers
      (memory housekeeping, agent steering, entity flows).
+
+
+.. req:: Hook-Driven Entity Activity Indicator
+   :id: REQ_HOOK_ACTIVITY
+   :status: approved
+   :priority: optional
+   :links: US_HOOK_ACTIVITY; REQ_HOOK_ROUTE; REQ_HOOK_INTAKE; REQ_ENG_TREEFACTORY; REQ_EXP_UNIFIEDTREE
+
+   **Description:**
+   A hook-engine consumer SHALL track a two-state (Active/Inactive) status per
+   entity, derived from the 8 lifecycle events (``REQ_HOOK_ACTIVITY`` AC-1/AC-2
+   below), and reflect that status as an icon prefix on the corresponding
+   entity's tree node label across all three kinds (Actor, Project, Event).
+
+   **Session-to-entity correlation (the open empirical question, per CM's
+   dispatch):** a hook event carries ``session_id`` — VS Code's own internal
+   chat session UUID — not an entity name. Whether this UUID is the *same*
+   UUID space as ``SessionInfo.sessionId`` from ``getAllSessions()``
+   (``sessionLookup.ts``, sourced from ``state.vscdb``'s
+   ``chat.ChatSessionStore.index``) was, as of this CR's design, an
+   **unverified assumption** — the research finding
+   (``FI-2026-06-28-hook-engine.md``) explicitly could not test this because
+   the ``session_id`` extraction bug (``REQ_HOOK_INTAKE`` AC-8) meant the field
+   was never populated, so no live comparison was ever possible. This
+   requirement is written to depend on that correlation holding, but SHALL
+   degrade gracefully (AC-9) if it does not, so the feature is never a hard
+   blocker on an unverified assumption.
+
+   **Acceptance Criteria:**
+
+   * AC-1: An entity SHALL transition to **Active** when its session's
+     ``session_id`` (per ``REQ_HOOK_INTAKE`` AC-8) is the subject of any of:
+     ``SessionStart``, ``UserPromptSubmit``, ``PreToolUse``, ``PostToolUse``,
+     ``PreCompact``, ``SubagentStart``, ``SubagentStop``.
+   * AC-2: An entity SHALL transition to **Inactive** when its session's
+     ``session_id`` is the subject of a ``Stop`` event.
+   * AC-3: An entity with no observed event yet SHALL default to **Inactive**.
+   * AC-4: There SHALL be no third state and no timeout-based transition — only
+     the events in AC-1/AC-2 change state.
+   * AC-5: The mapping from a hook event's ``session_id`` to an entity SHALL be:
+     (a) resolve ``session_id`` to a chat session title via ``getAllSessions()``
+     (the existing reverse-lookup data source, already used forward by
+     ``lookupSessionUUID()``); (b) match that title, verbatim, against the
+     ``name`` field of an Actor/Project/Event entity (entities are renamed to
+     match their bound chat session's title on creation — see
+     ``SPEC_ENT_AGENTSESSION`` — so title-to-entity-name matching is the
+     existing, established correlation mechanism, not a new one invented for
+     this CR).
+   * AC-6: If no ``session_id`` is present on the event (payload malformed, or
+     the ``REQ_HOOK_INTAKE`` AC-8 fix has not taken effect for some reason),
+     the event SHALL be ignored for activity-tracking purposes — no error, no
+     state change, per the existing hook-engine fail-open philosophy
+     (``REQ_HOOK_LOG`` AC-3's "no other action" MVP posture).
+   * AC-7: If the resolved title does not match any known entity name (stale
+     session, generic "New Chat" title, or a chat session unrelated to any
+     Jarvis entity), the event SHALL be ignored for activity-tracking purposes
+     — no error, no state change.
+   * AC-8: (superseded — see AC-8a) ~~The visual indicator SHALL be an icon
+     prefix on the entity's tree node label — not a separate badge/description
+     field and not an ``iconPath`` change (the latter is already used by the
+     existing Project/Event task-count decorator, ``SPEC_PIM_TASKBADGE`` —
+     this requirement avoids colliding with it by using the label-prefix
+     mechanism instead, consistent with the existing bold-category-label
+     precedent, ``REQ_EXP_UNIFIEDTREE`` AC-13).~~ A live F5 test found that
+     codicon syntax (``$(circle-filled)``) does not render inside VS Code
+     ``TreeView`` labels — it only resolves in QuickPick items and the status
+     bar. Replaced by AC-8a.
+   * AC-8a: The visual indicator SHALL be an ``item.iconPath`` change: a
+     green filled-circle ``ThemeIcon`` when Active; when Inactive,
+     ``iconPath`` SHALL be left untouched (not forced to a specific
+     "inactive" icon), so the entity's normal icon — or
+     ``SPEC_PIM_TASKBADGE``'s task-urgency icon, if one is set — remains
+     visible. This resolves the potential collision with
+     ``SPEC_PIM_TASKBADGE`` (also an ``iconPath`` user, Project/Event kinds
+     only) by time-sharing rather than by touching a different field:
+     ``ActivityDecorator`` only asserts ``iconPath`` while Active.
+   * AC-9: If the session-to-entity correlation assumption (AC-5) does not
+     hold in practice (i.e., hook ``session_id`` values never match any
+     ``SessionInfo.sessionId``), the feature SHALL degrade to "no entity ever
+     shows Active" — a silent no-op, not an error state, not a crash, and not
+     a misleading indicator. **F5-confirmed:** a live test verified the
+     correlation holds in practice — this AC now documents the retained
+     safety-net behavior for entities/sessions where it might still fail
+     (e.g. a stale or unmapped session), not an expected default outcome.
+   * AC-10: This requirement SHALL NOT alter any existing entity-node
+     behavior (click-to-chat, context menu, file children, inline category
+     actions) — the indicator is an icon-only addition (AC-8a), non-invasive
+     to any other TreeItem field or existing interaction.
