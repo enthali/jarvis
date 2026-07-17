@@ -25,6 +25,8 @@ import { HookIntake } from './engine/hooks/hookIntake';
 import { installHookConfig, uninstallHookConfig, getHooksDir } from './engine/hooks/hookConfig';
 import { ActivityTracker } from './engine/hooks/activityTracker';
 import { ActivityDecorator } from './engine/hooks/activityDecorator';
+import { TouchStore } from './engine/hooks/touchStore';
+import { TouchTracker } from './engine/hooks/touchTracker';
 
 import { CronExpressionParser } from 'cron-parser';
 
@@ -109,6 +111,12 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     const workspaceRoot = configPaths.getWorkspaceRoot();
     const hookIntake = new HookIntake(hookEngine, workspaceRoot ? getHooksDir(workspaceRoot) : '');
     let hookIntakeStarted = false;
+
+    // Touched-files persistence (SPEC_ENT_TOUCHEDFILES) — constructed early
+    // (only needs workspaceRoot) so it can be injected into the tree factory
+    // before any provider renders; TouchTracker is wired later, alongside
+    // ActivityTracker, once kindDrivenScanner/engine exist.
+    const touchStore = new TouchStore(path.join(workspaceRoot ?? '', '.jarvis', 'state', 'touched-files'));
 
     async function startHookIntake(): Promise<void> {
         if (hookIntakeStarted) { return; }
@@ -438,6 +446,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         }
     );
     const treeFactory = new GenericTreeFactory(kindDrivenScanner);
+    treeFactory.setTouchStore(touchStore); // SPEC_ENT_TOUCHEDFILES
     const engine = new JarvisEngine(kindDrivenScanner, treeFactory);
     context.subscriptions.push({ dispose: () => engine.dispose() });
 
@@ -452,6 +461,18 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     for (const kind of ['session', 'project', 'event']) {
         context.subscriptions.push(engine.treeFactory.registerDecorator(kind, activityDecorator));
     }
+
+    // Touched-files tracking (SPEC_ENT_TOUCHEDFILES): single PostToolUse
+    // subscription, reusing the same entity-resolution wiring as ActivityTracker.
+    // No local reference kept — the tracker self-registers on hookEngine and
+    // needs no further interaction from extension.ts (same as if it were
+    // stored in context.subscriptions with a no-op dispose).
+    new TouchTracker(
+        hookEngine, touchStore,
+        (entityName: string) => kindDrivenScanner.entities.find(e => e.name === entityName),
+        (entityKind: string) => engine.treeFactory.refreshKind(entityKind),
+        log,
+    );
 
     // Heartbeat scheduler — created conditionally inside heartbeat block
     let scheduler: HeartbeatScheduler | undefined;
@@ -593,8 +614,11 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     });
 
     // Context actions (SPEC_EXP_CONTEXTACTIONS) — generic, used by any entity
-    const revealInExplorerCommand = vscode.commands.registerCommand('jarvis.revealInExplorer', (node: LeafNode) => {
-        vscode.commands.executeCommand('revealInExplorer', vscode.Uri.file(node.id));
+    // actor-touched-files CR: widened to also accept file-like nodes (filePath)
+    // so "Reveal in Explorer" can be reused unchanged for jarvisTouchedFile.
+    const revealInExplorerCommand = vscode.commands.registerCommand('jarvis.revealInExplorer', (node: LeafNode | { filePath: string }) => {
+        const target = 'filePath' in node ? node.filePath : node.id;
+        vscode.commands.executeCommand('revealInExplorer', vscode.Uri.file(target));
     });
     const revealInOSCommand = vscode.commands.registerCommand('jarvis.revealInOS', (node: LeafNode) => {
         vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(node.id));
@@ -847,13 +871,22 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         | FileNode
         | LeafNode
         | { kind: 'entityFile'; filePath: string; label: string }
-        | { kind: 'entityFileFolder'; folderPath: string; label: string };
+        | { kind: 'entityFileFolder'; folderPath: string; label: string }
+        // actor-touched-files CR (SPEC_ENT_TOUCHEDFILES): touched-file leaf/folder
+        // shapes are structurally compatible (filePath/folderPath + label).
+        | { kind: 'touchedFileLeaf'; filePath: string; label: string }
+        | { kind: 'touchedFileFolder'; relFolderPath: string; label: string };
     function resolveCopyPaths(node: CopyPathNode): { folder: string; full: string } {
-        if (node.kind === 'file' || node.kind === 'entityFile') {
+        if (node.kind === 'file' || node.kind === 'entityFile' || node.kind === 'touchedFileLeaf') {
             return { folder: path.dirname(node.filePath), full: node.filePath };
         }
         if (node.kind === 'entityFileFolder') {
             return { folder: path.dirname(node.folderPath), full: node.folderPath };
+        }
+        if (node.kind === 'touchedFileFolder') {
+            const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
+            const full = path.join(workspaceRoot, node.relFolderPath);
+            return { folder: path.dirname(full), full };
         }
         // Entity root (LeafNode): node.id is the convention file's absolute
         // path (project.yaml/event.yaml/session.yaml) — the entity's own
@@ -892,6 +925,32 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         'jarvis.copyCategoryName',
         async (node: FolderNode) => {
             await vscode.env.clipboard.writeText(node.name);
+        }
+    );
+
+    // Show Changes / Remove for touched-file leaves (SPEC_ENT_TOUCHEDFILES)
+    const diffTouchedFileCommand = vscode.commands.registerCommand(
+        'jarvis.diffTouchedFile',
+        async (node: { filePath: string }) => {
+            // Delegates to the built-in Git extension's "Open Changes" command —
+            // no custom git-uri/diff wiring, no fallback for untracked/non-git
+            // files (REQ_ENT_TOUCHEDFILES AC-12, per CM/user decision).
+            await vscode.commands.executeCommand('git.openChange', vscode.Uri.file(node.filePath));
+        }
+    );
+
+    const removeTouchedFileCommand = vscode.commands.registerCommand(
+        'jarvis.removeTouchedFile',
+        async (node: { filePath: string; ownerKind: string; entityName: string }) => {
+            const relPath = path.relative(
+                vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '', node.filePath
+            ).replace(/\\/g, '/');
+            await touchStore.removeEntry(node.ownerKind, node.entityName, relPath);
+            // node.ownerKind is the disambiguated TouchStore storage key
+            // ('actor'/'session'/'project'/'event' — see resolveTouchStorageKind);
+            // refreshKind() needs the real registered provider kind instead
+            // ('actor' entities are still rendered by the 'session' provider).
+            engine.treeFactory.refreshKind(node.ownerKind === 'actor' ? 'session' : node.ownerKind);
         }
     );
 
@@ -1440,6 +1499,8 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         copyFullPathCommand,
         copyFileNameCommand,
         copyCategoryNameCommand,
+        diffTouchedFileCommand,
+        removeTouchedFileCommand,
         openSessionCommand,
         openAgentSessionCommand,
         newSessionCommand,

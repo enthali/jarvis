@@ -570,4 +570,99 @@ generic/user-facing, ``ENG`` = kind-agnostic plumbing, no US level).
      immediate reactivity is explicitly deferred, not part of this CR.
 
 
+.. req:: Recently Touched Files per Entity
+   :id: REQ_ENT_TOUCHEDFILES
+   :status: approved
+   :priority: optional
+   :links: US_ENT_TOUCHEDFILES; REQ_HOOK_ROUTE; REQ_ENT_ENTITY_FILE_CHILDREN; REQ_ENT_ENTITY_CONTEXTMENU
+
+   **Description:**
+   The Hook Engine's ``on(eventName, handler)`` registry (``REQ_HOOK_ROUTE``)
+   SHALL gain a second consumer — a touch tracker that records, per entity,
+   which files the agent has read or written, driven by ``PostToolUse``
+   events. Each entity leaf node SHALL gain a third category child,
+   "Recently Touched Files", sibling to "Agent"/"Files"
+   (``REQ_ENT_ENTITY_FILE_CHILDREN`` AC-2a), listing those files as a
+   workspace-root-relative, persisted, hierarchical tree.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The touch tracker SHALL subscribe only to ``PostToolUse`` (not
+     ``PreToolUse``) — this avoids counting aborted/rejected tool calls.
+   * AC-2: For each ``PostToolUse`` event, the tracker SHALL classify the
+     event using an explicit allowlist table keyed by ``tool_name``
+     (``TOUCH_RULES``), mapping to a touch kind (``read``/``write``) and a
+     path-extraction rule:
+
+     a. ``read_file`` → **read**, path from ``tool_input.filePath`` (1).
+     b. ``create_file``, ``replace_string_in_file`` → **write**, path from
+        ``tool_input.filePath`` (1).
+     c. ``multi_replace_string_in_file`` → **write**, paths from
+        ``tool_input.replacements[].filePath`` (n — iterate the array;
+        de-duplicate per file if the same path appears more than once).
+     d. Any ``tool_name`` not in the table (including ``run_in_terminal``,
+        ``grep_search``, ``file_search``, ``semantic_search``) SHALL be
+        **ignored** — fail-safe default, no path-sniffing heuristics.
+   * AC-3: Tool success/failure SHALL NOT be tracked — a matching
+     ``PostToolUse`` is recorded as a touch regardless of ``tool_response``
+     content, since ``tool_response`` carries no reliable success/failure
+     signal (empirically confirmed — see
+     ``.jarvis/sessions/Research/FI-2026-07-17-hook-payloads-file-touch.md``).
+   * AC-4: The event's ``session_id`` SHALL be resolved to an entity name
+     using the existing session-to-entity correlation
+     (``getEntityNameForSessionId``, the same mechanism ``REQ_HOOK_ACTIVITY``
+     AC-7 relies on). Events with no resolvable entity SHALL be silently
+     ignored (fail-open, consistent with ``REQ_HOOK_ACTIVITY`` AC-9).
+   * AC-5: Extracted paths (always absolute in the payload) SHALL be
+     relativized against the event's ``cwd`` (the workspace root) before
+     being recorded or displayed.
+   * AC-6: Each resolved entity SHALL have a persisted touch list at
+     ``.jarvis/state/touched-files/<kind>-<name>.json`` (outside the
+     entity's own folder — no collision with the "Files" category,
+     ``REQ_ENT_ENTITY_FILE_CHILDREN``). Each entry SHALL record the
+     relative path plus its last-read and/or last-edited timestamp
+     (ISO 8601 UTC). A **write** touch updates last-edited; a **read**
+     touch updates last-read; both may be set on the same entry over time.
+     The file SHALL be updated on every touch so the list survives a VS
+     Code reload without requiring an explicit save action elsewhere.
+   * AC-7: Each entity leaf node SHALL gain a "Recently Touched Files"
+     category child (``contextValue = 'jarvisEntityFileCategory:touched'``,
+     ``collapsibleState = Collapsed``), positioned after "Agent"/"Files" —
+     shown **only when that entity has at least one touched-file entry**
+     (omitted entirely when empty, consistent with the "Agent" category's
+     fail-open omission pattern, ``REQ_ENT_ENTITY_FILE_CHILDREN`` AC-2c).
+   * AC-8: Within that category, files SHALL be shown in a hierarchical
+     tree mirroring their workspace-root-relative folder structure (not a
+     flat list) — intermediate folder nodes that lead to no touched file
+     SHALL be pruned (not shown).
+   * AC-9: Clicking a touched-file leaf SHALL open it using the identical
+     rule already defined for entity file children
+     (``REQ_ENT_ENTITY_FILE_CHILDREN`` AC-4: Markdown Preview for ``.md``,
+     standard editor preview mode otherwise, fixed Docs column) — consistent
+     open behavior across every file-showing category in the Explorer.
+   * AC-10: Each touched-file leaf's tooltip SHALL show its last-read
+     and/or last-edited timestamp(s) (whichever are set on the entry) — no
+     separate child node is used to convey this.
+   * AC-11: Right-click on a touched-file leaf SHALL show **Copy Path**,
+     **Copy Full Path**, and **Reveal in Explorer**, reusing the existing
+     entity-file context-menu mechanism (``REQ_ENT_ENTITY_CONTEXTMENU``).
+   * AC-12: Right-click on a touched-file leaf SHALL additionally show a
+     **diff** entry that opens VS Code's built-in diff view comparing the
+     file's current working-tree content against its git ``HEAD`` version
+     (via the standard Git extension virtual document scheme). When the
+     workspace is not a git repository, or the file has no ``HEAD``
+     version (untracked), the entry SHALL be shown as-is with no special
+     casing — it simply does not produce a diff in that case (confirmed
+     PM/CM decision: keep it simple, no fallback path).
+   * AC-13: Each touched-file leaf SHALL show an inline "Remove" (trash)
+     icon that deletes that single entry from the persisted JSON
+     (AC-6) and refreshes the tree immediately — no separate "dismissed"
+     state; the entry reappears if the file is touched again (KISS, per
+     GH #18).
+   * AC-14: This is purely additive — it does not alter the existing
+     "Agent"/"Files" categories, existing entity-node click/context-menu
+     behavior, or the Hook Engine's existing activity-tracking consumer
+     (``REQ_HOOK_ACTIVITY``).
+
+
 

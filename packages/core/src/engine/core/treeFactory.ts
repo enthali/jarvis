@@ -7,6 +7,8 @@ import * as fs from 'fs';
 import type { EntityKindConfig, SubtreeNode, TreeItemDecorator } from './types';
 import type { TreeNode, LeafNode, KindDrivenScanner } from '../sessions/yamlScanner';
 import { resolveAgentFileChild } from '../sessions/agentDiscovery';
+import type { TouchStore, TouchEntry } from '../hooks/touchStore';
+import { resolveTouchStorageKind } from '../hooks/touchStore';
 
 export type { TreeItemDecorator } from './types';
 
@@ -53,8 +55,85 @@ export interface EntityFileFolderNode {
 export type EntityFilesSubtreeNode =
     EntityFileCategoryNode | EntityFileNode | EntityFileFolderNode;
 
-/** Union of scanner TreeNodes, internal child nodes, and entity-file subtree nodes. */
-export type ProviderNode = TreeNode | ChildTreeNode | EntityFilesSubtreeNode;
+// actor-touched-files CR (SPEC_ENT_TOUCHEDFILES): provider-local node types
+// for the "Recently Touched Files" category — a third category sibling to
+// Agent/Files, rendered from TouchStore's persisted per-entity data rather
+// than a filesystem scan.
+//
+// Bugfix (PM F5 finding, GH #18): the field carrying the owning entity's kind
+// is deliberately NOT named `entityKind` — UnifiedEntityTreeProvider's
+// getChildren()/getTreeItem() duck-type their own (unrelated) CategoryNode via
+// `'entityKind' in element`; a node here with that same field name gets
+// silently misrouted as a root category node (wrong children, wrong render),
+// with no exception ever thrown. Named `ownerKind` instead to avoid the collision.
+
+/** Category node for the "Recently Touched Files" category under a leaf. */
+export interface TouchedFilesCategoryNode {
+    kind: 'touchedFilesCategory';
+    ownerKind: string;
+    entityName: string;
+}
+
+/** A folder segment within the touched-files hierarchy, derived from relative paths. */
+export interface TouchedFileFolderNode {
+    kind: 'touchedFileFolder';
+    relFolderPath: string; // workspace-relative
+    label: string;
+    entries: Record<string, TouchEntry>; // full flat entry map, for children resolution
+    ownerKind: string;
+    entityName: string;
+}
+
+/** A touched file leaf — structurally compatible with EntityFileNode for command reuse. */
+export interface TouchedFileLeafNode {
+    kind: 'touchedFileLeaf';
+    filePath: string; // absolute
+    label: string;
+    entry: TouchEntry;
+    ownerKind: string;
+    entityName: string;
+}
+
+export type TouchedFilesSubtreeNode =
+    TouchedFilesCategoryNode | TouchedFileFolderNode | TouchedFileLeafNode;
+
+/** Union of scanner TreeNodes, internal child nodes, entity-file, and touched-file subtree nodes. */
+export type ProviderNode = TreeNode | ChildTreeNode | EntityFilesSubtreeNode | TouchedFilesSubtreeNode;
+
+/**
+ * Builds the hierarchical touched-files tree from a flat relPath -> TouchEntry
+ * map (no on-disk folder to recursively readdir here, unlike "Files" — the
+ * hierarchy is derived purely from the recorded relative-path strings).
+ * Walked fresh on every expansion, never cached (SPEC_ENT_TOUCHEDFILES AC-6).
+ * Empty branches never appear: a folder node is only ever created for a
+ * relFolderPath that a real entry's path starts with.
+ */
+function buildTouchedFileChildren(
+    entries: Record<string, TouchEntry>,
+    underFolder: string,
+    workspaceRoot: string, ownerKind: string, entityName: string,
+): (TouchedFileFolderNode | TouchedFileLeafNode)[] {
+    const seenFolders = new Set<string>();
+    const result: (TouchedFileFolderNode | TouchedFileLeafNode)[] = [];
+    for (const [relPath, entry] of Object.entries(entries)) {
+        if (underFolder && !relPath.startsWith(underFolder + '/')) { continue; }
+        const rest = underFolder ? relPath.slice(underFolder.length + 1) : relPath;
+        const sepIndex = rest.indexOf('/');
+        if (sepIndex === -1) {
+            result.push({
+                kind: 'touchedFileLeaf', label: rest, entry, ownerKind, entityName,
+                filePath: path.join(workspaceRoot, relPath),
+            });
+        } else {
+            const folderName = rest.slice(0, sepIndex);
+            const relFolderPath = underFolder ? `${underFolder}/${folderName}` : folderName;
+            if (seenFolders.has(relFolderPath)) { continue; } // one node per folder, not per file
+            seenFolders.add(relFolderPath);
+            result.push({ kind: 'touchedFileFolder', relFolderPath, label: folderName, entries, ownerKind, entityName });
+        }
+    }
+    return result.sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
+}
 
 /**
  * Recursive alphabetical scan of an entity's own folder (files and folders
@@ -92,6 +171,7 @@ export class GenericTreeFactory {
     private readonly _decorators = new Map<string, TreeItemDecorator[]>();
     private readonly _scanner: KindDrivenScanner;
     private readonly _onDidAddKind = new vscode.EventEmitter<string>();
+    private _touchStore: TouchStore | undefined;
 
     /** Fired when a new entity kind is registered. */
     readonly onDidAddKind = this._onDidAddKind.event;
@@ -100,11 +180,22 @@ export class GenericTreeFactory {
         this._scanner = scanner;
     }
 
+    /**
+     * Injects the TouchStore used to render the "Recently Touched Files"
+     * category (SPEC_ENT_TOUCHEDFILES). Set once, early in extension.ts —
+     * a setter (rather than a constructor param) because TouchStore only
+     * needs the workspace root and can be constructed independently of
+     * scanner wiring order.
+     */
+    setTouchStore(store: TouchStore): void {
+        this._touchStore = store;
+    }
+
     addKind(config: EntityKindConfig): void {
         this._configs.set(config.kind, config);
         // Create or update provider for this kind's viewId
         if (!this._providers.has(config.kind)) {
-            const provider = new GenericTreeDataProvider(config, this._scanner, this._decorators);
+            const provider = new GenericTreeDataProvider(config, this._scanner, this._decorators, () => this._touchStore);
             this._providers.set(config.kind, provider);
             // AC-12: Fire event for late-registration handling
             this._onDidAddKind.fire(config.kind);
@@ -179,6 +270,7 @@ export class GenericTreeDataProvider implements vscode.TreeDataProvider<Provider
     private readonly _config: EntityKindConfig;
     private readonly _scanner: KindDrivenScanner;
     private readonly _decorators: Map<string, TreeItemDecorator[]>;
+    private readonly _getTouchStore: () => TouchStore | undefined;
     
     // Filter state (SPEC_PRJ_FILTERCOMMAND, SPEC_EVT_EVENTFILTER_CMD)
     private _hiddenFolders: Set<string> = new Set();
@@ -188,11 +280,13 @@ export class GenericTreeDataProvider implements vscode.TreeDataProvider<Provider
     constructor(
         config: EntityKindConfig,
         scanner: KindDrivenScanner,
-        decorators: Map<string, TreeItemDecorator[]>
+        decorators: Map<string, TreeItemDecorator[]>,
+        getTouchStore: () => TouchStore | undefined = () => undefined
     ) {
         this._config = config;
         this._scanner = scanner;
         this._decorators = decorators;
+        this._getTouchStore = getTouchStore;
     }
 
     refresh(): void {
@@ -313,6 +407,34 @@ export class GenericTreeDataProvider implements vscode.TreeDataProvider<Provider
             return item;
         }
 
+        // actor-touched-files CR (SPEC_ENT_TOUCHEDFILES): "Recently Touched Files" category
+        if (element.kind === 'touchedFilesCategory') {
+            const item = new vscode.TreeItem('Recently Touched Files', vscode.TreeItemCollapsibleState.Collapsed);
+            item.contextValue = 'jarvisEntityFileCategory:touched';
+            return item;
+        }
+
+        // Touched-files subfolder — reuses the "Files" folder contextValue/menu (no distinct needs)
+        if (element.kind === 'touchedFileFolder') {
+            const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.Collapsed);
+            item.tooltip = element.relFolderPath;
+            item.contextValue = 'jarvisEntityFileFolder';
+            return item;
+        }
+
+        // Touched-file leaf — tooltip shows last-read/last-edited, click opens via jarvis.openEntityFile
+        if (element.kind === 'touchedFileLeaf') {
+            const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.None);
+            const { lastRead, lastEdited } = element.entry;
+            item.tooltip = [
+                lastEdited ? `Last edited: ${new Date(lastEdited).toLocaleString()}` : undefined,
+                lastRead ? `Last read: ${new Date(lastRead).toLocaleString()}` : undefined,
+            ].filter(Boolean).join('\n');
+            item.contextValue = 'jarvisTouchedFile';
+            item.command = { command: 'jarvis.openEntityFile', title: 'Open File', arguments: [element] };
+            return item;
+        }
+
         // LeafNode — render from kind config with hook support
         const entity = this._scanner.getEntity(element.id);
         const name = entity ? entity.name : path.basename(path.dirname(element.id));
@@ -396,6 +518,18 @@ export class GenericTreeDataProvider implements vscode.TreeDataProvider<Provider
             return scanEntityFilesRecursive(element.folderPath);
         }
         if (element.kind === 'entityFile') {
+            return []; // leaf — no further descent
+        }
+        // actor-touched-files CR (SPEC_ENT_TOUCHEDFILES): rendered from TouchStore's
+        // persisted data, walked fresh on every expansion (never cached).
+        if (element.kind === 'touchedFilesCategory') {
+            return this._getTouchedCategoryChildren(element);
+        }
+        if (element.kind === 'touchedFileFolder') {
+            const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
+            return buildTouchedFileChildren(element.entries, element.relFolderPath, workspaceRoot, element.ownerKind, element.entityName);
+        }
+        if (element.kind === 'touchedFileLeaf') {
             return []; // leaf — no further descent
         }
         // Leaf node — category children (always) + hook-based children (if any)
@@ -484,7 +618,7 @@ export class GenericTreeDataProvider implements vscode.TreeDataProvider<Provider
         // Agent category (conditional) then Files category (always), on-the-fly
         // per SPEC_ENT_ENTITY_FILE_CHILDREN AC-2/AC-4/AC-5. Never cached in the
         // scanner or in YamlScanner's own tree structures.
-        const categoryNodes: EntityFileCategoryNode[] = [];
+        const categoryNodes: (EntityFileCategoryNode | TouchedFilesCategoryNode)[] = [];
         const agentFile = await resolveAgentFileChild(entity?.agent, workspaceRoot);
         if (agentFile) {
             categoryNodes.push({
@@ -496,6 +630,23 @@ export class GenericTreeDataProvider implements vscode.TreeDataProvider<Provider
             kind: 'entityFileCategory', category: 'files', label: 'Files',
             entityFolder, entityId: element.id,
         });
+
+        // actor-touched-files CR (SPEC_ENT_TOUCHEDFILES AC-5): omitted entirely
+        // when the entity's touch map is empty. Storage key resolved via
+        // resolveTouchStorageKind (bugfix, GH #18) — must match the key
+        // TouchTracker wrote under, not just this._config.kind (always
+        // 'session' for both raw sessions and actors).
+        const touchStore = this._getTouchStore();
+        if (touchStore) {
+            const name = entity ? entity.name : path.basename(entityFolder);
+            const ownerKind = resolveTouchStorageKind(this._config.kind, entityFolder);
+            const touchEntries = await touchStore.getEntries(ownerKind, name);
+            if (Object.keys(touchEntries).length > 0) {
+                categoryNodes.push({
+                    kind: 'touchedFilesCategory', ownerKind, entityName: name,
+                });
+            }
+        }
 
         let hookChildren: ProviderNode[] = [];
         if (this._config.getChildren) {
@@ -521,6 +672,17 @@ export class GenericTreeDataProvider implements vscode.TreeDataProvider<Provider
         return agentFile
             ? [{ kind: 'entityFile' as const, filePath: agentFile.filePath, label: agentFile.label }]
             : [];
+    }
+
+    /**
+     * Resolves the "Recently Touched Files" category's children from
+     * TouchStore, walked fresh on every expansion (SPEC_ENT_TOUCHEDFILES AC-6).
+     */
+    private async _getTouchedCategoryChildren(element: TouchedFilesCategoryNode): Promise<ProviderNode[]> {
+        const store = this._getTouchStore();
+        const entries = store ? await store.getEntries(element.ownerKind, element.entityName) : {};
+        const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
+        return buildTouchedFileChildren(entries, '', workspaceRoot, element.ownerKind, element.entityName);
     }
 
     getParent(_element: ProviderNode): ProviderNode | null {

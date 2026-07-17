@@ -1,5 +1,16 @@
 # Release Notes
 
+## v0.20.0 — Recently Touched Files
+
+*2026-07-17*
+
+### Features
+
+- **actor-touched-files** (GH #18): Each Actor/Project/Event node now shows a **Recently Touched Files** subtree listing files the AI read or wrote during that entity's session. Touch events are captured by the Hook Engine on `PostToolUse` (any write tool touch is recorded regardless of success/failure). Files render as a workspace-root-relative hierarchy with last-read/last-edited tooltips. Click a `.md` file to open it as rendered Markdown Preview; all other files open in VS Code preview mode. Context menu: Copy Path, Copy Full Path, Reveal in Explorer, and an inline trash icon to remove an entry. Persisted in `.jarvis/state/touched-files/<kind>-<name>.json` and survives VS Code reload. Storage key correctly distinguishes Actor entities from Session entities even though the underlying scanner kind is shared.
+  *(US_ENT_TOUCHEDFILES; REQ_ENT_TOUCHEDFILES; SPEC_ENT_TOUCHEDFILES)*
+
+---
+
 ## v0.19.0 — Message Log Viewer + Actor Activity Indicator
 
 *2026-07-17*

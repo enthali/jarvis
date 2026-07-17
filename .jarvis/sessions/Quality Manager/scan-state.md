@@ -2,20 +2,30 @@
 
 Updated after every cycle. Read this first to know where to pick up.
 
+## Known Limitation — Missed Heartbeat Triggers
+
+The Friday periodic heartbeat only fires if this VS Code session happens to be
+running at trigger time. If the session wasn't open on a given Friday, that
+cycle's heartbeat is simply never delivered — there is no catch-up/replay
+mechanism (deemed too complex and error-prone; accepted as a permanent
+limitation, per user 2026-07-17). Gaps of several weeks between periodic runs
+are therefore expected and NOT automatically a QM logging failure — always
+check this note before treating a stale `Last Run` date as a process gap.
+
 ## Last Periodic Run
 
-- **Date:** 2026-06-18 (manual — heartbeat job not yet active at that time)
-- **Report:** none filed separately — findings sent directly to PM via Jarvis message
+- **Date:** 2026-07-17 (Friday heartbeat cycle)
+- **Report:** [reports/qr-2026-07-17-friday-heartbeat.md](reports/qr-2026-07-17-friday-heartbeat.md) — see [reports/index.md](reports/index.md) for full report history
 
 ## Standing Check Status
 
 | ID | Last Run | Last Result |
 |---|---|---|
-| SC-001 | 2026-06-18 | 11 findings → reported to PM; CR scheduled |
-| SC-002 | — | — |
-| SC-003 | — | — |
-| SC-004 | — | — |
-| SC-005 | — | — |
+| SC-001 | 2026-07-17 | Re-confirmed: same 11 persona findings as 2026-06-18 (no new US personas added since). Still outstanding — CR not yet delivered. |
+| SC-002 | 2026-07-17 | 3 findings (first run) — implementation detail leaking into US ACs: us_pim.rst US_PIM_CATEGORY AC-8 (`registerDualTool()`), us_msg.rst US_MSG_LISTJARVISSESSIONS AC-1 (`JarvisCoreApi.listJarvisSessions()` signature + return shape), us_msg.rst US_MSG_MCPSERVER AC-2 (`vscode.lm.registerTool()`) |
+| SC-003 | 2026-07-17 | PASS — every SPEC element across docs/design/spec_*.rst has a `:links:` field. 0 findings. |
+| SC-004 | 2026-07-17 | 14 findings (first run) — tst-*.md files (repo-wide, incl. version archives) with no matching val-*.md: session-agent-binding, devcontainer-session-lookup, context-file-discovery, heartbeat-feedback-toast, heartbeat-pause-resume, open-context, list-jobs-tool, validate-session-destination, create-session-tool, validate-heartbeat-queue-destination, agent-prompt-tuning, tree-search, session-tree-click-behavior, sessions-feature |
+| SC-005 | 2026-07-17 | PASS — both root-level in-progress CDs (actor-touched-files.md, message-log-viewer.md) have active feature branches (feature/actor-touched-files, feature/message-log-viewer). 0 findings. |
 
 ## CR Review Log
 
@@ -49,14 +59,18 @@ in git history of this file.*
 
 ## Known Releases (at last scan)
 
-v0.0.1, v0.1.0, v0.1.1, v0.2.0, v0.3.0, v0.3.1, v0.4.0, v0.5.0, v0.5.1, v0.5.2, v0.5.3, v0.5.4, v0.5.5, v0.5.6, v0.5.7, v0.5.8, v0.5.9, v0.5.10, v0.5.11, v0.6.0, v0.6.1, v0.7.0
+v0.0.1, v0.1.0, v0.1.1, v0.2.0, v0.3.0, v0.3.1, v0.4.0, v0.5.0, v0.5.1, v0.5.2, v0.5.3, v0.5.4, v0.5.5, v0.5.6, v0.5.7, v0.5.8, v0.5.9, v0.5.10, v0.5.11, v0.6.0, v0.6.1, v0.7.0, v0.8.0, v0.9.0, v0.10.0, v0.11.0, v0.11.1, v0.11.2, v0.12.0, v0.13.0, v0.13.1, v0.13.2, v0.13.3, v0.14.0, v0.15.0, v0.15.1, v0.15.2, v0.16.0, v0.17.0, v0.17.1, v0.17.2, v0.17.3, v0.18.0, v0.19.0
 
 ## Known Root-Level Changes (at last scan — completed CRs reviewed by QM)
 
 - remove-open-recording-icon.md ✓ reviewed
+- actor-activity-indicator.md / message-log-viewer.md — reviewed live via CM-completion Jarvis notifications during this session (see conversation history: actor-activity-indicator Round 1/Round 2 CLEAR); CR Review Log table below not yet backfilled for these — see Pending.
 
 ## Pending
 
-- SC-002 through SC-005: not yet run (first run on next Friday heartbeat)
+- **Housekeeping gap (self-identified, non-PM-facing):** 22 releases (v0.8.0–v0.19.0) shipped since the CR Review Log table was last appended to (message-flow-diagram, 2026-07-03). Many CRs in that window (e.g. unified-entity-tree, actor-owned-files-tree, actor-tool-rename, actor-terminology-rename, eslint-flat-config, dynamic-tree-title, message-log-viewer, actor-activity-indicator, and others) were reviewed live via CM-completion Jarvis notifications during the session but never appended as CR Review Log rows here. Ledger is behind reality; each CR's own quality gate (CM-pipeline MECE/Trace + QM sign-off message) was still enforced, so this is a logging/traceability gap in this file, not an unreviewed-quality gap. Root cause update (2026-07-17, per user): part of this gap is explained by the missed-heartbeat-trigger limitation above (this session wasn't always running on Fridays) rather than QM neglect. To be backfilled opportunistically; not escalated to PM as a quality finding.
+- SC-001: 11 persona findings still outstanding — coupled to [GH #33](https://github.com/enthali/jarvis/issues/33) "Streamline persona roles in User Stories" (unchanged since 2026-06-18). Correction (PM, 2026-07-17): the earlier reference to a planned "Jarvis Agent persona CR" was mistaken — no such GH issue ever existed; GH #33 is the actual tracking issue, kept minimal. No escalation needed.
+- SC-002: 3 findings — PM decision 2026-07-17: **Defer**. Backlog issue GH #32 filed ("docs: remove implementation details from User Story acceptance criteria"). Low priority, bundled into future docs-cleanup CR, no active risk.
+- SC-004: 14 findings — PM decision 2026-07-17: **Accept-as-is**. Historical gaps predating the val- convention (SC-005 confirms the convention holds for current/root-level CDs). No active quality risk, no rework justified for closed/shipped changes.
 - remove-open-recording-icon PM decision: outstanding
 - ~~URGENT full-suite build break (collectLeaves()/FileNode)~~ — RESOLVED 2026-07-02 via pim-treenode-filenode-fix hotfix, QM CLEAR, full-suite build independently re-verified clean.
