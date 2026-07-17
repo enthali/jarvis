@@ -62,6 +62,12 @@ jobs:
             packages/flow/*.vsix
             packages/suite/*.vsix
           generate_release_notes: true
+          # softprops/action-gh-release is idempotent: if a release for this
+          # tag already exists (e.g. manually created by the Release Engineer
+          # before the tag push), it updates that release in place rather than
+          # failing. No extra input is needed for this — `update_existing` is
+          # not a valid input for this action (removed; was silently ignored
+          # by the action but flagged as invalid by schema validation).
 
       # ── Marketplace publish — jarvis-core + add-ons (NOT legacy jarvis) ──────
       - name: Publish enthali.jarvis-core to Marketplace

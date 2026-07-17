@@ -399,3 +399,292 @@ Message Flow Visualization Design Specifications
      no dependency on ``JarvisCoreApi``'s exports for this interaction,
      unlike ``SPEC_FLOW_DATASERVICE``'s direct file read of
      ``message-log.json``.
+
+
+.. spec:: Message Log Viewer Panel
+   :id: SPEC_FLOW_LOGVIEWER
+   :status: draft
+   :links: REQ_FLOW_LOGVIEWER; SPEC_FLOW_WEBVIEW; SPEC_MSG_EDITORPLACEMENT
+
+   **Description:**
+   ``packages/flow/src/extension.ts`` registers ``jarvis.openMessageLog``,
+   a second singleton ``vscode.WebviewPanel`` alongside the existing
+   ``jarvis.openMessageFlow`` panel (``SPEC_FLOW_WEBVIEW``), reusing the
+   same viewtype-per-panel/reveal/Docs-column pattern. It reads
+   ``message-log.json`` directly (the same file ``SPEC_FLOW_DATASERVICE``
+   reads for the chord diagram) via a small local reader — the log
+   viewer's own reader returns the raw, un-aggregated entry list
+   (reverse-chronological), rather than the chord diagram's
+   node/edge-aggregated ``FlowData`` shape, since it displays individual
+   entries, not aggregated counts.
+
+   **Reader (``packages/flow/src/dataService.ts`` — new function, alongside
+   the existing ``loadFlowData``):**
+
+   .. code-block:: typescript
+
+      export function loadMessageLogEntries(logPath: string): LoggedMessage[] {
+          const raw = readMessageLog(logPath); // existing tolerant reader, reused as-is
+          return [...raw].reverse(); // newest first (REQ_FLOW_LOGVIEWER AC-5)
+      }
+
+   ``readMessageLog()`` (existing, ``SPEC_FLOW_DATASERVICE``) already
+   returns ``[]`` on a missing/unparseable file — the empty-state handling
+   (``REQ_FLOW_LOGVIEWER`` AC-4) is therefore already satisfied by reuse,
+   no new tolerant-parse logic is needed.
+
+   **Panel registration (``extension.ts`` — mirrors ``makeOpenMessageFlow``'s
+   structure):**
+
+   .. code-block:: typescript
+
+      const LOGVIEWER_VIEWTYPE = 'jarvisMessageLog';
+
+      function makeOpenMessageLog(
+          context: vscode.ExtensionContext,
+          log: vscode.LogOutputChannel
+      ): () => void {
+          let panel: vscode.WebviewPanel | undefined;
+          let pollHandle: ReturnType<typeof setInterval> | undefined;
+
+          function postData(): void {
+              if (!panel) { return; }
+              const logPath = resolveMessageLogPath();
+              const entries = logPath ? loadMessageLogEntries(logPath) : [];
+              panel.webview.postMessage({ type: 'logData', payload: entries });
+          }
+
+          return function openMessageLog(): void {
+              if (panel) {
+                  panel.reveal(DOCS_COLUMN);
+                  return;
+              }
+              panel = vscode.window.createWebviewPanel(
+                  LOGVIEWER_VIEWTYPE,
+                  'Message Log',
+                  DOCS_COLUMN,
+                  {
+                      enableScripts: true,
+                      retainContextWhenHidden: true,
+                      localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'out')],
+                  }
+              );
+              panel.webview.html = renderLogViewerHtml(panel.webview, context.extensionUri);
+              panel.onDidDispose(() => {
+                  panel = undefined;
+                  if (pollHandle) { clearInterval(pollHandle); pollHandle = undefined; }
+              });
+
+              panel.webview.onDidReceiveMessage(msg => {
+                  if (msg?.type === 'atTop') {
+                      // REQ_FLOW_LOGVIEWER AC-7a/AC-7c — (re)start polling, refresh immediately
+                      if (!pollHandle) {
+                          postData();
+                          pollHandle = setInterval(() => { if (panel?.visible) { postData(); } }, POLL_MS);
+                      }
+                  } else if (msg?.type === 'scrolledDown') {
+                      // REQ_FLOW_LOGVIEWER AC-7b — pause polling, freeze current list
+                      if (pollHandle) { clearInterval(pollHandle); pollHandle = undefined; }
+                  } else if (msg?.type === 'requeue') {
+                      handleRequeue(msg.entry, log)
+                          .then(ok => panel?.webview.postMessage({ type: 'requeueResult', ok }))
+                          .catch(e => {
+                              log.warn(`[Flow] requeue failed: ${e}`);
+                              panel?.webview.postMessage({ type: 'requeueResult', ok: false });
+                          });
+                  }
+              });
+
+              postData();
+              pollHandle = setInterval(() => { if (panel?.visible) { postData(); } }, POLL_MS);
+          };
+      }
+
+   **Design note — scroll-position-driven refresh lives in the webview,
+   not the host:** the extension host has no visibility into the webview's
+   DOM scroll position; the webview-side script tracks ``scrollTop`` on its
+   own list container and posts ``{ type: 'atTop' }`` /
+   ``{ type: 'scrolledDown' }`` transitions to the host, which starts/stops
+   the ``setInterval`` accordingly (``REQ_FLOW_LOGVIEWER`` AC-7). This is
+   the same split responsibility already used for ``increaseCap``
+   (``SPEC_FLOW_LOADMORE``) — webview owns UI/interaction state, host owns
+   data loading and timers.
+
+   **HTML/CSS (theme-consistent, per user decision):**
+
+   .. code-block:: typescript
+
+      function renderLogViewerHtml(webview: vscode.Webview, extensionUri: vscode.Uri): string {
+          const scriptUri = webview.asWebviewUri(
+              vscode.Uri.joinPath(extensionUri, 'out', 'webview', 'logviewer.js')
+          );
+          const csp = `default-src 'none'; img-src ${webview.cspSource}; style-src ${webview.cspSource} 'unsafe-inline'; script-src ${webview.cspSource};`;
+          return `<!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="Content-Security-Policy" content="${csp}">
+        <title>Message Log</title>
+        <style>
+          html, body { height: 100%; margin: 0; padding: 0; background: var(--vscode-editor-background); color: var(--vscode-editor-foreground); font-family: var(--vscode-font-family); }
+          #log-root { width: 100%; height: 100%; overflow-y: auto; }
+        </style>
+      </head>
+      <body>
+        <div id="log-root"></div>
+        <script src="${scriptUri}"></script>
+      </body>
+      </html>`;
+      }
+
+   Same theme-CSS-variable approach as ``SPEC_FLOW_WEBVIEW``'s
+   ``renderHtml`` (``--vscode-editor-background`` /
+   ``--vscode-editor-foreground`` / ``--vscode-font-family``) — no
+   hardcoded colors — per ``REQ_FLOW_LOGVIEWER`` AC-10. Per-entry
+   block/button styling (background of each message card, the "Jump to
+   Top"/"Requeue" buttons) SHALL likewise use VS Code theme variables
+   (e.g. ``--vscode-button-background``/``--vscode-button-foreground`` for
+   buttons, ``--vscode-editorWidget-background`` or similar for the
+   per-entry card background) rather than fixed colors, so the panel's
+   light/dark appearance always matches the chord diagram's and the rest
+   of the editor's.
+
+   **Manifest additions (``packages/flow/package.json``):**
+
+   * ``contributes.commands``: ``jarvis.openMessageLog`` (title "Jarvis:
+     Open Message Log", icon ``$(list-unordered)`` — distinct from the
+     chord diagram's ``$(graph)``)
+   * ``contributes.menus.commandPalette``: ``{ "command":
+     "jarvis.openMessageLog", "when": "config.jarvis.messages.enabled ==
+     true" }`` — same gating as ``jarvis.openMessageFlow``
+   * ``contributes.menus.view/title``: ``{ "command":
+     "jarvis.openMessageLog", "when": "view == jarvisMessages", "group":
+     "navigation@3" }`` — third button, alongside the existing
+     ``jarvis.openMessageFlow`` (``navigation@2``)
+
+   **Acceptance Criteria:**
+
+   1. ``jarvis.openMessageLog`` creates the panel on first call and reveals
+      the existing instance on subsequent calls.
+   2. The panel opens at the fixed Docs column (``DOCS_COLUMN``), same as
+      the chord-diagram panel.
+   3. ``loadMessageLogEntries()`` reuses the existing tolerant
+      ``readMessageLog()`` reader and only reverses order — no duplicated
+      parse/empty-state logic.
+   4. Auto-refresh start/stop is driven by webview-posted ``atTop``/
+      ``scrolledDown`` messages, not by any host-side scroll awareness (the
+      host has none).
+   5. Polling uses the same 5000 ms interval and the same
+      "skip while not ``panel.visible``" guard as the chord diagram.
+   6. HTML/CSS uses VS Code theme CSS variables throughout (background,
+      foreground, font, button colors) — no hardcoded color values.
+
+
+.. spec:: Message Requeue (Redelivery)
+   :id: SPEC_FLOW_REQUEUE
+   :status: draft
+   :links: REQ_FLOW_REQUEUE; SPEC_FLOW_LOGVIEWER; SPEC_MSG_QUEUESTORE
+
+   **Description:**
+   A local, minimal queue-append function in ``packages/flow`` (NOT an
+   import of core's ``appendMessage()`` — cross-package compile-time
+   imports between separately-bundled extensions are not possible; this
+   mirrors the existing precedent of ``dataService.ts`` maintaining its own
+   ``message-log.json`` reader rather than importing core's) writes a copy
+   of the requeued entry into ``messages.json``, preserving the original
+   ``sender`` and ``timestamp`` verbatim (per user decision during L1
+   review — a requeue is an exact redelivery of the original entry, not a
+   new event with a new send time). It deliberately does **not** touch
+   ``message-log.json`` — no audit-log side effect, unlike a normal send.
+
+   **Implementation:**
+
+   .. code-block:: typescript
+
+      interface QueuedMessageCopy {
+          destination: string;
+          sender: string;
+          text: string;
+          timestamp: string; // preserved verbatim from the original log entry
+      }
+
+      /** Resolves <workspaceRoot>/.jarvis/messages.json — mirrors configPaths.getMessagesPath(). */
+      function resolveMessagesPath(): string | undefined {
+          const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+          return root ? path.join(root, '.jarvis', 'messages.json') : undefined;
+      }
+
+      /**
+       * Appends `entry` to messages.json only — deliberately does NOT write
+       * to message-log.json, even if jarvis.messages.logging is enabled
+       * (REQ_FLOW_REQUEUE: a requeue is a redelivery of an already-logged
+       * entry, not a new event to log again).
+       */
+      async function requeueMessage(entry: QueuedMessageCopy): Promise<void> {
+          const messagesPath = resolveMessagesPath();
+          if (!messagesPath) { throw new Error('No workspace open'); }
+          let queue: QueuedMessageCopy[] = [];
+          try {
+              const raw = await fs.promises.readFile(messagesPath, 'utf-8');
+              queue = JSON.parse(raw);
+          } catch {
+              queue = []; // missing/unparseable file → start fresh, same tolerant pattern as readMessageLog()
+          }
+          queue.push(entry);
+          await fs.promises.mkdir(path.dirname(messagesPath), { recursive: true });
+          await fs.promises.writeFile(messagesPath, JSON.stringify(queue, null, 2));
+      }
+
+      async function handleRequeue(
+          original: { sender: string; destination: string; text: string; timestamp: string },
+          log: vscode.LogOutputChannel
+      ): Promise<boolean> {
+          try {
+              await requeueMessage({
+                  destination: original.destination,
+                  sender: original.sender,        // preserved verbatim
+                  text: original.text,
+                  timestamp: original.timestamp,  // preserved verbatim — same send time
+              });
+              log.info(`[Flow] requeued message to "${original.destination}" (original timestamp ${original.timestamp})`);
+              return true;
+          } catch (e) {
+              log.warn(`[Flow] requeue failed for "${original.destination}": ${e}`);
+              return false;
+          }
+      }
+
+   **Design note — why no idempotency/dedup guard:** ``REQ_FLOW_REQUEUE``
+   AC-6 explicitly permits repeated requeues of the same entry, each
+   appending independently — there is deliberately no "already requeued"
+   marker or check, unlike ``jarvis_createActor``'s idempotent-skip
+   pattern elsewhere in the codebase. A requeue is a user-initiated,
+   repeatable action, not a create-once operation.
+
+   **Webview-side trigger (``logviewer.ts``, new webview script):** the
+   Requeue button's click handler posts
+   ``{ type: 'requeue', entry: { sender, destination, text, timestamp } }``
+   (the full original entry, not just an index — the log viewer holds the
+   already-loaded, reverse-chronological array client-side) to the
+   extension host; on ``{ type: 'requeueResult', ok }`` it shows a
+   transient inline confirmation or error state on that entry's card
+   (``REQ_FLOW_REQUEUE`` AC-4/AC-5) — no panel-wide reload is triggered by
+   a requeue itself (the next scheduled/atTop-triggered poll will pick up
+   any change naturally if the requeued message is itself later logged
+   again by a subsequent real send).
+
+   **Acceptance Criteria:**
+
+   1. ``requeueMessage()`` writes only to ``messages.json`` — no code path
+      in this function touches ``message-log.json``.
+   2. The appended entry's ``sender`` and ``timestamp`` are copied verbatim
+      from the original log entry; only ``destination``/``text`` are
+      otherwise involved (also copied verbatim — nothing is transformed).
+   3. A missing/unparseable ``messages.json`` is treated as an empty queue
+      (tolerant, consistent with ``readMessageLog()``'s existing pattern)
+      — the requeue still succeeds, creating the file fresh.
+   4. No workspace open (``resolveMessagesPath()`` returns ``undefined``)
+      results in a thrown error, caught by ``handleRequeue()``, surfaced to
+      the webview as ``{ ok: false }`` — never an unhandled rejection.
+   5. Repeated requeues of the same entry are unrestricted — no
+      deduplication, no "already requeued" state tracked anywhere.

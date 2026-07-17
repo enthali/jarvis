@@ -84,6 +84,31 @@ the Change Document, spec, or code, and do not run any git command — wait
 for that session to report back first. Your own session directory
 (`.jarvis/sessions/Project Manager/`) is always safe to edit freely.
 
+## Change Document Path — Never Pre-Assign a Version
+
+**HARD RULE: A Change Document, Test Protocol, or Validation Report path
+MUST NEVER contain a version number at creation time.** Always
+`docs/changes/<name>.md`, `docs/changes/tst-<name>.md`,
+`docs/changes/val-<name>.md` — flat, in the root staging area. Never
+`docs/changes/v<X.Y.Z>/<name>.md`.
+
+**Why:** the CD lives on a feature branch during its entire CM→QM cycle.
+Which release it ultimately ships in is unknowable at creation time — a
+branch can be delayed, overtaken by other branches, or bundled differently
+than planned when the CD was written. Only the Release Engineer knows the
+true version, and only at the moment it actually cuts the release
+(`docs/changes/<version>/` is populated exclusively by
+`@syspilot.release`'s archival step, never by PM, CM, or Design).
+
+This exact mistake (pre-naming a CD path with a version folder) has
+recurred multiple times (most recently: `message-log-viewer` was filed at
+`docs/changes/v0.18.0/message-log-viewer.md` while still in development;
+v0.18.0 was tagged before that CR merged, so the archive falsely implied
+it shipped when it hadn't). Corrected 2026-07-17 by moving the files back
+to `docs/changes/` root on `develop`. When creating any CD going forward,
+PM double-checks the path contains no version segment before committing
+it.
+
 ## Post-Release Distribution
 
 **Fully automatic via CD.** No manual step required.

@@ -43,3 +43,45 @@ Message Flow Visualization User Stories
    * AC-8: The user can expand how much message history is loaded (beyond
      the default cap) via an in-diagram control, without leaving the
      diagram or losing their current lens position.
+
+
+.. story:: Message Log Viewer
+   :id: US_FLOW_LOGVIEWER
+   :status: draft
+   :priority: optional
+   :links: US_MSG_CHATQUEUE; US_EXP_SIDEBAR; US_FLOW_CHORDVIEW
+
+   **As a** Jarvis User,
+   **I want** a scrollable, newest-first viewer for the persistent message
+   audit log (sender, recipient, timestamp, and word-wrapped content per
+   entry) with a Requeue button on each entry,
+   **so that** I can browse message history and recover/redeliver a
+   specific message to its original recipient without hand-editing JSON
+   files.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The viewer is opened via a command (``jarvis.openMessageLog``)
+     and an icon button on the ``jarvisMessages`` tree view's title bar —
+     the same contribution point already used by the chord diagram
+     (``US_FLOW_CHORDVIEW`` AC-2) — as its own editor tab.
+   * AC-2: The list shows every entry from the persistent audit log,
+     newest first; each entry shows sender, recipient, a formatted
+     date/time (derived from the entry's ISO timestamp), and word-wrapped
+     message content.
+   * AC-3: Auto-refresh is driven by scroll position, with no explicit
+     toggle: while scrolled to the very top, the list polls periodically
+     and silently prepends new entries; scrolling down freezes the list
+     (no entries shift while reading).
+   * AC-4: A "Jump to Top" button, visible only when not scrolled to the
+     top, both scrolls the list back to the top and reactivates
+     auto-refresh (with an immediate refresh, not waiting for the next
+     poll tick).
+   * AC-5: A "Requeue" button on each entry copies that message back into
+     the live message queue, addressed to its original recipient — this is
+     a redelivery, not a new send: it SHALL NOT create a new entry in the
+     persistent audit log, even though an ordinary send does.
+   * AC-6: This feature is delivered as part of the existing jarvis-flow
+     add-on (no new package) — the core extension and other add-ons are
+     unaffected if jarvis-flow is not installed, consistent with
+     ``US_FLOW_CHORDVIEW`` AC-7.

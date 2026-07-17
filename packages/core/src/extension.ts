@@ -23,6 +23,8 @@ import { checkForUpdates } from './engine/core/updateCheck';
 import { HookEngine } from './engine/hooks/hookEngine';
 import { HookIntake } from './engine/hooks/hookIntake';
 import { installHookConfig, uninstallHookConfig, getHooksDir } from './engine/hooks/hookConfig';
+import { ActivityTracker } from './engine/hooks/activityTracker';
+import { ActivityDecorator } from './engine/hooks/activityDecorator';
 
 import { CronExpressionParser } from 'cron-parser';
 
@@ -438,6 +440,18 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     const treeFactory = new GenericTreeFactory(kindDrivenScanner);
     const engine = new JarvisEngine(kindDrivenScanner, treeFactory);
     context.subscriptions.push({ dispose: () => engine.dispose() });
+
+    // Activity indicator (SPEC_HOOK_ACTIVITY): hook-driven 2-state tree icon.
+    // Constructed after `engine` exists (onChange needs treeFactory.refreshKind
+    // + kindDrivenScanner.entities to resolve which kind owns the flipped entity).
+    const activityTracker = new ActivityTracker(hookEngine, (entityName: string) => {
+        const owner = kindDrivenScanner.entities.find(e => e.name === entityName);
+        if (owner) { engine.treeFactory.refreshKind(owner.kind); }
+    }, log);
+    const activityDecorator = new ActivityDecorator(activityTracker, kindDrivenScanner);
+    for (const kind of ['session', 'project', 'event']) {
+        context.subscriptions.push(engine.treeFactory.registerDecorator(kind, activityDecorator));
+    }
 
     // Heartbeat scheduler — created conditionally inside heartbeat block
     let scheduler: HeartbeatScheduler | undefined;

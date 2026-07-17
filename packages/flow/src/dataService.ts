@@ -5,7 +5,7 @@ import * as fs from 'fs';
 import { FlowData, FlowEdge, FlowMessageEntry } from './types';
 
 /** Same {destination, sender, text, timestamp} shape as messages.json/message-log.json (SPEC_MSG_QUEUESTORE). */
-interface LoggedMessage {
+export interface LoggedMessage {
     destination: string;
     sender: string;
     text: string;
@@ -88,4 +88,15 @@ export function loadFlowData(logPath: string, cap: number = DEFAULT_CAP): FlowDa
         ...aggregate(capped),
         entries: capped.map(e => ({ sender: e.sender, destination: e.destination, timestamp: e.timestamp }))
     };
+}
+
+/**
+ * SPEC_FLOW_LOGVIEWER: returns the raw, un-aggregated entry list in
+ * reverse-chronological (newest first) order (AC-5) — reuses the existing
+ * tolerant readMessageLog() reader as-is, no duplicated parse/empty-state
+ * logic (AC-3).
+ */
+export function loadMessageLogEntries(logPath: string): LoggedMessage[] {
+    const raw = readMessageLog(logPath);
+    return [...raw].reverse();
 }

@@ -1,5 +1,23 @@
 # Release Notes
 
+## v0.19.0 — Message Log Viewer + Actor Activity Indicator
+
+*2026-07-17*
+
+### Features
+
+- **message-log-viewer** (GH #31): Adds a scrollable `WebviewPanel` to jarvis-flow (`packages/flow`) that displays all messages from `message-log.json` as a list (newest first) with sender, recipient, date/time, and word-wrapped content. A **Requeue** button on each entry re-delivers the original message to its recipient (no new audit-log entry is written). Auto-refresh is scroll-position-driven: the list polls every 5 s when at the top and freezes when scrolled down; a "Jump to Top" button restores auto-refresh. Opened via command `jarvis.openMessageLog` and an icon button in the jarvis-flow `view/title` contribution point.
+  *(US_FLOW_LOGVIEWER; REQ_FLOW_LOGVIEWER; REQ_FLOW_REQUEUE; SPEC_FLOW_LOGVIEWER; SPEC_FLOW_REQUEUE)*
+
+- **actor-activity-indicator** (GH #28): Adds a two-state (Active / Inactive) activity indicator to every entity node (Actor, Project, Event) in the Jarvis Entities tree, driven by the Hook Engine. A green `circle-filled` ThemeIcon marks the node whose session is currently processing; all idle nodes revert to their normal icon (no indicator asserted). Updates in real time — any hook event sets the entity Active; a `Stop` event returns it to Inactive. Also fixes a prerequisite bug in `hookIntake.ts` where `session_id` was extracted as camelCase `parsed.sessionId` instead of the actual snake_case payload field `parsed.session_id`, causing `event.sessionId` to always be `undefined`.
+  *(US_HOOK_ACTIVITY; REQ_HOOK_ACTIVITY; REQ_HOOK_INTAKE; SPEC_HOOK_ACTIVITY; SPEC_HOOK_INTAKE)*
+
+### Infrastructure
+
+- **release.yml fix**: Removed invalid `update_existing` input from the GitHub Actions release workflow (no CD — direct infrastructure fix).
+
+---
+
 ## v0.18.0 — Recursive Entity File Tree + Dynamic Tree Title
 
 *2026-07-16*
