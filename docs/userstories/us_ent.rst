@@ -364,3 +364,59 @@ Jarvis Entity kinds (Project / Event / Actor). Kind-agnostic engine plumbing
    * AC-8: This continues to be purely additive at the entity-node level —
      existing inline icon buttons and existing entity-node click behavior
      (open agent session / open chat) are unchanged by this feature.
+
+
+.. story:: Recently Touched Files per Entity
+   :id: US_ENT_TOUCHEDFILES
+   :status: approved
+   :priority: optional
+   :links: US_ENT_ENTITY_FILES_TREE; US_HOOK_ROUTE; US_ENT_ENTITY; US_EXP_SIDEBAR
+
+   *Context: US_HOOK_ROUTE gave the Hook Engine a typed dispatch registry
+   with no real consumer beyond activity tracking (US_HOOK_ACTIVITY). This
+   is a second consumer: instead of "is this entity's session active right
+   now", it answers "what files has the agent actually read or written
+   while working on this entity" — visibility a user currently only gets by
+   manually checking git status or the file explorer.*
+
+   **As a** Jarvis User,
+   **I want** each Actor, Project, and Event node in the Jarvis Explorer to
+   show a "Recently Touched Files" subtree listing files the agent has
+   read or written while working in that entity's bound session,
+   **so that** I can see at a glance what the agent actually touched,
+   without digging through transcripts or git status.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A "Recently Touched Files" category node appears under each
+     Actor/Project/Event leaf, alongside the existing "Agent"/"Files"
+     categories (US_ENT_ENTITY_FILES_TREE) — a third, independent,
+     collapsible category, not nested inside "Files".
+   * AC-2: The subtree is hierarchical and **workspace-root-relative** —
+     not scoped to the entity's own folder, since the agent can touch
+     files anywhere in the workspace. Empty intermediate folder branches
+     are pruned (only branches that lead to at least one touched file are
+     shown).
+   * AC-3: A file is added to the list the first time the agent reads or
+     writes it during a session bound to that entity; the entry records
+     last-read and/or last-edited timestamps and is shown in a tooltip (no
+     separate child node per timestamp).
+   * AC-4: The list persists across VS Code reloads (stored outside the
+     entity's own folder, so it never collides with or pollutes the
+     "Files" category from US_ENT_ENTITY_FILES_TREE).
+   * AC-5: Clicking a touched-file entry opens it the same way as an
+     entity's own "Files" category entries (Markdown Preview for ``.md``,
+     VS Code preview-mode tab otherwise, Docs column) — consistent
+     behavior across all file-showing categories in the Explorer.
+   * AC-6: A right-click diff view lets the user compare the touched
+     file's current content against its last-known-good (source control)
+     version, when available.
+   * AC-7: Right-click Copy Path / Copy Full Path / Reveal in Explorer are
+     available on every touched-file entry (reusing the existing
+     entity-file context-menu mechanism from US_ENT_ENTITY_FILES_TREE).
+   * AC-8: An inline trash icon on each entry removes it from the list
+     immediately (KISS — no separate "dismissed" state; the file
+     reappears if touched again).
+   * AC-9: This is purely additive — it does not change any existing
+     entity-node behavior, the "Agent"/"Files" categories, or the Hook
+     Engine's existing activity-tracking consumer (US_HOOK_ACTIVITY).

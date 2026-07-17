@@ -125,7 +125,9 @@
       { "command": "jarvis.copyFullPath", "title": "Copy Full Path" },
       { "command": "jarvis.copyFileName", "title": "Copy File Name" },
       { "command": "jarvis.copyCategoryName", "title": "Copy" },
-      { "command": "jarvis.openMessageSession", "title": "Jarvis: Open Message Session" }
+      { "command": "jarvis.openMessageSession", "title": "Jarvis: Open Message Session" },
+      { "command": "jarvis.diffTouchedFile", "title": "Jarvis: Show Changes" },
+      { "command": "jarvis.removeTouchedFile", "title": "Jarvis: Remove Touched File", "icon": "$(trash)" }
     ],
     "menus": {
       "commandPalette": [
@@ -152,7 +154,9 @@
         { "command": "jarvis.copyFullPath", "when": "false" },
         { "command": "jarvis.copyFileName", "when": "false" },
         { "command": "jarvis.copyCategoryName", "when": "false" },
-        { "command": "jarvis.openMessageSession", "when": "false" }
+        { "command": "jarvis.openMessageSession", "when": "false" },
+        { "command": "jarvis.diffTouchedFile", "when": "false" },
+        { "command": "jarvis.removeTouchedFile", "when": "false" }
       ],
       "view/title": [
         { "command": "jarvis.searchEntities", "when": "view == jarvisEntities", "group": "navigation@1" },
@@ -180,7 +184,14 @@
         { "command": "jarvis.openAgentSession", "when": "viewItem =~ /^jarvisSession$/", "group": "open" },
         { "command": "jarvis.copyPath", "when": "viewItem =~ /^jarvisSession$/", "group": "clipboard@1" },
         { "command": "jarvis.copyFullPath", "when": "viewItem =~ /^jarvisSession$/", "group": "clipboard@2" },
-        { "command": "jarvis.copyCategoryName", "when": "viewItem == jarvisFolder", "group": "clipboard@1" }
+        { "command": "jarvis.copyCategoryName", "when": "viewItem == jarvisFolder", "group": "clipboard@1" },
+        { "command": "jarvis.openEntityFile", "when": "viewItem == jarvisTouchedFile", "group": "open" },
+        { "command": "jarvis.copyPath", "when": "viewItem == jarvisTouchedFile", "group": "clipboard@1" },
+        { "command": "jarvis.copyFullPath", "when": "viewItem == jarvisTouchedFile", "group": "clipboard@2" },
+        { "command": "jarvis.copyFileName", "when": "viewItem == jarvisTouchedFile", "group": "clipboard@3" },
+        { "command": "jarvis.revealInExplorer", "when": "viewItem == jarvisTouchedFile", "group": "context-actions" },
+        { "command": "jarvis.diffTouchedFile", "when": "viewItem == jarvisTouchedFile", "group": "diff" },
+        { "command": "jarvis.removeTouchedFile", "when": "viewItem == jarvisTouchedFile", "group": "inline" }
       ]
     },
     "configuration": [

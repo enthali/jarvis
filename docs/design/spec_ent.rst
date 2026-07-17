@@ -1466,6 +1466,505 @@ level).
      Copy Path/Full Path/File Name are visually separate menu sections.
 
 
+.. spec:: Recently Touched Files per Entity
+   :id: SPEC_ENT_TOUCHEDFILES
+   :status: draft
+   :links: REQ_ENT_TOUCHEDFILES; SPEC_HOOK_ROUTE; SPEC_HOOK_ACTIVITY; SPEC_ENT_ENTITY_FILE_CHILDREN; SPEC_ENT_ENTITY_CONTEXTMENU; SPEC_ENG_TREEFACTORY
+
+   **Description:**
+   A new ``TouchTracker`` (``packages/core/src/engine/hooks/touchTracker.ts``)
+   registers a single handler on the ``HookEngine`` (``SPEC_HOOK_ROUTE``) for
+   ``PostToolUse`` only, classifies each event via an explicit ``TOUCH_RULES``
+   allowlist, and persists per-entity touch lists via a new ``TouchStore``
+   (``packages/core/src/engine/hooks/touchStore.ts``). A new provider-local
+   node family renders the persisted data as a third category — "Recently
+   Touched Files" — sibling to the "Agent"/"Files" categories from
+   ``SPEC_ENT_ENTITY_FILE_CHILDREN``. This follows the same overall shape as
+   ``SPEC_HOOK_ACTIVITY`` (hook-driven tracker + session-id→entity
+   resolution + tree refresh), reusing its wiring pattern rather than
+   inventing a new one.
+
+   **``TOUCH_RULES`` allowlist (from the research spike, used verbatim):**
+
+   .. code-block:: typescript
+
+      // packages/core/src/engine/hooks/touchTracker.ts
+      type TouchKind = 'read' | 'write';
+      interface TouchRule { kind: TouchKind; extract: (input: any) => string[]; }
+
+      const TOUCH_RULES: Record<string, TouchRule> = {
+          read_file:                    { kind: 'read',  extract: i => [i.filePath] },
+          create_file:                  { kind: 'write', extract: i => [i.filePath] },
+          replace_string_in_file:       { kind: 'write', extract: i => [i.filePath] },
+          multi_replace_string_in_file: { kind: 'write', extract: i => (i.replacements ?? []).map((r: any) => r.filePath) },
+          // Any tool_name not listed here → ignored (fail-safe default, REQ_ENT_TOUCHEDFILES AC-2d).
+      };
+
+   **``TouchTracker`` (mirrors ``ActivityTracker``'s shape — single hook
+   subscription, session-id→entity resolution, change callback):**
+
+   .. code-block:: typescript
+
+      // packages/core/src/engine/hooks/touchTracker.ts
+      export class TouchTracker {
+          constructor(
+              hookEngine: HookEngine,
+              private readonly _store: TouchStore,
+              private readonly _resolveOwner: (entityName: string) => { kind: string; name: string; folder: string } | undefined,
+              private readonly _onChange: (entityKind: string, entityName: string) => void,
+              private readonly _log?: vscode.LogOutputChannel,
+          ) {
+              hookEngine.on('PostToolUse', (event) => { void this._handle(event); });
+          }
+
+          private async _handle(event: HookEvent): Promise<void> {
+              if (!event.sessionId) { return; } // REQ_ENT_TOUCHEDFILES AC-4
+              const rule = TOUCH_RULES[event.payload?.tool_name as string];
+              if (!rule) { return; } // AC-2d — unknown tool, ignored
+              const entityName = await getEntityNameForSessionId(event.sessionId);
+              if (!entityName) { return; } // AC-4, fail-open (same as REQ_HOOK_ACTIVITY AC-9)
+              const owner = this._resolveOwner(entityName);
+              if (!owner) { return; }
+              // Bugfix (PM F5 finding, GH #18): the storage key must disambiguate
+              // 'actor' from 'session' (resolveTouchStorageKind) so two same-named
+              // entities from different scan roots never collide on one JSON file.
+              // onChange still receives owner.kind unchanged — that must stay the
+              // real registered provider kind ('session') for refreshKind() to work.
+              const storageKind = resolveTouchStorageKind(owner.kind, owner.folder);
+              const cwd = event.payload?.cwd as string | undefined;
+              if (!cwd) { return; }
+              const absPaths: string[] = rule.extract(event.payload?.tool_input) ?? [];
+              const relPaths = [...new Set(absPaths.filter(Boolean))] // dedupe, AC-2c
+                  .map(p => path.relative(cwd, p).replace(/\\/g, '/')); // AC-5
+              if (relPaths.length === 0) { return; }
+              await this._store.recordTouches(storageKind, owner.name, relPaths, rule.kind);
+              this._log?.debug(`[Touch] ${rule.kind} x${relPaths.length} -> ${storageKind}:${owner.name}`);
+              this._onChange(owner.kind, owner.name);
+          }
+      }
+
+   Entity-name resolution reuses ``getEntityNameForSessionId``
+   (``sessionLookup.ts``, introduced by ``SPEC_HOOK_ACTIVITY``) — no new
+   session-id correlation mechanism. ``_resolveOwner`` is supplied by the
+   wiring in ``extension.ts`` as
+   ``(name) => kindDrivenScanner.entities.find(e => e.name === name)``
+   (returning ``{ kind, name, folder }`` — ``folder`` is the extra field
+   needed by ``resolveTouchStorageKind()``, not required by
+   ``ActivityTracker``'s equivalent lookup), the same lookup
+   ``ActivityTracker``'s ``_onChange`` wiring already performs
+   (``extension.ts``, alongside the existing activity-tracker
+   construction) — reused here to get the ``kind``/``folder`` needed for the
+   per-entity JSON filename (AC-6), which ``getEntityNameForSessionId``
+   alone does not provide.
+
+   **``TouchStore`` (persistence, new):**
+
+   .. code-block:: typescript
+
+      // packages/core/src/engine/hooks/touchStore.ts
+      interface TouchEntry { lastRead?: string; lastEdited?: string; } // ISO 8601 UTC
+      interface TouchFile { files: Record<string, TouchEntry>; } // key = workspace-relative path
+
+      export class TouchStore {
+          constructor(private readonly _stateDir: string) {} // <workspaceRoot>/.jarvis/state/touched-files
+
+          private _filePath(kind: string, name: string): string {
+              // name is sanitized (existing entity-name-to-filename convention,
+              // reused as-is — entity names are already filesystem-safe by
+              // construction elsewhere in the codebase).
+              return path.join(this._stateDir, `${kind}-${name}.json`);
+          }
+
+          async recordTouches(kind: string, name: string, relPaths: string[], touchKind: 'read' | 'write'): Promise<void> {
+              const file = this._filePath(kind, name);
+              const data = await this._load(file);
+              const now = new Date().toISOString();
+              for (const relPath of relPaths) {
+                  const entry = data.files[relPath] ?? {};
+                  if (touchKind === 'write') { entry.lastEdited = now; } else { entry.lastRead = now; }
+                  data.files[relPath] = entry;
+              }
+              await this._save(file, data);
+          }
+
+          async removeEntry(kind: string, name: string, relPath: string): Promise<void> {
+              const file = this._filePath(kind, name);
+              const data = await this._load(file);
+              delete data.files[relPath];
+              await this._save(file, data);
+          }
+
+          async getEntries(kind: string, name: string): Promise<Record<string, TouchEntry>> {
+              return (await this._load(this._filePath(kind, name))).files;
+          }
+
+          private async _load(file: string): Promise<TouchFile> {
+              try { return JSON.parse(await fs.promises.readFile(file, 'utf8')); }
+              catch { return { files: {} }; } // fail-open: missing/corrupt file → empty
+          }
+
+          private async _save(file: string, data: TouchFile): Promise<void> {
+              await fs.promises.mkdir(path.dirname(file), { recursive: true });
+              await fs.promises.writeFile(file, JSON.stringify(data, null, 2), 'utf8');
+          }
+      }
+
+   Each touch is written through immediately (no batching/debounce) —
+   ``PostToolUse`` frequency is bounded by agent tool-call rate (at most a
+   few per second in practice), not a hot path; simplicity over throughput
+   optimization here, consistent with KISS (REQ_ENT_TOUCHEDFILES AC-6).
+
+   **``resolveTouchStorageKind()`` — storage-key disambiguation (bugfix, PM
+   F5 finding, GH #18):** ``KindDrivenScanner``'s ``additionalScanRoots``
+   merges Actor entities (``actor.yaml``, under the actors folder) into the
+   **same** ``'session'`` ``EntityKindConfig`` bucket as raw Session
+   entities — there is no separate registered ``'actor'`` provider kind, and
+   that shared ``'session'`` tag is the correct value everywhere the tree
+   provider or ``refreshKind()`` is concerned (only one provider is
+   registered, view id ``jarvisEntities``). It is, however, the **wrong**
+   key for ``<kind>-<name>.json`` persistence (``REQ_ENT_TOUCHEDFILES``
+   AC-6): a raw session and an actor that happen to share the same
+   ``name`` would otherwise silently collide on one JSON file. A dedicated
+   helper re-derives ``'actor'`` from the entity's actual folder instead,
+   and is used on both the write path (``TouchTracker``) and the read path
+   (``GenericTreeDataProvider._getLeafChildren()``/``_getTouchedCategoryChildren()``):
+
+   .. code-block:: typescript
+
+      // packages/core/src/engine/hooks/touchStore.ts
+      export function resolveTouchStorageKind(kind: string, folder: string): string {
+          if (kind !== 'session') { return kind; }
+          const actorsDir = configPaths.getActorsDir();
+          if (actorsDir && (folder === actorsDir || folder.startsWith(actorsDir + path.sep))) {
+              return 'actor';
+          }
+          return kind;
+      }
+
+   Everywhere ``refreshKind()`` is called with a storage key obtained from
+   ``resolveTouchStorageKind()`` (e.g. the remove-command handler below),
+   the value is mapped back (``ownerKind === 'actor' ? 'session' : ownerKind``)
+   before being passed to ``refreshKind()`` — that API expects a real
+   registered provider kind, not a TouchStore storage key.
+
+   **Tree node types (provider-local, alongside** ``EntityFileCategoryNode``
+   **et al. from** ``SPEC_ENT_ENTITY_FILE_CHILDREN``, **same file):**
+
+   **Bugfix (PM F5 finding, GH #18) — field deliberately named** ``ownerKind``,
+   **not** ``entityKind``: ``UnifiedEntityTreeProvider``'s ``getChildren()``/
+   ``getTreeItem()`` duck-type their own, unrelated ``CategoryNode`` via
+   ``'entityKind' in element`` (no discriminated-union ``kind`` check). Any of
+   these three new node types reaching that provider with a field literally
+   named ``entityKind`` was silently misrouted as a root category node —
+   wrong children resolved (via a no-args ``getChildren()`` call), wrong
+   ``TreeItem`` rendered, and no exception ever thrown, matching the
+   originally reported "feature unusable, no visible error" symptom. The
+   field is named ``ownerKind`` on all three node types (and everywhere they
+   are constructed or consumed) specifically to avoid this name collision —
+   not for descriptive preference.
+
+   .. code-block:: typescript
+
+      interface TouchedFilesCategoryNode {
+          kind: 'touchedFilesCategory';
+          ownerKind: string;
+          entityName: string;
+      }
+      interface TouchedFileFolderNode {
+          kind: 'touchedFileFolder';
+          relFolderPath: string; // workspace-relative
+          label: string;
+          entries: Record<string, TouchEntry>; // full flat entry map, for children resolution
+          ownerKind: string;
+          entityName: string;
+      }
+      interface TouchedFileLeafNode {
+          kind: 'touchedFileLeaf';
+          filePath: string;   // absolute — structurally compatible with EntityFileNode
+                              // for jarvis.openEntityFile/resolveCopyPaths/copyFileName reuse
+          label: string;
+          entry: TouchEntry;
+          ownerKind: string;
+          entityName: string;
+      }
+      export type ProviderNode = /* existing union, SPEC_ENT_ENTITY_FILE_CHILDREN */
+          | TouchedFilesCategoryNode | TouchedFileFolderNode | TouchedFileLeafNode;
+
+   **Building the hierarchical tree from a flat relative-path map (new —
+   the "Recently Touched Files" category has no on-disk folder to
+   recursively ``readdir``, unlike "Files"; the hierarchy is derived purely
+   from the recorded relative-path strings):**
+
+   .. code-block:: typescript
+
+      function buildTouchedFileChildren(
+          entries: Record<string, TouchEntry>,
+          underFolder: string, // '' at category root; a relative folder path when descending
+          workspaceRoot: string, ownerKind: string, entityName: string,
+      ): (TouchedFileFolderNode | TouchedFileLeafNode)[] {
+          const seenFolders = new Set<string>();
+          const result: (TouchedFileFolderNode | TouchedFileLeafNode)[] = [];
+          for (const [relPath, entry] of Object.entries(entries)) {
+              if (underFolder && !relPath.startsWith(underFolder + '/')) { continue; }
+              const rest = underFolder ? relPath.slice(underFolder.length + 1) : relPath;
+              const sepIndex = rest.indexOf('/');
+              if (sepIndex === -1) {
+                  result.push({
+                      kind: 'touchedFileLeaf', label: rest, entry, ownerKind, entityName,
+                      filePath: path.join(workspaceRoot, relPath),
+                  });
+              } else {
+                  const folderName = rest.slice(0, sepIndex);
+                  const relFolderPath = underFolder ? `${underFolder}/${folderName}` : folderName;
+                  if (seenFolders.has(relFolderPath)) { continue; } // AC-8: one node per folder, not per file
+                  seenFolders.add(relFolderPath);
+                  result.push({ kind: 'touchedFileFolder', relFolderPath, label: folderName, entries, ownerKind, entityName });
+              }
+          }
+          return result.sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
+      }
+
+   This walks the flat entry map once per expansion (category root or any
+   folder node) filtering by prefix — cheap for the expected touch-list
+   sizes (tens to low hundreds of files per entity), no persistent
+   in-memory tree structure kept between expansions (mirrors "Files"
+   category's on-the-fly-only rule, ``REQ_ENT_ENTITY_FILE_CHILDREN`` AC-8).
+   Because a node is only ever created for a ``relPath`` that exists in
+   ``entries``, empty branches never appear — AC-8's "prune empty
+   branches" falls out for free from this construction, no separate
+   pruning pass needed.
+
+   **``getChildren(element)`` additions:**
+
+   .. code-block:: typescript
+
+      if (element.kind === 'touchedFilesCategory') {
+          const entries = await touchStore.getEntries(element.ownerKind, element.entityName);
+          const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
+          return buildTouchedFileChildren(entries, '', workspaceRoot, element.ownerKind, element.entityName);
+      }
+      if (element.kind === 'touchedFileFolder') {
+          const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
+          return buildTouchedFileChildren(element.entries, element.relFolderPath, workspaceRoot, element.ownerKind, element.entityName);
+      }
+      if (element.kind === 'touchedFileLeaf') { return []; }
+
+   **``_getLeafChildren()`` addition (alongside the existing Agent/Files
+   category push, ``SPEC_ENT_ENTITY_FILE_CHILDREN``) — storage key resolved
+   via** ``resolveTouchStorageKind()`` **(bugfix, see below), not** ``this._config.kind``
+   **directly:**
+
+   .. code-block:: typescript
+
+      const ownerKind = resolveTouchStorageKind(this._config.kind, entityFolder);
+      const touchEntries = await touchStore.getEntries(ownerKind, entity?.name ?? '');
+      if (Object.keys(touchEntries).length > 0) { // AC-7: omitted entirely when empty
+          categoryNodes.push({ kind: 'touchedFilesCategory', ownerKind, entityName: entity!.name });
+      }
+
+   **``getTreeItem(element)`` additions:**
+
+   .. code-block:: typescript
+
+      if (element.kind === 'touchedFilesCategory') {
+          const item = new vscode.TreeItem('Recently Touched Files', vscode.TreeItemCollapsibleState.Collapsed);
+          item.contextValue = 'jarvisEntityFileCategory:touched';
+          return item;
+      }
+      if (element.kind === 'touchedFileFolder') {
+          const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.Collapsed);
+          item.tooltip = element.relFolderPath;
+          item.contextValue = 'jarvisEntityFileFolder'; // reuses the existing folder contextValue/menu
+          return item;
+      }
+      if (element.kind === 'touchedFileLeaf') {
+          const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.None);
+          const { lastRead, lastEdited } = element.entry;
+          item.tooltip = [
+              lastEdited ? `Last edited: ${new Date(lastEdited).toLocaleString()}` : undefined,
+              lastRead ? `Last read: ${new Date(lastRead).toLocaleString()}` : undefined,
+          ].filter(Boolean).join('\n');
+          item.contextValue = 'jarvisTouchedFile';
+          item.command = { command: 'jarvis.openEntityFile', title: 'Open File', arguments: [element] };
+          return item;
+      }
+
+   **New commands — diff and remove:**
+
+   .. code-block:: typescript
+
+      vscode.commands.registerCommand(
+        'jarvis.diffTouchedFile',
+        async (node: TouchedFileLeafNode) => {
+          // Delegates to the built-in Git extension's own "Open Changes"
+          // command — no custom git-uri/diff wiring. If the workspace isn't
+          // a git repo, or the file is untracked/has no HEAD version, this
+          // command simply does nothing observable — no special-casing,
+          // per CM/user decision (REQ_ENT_TOUCHEDFILES AC-12).
+          await vscode.commands.executeCommand('git.openChange', vscode.Uri.file(node.filePath));
+        }
+      );
+
+      vscode.commands.registerCommand(
+        'jarvis.removeTouchedFile',
+        async (node: TouchedFileLeafNode) => {
+          const relPath = path.relative(
+              vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '', node.filePath
+          ).replace(/\\/g, '/');
+          await touchStore.removeEntry(node.ownerKind, node.entityName, relPath);
+          // node.ownerKind is the disambiguated TouchStore storage key
+          // ('actor'/'session'/'project'/'event' — see resolveTouchStorageKind);
+          // refreshKind() needs the real registered provider kind instead
+          // ('actor' entities are still rendered by the 'session' provider).
+          engine.treeFactory.refreshKind(node.ownerKind === 'actor' ? 'session' : node.ownerKind);
+        }
+      );
+
+   **Registration in package.json:**
+
+   * ``contributes.commands``:
+
+     .. code-block:: json
+
+        [
+          { "command": "jarvis.diffTouchedFile", "title": "Jarvis: Show Changes" },
+          { "command": "jarvis.removeTouchedFile", "title": "Jarvis: Remove Touched File", "icon": "$(trash)" }
+        ]
+
+   * ``contributes.menus.view/item/context`` (``jarvisTouchedFile`` reuses
+     the existing ``jarvis.openEntityFile``/``jarvis.copyPath``/
+     ``jarvis.copyFullPath``/``jarvis.copyFileName`` bindings from
+     ``SPEC_ENT_ENTITY_CONTEXTMENU`` by adding this ``contextValue`` to
+     their existing ``when`` clauses, plus two new entries):
+
+     .. code-block:: json
+
+        [
+          { "command": "jarvis.openEntityFile", "when": "viewItem == jarvisTouchedFile", "group": "open" },
+          { "command": "jarvis.copyPath", "when": "viewItem == jarvisTouchedFile", "group": "clipboard@1" },
+          { "command": "jarvis.copyFullPath", "when": "viewItem == jarvisTouchedFile", "group": "clipboard@2" },
+          { "command": "jarvis.copyFileName", "when": "viewItem == jarvisTouchedFile", "group": "clipboard@3" },
+          { "command": "jarvis.revealInExplorer", "when": "viewItem == jarvisTouchedFile", "group": "context-actions" },
+          { "command": "jarvis.diffTouchedFile", "when": "viewItem == jarvisTouchedFile", "group": "diff" },
+          { "command": "jarvis.removeTouchedFile", "when": "viewItem == jarvisTouchedFile", "group": "inline" }
+        ]
+
+   * ``contributes.menus.commandPalette``: hide both new commands (they
+     require a tree node argument), same pattern as every other tree-only
+     command in this file:
+
+     .. code-block:: json
+
+        [
+          { "command": "jarvis.diffTouchedFile", "when": "false" },
+          { "command": "jarvis.removeTouchedFile", "when": "false" }
+        ]
+
+   **Wiring (``extension.ts``, alongside the existing ``activityTracker``
+   construction):**
+
+   .. code-block:: typescript
+
+      const touchStore = new TouchStore(path.join(workspaceRoot, '.jarvis', 'state', 'touched-files'));
+      const touchTracker = new TouchTracker(
+          hookEngine, touchStore,
+          (entityName) => {
+              const owner = kindDrivenScanner.entities.find(e => e.name === entityName);
+              return owner ? { kind: owner.kind, name: owner.name, folder: path.dirname(owner.id) } : undefined;
+          },
+          (entityKind) => engine.treeFactory.refreshKind(entityKind),
+          log,
+      );
+
+   **Design notes:**
+
+   * **Bugfix root cause — why the field is ``ownerKind``, not
+     ``entityKind`` (PM F5 finding, GH #18):** the first shipped revision of
+     this spec used ``entityKind`` on all three new node types. That
+     collided with ``UnifiedEntityTreeProvider``, which resolves its own
+     (unrelated) root ``CategoryNode`` by duck-typing —
+     ``'entityKind' in element`` — rather than switching on a discriminated
+     ``kind`` field. Any ``TouchedFilesCategoryNode``/``TouchedFileFolderNode``/
+     ``TouchedFileLeafNode`` value that reached that provider was silently
+     misrouted as a root category node: wrong children resolved (a
+     no-args ``getChildren()`` call), wrong ``TreeItem`` rendered, and — the
+     dangerous part — no exception was ever thrown, so the feature simply
+     looked broken/empty with nothing to debug from. Renaming the field to
+     ``ownerKind`` everywhere (node types, ``buildTouchedFileChildren()``,
+     ``getChildren()``, the remove-command handler, and the wiring callback)
+     removes the collision at its source rather than hardening
+     ``UnifiedEntityTreeProvider``'s duck-typing — the smaller, more local
+     fix of the two, and consistent with not touching unrelated providers
+     for a bug entirely contained in this CR's own new node types.
+   * **Why ``jarvisEntityFileFolder`` is reused for touched-file folder
+     nodes rather than a new contextValue:** a touched-file folder node has
+     exactly the same right-click needs as a "Files" category folder node
+     (none beyond what folders already get) — introducing a distinct
+     contextValue would require duplicating menu bindings for zero
+     behavioral difference. If a touched-file-folder-specific action is
+     ever needed, splitting the contextValue is a small, isolated follow-up.
+   * **Why the diff command has no fallback path:** per the confirmed
+     CM/user decision (CD Level 1), a non-git workspace or untracked file
+     simply produces no visible diff when ``git.openChange`` is invoked —
+     this mirrors how the same action behaves in VS Code's own Source
+     Control view for the same file, so the behavior is not surprising to
+     users familiar with that view.
+   * **Why ``TouchStore`` and ``ActivityTracker``/``sessionLookup.ts``
+     don't share a persistence layer:** ``ActivityTracker``'s state is
+     purely in-memory (activity is inherently transient — "active right
+     now"); touched-files state is explicitly required to survive reload
+     (``REQ_ENT_TOUCHEDFILES`` AC-6), so it needs its own on-disk store.
+     The two remain independent, single-purpose consumers of the same
+     ``HookEngine``/``getEntityNameForSessionId`` infrastructure.
+   * **No file-system watcher on the persisted JSON files:** they are only
+     ever written by ``TouchStore`` itself (in-process); no external
+     process is expected to modify them, so no watcher is needed to detect
+     external changes — consistent with the project's existing scan-driven
+     (not watcher-driven) reactivity model elsewhere in the Explorer.
+
+   **Acceptance Criteria:**
+
+   1. ``TouchTracker`` registers exactly one handler, for ``PostToolUse``
+      only (``SPEC_HOOK_ROUTE``'s ``on()``) — no other lifecycle event is
+      subscribed to.
+   2. Classification uses the ``TOUCH_RULES`` table verbatim from the
+      research spike; any ``tool_name`` absent from the table is ignored,
+      with no heuristic path-sniffing fallback.
+   3. Entity resolution reuses ``getEntityNameForSessionId``
+      (``sessionLookup.ts``, unchanged) plus a kind lookup via
+      ``kindDrivenScanner.entities.find()`` — no new session-id
+      correlation mechanism is introduced.
+   4. ``TouchStore`` persists one JSON file per entity at
+      ``.jarvis/state/touched-files/<kind>-<name>.json``, written through
+      immediately on every touch (no batching), and tolerates a
+      missing/corrupt file by treating it as empty (fail-open).
+   5. The "Recently Touched Files" category node is included in
+      ``_getLeafChildren()`` output if and only if the entity's touch map
+      is non-empty; otherwise omitted entirely.
+   6. The category's children are computed by walking the flat
+      ``relPath -> TouchEntry`` map on every expansion (never cached
+      between expansions) — grouped into one folder node per distinct
+      path segment and one leaf node per file, with empty branches never
+      constructed in the first place (see Design Notes).
+   7. Clicking a touched-file leaf invokes the existing
+      ``jarvis.openEntityFile`` command unchanged — no new open-file
+      command is introduced; the node's ``filePath``/``label`` shape is
+      structurally compatible with the command's existing parameter type.
+   8. Each touched-file leaf's tooltip shows last-edited and/or last-read,
+      whichever are set, with no separate child node.
+   9. Right-click on a touched-file leaf shows Open, Copy Path, Copy Full
+      Path, Copy File Name, Reveal in Explorer (all reused, unchanged
+      handlers), plus a new **Show Changes** entry
+      (``jarvis.diffTouchedFile`` → ``git.openChange``, no fallback
+      handling) and an inline trash icon (``jarvis.removeTouchedFile``).
+   10. ``jarvis.removeTouchedFile`` deletes exactly the clicked entry from
+       the entity's JSON file and triggers a ``refreshKind()`` for that
+       entity's kind only — not a full-tree rescan.
+   11. This spec introduces no changes to ``SPEC_ENT_ENTITY_FILE_CHILDREN``'s
+       "Agent"/"Files" categories or to ``SPEC_HOOK_ACTIVITY``'s
+       ``ActivityTracker``/``ActivityDecorator``.
+
+
 .. spec:: Open Context File Command — Retired
    :id: SPEC_ENT_OPENCONTEXT_CMD
    :status: draft

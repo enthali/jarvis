@@ -18,6 +18,8 @@ Each project and event item has two inline action buttons:
 
 Project, Event, and Actor nodes are expandable to reveal their core files (`context.md`, YAML config, and agent file if configured) as clickable children — click a file child to open it in the editor. Tooltips show the full file path.
 
+Each entity node also has a **Recently Touched Files** subtree that automatically tracks which files the AI read or wrote during sessions bound to that entity. Click a touched file to open it in preview; hover for last-read/last-edited timestamps; use the inline trash icon to remove an entry. The list is persisted across VS Code reloads.
+
 ### Heartbeat Scheduler
 
 Cron-based job scheduling configured via YAML:
@@ -56,7 +58,7 @@ The diagram opens as an editor tab in the same fixed column used for entity docs
 ## Installation
 
 **Via GitHub Releases** (recommended):
-1. Go to [Releases](https://github.com/enthali/jarvis/releases)
+1. Go to [Releases](https://github.com/enthali/Jarvis/releases)
 2. Download `jarvis-<version>.vsix`
 3. In VS Code: `Extensions` → `...` → `Install from VSIX...`
 
@@ -81,7 +83,7 @@ Press **F5** in VS Code to launch the Extension Development Host.
 ## Documentation
 
 This project uses [syspilot](https://github.com/enthali/syspilot) for requirements engineering.
-Published at: [GH Pages Docu](https://enthali.github.io/jarvis)
+Published at: https://enthali.github.io/Jarvis
 
 - User Stories: `docs/userstories/`
 - Requirements: `docs/requirements/`

@@ -84,6 +84,20 @@ the Change Document, spec, or code, and do not run any git command — wait
 for that session to report back first. Your own session directory
 (`.jarvis/sessions/Project Manager/`) is always safe to edit freely.
 
+**Why this is a hard rule, not just tidiness:** a running agent/subagent
+does not re-check which branch it is on before every tool call — it acts
+on the branch context from when it started. If PM checks out or resets a
+different branch while that agent is mid-flight, the agent has no way of
+noticing — its next `git commit` silently lands on whatever branch happens
+to be checked out at that moment, not the one it believes it's on. This
+has already caused commits to land on the wrong branch (e.g. `develop`
+instead of the intended feature branch) more than once. The fix is
+procedural, not technical: PM simply never runs `git checkout`/`switch`/
+`reset` while another session could still be active on the shared working
+copy — confirm via their report-back, not by inspecting `git status`
+alone (a clean status doesn't prove the other session is done, only that
+it hasn't written yet).
+
 ## Change Document Path — Never Pre-Assign a Version
 
 **HARD RULE: A Change Document, Test Protocol, or Validation Report path

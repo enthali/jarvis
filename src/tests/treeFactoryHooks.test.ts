@@ -258,3 +258,112 @@ describe('Decorator extension point applies to leaf items with hooks', () => {
         expect(item.description).toBe('decorated');
     });
 });
+
+// --- actor-touched-files CR (SPEC_ENT_TOUCHEDFILES): "Recently Touched Files" category ---
+
+describe('SPEC_ENT_TOUCHEDFILES: "Recently Touched Files" category rendering', () => {
+    function makeStubStore(entries: Record<string, { lastRead?: string; lastEdited?: string }>) {
+        return {
+            getEntries: async (_kind: string, _name: string) => entries,
+            recordTouches: async () => {},
+            removeEntry: async () => {},
+        } as any;
+    }
+
+    it('AC-7: category omitted entirely when the entity has no touched files', async () => {
+        const factory = new GenericTreeFactory(stubScanner);
+        factory.setTouchStore(makeStubStore({}));
+        factory.addKind({
+            kind: 'thing', viewId: 'jarvisThings', folderSettingKey: 'jarvis.things.folder',
+            label: (n: string) => n,
+        });
+        const provider = factory.getProvider('thing')!;
+        const leaf: TreeNode = { kind: 'leaf', id: '/things/alpha/thing.yaml' };
+        const children = await provider.getChildren(leaf) as ProviderNode[];
+        expect(children.some(c => c.kind === 'touchedFilesCategory')).toBe(false);
+    });
+
+    it('AC-5: category present (after Files) when the entity has touched files', async () => {
+        const factory = new GenericTreeFactory(stubScanner);
+        factory.setTouchStore(makeStubStore({ 'src/foo.ts': { lastEdited: '2026-07-17T00:00:00.000Z' } }));
+        factory.addKind({
+            kind: 'thing', viewId: 'jarvisThings', folderSettingKey: 'jarvis.things.folder',
+            label: (n: string) => n,
+        });
+        const provider = factory.getProvider('thing')!;
+        const leaf: TreeNode = { kind: 'leaf', id: '/things/alpha/thing.yaml' };
+        const children = await provider.getChildren(leaf) as ProviderNode[];
+        expect(children.map(c => c.kind)).toEqual(['entityFileCategory', 'touchedFilesCategory']);
+    });
+
+    it('category node renders label "Recently Touched Files", Collapsed, contextValue touched', async () => {
+        const factory = new GenericTreeFactory(stubScanner);
+        factory.setTouchStore(makeStubStore({ 'src/foo.ts': { lastEdited: '2026-07-17T00:00:00.000Z' } }));
+        factory.addKind({
+            kind: 'thing', viewId: 'jarvisThings', folderSettingKey: 'jarvis.things.folder',
+            label: (n: string) => n,
+        });
+        const provider = factory.getProvider('thing')!;
+        const leaf: TreeNode = { kind: 'leaf', id: '/things/alpha/thing.yaml' };
+        const children = await provider.getChildren(leaf) as ProviderNode[];
+        const categoryNode = children.find(c => c.kind === 'touchedFilesCategory')!;
+        const item = provider.getTreeItem(categoryNode);
+        expect(item.label).toBe('Recently Touched Files');
+        expect(item.collapsibleState).toBe(TreeItemCollapsibleState.Collapsed);
+        expect(item.contextValue).toBe('jarvisEntityFileCategory:touched');
+    });
+
+    it('AC-8: builds hierarchical folder/leaf nodes from flat relative paths, empty branches never appear', async () => {
+        const factory = new GenericTreeFactory(stubScanner);
+        factory.setTouchStore(makeStubStore({
+            'src/foo.ts': { lastEdited: '2026-07-17T00:00:00.000Z' },
+            'src/nested/bar.ts': { lastRead: '2026-07-17T01:00:00.000Z' },
+            'README.md': { lastRead: '2026-07-17T02:00:00.000Z' },
+        }));
+        factory.addKind({
+            kind: 'thing', viewId: 'jarvisThings', folderSettingKey: 'jarvis.things.folder',
+            label: (n: string) => n,
+        });
+        const provider = factory.getProvider('thing')!;
+        const leaf: TreeNode = { kind: 'leaf', id: '/things/alpha/thing.yaml' };
+        const children = await provider.getChildren(leaf) as ProviderNode[];
+        const categoryNode = children.find(c => c.kind === 'touchedFilesCategory')!;
+        const rootChildren = await provider.getChildren(categoryNode) as ProviderNode[];
+        // 'README.md' (leaf) and 'src' (folder), sorted alphabetically
+        expect(rootChildren.map(c => (c as { label: string }).label)).toEqual(['README.md', 'src']);
+        expect(rootChildren[0].kind).toBe('touchedFileLeaf');
+        expect(rootChildren[1].kind).toBe('touchedFileFolder');
+
+        const srcChildren = await provider.getChildren(rootChildren[1]) as ProviderNode[];
+        expect(srcChildren.map(c => (c as { label: string }).label)).toEqual(['foo.ts', 'nested']);
+        expect(srcChildren[0].kind).toBe('touchedFileLeaf');
+        expect(srcChildren[1].kind).toBe('touchedFileFolder');
+
+        const nestedChildren = await provider.getChildren(srcChildren[1]) as ProviderNode[];
+        expect(nestedChildren).toHaveLength(1);
+        expect((nestedChildren[0] as { label: string }).label).toBe('bar.ts');
+    });
+
+    it('AC-9: leaf tooltip shows last-edited and last-read when both set', async () => {
+        const factory = new GenericTreeFactory(stubScanner);
+        factory.setTouchStore(makeStubStore({
+            'src/foo.ts': { lastEdited: '2026-07-17T00:00:00.000Z', lastRead: '2026-07-17T01:00:00.000Z' },
+        }));
+        factory.addKind({
+            kind: 'thing', viewId: 'jarvisThings', folderSettingKey: 'jarvis.things.folder',
+            label: (n: string) => n,
+        });
+        const provider = factory.getProvider('thing')!;
+        const leaf: TreeNode = { kind: 'leaf', id: '/things/alpha/thing.yaml' };
+        const children = await provider.getChildren(leaf) as ProviderNode[];
+        const categoryNode = children.find(c => c.kind === 'touchedFilesCategory')!;
+        const rootChildren = await provider.getChildren(categoryNode) as ProviderNode[];
+        // Single entry 'src/foo.ts' → root only has the 'src' folder node.
+        const srcChildren = await provider.getChildren(rootChildren[0]) as ProviderNode[];
+        const item = provider.getTreeItem(srcChildren[0]);
+        expect(item.tooltip).toContain('Last edited:');
+        expect(item.tooltip).toContain('Last read:');
+        expect(item.contextValue).toBe('jarvisTouchedFile');
+        expect(item.command?.command).toBe('jarvis.openEntityFile');
+    });
+});

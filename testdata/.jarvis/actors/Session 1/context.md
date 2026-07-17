@@ -3,6 +3,7 @@
 
 # Finding
 - Keep only long-lived, action-oriented bullets that still matter in two weeks.
+- Dies ist ein Testsatz zum Testen der Entity Tree Änderungsanzeige.
 
 # Next
 - Replace outdated bullets in place; do not append logs or transient details.
