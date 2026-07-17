@@ -2,7 +2,7 @@
 
 ## v0.20.0 — Recently Touched Files
 
-*unreleased*
+*2026-07-17*
 
 ### Features
 
