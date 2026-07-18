@@ -625,6 +625,16 @@ generic/user-facing, ``ENG`` = kind-agnostic plumbing, no US level).
      touch updates last-read; both may be set on the same entry over time.
      The file SHALL be updated on every touch so the list survives a VS
      Code reload without requiring an explicit save action elsewhere.
+   * AC-6a (``touched-files-write-race`` CR, GH #35): When multiple
+     file-touching tool calls occur within the same turn (or otherwise
+     overlap in time) and resolve to the same entity, **every** resulting
+     touch SHALL be recorded — no entry from a concurrent call, and no
+     previously-persisted entry, SHALL be silently lost or overwritten,
+     regardless of the calls' relative ordering or timing. This closes a
+     confirmed data-loss race in the read-modify-write persistence
+     mechanism (unserialized concurrent read-mutate-write cycles against
+     the same JSON file) — see ``SPEC_ENT_TOUCHEDFILES`` for the
+     mechanism guaranteeing this.
    * AC-7: Each entity leaf node SHALL gain a "Recently Touched Files"
      category child (``contextValue = 'jarvisEntityFileCategory:touched'``,
      ``collapsibleState = Collapsed``), positioned after "Agent"/"Files" —
