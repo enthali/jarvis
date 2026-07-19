@@ -1,6 +1,8 @@
 # Release Notes
 
-## v0.20.2 — unreleased
+## v0.20.2 — Remove Auto-Delivery Focus Gate
+
+*2026-07-19*
 
 ### Changes
 
