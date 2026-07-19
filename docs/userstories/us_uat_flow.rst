@@ -31,8 +31,8 @@ Message Flow Visualization User Acceptance Tests
    * AC-2: A test verifies the empty-state behavior when
      ``message-log.json`` does not exist (logging never enabled) — an
      explanatory empty state, not an error.
-   * AC-3: A test verifies the 500-entry data cap — with more than 500
-     logged entries, only the most recent 500 are reflected in the
+   * AC-3: A test verifies the 30-entry data cap — with more than 30
+     logged entries, only the most recent 30 are reflected in the
      rendered nodes/edges, regardless of their age.
    * AC-4: A test verifies node/edge rendering from real message-log data —
      nodes for each distinct sender/destination, directional edges sized by
@@ -40,7 +40,7 @@ Message Flow Visualization User Acceptance Tests
      message count, time range, and a sample of message text.
    * AC-5: A test verifies the two-handle time lens's default state on
      open: ``start`` = rank 1 (live-tracking), ``end`` = rank
-     ``min(loaded total, 500)`` — the same effective window as the
+     ``min(loaded total, 30)`` — the same effective window as the
      diagram's original (pre-lens) default (``flow-time-lens`` CR;
      supersedes this AC's original "Fog of Time" single-slider wording —
      the day-based fade slider no longer exists).
@@ -68,8 +68,8 @@ Message Flow Visualization User Acceptance Tests
    * AC-12: A test verifies the lens's gradient fade floor is 0.05 (5%) for
      the message at the window's far/oldest edge — lowered from the prior
      single-slider design's 0.15 (``flow-time-lens`` CR).
-   * AC-13: A test verifies the "+500" button increases the data-load cap
-     by 500 without moving the existing lens position, and that the newly
+   * AC-13: A test verifies the "+30" button increases the data-load cap
+     by 30 without moving the existing lens position, and that the newly
      reachable history becomes draggable-to via the end handle
      (``flow-time-lens`` CR).
 
@@ -97,14 +97,14 @@ Message Flow Visualization User Acceptance Tests
      Expected: An empty-state message explains that message logging must be
      enabled to populate the diagram; no error/exception is shown.
 
-   **T-4 — 500-entry cap excludes older entries**
+   **T-4 — 30-entry cap excludes older entries**
      Setup: A ``message-log.json`` fixture with 520 entries, the first 20 of
      which involve a session name (``"old-only-sender"``) that appears in
      no other entries.
      Action: Open the diagram.
      Expected: ``"old-only-sender"`` does NOT appear as a node (its entries
-     fall outside the most-recent-500 cap); nodes/edges reflect only the
-     last 500 entries.
+     fall outside the most-recent-30 cap); nodes/edges reflect only the
+     last 30 entries.
 
    **T-5 — Node/edge rendering and hover tooltip**
      Setup: ``message-log.json`` with several entries between two known
@@ -153,7 +153,7 @@ Message Flow Visualization User Acceptance Tests
      ``message-log.json``.
      Action: Open the diagram; inspect the lens handle positions.
      Expected: Start handle is at rank 1 (live-tracking); end handle is at
-     rank 500 (``min(520, 500)``); the rendered node/edge set is identical
+     rank 30 (``min(520, 30)``); the rendered node/edge set is identical
      to T-4's expectation (``"old-only-sender"`` excluded).
 
    **T-11 — Live-tracking at rank 1 auto-advances on poll**
@@ -186,21 +186,20 @@ Message Flow Visualization User Acceptance Tests
      live as the handle moves; no new Output Channel log entries or
      log-file reads occur as a result of the drag (client-side only).
 
-   **T-14 — "+500" button increases cap without moving the lens**
+   **T-14 — "+30" button increases cap without moving the lens**
      Setup: ``message-log-flow-cap.json`` (520 entries) active; diagram open
-     with the default lens (start rank 1, end rank 500, per T-10).
-     Action: Click the "+500" button next to the lens.
-     Expected: The data-load cap increases to 1000 (all 520 entries now
-     loaded, including the previously-excluded ``"old-only-sender"``
-     entries); the lens handles' rendered window is visually unchanged
-     immediately after the click (still showing the same 500-entry range);
+     with the default lens (start rank 1, end rank 30, per T-10).
+     Action: Click the "+30" button next to the lens.
+     Expected: The data-load cap increases to 60 (still only 60 of 520
+     entries loaded); the lens handles' rendered window is visually unchanged
+     immediately after the click (still showing the same 30-entry range);
      dragging the end handle further now reaches the newly-loaded entries
-     (e.g. ``"old-only-sender"`` becomes reachable/visible once the end
-     handle is dragged past rank 500).
+     (entries at ranks 31–60 become reachable/visible once the end
+     handle is dragged past rank 30).
 
    **T-15 — Lens window larger than loaded data (small dataset)**
      Setup: ``message-log-flow-sample.json`` (a handful of entries, well
-     under 500) active as ``message-log.json``.
+     under 30) active as ``message-log.json``.
      Action: Open the diagram; inspect the lens handle positions and try
      dragging the end handle past the last loaded entry.
      Expected: End handle defaults to the rank of the last loaded entry

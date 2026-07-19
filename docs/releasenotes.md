@@ -1,5 +1,19 @@
 # Release Notes
 
+## v0.20.1 — TouchStore Race Fix + Pagination
+
+*2026-07-19*
+
+### Fixes
+
+- **touched-files-write-race** (GH #35): Fixes a data-loss race in the Recently Touched Files store. Under concurrent tool calls (multiple `PostToolUse` events firing simultaneously for the same entity), touched-file entries were silently dropped — whichever async write completed last would overwrite the others' mutations. Fixed by switching `TouchStore` I/O to synchronous `fs.readFileSync`/`writeFileSync` so each read-mutate-write cycle is an uninterruptible event-loop turn. No change to the feature's observed behavior beyond correctness.
+  *(SPEC_ENT_TOUCHEDFILES AC-6a)*
+
+- **flow-message-pagination** (GH #36): Message Flow Diagram initial load and load-more increment reduced from 500 to 30 entries. The default cap and the "+500" button are now "+30", keeping the diagram responsive in large workspaces. The time-lens default window and lens-handle behavior are otherwise unchanged.
+  *(REQ_FLOW_DATASOURCE; REQ_FLOW_LOADMORE; REQ_FLOW_TIMELENS)*
+
+---
+
 ## v0.20.0 — Recently Touched Files
 
 *2026-07-17*

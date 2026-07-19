@@ -12,7 +12,7 @@ export interface LoggedMessage {
     timestamp: string;
 }
 
-export const DEFAULT_CAP = 500;
+export const DEFAULT_CAP = 30;
 
 /**
  * Tolerant reader for message-log.json — mirrors the existing
@@ -79,7 +79,7 @@ function aggregate(entries: LoggedMessage[]): { nodes: string[]; edges: FlowEdge
  * AC-1: missing/unparsable log -> { nodes: [], edges: [], entries: [] }, no thrown error.
  * AC-2: the entry cap is applied BEFORE aggregation (most recent
  *       cap entries, no time-based boundary).
- * AC-4: cap defaults to DEFAULT_CAP (500) for the first load.
+ * AC-4: cap defaults to DEFAULT_CAP (30) for the first load.
  */
 export function loadFlowData(logPath: string, cap: number = DEFAULT_CAP): FlowData {
     const raw = readMessageLog(logPath);

@@ -1557,7 +1557,8 @@ level).
    per-entity JSON filename (AC-6), which ``getEntityNameForSessionId``
    alone does not provide.
 
-   **``TouchStore`` (persistence, new):**
+   **``TouchStore`` (persistence) — synchronous I/O, per** ``touched-files-write-race``
+   **CR (GH #35), see bugfix note below:**
 
    .. code-block:: typescript
 
@@ -1577,42 +1578,74 @@ level).
 
           async recordTouches(kind: string, name: string, relPaths: string[], touchKind: 'read' | 'write'): Promise<void> {
               const file = this._filePath(kind, name);
-              const data = await this._load(file);
+              const data = this._load(file);      // sync — no await between load and save
               const now = new Date().toISOString();
               for (const relPath of relPaths) {
                   const entry = data.files[relPath] ?? {};
                   if (touchKind === 'write') { entry.lastEdited = now; } else { entry.lastRead = now; }
                   data.files[relPath] = entry;
               }
-              await this._save(file, data);
+              this._save(file, data);              // sync — completes before this call yields
           }
 
           async removeEntry(kind: string, name: string, relPath: string): Promise<void> {
               const file = this._filePath(kind, name);
-              const data = await this._load(file);
+              const data = this._load(file);
               delete data.files[relPath];
-              await this._save(file, data);
+              this._save(file, data);
           }
 
           async getEntries(kind: string, name: string): Promise<Record<string, TouchEntry>> {
-              return (await this._load(this._filePath(kind, name))).files;
+              return this._load(this._filePath(kind, name)).files;
           }
 
-          private async _load(file: string): Promise<TouchFile> {
-              try { return JSON.parse(await fs.promises.readFile(file, 'utf8')); }
+          private _load(file: string): TouchFile {
+              try { return JSON.parse(fs.readFileSync(file, 'utf8')); }
               catch { return { files: {} }; } // fail-open: missing/corrupt file → empty
           }
 
-          private async _save(file: string, data: TouchFile): Promise<void> {
-              await fs.promises.mkdir(path.dirname(file), { recursive: true });
-              await fs.promises.writeFile(file, JSON.stringify(data, null, 2), 'utf8');
+          private _save(file: string, data: TouchFile): void {
+              fs.mkdirSync(path.dirname(file), { recursive: true });
+              fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf8');
           }
       }
 
+   **Bugfix (``touched-files-write-race`` CR, GH #35 — satisfies
+   REQ_ENT_TOUCHEDFILES AC-6a):** the original revision of this class used
+   ``fs.promises`` (``async``/``await``) for ``_load``/``_save``. Because
+   ``TouchTracker`` dispatches each ``PostToolUse`` handler fire-and-forget
+   (no queueing — see the ``TouchTracker`` section above), multiple
+   overlapping calls to ``recordTouches()`` for the *same* entity's JSON
+   file could each reach their own ``await fs.promises.readFile(...)``,
+   both observe the same pre-mutation snapshot, both mutate their own
+   in-memory copy, and then both ``await fs.promises.writeFile(...)`` —
+   whichever finished last silently discarded the other's changes
+   (confirmed data loss, GH #35: 6 near-simultaneous tool calls in one
+   turn → only 3/6 new entries survived, plus previously-persisted entries
+   lost).
+
+   The fix replaces ``_load``/``_save`` with fully **synchronous**
+   ``fs.readFileSync``/``fs.writeFileSync``/``fs.mkdirSync`` calls, with no
+   ``await`` anywhere between the read and the write inside
+   ``recordTouches()``/``removeEntry()``. Because Node.js is single-threaded
+   and a synchronous call never yields control back to the event loop, the
+   entire read-mutate-write body of ``recordTouches()``/``removeEntry()``
+   now executes as one uninterruptible turn — no other queued
+   ``TouchTracker`` handler (or anything else) can observe or write the
+   file mid-mutation, regardless of how many ``PostToolUse`` events arrive
+   in the same tick. This mirrors the same, already-proven pattern used by
+   ``packages/core/src/engine/sessions/messageQueue.ts``'s
+   ``readQueue()``/``writeQueue()`` for the identical read-modify-write
+   shape — reusing an established codebase convention rather than
+   introducing a new per-key promise-chain/queue abstraction (rejected
+   alternative, see Design Notes).
+
    Each touch is written through immediately (no batching/debounce) —
    ``PostToolUse`` frequency is bounded by agent tool-call rate (at most a
-   few per second in practice), not a hot path; simplicity over throughput
-   optimization here, consistent with KISS (REQ_ENT_TOUCHEDFILES AC-6).
+   few per second in practice), not a hot path; a brief, synchronous
+   blocking write is an accepted, precedented tradeoff here (the same
+   tradeoff ``messageQueue.ts`` already makes on every command-handler
+   read/write), consistent with KISS (REQ_ENT_TOUCHEDFILES AC-6/AC-6a).
 
    **``resolveTouchStorageKind()`` — storage-key disambiguation (bugfix, PM
    F5 finding, GH #18):** ``KindDrivenScanner``'s ``additionalScanRoots``
@@ -1921,6 +1954,20 @@ level).
      process is expected to modify them, so no watcher is needed to detect
      external changes — consistent with the project's existing scan-driven
      (not watcher-driven) reactivity model elsewhere in the Explorer.
+   * **Why synchronous I/O, not a per-key promise-chain/queue, was chosen
+     to fix the write race (``touched-files-write-race`` CR, GH #35):** a
+     per-entity-key promise chain (each call awaits the previous call's
+     promise for the same key before starting its own read-mutate-write)
+     would also fix the race, but introduces a new abstraction (a map of
+     in-flight promises keyed by storage file, with its own lifecycle/
+     cleanup concerns) for a problem the codebase already has a simpler,
+     proven answer to — synchronous I/O, as used by ``messageQueue.ts``
+     for the same read-modify-write shape. Given the write is small and
+     infrequent (bounded by agent tool-call rate, not a hot path), the
+     brief event-loop block from synchronous ``fs`` calls is preferable to
+     a new concurrency-control abstraction — consistent with this
+     project's established KISS bias and its own existing precedent for
+     the identical problem shape.
 
    **Acceptance Criteria:**
 
@@ -1938,29 +1985,37 @@ level).
       ``.jarvis/state/touched-files/<kind>-<name>.json``, written through
       immediately on every touch (no batching), and tolerates a
       missing/corrupt file by treating it as empty (fail-open).
-   5. The "Recently Touched Files" category node is included in
+   5. (``touched-files-write-race`` CR, GH #35 — REQ_ENT_TOUCHEDFILES
+      AC-6a) ``TouchStore``'s ``_load``/``_save`` SHALL use synchronous
+      ``fs`` calls (``readFileSync``/``writeFileSync``/``mkdirSync``) with
+      no ``await`` between the read and the write inside
+      ``recordTouches()``/``removeEntry()`` — guaranteeing the
+      read-mutate-write critical section cannot be interleaved by another
+      overlapping call for the same entity, regardless of how many
+      ``PostToolUse`` events arrive in the same tick.
+   6. The "Recently Touched Files" category node is included in
       ``_getLeafChildren()`` output if and only if the entity's touch map
       is non-empty; otherwise omitted entirely.
-   6. The category's children are computed by walking the flat
+   7. The category's children are computed by walking the flat
       ``relPath -> TouchEntry`` map on every expansion (never cached
       between expansions) — grouped into one folder node per distinct
       path segment and one leaf node per file, with empty branches never
       constructed in the first place (see Design Notes).
-   7. Clicking a touched-file leaf invokes the existing
+   8. Clicking a touched-file leaf invokes the existing
       ``jarvis.openEntityFile`` command unchanged — no new open-file
       command is introduced; the node's ``filePath``/``label`` shape is
       structurally compatible with the command's existing parameter type.
-   8. Each touched-file leaf's tooltip shows last-edited and/or last-read,
+   9. Each touched-file leaf's tooltip shows last-edited and/or last-read,
       whichever are set, with no separate child node.
-   9. Right-click on a touched-file leaf shows Open, Copy Path, Copy Full
-      Path, Copy File Name, Reveal in Explorer (all reused, unchanged
-      handlers), plus a new **Show Changes** entry
-      (``jarvis.diffTouchedFile`` → ``git.openChange``, no fallback
-      handling) and an inline trash icon (``jarvis.removeTouchedFile``).
-   10. ``jarvis.removeTouchedFile`` deletes exactly the clicked entry from
+   10. Right-click on a touched-file leaf shows Open, Copy Path, Copy Full
+       Path, Copy File Name, Reveal in Explorer (all reused, unchanged
+       handlers), plus a new **Show Changes** entry
+       (``jarvis.diffTouchedFile`` → ``git.openChange``, no fallback
+       handling) and an inline trash icon (``jarvis.removeTouchedFile``).
+   11. ``jarvis.removeTouchedFile`` deletes exactly the clicked entry from
        the entity's JSON file and triggers a ``refreshKind()`` for that
        entity's kind only — not a full-tree rescan.
-   11. This spec introduces no changes to ``SPEC_ENT_ENTITY_FILE_CHILDREN``'s
+   12. This spec introduces no changes to ``SPEC_ENT_ENTITY_FILE_CHILDREN``'s
        "Agent"/"Files" categories or to ``SPEC_HOOK_ACTIVITY``'s
        ``ActivityTracker``/``ActivityDecorator``.
 

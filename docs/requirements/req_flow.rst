@@ -48,7 +48,8 @@ Message Flow Visualization Requirements
      state explaining that message logging must be enabled to populate the
      diagram, rather than an error.
    * AC-2: To bound diagram size and rendering cost, the data set SHALL be
-     capped to the most recent 500 entries — no time-based boundary.
+     capped to the most recent 30 entries (amended from 500 by
+     ``flow-message-pagination`` CR, GH #36) — no time-based boundary.
      Rationale: a project idle for a while (e.g. an older project revisited
      after a gap) must still show its message history rather than an empty
      diagram just because its messages fall outside a rolling time window.
@@ -142,9 +143,9 @@ Message Flow Visualization Requirements
      window SHALL NOT visually jump to include or exclude different
      messages as a side effect of that renumbering.
    * AC-5: **Default window on open:** ``start`` = rank 1 (live-tracking),
-     ``end`` = the rank corresponding to ``min(currently loaded total, 500)``
+     ``end`` = the rank corresponding to ``min(currently loaded total, 30)``
      — i.e. on first open, the diagram shows exactly the same message set as
-     the pre-lens default (the full initial 500-entry-or-fewer load).
+     the pre-lens default (the full initial 30-entry-or-fewer load).
    * AC-6: The fade gradient (``REQ_FLOW_CHORDVIEW`` AC-2) SHALL be computed
      over position **within the current lens window only** — the message at
      the window's near edge (start) renders at full opacity, the message at
@@ -162,7 +163,7 @@ Message Flow Visualization Requirements
      rendered window and how they are faded.
 
 
-.. req:: Expand Loaded History ("+500")
+.. req:: Expand Loaded History ("+30")
    :id: REQ_FLOW_LOADMORE
    :status: draft
    :priority: medium
@@ -175,9 +176,9 @@ Message Flow Visualization Requirements
 
    **Acceptance Criteria:**
 
-   * AC-1: A control (e.g. a "+500" button) SHALL be available alongside the
+   * AC-1: A control (e.g. a "+30" button) SHALL be available alongside the
      time lens. Activating it SHALL increase the diagram's data-load cap by
-     500 entries (500 → 1000 → 1500 → ...), with no upper limit imposed by
+     30 entries (30 → 60 → 90 → ...), with no upper limit imposed by
      this requirement.
    * AC-2: After a cap increase, the underlying sliding-window mechanic
      (``REQ_FLOW_DATASOURCE`` AC-2 — most-recent-N entries, no time
@@ -190,7 +191,7 @@ Message Flow Visualization Requirements
      handle further, it does not itself move either handle.
    * AC-4: The increased cap SHALL NOT persist across closing and reopening
      the diagram panel — no VS Code setting is introduced for this CR; each
-     new panel instance starts back at the default cap (500).
+     new panel instance starts back at the default cap (30).
 
 
 .. req:: Message Flow Webview Panel

@@ -4,6 +4,16 @@
 
 GitHub Issues is the single source of truth for the backlog. No separate backlog file.
 
+## GitHub Issue Creation Requires Explicit Approval
+
+Creating a GitHub issue is a shared-system, hard-to-reverse action per the
+operational safety rules — never run `gh issue create` on your own
+initiative. Always show the user the proposed title/body first and get
+explicit approval before creating it, even when the issue is clearly
+backlog-worthy (bug reports, research findings, future ideas). This applies
+every time, not just the first time — a prior approval for one issue does
+not carry over to the next.
+
 ## Change Initialization — GitHub Issue Reference
 
 If a Change Document addresses tracked GitHub issue(s), add a

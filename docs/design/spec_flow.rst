@@ -43,7 +43,7 @@ Message Flow Visualization Design Specifications
                                       // this array (REQ_FLOW_TIMELENS)
       }
 
-      export const DEFAULT_CAP = 500;
+      export const DEFAULT_CAP = 30;
 
       function loadFlowData(logPath: string, cap: number = DEFAULT_CAP): FlowData {
         const raw = readMessageLog(logPath); // reuses message-log.json reader
@@ -72,7 +72,7 @@ Message Flow Visualization Design Specifications
      Unchanged by this CR — the lens windowing (``REQ_FLOW_TIMELENS``)
      re-runs an equivalent grouping client-side over a sub-range of
      ``entries``; it does not alter this host-side function.
-   * AC-4: ``cap`` defaults to ``DEFAULT_CAP`` (500) for the first load of a
+   * AC-4: ``cap`` defaults to ``DEFAULT_CAP`` (30) for the first load of a
      newly created panel; ``SPEC_FLOW_LOADMORE`` governs how and when a
      larger ``cap`` value is supplied on subsequent calls.
 
@@ -125,7 +125,7 @@ Message Flow Visualization Design Specifications
             handleActorClick(msg.name);
           } else if (msg.type === 'increaseCap') {
             // REQ_FLOW_LOADMORE AC-1/AC-2 — grow cap, reload, push immediately
-            currentCap += 500;
+            currentCap += 30;
             panel?.webview.postMessage({ type: 'data', payload: loadFlowData(logPath, currentCap) });
           }
         });
@@ -311,11 +311,11 @@ Message Flow Visualization Design Specifications
      back to the far edge (``endRank = total``) rather than throwing.
    * AC-5: Default ``LensState`` on panel open is
      ``{ start: { mode: 'live' }, end: { mode: 'anchored', id: <identity of
-     entries[max(0, entries.length - 500)]> } }`` — i.e. rank 1 through
-     ``min(total, 500)`` (``REQ_FLOW_TIMELENS`` AC-5).
+     entries[max(0, entries.length - 30)]> } }`` — i.e. rank 1 through
+     ``min(total, 30)`` (``REQ_FLOW_TIMELENS`` AC-5).
 
 
-.. spec:: Expand Loaded History Button ("+500")
+.. spec:: Expand Loaded History Button ("+30")
    :id: SPEC_FLOW_LOADMORE
    :status: draft
    :links: REQ_FLOW_LOADMORE; SPEC_FLOW_WEBVIEW; SPEC_FLOW_DATASERVICE
@@ -324,7 +324,7 @@ Message Flow Visualization Design Specifications
    A button in the webview's HTML, adjacent to the time lens, posts
    ``{ type: 'increaseCap' }`` to the extension host on click
    (``vscode.postMessage``) and is handled by ``SPEC_FLOW_WEBVIEW``'s
-   ``onDidReceiveMessage`` (cap += 500, immediate reload + push).
+   ``onDidReceiveMessage`` (cap += 30, immediate reload + push).
 
    .. code-block:: typescript
 
@@ -343,7 +343,7 @@ Message Flow Visualization Design Specifications
    * AC-1: Clicking the button posts exactly one ``{ type: 'increaseCap' }``
      message per click; the button is not disabled or debounced beyond
      normal UI responsiveness (repeated rapid clicks are acceptable and each
-     adds 500, per ``REQ_FLOW_LOADMORE`` AC-1 — no upper limit is enforced).
+     adds 30, per ``REQ_FLOW_LOADMORE`` AC-1 — no upper limit is enforced).
    * AC-2: On receiving the resulting ``FlowData`` update, the webview does
      not reset ``LensState`` — it re-resolves the existing handles' identities
      (or ``{ mode: 'live' }``) against the new, longer ``entries`` array

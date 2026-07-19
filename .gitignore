@@ -25,12 +25,14 @@ docs/_build/
 .jarvis/messages.json
 .jarvis/reminders.yaml
 .jarvis/heartbeat.yaml
+.jarvis/state/
 
 # testdata workspace runtime/scratch state (Dev Host manual testing,
 # not automated-test fixtures - those live under testdata/heartbeat/)
 testdata/.jarvis/messages.json
 testdata/.jarvis/autodelivery.json
 testdata/.jarvis/heartbeat.yaml
+testdata/.jarvis/state/
 
 # OS
 Thumbs.db

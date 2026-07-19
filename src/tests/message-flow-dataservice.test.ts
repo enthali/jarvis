@@ -1,6 +1,6 @@
 /**
  * message-flow-diagram CR
- * REQ_FLOW_DATASOURCE (SPEC_FLOW_DATASERVICE): 500-entry cap, tolerant
+ * REQ_FLOW_DATASOURCE (SPEC_FLOW_DATASERVICE): 30-entry cap, tolerant
  * missing/unparsable log handling, and (sender, destination) aggregation.
  */
 import { describe, it, expect } from 'vitest';
@@ -58,11 +58,11 @@ describe('SPEC_FLOW_DATASERVICE: loadFlowData', () => {
         expect(result.edges).toHaveLength(2);
     });
 
-    it('AC-2/AC-4: 500-entry cap excludes older entries — fixture file (T-4)', () => {
+    it('AC-2/AC-4: 30-entry cap excludes older entries — fixture file (T-4)', () => {
         const fixturePath = path.resolve(__dirname, '../../testdata/messages/message-log-flow-cap.json');
         const result = loadFlowData(fixturePath);
         // "old-only-sender" appears only in the oldest 20 of 520 entries —
-        // the 500-entry cap must exclude all of them.
+        // the 30-entry cap (stricter than the old 500-entry cap) must exclude all of them.
         expect(result.nodes).not.toContain('old-only-sender');
         expect(result.nodes).not.toContain('Archivist');
         expect(result.edges.every(e => e.source !== 'old-only-sender' && e.target !== 'old-only-sender')).toBe(true);
