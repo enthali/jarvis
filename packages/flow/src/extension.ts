@@ -148,8 +148,8 @@ function makeOpenMessageFlow(
             if (msg?.type === 'actorClick' && typeof msg.name === 'string') {
                 handleActorClick(msg.name).catch(e => log.warn(`[Flow] actorClick failed: ${e}`));
             } else if (msg?.type === 'increaseCap') {
-                // SPEC_FLOW_LOADMORE AC-1: increase cap by 500, immediate reload + push
-                currentCap += 500;
+                // SPEC_FLOW_LOADMORE AC-1: increase cap by 30, immediate reload + push
+                currentCap += 30;
                 log.info(`[Flow] cap increased to ${currentCap}`);
                 postData();
             }

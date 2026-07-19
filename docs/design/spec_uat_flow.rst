@@ -18,11 +18,11 @@ Message Flow Visualization UAT Design Specifications
       * - ``message-log-flow-cap.json``
         - T-4, T-10, T-14: 520 entries; oldest 20 reference a
           sender/destination value (``"old-only-sender"``) that appears in
-          no other entry, to verify the 500-entry cap excludes it, the
-          lens's default rank-1..500 window, and the "+500" cap-increase
-          (500 → 1000, all 520 reachable).
+          no other entry, to verify the 30-entry cap excludes it, the
+          lens's default rank-1..30 window, and the "+30" cap-increase
+          (30 → 60, more entries reachable).
       * - ``message-log-flow-sample.json``
-        - T-5, T-6, T-15: A handful of entries (well under 500) between two
+        - T-5, T-6, T-15: A handful of entries (well under 30) between two
           known sessions, spread across old (multi-day) and recent
           timestamps, to verify normal rendering, hover tooltip content,
           the lens's gradient fade, and the small-dataset lens edge case.
@@ -100,13 +100,13 @@ Message Flow Visualization UAT Design Specifications
 
       * - T-4
 
-          500-entry cap excludes older entries
+          30-entry cap excludes older entries
 
           *AC: REQ_FLOW_DATASOURCE 2, 4*
         - Copy ``message-log-flow-cap.json`` to the active
           ``message-log.json`` path; open the diagram.
         - ``"old-only-sender"`` does not appear as a node; nodes/edges
-          reflect only the most recent 500 entries.
+          reflect only the most recent 30 entries.
 
       * - T-5
 
@@ -170,8 +170,8 @@ Message Flow Visualization UAT Design Specifications
           *AC: REQ_FLOW_TIMELENS 5*
         - With ``message-log-flow-cap.json`` (520 entries) active, open the
           diagram; inspect the lens handle positions.
-        - Start handle at rank 1 (live-tracking); end handle at rank 500
-          (``min(520, 500)``); rendered set identical to T-4 (``"old-only-
+        - Start handle at rank 1 (live-tracking); end handle at rank 30
+          (``min(520, 30)``); rendered set identical to T-4 (``"old-only-
           sender"`` excluded).
 
       * - T-11
@@ -211,25 +211,25 @@ Message Flow Visualization UAT Design Specifications
 
       * - T-14
 
-          "+500" button increases cap without moving the lens
+          "+30" button increases cap without moving the lens
 
           *AC: REQ_FLOW_LOADMORE 1-3*
         - With ``message-log-flow-cap.json`` (520 entries) and the default
-          lens (T-10) active, click the "+500" button next to the lens.
-        - Cap increases to 1000 (all 520 entries loaded); lens handles'
+          lens (T-10) active, click the "+30" button next to the lens.
+        - Cap increases to 60 (60 of 520 entries loaded); lens handles'
           rendered window is visually unchanged immediately after the
           click; dragging the end handle further now reaches
-          ``"old-only-sender"`` entries beyond rank 500.
+          entries at ranks 31–60.
 
       * - T-15
 
           Lens window larger than loaded data (small dataset)
 
           *AC: REQ_FLOW_TIMELENS 5*
-        - With ``message-log-flow-sample.json`` (well under 500 entries)
+        - With ``message-log-flow-sample.json`` (well under 30 entries)
           active, open the diagram; inspect lens handle positions and try
           dragging the end handle past the last loaded entry.
         - End handle defaults to the rank of the last loaded entry (not a
-          fixed 500), with no error; end handle cannot be dragged past that
+          fixed 30), with no error; end handle cannot be dragged past that
           rank; the full small dataset renders within the window by
           default.

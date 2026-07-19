@@ -33,7 +33,7 @@ root.innerHTML = `
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
       <label style="font-size:12px;">Time Lens (message rank):</label>
       <span id="lens-range" style="font-size:11px;color:var(--vscode-descriptionForeground,#888);"></span>
-      <button id="load-more-btn" style="margin-left:auto;padding:4px 10px;font-size:11px;">+500</button>
+      <button id="load-more-btn" style="margin-left:auto;padding:4px 10px;font-size:11px;">+30</button>
     </div>
     <div style="position:relative;height:30px;">
       <div id="lens-track" style="position:absolute;top:12px;left:0;right:0;height:6px;
@@ -41,7 +41,7 @@ root.innerHTML = `
       <input id="lens-start" type="range" min="1" value="1" 
              style="position:absolute;top:0;left:0;width:100%;pointer-events:none;
                     background:transparent;-webkit-appearance:none;appearance:none;" />
-      <input id="lens-end" type="range" min="1" value="500" 
+      <input id="lens-end" type="range" min="1" value="30" 
              style="position:absolute;top:0;left:0;width:100%;pointer-events:none;
                     background:transparent;-webkit-appearance:none;appearance:none;" />
     </div>
@@ -372,7 +372,7 @@ function setupLensDrag(slider: HTMLInputElement, isStartHandle: boolean): void {
 setupLensDrag(lensStartSlider, true);
 setupLensDrag(lensEndSlider, false);
 
-// SPEC_FLOW_LOADMORE: "+500" button
+// SPEC_FLOW_LOADMORE: "+30" button
 loadMoreBtn.addEventListener('click', () => {
     vscodeApi.postMessage({ type: 'increaseCap' });
 });
@@ -383,7 +383,7 @@ window.addEventListener('message', (event: MessageEvent) => {
         currentData = msg.payload as FlowData;
         // SPEC_FLOW_TIMELENS AC-5: Default lens state on first data (or re-initialize if entries were empty before)
         if (currentData.entries.length > 0 && lensState.end.id.timestamp === '') {
-            const defaultEndIdx = Math.max(0, currentData.entries.length - 500);
+            const defaultEndIdx = Math.max(0, currentData.entries.length - 30);
             const endEntry = currentData.entries[defaultEndIdx];
             lensState = {
                 start: { mode: 'live' },

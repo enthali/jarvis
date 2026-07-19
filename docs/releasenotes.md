@@ -1,5 +1,14 @@
 # Release Notes
 
+## v0.20.1 — unreleased
+
+### Changes
+
+- **flow-message-pagination** (GH #36): Message Flow Diagram initial load and load-more increment reduced from 500 to 30 entries. The default cap and the "+500" button are now "+30", keeping the diagram responsive in large workspaces. The time-lens default window and lens-handle behavior are otherwise unchanged.
+  *(REQ_FLOW_DATASOURCE; REQ_FLOW_LOADMORE; REQ_FLOW_TIMELENS)*
+
+---
+
 ## v0.20.0 — Recently Touched Files
 
 *2026-07-17*
