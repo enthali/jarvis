@@ -1,8 +1,13 @@
 # Release Notes
 
-## v0.20.1 — unreleased
+## v0.20.1 — TouchStore Race Fix + Pagination
 
-### Changes
+*2026-07-19*
+
+### Fixes
+
+- **touched-files-write-race** (GH #35): Fixes a data-loss race in the Recently Touched Files store. Under concurrent tool calls (multiple `PostToolUse` events firing simultaneously for the same entity), touched-file entries were silently dropped — whichever async write completed last would overwrite the others' mutations. Fixed by switching `TouchStore` I/O to synchronous `fs.readFileSync`/`writeFileSync` so each read-mutate-write cycle is an uninterruptible event-loop turn. No change to the feature's observed behavior beyond correctness.
+  *(SPEC_ENT_TOUCHEDFILES AC-6a)*
 
 - **flow-message-pagination** (GH #36): Message Flow Diagram initial load and load-more increment reduced from 500 to 30 entries. The default cap and the "+500" button are now "+30", keeping the diagram responsive in large workspaces. The time-lens default window and lens-handle behavior are otherwise unchanged.
   *(REQ_FLOW_DATASOURCE; REQ_FLOW_LOADMORE; REQ_FLOW_TIMELENS)*
@@ -17,11 +22,6 @@
 
 - **actor-touched-files** (GH #18): Each Actor/Project/Event node now shows a **Recently Touched Files** subtree listing files the AI read or wrote during that entity's session. Touch events are captured by the Hook Engine on `PostToolUse` (any write tool touch is recorded regardless of success/failure). Files render as a workspace-root-relative hierarchy with last-read/last-edited tooltips. Click a `.md` file to open it as rendered Markdown Preview; all other files open in VS Code preview mode. Context menu: Copy Path, Copy Full Path, Reveal in Explorer, and an inline trash icon to remove an entry. Persisted in `.jarvis/state/touched-files/<kind>-<name>.json` and survives VS Code reload. Storage key correctly distinguishes Actor entities from Session entities even though the underlying scanner kind is shared.
   *(US_ENT_TOUCHEDFILES; REQ_ENT_TOUCHEDFILES; SPEC_ENT_TOUCHEDFILES)*
-
-### Fixes
-
-- **touched-files-write-race** (GH #35): Fixes a data-loss race in the Recently Touched Files store. Under concurrent tool calls (multiple `PostToolUse` events firing simultaneously for the same entity), touched-file entries were silently dropped — whichever async write completed last would overwrite the others' mutations. Fixed by switching `TouchStore` I/O to synchronous `fs.readFileSync`/`writeFileSync` so each read-mutate-write cycle is an uninterruptible event-loop turn. No change to the feature's observed behavior beyond correctness.
-  *(SPEC_ENT_TOUCHEDFILES AC-6a)*
 
 ---
 
