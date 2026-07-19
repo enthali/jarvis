@@ -11,7 +11,8 @@ Auto Delivery UAT Design Specifications
    tree layout, context menu commands, persistence, poll-loop delivery, the
    ``notified`` deduplication flag, Secondary-column placement (including
    the only-Main-open split edge case), Focus-Snapshot/Restore (editor and
-   terminal cases), and the active-use opt-out.
+   terminal cases), and confirmation that delivery is not suppressed by the
+   target session's focus state (focus gate removed).
 
    **Test Setup:**
 
@@ -25,11 +26,7 @@ Auto Delivery UAT Design Specifications
      message.
    * For T-11, an unrelated file open and focused in the editor before
      queuing the message.
-   * For T-12, an integrated terminal open and focused before queuing the
-     message.
-   * For T-13, "TestTarget"'s chat tab open and focused before queuing the
-     message.
-   * For T-14, exactly 1 editor-group column open (Main only, e.g. an
+   * For T-12, an integrated terminal open and focused before queuing the\n     message.\n   * For T-14, exactly 1 editor-group column open (Main only, e.g. an
      Actor chat) before queuing the message — no Docs column yet.
 
    **Expected Outcomes:**
@@ -92,18 +89,18 @@ Auto Delivery UAT Design Specifications
           message; wait ≤10 s
         - Delivery occurs, then focus automatically returns to the
           integrated terminal (``terminal.show()``)
-      * - T-13 (active-use opt-out)
-        - "TestTarget" chat tab open and focused; queue a message; wait
-          ≤10 s while keeping it focused
-        - Message is NOT delivered while the tab stays active/focused; it
-          remains queued. Once focus moves away, the next tick delivers it
-          normally
       * - T-14 (Secondary split when only Main open)
         - Exactly 1 column open (Main, e.g. an Actor chat); "TestTarget"
           chat not open anywhere; queue a message; wait ≤10 s
         - A new column 2 is split off and "TestTarget" opens there; the
           Main tab in column 1 is undisturbed — "TestTarget" does NOT open
           inside/replace column 1
+      * - T-16 (delivery when target tab is active/focused)
+        - "TestTarget" chat tab open **and currently focused**; queue a
+          message; wait ≤10 s
+        - Message is delivered to "TestTarget" chat; no suppression, no
+          error; Focus-Snapshot/Restore executes silently (returns to the
+          already-focused tab — no perceptible focus change)
 
 .. spec:: Auto Delivery Test Data Files
    :id: SPEC_UAT_MSG_AUTODELIVERY_FILES

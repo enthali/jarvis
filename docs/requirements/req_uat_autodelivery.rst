@@ -46,15 +46,14 @@ Auto Delivery UAT Requirements
    :id: REQ_UAT_MSG_AUTODELIVERY_POLL
    :status: approved
    :priority: optional
-   :links: US_UAT_MSG_AUTODELIVERY; REQ_MSG_AUTODELIVER_POLL; REQ_MSG_AUTODELIVER_TAG; REQ_MSG_EDITORPLACEMENT; REQ_MSG_FOCUSRESTORE; REQ_MSG_AUTODELIVERY_OPTOUT
+   :links: US_UAT_MSG_AUTODELIVERY; REQ_MSG_AUTODELIVER_POLL; REQ_MSG_AUTODELIVER_TAG; REQ_MSG_EDITORPLACEMENT; REQ_MSG_FOCUSRESTORE
 
    **Description:**
    The poll loop SHALL deliver messages automatically and prevent re-delivery,
    as verified by T-7 and T-8; it SHALL also place a newly-opened delivery
    tab at the Secondary column when other columns already exist (T-10) and
    split a new column when only Main is open, never collapsing into it
-   (T-14), restore the user's prior focus after delivery (T-11, T-12), and
-   skip delivery to an actively-focused session (T-13).
+   (T-14), and restore the user's prior focus after delivery (T-11, T-12).
 
    **Acceptance Criteria:**
 
@@ -77,11 +76,6 @@ Auto Delivery UAT Requirements
      For T-12, the tester SHALL verify that focus on a previously-active
      integrated terminal is automatically restored (via ``terminal.show()``)
      immediately after a system-initiated delivery completes.
-   * AC-7 (REQ_MSG_AUTODELIVERY_OPTOUT AC-1–AC-2 — active-use opt-out):
-     For T-13, the tester SHALL verify that a poll tick skips delivery to a
-     session whose chat tab is the currently active/focused tab, that the
-     message remains queued (retrievable via ``jarvis_readMessage``), and
-     that delivery proceeds normally once the tab is no longer active/focused.
    * AC-8 (REQ_MSG_EDITORPLACEMENT AC-3/AC-7 — Secondary split when only
      Main is open):
      For T-14, the tester SHALL verify that a delivery to a not-yet-open
@@ -90,3 +84,8 @@ Auto Delivery UAT Requirements
      session inside column 1 alongside or in place of the Main tab. This is
      the degenerate-column edge case distinct from T-10 (2+ columns already
      open).
+   * AC-9 (REQ_MSG_AUTODELIVER_POLL AC-3 — no focus gate):
+     For T-16, the tester SHALL verify that the poll loop delivers a message
+     to "TestTarget" even when "TestTarget"'s chat tab is the currently
+     active/focused tab — confirming that the ``isSessionActiveTab`` guard
+     has been removed and delivery is no longer suppressed by focus state.

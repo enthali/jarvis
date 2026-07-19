@@ -357,15 +357,16 @@ Message Queue Requirements
    :id: REQ_MSG_AUTODELIVER_POLL
    :status: draft
    :priority: optional
-   :links: US_MSG_AUTODELIVERY; REQ_MSG_AUTODELIVER_CONFIG; REQ_MSG_AUTODELIVER_TAG; REQ_MSG_SEND; REQ_ENT_AGENTPROMPT_TEMPLATE; REQ_MSG_EDITORPLACEMENT; REQ_MSG_FOCUSRESTORE; REQ_MSG_AUTODELIVERY_OPTOUT
+   :links: US_MSG_AUTODELIVERY; REQ_MSG_AUTODELIVER_CONFIG; REQ_MSG_AUTODELIVER_TAG; REQ_MSG_SEND; REQ_ENT_AGENTPROMPT_TEMPLATE; REQ_MSG_EDITORPLACEMENT; REQ_MSG_FOCUSRESTORE
 
    **Description:**
    The extension SHALL run a background poll loop that automatically sends
    notifications for sessions listed in ``autodelivery.json``. Each
    notification is a system-initiated delivery: it SHALL apply the
-   Editor-Group Placement Model (``REQ_MSG_EDITORPLACEMENT``), be wrapped
-   in Focus-Snapshot/Restore (``REQ_MSG_FOCUSRESTORE``), and SHALL honor
-   the active-use opt-out (``REQ_MSG_AUTODELIVERY_OPTOUT``).
+   Editor-Group Placement Model (``REQ_MSG_EDITORPLACEMENT``) and be wrapped
+   in Focus-Snapshot/Restore (``REQ_MSG_FOCUSRESTORE``). (The active-use
+   opt-out check was removed by the ``remove-autodelivery-focus-gate`` CR —
+   see ``REQ_MSG_AUTODELIVERY_OPTOUT`` (retired) for rationale.)
 
    **Acceptance Criteria:**
 
@@ -374,16 +375,13 @@ Message Queue Requirements
    * AC-2: On each tick the loop SHALL read the current ``messages.json`` and
      ``autodelivery.json``
    * AC-3: For each session in the auto-delivery list, if at least one message
-     exists with ``notified !== true`` **and** the session is not currently
-     the active tab (``REQ_MSG_AUTODELIVERY_OPTOUT`` AC-1/AC-2), the loop
-     SHALL deliver the notification directly via its own inlined logic —
-     it does **not** invoke ``jarvis.sendMessages`` (``REQ_MSG_SEND``), which
-     remains a separate, manually-triggered command — opening the session's
-     chat tab using the Secondary placement target
+     exists with ``notified !== true``, the loop SHALL deliver the
+     notification directly via its own inlined logic — it does **not**
+     invoke ``jarvis.sendMessages`` (``REQ_MSG_SEND``), which remains a
+     separate, manually-triggered command — opening the session's chat tab
+     using the Secondary placement target
      (``REQ_MSG_EDITORPLACEMENT`` AC-3/AC-4), wrapped in a
-     Focus-Snapshot/Restore cycle (``REQ_MSG_FOCUSRESTORE``). If the session
-     is currently the active tab, it is skipped for this tick (message
-     remains queued, retried next tick).
+     Focus-Snapshot/Restore cycle (``REQ_MSG_FOCUSRESTORE``).
    * AC-4: After notification the loop SHALL set ``notified: true`` on all
      messages that were just notified for that session and persist the queue
    * AC-5: The loop SHALL process at most one session per tick (first-found order)
@@ -711,35 +709,31 @@ Message Queue Requirements
 
 .. req:: Auto-Delivery Active-Use Opt-Out
    :id: REQ_MSG_AUTODELIVERY_OPTOUT
-   :status: approved
+   :status: deprecated
    :priority: required
    :links: US_MSG_AUTODELIVERY_OPTOUT; REQ_MSG_AUTODELIVER_POLL
 
-   **Description:**
-   The Auto-Delivery poll loop SHALL skip delivering to a session that the
-   user is currently actively using, to avoid interrupting an in-progress
-   conversation (e.g. PM/Research mid-chat).
+   **Retired (``remove-autodelivery-focus-gate`` CR):** The focus gate
+   conflicts with parallel-pipeline dispatch — see
+   ``US_MSG_AUTODELIVERY_OPTOUT`` (retired) for full rationale. The
+   ``isSessionActiveTab`` check, its ACs, and the skip-and-retry behavior
+   are all removed from the codebase; ``SPEC_MSG_AUTODELIVERY_OPTOUT`` is
+   retired correspondingly. Explicit per-session delivery control remains
+   via the enable/disable auto-delivery toggle
+   (``REQ_MSG_AUTODELIVER_TAG``).
 
-   **Acceptance Criteria:**
+   **Historical Acceptance Criteria (no longer enforced):**
 
-   * AC-1: On each poll tick, before delivering to a given session (per
-     ``REQ_MSG_AUTODELIVER_POLL`` AC-3), the poll loop SHALL check whether
-     that session's chat tab is the currently active (focused) editor tab.
-   * AC-2: If the target session's tab is the currently active tab, the
-     poll loop SHALL skip delivery for that session on this tick — the
-     message remains queued (``notified`` stays unset) and SHALL be
-     retried on a subsequent tick once the session is no longer active.
-   * AC-3: This check SHALL use no new persisted state — it is derived at
-     runtime from ``vscode.window.tabGroups`` (the active tab) compared
-     against the session's resolved UUID/label, the same mechanism used by
-     ``REQ_MSG_EDITORPLACEMENT``.
-   * AC-4: The opt-out check SHALL NOT affect the manual ``jarvis.sendMessages``
-     command — manual delivery always proceeds regardless of active-use
-     state (per ``REQ_MSG_AUTODELIVER_TAG`` AC-4, unaffected by this REQ).
-   * AC-5: If the skip causes a session to never be delivered while
-     continuously active, this is accepted — the user is, by definition,
-     already engaged with that session and can read queued messages
-     manually via `jarvis_readMessage` at any time.
+   * ~~AC-1: On each poll tick, before delivering to a given session, the
+     poll loop SHALL check whether that session's chat tab is the currently
+     active (focused) editor tab.~~
+   * ~~AC-2: If the target session's tab is the currently active tab, the
+     poll loop SHALL skip delivery for that session on this tick.~~
+   * ~~AC-3: This check SHALL use no new persisted state.~~
+   * ~~AC-4: The opt-out check SHALL NOT affect the manual
+     ``jarvis.sendMessages`` command.~~
+   * ~~AC-5: If the skip causes a session to never be delivered while
+     continuously active, this is accepted.~~
 
 
 .. req:: Pinned Resource Open Helper

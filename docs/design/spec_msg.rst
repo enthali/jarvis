@@ -1080,20 +1080,21 @@ Message Queue Design Specifications
 .. spec:: Auto-Delivery Poll Loop
    :id: SPEC_MSG_AUTODELIVER_POLL
    :status: draft
-   :links: REQ_MSG_AUTODELIVER_POLL; SPEC_MSG_AUTODELIVER_STORE; SPEC_MSG_AUTODELIVER_TAG; SPEC_MSG_SENDCOMMAND; REQ_MSG_NOTIFICATION_TEMPLATE; SPEC_MSG_OPENCHAT; REQ_ENT_AGENTPROMPT_TEMPLATE; SPEC_ENT_AGENTSESSION_INITPROMPT; SPEC_MSG_EDITORPLACEMENT; SPEC_MSG_FOCUSRESTORE; SPEC_MSG_AUTODELIVERY_OPTOUT
+   :links: REQ_MSG_AUTODELIVER_POLL; SPEC_MSG_AUTODELIVER_STORE; SPEC_MSG_AUTODELIVER_TAG; SPEC_MSG_SENDCOMMAND; REQ_MSG_NOTIFICATION_TEMPLATE; SPEC_MSG_OPENCHAT; REQ_ENT_AGENTPROMPT_TEMPLATE; SPEC_ENT_AGENTSESSION_INITPROMPT; SPEC_MSG_EDITORPLACEMENT; SPEC_MSG_FOCUSRESTORE
 
    **Description:**
 
    A ``setInterval`` poll loop started in ``extension.ts`` during ``activate()``.
-   Each tick finds the first auto-delivery session that has un-notified messages
-   and is not the currently active tab (``SPEC_MSG_AUTODELIVERY_OPTOUT``), opens
-   the chat session at its placement target (``SPEC_MSG_EDITORPLACEMENT`` —
+   Each tick finds the first auto-delivery session that has un-notified messages,
+   opens the chat session at its placement target (``SPEC_MSG_EDITORPLACEMENT`` —
    Secondary column if not yet open, else focus in place), sends the
    notification stub, and marks those messages as notified. The user's prior
    focus is snapshotted before the disruptive open and restored immediately
-   after (``SPEC_MSG_FOCUSRESTORE``). If the destination session cannot be
-   found, the poll loop opens a **fresh** chat editor via
-   ``openNewChatEditor()`` (``SPEC_MSG_OPENCHAT``) and first calls
+   after (``SPEC_MSG_FOCUSRESTORE``). (The active-use opt-out check was removed
+   by the ``remove-autodelivery-focus-gate`` CR — see
+   ``SPEC_MSG_AUTODELIVERY_OPTOUT`` (retired) for rationale.) If the
+   destination session cannot be found, the poll loop opens a **fresh** chat
+   editor via ``openNewChatEditor()`` (``SPEC_MSG_OPENCHAT``) and first calls
    ``renameFocusedChatSession(sessionName)`` so future deliveries can resolve
    the session by name.
 
@@ -1117,7 +1118,6 @@ Message Queue Design Specifications
             m => m.destination === sessionName && !m.notified
           );
           if (pending.length === 0) { continue; }
-          if (isSessionActiveTab(sessionName)) { continue; } // SPEC_MSG_AUTODELIVERY_OPTOUT
 
           // Snapshot focus before the disruptive delivery (SPEC_MSG_FOCUSRESTORE)
           const focus = await snapshotFocus();
@@ -1212,9 +1212,9 @@ Message Queue Design Specifications
      ensures the timer is cleared on deactivation
    * The ``log`` reference is the shared ``LogOutputChannel`` already created
      during ``activate()``
-   * The active-use opt-out check (``isSessionActiveTab``) runs before the
-     focus snapshot — an actively-focused session is skipped entirely, so no
-     snapshot/restore cycle is triggered for it
+   * The active-use opt-out check (``isSessionActiveTab``) was removed by
+     the ``remove-autodelivery-focus-gate`` CR — the poll loop now delivers
+     to any session with pending messages regardless of focus state
    * ``openAtSecondary`` (``SPEC_MSG_EDITORPLACEMENT``) replaces the prior
      ad-hoc tab-opening logic for the UUID-found branch; the fresh-session
      branch (``openNewChatEditor``) is intentionally left unchanged — a
@@ -1745,46 +1745,27 @@ Message Queue Design Specifications
 
 .. spec:: Auto-Delivery Active-Use Opt-Out Check
    :id: SPEC_MSG_AUTODELIVERY_OPTOUT
-   :status: approved
+   :status: deprecated
    :links: REQ_MSG_AUTODELIVERY_OPTOUT; SPEC_MSG_AUTODELIVER_POLL; SPEC_MSG_EDITORPLACEMENT
 
-   **Description:**
-   A predicate checked by the poll loop before delivering to a session,
-   skipping delivery if that session's tab is the currently active
-   (focused) editor tab.
+   **Retired (``remove-autodelivery-focus-gate`` CR):** The
+   ``isSessionActiveTab`` predicate and its call site in the poll loop are
+   removed. See ``US_MSG_AUTODELIVERY_OPTOUT`` (retired) for the full
+   rationale — the focus gate conflicts with parallel-pipeline dispatch and
+   is replaced by explicit per-session enable/disable toggle. Dev Engineer
+   SHALL delete the ``isSessionActiveTab`` function and remove the
+   ``if (isSessionActiveTab(sessionName)) { continue; }`` line from the
+   poll loop.
 
-   **Implementation:**
+   **Historical implementation** (kept for traceability):
 
    .. code-block:: typescript
 
+      // REMOVED by remove-autodelivery-focus-gate CR
       function isSessionActiveTab(sessionName: string): boolean {
           const activeTab = vscode.window.tabGroups.activeTabGroup.activeTab;
           return activeTab?.label === sessionName;
       }
-
-   **Usage in the poll loop:**
-
-   .. code-block:: typescript
-
-      for (const sessionName of autoList) {
-          const pending = messages.filter(
-              m => m.destination === sessionName && !m.notified
-          );
-          if (pending.length === 0) { continue; }
-          if (isSessionActiveTab(sessionName)) { continue; } // AC-1/AC-2: skip, retry next tick
-          // ... proceed to delivery (SPEC_MSG_AUTODELIVER_POLL) ...
-      }
-
-   **Design notes:**
-
-   * No new persisted state — reuses ``vscode.window.tabGroups`` already
-     read by ``SPEC_MSG_EDITORPLACEMENT``'s helpers.
-   * Does not affect ``jarvis.sendMessages`` (manual delivery) — the check
-     is only called from the poll loop's tick logic.
-   * A session that stays continuously active is never auto-delivered to
-     while active; this is accepted (``REQ_MSG_AUTODELIVERY_OPTOUT`` AC-5) —
-     the user can always read queued messages manually via
-     ``jarvis_readMessage``.
 
 
 .. spec:: Pinned Resource Open Helper
