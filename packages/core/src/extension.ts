@@ -364,15 +364,6 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         }
     }
 
-    // --- Auto-Delivery Active-Use Opt-Out Check (SPEC_MSG_AUTODELIVERY_OPTOUT) ---
-    // No new persisted state — reuses vscode.window.tabGroups already read by
-    // the placement helpers above. Only called from the poll loop's tick logic
-    // — does not affect jarvis.sendMessages (manual delivery).
-    function isSessionActiveTab(sessionName: string): boolean {
-        const activeTab = vscode.window.tabGroups.activeTabGroup.activeTab;
-        return activeTab?.label === sessionName;
-    }
-
     // Shared entity-chat opener (SPEC_EXP_ENTITY_TREECLICK / SPEC_SES_NEWENTITY)
     async function openChatForEntity(
         name: string,
@@ -1403,7 +1394,6 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             for (const sessionName of autoDeliverySessions) {
                 const pending = messages.filter(m => m.destination === sessionName && !m.notified);
                 if (pending.length === 0) { continue; }
-                if (isSessionActiveTab(sessionName)) { continue; } // SPEC_MSG_AUTODELIVERY_OPTOUT
 
                 // Snapshot focus before the disruptive delivery (SPEC_MSG_FOCUSRESTORE)
                 const focus = await snapshotFocus();

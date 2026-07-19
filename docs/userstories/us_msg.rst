@@ -264,27 +264,38 @@ Messaging User Stories
 
 .. story:: Auto-Delivery Skips Actively-Used Sessions
    :id: US_MSG_AUTODELIVERY_OPTOUT
-   :status: approved
+   :status: deprecated
    :priority: mandatory
    :links: US_MSG_AUTODELIVERY; US_MSG_EDITORPLACEMENT
+
+   **Retired (``remove-autodelivery-focus-gate`` CR):** The focus gate
+   conflicts with parallel-pipeline dispatch — when Change Manager dispatches
+   multiple actors simultaneously, the switchback mechanism can leave one
+   actor's tab focused, silently suppressing its next delivery indefinitely.
+   Explicit user control (per-session enable/disable auto-delivery toggle)
+   already exists and replaces implicit focus inference. The entire story is
+   retired; ``REQ_MSG_AUTODELIVERY_OPTOUT`` and ``SPEC_MSG_AUTODELIVERY_OPTOUT``
+   are retired correspondingly.
+
+   **Historical description** (kept for traceability):
 
    **As a** Jarvis User,
    **I want** Auto-Delivery to skip a session I am actively chatting in,
    **so that** queued messages don't interrupt or disrupt an in-progress
    conversation.
 
-   **Acceptance Criteria:**
+   **Acceptance Criteria (historical, no longer enforced):**
 
-   * AC-1: If the target session's chat tab is the currently active
+   * ~~AC-1: If the target session's chat tab is the currently active
      (focused) editor tab at poll time, Auto-Delivery SHALL skip delivering
-     to it on that tick.
-   * AC-2: A skipped message remains queued and is retried on a subsequent
-     poll tick once the session is no longer the active tab.
-   * AC-3: The manual "Play button" (``jarvis.sendMessages``) delivery path
+     to it on that tick.~~
+   * ~~AC-2: A skipped message remains queued and is retried on a subsequent
+     poll tick once the session is no longer the active tab.~~
+   * ~~AC-3: The manual "Play button" (``jarvis.sendMessages``) delivery path
      is unaffected by this opt-out — it always delivers immediately when
-     invoked, regardless of active-use state.
-   * AC-4: No new configuration or persisted state is introduced — active-use
-     is derived from the current editor layout at poll time.
+     invoked, regardless of active-use state.~~
+   * ~~AC-4: No new configuration or persisted state is introduced — active-use
+     is derived from the current editor layout at poll time.~~
 
 
 .. story:: Remote / Devcontainer Session Lookup Compatibility

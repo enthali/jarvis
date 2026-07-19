@@ -14,8 +14,6 @@
  *   openAtDocs/openAtSecondary exist and are wired into the right call sites
  * - SPEC_MSG_FOCUSRESTORE: no artificial delay reintroduced between the
  *   disruptive action and restoreFocus()
- * - SPEC_MSG_AUTODELIVERY_OPTOUT: isSessionActiveTab check runs before
- *   delivery in the poll loop
  * - SPEC_MSG_PINNED: openPinnedResource wired into jarvis.openSession
  *   (jarvis.sendMessages now routes through openAtMain instead — Play-
  *   button placement fix, same target as an Actor tree click)
@@ -104,20 +102,6 @@ describe('SPEC_MSG_FOCUSRESTORE: no artificial delay before restore', () => {
 
     it('the poll loop awaits snapshotFocus before the disruptive delivery', () => {
         expect(extensionSrc).toContain('const focus = await snapshotFocus();');
-    });
-});
-
-describe('SPEC_MSG_AUTODELIVERY_OPTOUT: active-use skip check', () => {
-    it('isSessionActiveTab helper is defined', () => {
-        expect(extensionSrc).toMatch(/function isSessionActiveTab\(/);
-    });
-
-    it('poll loop checks isSessionActiveTab before snapshotting focus / delivering', () => {
-        const optOutIdx = extensionSrc.indexOf('if (isSessionActiveTab(sessionName)) { continue; }');
-        const snapshotIdx = extensionSrc.indexOf('const focus = await snapshotFocus();');
-        expect(optOutIdx).toBeGreaterThan(-1);
-        expect(snapshotIdx).toBeGreaterThan(-1);
-        expect(optOutIdx).toBeLessThan(snapshotIdx);
     });
 });
 

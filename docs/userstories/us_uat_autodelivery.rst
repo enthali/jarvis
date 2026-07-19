@@ -5,16 +5,15 @@ Auto Delivery User Acceptance Tests
    :id: US_UAT_MSG_AUTODELIVERY
    :status: approved
    :priority: optional
-   :links: US_MSG_AUTODELIVERY; US_MSG_EDITORPLACEMENT; US_MSG_AUTODELIVERY_OPTOUT
+   :links: US_MSG_AUTODELIVERY; US_MSG_EDITORPLACEMENT
 
    **As a** Jarvis Test Engineer,
    **I want** manual acceptance test scenarios for the auto-delivery feature,
-   including its Secondary-column placement, Focus-Snapshot/Restore, and
-   active-use opt-out behavior,
+   including its Secondary-column placement and Focus-Snapshot/Restore
+   behavior,
    so that I can verify end-to-end that messages are automatically sent to
-   registered sessions without manual intervention, without disrupting the
-   user's current focus, and without interrupting an in-progress
-   conversation.
+   registered sessions without manual intervention and without disrupting the
+   user's current focus.
 
    **Acceptance Criteria:**
 
@@ -41,9 +40,9 @@ Auto Delivery User Acceptance Tests
    * AC-9: Around a system-initiated (poll-loop) delivery, the user's
      current focus — an editor tab or an integrated terminal — is
      automatically restored immediately after the delivery completes
-   * AC-10: The poll loop skips delivering to a session whose chat tab is
-     currently the active/focused tab, retrying on a later tick once the
-     session is no longer active
+   * AC-10: A test verifies that auto-delivery is NOT suppressed when the
+     target session's chat tab is the currently active/focused tab —
+     the focus gate has been removed (``remove-autodelivery-focus-gate`` CR)
 
    **Test Scenarios:**
 
@@ -134,17 +133,6 @@ Auto Delivery User Acceptance Tests
      integrated terminal (``terminal.show()``) — not to the newly-opened
      "TestTarget" chat tab.
 
-   **T-13 — Active-use opt-out skips a session mid-chat**
-     Setup: "TestTarget" is registered for auto-delivery. Its chat tab is
-     open and is the currently active/focused editor tab (simulate active
-     use by keeping it focused). Queue a message for "TestTarget".
-     Action: Wait up to 10 s (two poll ticks) while keeping the "TestTarget"
-     tab focused throughout.
-     Expected: The message is NOT delivered while the tab remains active/
-     focused — it stays queued (retrievable via ``jarvis_readMessage``).
-     Switch focus away from the "TestTarget" tab and wait one more tick;
-     the message is then delivered normally on the next tick.
-
    **T-14 — Secondary placement with only Main column open (split, not collapse)**
      Setup: Exactly 1 editor-group column open, containing an Actor chat at
      Main (column 1). No Docs column is open yet. "TestTarget" is registered
@@ -155,3 +143,15 @@ Auto Delivery User Acceptance Tests
      there. The Main tab in column 1 is undisturbed — "TestTarget" does NOT
      open inside column 1 alongside/replacing the Main tab. This is distinct
      from T-10 (2+ columns already open, Secondary reuses the last one).
+
+   **T-16 — Delivery fires even when target session tab is the active/focused tab**
+     Setup: "TestTarget" is registered for auto-delivery. "TestTarget"'s chat
+     tab is open **and currently focused** (it is the foreground active tab in
+     the editor). Queue a message for "TestTarget".
+     Action: Wait up to 10 s (two poll ticks).
+     Expected: The message is delivered to the "TestTarget" chat session even
+     though its tab is the currently focused tab — the poll loop does NOT skip
+     the delivery (the focus gate has been removed by this CR). Focus-Snapshot/
+     Restore still executes: focus returns to the "TestTarget" tab (which is
+     already focused), resulting in no perceptible focus change. No error or
+     suppression log entry appears.

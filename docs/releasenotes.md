@@ -1,5 +1,16 @@
 # Release Notes
 
+## v0.20.2 — Remove Auto-Delivery Focus Gate
+
+*2026-07-19*
+
+### Changes
+
+- **remove-autodelivery-focus-gate** (GH #38): Removes the focus gate from message auto-delivery. Previously, auto-delivery was silently suppressed when the target session's chat tab had UI focus — this caused delivery deadlocks in parallel-pipeline scenarios where multiple actors ran concurrently (only one can be "last active", so the focused one would never receive its messages). The focus gate is now gone; messages are delivered unconditionally on the poll tick regardless of tab focus. The per-session enable/disable toggle (`jarvis.enableAutoDelivery` / `jarvis.disableAutoDelivery`) is unchanged as an explicit opt-out mechanism.
+  *(REQ_MSG_AUTODELIVER_POLL; US_MSG_AUTODELIVERY_OPTOUT deprecated)*
+
+---
+
 ## v0.20.1 — TouchStore Race Fix + Pagination
 
 *2026-07-19*
