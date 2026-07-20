@@ -159,6 +159,29 @@ No fix-now/defer/accept-as-is decisions required — zero open findings after Ro
 
 **Merged:** 2026-07-21, squash-merged into `develop` (commit `062c9ce`) by PM.
 
+### Round 2
+
+**Reviewed by:** QM
+**Review date:** 2026-07-21
+
+#### Process Note
+
+This CR was merged to `develop` (commit 062c9ce) before QM performed an independent review — "Round 1" above was authored and self-cleared as MECE/Trace Engineer output on the premise that a dedicated QM pass wasn't needed for a small follow-up fix, and PM merged on that basis. CM's own notification to QM explicitly said "flagging to you for independent QM review per standard workflow," so this gap wasn't intentional stonewalling — it reads as a sequencing slip (merge happened before QM's turn came up in the inbox). Per QM's mode duties, only QM renders the CLEAR/BLOCK gate signal; MECE/Trace PASS is necessary input but not a substitute, regardless of CR size — flagging to PM so the CD-to-merge sequencing doesn't drift for future small fixes. Not asking for a revert: independent post-merge verification below found the change fully correct.
+
+#### Findings
+
+None (post-merge audit).
+
+#### Independent Verification (for the record)
+
+- `packages/core/package.json:223` — default contains `Sender(s): ${sender}` and `jarvis_receiveMessage`. ✅
+- `packages/core/src/extension.ts:680-684` (manual `jarvis.sendMessages` fallback) — `[Jarvis Message Service] You have ${count}...` → `Sender(s): ${sender}` → `Read them with the jarvis_receiveMessage tool...`. ✅ Line order matches package.json exactly.
+- `packages/core/src/extension.ts:1449` (auto-delivery poll fallback) — same three-line text, same order. ✅
+- `docs/requirements/req_msg.rst:957-963` — "Built-in default text (verbatim)" illustration block now matches the shipped text exactly (previously stale: wrong tool name, no Sender line).
+- `src/tests/msg-notify-default-text.test.ts` — regression test genuinely asserts the literal default text (not just substitution variables) at all 3 sites; would have caught the original bug.
+
+**Verdict: CLEAR (post-merge confirmation).** No findings. The already-merged change is correct as shipped.
+
 ---
 
 ## Appendix: Link Discovery Results
