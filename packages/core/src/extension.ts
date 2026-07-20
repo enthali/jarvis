@@ -680,7 +680,8 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             const sender = [...new Set(node.children.map(c => c.sender))].join(', ');
             const defaultNotifTemplate =
                 `[Jarvis Message Service] You have \${count} new message(s) in your inbox.\n` +
-                `Read them with the enthali.jarvis-core/receiveMessage tool (destination: "\${destination}") until remaining = 0.`;
+                `Sender(s): \${sender}\n` +
+                `Read them with the jarvis_receiveMessage tool (destination: "\${destination}") until remaining = 0.`;
             const rawNotifTemplate = vscode.workspace.getConfiguration('jarvis').get<string>('messages.notificationTemplate') ?? '';
             const notifTemplate = rawNotifTemplate.trim() ? rawNotifTemplate : defaultNotifTemplate;
             const stub = applyTemplate(notifTemplate, { count: String(count), destination: node.destination, sender });
@@ -1445,7 +1446,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
                     }
                     const count = pending.length;
                     const sender = [...new Set(pending.map(m => m.sender))].join(', ');
-                    const defaultNotifTemplate = `[Jarvis Message Service] You have \${count} new message(s) in your inbox.\nRead them with the jarvis_receiveMessage tool (destination: "\${destination}") until remaining = 0.`;
+                    const defaultNotifTemplate = `[Jarvis Message Service] You have \${count} new message(s) in your inbox.\nSender(s): \${sender}\nRead them with the jarvis_receiveMessage tool (destination: "\${destination}") until remaining = 0.`;
                     const rawNotifTemplate = vscode.workspace.getConfiguration('jarvis').get<string>('messages.notificationTemplate') ?? '';
                     const notifTemplate = rawNotifTemplate.trim() ? rawNotifTemplate : defaultNotifTemplate;
                     const stub = applyTemplate(notifTemplate, { count: String(count), destination: sessionName, sender });

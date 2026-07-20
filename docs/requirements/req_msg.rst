@@ -959,8 +959,8 @@ Message Queue Requirements
    .. code-block:: text
 
       [Jarvis Message Service] You have ${count} new message(s) in your inbox.
-      Read them with the enthali.jarvis-core/receiveMessage tool (destination: "${destination}") until remaining = 0.
       Sender(s): ${sender}
+      Read them with the jarvis_receiveMessage tool (destination: "${destination}") until remaining = 0.
 
    **Acceptance Criteria:**
 

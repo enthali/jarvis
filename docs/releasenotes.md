@@ -10,6 +10,11 @@
 - **msg-notify-sender-id** (GH #40): Message notification stubs now include the sender's identity via a new `${sender}` placeholder — comma-separated and de-duplicated across the pending batch. Works for both manual delivery (Play button) and auto-delivery. Non-actor sources (heartbeat jobs, system commands) show their source label. The built-in default template has been updated to include a third line `Sender(s): ${sender}`. Backward compatible: custom templates that omit `${sender}` continue to render correctly.
   *(US_MSG_NOTIFICATION_TEMPLATE; REQ_MSG_NOTIFICATION_TEMPLATE; SPEC_MSG_SENDCOMMAND; SPEC_MSG_AUTODELIVER_POLL)*
 
+### Fixes
+
+- **msg-notify-default-text-fix** (GH #40 follow-up): The `${sender}` substitution variable introduced by msg-notify-sender-id was wired into template evaluation but the three literal default-template strings (setting default in `package.json`, and two fallback strings in `extension.ts`) were never updated — so the Sender line was computed but never displayed. Additionally, two of those three locations still referenced the deprecated `jarvis_readMessage` / a non-existent `enthali.jarvis-core/receiveMessage` tool name instead of the canonical `jarvis_receiveMessage` (an already-specified but never-implemented requirement from v0.16.0). All three sites are now consistent: Sender(s) line present, tool name `jarvis_receiveMessage`.
+  *(REQ_MSG_NOTIFICATION_TEMPLATE AC-3, AC-7)*
+
 ---
 
 ## v0.20.2 — Remove Auto-Delivery Focus Gate

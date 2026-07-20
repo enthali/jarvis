@@ -220,7 +220,7 @@
           },
           "jarvis.messages.notificationTemplate": {
             "type": "string",
-            "default": "[Jarvis Message Service] You have ${count} new message(s) in your inbox.\nRead them with the jarvis_readMessage tool (destination: \"${destination}\") until remaining = 0.",
+            "default": "[Jarvis Message Service] You have ${count} new message(s) in your inbox.\nSender(s): ${sender}\nRead them with the jarvis_receiveMessage tool (destination: \"${destination}\") until remaining = 0.",
             "editPresentation": "multilineText",
             "scope": "window",
             "description": "Template for the auto-delivery notification stub. Placeholders: ${count}, ${destination}, ${sender}. If empty, the built-in English default is used. Scope: window."

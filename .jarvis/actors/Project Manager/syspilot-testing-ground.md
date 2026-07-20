@@ -39,3 +39,22 @@ Refined position (agreed):
 - Black-ops night (2026-07-20, #40 + #39): pipeline ran clean on a mixed-model
   setup (CM=qwen local, QM=Haiku, PM=Hy3) — confirms harness quality beats
   model size for coordination tasks.
+
+## MECE/TRACE model-diligence gap (2026-07-20/21)
+
+msg-notify-sender-id (#40) shipped with the built-in notification default text
+never actually updated (sender line missing at all 3 declaration sites; wrong/
+deprecated tool name referenced at 2 of 3) despite REQ_MSG_NOTIFICATION_TEMPLATE
+AC-3/AC-7 explicitly requiring both — QM Round 1 said CLEAR.
+
+PM initially misdiagnosed this as a **process gap** (MECE/Trace only verify
+links/traceability structurally, not literal spec-prose-vs-code-text content).
+User corrected this: links are only the *algorithmic* part (finding entities)
+— *content* review of what's behind those links IS the actors' actual job.
+So this isn't a role-design gap, it's a **model diligence gap**: MECE was
+already on Sonnet 5, TRACE was still on Haiku 4.5 (the likely culprit — not
+meticulous enough for exact-text AC verification). User is moving TRACE to
+Sonnet as a result. Lesson: when review agents miss content-level defects,
+check model assignment before redesigning the process — don't assume the
+architecture is at fault when it might just be an underpowered model
+assigned to a content-heavy checking role.
