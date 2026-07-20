@@ -1,0 +1,67 @@
+{
+  "name": "jarvis-syspilot",
+  "displayName": "Jarvis Syspilot",
+  "description": "Jarvis Syspilot — detects and hands off syspilot install/update lifecycle to the Syspilot Setup Engineer actor",
+  "version": "0.20.2",
+  "publisher": "enthali",
+  "icon": "resources/jarvis-128.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/enthali/Jarvis.git"
+  },
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "main": "./out/extension.js",
+  "extensionDependencies": [
+    "enthali.jarvis-core"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "scripts": {
+    "compile": "tsc -p ./",
+    "bundle": "node build.js",
+    "package": "vsce package --no-dependencies",
+    "vscode:prepublish": "npm run compile && npm run bundle"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.5.0"
+  },
+  "dependencies": {
+    "jarvis-core": "*"
+  },
+  "contributes": {
+    "configuration": {
+      "title": "Jarvis Syspilot",
+      "properties": {
+        "jarvis.syspilot.releaseTag": {
+          "type": "string",
+          "default": "main",
+          "description": "syspilot release tag (branch, tag, or commit-ish) from which the setup agent and its companion files are fetched."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "jarvis.syspilotUpdate",
+        "title": "Jarvis: Check for syspilot Updates"
+      },
+      {
+        "command": "jarvis.delaySyspilotUpdate",
+        "title": "Jarvis: Suspend syspilot Update Notifications"
+      },
+      {
+        "command": "jarvis.SyspilotSkipThisVersion",
+        "title": "Jarvis: Skip This syspilot Version"
+      }
+    ]
+  },
+  "categories": [
+    "Other"
+  ]
+}

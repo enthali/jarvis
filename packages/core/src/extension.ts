@@ -440,6 +440,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     treeFactory.setTouchStore(touchStore); // SPEC_ENT_TOUCHEDFILES
     const engine = new JarvisEngine(kindDrivenScanner, treeFactory);
     context.subscriptions.push({ dispose: () => engine.dispose() });
+    engine.setMessaging(resolveMessagesPath, () => messageProvider.reload());
 
     // Activity indicator (SPEC_HOOK_ACTIVITY): hook-driven 2-state tree icon.
     // Constructed after `engine` exists (onChange needs treeFactory.refreshKind

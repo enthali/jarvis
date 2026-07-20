@@ -4,6 +4,9 @@
 
 ### Features
 
+- **jarvis-syspilot** (GH #39): New optional add-on `enthali.jarvis-syspilot` that manages the syspilot install/update lifecycle. On VS Code startup it compares the local `.github/agents/syspilot.setup.agent.md` Frontmatter version against the upstream release tag. If a newer version is available, the **Syspilot Setup Engineer** actor (auto-created if missing) receives a notification message with three options — install, suspend (N days), or skip this version. Two new LM tools (`jarvis_delaySyspilotUpdate` / `jarvis_SyspilotSkipThisVersion`) and the `jarvis.syspilotUpdate` command are available for actor-guided management. State is persisted to `.jarvis/syspilot-state.json`. The `jarvis.syspilot.releaseTag` setting controls which upstream ref is tracked (default: `main`).
+  *(US_SPL_LIFECYCLE; REQ_SPL_*; SPEC_SPL_*)*
+
 - **msg-notify-sender-id** (GH #40): Message notification stubs now include the sender's identity via a new `${sender}` placeholder — comma-separated and de-duplicated across the pending batch. Works for both manual delivery (Play button) and auto-delivery. Non-actor sources (heartbeat jobs, system commands) show their source label. The built-in default template has been updated to include a third line `Sender(s): ${sender}`. Backward compatible: custom templates that omit `${sender}` continue to render correctly.
   *(US_MSG_NOTIFICATION_TEMPLATE; REQ_MSG_NOTIFICATION_TEMPLATE; SPEC_MSG_SENDCOMMAND; SPEC_MSG_AUTODELIVER_POLL)*
 

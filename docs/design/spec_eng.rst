@@ -269,6 +269,19 @@ Engine Design Specifications
            * Includes paused jobs (enabled === false).
            */
           listJobs(): HeartbeatJob[];
+
+          // --- Messaging (SPEC_ENG_MESSAGING) ---
+
+          /**
+           * Append a message to the Jarvis message queue, bypassing the
+           * session-validation that the jarvis_sendMessage LM tool enforces.
+           * Intended for internal/module senders that are not themselves
+           * registered actors or chat sessions (e.g. jarvis-syspilot,
+           * heartbeat internals). The message is delivered by the existing
+           * auto-delivery poll loop like any other queued message.
+           * (jarvis-syspilot CR, GH #39)
+           */
+          sendMessage(destination: string, sender: string, text: string): void;
       }
 
    **Acceptance Criteria:**
@@ -301,6 +314,12 @@ Engine Design Specifications
      current persisted set. These are PERSISTENT operations — they write to
      ``heartbeat.yaml`` and survive deactivation/restarts. They do NOT return
      ``Disposable`` (see ``SPEC_ENG_HEARTBEAT_JOBAPI``).
+   * AC-8: ``sendMessage(destination, sender, text)`` appends a message to the
+     queue file (same as ``appendMessage`` internally), bypassing
+     actor/session-name validation. Intended for module-internal senders
+     (e.g. ``jarvis-syspilot``) that are not themselves registered entities.
+     The message is picked up by the auto-delivery poll loop like any other
+     queued message (``jarvis-syspilot`` CR, GH #39).
 
 
 .. spec:: registerEntityKind Semantics

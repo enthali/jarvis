@@ -18,6 +18,7 @@ for each feature. Each file corresponds to one feature or change.
    us_uat_sessiontools
    us_uat_selfupdate
    us_uat_scanrefresh
+   us_uat_spl
    us_uat_logging
    us_uat_mcpserver
    us_uat_outlookcategories
