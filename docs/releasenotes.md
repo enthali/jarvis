@@ -1,5 +1,14 @@
 # Release Notes
 
+## v0.21.0 — unreleased
+
+### Features
+
+- **msg-notify-sender-id** (GH #40): Message notification stubs now include the sender's identity via a new `${sender}` placeholder — comma-separated and de-duplicated across the pending batch. Works for both manual delivery (Play button) and auto-delivery. Non-actor sources (heartbeat jobs, system commands) show their source label. The built-in default template has been updated to include a third line `Sender(s): ${sender}`. Backward compatible: custom templates that omit `${sender}` continue to render correctly.
+  *(US_MSG_NOTIFICATION_TEMPLATE; REQ_MSG_NOTIFICATION_TEMPLATE; SPEC_MSG_SENDCOMMAND; SPEC_MSG_AUTODELIVER_POLL)*
+
+---
+
 ## v0.20.2 — Remove Auto-Delivery Focus Gate
 
 *2026-07-19*

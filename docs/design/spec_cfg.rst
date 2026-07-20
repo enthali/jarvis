@@ -360,7 +360,7 @@ Configuration Design Specifications
             "jarvis.messages.notificationTemplate": {
               "type": "string",
               "default": "",
-              "description": "Template for the auto-delivery notification stub. Placeholders: ${count}, ${destination}. If empty, the built-in English default is used. Scope: window."
+              "description": "Template for the auto-delivery notification stub. Placeholders: ${count}, ${destination}, ${sender}. If empty, the built-in English default is used. Scope: window."
             }
           }
         },

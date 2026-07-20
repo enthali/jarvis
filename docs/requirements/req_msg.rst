@@ -960,6 +960,7 @@ Message Queue Requirements
 
       [Jarvis Message Service] You have ${count} new message(s) in your inbox.
       Read them with the enthali.jarvis-core/receiveMessage tool (destination: "${destination}") until remaining = 0.
+      Sender(s): ${sender}
 
    **Acceptance Criteria:**
 
@@ -968,8 +969,13 @@ Message Queue Requirements
    * AC-2: When the setting contains a non-empty string, that string SHALL be
      used as the template instead of the built-in default
    * AC-3: Before submission, the template SHALL have ``${count}`` replaced with
-     the number of pending messages and ``${destination}`` replaced with the
-     target session name
+     the number of pending messages, ``${destination}`` replaced with the
+     target session name, and ``${sender}`` replaced with the
+     comma-separated distinct sender names from the pending message batch
+     (``msg-notify-sender-id`` CR, GH #40). For messages from non-actor
+     sources (e.g. heartbeat jobs), the sender field already contains an
+     appropriate label (e.g. ``"Heartbeat"``) — no special-casing is needed
+     at the template level.
    * AC-4: Unknown placeholder tokens (i.e. ``${...}`` patterns not listed above)
      SHALL be left as-is in the final text — no error is raised
    * AC-5: The substitution SHALL be applied by a shared private helper

@@ -178,12 +178,19 @@ Message Queue Design Specifications
    ``SPEC_ENT_AGENTSESSION_INITPROMPT`` for the shared helper definition), where
    ``template`` is the value of ``jarvis.messages.notificationTemplate`` (falling
    back to the built-in English default from ``REQ_MSG_NOTIFICATION_TEMPLATE``
-   when empty/whitespace), and ``vars`` is ``{ count, destination }``.
+   when empty/whitespace), and ``vars`` is ``{ count, destination, sender }``.
 
-   Built-in default after substitution (example, count=2, destination="Atlas")::
+   The ``sender`` value is the comma-joined list of distinct sender names from
+   the pending messages for that session (e.g. ``"Change Manager"`` or
+   ``"Change Manager, MECE Engineer"``). This applies to both the manual
+   deliver-now command and the auto-delivery poll loop.
+
+   Built-in default after substitution (example, count=2, destination="Atlas",
+   sender="Change Manager")::
 
       [Jarvis Message Service] You have 2 new message(s) in your inbox.
       Read them with the jarvis_readMessage tool (destination: "Atlas") until remaining = 0.
+      Sender(s): Change Manager
 
    .. code-block:: typescript
 
@@ -254,10 +261,11 @@ Message Queue Design Specifications
 
           // 3. Send single notification stub
           const count = node.children.length;
+          const senders = [...new Set(node.children.map((c: any) => c.sender))].join(', ');
           const cfg = vscode.workspace.getConfiguration('jarvis');
           const stub = applyTemplate(
             cfg.get<string>('messages.notificationTemplate', ''),
-            { count: String(count), destination: node.destination }
+            { count: String(count), destination: node.destination, sender: senders }
           );  // REQ_MSG_NOTIFICATION_TEMPLATE, SPEC_ENT_AGENTSESSION_INITPROMPT
           await sendPromptToFocusedAgentChat(stub);  // SPEC_MSG_SENDPROMPT
 
@@ -1172,9 +1180,10 @@ Message Queue Design Specifications
 
           // Send notification stub
           const cfg = vscode.workspace.getConfiguration('jarvis');
+          const senders = [...new Set(pending.map(m => m.sender))].join(', ');
           const stub = applyTemplate(
             cfg.get<string>('messages.notificationTemplate', ''),
-            { count: String(pending.length), destination: sessionName }
+            { count: String(pending.length), destination: sessionName, sender: senders }
           );  // REQ_MSG_NOTIFICATION_TEMPLATE, SPEC_ENT_AGENTSESSION_INITPROMPT
           await vscode.commands.executeCommand(
             'workbench.action.chat.open', { query: stub, isPartialQuery: false }

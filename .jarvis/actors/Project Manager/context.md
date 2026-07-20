@@ -69,8 +69,18 @@ _(none — last dispatched CR cleared; #40 and #39 discussed, not yet dispatched
 
 - [PIM Modularization](ideas/pim-modularization.md) — drop per-component enable/disable settings, go installable-sub-extensions instead
 - [Session Recording](ideas/recording-design.md) — meeting recording + transcription pipeline
+- [jarvis-syspilot scope](ideas/jarvis-syspilot-scope.md) — GH #39 agreed model (Frontmatter contract, Syspilot Setup Engineer actor, delay/skip tools) — for the tonight black-ops CR
 
 ## Lessons Learned
 
 See [lessons-learned.md](lessons-learned.md).
+
+## Deferred Issues (DEFER)
+
+When the user is unreachable during an autonomous run (black-ops mode — e.g.
+asleep), **DEFER** a finding by appending it to
+[deferred-issues.md](deferred-issues.md) instead of creating a GitHub issue
+(which always needs explicit approval). On the user's return, bring the list
+back up and go through it together, proposing GH issues (or other handling)
+per entry. Tracked-for-later, never dropped.
 

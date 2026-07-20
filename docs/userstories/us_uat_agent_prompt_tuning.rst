@@ -139,6 +139,17 @@ Agent Prompt Tuning User Acceptance Tests
      is left as-is while known placeholders are still substituted (T-11).
    * AC-6: A test verifies that both new settings appear in the correct groups in
      the VS Code Settings UI (T-12, T-13).
+   * AC-7: A test (T-15) verifies that when the pending message batch contains
+     messages from multiple distinct senders, the ``${sender}`` placeholder is
+     rendered as a comma-separated list of unique sender names with no
+     duplicates (``msg-notify-sender-id`` CR, GH #40).
+   * AC-8: A test (T-16) verifies that messages originating from non-actor
+     sources (e.g. a heartbeat job with sender ``"Heartbeat"``) display a
+     meaningful source label in the ``${sender}`` position rather than a blank
+     or error.
+   * AC-9: A test (T-17) verifies backward compatibility: a custom template
+     that does not include ``${sender}`` still renders correctly — the missing
+     placeholder is simply absent from the output and no error is raised.
 
    **Test Scenarios:**
 
@@ -146,22 +157,28 @@ Agent Prompt Tuning User Acceptance Tests
      Setup: Open ``testdata/test.code-workspace`` in the Extension Development
      Host (F5). Ensure ``jarvis.messages.notificationTemplate`` is not set
      (deleted / default). Enqueue 2 messages to a session named ``TestSession``
-     using the ``jarvis_sendToSession`` LM tool.
+     from a single sending session (e.g. ``jarvis_sendToSession`` from a chat
+     session named ``Change Manager``).
      Action: In the Messages tree, right-click (or use inline action) the
      ``TestSession`` group node and click **Send Messages**.
-     Expected: The auto-opened chat shows:
+     Expected: The auto-opened chat shows all three lines of the built-in
+     default (``msg-notify-sender-id`` CR, GH #40):
      ``[Jarvis Message Service] You have 2 new message(s) in your inbox.``
      followed by:
-     ``Read them with the enthali.jarvis-core/readMessage tool (destination: "TestSession") until remaining = 0.``
+     ``Read them with the jarvis_receiveMessage tool (destination: "TestSession") until remaining = 0.``
+     followed by:
+     ``Sender(s): Change Manager``
+     (The sender name reflects whichever session enqueued the messages.)
 
    **T-8 — Default notification via auto-delivery poll**
      Setup: Same environment. Add ``TestSession`` to auto-delivery (right-click
      the node → **Enable Auto-Delivery**). Default notification template.
-     Action: Enqueue 1 message. Wait up to 6 seconds for the next poll tick.
-     Observe the auto-opened chat.
-     Expected: The chat shows the English default notification with ``count=1``
-     and ``destination="TestSession"``. After delivery the message is marked
-     ``notified:true`` in the queue JSON.
+     Action: Enqueue 1 message (from a known sender). Wait up to 6 seconds for
+     the next poll tick. Observe the auto-opened chat.
+     Expected: The chat shows all three lines of the English default notification
+     with ``count=1``, ``destination="TestSession"``, and
+     ``Sender(s): <sender-name>`` on the third line. After delivery the message
+     is marked ``notified:true`` in the queue JSON.
 
    **T-9 — Notification override**
      Setup: Set ``jarvis.messages.notificationTemplate`` to:
@@ -196,5 +213,38 @@ Agent Prompt Tuning User Acceptance Tests
      Action: Open VS Code Settings UI. Search for
      ``jarvis notification template``.
      Expected: ``jarvis.messages.notificationTemplate`` appears in the
-     **Messages** group. The field shows the English default notification text
-     as the placeholder / default value.
+     **Messages** group. The description references the ``${count}``,
+     ``${destination}``, and ``${sender}`` placeholders. The default /
+     placeholder text shows the English default notification text including
+     all three lines (count, receiveMessage instruction, Sender(s)).
+
+   **T-15 — Multiple distinct senders — comma-joined, de-duplicated**
+     Setup: Default notification template. Enqueue 3 messages to ``TestSession``
+     such that 2 are from a session named ``Change Manager`` and 1 is from a
+     session named ``Project Manager`` (e.g. use ``jarvis_sendMessage`` twice
+     from the CM session and once from the PM session).
+     Action: Trigger manual delivery (**Send Messages** on ``TestSession``).
+     Expected: The third line of the notification reads
+     ``Sender(s): Change Manager, Project Manager`` (or ``Project Manager,
+     Change Manager`` depending on sort order) — exactly two distinct names,
+     not three (``Change Manager`` is NOT listed twice despite sending 2
+     messages). The order may vary; both names must appear exactly once.
+
+   **T-16 — Non-actor source shows meaningful label**
+     Setup: Default notification template. Trigger a heartbeat ``queue`` step
+     that appends a message to ``TestSession`` with sender ``"Heartbeat"``
+     (or equivalent non-actor source label).
+     Action: Trigger manual delivery (**Send Messages** on ``TestSession``).
+     Expected: The third line reads ``Sender(s): Heartbeat`` — no blank,
+     no error, no raw ``${sender}`` literal. The label reflects the actual
+     ``sender`` field stored in the queue entry.
+
+   **T-17 — Backward compat — custom template without ${sender} still works**
+     Setup: Set ``jarvis.messages.notificationTemplate`` to:
+     ``"You have ${count} msgs for ${destination}. Please check in."``
+     (no ``${sender}`` in the template). Enqueue 1 message.
+     Action: Trigger manual delivery.
+     Expected: The chat shows exactly:
+     ``You have 1 msgs for TestSession. Please check in.``
+     No ``${sender}`` literal appears in the output; no error is raised;
+     the ``${count}`` and ``${destination}`` substitutions are unaffected.

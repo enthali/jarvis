@@ -376,9 +376,11 @@ Messaging User Stories
      window, group: Messages) allows the user to override the default text;
      when the setting is empty or contains only whitespace, the built-in default
      is used
-   * AC-3: The template supports two placeholders — ``${count}`` (number of
-     pending messages) and ``${destination}`` (target session name) — which are
-     substituted at delivery time; unknown placeholders are left as-is
+   * AC-3: The template supports three placeholders — ``${count}`` (number of
+     pending messages), ``${destination}`` (target session name), and
+     ``${sender}`` (comma-separated distinct sender names from the pending
+     batch) — which are substituted at delivery time; unknown placeholders
+     are left as-is
    * AC-4: The customised (or default) notification text is applied consistently
      by both the manual deliver-now path (``jarvis.sendMessages`` command) and
      the 5-second auto-delivery poll loop

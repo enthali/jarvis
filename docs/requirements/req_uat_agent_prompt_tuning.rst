@@ -101,6 +101,16 @@ Agent Prompt Tuning UAT Requirements
      be rendered (T-10).
    * AC-5: An unknown placeholder SHALL be left unchanged in the rendered output
      (T-11).
+   * AC-6: A ``${sender}`` placeholder in the default template SHALL be replaced
+     by the comma-separated, de-duplicated list of sender names from the pending
+     message batch. When messages come from a single sender the list is that
+     sender's name; when from multiple distinct senders it is a comma-joined
+     string with no duplicates (T-15).
+   * AC-7: Messages from non-actor sources (e.g. ``sender="Heartbeat"``) SHALL
+     produce a meaningful label in the ``${sender}`` position — the raw
+     ``sender`` field value, not a blank or error (T-16).
+   * AC-8: A custom override template that omits ``${sender}`` SHALL render
+     correctly with no error and no dangling placeholder literal (T-17).
 
 
 .. req:: Settings UI Visibility UAT Requirements
