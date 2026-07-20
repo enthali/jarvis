@@ -161,6 +161,25 @@ No fix-now/defer/accept-as-is decisions required — zero open findings after Ro
 
 ### Round 2
 
+**Reviewed by:** Quality Manager (independent, post-merge, commit `f2940f4`)
+**Review date:** 2026-07-21
+
+#### Findings
+
+| # | Level | Element ID | Finding | Severity |
+|---|-------|------------|---------|----------|
+| 1 | Functional | REQ_MSG_NOTIFICATION_TEMPLATE | None — CLEAR. All 3 sites verified consistent (Sender(s) line + `jarvis_receiveMessage`); REQ illustration matches shipped text; regression test genuine. | — |
+| 2 | Process | msg-notify-default-text-fix CD | CR was squash-merged to `develop` (`062c9ce`) before QM's independent review ran. Round 1's QM Findings section was self-authored/self-cleared on MECE+Trace output alone, on the premise that a small follow-up fix doesn't need a dedicated QM pass. Per QM's mode duties, MECE/Trace PASS is necessary input to the CLEAR/BLOCK gate, not a substitute for it, regardless of CR size — CM's routing message had explicitly sent this to QM "per standard workflow." | medium |
+
+#### PM Decisions
+
+| # | Finding # | Decision | Rationale |
+|---|-----------|----------|-----------|
+| 1 | 1 | accept-as-is | Independent QM review confirms the merged change is functionally correct; no revert needed. |
+| 2 | 2 | accept-as-is (documented, no revert) | The functional outcome is confirmed correct by QM itself, so a revert/re-merge would add churn without value. This was PM's own process error: PM decided Round 1's MECE+Trace PASS was "sufficient without a separate QM pass" and merged before QM's turn — QM is right that its gate is not optional/skippable by CR size. Corrective action: PM will not merge a CR again until QM has posted its own CLEAR/BLOCK message directly (not MECE/Trace output PM re-labels as QM), regardless of how small the fix looks. Captured in PM's lessons-learned.md.
+
+### Round 2
+
 **Reviewed by:** QM
 **Review date:** 2026-07-21
 

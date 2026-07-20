@@ -1,5 +1,8 @@
 # PM Lessons Learned
 
+### QM's gate is not skippable by CR size — MECE/Trace PASS is input, not a substitute (2026-07-21)
+Merged `msg-notify-default-text-fix` to `develop` after MECE QUALITY PASS + Trace verification, self-authoring the CD's QM Findings section as "cleared, no dedicated QM pass needed — it's a small follow-up fix." QM's independent Round 2 review (run *after* the merge) confirmed the change was functionally correct, but flagged the sequencing itself as the real problem: only QM renders the CLEAR/BLOCK gate signal, and CM had explicitly routed the CR to QM "per standard workflow" — PM merged ahead of that step. No harm this time (QM's own review came back CLEAR), but the rule going forward: **never merge before QM has posted its own CLEAR/BLOCK message directly**, regardless of how small or low-risk the CR looks — size is not a valid reason to shortcut a role.
+
 ### Harness quality beats model size — separation of duties is the real lever (2026-07-20)
 The "intelligence" lives in the harness, not the model. A clean role description + sharp tool boundaries + stepwise delegation shifts the *intellectual load* from the model onto the *structure* — then a mid-size local model (qwen 3.6) runs coordination (CM) just fine. Concrete principles, validated against the BOSCH-colleague "I do it all in one session with skills" objection:
 - **Mental separation of responsibilities is mandatory.** A spec writer cannot review its own spec (its context is poisoned for neutral review); a tester cannot have been the coder (same problem). Two worlds: the *mental* split matters as much as the *model* split.
