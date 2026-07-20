@@ -63,7 +63,7 @@
 
 ## Active CR
 
-_(none — #40 and #39 both dispatched + merged to develop 2026-07-20; awaiting release)_
+_(none — #40, #39, and follow-up fix msg-notify-default-text-fix all merged to develop 2026-07-20/21; awaiting release)_
 
 ## Ideas
 

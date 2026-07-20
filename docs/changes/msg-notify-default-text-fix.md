@@ -157,6 +157,8 @@ section are unaffected — the section is additive, never required retroactively
 
 No fix-now/defer/accept-as-is decisions required — zero open findings after Round 1. Scope was a small, well-bounded follow-up fix (not a new feature); MECE + Trace coverage judged sufficient without a separate dedicated QM consolidation pass. Cleared for merge.
 
+**Merged:** 2026-07-21, squash-merged into `develop` (commit `062c9ce`) by PM.
+
 ---
 
 ## Appendix: Link Discovery Results
