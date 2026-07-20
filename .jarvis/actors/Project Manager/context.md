@@ -63,7 +63,7 @@
 
 ## Active CR
 
-_(none — last dispatched CR cleared; #40 and #39 discussed, not yet dispatched)_
+_(none — #40 and #39 both dispatched + merged to develop 2026-07-20; awaiting release)_
 
 ## Ideas
 

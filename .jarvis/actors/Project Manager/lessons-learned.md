@@ -1,5 +1,12 @@
 # PM Lessons Learned
 
+### Harness quality beats model size — separation of duties is the real lever (2026-07-20)
+The "intelligence" lives in the harness, not the model. A clean role description + sharp tool boundaries + stepwise delegation shifts the *intellectual load* from the model onto the *structure* — then a mid-size local model (qwen 3.6) runs coordination (CM) just fine. Concrete principles, validated against the BOSCH-colleague "I do it all in one session with skills" objection:
+- **Mental separation of responsibilities is mandatory.** A spec writer cannot review its own spec (its context is poisoned for neutral review); a tester cannot have been the coder (same problem). Two worlds: the *mental* split matters as much as the *model* split.
+- **Match model to responsibility, not to hype.** syspilot was *developed* on Sonnet 3.6 and ran stable there — that's a different bar than *running* it. Haiku as reviewer delivers inconsistencies; qwen sits in between and suffices for coordination. No need for "pink elephants" (Opus/Fable) to develop SW *structurally*.
+- **Reserve the heavy models for genuinely heavy steps.** Big architectural planning *might* warrant Sonnet/Opus — but the black-ops merges we did (2026-07-20, #40 + #39) needed none of it. Don't pay for reasoning the harness already provides.
+Takeaway for agent tuning / Suite-retirement decision: keep roles small and tools uncomplicated; every over-complex tool forces the model into inference it shouldn't do, and that's where small models fail.
+
 ### Dispatching a new CR while Release Engineer was active on shared worktree (2026-07-14)
 Sent `agent-mode-persistence` to CM while the Release Engineer was mid-process (uncommitted version-bump and file renames staged/unstaged on `develop`). The "separate branches = safe in parallel" reasoning is wrong when there is only one shared working directory — any `git checkout` by any agent moves that single working tree, potentially carrying another agent's uncommitted changes to the wrong branch or creating conflicts. Rule tightened in `syspilot.pm.tailoring.md`: the Release process counts as an active CR; do not dispatch to CM while a release is in progress. No concurrent CRs on a single worktree, period.
 
