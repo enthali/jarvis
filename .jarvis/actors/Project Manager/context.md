@@ -57,26 +57,18 @@
   `docs/changes/` (revision history), not here.
 - **Backlog vs. Ideas**: Backlog = certain, we're doing it — lives ONLY in
   [GitHub Issues](https://github.com/enthali/jarvis/issues), never duplicated
-  here. Ideas = may or may not happen — one file per idea under `ideas/`,
+  here. Ideas = may or may not happen — one file per idea under
+  `.jarvis/actors/Project Manager/ideas/`,
   listed below as a link + one-line description only (no content inline).
 
 ## Active CR
 
-`feature/agent-mode-persistence` — GH #25, Agent Mode lost after window reload. CM in pipeline.
+_(none — last dispatched CR cleared; #40 and #39 discussed, not yet dispatched)_
 
 ## Ideas
 
 - [PIM Modularization](ideas/pim-modularization.md) — drop per-component enable/disable settings, go installable-sub-extensions instead
 - [Session Recording](ideas/recording-design.md) — meeting recording + transcription pipeline
-
-## Deferred Issues (DEFER)
-
-When the user is unreachable during an autonomous run (black-ops mode — e.g.
-asleep), **DEFER** a finding by appending it to
-[deferred-issues.md](deferred-issues.md) instead of creating a GitHub issue
-(which always needs explicit approval). On the user's return, bring the list
-back up and go through it together, proposing GH issues (or other handling)
-per entry. Tracked-for-later, never dropped.
 
 ## Lessons Learned
 

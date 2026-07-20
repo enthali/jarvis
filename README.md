@@ -1,47 +1,51 @@
-# Jarvis
+# Jarvis — The Actor Harness
 
-A VS Code extension for personal project and event management.
+Jarvis is a VS Code extension that turns chat **sessions** and agent
+**personas** into **actors** — persistent entities with their own identity,
+memory (`context.md`), inter-actor messaging, and scheduling. Jarvis itself is
+the harness, not the assistant: the actors it hosts do the work — the syspilot
+actors handle software engineering, the PIM actors handle email, calendar, and
+tasks. Projects and events are actor variants (an `actor.yaml` with a few extra
+properties), stored as YAML in configurable folders.
+
+## Modules
+
+Jarvis ships as a suite of VS Code extensions — one core harness plus optional
+capability modules. Install only what you need.
+
+| Module | Role |
+|--------|------|
+| **Jarvis Core** | The harness: actors and sessions, inter-actor messaging, reminders, heartbeat scheduler, and the engine |
+| **Jarvis PIM** | Personal Information Manager: projects, events, categories, and tasks |
+| **Jarvis Recorder** | Session recording with a Whisper transcription pipeline and transcript notifications |
+| **Jarvis MCP** | MCP server exposing Jarvis tools over HTTP transport |
+| **Jarvis Message Flow** | Interactive visualization and history of inter-actor message traffic |
 
 ## Features
 
-### Explorer Sidebar
+### Jarvis Core
 
-Jarvis adds a dedicated sidebar with three tree views:
+- **Actors & sessions** — persistent entities with their own `context.md` memory, shown in an explorer sidebar and expandable to their core files and recently-touched files
+- **Heartbeat scheduler** — cron-based jobs running scripts (Python, PowerShell), VS Code commands, or single-shot LLM calls
+- **Messaging, reminders & LM tools** — an inter-actor message queue, reminders, and tools like `#listActors`, `#sendMessage`, `#receiveMessage`, and `#createActor`
 
-- **Projects** — Displays projects from YAML files in a configurable folder, with subfolder hierarchy and folder filter
-- **Events** — Displays events from YAML files, with a future-only toggle (end date ≥ today)
-- **Messages** — Queued messages grouped by destination session, with manual delivery to chat sessions
+### Jarvis PIM
 
-Each project and event item has two inline action buttons:
-- `$(go-to-file)` — Open the YAML file in the editor
-- `$(comment-discussion)` — Open the agent chat session for that item
+- **Projects & events** — loaded from YAML files in configurable folders, shown as filterable tree views with quick-open to the file or the agent chat
+- **Categories & tasks** — Outlook-backed category and task integration
 
-Project, Event, and Actor nodes are expandable to reveal their core files (`context.md`, YAML config, and agent file if configured) as clickable children — click a file child to open it in the editor. Tooltips show the full file path.
+### Jarvis Recorder
 
-Each entity node also has a **Recently Touched Files** subtree that automatically tracks which files the AI read or wrote during sessions bound to that entity. Click a touched file to open it in preview; hover for last-read/last-edited timestamps; use the inline trash icon to remove an entry. The list is persisted across VS Code reloads.
+- Session recording with a Whisper transcription pipeline and transcript notifications
 
-### Heartbeat Scheduler
+### Jarvis MCP
 
-Cron-based job scheduling configured via YAML:
-- **Script steps**: Python, PowerShell
-- **Command steps**: Any VS Code command
-- **Agent steps**: Single-shot LLM calls via `vscode.lm` API
-- **Manual trigger**: `Jarvis: Run Heartbeat Job` from the Command Palette
+- Exposes all registered Jarvis tools — including those contributed by installed modules — over MCP HTTP transport for external clients
 
-### Message Queue & Session Tools
+### Jarvis Message Flow
 
-- Messages from heartbeat jobs (or any source) are queued and displayed in the Messages tree
-- **Send to Chat**: Deliver messages to named VS Code chat sessions
-- **Open Session**: Browse and open named sessions via QuickPick (`Jarvis: Open Chat Session`)
-- **LM Tools**: `#listActors` for actor discovery, `#sendMessage`/`#receiveMessage` for inter-session messaging (`#sendToSession`/`#readMessage` are deprecated and disabled — they now throw an error directing callers to the new names, scheduled for full removal), `#jarvis_listSessionEntities` to list entities in a session (includes `agent` field), `#jarvis_createActor` to programmatically create a new actor folder with optional `agent` binding — validated against user-invocable agents in `.github/agents/` (idempotent, headless; both require `jarvis.sessions.enabled`)
-
-### Message Flow Diagram (add-on: Jarvis Message Flow)
-
-An interactive D3 chord-diagram visualization of inter-agent message traffic, sourced from the message queue (loads the most recent 30 entries by default, expandable via a "+30" button). Open it via the icon button on the Messages tree-view title bar or the Command Palette. Nodes are sessions/actors, edges are message counts; a two-handle "time lens" slider (indexed by message rank, newest = rank 1) narrows the view to a window of messages — leaving the start handle at rank 1 keeps it live-tracking new messages, moving it anchors to a specific message. Hovering an edge shows message count, time range, and a sample. Clicking an actor node opens that actor's chat.
-
-The diagram opens as an editor tab in the same fixed column used for entity docs (`context.md`, YAML config, agent files) — if you only have 2 editor columns open, both the diagram and entity docs share that second column until you open a third.
-
-
+- **Chord diagram** — an interactive D3 visualization of message traffic between actors, with a time-lens slider; click an actor node to open its chat
+- **Message history** — a browsable list of all messages behind the diagram
 
 ## Configuration
 

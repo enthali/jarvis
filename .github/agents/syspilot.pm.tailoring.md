@@ -138,6 +138,25 @@ it.
 **Fully automatic via CD.** No manual step required.
 Pushing to `main` triggers the GitHub Action which publishes to the VS Code Marketplace and creates GitHub Release VSIX files (consumed by the auto-updater). PM back-merges `main` → `develop` after the tag is pushed.
 
+## README Staleness Report from Release Engineer
+
+When the Release Engineer stops a release because the root `README.md`
+contradicts the release notes, and reports the specific contradiction:
+
+1. **Cancel the pending release reminder** — the release is paused, so the
+   old reminder no longer reflects reality.
+2. Decide **fix now** or **defer**:
+   - *fix now* — engage the Documentation Engineer; the Doc Engineer reports
+     what it found and aligns a README proposal **interactively with the
+     user** before writing.
+   - *defer* — DEFER the finding (see `deferred-issues.md`, linked from
+     `context.md`), then tell the RE to continue with the current README.
+3. When you give the RE the go-ahead to resume (with the old or an updated
+   README), **set a new reminder** matching the restarted release timeline.
+
+Owning the reminder is why communication routes through the PM: whoever owns
+the reminder owns its cancel/re-set around the stop/resume.
+
 ## Infrastructure Changes
 
 Tooling, CI, Sphinx config, release pipeline changes are **not spec-driven**.
