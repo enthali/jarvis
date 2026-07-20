@@ -71,6 +71,10 @@ _(none — #40 and #39 both dispatched + merged to develop 2026-07-20; awaiting 
 - [Session Recording](ideas/recording-design.md) — meeting recording + transcription pipeline
 - [jarvis-syspilot scope](ideas/jarvis-syspilot-scope.md) — GH #39 agreed model (Frontmatter contract, Syspilot Setup Engineer actor, delay/skip tools) — for the tonight black-ops CR
 
+## Syspilot Testing Ground
+
+- [Agent model observations](syspilot-testing-ground.md) — MECE/TRACE stay separate; Designer+Implementer merge risks artifact-ownership dilution (silent drift escapes QM); token cost real even locally; syspilot feedback, not Jarvis CR
+
 ## Lessons Learned
 
 See [lessons-learned.md](lessons-learned.md).
