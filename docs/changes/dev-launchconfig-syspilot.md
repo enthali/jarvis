@@ -143,15 +143,15 @@ No artefacts removed in this CR.
 - System Designer (commit ca44d73): `REQ_SPL_STARTUP_CHECK` AC-1 simplified; `REQ_SPL_NOTIFY` AC-1/AC-2 unified; `SPEC_SPL_STARTUP` pseudocode uses single `notifyActor(api)` call; `SPEC_SPL_NOTIFY` uses single `UPDATE_NOTIFICATION_TEXT` constant.
 - Test Designer (commit 019bea8): UAT T-3/T-5/T-8 aligned to unified flow (removed version string and install-option assertions).
 - Dev Engineer (commit bca1864): `versionCheck.ts` implementation cleaned to single notification path; 4 new regression tests added; 263/263 tests passing.
-- MECE re-verification: QUALITY PASS (val-dev-launchconfig-syspilot-notify-unify.md committed). Trace: PASS.
+- MECE re-verification: QUALITY PASS (superseded by the final consolidated val-dev-launchconfig-syspilot.md). Trace: PASS.
 
 **Round 4 — Bootstrap.json removal, first-run bug fix, logging (commits 02d0e9d, 5edcf35, f2d5eac):** Further PM testing revealed two more issues:
 - *bootstrap.json removed entirely:* The companion `bootstrap.json` copy was dropped from the artifact contract. Only `.github/agents/syspilot.setup.agent.md` matters for version detection. The `copyCompanionFiles()` helper was deleted; `REQ_SPL_STARTUP_CHECK` AC-1 and `SPEC_SPL_STARTUP` updated to reflect single-artifact contract.
 - *First-run control-flow bug fixed:* First-run silently skipped `notifyActor()` because the version-match check ran before the `freshlyDownloaded` gate, so a freshly-copied file (version == upstream) would exit early without notifying. Fixed with a `freshlyDownloaded` flag that bypasses the match-skip branch when the file was just downloaded. New `REQ_SPL_STARTUP_CHECK` AC-3 clarified and AC-4 added (first-run SHALL always notify).
 - *Logging added:* 4 decision points instrumented with `log.info` entries (upstream fetch, download status, version comparison, resulting action). `REQ_SPL_STARTUP_CHECK` AC-6 added; `SPEC_SPL_STARTUP` AC-5 added; T-22 UAT scenario added.
 - Commits: System Designer (02d0e9d), Test Designer T-22 (5edcf35), Dev Engineer (f2d5eac — 266/266 tests, 3 new regression tests).
-- MECE re-verification: QUALITY PASS (val-dev-launchconfig-syspilot-notify-round4.md committed). Trace: PASS.
-- *Artefakt-Removal disclosure:* Issue 1 (Round 2 URL bug fix for bootstrap.json URL) is now historically superseded — the artifact was subsequently deleted rather than fixed. val-dev-launchconfig-syspilot-bugfix.md records what was true at the time and is accepted as historical stranding per the Artefakt-Removal-Check rule.
+- MECE re-verification: QUALITY PASS (superseded by the final consolidated val-dev-launchconfig-syspilot.md). Trace: PASS.
+- *Artefakt-Removal disclosure:* Issue 1 (Round 2 URL bug fix for bootstrap.json URL) is now historically superseded — the artifact was subsequently deleted rather than fixed. The per-round report that recorded what was true at the time was consolidated into the final val-dev-launchconfig-syspilot.md; the stranded historical detail is accepted per the Artefakt-Removal-Check rule.
 
 **Note — pending PM manual re-verification:** T-13 and T-14 still require PM's F5 re-test after all changes. Status remains "ready for PM manual verification".
 
@@ -175,7 +175,7 @@ The `UPDATE_NOTIFICATION_TEXT` constant was aligned to PM-specified exact wordin
 
 *Dev Engineer (commit 5b00255):* implementation of both changes; 270/270 tests passing (4 new regression tests).
 
-*Final validation — Round 7:* 270/270 tests; TypeScript clean; lint 0 errors (193 baseline warnings); Sphinx 0 warnings. MECE final PASS (val-dev-launchconfig-syspilot-round7.md committed, G-3 gap closed). Trace final PASS (zero findings).
+*Final validation — Round 7:* 270/270 tests; TypeScript clean; lint 0 errors (193 baseline warnings); Sphinx 0 warnings. MECE final PASS (G-3 gap closed; superseded by the final consolidated val-dev-launchconfig-syspilot.md). Trace final PASS (zero findings).
 
 ### Sign-off
 
