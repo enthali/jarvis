@@ -1,6 +1,6 @@
 # Change Document: dev-launchconfig-syspilot
 
-**Status**: ready for PM manual verification
+**Status**: merged (develop, commit 7e51151)
 **Branch**: feature/dev-launchconfig-syspilot
 **Created**: 2026-07-21
 **Author**: PM
