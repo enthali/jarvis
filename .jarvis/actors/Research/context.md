@@ -93,6 +93,8 @@ Die CLI speichert **alle** Sessions in einer SQLite-DB unter `~/.copilot/session
 
 Trotz "Option 2 — speichere Sessions lokal im Repository" beim CLI-Setup landet alles global unter `~/.copilot/`. Keine Repo-lokale Persistenz.
 
+> **Update 2026-07-21 (Agent Host 1.129.1):** Es sind **zwei lose gekoppelte Stores** — `~/.copilot/session-store.db` (SDK/CLI) **und** `state.vscdb` (VS-Code-Index). Eine Agent-Host-Session erscheint in **beiden** und **auch in `jarvis_listChatSessions`** (früheres Prior „Jarvis sieht sie nicht" = falsch). Ein `/rename` in VS Code schreibt nur in `state.vscdb`, **nicht** in den CLI-Store → Namen können driften. **Stabile Identität = Session-URI/UUID (`agenthost-content:///sessionId/…`), nicht der Name.** Voll dokumentiert in [FI-2026-07-21-agent-host-stage0-compat.md](FI-2026-07-21-agent-host-stage0-compat.md).
+
 ### 4. Vier Rendering-Modi für die gleiche Session
 | Modus | UI | `/remote` | `/rename` |
 |-------|----|----|----|

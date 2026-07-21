@@ -58,3 +58,40 @@ Sonnet as a result. Lesson: when review agents miss content-level defects,
 check model assignment before redesigning the process — don't assume the
 architecture is at fault when it might just be an underpowered model
 assigned to a content-heavy checking role.
+
+## UATs not actually run in autonomous mode (2026-07-21)
+
+`SPEC_UAT_SPL` defines 21 manual Extension-Host scenarios (T-1..T-21) for
+jarvis-syspilot (#39) — including T-3 ("first run — copy and notify"), which
+would fetch the real upstream file and immediately have hit the same 404
+that PM+user found today (`SPEC_UAT_SPL_FILES` AC-2 itself has the wrong
+upstream path, matching the code — spec and code agreed with each other,
+both wrong relative to the real `enthali/syspilot` repo layout). Root cause,
+per the user: autonomous mode has no human in the loop to actually execute
+UAT scenarios — "User Acceptance Test" requires a user. They haven't been
+run for a while; pipeline-green (unit tests + MECE + Trace) was silently
+treated as sufficient. Known gap, not a surprise to the user — proper fix
+needs an ontology extension (planned for the next syspilot version, user is
+actively working on it) so UAT execution has a defined place/owner in
+autonomous mode. Until then: pipeline-green ≠ user-accepted, and spec-code
+agreement can still be jointly wrong when both were authored against an
+incorrect external assumption (moving upstream repo layout, in this case).
+## Process overhead for small iterative fixes (2026-07-21)
+
+`dev-launchconfig-syspilot` went through 6 small fix rounds (bootstrap.json
+removal, first-run control-flow bug, logging, auto-delivery registration,
+notification text reword) each running the *full* pipeline (System Designer →
+Test Designer → Dev Engineer → MECE → Trace → QM). For a one-line text/logic
+tweak this is disproportionate — user flagged it as "riesiger Aufwand für so
+einen kleinen Change."
+
+Idea worth exploring: a **fix-iteration mode** where, while a branch is still
+open/unmerged, rapid rounds only run System Designer (spec) → Dev Engineer
+(code) → Test Designer (tests) — skipping MECE/Trace per round — and a single
+consolidated QM pass (which already runs MECE+Trace internally) happens once
+at the end, over the *entire accumulated diff*, not just the last round.
+Caveat: if a later round reverses an earlier decision (as happened here —
+Round 4 removed what Round 2 had just fixed), QM must see the whole diff, not
+a per-round slice — but that already seems to be the norm. Not yet decided
+whether/how to adopt; parking here as a concrete methodology candidate for
+syspilot, not a Jarvis CR.

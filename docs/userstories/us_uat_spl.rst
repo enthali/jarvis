@@ -32,16 +32,19 @@ Syspilot Lifecycle User Acceptance Tests
    * AC-2: A test verifies that the module commands appear in the Command
      Palette when the module IS installed (T-2).
    * AC-3: A test verifies first-run detection: when no local agent file
-     exists, the file is copied from upstream and an "initial setup" notification
-     is delivered to the "Syspilot Setup Engineer" actor (T-3).
+     exists, the file is copied from upstream and a notification is delivered
+     to the "Syspilot Setup Engineer" actor presenting three choices: install
+     the update now, skip this version, or delay for N days (T-3).
    * AC-4: A test verifies that when the local file version matches upstream,
      no notification is sent (T-4).
    * AC-5: A test verifies that when versions differ (no suspend/skip active),
-     an "update available" notification is sent (T-5).
+     a notification is sent presenting three choices: install the update now,
+     skip this version, or delay for N days (T-5).
    * AC-6: A test verifies that the actor is auto-created on first notification
      and not modified on subsequent runs (T-6, T-7).
-   * AC-7: A test verifies that the notification message contains the upstream
-     version string and the three option prompts (T-8).
+   * AC-7: A test verifies that the notification message presents three choices
+     (install now / skip this version / delay N days), with no specific
+     upstream version number in the text (T-8).
    * AC-8: A test verifies that the suspend command persists state, suppresses
      subsequent notifications while active, and that notifications resume after
      expiry (T-9, T-10).
@@ -60,6 +63,25 @@ Syspilot Lifecycle User Acceptance Tests
      as empty (T-20).
    * AC-14: A test verifies the opt-out path: uninstalling the module removes
      all syspilot-related surface (T-21).
+   * AC-15: A test verifies that the module logs key decision points at info
+     level in the Jarvis Output Channel — upstream version fetched, whether
+     the local file was missing and downloaded, local-vs-upstream comparison
+     result, and resulting decision (T-22).
+   * AC-16: A test verifies that after notification fires, "Syspilot Setup
+     Engineer" is registered in ``autodelivery.json`` so that the message is
+     delivered automatically without requiring manual user registration (T-23).
+   * AC-17: A test verifies that when versions match but the installation
+     marker ``.github/agents/syspilot.pm.agent.md`` is absent, the
+     version-match early return is bypassed and a notification is sent —
+     the installation-completeness gate fires (T-24).
+   * AC-18: A test verifies that the manual ``jarvis.syspilotUpdate`` command
+     also bypasses the version-match early return when the installation
+     marker is absent — notification fires even though versions match (T-25).
+   * AC-19: A test verifies that ``packages/syspilot/package.json`` declares
+     both ``jarvis_delaySyspilotUpdate`` and ``jarvis_SyspilotSkipThisVersion``
+     in ``contributes.languageModelTools`` with the correct ``toolReferenceName``
+     values, and that both tools are visible in VS Code's "Configure Tools"
+     picker when the syspilot module is installed (T-2, T-26).
 
    **Test Scenarios:**
 
@@ -74,16 +96,20 @@ Syspilot Lifecycle User Acceptance Tests
      Engineer" actor exists. No syspilot-related setting appears in
      ``Ctrl+,``.
 
-   **T-2 — Module installed — commands present**
+   **T-2 — Module installed — commands and LM tools present**
      Setup: Install ``enthali.jarvis-syspilot`` alongside ``enthali.jarvis-core``
      in the Extension Development Host (F5 with syspilot module active).
-     Action: Open the Command Palette and search for ``syspilot``.
+     Action: Open the Command Palette and search for ``syspilot``. Also open
+     the chat input and click the "Configure Tools" (``#``-attach) picker and
+     search for ``syspilot`` or ``delay``.
      Expected: At minimum the following commands appear:
      ``Jarvis: Check Syspilot Update`` (or equivalent display name for
      ``jarvis.syspilotUpdate``), ``jarvis.delaySyspilotUpdate``, and
      ``jarvis.SyspilotSkipThisVersion``. The setting
      ``jarvis.syspilot.releaseTag`` appears in the VS Code Settings UI
-     under a Jarvis group.
+     under a Jarvis group. In the "Configure Tools" picker, both
+     ``#delaySyspilotUpdate`` and ``#SyspilotSkipThisVersion`` are listed
+     as available tools (registered by the syspilot module).
 
    **T-3 — First run: no local agent file — copy and notify**
      Setup: Module installed. Confirm ``.github/agents/syspilot.setup.agent.md``
@@ -94,28 +120,29 @@ Syspilot Lifecycle User Acceptance Tests
      (a) ``.github/agents/syspilot.setup.agent.md`` is created with content
      fetched from the configured upstream release tag.
      (b) A "Syspilot Setup Engineer" actor appears in the Jarvis Entities tree.
-     (c) The actor's message queue contains an "initial setup" notification
-     (visible via the Messages tree or ``jarvis_receiveMessage`` tool). The
-     notification references the upstream version string.
+     (c) The actor's message queue contains a notification presenting three
+     choices: install the update now, skip this version, or delay for
+     N days. The message does NOT contain a specific upstream version number.
 
    **T-4 — Versions match — no notification**
      Setup: Module installed. ``.github/agents/syspilot.setup.agent.md`` exists
-     locally with the same version as the upstream ``main`` tag. State file
-     absent (no suspend/skip).
+     locally with the same version as the upstream ``main`` tag.
+     ``.github/agents/syspilot.pm.agent.md`` also exists (installation is
+     complete). State file absent (no suspend/skip).
      Action: Reload the VS Code window.
      Expected: No new message is delivered to "Syspilot Setup Engineer" — the
      actor's message queue remains empty (or at its previous count). No
      information dialog about an update appears.
 
-   **T-5 — Version mismatch — update notification sent**
+   **T-5 — Version mismatch — notification sent**
      Setup: Module installed. ``.github/agents/syspilot.setup.agent.md`` exists
      locally but its frontmatter ``version`` field has been manually edited to
      an older value (e.g. ``version: "0.0.1"``). No suspend/skip state active.
      Action: Reload the VS Code window.
      Expected: The "Syspilot Setup Engineer" actor's message queue receives a
-     new "update available" notification. The notification text identifies the
-     current upstream version and lists the three options (install, suspend,
-     skip).
+     new notification presenting three choices: install the update now,
+     skip this version, or delay for N days. The message does NOT contain
+     a specific upstream version number.
 
    **T-6 — Actor auto-created on first notification**
      Setup: Module installed. No "Syspilot Setup Engineer" actor exists. Ensure
@@ -135,18 +162,17 @@ Syspilot Lifecycle User Acceptance Tests
      ``actor.yaml``, no folder rename. Only the message queue has a new
      notification appended.
 
-   **T-8 — Notification message contains version and three options**
+   **T-8 — Notification message content (three choices, no version number)**
      Setup: Version mismatch active (per T-5). Actor exists.
      Action: Reload the VS Code window. In the Messages tree expand the
      "Syspilot Setup Engineer" node and inspect the queued message (or
      open a chat for that actor and run ``jarvis_receiveMessage``).
-     Expected: The message text contains:
-     (a) The upstream version string (e.g. ``1.3.0`` or a semver string).
-     (b) An option to install the update.
-     (c) A reference to ``jarvis.delaySyspilotUpdate(<days>)`` or
-     ``jarvis_delaySyspilotUpdate``.
-     (d) A reference to ``jarvis.SyspilotSkipThisVersion()`` or
-     ``jarvis_SyspilotSkipThisVersion``.
+     Expected: The message text presents three choices:
+     (a) An option to install the update now (the notification uses the exact
+     wording "install this update now").
+     (b) A reference to ``jarvis_SyspilotSkipThisVersion`` (skip this version).
+     (c) A reference to ``jarvis_delaySyspilotUpdate`` (delay for N days).
+     The message does NOT contain a specific upstream version number.
 
    **T-9 — Suspend: notifications suppressed while active**
      Setup: Version mismatch active. Module installed.
@@ -207,8 +233,9 @@ Syspilot Lifecycle User Acceptance Tests
      informational message confirms the notification was sent.
 
    **T-15 — Manual command when already up to date**
-     Setup: Local file version matches upstream exactly. No suspend/skip
-     active.
+     Setup: Local file version matches upstream exactly.
+     ``.github/agents/syspilot.pm.agent.md`` also exists (installation
+     is complete). No suspend/skip active.
      Action: Run ``Jarvis: Check Syspilot Update`` from the Command Palette.
      Expected: An informational toast message appears (e.g. "syspilot is up
      to date (version X)."). No notification is queued to the actor.
@@ -270,3 +297,68 @@ Syspilot Lifecycle User Acceptance Tests
      may remain in the Entities tree (it was created by the core via the
      API and persists in the workspace), but no further messages are
      delivered to it. No syspilot-related setting appears in Settings UI.
+
+   **T-22 — Decision-point logging at info level**
+     Setup: Module installed. Version mismatch active (local file version
+     older than upstream). No suspend/skip state active. Jarvis Output
+     Channel open (View → Output → Jarvis).
+     Action: Reload the VS Code window. Observe the Output Channel within
+     a few seconds of activation.
+     Expected: The Jarvis Output Channel shows ``[SPL]`` info-level log
+     entries covering at minimum: (a) the upstream version fetched (e.g.
+     ``[SPL] upstream version: <x>``), (b) whether the local file was
+     missing (downloaded) or present, (c) the comparison result (e.g.
+     local version ``<a>`` differs from upstream ``<b>``), and (d) the
+     resulting decision (e.g. ``[SPL] decision: notify``). No info-level
+     entries are missing for any of the four points above.
+
+   **T-23 — Auto-delivery registered after notification**
+     Setup: Module installed. Version mismatch active. No suspend/skip
+     active. Ensure ``autodelivery.json`` either does not exist or does not
+     list "Syspilot Setup Engineer" before the test.
+     Action: Reload the VS Code window. Wait a few seconds for activation
+     and notification to fire.
+     Expected: ``autodelivery.json`` in the extension storage folder
+     contains ``"Syspilot Setup Engineer"`` as a registered auto-delivery
+     session. No manual "Enable Auto-Delivery" action by the user is
+     required — the registration is performed automatically by the module
+     (same pattern as the Reminders feature).
+
+   **T-24 — Installation-completeness gate: versions match but marker absent — notify**
+     Setup: Module installed. ``.github/agents/syspilot.setup.agent.md``
+     exists locally with a version matching the current upstream ``main``
+     tag (normally "up to date"). ``.github/agents/syspilot.pm.agent.md``
+     does NOT exist (installation is incomplete). No suspend/skip state
+     active.
+     Action: Reload the VS Code window. Wait a few seconds for activation.
+     Expected: The "Syspilot Setup Engineer" actor's message queue receives
+     a notification (the three-choice message) despite the version match.
+     The installation-completeness gate detects the missing marker file and
+     bypasses the version-match early return. No crash, no error dialog.
+
+   **T-25 — Manual command: installation gate fires even if versions match**
+     Setup: Local file version matches upstream. ``.github/agents/syspilot.pm.agent.md``
+     does NOT exist (installation incomplete). No suspend/skip active.
+     Action: Run ``Jarvis: Check Syspilot Update`` from the Command Palette.
+     Expected: The "Syspilot Setup Engineer" actor's message queue receives
+     a notification (the three-choice message) despite the version match.
+     The manual command also checks the installation-completeness gate and
+     bypasses the version-match early return when the marker is absent.
+     No "already up to date" toast appears.
+
+   **T-26 — LM tools declared in manifest with correct toolReferenceName**
+     Setup: Module installed.
+     Action: Inspect ``packages/syspilot/package.json`` directly. In the
+     Extension Development Host, open a chat and click the "Configure
+     Tools" picker (``#``-attach icon); search for ``delay`` or
+     ``SyspilotSkip``.
+     Expected:
+     (a) ``packages/syspilot/package.json`` contains a
+     ``contributes.languageModelTools`` array with two entries: one with
+     ``"name": "jarvis_delaySyspilotUpdate"`` and
+     ``"toolReferenceName": "delaySyspilotUpdate"``, and one with
+     ``"name": "jarvis_SyspilotSkipThisVersion"`` and
+     ``"toolReferenceName": "SyspilotSkipThisVersion"``.
+     (b) Both tools appear in the "Configure Tools" picker when the
+     syspilot module is active (``#delaySyspilotUpdate`` and
+     ``#SyspilotSkipThisVersion``).

@@ -35,6 +35,46 @@ Syspilot Lifecycle Design Specifications
    * AC-3: ``contributes.configuration`` includes ``jarvis.syspilot.releaseTag``
      (string, default ``"main"``).
    * AC-4: The build integrates with the monorepo (``npm run build`` covers it).
+   * AC-5: ``contributes.languageModelTools`` declares entries for
+     ``jarvis_delaySyspilotUpdate`` and ``jarvis_SyspilotSkipThisVersion``,
+     following the same shape as ``packages/core/package.json`` entries
+     (``name``, ``displayName``, ``modelDescription``,
+     ``canBeReferencedInPrompt``, ``toolReferenceName``, ``icon``,
+     ``tags``, ``inputSchema``). This ensures VS Code surfaces these tools
+     in the "Configure Tools" picker under a "Jarvis Syspilot" group.
+
+   **languageModelTools manifest entries (specification):**
+
+   .. code-block:: json
+
+      "languageModelTools": [
+        {
+          "name": "jarvis_delaySyspilotUpdate",
+          "displayName": "Delay Syspilot Update",
+          "modelDescription": "Suspend syspilot update notifications for N days. The actor invokes this when the user chooses to delay.",
+          "canBeReferencedInPrompt": true,
+          "toolReferenceName": "delaySyspilotUpdate",
+          "icon": "$(watch)",
+          "tags": ["jarvis"],
+          "inputSchema": {
+            "type": "object",
+            "required": ["days"],
+            "properties": {
+              "days": { "type": "number", "description": "Number of days to suspend notifications" }
+            }
+          }
+        },
+        {
+          "name": "jarvis_SyspilotSkipThisVersion",
+          "displayName": "Skip This Syspilot Version",
+          "modelDescription": "Permanently skip the current pending syspilot version so no further notifications are sent for it.",
+          "canBeReferencedInPrompt": true,
+          "toolReferenceName": "SyspilotSkipThisVersion",
+          "icon": "$(debug-step-over)",
+          "tags": ["jarvis"],
+          "inputSchema": { "type": "object", "properties": {} }
+        }
+      ]
 
 
 .. spec:: Startup Version Check Flow
@@ -56,7 +96,7 @@ Syspilot Lifecycle Design Specifications
         // 1. Fetch upstream agent frontmatter
         const tag = vscode.workspace.getConfiguration('jarvis.syspilot')
             .get<string>('releaseTag', 'main');
-        const url = `https://raw.githubusercontent.com/enthali/syspilot/${tag}/agents/syspilot.setup.agent.md`;
+        const url = `https://raw.githubusercontent.com/enthali/syspilot/${tag}/syspilot/agents/syspilot.setup.agent.md`;
         let upstreamContent: string;
         try {
           const resp = await fetch(url);
@@ -66,30 +106,47 @@ Syspilot Lifecycle Design Specifications
           log.warn(`[SPL] network error: ${err}`); return;
         }
         const upstreamVersion = parseFrontmatterVersion(upstreamContent);
+        log.info(`[SPL] upstream version: ${upstreamVersion}`);
 
-        // 2. Check local file
+        // 2. Ensure local file exists (copy if absent — single-artifact contract)
         const localPath = path.join(workspaceRoot, '.github/agents/syspilot.setup.agent.md');
+        let freshlyDownloaded = false;
         if (!fs.existsSync(localPath)) {
-          // Initial setup: copy files
+          log.info(`[SPL] local file missing — downloading from ${tag}`);
           fs.mkdirSync(path.dirname(localPath), { recursive: true });
           fs.writeFileSync(localPath, upstreamContent);
-          // Also copy bootstrap.json if present in upstream
-          await copyCompanionFiles(tag);
-          await notifyActor(api, upstreamVersion, 'initial');
+          freshlyDownloaded = true;
+        }
+
+        // 3. Compare versions (skip if freshly downloaded or installation incomplete — always notify)
+        const installed = fs.existsSync(
+          path.join(workspaceRoot, '.github/agents/syspilot.pm.agent.md')
+        );
+        if (installed && !freshlyDownloaded) {
+          const localContent = fs.readFileSync(localPath, 'utf-8');
+          const localVersion = parseFrontmatterVersion(localContent);
+          log.info(`[SPL] local=${localVersion}, upstream=${upstreamVersion}, installed=${installed}`);
+          if (localVersion === upstreamVersion) {
+            log.info('[SPL] up to date — no action');
+            return;
+          }
+        } else {
+          log.info(`[SPL] freshlyDownloaded=${freshlyDownloaded}, installed=${installed} — bypassing version-match gate`);
+        }
+
+        // 4. Check suspend/skip
+        if (state.skippedVersion === upstreamVersion) {
+          log.info(`[SPL] version ${upstreamVersion} is skipped`);
+          return;
+        }
+        if (state.suspendedUntil && new Date(state.suspendedUntil) > new Date()) {
+          log.info(`[SPL] suspended until ${state.suspendedUntil}`);
           return;
         }
 
-        // 3. Compare versions
-        const localContent = fs.readFileSync(localPath, 'utf-8');
-        const localVersion = parseFrontmatterVersion(localContent);
-        if (localVersion === upstreamVersion) { return; }
-
-        // 4. Check suspend/skip
-        if (state.skippedVersion === upstreamVersion) { return; }
-        if (state.suspendedUntil && new Date(state.suspendedUntil) > new Date()) { return; }
-
-        // 5. Notify
-        await notifyActor(api, upstreamVersion, 'update');
+        // 5. Notify (unified — no initial/update distinction)
+        log.info('[SPL] notifying Syspilot Setup Engineer');
+        await notifyActor(api, workspaceRoot, log);
       }
 
    **Acceptance Criteria:**
@@ -98,6 +155,19 @@ Syspilot Lifecycle Design Specifications
    * AC-2: Network failures are caught and logged — no unhandled rejections.
    * AC-3: The local file is never modified after initial copy unless the user
      or the Setup Agent explicitly triggers an update.
+   * AC-4: On first run (file freshly copied) OR when installation is
+     incomplete (``syspilot.pm.agent.md`` absent), the flow ALWAYS reaches
+     ``notifyActor()`` regardless of version equality — the version-match
+     early-return is skipped when ``freshlyDownloaded`` is true OR
+     ``installed`` is false.
+   * AC-5: The module logs: upstream version fetched, local-file-missing
+     download, comparison result, installed state, and decision (notify /
+     skip / suspend / up-to-date) at ``info`` level.
+   * AC-6: The installation-completeness marker is
+     ``.github/agents/syspilot.pm.agent.md``. Its absence means the user
+     has not yet completed the setup workflow — the module re-notifies on
+     each activation until the marker file appears (subject to skip/suspend
+     gates).
 
 
 .. spec:: Actor Provisioning
@@ -157,40 +227,30 @@ Syspilot Lifecycle Design Specifications
 
    **Description:**
    The module constructs a message and queues it for the actor via the Jarvis
-   message queue (``appendMessage``).
+   message queue (``appendMessage``). A single unified message is used for both
+   first-run and update scenarios — no ``initial``/``update`` distinction.
 
    **Message template:**
 
    .. code-block:: text
 
-      A new syspilot version is available (${version}).
-
-      You have three options:
-      1. Install the update — run your normal setup workflow.
-      2. Suspend notifications — call jarvis.delaySyspilotUpdate(<days>) to
-         pause for N days.
-      3. Skip this version — call jarvis.SyspilotSkipThisVersion() to never
-         be notified about this version again.
+      Please ask the user whether they want to install this update now,
+      skip this version by calling jarvis_SyspilotSkipThisVersion(),
+      or delay it for N days by calling jarvis_delaySyspilotUpdate(N).
 
    **Pseudocode:**
 
    .. code-block:: typescript
 
-      async function notifyActor(
-        api: JarvisCoreApi,
-        version: string,
-        reason: 'initial' | 'update'
-      ): Promise<void> {
+      async function notifyActor(api: JarvisCoreApi, workspaceRoot: string, log: vscode.LogOutputChannel): Promise<void> {
         await ensureActor(api);
-        const text = reason === 'initial'
-          ? `syspilot has been set up for this workspace (version ${version}). ` +
-            `Run your setup workflow to configure the workspace.`
-          : `A new syspilot version is available (${version}).\n\n` +
-            `You have three options:\n` +
-            `1. Install the update — run your normal setup workflow.\n` +
-            `2. Suspend notifications — call jarvis.delaySyspilotUpdate(<days>).\n` +
-            `3. Skip this version — call jarvis.SyspilotSkipThisVersion().`;
+        const text =
+          `Please ask the user whether they want to install this update now, ` +
+          `skip this version by calling jarvis_SyspilotSkipThisVersion(), ` +
+          `or delay it for N days by calling jarvis_delaySyspilotUpdate(N).`;
         api.sendMessage('Syspilot Setup Engineer', 'jarvis-syspilot', text);
+        // Ensure auto-delivery is enabled (idempotent, same pattern as reminders)
+        addAutoDelivery(resolveMessagesPath(workspaceRoot), 'Syspilot Setup Engineer');
       }
 
    **Design note:** Uses ``api.sendMessage(destination, sender, text)`` —
@@ -203,9 +263,16 @@ Syspilot Lifecycle Design Specifications
 
    * AC-1: The message is queued via ``api.sendMessage()`` (core API method).
    * AC-2: The sender field is ``"jarvis-syspilot"``.
-   * AC-3: The message text includes the upstream version string.
-   * AC-4: Delivery is handled by the existing auto-delivery mechanism — no
-     custom delivery logic in this module.
+   * AC-3: The message text does NOT embed a version number — the actor reads
+     its own frontmatter. Three user choices are offered: install now,
+     skip this version, or delay for N days. Tool names use underscore
+     notation (``jarvis_SyspilotSkipThisVersion``,
+     ``jarvis_delaySyspilotUpdate``) so the actor can invoke them directly.
+   * AC-4: Before or after queuing, ``addAutoDelivery(resolveMessagesPath(workspaceRoot),
+     'Syspilot Setup Engineer')`` is called (idempotent) to ensure the actor
+     is on the auto-delivery list — same pattern as the reminders feature
+     (``SPEC_MSG_REMINDERS_POLL``). No manual registration by the user is
+     required.
 
 
 .. spec:: Suspend Command
@@ -344,16 +411,19 @@ Syspilot Lifecycle Design Specifications
             );
             return;
           }
+          const installed = fs.existsSync(
+            path.join(workspaceRoot, '.github/agents/syspilot.pm.agent.md')
+          );
           const localVersion = readLocalVersion();
-          if (localVersion === upstreamVersion) {
+          if (installed && localVersion === upstreamVersion) {
             vscode.window.showInformationMessage(
               `syspilot is up to date (${localVersion}).`
             );
             return;
           }
-          await notifyActor(api, upstreamVersion, 'update');
+          await notifyActor(api, workspaceRoot, log);
           vscode.window.showInformationMessage(
-            `Notified Syspilot Setup Engineer about version ${upstreamVersion}.`
+            'Notified Syspilot Setup Engineer.'
           );
         }
       );

@@ -145,3 +145,42 @@ Modular Delivery UAT Design Specifications
           ``enthali.jarvis`` installed.
         - ``extensionDependencies`` blocks activation without
           ``enthali.jarvis``.
+
+      * - T-13
+
+          Core (no syspilot): zero syspilot trace
+
+          *AC: SPEC_DEV_LAUNCHCONFIG AC-3, REQ_MOD_ZEROTRACE*
+        - Launch host using "Run Core (enthali.jarvis)" (no syspilot).
+          Open Command Palette, search ``syspilot``. Open Settings UI,
+          search ``jarvis.syspilot``.
+        - No ``jarvis.syspilotUpdate``, ``jarvis.delaySyspilotUpdate``, or
+          ``jarvis.SyspilotSkipThisVersion`` commands found. No
+          ``jarvis.syspilot.releaseTag`` setting found. No syspilot
+          Output Channel log entries.
+
+      * - T-14
+
+          "Run Core + Syspilot" config: syspilot activates
+
+          *AC: SPEC_DEV_LAUNCHCONFIG AC-3*
+        - Select "Run Core + Syspilot" in ``.vscode/launch.json`` and
+          press F5. Once the Extension Development Host launches, open
+          the Command Palette and search ``syspilot``.
+        - ``jarvis.syspilotUpdate``, ``jarvis.delaySyspilotUpdate``, and
+          ``jarvis.SyspilotSkipThisVersion`` appear in the palette.
+          ``jarvis.syspilot.releaseTag`` visible in Settings UI. Core
+          features (Entities tree, Messages) function normally. No
+          activation errors in Output Channel.
+
+      * - T-15
+
+          ``compile all`` task chain includes packages/syspilot
+
+          *AC: SPEC_DEV_LAUNCHCONFIG AC-3, AC-2*
+        - Run the "compile all" VS Code task (or execute the equivalent
+          ``npx tsc -p packages/syspilot`` chain manually). Observe
+          the terminal output.
+        - Task completes with exit code 0. The ``npx tsc -p packages/syspilot``
+          step is included in the chain and completes without TypeScript
+          errors. No compile errors in any package.

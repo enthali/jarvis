@@ -2,7 +2,7 @@
 name: "MECE Engineer"
 agent: syspilot.mece
 description: "Subagent that analyzes one specification level for MECE properties — finds redundancies, gaps, contradictions, and overlaps."
-model: Claude Haiku 4.5 (copilot)
+model: Claude Sonnet 5 (copilot)
 user-invocable: true
 agents: []
 ---

@@ -38,6 +38,17 @@ Modular Delivery Acceptance Tests
    * AC-8 (``message-flow-diagram`` CR): At least one scenario proves
      ``enthali.jarvis-flow`` lights up when installed alongside core, and
      that it cannot activate without the core.
+   * AC-9 (``dev-launchconfig-syspilot`` CR): A scenario verifies that the
+     "Run Core + Syspilot" launch configuration in ``.vscode/launch.json``
+     starts an Extension Host with both ``packages/core`` and
+     ``packages/syspilot`` active and that the syspilot commands are
+     reachable (T-14).
+   * AC-10 (``dev-launchconfig-syspilot`` CR): A scenario verifies that
+     "Run All" (``compile all`` task) includes ``packages/syspilot`` and
+     completes without TypeScript errors (T-15).
+   * AC-11 (``dev-launchconfig-syspilot`` CR): A scenario verifies zero
+     syspilot trace when ``enthali.jarvis-syspilot`` is absent from the
+     host (T-13).
 
    **Test Scenarios (install combinations, extension host):**
 
@@ -102,3 +113,36 @@ Modular Delivery Acceptance Tests
      Setup: attempt to activate ``enthali.jarvis-flow`` without
      ``enthali.jarvis`` installed.
      Expected: ``extensionDependencies`` blocks activation.
+
+   **T-13 — Core (no syspilot): zero syspilot trace (``dev-launchconfig-syspilot`` CR)**
+     Setup: Launch the Extension Development Host using "Run Core (enthali.jarvis)" —
+     i.e. without ``enthali.jarvis-syspilot``.
+     Action: Open the Command Palette and search ``syspilot``; open VS Code
+     Settings UI and search ``jarvis.syspilot``.
+     Expected: No ``jarvis.syspilotUpdate``, ``jarvis.delaySyspilotUpdate``, or
+     ``jarvis.SyspilotSkipThisVersion`` commands present. No
+     ``jarvis.syspilot.releaseTag`` setting present. No background syspilot
+     check fires (no Output Channel log entries from the syspilot module).
+
+   **T-14 — "Run Core + Syspilot" config: syspilot activates (``dev-launchconfig-syspilot`` CR)**
+     Setup: In ``.vscode/launch.json`` select the "Run Core + Syspilot" launch
+     configuration and press F5.
+     Action: Once the Extension Development Host launches, open the Command
+     Palette and search ``syspilot``.
+     Expected: The syspilot commands appear (``jarvis.syspilotUpdate``,
+     ``jarvis.delaySyspilotUpdate``, ``jarvis.SyspilotSkipThisVersion``).
+     The ``jarvis.syspilot.releaseTag`` setting is visible in the Settings
+     UI. The Jarvis Entities tree and Messages tree function normally
+     (core also active). No activation errors in the Output Channel.
+
+   **T-15 — "compile all" task includes syspilot (``dev-launchconfig-syspilot`` CR)**
+     Setup: Ensure all packages are present and dependencies installed
+     (``npm install`` at workspace root). Open the VS Code Terminal.
+     Action: Run the "compile all" task (Terminal → Run Task… → "compile all"),
+     or equivalently execute:
+     ``npx tsc -p packages/core && npx tsc -p packages/pim && npx tsc -p packages/recorder && npx tsc -p packages/mcp && npx tsc -p packages/flow && ... && npx tsc -p packages/syspilot``
+     Action: Observe the task output.
+     Expected: The task completes with exit code 0. All packages including
+     ``packages/syspilot`` compile without TypeScript errors. The terminal
+     shows the final ``npx tsc -p packages/syspilot`` step completing
+     successfully.

@@ -4,7 +4,7 @@ Developer Tooling Design Specifications
 .. spec:: Launch Configuration File
    :id: SPEC_DEV_LAUNCHCONFIG
    :status: implemented
-   :links: REQ_DEV_LAUNCHCONFIG
+   :links: REQ_DEV_LAUNCHCONFIG; SPEC_MOD_MONOREPO
 
    **Description:**
    ``.vscode/launch.json`` provides one progressive multi-root
@@ -45,8 +45,16 @@ Developer Tooling Design Specifications
             "preLaunchTask": "compile core+pim+recorder"
           },
           {
-            "name": "Run All (Core + PIM + Recorder + MCP + Flow)",
-            "args": ["...core", "...pim", "...recorder", "...mcp", "...flow"],
+            "name": "Run Core + Syspilot",
+            "args": [
+              "--extensionDevelopmentPath=${workspaceFolder}/packages/core",
+              "--extensionDevelopmentPath=${workspaceFolder}/packages/syspilot"
+            ],
+            "preLaunchTask": "compile core+syspilot"
+          },
+          {
+            "name": "Run All (Core + PIM + Recorder + MCP + Flow + Syspilot)",
+            "args": ["...core", "...pim", "...recorder", "...mcp", "...flow", "...syspilot"],
             "preLaunchTask": "compile all"
           },
           {
@@ -77,7 +85,8 @@ Developer Tooling Design Specifications
       npx tsc -p packages/core && npx tsc -p packages/pim &&
       npx tsc -p packages/recorder && npx tsc -p packages/mcp &&
       npx tsc -p packages/flow &&
-      cd packages/flow && node build.js && node webview-build.js && cd ../..
+      cd packages/flow && node build.js && node webview-build.js && cd ../.. &&
+      npx tsc -p packages/syspilot
 
    The original ``npm: compile``/``npm: watch`` tasks remain for the
    retired monolith (S4b) config only.
@@ -94,8 +103,8 @@ Developer Tooling Design Specifications
      esbuild bundling), those steps SHALL be chained immediately after
      that package's own ``tsc`` invocation.
    * AC-3: "Run All" SHALL always include every package added by a
-     subsequent add-on CR (PIM → Recorder → MCP → Flow, in that order);
-     each new add-on package SHALL both (a) get its own progressive
+     subsequent add-on CR (PIM → Recorder → MCP → Flow → Syspilot, in that
+     order); each new add-on package SHALL both (a) get its own progressive
      configuration if it introduces a meaningfully distinct debugging
      combination, and (b) always be added to "Run All"/``compile all``.
    * AC-4: The retired monolith configuration/task (S4b) remains present

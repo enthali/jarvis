@@ -55,7 +55,7 @@ Nicht „Jarvis läuft auch woanders“, sondern **Jarvis wird der Orchestrator*
 
 Effekt: ein Agent-Spec (Layer 2) läuft host-agnostisch — derselbe spec-driven Agent kann in VS Code, in der Copilot CLI oder in Claude Code gefahren werden.
 
-**Verdacht (offen):** Würde nicht überraschen, wenn **AHP (Agent Host Protocol)** letztlich auch nur auf denselben Hooks aufsetzt. Dann wäre die Hook Engine die noch fundamentalere Schicht und AHP ein höherer Abstraktions-Layer darüber — nicht eine Alternative, sondern ein Consumer. Zu prüfen gegen [FI-2026-05-23 AHP](future-ideas.md). Falls bestätigt: Hook Engine first, AHP als optionaler Layer.
+**Verdacht (FALSIFIZIERT, 2026-07-21):** ~~Würde nicht überraschen, wenn AHP letztlich auch nur auf denselben Hooks aufsetzt.~~ Der 1.129-Code zeigt: **AHP und Hooks sind orthogonal, nicht gestapelt.** AHP ist ein JSON-RPC-Protokoll über die Prozessgrenze (immutable state + reducers, URI-adressierte Channels); Hooks sind ein stdin/stdout-Lifecycle-Bus. Weder setzt AHP auf Hooks auf, noch umgekehrt. Beide bleiben eigenständige Mechanismen. Details: [FI-2026-07-21-agent-host-stage0-compat.md](FI-2026-07-21-agent-host-stage0-compat.md).
 
 ## Strategischer Boden: VS Code als langlebiges Substrat
 

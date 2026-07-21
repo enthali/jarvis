@@ -79,7 +79,14 @@ export const workspace = {
 export const window = {
     createTreeView: () => ({ dispose: () => {} }),
     createOutputChannel: () => ({ dispose: () => {}, info: () => {}, warn: () => {} }),
+    showInformationMessage: (..._args: unknown[]) => Promise.resolve(undefined),
+    showWarningMessage: (..._args: unknown[]) => Promise.resolve(undefined),
 };
+
+export class CancellationTokenSource {
+    token = { isCancellationRequested: false, onCancellationRequested: () => ({ dispose: () => {} }) };
+    dispose() {}
+}
 
 export const commands = {
     registerCommand: () => ({ dispose: () => {} }),

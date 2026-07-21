@@ -16,10 +16,15 @@ Syspilot Lifecycle Requirements
    **Acceptance Criteria:**
 
    * AC-1: Manifest declares ``extensionDependencies: ["enthali.jarvis-core"]``.
-   * AC-2: The extension contributes only its own commands and settings — no
-     modifications to core manifests.
-   * AC-3: When not installed, no syspilot-related commands, settings, or
-     actors are contributed.
+   * AC-2: The extension contributes only its own commands, settings, and
+     language-model tools — no modifications to core manifests.
+   * AC-3: When not installed, no syspilot-related commands, settings, tools,
+     or actors are contributed.
+   * AC-4: The manifest SHALL declare ``contributes.languageModelTools``
+     entries for all LM tools registered at runtime (e.g.
+     ``jarvis_delaySyspilotUpdate``, ``jarvis_SyspilotSkipThisVersion``),
+     so VS Code surfaces them in the "Configure Tools" picker alongside
+     core tools.
 
 
 .. req:: Startup Version Check
@@ -36,16 +41,31 @@ Syspilot Lifecycle Requirements
    **Acceptance Criteria:**
 
    * AC-1: If ``.github/agents/syspilot.setup.agent.md`` does not exist locally,
-     the module SHALL copy the pinned upstream agent file (and its companion
-     ``bootstrap.json``) into ``.github/agents/`` and then send a
-     "setup available" notification.
+     the module SHALL copy the pinned upstream agent file into
+     ``.github/agents/`` and then proceed to the notification step (same
+     message as for a version mismatch — no distinct "initial setup"
+     notification). No companion files (e.g. ``bootstrap.json``) are
+     managed by Jarvis — the single-artifact contract is the agent file
+     only.
    * AC-2: If the local file exists, the module SHALL parse its YAML frontmatter
      ``version`` field and compare it to the upstream version.
-   * AC-3: If versions are identical, no action is taken.
+   * AC-3: If versions are identical AND the file was NOT just freshly copied
+     in the same activation, no action is taken.
    * AC-4: If versions differ and the version is not in skip-state and the
      module is not in suspend-state, a notification SHALL be sent.
    * AC-5: The upstream version SHALL be fetched from the pinned syspilot
      Release Tag URL only — no arbitrary network endpoints.
+   * AC-6: The module SHALL log (at minimum): the upstream version fetched,
+     whether the local file was missing and downloaded, the local-vs-upstream
+     comparison result, and the resulting decision (notify / skip / suspend /
+     up-to-date).
+   * AC-7: The version-match early-return (AC-3) SHALL additionally require
+     that the installation is complete — i.e.
+     ``.github/agents/syspilot.pm.agent.md`` exists. If the marker file is
+     absent, the flow SHALL treat the situation like ``freshlyDownloaded``
+     (bypass version-match, proceed to skip/suspend gates and notify if not
+     gated). This ensures the actor is re-notified when the user has not yet
+     completed the initial installation workflow.
 
 
 .. req:: Actor Provisioning
@@ -76,20 +96,27 @@ Syspilot Lifecycle Requirements
 
    **Description:**
    The module SHALL send a structured message to the "Syspilot Setup Engineer"
-   actor via the Jarvis message queue, containing the available version info
-   and the user's options.
+   actor via the Jarvis message queue, instructing it to ask the user to choose
+   one of three options: install the update now, skip this version permanently,
+   or delay notifications for N days.
 
    **Acceptance Criteria:**
 
-   * AC-1: The message text SHALL inform the actor of the available version and
-     offer three options: install, suspend for N days, or skip this version.
-   * AC-2: The message SHALL include the exact upstream version string so the
-     actor can reference it.
+   * AC-1: The message text SHALL instruct the actor to ask the user whether
+     they want to install this update now, skip this version permanently, or
+     delay it for N days — three explicit choices. The message SHALL use
+     underscore-delimited LM tool names (``jarvis_SyspilotSkipThisVersion``,
+     ``jarvis_delaySyspilotUpdate``) so the actor can invoke them directly.
+   * AC-2: The message SHALL NOT embed an explicit version number — the actor
+     reads its own frontmatter after fetching.
    * AC-3: The message sender field SHALL identify the module (e.g.
      ``"jarvis-syspilot"``).
-   * AC-4: After queuing the message, the module relies on the existing
-     auto-delivery mechanism (``REQ_MSG_AUTODELIVER_POLL``) to present it to
-     the actor's chat session — no custom delivery logic is needed.
+   * AC-4: After queuing the message, the module SHALL call
+     ``addAutoDelivery`` (idempotent) to ensure the actor is on the
+     auto-delivery list, so the message is picked up by the existing
+     auto-delivery poll loop (``REQ_MSG_AUTODELIVER_POLL``) without
+     requiring the user to manually register the actor. This follows
+     the same pattern established by the reminders feature.
 
 
 .. req:: Suspend Tool

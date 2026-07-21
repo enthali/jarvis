@@ -7,12 +7,14 @@ Syspilot Lifecycle UAT Design Specifications
    :links: REQ_UAT_SPL_TESTDATA; REQ_UAT_SPL_TESTS
 
    **Description:**
-   Step-by-step procedures and expected outcomes for all twenty-one syspilot
-   lifecycle acceptance scenarios (T-1 through T-21), covering: zero-trace when
-   not installed, command presence, first-run copy-and-notify, version-match
-   no-op, version-mismatch notification, actor provisioning, notification
-   content, suspend/skip/manual commands, supply-chain URL verification,
-   network failure handling, state persistence, and opt-out.
+   Step-by-step procedures and expected outcomes for all twenty-six syspilot
+   lifecycle acceptance scenarios (T-1 through T-26), covering: zero-trace when
+   not installed, command presence and LM tool manifest registration,
+   first-run copy-and-notify, version-match no-op, version-mismatch
+   notification, actor provisioning, notification content, suspend/skip/manual
+   commands, supply-chain URL verification, network failure handling, state
+   persistence, opt-out, decision-point logging, auto-delivery registration,
+   and installation-completeness gate (startup and manual command paths).
 
    **Test Setup:**
 
@@ -52,15 +54,18 @@ Syspilot Lifecycle UAT Design Specifications
 
       * - T-2
 
-          Commands present when module installed
+          Module installed — commands and LM tools present
 
-          *AC: REQ_UAT_SPL_TESTS AC-2*
+          *AC: REQ_UAT_SPL_TESTS AC-2, REQ_SPL_PACKAGE AC-4*
         - Launch Extension Development Host WITH ``enthali.jarvis-syspilot``.
-          Open Command Palette and search ``syspilot``.
-        - ``jarvis.syspilotUpdate`` (or its display name), 
+          Open Command Palette and search ``syspilot``. Open a chat and
+          click the "Configure Tools" picker (``#``); search ``delay``.
+        - ``jarvis.syspilotUpdate`` (or its display name),
           ``jarvis.delaySyspilotUpdate``, and
           ``jarvis.SyspilotSkipThisVersion`` all appear.
           ``jarvis.syspilot.releaseTag`` appears in Settings UI.
+          ``#delaySyspilotUpdate`` and ``#SyspilotSkipThisVersion`` both
+          appear in the "Configure Tools" picker.
 
       * - T-3
 
@@ -71,8 +76,10 @@ Syspilot Lifecycle UAT Design Specifications
           Reload the VS Code window (triggers ``activate()``). Wait 5 s.
         - ``.github/agents/syspilot.setup.agent.md`` is created.
           "Syspilot Setup Engineer" actor appears in Entities tree.
-          Actor's message queue contains an "initial setup" notification
-          that references the upstream version string.
+          Actor's message queue contains a notification asking the actor
+          to present the user with three choices (install now,
+          skip this version, delay for N days); message does NOT
+          contain a specific upstream version string.
 
       * - T-4
 
@@ -80,20 +87,22 @@ Syspilot Lifecycle UAT Design Specifications
 
           *AC: REQ_UAT_SPL_TESTS AC-4*
         - Ensure the local file's ``version`` frontmatter matches the
-          current upstream ``main`` tag. Reload VS Code.
+          current upstream ``main`` tag AND that
+          ``.github/agents/syspilot.pm.agent.md`` exists (installation
+          complete). Reload VS Code.
         - No new message in the actor's queue after the reload.
           No information dialog about an update.
 
       * - T-5
 
-          Version mismatch — update notification sent
+          Version mismatch — notification sent
 
           *AC: REQ_UAT_SPL_TESTS AC-5*
         - Set local file ``version`` to ``"0.0.1"`` (older than upstream).
           No state file active. Reload VS Code. Wait 5 s.
         - A new notification appears in the actor's message queue.
-          Notification text contains the upstream version and the three
-          options (install / suspend / skip).
+          Notification offers three user choices (install now, skip,
+          delay) — no upstream version number.
 
       * - T-6
 
@@ -120,18 +129,16 @@ Syspilot Lifecycle UAT Design Specifications
 
       * - T-8
 
-          Notification message content
+          Notification message content (three choices, no version number)
 
           *AC: REQ_UAT_SPL_TESTS AC-8*
         - Version mismatch active. Reload VS Code. Inspect the queued
           message (expand actor in Messages tree, or use
           ``jarvis_receiveMessage`` in the actor's chat session).
-        - Message text contains: (a) the upstream version string; (b) a
-          prompt to install the update; (c) a reference to
-          ``jarvis_delaySyspilotUpdate`` or
-          ``jarvis.delaySyspilotUpdate(<days>)``; (d) a reference to
-          ``jarvis_SyspilotSkipThisVersion`` or
-          ``jarvis.SyspilotSkipThisVersion()``.
+        - Message text contains a reference to ``jarvis_delaySyspilotUpdate``
+          (delay option), ``jarvis_SyspilotSkipThisVersion`` (skip
+          option), and an "install this update now" prompt. Message does
+          NOT contain a specific upstream version number.
 
       * - T-9
 
@@ -206,8 +213,9 @@ Syspilot Lifecycle UAT Design Specifications
           Manual command when already up to date
 
           *AC: REQ_UAT_SPL_TESTS AC-15*
-        - Local file version matches upstream exactly. No suspend/skip.
-          Run manual update command.
+        - Local file version matches upstream exactly. ``.github/agents/
+          syspilot.pm.agent.md`` exists (installation complete).
+          No suspend/skip. Run manual update command.
         - A toast message appears (e.g.
           "syspilot is up to date (version X).").
           No notification is queued to the actor.
@@ -281,6 +289,79 @@ Syspilot Lifecycle UAT Design Specifications
           no longer appears in Settings UI. No background startup check
           fires (no new notifications on the actor after the reload).
 
+      * - T-22
+
+          Decision-point logging at info level
+
+          *AC: REQ_UAT_SPL_TESTS AC-22, REQ_SPL_STARTUP_CHECK AC-6*
+        - Version mismatch active. Jarvis Output Channel open. Reload VS
+          Code. Observe the Output Channel within a few seconds.
+        - Output Channel shows ``[SPL]`` info-level log entries covering
+          all four decision points: (a) upstream version fetched,
+          (b) whether local file was missing/downloaded or present,
+          (c) local-vs-upstream comparison result, (d) resulting decision
+          (e.g. ``notify``). No entry is absent for any of the four
+          points.
+
+      * - T-23
+
+          Auto-delivery registered after notification
+
+          *AC: REQ_UAT_SPL_TESTS AC-23, SPEC_SPL_NOTIFY AC-4*
+        - Version mismatch active. Confirm ``autodelivery.json`` does not
+          list "Syspilot Setup Engineer" before test. Reload VS Code.
+          Wait a few seconds for activation and notification to fire.
+          Inspect ``autodelivery.json`` in the extension storage folder.
+        - ``autodelivery.json`` contains ``"Syspilot Setup Engineer"``.
+          No manual "Enable Auto-Delivery" action was performed by the
+          user — registration is automatic (same pattern as Reminders).
+
+      * - T-24
+
+          Installation-completeness gate: versions match, marker absent — notify
+
+          *AC: REQ_UAT_SPL_TESTS AC-24, REQ_SPL_STARTUP_CHECK AC-7*
+        - Local file version matches the current upstream ``main`` tag.
+          Delete ``.github/agents/syspilot.pm.agent.md`` (or confirm it
+          was never created). No suspend/skip state active. Reload VS
+          Code. Wait a few seconds for activation.
+        - A notification IS queued to the actor's message queue (the
+          three-choice message) despite the version match. The
+          installation-completeness gate detects the absent marker and
+          bypasses the version-match early return. No crash, no error.
+
+      * - T-25
+
+          Manual command: installation gate fires even if versions match
+
+          *AC: REQ_UAT_SPL_TESTS AC-25, REQ_SPL_STARTUP_CHECK AC-7, REQ_SPL_MANUAL AC-1*
+        - Local file version matches upstream. Delete ``.github/agents/
+          syspilot.pm.agent.md`` (installation incomplete). No
+          suspend/skip active. Run ``Jarvis: Check Syspilot Update``
+          from the Command Palette.
+        - A notification IS queued (three-choice message) despite the
+          version match. No "already up to date" toast appears. The
+          manual command checks the installation-completeness gate and
+          bypasses the version-match early return when the marker is
+          absent.
+
+      * - T-26
+
+          LM tools declared in manifest with correct toolReferenceName
+
+          *AC: REQ_UAT_SPL_TESTS AC-26, SPEC_SPL_PACKAGE AC-5*
+        - Module installed. Inspect ``packages/syspilot/package.json``
+          directly. In the Extension Development Host open a chat and
+          click the "Configure Tools" (``#``) picker; search ``delay``.
+        - ``packages/syspilot/package.json`` ``contributes.languageModelTools``
+          array contains two entries:
+          ``{"name": "jarvis_delaySyspilotUpdate", "toolReferenceName":
+          "delaySyspilotUpdate", ...}`` and
+          ``{"name": "jarvis_SyspilotSkipThisVersion", "toolReferenceName":
+          "SyspilotSkipThisVersion", ...}``.
+          Both ``#delaySyspilotUpdate`` and ``#SyspilotSkipThisVersion``
+          appear in the "Configure Tools" picker.
+
 .. spec:: Syspilot Lifecycle Test Data Files
    :id: SPEC_UAT_SPL_FILES
    :status: draft
@@ -316,5 +397,5 @@ Syspilot Lifecycle UAT Design Specifications
    * AC-1: All state-file manipulations above can be performed with a plain
      text editor — no special tooling is required beyond VS Code.
    * AC-2: The current upstream version can be determined by fetching
-     ``https://raw.githubusercontent.com/enthali/syspilot/main/agents/syspilot.setup.agent.md``
+     ``https://raw.githubusercontent.com/enthali/syspilot/main/syspilot/agents/syspilot.setup.agent.md``
      and reading the ``version:`` frontmatter field.

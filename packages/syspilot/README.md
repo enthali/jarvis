@@ -4,8 +4,8 @@ Detects new [syspilot](https://github.com/enthali/syspilot) releases and hands o
 
 ## Behavior
 
-- On VS Code startup, checks the Frontmatter `version` in `.github/agents/syspilot.setup.agent.md` against the upstream release tag. If the file is missing, it is copied (along with `bootstrap.json`) and the actor is notified that initial setup is available.
-- If a newer version is available, the **Syspilot Setup Engineer** actor (auto-created if missing) receives a message with three options: install, suspend, or skip.
+- On VS Code startup, checks the Frontmatter `version` in `.github/agents/syspilot.setup.agent.md` against the upstream release tag. If the file is missing, it is copied (single-artifact contract — no companion files) and the flow always notifies the actor on this first run, regardless of version equality.
+- If a newer version is available (or on first run), the **Syspilot Setup Engineer** actor (auto-created if missing) receives a unified notification: run the update workflow, or skip/delay it via `jarvis.SyspilotSkipThisVersion()` / `jarvis.delaySyspilotUpdate(N)`.
 - `jarvis.syspilotUpdate` (Command Palette) forces a re-check, ignoring any suspend/skip state.
 - `jarvis_delaySyspilotUpdate(days)` and `jarvis_SyspilotSkipThisVersion()` are exposed as LM tools so the actor can act on the notification conversationally.
 

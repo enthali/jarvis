@@ -59,6 +59,22 @@
         "command": "jarvis.SyspilotSkipThisVersion",
         "title": "Jarvis: Skip This syspilot Version"
       }
+    ],
+    "languageModelTools": [
+      {
+        "name": "jarvis_delaySyspilotUpdate",
+        "displayName": "Delay Syspilot Update",
+        "modelDescription": "Delays the syspilot update prompt for N days by suspending update notifications until then.",
+        "canBeReferencedInPrompt": true, "toolReferenceName": "delaySyspilotUpdate", "icon": "$(watch)", "tags": ["jarvis"],
+        "inputSchema": { "type": "object", "required": ["days"], "properties": { "days": { "type": "number", "description": "Number of days to delay the update prompt" } } }
+      },
+      {
+        "name": "jarvis_SyspilotSkipThisVersion",
+        "displayName": "Skip This Syspilot Version",
+        "modelDescription": "Permanently skips the current pending upstream syspilot version — no further update notifications are sent for it.",
+        "canBeReferencedInPrompt": true, "toolReferenceName": "SyspilotSkipThisVersion", "icon": "$(debug-step-over)", "tags": ["jarvis"],
+        "inputSchema": { "type": "object", "properties": {} }
+      }
     ]
   },
   "categories": [

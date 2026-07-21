@@ -7,9 +7,10 @@ Modular Delivery Design Specifications
    :links: REQ_MOD_CORE; REQ_MOD_ADDONS
 
    **Description:**
-   The repository is an npm-workspaces monorepo producing four extension
+   The repository is an npm-workspaces monorepo producing five extension
    packages plus shared internals (``message-flow-diagram`` CR added
-   ``packages/flow`` as the fourth). Internal module seams created before
+   ``packages/flow`` as the fourth; ``jarvis-syspilot`` CR added
+   ``packages/syspilot`` as the fifth). Internal module seams created before
    the physical split match the future package boundaries, so no throwaway
    structure is needed.
 
@@ -24,6 +25,7 @@ Modular Delivery Design Specifications
         recorder/    -> enthali.jarvis-recorder
         mcp/         -> enthali.jarvis-mcp
         flow/        -> enthali.jarvis-flow
+        syspilot/    -> enthali.jarvis-syspilot
         suite/       -> enthali.jarvis-suite  (extension pack)
 
    **Acceptance Criteria:**
@@ -197,5 +199,33 @@ Modular Delivery Design Specifications
      invocations (same handler, same output).
    * AC-5: The MCP extension registers zero ``jarvis_*`` tools via
      ``registerTool`` — it is purely a consumer of the registry.
+
+
+.. spec:: Syspilot Package
+   :id: SPEC_MOD_SPL_PKG
+   :status: draft
+   :links: REQ_MOD_ADDONS; REQ_MOD_ZEROTRACE; SPEC_SPL_PACKAGE; SPEC_REL_PKGCONTRACT
+
+   **Description:**
+   ``packages/syspilot`` builds ``enthali.jarvis-syspilot`` with
+   ``extensionDependencies: ["enthali.jarvis-core"]``. On activation it obtains
+   the core API, performs a startup version check against the pinned upstream
+   syspilot release tag, and registers commands and LM tools for suspend/skip
+   management. It does not register entity kinds — it uses the existing actor
+   framework via ``invokeTool('jarvis_createActor', ...)`` and
+   ``listJarvisSessions()``.
+
+   See ``SPEC_SPL_PACKAGE`` and related ``SPEC_SPL_*`` specs for the full
+   feature design.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Manifest declares ``extensionDependencies: ["enthali.jarvis-core"]``.
+   * AC-2: ``contributes.commands`` includes ``jarvis.syspilotUpdate``,
+     ``jarvis.delaySyspilotUpdate``, and ``jarvis.SyspilotSkipThisVersion``.
+   * AC-3: ``contributes.configuration`` includes ``jarvis.syspilot.releaseTag``
+     (string, default ``"main"``).
+   * AC-4: When not installed, no syspilot-related commands, settings, or tools
+     appear anywhere (per ``REQ_MOD_ZEROTRACE``).
    * AC-6: Disabling ``jarvis.mcp.enabled`` at runtime stops the server and
      removes the status bar item.

@@ -71,14 +71,19 @@ Syspilot Lifecycle UAT Requirements
      appear in the Settings UI.
    * AC-3 (T-3 — first run copy and notify):
      When no local agent file exists, the module SHALL copy it from upstream
-     and queue an "initial setup" notification for the "Syspilot Setup
-     Engineer" actor on VS Code startup.
+     and queue a notification for the "Syspilot Setup Engineer" actor on VS
+     Code startup. The notification SHALL present three choices (install now /
+     skip this version / delay for N days) and SHALL NOT reference a
+     specific upstream version string.
    * AC-4 (T-4 — version match, no notification):
-     When the local file version equals the upstream version, no notification
-     SHALL be sent.
+     When the local file version equals the upstream version AND the
+     installation marker ``.github/agents/syspilot.pm.agent.md`` exists,
+     no notification SHALL be sent.
    * AC-5 (T-5 — version mismatch, notification sent):
-     When versions differ and no suppress state is active, an "update
-     available" notification SHALL be queued for the actor.
+     When versions differ and no suppress state is active, a notification
+     SHALL be queued for the actor presenting three choices (install now /
+     skip this version / delay for N days). The notification SHALL NOT
+     include a specific upstream version number.
    * AC-6 (T-6 — actor auto-created):
      The "Syspilot Setup Engineer" actor SHALL be created with the correct
      ``agent: syspilot.setup`` binding when it does not already exist.
@@ -86,8 +91,10 @@ Syspilot Lifecycle UAT Requirements
      If the actor already exists, its folder and ``actor.yaml`` SHALL NOT be
      modified by a subsequent activation.
    * AC-8 (T-8 — notification content):
-     The notification message SHALL contain the upstream version string and
-     references to all three response tools (install, suspend, skip).
+     The notification message SHALL present three choices: install now,
+     skip (``jarvis_SyspilotSkipThisVersion``), and delay
+     (``jarvis_delaySyspilotUpdate``). No upstream version number SHALL
+     appear in the text.
    * AC-9 (T-9 — suspend persisted and active):
      ``jarvis_delaySyspilotUpdate`` SHALL persist a ``suspendedUntil``
      timestamp; the next startup SHALL NOT send a notification while
@@ -108,8 +115,9 @@ Syspilot Lifecycle UAT Requirements
      ``jarvis.syspilotUpdate`` SHALL deliver a notification even when
      the upstream version equals ``skippedVersion``.
    * AC-15 (T-15 — manual up-to-date message):
-     When versions match, ``jarvis.syspilotUpdate`` SHALL show an
-     informational "up to date" message — no notification queued.
+     When versions match AND the installation marker
+     ``.github/agents/syspilot.pm.agent.md`` exists, ``jarvis.syspilotUpdate``
+     SHALL show an informational "up to date" message — no notification queued.
    * AC-16 (T-16 — network failure graceful):
      A network error during the upstream fetch SHALL produce only a warning
      log in the Output Channel — no crash, no error dialog, no notification.
@@ -128,3 +136,31 @@ Syspilot Lifecycle UAT Requirements
    * AC-21 (T-21 — opt-out via uninstall):
      Uninstalling ``enthali.jarvis-syspilot`` SHALL remove all syspilot-
      related commands and settings; no background check fires on reload.
+   * AC-22 (T-22 — decision-point logging):
+     The Jarvis Output Channel SHALL show ``[SPL]`` info-level log entries
+     for all four decision points: upstream version fetched, local file
+     download status, comparison result, and resulting decision
+     (``REQ_SPL_STARTUP_CHECK`` AC-6).
+   * AC-23 (T-23 — auto-delivery registration):
+     After notification fires, ``autodelivery.json`` SHALL contain
+     ``"Syspilot Setup Engineer"`` without any manual user action
+     (``REQ_SPL_NOTIFY`` AC-4 / ``SPEC_SPL_NOTIFY`` AC-4).
+   * AC-24 (T-24 — installation-completeness gate):
+     When the local file version matches upstream but
+     ``.github/agents/syspilot.pm.agent.md`` is absent, the module SHALL
+     bypass the version-match early return and send a notification
+     (``REQ_SPL_STARTUP_CHECK`` AC-7).
+   * AC-25 (T-25 — manual command installation-completeness gate):
+     When ``jarvis.syspilotUpdate`` is run manually, versions match, but
+     ``.github/agents/syspilot.pm.agent.md`` is absent, the command SHALL
+     bypass the version-match early return and queue a notification — no
+     "up to date" toast (``REQ_SPL_STARTUP_CHECK`` AC-7,
+     ``REQ_SPL_MANUAL`` AC-1).
+   * AC-26 (T-26 — LM tools declared in manifest):
+     ``packages/syspilot/package.json`` SHALL contain a
+     ``contributes.languageModelTools`` array declaring both
+     ``jarvis_delaySyspilotUpdate`` (``toolReferenceName: delaySyspilotUpdate``)
+     and ``jarvis_SyspilotSkipThisVersion``
+     (``toolReferenceName: SyspilotSkipThisVersion``), and both SHALL appear
+     in VS Code's "Configure Tools" picker when the module is installed
+     (``REQ_SPL_PACKAGE`` AC-4 / ``SPEC_SPL_PACKAGE`` AC-5).

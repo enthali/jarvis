@@ -23,12 +23,18 @@ AHP ist die architektonische Lösung, die `chatSessionsProvider` / `chatParticip
 
 ## Status
 
-Tiefere Recherche deferred — Branch ist busy mit Sessions-Test-Balloon.
+**SHIPPING in VS Code 1.129.1** (2026-07). AHP ist nicht mehr Zukunftsmusik — der Agent Host läuft als eigener Prozess (`--type=agentHost`, WebSocket-Server), Local = message port, Remote = AHP/WS. Empirisch verifiziert inkl. lokaler Modelle (BYOK, Qwen 3.6 35B). Details + Stage-0-Kompatibilität: [FI-2026-07-21-agent-host-stage0-compat.md](FI-2026-07-21-agent-host-stage0-compat.md).
 
-**Nächste Schritte, wenn Branch frei:**
+**Verifiziert (2026-07-21):**
+- Agent-Host- und klassische Sessions teilen `state.vscdb` → Jarvis-Lookup sieht sie ohne Codeänderung.
+- Der `sendToSession`-Chat-API-Hack (`chat.open`) erreicht den Agent-Host-Prozess **nicht** — richtiger Weg ist `editorService.openEditor({ resource: <session-uri> })` (Resource-URI statt Query-String).
+- Session-Identität = URI/UUID (`agenthost-content:///sessionId/…`), **nicht** der drift-fähige Anzeigename.
+
+**Nächste Schritte:**
 1. AHPX (Tyler Leonhardt) als TS-Client-Referenz studieren
 2. Operations + Auth-Modell auf Loopback klären
-3. Verhältnis zu gh-CLI-Sessions verifizieren
+3. AHP-Wire-Log-JSONL als Beobachtungskanal (Stage 2) evaluieren
+4. Prüfen, ob `editorService.openEditor({ resource })` aus einer Extension stabil triggerbar ist (Stage 4 = evtl. Command-Swap statt Neubau)
 
 ---
 
