@@ -184,3 +184,30 @@ Modular Delivery UAT Design Specifications
         - Task completes with exit code 0. The ``npx tsc -p packages/syspilot``
           step is included in the chain and completes without TypeScript
           errors. No compile errors in any package.
+
+      * - T-16
+
+          packages/syspilot in release.yml packaging step
+
+          *AC: REQ_UAT_MODULAR_INSTALL AC-7, SPEC_REL_COREGH*
+        - Static structural check (no runtime). Open
+          ``.github/workflows/release.yml`` and inspect the packaging
+          and upload steps.
+        - ``packages/syspilot`` is listed as a packaged target. The
+          GitHub Release upload step includes a syspilot VSIX pattern
+          (``packages/syspilot/enthali.jarvis-syspilot-*.vsix`` or
+          equivalent) alongside the other packages. No separate manual
+          packaging step is needed for syspilot.
+
+      * - T-17
+
+          Suite extension pack shows deprecated notice
+
+          *AC: REQ_UAT_MODULAR_INSTALL AC-7, SPEC_MOD_SUITE AC-1*
+        - Static check. Open ``packages/suite/package.json`` and
+          ``packages/suite/README.md``.
+        - ``packages/suite/package.json`` description includes
+          "deprecated". ``packages/suite/README.md`` states deprecated
+          and directs users to install individual components.
+          The ``extensionPack`` array does NOT include
+          ``enthali.jarvis-syspilot``.

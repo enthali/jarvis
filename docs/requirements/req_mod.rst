@@ -27,12 +27,15 @@ Modular Delivery Requirements
    :id: REQ_MOD_ADDONS
    :status: approved
    :priority: required
-   :links: US_MOD_INSTALL
+   :links: US_MOD_INSTALL; SPEC_MOD_ADDON_ONBOARDING
 
    **Description:**
-   PIM, the recorder, MCP, and the message-flow diagram SHALL each be packaged
-   as a separate extension that depends on the core via
-   ``extensionDependencies: ["enthali.jarvis"]`` and cannot activate without it.
+   PIM, the recorder, MCP, the message-flow diagram, and syspilot SHALL each
+   be packaged as a separate extension that depends on the core via
+   ``extensionDependencies: ["enthali.jarvis"]`` (or ``"enthali.jarvis-core"``) and
+   cannot activate without it. When a new add-on is introduced, the onboarding
+   checklist (``SPEC_MOD_ADDON_ONBOARDING``) SHALL be followed to ensure it is
+   registered in all required places.
 
    **Acceptance Criteria:**
 
@@ -50,6 +53,9 @@ Modular Delivery Requirements
    * AC-6 (``message-flow-diagram`` CR): ``enthali.jarvis-flow`` is a separate
      extension declaring ``extensionDependencies: ["enthali.jarvis"]`` — see
      ``REQ_FLOW_PACKAGE``.
+   * AC-7 (``jarvis-syspilot`` CR): ``enthali.jarvis-syspilot`` is a separate
+     extension declaring ``extensionDependencies: ["enthali.jarvis-core"]`` —
+     see ``REQ_SPL_PACKAGE``.
 
 
 .. req:: Zero-Trace When Not Installed

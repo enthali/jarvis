@@ -18,6 +18,9 @@
 - **dev-launchconfig-syspilot**: `packages/syspilot` is now wired into the dev launch and build tooling. New `"Run Core + Syspilot"` Extension Host launch configuration and matching `"compile core+syspilot"` task added to `.vscode/launch.json` / `.vscode/tasks.json`; `"Run All"` and `"compile all"` updated to include `packages/syspilot`. Also adds the missing `SPEC_MOD_SPL_PKG` module-registry entry for the syspilot package (following the established `SPEC_MOD_*_PKG` pattern) and links `SPEC_DEV_LAUNCHCONFIG` to `SPEC_MOD_MONOREPO` so future new-module CRs are structurally caught by impact scans. Also fixes the upstream version-check URL in `versionCheck.ts` (missing `syspilot/` path prefix caused a 404 during T-14 manual UAT); 404 vs. network errors now produce distinct messages.
   *(SPEC_DEV_LAUNCHCONFIG; SPEC_MOD_MONOREPO; SPEC_MOD_SPL_PKG; SPEC_SPL_STARTUP)*
 
+- **syspilot-release-readiness**: Pre-release check of `jarvis-syspilot` found three gaps — all fixed before first release. (1) `packages/syspilot` was absent from `release.yml` (packaging/GitHub Release/Marketplace publish steps missing — the module would never have shipped); `enthali.jarvis-syspilot` was absent from `updateCheck.ts`'s `idToVsix` map (same bug class as historical GH #30 flow gap — self-update wouldn't have delivered it); both gaps now fixed. (2) `jarvis-suite` extension pack is deprecated — it is no longer maintained or extended with new add-ons; users should install individual extensions instead. (3) New `SPEC_MOD_ADDON_ONBOARDING` 6-item checklist and matching System Designer preflight rule added so future add-on CRs cannot miss these registration steps again.
+  *(REQ_MOD_ADDONS; REQ_REL_UPDATEINSTALL; SPEC_REL_COREGH; SPEC_REL_UPDATENOTIFY; SPEC_MOD_SUITE; SPEC_MOD_ADDON_ONBOARDING)*
+
 ---
 
 ## v0.20.2 — Remove Auto-Delivery Focus Gate

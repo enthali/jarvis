@@ -49,6 +49,12 @@ Modular Delivery Acceptance Tests
    * AC-11 (``dev-launchconfig-syspilot`` CR): A scenario verifies zero
      syspilot trace when ``enthali.jarvis-syspilot`` is absent from the
      host (T-13).
+   * AC-12 (``syspilot-release-readiness`` CR): A scenario verifies that
+     ``packages/syspilot`` is listed in ``release.yml`` for packaging and
+     upload to the GitHub Release (T-16).
+   * AC-13 (``syspilot-release-readiness`` CR): A scenario verifies that
+     ``packages/suite/package.json`` and ``packages/suite/README.md``
+     declare deprecated status and direct users to install individually (T-17).
 
    **Test Scenarios (install combinations, extension host):**
 
@@ -146,3 +152,27 @@ Modular Delivery Acceptance Tests
      ``packages/syspilot`` compile without TypeScript errors. The terminal
      shows the final ``npx tsc -p packages/syspilot`` step completing
      successfully.
+
+   **T-16 — packages/syspilot in release.yml packaging step (``syspilot-release-readiness`` CR)**
+     Setup: This is a static structural check, no runtime execution required.
+     Action: Open ``.github/workflows/release.yml`` and inspect the ``vsce package``
+     or equivalent step(s) that build and upload VSIX assets.
+     Expected: ``packages/syspilot`` is listed as a packaged target. The
+     GitHub Release upload step includes
+     ``packages/syspilot/enthali.jarvis-syspilot-*.vsix`` (or the equivalent
+     asset pattern) alongside the other extension packages. No separate manual
+     step is required to build syspilot before a release.
+
+   **T-17 — Suite extension pack shows deprecated notice (``syspilot-release-readiness`` CR)**
+     Setup: Inspect the local workspace files (no Extension Development Host
+     required).
+     Action: Open ``packages/suite/package.json`` and
+     ``packages/suite/README.md``.
+     Expected:
+     (a) ``packages/suite/package.json`` description field includes the word
+     "deprecated" (or equivalent clear statement that the pack is no longer
+     maintained).
+     (b) ``packages/suite/README.md`` states the pack is deprecated and
+     directs users to install individual components instead of the pack.
+     (c) No new extensions (including ``enthali.jarvis-syspilot``) appear
+     in the ``extensionPack`` array.

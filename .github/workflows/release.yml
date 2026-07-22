@@ -44,6 +44,8 @@ jobs:
         run: cd packages/mcp && npx vsce package --no-dependencies
       - name: Package enthali.jarvis-flow
         run: cd packages/flow && npx vsce package --no-dependencies
+      - name: Package enthali.jarvis-syspilot
+        run: cd packages/syspilot && npx vsce package --no-dependencies
 
       # ── Package extension pack (no build step, extensionPack only) ───────
       - name: Package enthali.jarvis-suite
@@ -60,6 +62,7 @@ jobs:
             packages/recorder/*.vsix
             packages/mcp/*.vsix
             packages/flow/*.vsix
+            packages/syspilot/*.vsix
             packages/suite/*.vsix
           generate_release_notes: true
           # softprops/action-gh-release is idempotent: if a release for this
@@ -90,6 +93,10 @@ jobs:
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: npx vsce publish --packagePath packages/flow/jarvis-flow-*.vsix --no-dependencies
+      - name: Publish enthali.jarvis-syspilot to Marketplace
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: npx vsce publish --packagePath packages/syspilot/jarvis-syspilot-*.vsix --no-dependencies
       - name: Publish enthali.jarvis-suite to Marketplace
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}

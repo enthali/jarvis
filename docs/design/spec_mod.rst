@@ -134,22 +134,30 @@ Modular Delivery Design Specifications
      ``REQ_MOD_ZEROTRACE`` AC-6).
 
 
-.. spec:: Suite Extension Pack
+.. spec:: Suite Extension Pack (Deprecated)
    :id: SPEC_MOD_SUITE
-   :status: approved
-   :links: REQ_MOD_ADDONS; REQ_FLOW_PACKAGE
+   :status: deprecated
+   :links: REQ_MOD_ADDONS
 
    **Description:**
-   ``enthali.jarvis-suite`` is an extension pack referencing core, PIM,
-   recorder, MCP, and flow (``message-flow-diagram`` CR), offering a
-   one-click "install everything" path. Individual extensions remain
-   independently installable.
+   ``enthali.jarvis-suite`` is **deprecated**. It was an extension pack
+   referencing core, PIM, recorder, MCP, and flow — offering a one-click
+   "install everything" path. Now that Jarvis spans genuinely different
+   audiences (personal-assistant users vs. software-engineering teams),
+   a single "install all" pack no longer makes sense.
+
+   Users should install individual components instead. No further add-ons
+   (including syspilot) SHALL be added to the pack.
 
    **Acceptance Criteria:**
 
-   * AC-1: Installing the pack installs all five extensions.
-   * AC-2: Each extension remains independently installable without the pack.
-   * AC-3: The build emits the pack alongside the five extension VSIXes.
+   * AC-1: ``packages/suite/package.json`` description and
+     ``packages/suite/README.md`` clearly state the pack is deprecated
+     and direct users to install components individually.
+   * AC-2: No new extensions are added to the pack’s
+     ``extensionPack`` array.
+   * AC-3: The pack remains publishable for existing users but receives
+     no further functional updates.
 
 
 .. spec:: MCP Package
@@ -227,5 +235,57 @@ Modular Delivery Design Specifications
      (string, default ``"main"``).
    * AC-4: When not installed, no syspilot-related commands, settings, or tools
      appear anywhere (per ``REQ_MOD_ZEROTRACE``).
-   * AC-6: Disabling ``jarvis.mcp.enabled`` at runtime stops the server and
-     removes the status bar item.
+
+
+.. spec:: Add-on Onboarding Checklist
+   :id: SPEC_MOD_ADDON_ONBOARDING
+   :status: draft
+   :links: REQ_MOD_ADDONS
+
+   **Description:**
+   When a new add-on package is introduced under ``packages/<name>``, all of
+   the following registration points SHALL be verified before the design phase
+   is closed. This checklist exists because previous releases shipped with
+   incomplete add-on wiring (e.g. ``jarvis-flow`` was once missing from the
+   self-update VSIX mapping; ``jarvis-syspilot`` was missing from the CI
+   release pipeline).
+
+   **Checklist items:**
+
+   1. **Release CI** (``SPEC_REL_COREGH``): The add-on appears in the
+      "Complete release.yml CI sequence" — a ``vsce package`` step in step 4,
+      its VSIX listed in step 5 (GitHub Release upload), and a Marketplace
+      publish step in step 6.
+   2. **Self-update VSIX mapping — requirement** (``REQ_REL_UPDATEINSTALL``):
+      The add-on's extension ID → VSIX filename row is present in the
+      mapping table.
+   3. **Self-update VSIX mapping — design** (``SPEC_REL_UPDATENOTIFY``):
+      The add-on's extension ID → VSIX filename row is present in the
+      design-level mapping table.
+   4. **Self-update code** (``packages/core/src/engine/core/updateCheck.ts``):
+      The ``idToVsix`` map includes the add-on's extension ID.
+   5. **Add-on registry requirement** (``REQ_MOD_ADDONS``): A new AC is
+      added for the add-on, following the established pattern (AC-1 through
+      AC-7).
+   6. **Monorepo layout** (``SPEC_MOD_MONOREPO``): The package appears in
+      the "Target layout" code block and the description's package count
+      is updated.
+
+   **Process integration:**
+
+   * ``REQ_MOD_ADDONS`` links to this spec, so any CR that touches
+     ``REQ_MOD_ADDONS`` (which every add-on CR must) naturally surfaces the
+     checklist.
+   * The System Designer's agent tailoring file
+     (``.github/agents/syspilot.design.tailoring.md``) SHALL include a
+     preflight rule: when a CR introduces a new ``packages/<name>``
+     add-on extension, the System Designer reads
+     ``SPEC_MOD_ADDON_ONBOARDING`` and verifies every checklist item
+     before closing the design phase.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Every item in the checklist above is satisfied for all
+     currently shipped add-ons (pim, recorder, mcp, flow, syspilot).
+   * AC-2: The checklist is referenced from ``REQ_MOD_ADDONS`` via
+     ``:links:`` so it is discoverable in the traceability graph.

@@ -14,9 +14,13 @@ Self-Update UAT Requirements
 
    **Acceptance Criteria:**
 
-   * AC-1: At least 9 test scenarios cover the full feature surface (see
-     US_UAT_SELFUPDATE T-1 through T-9)
+   * AC-1: At least 10 test scenarios cover the full feature surface (see
+     US_UAT_SELFUPDATE T-1 through T-10)
    * AC-2: Scenarios specify setup, action, and expected outcome
    * AC-3: At least one scenario verifies that ``jarvis.checkForUpdates = false``
      suppresses the automatic check but not the manual command
    * AC-4: At least one scenario verifies silent failure on network error
+   * AC-5 (``syspilot-release-readiness`` CR): At least one scenario verifies
+     that ``enthali.jarvis-syspilot`` is mapped to the correct VSIX filename
+     in the ``idToVsix`` lookup used by "Download & Install"
+     (``REQ_REL_UPDATEINSTALL``).

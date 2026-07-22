@@ -32,3 +32,7 @@ Modular Delivery UAT Requirements
    * AC-6 (``dev-launchconfig-syspilot`` CR): The harness can launch a
      core+``enthali.jarvis-syspilot`` combination for ``T-13``/``T-14``;
      the ``compile all`` task chain includes ``packages/syspilot`` for ``T-15``.
+   * AC-7 (``syspilot-release-readiness`` CR): A static check verifies
+     ``packages/syspilot`` is present in the ``release.yml`` packaging steps
+     and that ``packages/suite`` files declare deprecated status (``T-16``,
+     ``T-17``).
