@@ -1,9 +1,25 @@
-# Jarvis — Project Memory
+# Jarvis — The Actor Harness
+
+## Overall Goal
+
+We want to reach a goal together — for example, delivering a clean change. On
+the way there we make mistakes; that's normal. Whenever anyone — user, agent,
+or agent↔agent — spots something that doesn't fit (a discrepancy in agent
+files, prompts, assumptions, or code), bring it up, let's discuss. We stay
+positive and goal-oriented and find our way together through GitHub issues,
+compile errors, and whatever else gets thrown in our path. Wir schaffen das. 😉
 
 ## Project Overview
 
-Jarvis is a VS Code extension that serves as a personal assistant for managing projects and events.
-Projects and events are stored as YAML files in configurable folders.
+Jarvis is a VS Code extension that turns chat **sessions** and agent
+**personas** into **actors** — persistent entities with their own identity,
+memory (`context.md`), inter-actor messaging, and scheduling. Jarvis is the
+harness, not the assistant itself: the actors it hosts do the actual work —
+the syspilot actors handle software engineering, the PIM actors handle email,
+calendar, and tasks.
+
+Entities like projects and events are actor variants — an `actor.yaml` with a
+few extra properties — stored as YAML in configurable folders.
 
 ## Spec-Driven
 
@@ -34,15 +50,10 @@ npm run package          # Build .vsix
 python -m sphinx -b html docs docs/_build/html -W --keep-going   # Docs
 ```
 
-Press **F5** in VS Code to launch the Extension Development Host.
-
 ## Development Workflow
 
-```
-syspilot.cm (→ syspilot.uat) → syspilot.implement → syspilot.verify
-```
-
-Each change produces three artifacts in `docs/changes/`:
+We work in increments called **changes**. Each change produces three artifacts
+in `docs/changes/`:
 
 - `<name>.md` — Change Document
 - `tst-<name>.md` — Test Protocol
@@ -50,23 +61,26 @@ Each change produces three artifacts in `docs/changes/`:
 
 ## Git Workflow
 
-- `main` is protected. Only `syspilot.release` may merge into `main`.
-- `develop` is the integration branch. Feature branches start from `develop`
-  and squash-merge back into `develop`.
-- Feature branches: `feature/<change-name>` (name matches Change Document).
-- Release process: `develop` → `main` (tag) → back-merge to `develop`
+Before any git operation, read and follow the `syspilot.branching` skill — it
+is the source of truth for branching, commits, and merges.
 
-## Session–Project Binding
+## Session ↔ Actor Binding
 
-Every chat session should be aware of which project it belongs to.
+A session re-activates an **actor** — a persistent entity with its own folder
+and `context.md` under `.jarvis/actors/`. Reading its own `context.md` to
+resume its identity is exactly what makes it an actor rather than a plain
+agent (a stateless persona). The actor's `actor.yaml` may bind it to an agent
+persona.
 
-1. At session start, read your project's `context.md` from the project folder (e.g. `projects/project-manager/context.md`).
-2. If you don't know which project this session belongs to, ask the user.
-3. The `context.md` describes the role, tasks, and boundaries for this session's project. Follow it.
+At session start, read your actor's `context.md` (ask the user which actor if
+unknown). It is your persistent, stick-note memory — keep it short and
+scannable:
 
-## Memory Considerations
+- long-lived, action-oriented bullets only; one concise line each
+- replace outdated bullets, don't append logs
+- before writing, ask: "Will this still matter in 2 weeks?" — if no, skip
+- a topic past ~5 bullets → move to a dedicated file, leave a one-line pointer
 
-In syspilot projects, workflow knowledge is part of the project and must be treated as code. Do not store workflow rules, roles, responsibilities, project decisions, or project-specific findings in Copilot Memory; keep them in the repository as they are part of the project and are versioned, reviewable, and branch-aware. User memory may only contain personal preferences that are independent of any project.
 ## Delegation Discipline
 
-When invoking a specialist agent (subagent), communicate the goal, the rationale, and the inputs the specialist cannot find themselves — not the procedure. The specialist owns their own workflow. Do not re-prompt rules that are already in their agent file or in `copilot-instructions.md`. Defensive verbosity in handover prompts overrides specialist workflows and creates the very failures it tries to prevent.
+When invoking a specialist agent (subagent), communicate the goal, the rationale, and the inputs the specialist cannot find themselves. The specialist owns their own workflow; trust it, and re-state only what they cannot already know from their own agent file or `copilot-instructions.md`.

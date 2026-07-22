@@ -1,8 +1,8 @@
 {
   "name": "jarvis-suite",
   "displayName": "Jarvis Suite",
-  "description": "Install all Jarvis capabilities: core, PIM, recorder, MCP server, and message flow.",
-  "version": "0.20.2",
+  "description": "[DEPRECATED] Install all Jarvis capabilities: core, PIM, recorder, MCP server, and message flow. Install components individually instead.",
+  "version": "0.21.0",
   "publisher": "enthali",
   "repository": {
     "type": "git",

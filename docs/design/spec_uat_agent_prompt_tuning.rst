@@ -7,10 +7,10 @@ Agent Prompt Tuning UAT Design Specifications
    :links: REQ_UAT_APT_INITPROMPT; REQ_UAT_APT_NOTIFICATION; REQ_UAT_APT_CFG
 
    **Description:**
-   Step-by-step procedures and expected outcomes for all fourteen acceptance test
+   Step-by-step procedures and expected outcomes for all seventeen acceptance test
    scenarios covering the configurable agent session init prompt (T-1 to T-6,
-   T-14), the configurable auto-delivery notification template (T-7 to T-11),
-   and Settings UI visibility (T-12, T-13).
+   T-14), the configurable auto-delivery notification template (T-7 to T-11,
+   T-15 to T-17), and Settings UI visibility (T-12, T-13).
 
    **Test Setup:**
 
@@ -82,23 +82,27 @@ Agent Prompt Tuning UAT Design Specifications
           (Use only, Decision / Finding / Next, 2 weeks) is identical to T-1.
           Clean up: delete the created project folder after verification.
       * - T-7 (default notification, manual deliver-now)
-        - Clear any notification template override. Use the ``jarvis_sendToSession``
-          LM tool in a chat to enqueue 2 messages to ``TestSession``. In the
-          Messages tree, click the **Send Messages** inline action on the
-          ``TestSession`` group node.
-        - The auto-opened (or active) agent chat shows exactly:
+        - Clear any notification template override. Use ``jarvis_sendToSession``
+          (or ``jarvis_sendMessage``) from a session named ``Change Manager``
+          to enqueue 2 messages to ``TestSession``. In the Messages tree,
+          click the **Send Messages** inline action on ``TestSession``.
+        - The auto-opened agent chat shows all three lines of the built-in
+          default (``msg-notify-sender-id`` CR, GH #40):
           ``[Jarvis Message Service] You have 2 new message(s) in your inbox.``
-          followed by:
-          ``Read them with the jarvis_readMessage tool (destination: "TestSession") until remaining = 0.``
-          No German text appears.
+          ``Read them with the jarvis_receiveMessage tool (destination: "TestSession") until remaining = 0.``
+          ``Sender(s): Change Manager``
+          The third ``Sender(s):`` line appears; no ``${sender}`` literal
+          remains; no German text appears.
       * - T-8 (default notification, auto-delivery poll)
         - Right-click the ``TestSession`` group node → **Enable Auto-Delivery**.
-          Clear any notification template override. Use ``jarvis_sendToSession``
-          to enqueue 1 message. Wait up to 6 seconds for the next poll tick.
+          Clear any notification template override. Use ``jarvis_sendMessage``
+          (or ``jarvis_sendToSession``) to enqueue 1 message from a known
+          sender. Wait up to 6 seconds for the next poll tick.
           Observe the chat and the queue JSON file.
         - The agent chat shows the English default notification with ``count=1``
-          and ``destination="TestSession"``. In the ``autodelivery.json`` /
-          queue file the delivered message has ``notified: true`` set.
+          and ``destination="TestSession"``; the third line reads
+          ``Sender(s): <sender-name>`` with the actual sender substituted.
+          In the queue file the delivered message has ``notified: true`` set.
       * - T-9 (notification override)
         - Set ``jarvis.messages.notificationTemplate`` to:
           ``You have ${count} msgs for ${destination}.``
@@ -131,8 +135,10 @@ Agent Prompt Tuning UAT Design Specifications
         - In the Settings UI search box type ``jarvis notification template``.
         - The setting ``jarvis.messages.notificationTemplate`` is displayed under
           a group labelled **Prompt Templates**. Its description references the
-          ``${count}`` and ``${destination}`` placeholders. The default /
-          placeholder text shows the English default notification string.
+          ``${count}``, ``${destination}``, and ``${sender}`` placeholders
+          (``msg-notify-sender-id`` CR, GH #40). The default /
+          placeholder text shows the English default notification string
+          including all three lines.
       * - T-14 (extract-overflow bullet presence)
         - Ensure ``jarvis.agentSession.initPromptTemplate`` is not set (default).
           Create a new session via **Jarvis: New Session** or
@@ -142,3 +148,24 @@ Agent Prompt Tuning UAT Design Specifications
           the "Keep it minimal and action-oriented" bullet list is exactly:
           ``- When a topic grows past ~5 bullets, move it to a dedicated file beside `context.md` and leave a one-line summary with a relative link in `context.md`.``
           No other bullet follows it in the list.
+      * - T-15 (multiple distinct senders — comma-joined, de-duplicated)
+        - Default template. Use ``jarvis_sendMessage`` to enqueue 2 messages
+          from ``Change Manager`` and 1 message from ``Project Manager`` to
+          ``TestSession``. Trigger manual delivery (**Send Messages**).
+        - The third line of the notification reads
+          ``Sender(s): Change Manager, Project Manager`` (order may vary but
+          both names appear exactly once — ``Change Manager`` is NOT
+          listed twice despite sending 2 messages).
+      * - T-16 (non-actor source shows meaningful label)
+        - Default template. Run a heartbeat ``queue`` step that appends a
+          message with ``sender="Heartbeat"`` to ``TestSession``. Trigger
+          manual delivery.
+        - Third line reads ``Sender(s): Heartbeat``. No blank, no error,
+          no raw ``${sender}`` literal in the output.
+      * - T-17 (backward compat — template without ${sender})
+        - Set ``jarvis.messages.notificationTemplate`` to:
+          ``You have ${count} msgs for ${destination}. Please check in.``
+          Enqueue 1 message. Trigger manual delivery.
+        - Chat shows: ``You have 1 msgs for TestSession. Please check in.``
+          No ``${sender}`` literal appears; no error raised;
+          ``${count}`` and ``${destination}`` substitutions unaffected.

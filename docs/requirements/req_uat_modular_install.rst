@@ -29,3 +29,10 @@ Modular Delivery UAT Requirements
      the test protocol ``docs/changes/tst-modular-install.md``.
    * AC-5 (``message-flow-diagram`` CR): The harness can launch a
      core+``enthali.jarvis-flow`` combination for ``T-10``/``T-11``/``T-12``.
+   * AC-6 (``dev-launchconfig-syspilot`` CR): The harness can launch a
+     core+``enthali.jarvis-syspilot`` combination for ``T-13``/``T-14``;
+     the ``compile all`` task chain includes ``packages/syspilot`` for ``T-15``.
+   * AC-7 (``syspilot-release-readiness`` CR): A static check verifies
+     ``packages/syspilot`` is present in the ``release.yml`` packaging steps
+     and that ``packages/suite`` files declare deprecated status (``T-16``,
+     ``T-17``).

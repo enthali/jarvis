@@ -4,6 +4,39 @@
 
 GitHub Issues is the single source of truth for the backlog. No separate backlog file.
 
+## GitHub Project Board (Kanban + Reminder Pattern)
+
+Work is tracked on **GitHub Project "Jarvis" #2** (board fields: Status,
+Priority). GitHub Issues are PM-owned end-to-end — no other agent opens,
+edits, or closes them (subject to the explicit-approval rule below).
+
+**After PM merges a feature branch into `develop` (workflow step 13):**
+- Set the board Status of every tracked issue to **"Merged"**
+  (`gh project item-edit --project-id PVT_kwHOAFDYiM4BdUee --field-id PVTSSF_lAHOAFDYiM4BdUeezhX22FU --single-select-option-id c859fa25 ...`).
+- Leave the GitHub Issue **open** — not done until released.
+
+**At release time:** the CD publish pipeline auto-closes tracked issues
+(see `syspilot.release.tailoring.md` / "Post-Release Distribution" above) —
+closing triggers the board's "Item closed" automation → Status flips to
+**Done** automatically. No manual reminder/CI-poll step needed here (unlike
+syspilot, which lacks that automation and must poll `gh run list` manually).
+
+**Board/field IDs for reference (do not re-query unless the project is rebuilt):**
+- Project node ID: `PVT_kwHOAFDYiM4BdUee`
+- Status field ID: `PVTSSF_lAHOAFDYiM4BdUeezhX22FU`
+- Status options: Backlog=`f75ad846`, Ready=`61e4505c`, In progress=`47fc9ee4`, In review=`df73e18b`, Merged=`c859fa25`, Done=`98236657`
+- Priority field ID: `PVTSSF_lAHOAFDYiM4BdUeezhX22LE`
+- Priority options: P0=`79628723`, P1=`0a877460`, P2=`da944a9c`
+- **WIP limit on "In progress": 1 CR** — already structurally enforced by the
+  single-worktree constraint ("One CR at a Time" above); the board Status is
+  a visibility mirror of that constraint, not an independent limit. Epics
+  are exempt (a container ticket may sit "In progress" alongside 1 active CR).
+- **Ready definition:** an issue is "Ready" when all design decisions are
+  resolved and PM could write the CR Summary immediately without further
+  clarification. PM populates the issue body with the intended scope before
+  setting Ready. This is the pull queue: when "In progress" frees up, PM
+  picks the next "Ready" item.
+
 ## GitHub Issue Creation Requires Explicit Approval
 
 Creating a GitHub issue is a shared-system, hard-to-reverse action per the
@@ -137,6 +170,25 @@ it.
 
 **Fully automatic via CD.** No manual step required.
 Pushing to `main` triggers the GitHub Action which publishes to the VS Code Marketplace and creates GitHub Release VSIX files (consumed by the auto-updater). PM back-merges `main` → `develop` after the tag is pushed.
+
+## README Staleness Report from Release Engineer
+
+When the Release Engineer stops a release because the root `README.md`
+contradicts the release notes, and reports the specific contradiction:
+
+1. **Cancel the pending release reminder** — the release is paused, so the
+   old reminder no longer reflects reality.
+2. Decide **fix now** or **defer**:
+   - *fix now* — engage the Documentation Engineer; the Doc Engineer reports
+     what it found and aligns a README proposal **interactively with the
+     user** before writing.
+   - *defer* — DEFER the finding (see `deferred-issues.md`, linked from
+     `context.md`), then tell the RE to continue with the current README.
+3. When you give the RE the go-ahead to resume (with the old or an updated
+   README), **set a new reminder** matching the restarted release timeline.
+
+Owning the reminder is why communication routes through the PM: whoever owns
+the reminder owns its cancel/re-set around the stop/resume.
 
 ## Infrastructure Changes
 

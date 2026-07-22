@@ -7,6 +7,7 @@ import type { HeartbeatJob } from './types';
 import type { HeartbeatScheduler } from '../../apps/session/heartbeat';
 import { KindDrivenScanner } from '../sessions/yamlScanner';
 import { GenericTreeFactory } from './treeFactory';
+import { appendMessage } from '../sessions/messageQueue';
 
 /**
  * Real implementation of the JarvisCoreApi contract.
@@ -21,6 +22,8 @@ export class JarvisEngine implements JarvisCoreApi {
     private readonly _treeFactory: GenericTreeFactory;
     private readonly _subscriptions: vscode.Disposable[] = [];
     private _scheduler: HeartbeatScheduler | undefined;
+    private _resolveMessagesPath: (() => string) | undefined;
+    private _onMessageQueued: (() => void) | undefined;
 
     constructor(scanner: KindDrivenScanner, treeFactory: GenericTreeFactory) {
         this._scanner = scanner;
@@ -30,6 +33,12 @@ export class JarvisEngine implements JarvisCoreApi {
     /** Wire the heartbeat scheduler (called from activation after scheduler creation). */
     setScheduler(scheduler: HeartbeatScheduler): void {
         this._scheduler = scheduler;
+    }
+
+    /** Wire the message queue path resolver + reload callback (SPEC_SPL_NOTIFY). */
+    setMessaging(resolveMessagesPath: () => string, onMessageQueued: () => void): void {
+        this._resolveMessagesPath = resolveMessagesPath;
+        this._onMessageQueued = onMessageQueued;
     }
 
     get kinds(): ReadonlyMap<string, EntityKindConfig> {
@@ -175,6 +184,16 @@ export class JarvisEngine implements JarvisCoreApi {
             throw new Error(`Tool '${name}' is not registered`);
         }
         return entry.handler(options, token);
+    }
+
+    // --- Cross-actor messaging API (SPEC_SPL_NOTIFY) ---
+
+    sendMessage(destination: string, sender: string, text: string): void {
+        if (!this._resolveMessagesPath) {
+            throw new Error('Messaging is not available');
+        }
+        appendMessage(this._resolveMessagesPath(), destination, sender, text);
+        this._onMessageQueued?.();
     }
 
     dispose(): void {

@@ -394,8 +394,8 @@ Release Design Specifications
    2. Package ``enthali.jarvis-core`` from ``packages/core/``
    3. Build + package ``enthali.jarvis`` migration shim from ``packages/core-gh/``
       (own ``vscode:prepublish`` — no bundle copy from core)
-   4. Package add-ons (``pim``, ``recorder``, ``mcp``) — each runs own ``vscode:prepublish``
-   5. GitHub Release — upload all VSIXs (core, core-gh shim, pim, recorder, mcp)
+   4. Package add-ons (``pim``, ``recorder``, ``mcp``, ``flow``, ``syspilot``) — each runs own ``vscode:prepublish``
+   5. GitHub Release — upload all VSIXs (core, core-gh shim, pim, recorder, mcp, flow, syspilot)
    6. Marketplace publish — ``jarvis-core`` + add-ons only (NOT ``jarvis``)
 
    **Acceptance Criteria (testable)**
@@ -562,6 +562,7 @@ Release Design Specifications
       ``enthali.jarvis-recorder``     ``jarvis-recorder-{version}.vsix``
       ``enthali.jarvis-mcp``          ``jarvis-mcp-{version}.vsix``
       ``enthali.jarvis-flow``         ``jarvis-flow-{version}.vsix``
+      ``enthali.jarvis-syspilot``     ``jarvis-syspilot-{version}.vsix``
       =============================== ======================================
 
    2. Collect installed ``enthali.jarvis*`` extension IDs via

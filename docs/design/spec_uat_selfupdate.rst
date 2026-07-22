@@ -75,3 +75,8 @@ Self-Update UAT Design Specifications
         - Network failure (manual)
         - (any)
         - Graceful handling, no crash
+      * - T-10
+        - syspilot VSIX in idToVsix map
+        - syspilot installed
+        - ``jarvis-syspilot-{version}.vsix`` downloaded; no
+          "unknown extension" error

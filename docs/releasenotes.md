@@ -1,5 +1,32 @@
 # Release Notes
 
+## v0.21.0 — Jarvis Syspilot Module + Notification Improvements
+
+*2026-07-22*
+
+### Features
+
+- **jarvis-syspilot** (GH #39): New optional add-on `enthali.jarvis-syspilot` that manages the syspilot install/update lifecycle. On VS Code startup it compares the local `.github/agents/syspilot.setup.agent.md` Frontmatter version against the upstream release tag. If a newer version is available, the **Syspilot Setup Engineer** actor (auto-created if missing) receives a notification message with three options — install, suspend (N days), or skip this version. Two new LM tools (`jarvis_delaySyspilotUpdate` / `jarvis_SyspilotSkipThisVersion`) and the `jarvis.syspilotUpdate` command are available for actor-guided management. State is persisted to `.jarvis/syspilot-state.json`. The `jarvis.syspilot.releaseTag` setting controls which upstream ref is tracked (default: `main`).
+  *(US_SPL_LIFECYCLE; REQ_SPL_*; SPEC_SPL_*)*
+
+- **msg-notify-sender-id** (GH #40): Message notification stubs now include the sender's identity via a new `${sender}` placeholder — comma-separated and de-duplicated across the pending batch. Works for both manual delivery (Play button) and auto-delivery. Non-actor sources (heartbeat jobs, system commands) show their source label. Backward compatible: custom templates that omit `${sender}` continue to render correctly.
+  *(US_MSG_NOTIFICATION_TEMPLATE; REQ_MSG_NOTIFICATION_TEMPLATE; SPEC_MSG_SENDCOMMAND; SPEC_MSG_AUTODELIVER_POLL)*
+
+### Fixes
+
+- **msg-notify-default-text-fix**: The built-in notification default text was never updated to include the sender line introduced in GH #40 (the `${sender}` substitution was wired but the template strings in `packages/core/package.json` and two fallback locations in `extension.ts` were left unchanged). Also corrects the canonical tool reference in the default text from the deprecated `jarvis_readMessage` to `jarvis_receiveMessage` (previously left unresolved from v0.16.0's `message-api-rename` CR, REQ_MSG_NOTIFICATION_TEMPLATE AC-7).
+  *(REQ_MSG_NOTIFICATION_TEMPLATE)*
+
+- **dev-launchconfig-syspilot**: Adds the missing Extension Host launch configuration and compile task for `packages/syspilot` so the module can be developed and manually tested. Also adds `SPEC_MOD_SPL_PKG` to the module registry and links `SPEC_DEV_LAUNCHCONFIG` to the module specs, establishing structural traceability so future impact scans flag the dev configuration when new modules are added.
+  *(SPEC_MOD_SPL_PKG; SPEC_DEV_LAUNCHCONFIG)*
+
+### Infrastructure
+
+- **syspilot-release-readiness**: Wires `packages/syspilot` into the CI release pipeline (packaging + marketplace publish steps) and the self-update VSIX mapping so the new module is reachable by users on all update paths. Deprecates `jarvis-suite` (the "install everything" extension pack is retired as Jarvis now spans distinct audiences). Establishes a new **Add-on Onboarding Checklist** (`SPEC_MOD_ADDON_ONBOARDING`) to structurally prevent the class of "new module not wired everywhere" gaps that have recurred across releases.
+  *(SPEC_REL_COREGH; SPEC_REL_UPDATENOTIFY; SPEC_MOD_SUITE deprecated; SPEC_MOD_ADDON_ONBOARDING)*
+
+---
+
 ## v0.20.2 — Remove Auto-Delivery Focus Gate
 
 *2026-07-19*

@@ -3,7 +3,7 @@ name: "Change Manager"
 agent: syspilot.cm
 description: "Central orchestrator of the change workflow. Receives Change Requests, coordinates engineers in sequence, enforces quality gates, and reports completion with full traceability."
 tools: [read, enthali.jarvis-core, edit, search, todo]
-model: "qwen3.6:35b (ollama-models)"
+model: Claude Sonnet 5 (copilot)
 user-invocable: true
 agents: []
 ---

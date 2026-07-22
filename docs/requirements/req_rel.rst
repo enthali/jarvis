@@ -235,6 +235,8 @@ Release Requirements
    ``enthali.jarvis-pim``          ``jarvis-pim-{version}.vsix``
    ``enthali.jarvis-recorder``     ``jarvis-recorder-{version}.vsix``
    ``enthali.jarvis-mcp``          ``jarvis-mcp-{version}.vsix``
+   ``enthali.jarvis-flow``         ``jarvis-flow-{version}.vsix``
+   ``enthali.jarvis-syspilot``     ``jarvis-syspilot-{version}.vsix``
    =============================== ======================================
 
    **Acceptance Criteria:**

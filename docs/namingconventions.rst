@@ -82,6 +82,10 @@ Theme Abbreviations
      - Message Flow Visualization (separate add-on module, D3 chord diagram of
        inter-agent message flow, Webview Panel editor tab)
      - ``US_FLOW_CHORDVIEW``, ``REQ_FLOW_WEBVIEWPANEL``, ``SPEC_FLOW_CHORDRENDER``
+   * - ``SPL``
+     - Syspilot Lifecycle (version detection, update handoff to syspilot Setup
+       Agent, suspend/skip state management)
+     - ``US_SPL_LIFECYCLE``, ``REQ_SPL_STARTUP_CHECK``, ``SPEC_SPL_STARTUP``
    * - ``UAT``
      - User Acceptance Tests
      - ``US_UAT_SAMPLEDATA``, ``REQ_UAT_VALID_SAMPLES``

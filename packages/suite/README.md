@@ -1,5 +1,7 @@
 # Jarvis Suite
 
+> **Deprecated.** The Jarvis Suite extension pack is no longer actively maintained and will not receive new add-ons. Please install the individual extensions you need instead (see the [Jarvis](https://marketplace.visualstudio.com/items?itemName=enthali.jarvis) core extension's Add-ons table).
+
 Extension pack that installs all Jarvis extensions in one click.
 
 ## Included Extensions

@@ -26,3 +26,16 @@ may carry a `**GitHub Issue(s)**:` line under its Summary. When generating
 release notes, for every archived CD with that line, close each referenced
 issue with a comment `Shipped in v{version}.` (skip silently if already
 closed).
+
+## README Staleness Gate (Step 6 — Document, before the Step 7 merge)
+
+Right after generating the release notes in Step 6 — while the full change
+context is freshly loaded, and before the Step 7 squash-merge to `main` —
+compare the root `README.md` against what this release actually ships. If the
+README contradicts the release (stale framing, removed/renamed features, wrong
+description), **stop the release** and report the specific contradiction to the
+PM, then wait for the PM's decision.
+
+The report routes through the PM because the PM owns the release reminder and
+cancels/re-sets it around the pause. Resume when the PM gives the go-ahead —
+with either the old or an updated README.

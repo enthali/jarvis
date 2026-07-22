@@ -179,4 +179,15 @@ export interface JarvisCoreApi {
     getRegisteredTools(): ToolDescriptor[];
     /** Invoke a registered tool directly (no LM round-trip). Throws if not registered. */
     invokeTool(name: string, options: vscode.LanguageModelToolInvocationOptions<unknown>, token: vscode.CancellationToken): Promise<vscode.LanguageModelToolResult>;
+
+    // --- Cross-actor messaging API (SPEC_SPL_NOTIFY) ---
+
+    /**
+     * Queue a message for delivery to a destination actor/session.
+     * Unlike the jarvis_sendMessage LM tool, this does not require `sender` to
+     * be an existing actor/session name — it is intended for system/add-on
+     * originated notifications (e.g. jarvis-syspilot) that have no actor of
+     * their own. Delivery still goes through the standard auto-delivery queue.
+     */
+    sendMessage(destination: string, sender: string, text: string): void;
 }
