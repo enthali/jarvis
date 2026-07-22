@@ -1,6 +1,6 @@
 # Change Document: syspilot-release-readiness
 
-**Status**: ready for PM manual verification
+**Status**: merged (develop, commit 08515f7)
 **Branch**: feature/syspilot-release-readiness
 **Created**: 2026-07-22
 **Author**: PM
