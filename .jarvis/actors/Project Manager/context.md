@@ -84,6 +84,10 @@ _(none — #41, #42 merged + released as v0.22.0 (2026-07-23); board/issues clos
   path: `editorService.openEditor({ resource })` + Session-URIs instead of
   `chat.open` hack. Goal: assess what it takes to migrate Jarvis session-layer
   to AHP-native. No GH issue yet — create one after the spike when scope is clear.
+  Also investigate during spike (obs. 2026-07-23, likely 1.130): opening an
+  actor session can spawn a phantom "broken" chat in a 2nd editor tab; split
+  view mirrors one session synchronously into both panes (same session, not
+  two actors). Fits AHP session-layer rework — assess together.
 
 ## Syspilot Testing Ground
 
