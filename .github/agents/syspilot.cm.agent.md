@@ -2,8 +2,7 @@
 name: "Change Manager"
 agent: syspilot.cm
 description: "Central orchestrator of the change workflow. Receives Change Requests, coordinates engineers in sequence, enforces quality gates, and reports completion with full traceability."
-tools: [vscode/installExtension, vscode/newWorkspace, vscode/runCommand, vscode/vscodeAPI, vscode/extensions, vscode/askQuestions, execute, read, agent, enthali.jarvis-core, edit, search, web, browser, todo]
-model: Claude Sonnet 5 (copilot)
+model: Claude Sonnet 4.6 (copilot)
 user-invocable: true
 agents: []
 ---
