@@ -69,7 +69,6 @@ _(none — #41, #42 merged + released as v0.22.0 (2026-07-23); board/issues clos
 
 - [PIM Modularization](ideas/pim-modularization.md) — drop per-component enable/disable settings, go installable-sub-extensions instead
 - [Session Recording](ideas/recording-design.md) — meeting recording + transcription pipeline
-- [jarvis-syspilot scope](ideas/jarvis-syspilot-scope.md) — GH #39 agreed model (Frontmatter contract, Syspilot Setup Engineer actor, delay/skip tools) — for the tonight black-ops CR
 
 ## Watch Items
 
