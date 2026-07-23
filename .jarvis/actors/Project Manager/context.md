@@ -63,13 +63,24 @@
 
 ## Active CR
 
-_(none — #40, #39, and follow-up fix msg-notify-default-text-fix all merged to develop 2026-07-20/21; awaiting release)_
+_(none — #41, #42 merged + released as v0.22.0 (2026-07-23); board/issues closed per convention)_
 
 ## Ideas
 
 - [PIM Modularization](ideas/pim-modularization.md) — drop per-component enable/disable settings, go installable-sub-extensions instead
 - [Session Recording](ideas/recording-design.md) — meeting recording + transcription pipeline
 - [jarvis-syspilot scope](ideas/jarvis-syspilot-scope.md) — GH #39 agreed model (Frontmatter contract, Syspilot Setup Engineer actor, delay/skip tools) — for the tonight black-ops CR
+
+## Watch Items
+
+- **GH #34 scope may shrink (2026-07-23)**: user is consolidating Gmail into
+  Outlook via IMAP in the `c:\workspace\Assistant` spike — works well so far.
+  If it holds up, the "provider abstraction (Outlook/Gmail)" half of #34 may
+  become unnecessary (IMAP consolidation instead of a real multi-backend
+  abstraction in PIM). Not acting yet — just observing. Revisit #34's scope
+  once the IMAP approach proves stable. The other half of #34 (import
+  agents/skills from the Assistant/PM workspace spike, incl. two agent.md
+  persona files the user likes) still stands independently.
 
 ## Syspilot Testing Ground
 
