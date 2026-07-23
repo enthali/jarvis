@@ -21,7 +21,6 @@
     "compile": "tsc -p packages/core",
     "compile:packages": "npm run compile --workspaces --if-present",
     "build": "npm run compile:packages",
-    "typecheck:parked": "tsc -p tsconfig.parked.json --noEmit",
     "watch": "tsc -watch -p packages/core",
     "lint": "eslint",
     "test": "vitest run",
