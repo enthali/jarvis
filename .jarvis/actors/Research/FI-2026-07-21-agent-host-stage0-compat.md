@@ -1,6 +1,18 @@
 # FI-2026-07-21 — Agent Host (VS Code 1.129.1) × Jarvis: Stage-0-Kompatibilität
 
 **Status:** Empirischer Spike abgeschlossen — Live-Messung in einer laufenden Agent-Host-Session (lokales Modell Qwen 3.6 35B, ~25 tok/s), nicht aus dem Gedächtnis. Code-Belege aus `microsoft/vscode` (1.129-Zweig) ergänzt.
+
+**Update 2026-07-23 (VS Code 1.130):** Namenskollision-Bug bestätigt. User hatte
+`chat.agentHost.enabled` (Editor Sessions, experimentell) kurz aktiv unter 1.130 —
+VS Code legte eine AHP-Session namens **„Syspilot Setup Engineer"** in `state.vscdb` an,
+exakt identisch mit einem Jarvis-Actor-Namen. Jarvis' `lookupSessionUUID()` findet
+beide Einträge, warnt ("multiple sessions named…") und nimmt den ersten — das ist die
+nicht-löschbare AHP-Session, nicht der echte Actor. VS Code bietet keine saubere
+Delete-API für AHP-Sessions (bekannter Platform-Gap). Workaround: AHP für Editor
+Sessions deaktiviert; Stuck-Session bleibt bis VS Code Session-Deletion implementiert.
+**Konsequenz:** Jar has kein Code-Fix möglich solange VS Code das Problem nicht löst.
+Verwandter GH-Issue kandidat: ggf. vscode#issue melden re "no way to delete AHP sessions".
+
 **Trigger:** Themenwechsel „schau, was VS Code 1.129.1 liefert" — Microsoft hat in 1.129 den **Agent Host** + **AHP** ausgeliefert. Frage: überlebt Jarvis' Session-/Messaging-Layer die neue Prozessgrenze?
 **Verwandt:** [FI-2026-05-23-ahp-foundation.md](FI-2026-05-23-ahp-foundation.md) (AHP-Foundation), [FI-2026-06-28-hook-engine.md](FI-2026-06-28-hook-engine.md) (Hook-Verdacht falsifiziert), [FIND-2026-04-16-background-agent-sessions.md](FIND-2026-04-16-background-agent-sessions.md) (Provider-Sackgasse), [FI-2026-07-01-editor-group-placement.md](FI-2026-07-01-editor-group-placement.md).
 
