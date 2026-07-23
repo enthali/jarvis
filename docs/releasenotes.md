@@ -1,6 +1,8 @@
 # Release Notes
 
-## v0.22.0 — unreleased
+## v0.22.0 — Heartbeat Output Vars + Actor Destination Fix
+
+*2026-07-23*
 
 ### Features
 
