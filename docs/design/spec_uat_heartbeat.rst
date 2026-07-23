@@ -36,6 +36,43 @@ Heartbeat UAT Design Specifications
       * - ``prompts/hello.md``
         - T-7: Prompt file sent to vscode.lm agent step
 
+   **Output variable test entries in heartbeat.yaml (T-19–T-25):**
+
+   .. code-block:: yaml
+
+      - name: T-19 Output Var Chain
+        schedule: manual
+        steps:
+          - type: powershell
+            run: scripts/print-hello.ps1
+            outputVar: MY_VAR
+          - type: queue
+            destination: "Test Session"
+            text: "prefix-${MY_VAR}-suffix"
+
+      - name: T-21 LAST_STDERR Chain
+        schedule: manual
+        steps:
+          - type: powershell
+            run: scripts/write-stderr-1.ps1   # writes "stderr-1" to stderr
+          - type: powershell
+            run: scripts/write-stderr-2.ps1   # writes "stderr-2" to stderr
+          - type: queue
+            destination: "Test Session"
+            text: "Last error: ${LAST_STDERR}"
+
+      - name: T-22 Undefined Var
+        schedule: manual
+        steps:
+          - type: queue
+            destination: "Test Session"
+            text: "val=${UNDEFINED_VAR}"
+
+   Additional test scripts required under ``testdata/heartbeat/scripts/``:
+   ``print-hello.ps1`` (prints ``hello-from-step1``), ``write-stderr-1.ps1``
+   (writes ``stderr-1`` to stderr, exits 0), ``write-stderr-2.ps1``
+   (writes ``stderr-2`` to stderr, exits 0).
+
    **Interpreter auto-detection setup (T-8, not checked into the repo):**
    ``.venv/`` and ``venv/`` folders are created/removed by the tester directly
    under the workspace root for the duration of T-8(a)/(b)/(c) — they are
@@ -151,3 +188,64 @@ Heartbeat UAT Design Specifications
    4. Modify a project's ``project.yaml`` name field
    5. Wait 2 minutes; verify the sidebar does NOT update
    6. Click the manual ``$(refresh)`` button; verify the sidebar now updates
+
+   **T-19 — Basic output variable chaining (``heartbeat-step-output-vars`` CR):**
+
+   1. Add (or use) the ``T-19 Output Var Chain`` job from heartbeat.yaml
+   2. Run the job via ``Jarvis: Run Heartbeat Job``
+   3. In the Messages tree, expand ``Test Session`` and inspect the queued message
+   4. Verify the delivered text is ``"prefix-hello-from-step1-suffix"`` (not
+      ``"prefix-${MY_VAR}-suffix"``)
+   5. Verify no ``[WARN]`` or ``[ERROR]`` in the Output Channel about variables
+
+   **T-20 — Agent step outputVar capture (``heartbeat-step-output-vars`` CR):**
+
+   1. Add a manual job: step 1 = ``agent`` with ``prompt: prompts/hello.md``
+      and ``outputVar: AGENT_REPLY``; step 2 = ``queue`` step with
+      ``text: "Agent said: ${AGENT_REPLY}"``
+   2. Run the job
+   3. Verify the delivered queue message contains the agent's response text
+      substituted for ``${AGENT_REPLY}``
+
+   **T-21 — LAST_STDERR tracks most recent script step (``heartbeat-step-output-vars`` CR):**
+
+   1. Add (or use) the ``T-21 LAST_STDERR Chain`` job
+   2. Run the job
+   3. Inspect the delivered queue message
+   4. Verify ``"Last error: stderr-2"`` is delivered — ``stderr-1`` from step 1
+      has been overwritten
+
+   **T-22 — Undefined variable reference left as-is (``heartbeat-step-output-vars`` CR):**
+
+   1. Add (or use) the ``T-22 Undefined Var`` job
+   2. Run the job
+   3. Inspect the delivered queue message
+   4. Verify the text ``"val=\${UNDEFINED_VAR}"`` is delivered literally —
+      no substitution, no error, no job failure
+
+   **T-23 — Variable scope: no persistence across runs (``heartbeat-step-output-vars`` CR):**
+
+   1. Run the T-19 job once successfully (``MY_VAR`` is set during that run)
+   2. Temporarily remove step 1 from the job (or rename its ``outputVar``)
+   3. Run the job again
+   4. Verify step 2's delivered text is ``"prefix-\${MY_VAR}-suffix"`` (literal) —
+      confirming the first run's variable did not persist
+   5. Restore the job to its original state
+
+   **T-24 — Variable capture logged at info level (``heartbeat-step-output-vars`` CR):**
+
+   1. Run the T-19 job with the Jarvis Output Channel open
+   2. After the job completes, inspect the Output Channel
+   3. Verify at least one info-level entry references ``MY_VAR`` and identifies
+      the step type that set it (e.g. ``"set by powershell step"``)
+
+   **T-25 — outputVar on queue/command step silently ignored (``heartbeat-step-output-vars`` CR):**
+
+   1. Add a manual job: step 1 = ``queue`` step with ``outputVar: QUEUE_OUT``;
+      step 2 = ``command`` step with ``outputVar: CMD_OUT``;
+      step 3 = ``queue`` step with ``text: "${QUEUE_OUT}-${CMD_OUT}"``
+   2. Run the job
+   3. Verify steps 1 and 2 execute normally without error
+   4. Verify step 3 delivers ``"\${QUEUE_OUT}-\${CMD_OUT}"`` literally
+      (neither variable was set by non-script steps)
+   5. Verify no error, no crash

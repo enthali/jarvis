@@ -24,6 +24,9 @@ Automation Requirements
      optional ``append`` field (boolean, default ``false``, append vs. overwrite)
    * AC-5: Steps of type ``queue`` SHALL have a ``destination`` field (target chat tab label)
      and a ``text`` field (message content)
+   * AC-6: Any step MAY have an optional ``outputVar`` field (string) naming a
+     variable to receive the step's captured output; the name SHALL match
+     ``/^[A-Za-z_]\w*$/`` and be validated at load time
 
 
 .. req:: Scheduler Tick and Cron Dispatch
@@ -81,6 +84,15 @@ Automation Requirements
      errors to the Output Channel
    * AC-6: Steps of type ``queue`` SHALL append a message entry (``session`` + ``text``)
      to the persistent message queue file and log the action to the Output Channel
+   * AC-7: ``executeJob`` SHALL maintain a ``vars: Record<string, string>`` map per
+     job run; before executing each step, all string fields on the step SHALL be
+     interpolated against ``vars`` using ``${VAR_NAME}`` syntax; after execution, if
+     the step has ``outputVar`` set and produced output, the output SHALL be stored
+     in ``vars[step.outputVar]``
+   * AC-8: A well-known variable ``LAST_STDERR`` SHALL be overwritten after each
+     script step (``python`` / ``powershell``) with the step's captured stderr (most
+     recent value only, not accumulated); steps that produce no stderr leave
+     ``LAST_STDERR`` unchanged from the prior step
 
 
 .. req:: Manual Job Trigger
@@ -391,3 +403,34 @@ Automation Requirements
    * AC-3: The valid destination set is defined as the union of {named VS Code
      chat session titles from ``state.vscdb``} ∪ {YAML entity names from the
      scanner store (sessions, projects, events)}
+
+
+.. req:: Step Output Variable Capture and Interpolation
+   :id: REQ_AUT_STEP_OUTPUT_VARS
+   :status: draft
+   :priority: optional
+   :links: US_AUT_HEARTBEAT; REQ_AUT_JOBEXEC; REQ_AUT_JOBCONFIG
+
+   **Description:**
+   The extension SHALL support capturing step output into named variables and
+   interpolating those variables into subsequent steps within the same job run.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``outputVar`` is supported as a capture source on ``python``,
+     ``powershell``, and ``agent`` step types; ``queue`` and ``command`` steps
+     do not produce capturable output
+   * AC-2: Interpolation targets: ``text``, ``run``, ``prompt``, ``outputFile``,
+     ``destination``, ``sender`` — any string field on ``HeartbeatStep``
+   * AC-3: Variable scope is a single job run — variables do not persist across
+     runs or across jobs
+   * AC-4: Undefined variable references (``${UNKNOWN}``) are left as-is (no
+     hard failure), matching the ``applyTemplate()`` convention
+   * AC-5: ``outputVar`` names SHALL be validated at load time; names not matching
+     ``/^[A-Za-z_]\w*$/`` SHALL log a warning and be ignored
+   * AC-6: Whenever a variable is captured (filled), the extension SHALL log the
+     variable name and the step that set it to the Output Channel at ``info`` level
+   * AC-7: The variable store is strictly internal to the job execution — no
+     reading from OS environment variables as fallback, no injection into OS
+     environment of child processes; scripts may use real env vars independently
+     but that is outside this feature's scope

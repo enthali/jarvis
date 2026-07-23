@@ -4,7 +4,7 @@ Automation Design Specifications
 .. spec:: YAML Job Schema and TypeScript Interfaces
    :id: SPEC_AUT_JOBSCHEMA
    :status: implemented
-   :links: REQ_AUT_JOBCONFIG
+   :links: REQ_AUT_JOBCONFIG; REQ_AUT_STEP_OUTPUT_VARS
 
    **Description:**
    Define TypeScript interfaces for the heartbeat YAML structure and implement the
@@ -23,6 +23,7 @@ Automation Design Specifications
         destination?: string; // queue: target chat tab label
         sender?: string;    // queue: originating session or component
         text?: string;      // queue: message content
+        outputVar?: string; // capture stdout/response into this named variable
       }
 
       interface HeartbeatJob {
@@ -129,7 +130,7 @@ Automation Design Specifications
 .. spec:: Job Step Executor
    :id: SPEC_AUT_EXECUTOR
    :status: implemented
-   :links: REQ_AUT_JOBEXEC; REQ_AUT_OUTPUT
+   :links: REQ_AUT_JOBEXEC; REQ_AUT_OUTPUT; REQ_AUT_STEP_OUTPUT_VARS
 
    **Description:**
    ``executeJob`` runs a job's steps sequentially, routing output to the Output
@@ -141,17 +142,55 @@ Automation Design Specifications
         success: boolean;
         stepType?: HeartbeatStep['type'];
         error?: string;
+        output?: string;  // captured stdout (scripts) or response text (agent)
       }
 
       export async function executeJob(
         job: HeartbeatJob,
         outputChannel: vscode.LogOutputChannel
       ): Promise<ExecResult> {
+        const vars: Record<string, string> = {};
         for (const step of job.steps) {
-          const result = await runStep(step, outputChannel);
+          const interpolated = interpolateStep(step, vars);
+          const result = await runStep(interpolated, outputChannel);
+          if (result.output && step.outputVar) {
+            vars[step.outputVar] = result.output;
+            outputChannel.info(
+              `[Heartbeat] var ${step.outputVar} set by ${step.type} step`
+            );
+          }
+          if (result.stderr !== undefined) {
+            vars['LAST_STDERR'] = result.stderr;
+            outputChannel.info(
+              `[Heartbeat] var LAST_STDERR set by ${step.type} step`
+            );
+          }
           if (!result.success) return result;
         }
         return { success: true };
+      }
+
+   **Step output interpolation** (``interpolateStep``):
+
+   .. code-block:: typescript
+
+      function interpolateStep(
+        step: HeartbeatStep,
+        vars: Record<string, string>
+      ): HeartbeatStep {
+        if (Object.keys(vars).length === 0) return step;
+        const clone = { ...step };
+        const fields: (keyof HeartbeatStep)[] = [
+          'run', 'prompt', 'outputFile', 'destination', 'sender', 'text'
+        ];
+        for (const f of fields) {
+          if (typeof clone[f] === 'string') {
+            (clone as any)[f] = (clone[f] as string).replace(
+              /\$\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m)
+            );
+          }
+        }
+        return clone;
       }
 
    ``executeJob`` and ``runStep`` are closures that capture ``configDir``,
@@ -344,11 +383,12 @@ Automation Design Specifications
 .. spec:: Agent Step Executor
    :id: SPEC_AUT_AGENTEXEC
    :status: implemented
-   :links: REQ_AUT_JOBEXEC; REQ_AUT_OUTPUT; SPEC_AUT_EXECUTOR; SPEC_DEV_LOGCHANNEL
+   :links: REQ_AUT_JOBEXEC; REQ_AUT_OUTPUT; REQ_AUT_STEP_OUTPUT_VARS; SPEC_AUT_EXECUTOR; SPEC_DEV_LOGCHANNEL
 
    **Description:**
    ``executeAgentStep`` sends a prompt file to the VS Code LM API and optionally
-   writes the response to a file. Implemented in ``src/heartbeat.ts``.
+   writes the response to a file. Returns the response text in ``ExecResult.output``
+   for variable capture. Implemented in ``src/heartbeat.ts``.
 
    .. code-block:: typescript
 
@@ -385,7 +425,7 @@ Automation Design Specifications
             }
             outputChannel.info(`[Heartbeat] agent: written to ${outPath}`);
           }
-          return { success: true };
+          return { success: true, output: text };
         } catch (e) {
           return { success: false, stepType: 'agent', error: (e as Error).message };
         }
@@ -1180,3 +1220,145 @@ Automation Design Specifications
    * AC-5: A registered command that throws at runtime still returns
      ``{ success: false }`` and triggers ``notifyFailure`` — soft-skip applies
      only to absent commands.
+
+
+.. spec:: Step Output Variable Capture and Interpolation
+   :id: SPEC_AUT_STEP_OUTPUT_VARS
+   :status: draft
+   :links: REQ_AUT_STEP_OUTPUT_VARS; SPEC_AUT_EXECUTOR; SPEC_AUT_AGENTEXEC; SPEC_AUT_JOBSCHEMA
+
+   **Description:**
+   Enables heartbeat steps to capture output into named variables and makes those
+   variables available for interpolation in subsequent steps within the same job run.
+
+   **ExecResult extension:**
+
+   .. code-block:: typescript
+
+      interface ExecResult {
+        success: boolean;
+        stepType?: HeartbeatStep['type'];
+        error?: string;
+        output?: string;   // captured stdout (scripts) or response text (agent)
+        stderr?: string;   // captured stderr (script steps only)
+      }
+
+   **Script step (``spawnStep``) changes:**
+
+   ``spawnStep`` SHALL accumulate stdout chunks into a buffer and return it as
+   ``result.output``. Similarly, the existing stderr tail capture (used for
+   error reporting) SHALL also be returned as ``result.stderr``.
+
+   .. code-block:: typescript
+
+      function spawnStep(
+        executable: string,
+        args: string[],
+        outputChannel: vscode.LogOutputChannel,
+        stepType: HeartbeatStep['type']
+      ): Promise<ExecResult> {
+        return new Promise(resolve => {
+          const proc = spawn(executable, args, { shell: false });
+          let stdout = '';
+          let stderr = '';
+          proc.stdout.on('data', (d: Buffer) => {
+            const text = d.toString();
+            stdout += text;
+            outputChannel.debug('[Heartbeat] stdout: ' + text.trimEnd());
+          });
+          proc.stderr.on('data', (d: Buffer) => {
+            const text = d.toString();
+            stderr += text;
+            outputChannel.debug('[Heartbeat] stderr: ' + text.trimEnd());
+          });
+          proc.on('close', code => {
+            if (code !== 0) {
+              resolve({
+                success: false, stepType,
+                error: `exit ${code}`, output: stdout, stderr
+              });
+            } else {
+              resolve({ success: true, output: stdout, stderr });
+            }
+          });
+        });
+      }
+
+   **Agent step changes:**
+
+   ``executeAgentStep`` already accumulates the response text; it returns
+   ``{ success: true, output: text }`` (see amended ``SPEC_AUT_AGENTEXEC``).
+   Agent steps do not produce stderr.
+
+   **Queue and command steps:**
+
+   These step types return ``{ success: true }`` without ``output`` or ``stderr``
+   fields. ``outputVar`` on a queue or command step is silently ignored (no error,
+   no variable set).
+
+   **LAST_STDERR well-known variable:**
+
+   After each script step (``python`` / ``powershell``), ``executeJob`` overwrites
+   ``vars['LAST_STDERR']`` with ``result.stderr`` (even if empty string). This means
+   ``LAST_STDERR`` always reflects the most recent script step's stderr. Non-script
+   steps do not touch ``LAST_STDERR``.
+
+   **outputVar validation at load time:**
+
+   ``loadJobs`` SHALL validate each step's ``outputVar`` against
+   ``/^[A-Za-z_]\w*$/``. Invalid names log a warning and are stripped (set to
+   ``undefined``) so they are silently ignored at execution time.
+
+   .. code-block:: typescript
+
+      const VAR_NAME_RE = /^[A-Za-z_]\w*$/;
+
+      // Inside loadJobs, after parsing:
+      for (const job of jobs) {
+        for (const step of job.steps) {
+          if (step.outputVar && !VAR_NAME_RE.test(step.outputVar)) {
+            outputChannel.warn(
+              `[Heartbeat] job "${job.name}": invalid outputVar ` +
+              `"${step.outputVar}" — ignored`
+            );
+            step.outputVar = undefined;
+          }
+        }
+      }
+
+   **YAML example:**
+
+   .. code-block:: yaml
+
+      jobs:
+        - name: daily-summary
+          schedule: "0 9 * * 1-5"
+          steps:
+            - type: python
+              run: scripts/gather-metrics.py
+              outputVar: METRICS
+            - type: agent
+              prompt: prompts/summarize.md
+              outputVar: SUMMARY
+            - type: queue
+              destination: Project Manager
+              sender: heartbeat
+              text: "Daily summary:\n${SUMMARY}"
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``ExecResult`` gains ``output?: string`` and ``stderr?: string`` fields
+   * AC-2: ``spawnStep`` returns accumulated stdout in ``output`` and stderr in
+     ``stderr``
+   * AC-3: ``executeAgentStep`` returns LLM response text in ``output``
+   * AC-4: ``executeJob`` maintains a ``vars`` map; after each step with
+     ``outputVar`` set and non-empty ``output``, stores the value and logs at
+     ``info`` level
+   * AC-5: ``executeJob`` overwrites ``vars['LAST_STDERR']`` after each script step
+     (most recent value only, not accumulated)
+   * AC-6: ``interpolateStep`` replaces ``${VAR_NAME}`` tokens in all string fields
+     (``run``, ``prompt``, ``outputFile``, ``destination``, ``sender``, ``text``)
+     before step execution
+   * AC-7: Undefined variable references are left as-is (no crash)
+   * AC-8: ``loadJobs`` validates ``outputVar`` names against ``/^[A-Za-z_]\w*$/``
+     and strips invalid names with a warning log
