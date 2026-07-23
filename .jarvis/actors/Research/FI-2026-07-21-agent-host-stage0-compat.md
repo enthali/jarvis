@@ -80,6 +80,22 @@ Gegenprobe des Testers:
 
 **Strategische Folge — „nur die Session-Runtime austauschen" ist kein rein kosmetischer Swap.** Heute ist Jarvis-Messaging ein **VS-Code-UI-Hack** — und *gerade deshalb* im Editor sichtbar. Wir tauschten ihn gegen eine AHP-Runtime, deren **Editor-Sichtbarkeit für extern getriebene Turns noch unbewiesen** ist. Der Gewinn (lokale Modelle, Prozess-Isolation, MS-Substrat) bleibt real — aber die **Display-/Attach-Frage** rückt **neben** den Inbound-Trigger als **zweiter Blocker** auf die Stage-Liste. Zwei Unbekannte, nicht eine.
 
+### Update 2026-07-23 — VS Code 1.130 adressiert Messung D (Vorhersage bestätigt)
+
+Release 1.130 (22.07.2026, **ein Tag** nach diesem Spike) liefert **genau** die Multi-Host-Fähigkeit, deren Fehlen der Regenbogen-Test zeigte. Wörtlich aus den Release Notes:
+
+> „Because a session lives in its own process, the same session can be connected to and **rendered from multiple VS Code windows at once**."
+
+→ **Blocker #2 (Display/Attach) ist architektonisch adressiert.** Session-State lebt im Prozess, mehrere VS-Code-Fenster rendern ihn live — der Grund, warum der CLI-Regenbogen im Editor fehlte, entfällt im Design. **Noch nicht empirisch re-getestet** (Feature rollt „progressively" aus, org-gated via `chat.agentHost.enabled`); Messung D bleibt bis zum Re-Test formal FAIL, aber die Trajektorie ist bestätigt.
+
+Weitere 1.130-Punkte mit direktem Jarvis-Bezug:
+
+- **Worktree für *alle* Harnesses** (Copilot/Claude/Codex) — „New Worktree" nicht mehr Copilot-only. Relevant für parallele Actor-Sessions.
+- **Assisted tool approvals** (`chat.assistedPermissions.enabled`): das LM bewertet Tool-Call-Risiko und entscheidet über Approval → Hebel für **Risk #3 (Confirmation-Guardrail)**, weniger Interrupts in autonomen Läufen.
+- **AHP jetzt öffentlich spezifiziert:** `microsoft.github.io/agent-host-protocol/`; Architektur-Doku `code.visualstudio.com/docs/agents/concepts/agent-host`.
+
+**Fazit:** „Der Code hat nicht gelogen." Die Trajektorie-Einschätzung (AHP läuft auf Multi-Host zu) traf im nächsten Release ein.
+
 ## Code-Beleg: der richtige Weg (widerlegt den `chat.open`-Hack)
 
 Aus `microsoft/vscode` (1.129), `src/vs/workbench/contrib/chat/browser/widget/chatWidgetService.ts`:
@@ -160,11 +176,38 @@ Ohne Capture-Tap — direkt aus dem laufenden Jarvis-Trace-Log belegt:
 4. **Beobachtung/Monitoring:** `status`-Feld (z. B. `inputNeeded`) + `changesets`/`git`-Metadaten der Session als Signalquelle nutzen; zusätzlich AHP-Wire-Log-JSONL evaluieren, bevor wir eigene Hooks über die Grenze zwingen.
 5. **Jarvis bleibt vorne**, wo es zählt: Message-Log, Monitoring, Autonomie/Heartbeat-Routing hat der Agent Host (noch) nicht. Native Session-CRUD + Opener als **Transport** adoptieren, Jarvis' Mehrwert oben drauf. Vollmigration bleibt PM/CM-Entscheidung.
 
+### Priorität hochgestuft — Zeitdruck durch absehbare Local-Deprecation (2026-07-23)
+
+Empfehlung an PM/CM: Die **Umstellung der Message-Zustellung auf AHP** (`chat.open` → `openerService.open("agent-host-session://…")`, Blocker #1) von „nice to have" auf **zeitkritisch** hochstufen. Begründung aus der Evidenz dieses Findings:
+
+- **VS Code migriert erkennbar vollständig auf AHP.** Signale: `Default To Copilot Harness` macht neue Sessions AHP; per-Harness-`preferAgentHost`-Schalter; 1.130-RN: „some features might only be available … on the agent host". Realistische Prognose (nicht zugesagt): in **2–3 Releases** wird der klassische „local"/Extension-Host-Pfad **deprecated**.
+- **Unser Zustellhack koppelt Logik an UI** — dasselbe Anti-Pattern, das AHP behebt. Sobald `chat.open` flächig auf AHP auflöst, bricht der Duplikat-Bug **im Feld** auf, ohne dass wir etwas ändern (siehe 1.130-Zwangs-Migration beim `jarvis-syspilot`-Install).
+- **Der Fix ist klein** (Command-Swap, code-belegt) und **entkoppelt** Jarvis sauber (Coordination-Plane vs. Rendering-Plane). Kein eigener AHP-Host nötig.
+
+→ **Fenster nutzen, solange `Agent Host: Enabled` noch opt-in ist**, statt zu warten, bis Default-on den Hack unangekündigt bricht. Research liefert Fix-Pfad + Messprogramm; Scheduling/Umsetzung = PM/CM.
+
+**Vereinbartes Vorgehen (2026-07-23):** *Erst Beweis, dann Prozess.* Nach der nächsten Release (wenn das Projekt frei ist) bauen Georg + Research einen **Wegwerf-Spike (nicht spec-driven)**. Ziel: zeigen, dass der **Extension-Host** Jarvis-`send` **und** `receive` gegen eine **AHP-Session** fahren kann. Der kritische Nachweis = **Inbound über die Prozessgrenze** (AHP-Session wecken, Inbox lesen, **ohne** `chat.open`-Duplikat) — Outbound ist bereits belegt. **Nur bei grünem Beweis** geht es mit einem Artefakt zum PM (dann spec-driven).
+
+## 1.130 Settings-Inventar — die AHP-Schalter (2026-07-23)
+
+Aus dem Settings-UI unter 1.130 (mehr als in den Release Notes; alle **Experimental**). IDs aus Labels abgeleitet, im Zweifel verifizieren:
+
+| Setting (Label) | Wirkung | Bezug |
+|---|---|---|
+| **Chat › Agent Host: Enabled** (Advanced) | „some agents run in a separate agent host process." | Master-Switch, Voraussetzung für alle folgenden |
+| **Chat: Default To Copilot Harness** | „new editor and panel chat sessions **default to the Agent Host Copilot CLI** instead of default." | ⭐ **erklärt die Zwangs-Migration** — unser unveränderter `chat.open` landet dadurch auf AHP |
+| **Chat › Editor › Codex: Prefer Agent Host** | Codex-Sessions aus dem regulären Workbench (Sidebar-Chat) laufen im Agent Host (per Window). | benötigt `Agent Host: Enabled` |
+| **Chat › Agents › Claude: Prefer Agent Host** | Claude-Sessions aus dem Agents-Window laufen im Agent-Host-Prozess (per Window). | benötigt `Agent Host: Enabled` |
+| **Chat › Agents › Copilot Cli: Hide Extension Host** | Blendet den Extension-Host-Copilot-CLI-Eintrag aus dem Agents-Window-Picker aus. | Kosmetik/Picker |
+
+→ **Ursache der Install-AHP-Session ist ein Setting, nicht unser Code.** `Default To Copilot Harness` (evtl. Default-on im Rollout) macht neue Editor/Panel-Sessions AHP. **Gegenmittel für „jetzt nicht":** `Agent Host: Enabled` bzw. `Default To Copilot Harness` off. Die `preferAgentHost`-Schalter sind **per-Harness** (Codex/Claude getrennt) — d. h. die Migration ist **granular steuerbar**, nicht alles-oder-nichts.
+
 ## Offen (nächste Spikes)
 
 - **Confirmation-Guardrail:** Umgehen Jarvis' eigene Tools (`jarvis_sendMessage`) die native „bestätige jeden Send"-Abfrage? Erster Hinweis: Qwen sendete ohne VS-Code-Dialog → wahrscheinlich ja, aber sauber verifizieren (sonst killt eine Bestätigungspflicht die Heartbeat-Autonomie).
 - **Restliche 7 Hook-Events** einzeln bestätigen (nur `UserPromptSubmit` gemessen; Mechanik identisch).
-- **Display-/Attach-Lücke (Messung D):** Warum schlägt `/remote on` fehl, und gibt es einen Weg, den VS-Code-Editor an eine laufende (extern getriebene) Session **anzuhängen**, sodass der Verlauf sichtbar wird? Ohne das sieht der Mensch extern getriebene Turns im Editor nicht.
+- **Display-/Attach-Lücke (Messung D):** Warum schlägt `/remote on` fehl, und gibt es einen Weg, den VS-Code-Editor an eine laufende (extern getriebene) Session **anzuhängen**, sodass der Verlauf sichtbar wird? Unter 1.130 (Multi-Window-Attach) neu zu messen.
+- **1.130 Zwangs-Migration (Breadcrumb, 2026-07-23):** Beim `jarvis-syspilot`-Install unter 1.130 öffnete sich **automatisch eine AHP-Session** — unser unveränderter `workbench.action.chat.open` löst mit aktivem `chat.agentHost.enabled` jetzt auf den Agent Host auf (nicht unser Code, VS Codes Auflösung). Die Session zeigte **Einstellungen für „remote control" / „interactive"** (nicht im Detail erfasst, Session wieder gelöscht). → Nächster Spike: diese Session-Settings inventarisieren; prüfen, ob `chat.open`-Zustellung unter 1.130 noch dupliziert oder nativ die AHP-Session trifft.
 - Ist der `agent-host-session://`-Opener bzw. `openerService.open` aus einer **Extension** stabil/öffentlich triggerbar (vs. nur workbench-intern)?
 - Stellt der AHP-Client (message-port lokal) darüber hinaus einen Weg bereit, einer bereits offenen Session **ohne UI-Öffnen** einen Turn zu injizieren (headless delivery)?
 

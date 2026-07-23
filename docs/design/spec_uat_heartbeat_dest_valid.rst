@@ -9,7 +9,8 @@ Heartbeat Destination Validation UAT Design Specifications
    **Description:**
    Step-by-step procedures and expected outcomes for heartbeat queue-step
    destination validation scenarios: load-time warning, ``jarvis_registerJob``
-   rejection, and no-regression for valid jobs.
+   rejection, no-regression for valid jobs, and actor-entity destination
+   validation after the ``KindDrivenScanner`` wiring fix.
 
    **Test Setup:**
 
@@ -73,3 +74,24 @@ Heartbeat Destination Validation UAT Design Specifications
           ``Jarvis: Run Heartbeat Job``.
         - Job executes successfully. No new ``[WARN]`` or ``[ERROR]`` entries
           in Output Channel related to destination validation.
+
+      * - T-55
+
+          Actor entity destination with no chat tab open — validates and
+          delivers
+
+          *AC-6, SPEC_AUT_HEARTBEAT_LOAD_VALIDATION AC-1/3*
+        - Add a heartbeat job with a ``queue`` step whose ``destination``
+          names an existing actor entity (one present under
+          ``.jarvis/actors/`` in the workspace, e.g. ``Syspilot Setup
+          Engineer`` or another actor). Ensure no VS Code chat tab for that
+          actor is currently open. Reload the EDH (load-time validation).
+          Then run the job via ``Jarvis: Run Heartbeat Job``.
+        - At load time: no ``[WARN]`` about the destination — the actor is
+          resolved as a valid destination by the ``KindDrivenScanner``-wired
+          ``getValidDestinations()``.
+          At run time: the queue step executes without a ``[WARN]`` or
+          ``[ERROR]``; the message is queued to the actor (visible in the
+          Messages tree for that actor). Note: before this fix, the actor
+          destination would have been silently rejected at load because the
+          scanner was not wired into ``activateHeartbeat()``.

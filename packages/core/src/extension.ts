@@ -527,7 +527,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
 
     // ------- HEARTBEAT feature block (SPEC_CFG_TOGGLEGUARDS) -------
     if (cfg.get<boolean>('heartbeat.enabled', true)) {
-        scheduler = activateHeartbeat(context, messageProvider, resolveMessagesPath, log, undefined);
+        scheduler = activateHeartbeat(context, messageProvider, resolveMessagesPath, log, kindDrivenScanner);
         engine.setScheduler(scheduler);
         syncRescanJob();
     } else {

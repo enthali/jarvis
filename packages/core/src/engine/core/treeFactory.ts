@@ -617,7 +617,7 @@ export class GenericTreeDataProvider implements vscode.TreeDataProvider<Provider
 
         // Agent category (conditional) then Files category (always), on-the-fly
         // per SPEC_ENT_ENTITY_FILE_CHILDREN AC-2/AC-4/AC-5. Never cached in the
-        // scanner or in YamlScanner's own tree structures.
+        // scanner or in KindDrivenScanner's own tree structures.
         const categoryNodes: (EntityFileCategoryNode | TouchedFilesCategoryNode)[] = [];
         const agentFile = await resolveAgentFileChild(entity?.agent, workspaceRoot);
         if (agentFile) {

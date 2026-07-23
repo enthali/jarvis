@@ -31,6 +31,26 @@ Heartbeat User Acceptance Tests
    * AC-7: The job-failure test (AC-3) also verifies that captured stderr output
      (up to the last 3 lines) is included in the failure toast when the failing
      step produced any (``heartbeat-venv-autodetect`` CR)
+   * AC-8 (``heartbeat-step-output-vars`` CR): A test verifies basic output
+     variable chaining: a script step with ``outputVar`` captures stdout; a
+     subsequent step that references ``${VAR}`` receives the substituted value
+     (T-19).
+   * AC-9 (``heartbeat-step-output-vars`` CR): A test verifies agent step
+     ``outputVar`` capture: agent response text captured into a variable and
+     correctly interpolated in a later step (T-20).
+   * AC-10 (``heartbeat-step-output-vars`` CR): A test verifies ``LAST_STDERR``
+     tracks only the most recent script step's stderr and is overwritten by each
+     new script step (T-21).
+   * AC-11 (``heartbeat-step-output-vars`` CR): A test verifies that an undefined
+     variable reference ``${UNKNOWN}`` is left as-is in the output, with no
+     crash or job failure (T-22).
+   * AC-12 (``heartbeat-step-output-vars`` CR): A test verifies that variables do
+     not persist across separate job runs (T-23).
+   * AC-13 (``heartbeat-step-output-vars`` CR): A test verifies that captured
+     variable fills are logged at info level in the Output Channel (T-24).
+   * AC-14 (``heartbeat-step-output-vars`` CR): A test verifies that ``outputVar``
+     on a ``queue`` or ``command`` step is silently ignored — no variable is set,
+     no error (T-25).
 
    **Test Scenarios:**
 
@@ -221,3 +241,73 @@ Heartbeat User Acceptance Tests
      Expected: No ``"Jarvis: Rescan"`` job registered. Scanner performs the initial
      scan only. No periodic rescans occur (sidebar does not update after modifying
      a YAML file, until manual rescan).
+
+   **T-19 — Basic output variable chaining: script → subsequent step**
+     Setup: Add a manual heartbeat job with two steps:
+     step 1 — ``powershell`` (or ``python``), ``outputVar: MY_VAR``, script
+     that prints a known string (e.g. ``echo "hello-from-step1"``);
+     step 2 — ``queue`` or ``command`` (to a valid destination) with its
+     ``text``/``run`` field containing ``"prefix-${MY_VAR}-suffix"``.
+     Action: Run the job via ``Jarvis: Run Heartbeat Job``.
+     Expected: Step 1 executes and stdout is captured. Step 2's field shows
+     ``"prefix-hello-from-step1-suffix"`` at execution time. No
+     ``${MY_VAR}`` literal remains in the delivered text. No error.
+
+   **T-20 — Agent step outputVar capture**
+     Setup: Add a manual job with two steps:
+     step 1 — ``agent``, ``outputVar: AGENT_REPLY``, ``prompt`` asking for a
+     deterministic one-word answer (e.g. ``"Reply with only the word: hello"``);
+     step 2 — ``queue`` step, ``text: "Agent said: ${AGENT_REPLY}"``.
+     Action: Run the job.
+     Expected: Step 2 delivers the message with the agent's response text
+     substituted for ``${AGENT_REPLY}`` — e.g. ``"Agent said: hello"``.
+
+   **T-21 — LAST_STDERR tracks only most recent script step**
+     Setup: Add a manual job with three steps:
+     step 1 — ``powershell``, script writes ``"stderr-1"`` to stderr;
+     step 2 — ``powershell``, script writes ``"stderr-2"`` to stderr;
+     step 3 — ``queue`` step, ``text: "Last error: ${LAST_STDERR}"``.
+     Action: Run the job.
+     Expected: Step 3 delivers ``"Last error: stderr-2"`` — the first
+     step's stderr has been overwritten. No ``"stderr-1"`` appears in the
+     delivered text.
+
+   **T-22 — Undefined variable reference left as-is (no crash)**
+     Setup: Add a manual job with one step:
+     ``queue`` step, ``text: "val=${UNDEFINED_VAR}"``.
+     No step sets ``UNDEFINED_VAR``.
+     Action: Run the job.
+     Expected: The message ``"val=\${UNDEFINED_VAR}"`` is delivered literally
+     — the placeholder is NOT substituted. No error toast, no job failure.
+
+   **T-23 — Variable scope: does not persist across job runs**
+     Setup: Use the T-19 job (step 1 sets ``MY_VAR``).
+     Action: Run the job once (variables are set). Run the job a second time.
+     Expected: On the second run, step 1 re-executes and sets ``MY_VAR``
+     fresh. Variables are NOT carried over from the first run. Both runs
+     produce identical results. To verify isolation: modify the T-19 job to
+     remove step 1 between runs; on the second run ``${MY_VAR}`` should
+     appear literally (undefined), confirming the first run's vars are gone.
+
+   **T-24 — Variable capture logged at info level**
+     Setup: Use the T-19 job (step 1 has ``outputVar: MY_VAR``).
+     Ensure the Jarvis Output Channel is open.
+     Action: Run the job.
+     Expected: The Jarvis Output Channel shows an info-level log entry
+     confirming the variable capture, e.g. containing ``MY_VAR`` and the
+     step type (e.g. ``"set by powershell step"``). No error entries for
+     the capture itself.
+
+   **T-25 — outputVar on queue/command step is silently ignored**
+     Setup: Add a manual job with two steps:
+     step 1 — ``queue`` step with ``outputVar: QUEUE_OUT`` (invalid for this
+     type), ``destination`` a valid actor, ``text: "test"``;
+     step 2 — ``command`` step with ``outputVar: CMD_OUT`` (also invalid),
+     ``run: workbench.action.showCommands``.
+     After both steps, add a third ``queue`` step with
+     ``text: "${QUEUE_OUT}-${CMD_OUT}"``.
+     Action: Run the job.
+     Expected: Steps 1 and 2 execute normally without error. Neither
+     ``QUEUE_OUT`` nor ``CMD_OUT`` is set (silently ignored). Step 3
+     delivers the text ``"\${QUEUE_OUT}-\${CMD_OUT}"`` literally (both
+     undefined). No error, no crash.

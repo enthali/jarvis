@@ -29,10 +29,11 @@ Explorer Design Specifications
    **Activation order (heartbeat-register change):**
 
    0. ``await populateDefaultPaths(context)`` — writes default paths to settings
-   1. ``activateHeartbeat(context, ...)`` → returns ``HeartbeatScheduler``
-   2. ``scanner = new YamlScanner(callback)``
-   3. ``scanner.start(projectsFolder, eventsFolder)`` → immediate scan (no timer)
-   4. ``syncRescanJob()`` → if ``scanInterval > 0``: ``scheduler.registerJob(rescanJob)``
+   1. ``kindDrivenScanner = new KindDrivenScanner(folderResolver, onCacheChanged, log)``
+   2. Register entity kinds via ``kindDrivenScanner.addKind(...)``
+   3. ``activateHeartbeat(context, ..., kindDrivenScanner)`` → returns ``HeartbeatScheduler``
+   4. ``kindDrivenScanner.rescan()`` → immediate scan
+   5. ``syncRescanJob()`` → if ``scanInterval > 0``: ``scheduler.registerJob(rescanJob)``
 
    A ``syncRescanJob()`` helper reads ``jarvis.scanInterval`` and either registers or
    unregisters the ``"Jarvis: Rescan"`` heartbeat job. The config change handler calls
@@ -84,7 +85,7 @@ Explorer Design Specifications
    :links: REQ_CFG_SCANINTERVAL; SPEC_AUT_JOBREG; SPEC_ENG_SCANNER
 
    **Description:**
-   A helper function in ``src/extension.ts`` that bridges the YamlScanner and the
+   A helper function in ``src/extension.ts`` that bridges the ``KindDrivenScanner`` and the
    HeartbeatScheduler. It reads the ``jarvis.scanInterval`` setting and registers
    or unregisters a ``"Jarvis: Rescan"`` heartbeat job accordingly.
 

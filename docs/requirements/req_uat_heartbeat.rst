@@ -29,6 +29,11 @@ Heartbeat UAT Requirements
    * AC-7: A failing Python script exists that writes more than 3 lines to stderr
      before exiting non-zero (``heartbeat-venv-autodetect`` CR), to verify the
      bounded (last-3-lines) stderr tail in the failure notification
+   * AC-8 (``heartbeat-step-output-vars`` CR): Manual jobs with ``outputVar``
+     steps exist for T-19 through T-25 — at minimum: a powershell step that
+     prints a known string with ``outputVar: MY_VAR``, a following queue step
+     that references ``${MY_VAR}``; a second job exercising ``LAST_STDERR``; and
+     a job with an undefined variable reference.
 
 
 .. req:: Heartbeat Tree View Test Procedures

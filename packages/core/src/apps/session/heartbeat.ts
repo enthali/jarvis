@@ -33,6 +33,7 @@ export interface HeartbeatStep {
     destination?: string; // queue: target chat tab label
     sender?: string;      // queue: originating session or component
     text?: string;        // queue: message content
+    outputVar?: string;   // capture stdout (scripts) or response text (agent) into this named variable
 }
 
 export interface HeartbeatJob {
@@ -47,17 +48,33 @@ interface ExecResult {
     success: boolean;
     stepType?: HeartbeatStep['type'];
     error?: string;
+    output?: string;  // captured stdout (scripts) or response text (agent)
+    stderr?: string;  // captured stderr (script steps only)
 }
 
 // ---------------------------------------------------------------------------
 // Job loader (SPEC_AUT_JOBSCHEMA)
 // ---------------------------------------------------------------------------
 
+const VAR_NAME_RE = /^[A-Za-z_]\w*$/;
+
 export function loadJobs(filePath: string, outputChannel: vscode.LogOutputChannel): HeartbeatJob[] {
     try {
         const raw = fs.readFileSync(filePath, 'utf8');
         const data = yaml.load(raw) as { jobs: HeartbeatJob[] };
-        return data?.jobs ?? [];
+        const jobs = data?.jobs ?? [];
+        // SPEC_AUT_STEP_OUTPUT_VARS AC-8: validate outputVar names at load time
+        for (const job of jobs) {
+            for (const step of job.steps) {
+                if (step.outputVar && !VAR_NAME_RE.test(step.outputVar)) {
+                    outputChannel.warn(
+                        `[Heartbeat] job "${job.name}": invalid outputVar "${step.outputVar}" — ignored`
+                    );
+                    step.outputVar = undefined;
+                }
+            }
+        }
+        return jobs;
     } catch (e) {
         outputChannel.warn(`[Heartbeat] Failed to load config: ${e}`);
         return [];
@@ -149,11 +166,21 @@ function spawnStep(
         // ExecResult.error on non-zero exit. Full stream still logged in
         // full at debug level below — this buffer is memory-only.
         const stderrTail: string[] = [];
-        proc.stdout.on('data', (d: Buffer) => outputChannel.debug('[Heartbeat] stdout: ' + d.toString().trimEnd()));
+        // SPEC_AUT_STEP_OUTPUT_VARS: full stdout/stderr accumulation for
+        // output/stderr variable capture (separate from the bounded error tail).
+        let stdoutFull = '';
+        let stderrFull = '';
+        proc.stdout.on('data', (d: Buffer) => {
+            const text = d.toString();
+            stdoutFull += text;
+            outputChannel.debug('[Heartbeat] stdout: ' + text.trimEnd());
+        });
         proc.stderr.on('data', (d: Buffer) => {
-            const text = d.toString().trimEnd();
-            outputChannel.debug('[Heartbeat] stderr: ' + text);
-            for (const line of text.split('\n')) {
+            const text = d.toString();
+            stderrFull += text;
+            const trimmed = text.trimEnd();
+            outputChannel.debug('[Heartbeat] stderr: ' + trimmed);
+            for (const line of trimmed.split('\n')) {
                 stderrTail.push(line);
                 if (stderrTail.length > 3) { stderrTail.shift(); }
             }
@@ -161,9 +188,9 @@ function spawnStep(
         proc.on('close', (code: number | null) => {
             if (code !== 0) {
                 const tail = stderrTail.join('\n');
-                resolve({ success: false, stepType, error: `exit ${code ?? 'null'}${tail ? '\n' + tail : ''}` });
+                resolve({ success: false, stepType, error: `exit ${code ?? 'null'}${tail ? '\n' + tail : ''}`, output: stdoutFull, stderr: stderrFull });
             } else {
-                resolve({ success: true });
+                resolve({ success: true, output: stdoutFull, stderr: stderrFull });
             }
         });
         proc.on('error', (err: Error) => {
@@ -235,7 +262,7 @@ async function executeAgentStep(
             }
             outputChannel.info(`[Heartbeat] agent: written to ${outPath}`);
         }
-        return { success: true };
+        return { success: true, output: text };
     } catch (e) {
         return { success: false, stepType: 'agent', error: (e as Error).message };
     }
@@ -264,6 +291,23 @@ async function validateLoadedJobs(
             }
         });
     }
+}
+
+// ---------------------------------------------------------------------------
+// Step output interpolation (SPEC_AUT_STEP_OUTPUT_VARS)
+// ---------------------------------------------------------------------------
+
+function interpolateStep(step: HeartbeatStep, vars: Record<string, string>): HeartbeatStep {
+    if (Object.keys(vars).length === 0) { return step; }
+    const clone = { ...step };
+    const fields: (keyof HeartbeatStep)[] = ['run', 'prompt', 'outputFile', 'destination', 'sender', 'text'];
+    for (const f of fields) {
+        const value = clone[f];
+        if (typeof value === 'string') {
+            (clone[f] as string | undefined) = value.replace(/\$\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m));
+        }
+    }
+    return clone;
 }
 
 // ---------------------------------------------------------------------------
@@ -349,8 +393,18 @@ export async function executeJob(
     messageTreeProvider: MessageTreeProvider,
     scanner?: { entities: { name: string }[] }
 ): Promise<ExecResult> {
+    const vars: Record<string, string> = {};
     for (const step of job.steps) {
-        const result = await runStep(step, outputChannel, configDir, queuePath, messageTreeProvider, scanner);
+        const interpolated = interpolateStep(step, vars);
+        const result = await runStep(interpolated, outputChannel, configDir, queuePath, messageTreeProvider, scanner);
+        if (result.output && interpolated.outputVar) {
+            vars[interpolated.outputVar] = result.output;
+            outputChannel.info(`[Heartbeat] var ${interpolated.outputVar} set by ${interpolated.type} step`);
+        }
+        if (result.stderr !== undefined) {
+            vars['LAST_STDERR'] = result.stderr;
+            outputChannel.info(`[Heartbeat] var LAST_STDERR set by ${interpolated.type} step`);
+        }
         if (!result.success) { return result; }
     }
     return { success: true };

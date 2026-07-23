@@ -51,6 +51,10 @@ Automation User Stories
    * AC-18: An LM and MCP tool ``jarvis_listJobs`` SHALL allow agents to retrieve
      all registered heartbeat jobs including their name, schedule, enabled state,
      and next scheduled fire time
+   * AC-19: A step MAY capture its stdout (script steps) or response text (agent steps)
+     into a named variable scoped to the current job run; subsequent steps MAY
+     reference captured variables via ``${VAR_NAME}`` interpolation in their string
+     fields, enabling data flow between steps without external intermediate files
 
 
 .. story:: Queue Step Destination Validation

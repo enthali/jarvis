@@ -8,8 +8,10 @@ Actor Design Specifications
 
    **Description:**
    New module ``src/sessionTreeProvider.ts`` — a slimmed clone of
-   ``src/projectTreeProvider.ts``. It consumes ``YamlScanner.getSessionTree()``
-   and renders session leaf nodes.
+   ``src/projectTreeProvider.ts``. It consumed ``YamlScanner.getSessionTree()``
+   and rendered session leaf nodes. **(Removed — see skeleton-removal note
+   below; the current Actor tree is produced by the generic
+   ``engine.treeFactory.getProvider('session')`` via ``KindDrivenScanner``.)**
 
    **(actor-terminology-rename CR amendment, Phase 1):** The ``package.json``
    contribution for this view uses the user-visible display name ``"Actors"``
@@ -59,90 +61,15 @@ Actor Design Specifications
    object becomes informational only (no longer used to create a standalone
    view) since the unified wrapper now owns view creation.
 
-   **Skeleton (HISTORICAL — this module/class no longer exists, removed by
-   actor-internal-identifiers-rename; kept below only as a description of
-   what the generic factory replaced):**
-
-   .. note::
-
-      The ``item.command`` binding shown below is superseded by
-      ``SPEC_ACT_TREECLICK`` for ``jarvisSession`` items: the primary action is
-      now ``jarvis.openAgentSession`` (open the agent chat), and ``context.md``
-      access moves to an inline-icon menu entry. See ``SPEC_ACT_TREECLICK`` for
-      the current assignment.
-
-   .. note::
-
-      The ``vscode.TreeItemCollapsibleState.None`` shown below is superseded
-      by ``SPEC_ENT_ENTITY_FILE_CHILDREN``: session leaf nodes become
-      expandable (``Collapsed``) to show file children. See
-      ``SPEC_ENT_ENTITY_FILE_CHILDREN`` for the current assignment.
-
-   .. code-block:: typescript
-
-      // Implementation: SPEC_ACT_TREE (HISTORICAL — file/class removed,
-      // actor-internal-identifiers-rename CR)
-      // Requirements: REQ_ACT_TREE
-
-      import * as path from 'path';
-      import * as vscode from 'vscode';
-      import { YamlScanner, TreeNode, FolderNode } from './yamlScanner';
-
-      export class SessionTreeProvider
-          implements vscode.TreeDataProvider<TreeNode> {
-
-          private _onDidChangeTreeData = new vscode.EventEmitter<void>();
-          readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
-
-          private _scanner: YamlScanner;
-
-          constructor(scanner: YamlScanner) {
-              this._scanner = scanner;
-          }
-
-          refresh(): void {
-              this._onDidChangeTreeData.fire();
-          }
-
-          getTreeItem(element: TreeNode): vscode.TreeItem {
-              if (element.kind === 'folder') {
-                  const item = new vscode.TreeItem(
-                      element.name,
-                      vscode.TreeItemCollapsibleState.Collapsed
-                  );
-                  item.contextValue = 'jarvisFolder';
-                  return item;
-              }
-              // LeafNode — session entity
-              const entity = this._scanner.getEntity(element.id);
-              const name = entity?.name ?? path.basename(path.dirname(element.id));
-              const item = new vscode.TreeItem(name, vscode.TreeItemCollapsibleState.None);
-              item.tooltip = entity?.summary ?? '';
-              item.contextValue = 'jarvisSession';
-              item.command = {
-                  command: 'jarvis.openContext',
-                  title: 'Open Context',
-                  arguments: [{ path: path.dirname(element.id) }]
-              };
-              return item;
-          }
-
-          getChildren(element?: TreeNode): TreeNode[] {
-              if (!element) {
-                  return this._scanner.getSessionTree();
-              }
-              if (element.kind === 'folder') {
-                  return (element as FolderNode).children;
-              }
-              return [];
-          }
-
-          getParent(element: TreeNode): TreeNode | undefined {
-              // Required for TreeView.reveal(); full parent tracking
-              // is a follow-up; returning undefined is safe for display.
-              return undefined;
-          }
-      }
+   **Skeleton removed (heartbeat-destination-actoryaml CR):** The historical
+   ``SessionTreeProvider`` code block that was preserved here as a reference
+   for what the generic ``engine.treeFactory.getProvider('session')`` replaced
+   has been removed. The class, its module
+   (``src/apps/session/sessionTreeProvider.ts``), and its equivalence test were
+   all deleted by the actor-internal-identifiers-rename CR. The current Actor
+   tree provider is produced by ``GenericTreeDataProvider`` via
+   ``KindDrivenScanner`` — see ``SPEC_ENG_TREEFACTORY`` and
+   ``SPEC_ACT_DUALPATH_SCANNER``.
 
    **Notes:**
 
@@ -322,6 +249,23 @@ Actor Design Specifications
      ``rescan()``'s new loop body (``for (const root of scanConfig.
      additionalScanRoots ?? [])``) is a no-op for them — zero behavior
      change to their scanning.
+
+   **(heartbeat-destination-actoryaml CR amendment) Legacy ``YamlScanner``
+   class removal:**
+
+   The old ``YamlScanner`` class (exported from ``yamlScanner.ts``, with its
+   hardcoded ``_scan()`` method and ``session.yaml`` convention) is dead code —
+   fully superseded by ``KindDrivenScanner``. It SHALL be removed:
+
+   * **Active code:** Zero remaining call sites in ``packages/`` source. The
+     ``extension.ts`` wiring exclusively uses ``KindDrivenScanner``.
+   * **Tests:** ``src/tests/characterization.test.ts`` imports and
+     instantiates ``YamlScanner`` — this test file SHALL be updated to use
+     ``KindDrivenScanner`` or removed if the characterization is no longer
+     meaningful.
+   * **Docs:** All spec references to the old ``YamlScanner`` class have been
+     updated to reference ``KindDrivenScanner`` (``spec_exp.rst``,
+     ``spec_dev.rst``, ``spec_act.rst`` SPEC_ACT_TREE skeleton removed).
 
 
 .. spec:: sessions-feature: newEntity Command — Session Branch

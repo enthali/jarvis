@@ -54,6 +54,15 @@ Heartbeat Destination Validation UAT Requirements
      For T-54, the tester SHALL trigger the valid pre-existing heartbeat job
      (via ``Jarvis: Run Heartbeat Job``) and verify it executes without any
      ``[WARN]`` or ``[ERROR]`` entries relating to destination validation.
+   * AC-6 (``heartbeat-destination-actoryaml`` CR — actor entity, no chat tab):
+     For T-55, the tester SHALL configure a heartbeat queue step targeting an
+     actor-model entity name (one present under ``.jarvis/actors/``) and
+     ensure no chat tab for that actor is open, then trigger the job. The step
+     SHALL complete without a ``[WARN]`` or ``[ERROR]`` about the destination,
+     and the message SHALL be queued to the actor. Previously this silently
+     failed because ``activateHeartbeat()`` was never given the
+     ``KindDrivenScanner`` instance (``SPEC_AUT_HEARTBEAT_LOAD_VALIDATION``
+     AC-1/AC-3).
 
    **Testability note:**
    ``US_AUT_HEARTBEAT_VALIDATION`` AC-3 (at-fire-time step skip) is NOT

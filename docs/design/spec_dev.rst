@@ -261,12 +261,13 @@ Developer Tooling Design Specifications
 
    **Module wiring:**
 
-   * ``activateHeartbeat(context, messageProvider, resolveMessagesPath, log)``
-     — new fourth parameter; ``activateHeartbeat`` no longer creates its own channel.
+   * ``activateHeartbeat(context, messageProvider, resolveMessagesPath, log, kindDrivenScanner)``
+     — new fourth parameter (log) and fifth parameter (scanner);
+     ``activateHeartbeat`` no longer creates its own channel.
    * ``checkForUpdates(context, silent, log)``
      — new third parameter.
-   * ``new YamlScanner(onCacheChanged, log)``
-     — new second parameter.
+   * ``new KindDrivenScanner(folderResolver, onCacheChanged, log)``
+     — scanner instantiation with log parameter.
    * Inline logging in ``extension.ts`` for ``[MSG]``, ``[Scanner]``, ``[Update]``
      commands uses the same ``log`` reference.
 
@@ -297,7 +298,8 @@ Developer Tooling Design Specifications
 
    **yamlScanner.ts changes:**
 
-   ``YamlScanner`` constructor gains a second parameter ``log: vscode.LogOutputChannel``:
+   ``KindDrivenScanner`` constructor accepts a ``log: vscode.LogOutputChannel``
+   parameter:
 
    * ``log.info('[Scanner] Scan started')``
    * ``log.info('[Scanner] Scan complete — N projects, M events')``
@@ -344,14 +346,14 @@ Developer Tooling Design Specifications
       message path resolver)
    3. ``vscode.window.createOutputChannel('Jarvis', { log: true })`` — create shared
       LogOutputChannel; pushed to ``context.subscriptions``
-   4. ``activateHeartbeat(context, messageProvider, resolveMessagesPath, log)`` —
-      start HeartbeatScheduler (needs log channel, message provider); returns
+   4. ``activateHeartbeat(context, messageProvider, resolveMessagesPath, log, kindDrivenScanner)`` —
+      start HeartbeatScheduler (needs log channel, message provider, scanner); returns
       ``HeartbeatScheduler`` instance; pushes its own disposables to
       ``context.subscriptions``
-   5. ``new YamlScanner(onCacheChanged)`` — create scanner (callback refreshes tree
-      providers)
-   6. ``new ProjectTreeProvider(scanner)`` / ``new EventTreeProvider(scanner)`` —
-      create tree data providers (need scanner)
+   5. ``new KindDrivenScanner(folderResolver, onCacheChanged, log)`` — create scanner
+      (callback refreshes tree providers)
+   6. Register entity kinds via ``kindDrivenScanner.addKind(...)`` —
+      project, event, session/actor
    7. ``vscode.window.createTreeView(...)`` — register Projects, Events, Messages
       tree views
    8. Restore persisted filter state from ``workspaceState``

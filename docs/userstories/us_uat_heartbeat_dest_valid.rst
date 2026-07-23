@@ -30,6 +30,12 @@ Heartbeat Destination Validation User Acceptance Tests
    * AC-4: A test verifies that a pre-existing correctly configured heartbeat
      job (valid entity destination) executes without error, confirming no
      regression (maps to ``US_AUT_HEARTBEAT_VALIDATION`` AC-5 / T-54).
+   * AC-5 (``heartbeat-destination-actoryaml`` CR): A test verifies that a
+     heartbeat queue step targeting an actor-model entity
+     (``.jarvis/actors/<name>/actor.yaml``) validates and delivers successfully
+     even when no matching chat tab is currently open — the ``KindDrivenScanner``
+     wiring enables actor-entity destinations that were silently rejected
+     before this fix (T-55).
 
    **Testability note:** ``US_AUT_HEARTBEAT_VALIDATION`` AC-3 (at-fire-time
    skip of invalid step) cannot be conveniently verified in manual UAT
@@ -45,3 +51,5 @@ Heartbeat Destination Validation User Acceptance Tests
    * T-53: ``jarvis_registerJob`` with invalid destination → error; job not
      persisted.
    * T-54: Correctly configured job → behavior unchanged (no regression).
+   * T-55: Actor-model entity destination (actor.yaml) with no chat tab open
+     → validates as valid; job step delivers the queued message.

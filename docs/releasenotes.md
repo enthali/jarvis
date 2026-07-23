@@ -1,5 +1,21 @@
 # Release Notes
 
+## v0.22.0 — Heartbeat Output Vars + Actor Destination Fix
+
+*2026-07-23*
+
+### Features
+
+- **heartbeat-step-output-vars** (GH #42): Heartbeat job steps can now chain output from one step to the next. Add an optional `outputVar: VAR_NAME` field to any `python` or `powershell` script step or `agent` step — the step's stdout (or agent response text) is captured into that named variable for the rest of the job run. Reference it in any string field of a later step via `${VAR_NAME}`. A well-known variable `LAST_STDERR` is automatically set to the most recent script step's stderr output. Missing/undefined variable references are left as literal text (no hard failure). Variable names are validated at load time; invalid names emit a warning and are ignored.
+  *(REQ_AUT_JOBEXEC AC-6/7/8; REQ_AUT_OUTPUT; SPEC_AUT_JOBSCHEMA; SPEC_AUT_EXECUTOR)*
+
+### Fixes
+
+- **heartbeat-destination-actoryaml** (GH #41): Fixes heartbeat `queue` step destination validation on actor-model workspaces. The root cause was that `activateHeartbeat()` in `extension.ts` passed `undefined` instead of the `KindDrivenScanner` instance to the destination validator, silently reducing valid destinations to open chat tabs only. Actor entities (`.jarvis/actors/*/actor.yaml`) were never recognized as valid destinations regardless of the workspace convention. Fixed with a one-line wiring correction. Also removes the confirmed-dead legacy `YamlScanner` class from code and stale references from design specs per user directive.
+  *(REQ_AUT_HEARTBEAT_LOAD_VALIDATION; SPEC_AUT_HEARTBEAT_LOAD_VALIDATION)*
+
+---
+
 ## v0.21.0 — Jarvis Syspilot Module + Notification Improvements
 
 *2026-07-22*
