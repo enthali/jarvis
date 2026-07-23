@@ -878,18 +878,26 @@ Automation Design Specifications
    **Description:**
    Extend ``HeartbeatScheduler.reload()`` in ``src/heartbeat.ts`` to call an
    async validation helper immediately after ``this.jobs = loadJobs(...)``, using
-   the shared session resolver.
+   the shared ``getValidDestinations(scanner)`` function from
+   ``sessionLookup.ts``.
 
-   **Validation helper (new function in ``heartbeat.ts``):**
+   **(heartbeat-destination-actoryaml CR amendment):** The scanner parameter
+   MUST be the ``KindDrivenScanner`` instance — not ``undefined``.
+   ``activateHeartbeat()`` receives it from ``extension.ts`` at activation time,
+   the same instance used by ``jarvis_sendMessage`` and other destination
+   validators. Passing ``undefined`` silently degrades the valid set to
+   {chat tab titles only}, which breaks autonomous delivery to YAML entities.
+
+   **Validation helper (in ``heartbeat.ts``):**
 
    .. code-block:: typescript
 
       async function validateLoadedJobs(
         jobs: HeartbeatJob[],
-        outputChannel: vscode.LogOutputChannel
+        outputChannel: vscode.LogOutputChannel,
+        scanner?: { entities: { name: string }[] }
       ): Promise<void> {
-        const allSessions = await getAllSessions();
-        const validNames = filterNamedSessions(allSessions).map(s => s.title);
+        const validNames = await getValidDestinations(scanner);
         for (const job of jobs) {
           job.steps.forEach((step, idx) => {
             if (step.type === 'queue' && step.destination) {
@@ -915,17 +923,37 @@ Automation Design Specifications
         this.configDir = path.dirname(configPath);
         this.jobs = loadJobs(configPath, this.outputChannel);
         // Fire-and-forget load-time validation (SPEC_AUT_HEARTBEAT_LOAD_VALIDATION)
-        validateLoadedJobs(this.jobs, this.outputChannel).catch(() => { /* silent */ });
+        validateLoadedJobs(this.jobs, this.outputChannel, this.scanner).catch(() => { /* silent */ });
       }
 
    **Import required in ``heartbeat.ts``:**
 
    .. code-block:: typescript
 
-      import { getAllSessions, filterNamedSessions } from './sessionLookup';
+      import { getValidDestinations } from './sessionLookup';
+
+   **``extension.ts`` wiring (heartbeat-destination-actoryaml CR):**
+
+   .. code-block:: typescript
+
+      // The KindDrivenScanner instance MUST be passed — not undefined:
+      scheduler = activateHeartbeat(context, messageProvider, resolveMessagesPath, log, kindDrivenScanner);
 
    **No side effects on job list:** ``validateLoadedJobs`` only emits warnings;
    it does not mutate, filter, or pause any job object.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``activateHeartbeat()`` SHALL receive the ``KindDrivenScanner``
+     instance from ``extension.ts`` — same instance used by
+     ``jarvis_sendMessage`` and other destination validators.
+   * AC-2: All heartbeat destination validation paths (load-time, fire-time,
+     ``jarvis_registerJob``) SHALL call ``getValidDestinations(scanner)`` with
+     the ``KindDrivenScanner`` instance — never ``undefined``.
+   * AC-3: The valid destination set resolves actor-model entities
+     (``.jarvis/actors/*/actor.yaml``) via the dual-path scanner
+     (``SPEC_ACT_DUALPATH_SCANNER``) — destinations naming actors are valid
+     even when no matching chat tab is open.
 
 
 .. spec:: Queue Step Fire-Time Skip Behavior (D-1)

@@ -1,5 +1,14 @@
 # Release Notes
 
+## v0.22.0 — unreleased
+
+### Fixes
+
+- **heartbeat-destination-actoryaml** (GH #41): Fixes heartbeat `queue` step destination validation on actor-model workspaces. The root cause was that `activateHeartbeat()` in `extension.ts` passed `undefined` instead of the `KindDrivenScanner` instance to the destination validator, silently reducing valid destinations to open chat tabs only. Actor entities (`.jarvis/actors/*/actor.yaml`) were never recognized as valid destinations regardless of the workspace convention. Fixed with a one-line wiring correction. Also removes the confirmed-dead legacy `YamlScanner` class from code and stale references from design specs per user directive.
+  *(REQ_AUT_HEARTBEAT_LOAD_VALIDATION; SPEC_AUT_HEARTBEAT_LOAD_VALIDATION)*
+
+---
+
 ## v0.21.0 — Jarvis Syspilot Module + Notification Improvements
 
 *2026-07-22*
