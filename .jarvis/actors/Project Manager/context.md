@@ -76,11 +76,14 @@ _(none — #41, #42 merged + released as v0.22.0 (2026-07-23); board/issues clos
 - **GH #34 scope may shrink (2026-07-23)**: user is consolidating Gmail into
   Outlook via IMAP in the `c:\workspace\Assistant` spike — works well so far.
   If it holds up, the "provider abstraction (Outlook/Gmail)" half of #34 may
-  become unnecessary (IMAP consolidation instead of a real multi-backend
-  abstraction in PIM). Not acting yet — just observing. Revisit #34's scope
-  once the IMAP approach proves stable. The other half of #34 (import
-  agents/skills from the Assistant/PM workspace spike, incl. two agent.md
-  persona files the user likes) still stands independently.
+  become unnecessary. Not acting yet — revisit #34's scope once IMAP approach
+  proves stable. The other half (import agents/skills from Assistant spike,
+  incl. two agent.md persona files the user likes) still stands independently.
+- **AHP migration research spike (planned, week of 2026-07-28)**: VS Code 1.130
+  confirmed AHP as the platform direction. FI-2026-07-21 documents the right
+  path: `editorService.openEditor({ resource })` + Session-URIs instead of
+  `chat.open` hack. Goal: assess what it takes to migrate Jarvis session-layer
+  to AHP-native. No GH issue yet — create one after the spike when scope is clear.
 
 ## Syspilot Testing Ground
 
