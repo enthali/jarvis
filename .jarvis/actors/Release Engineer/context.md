@@ -5,7 +5,7 @@ This file captures operational details not covered there.
 
 ## Findings
 
-- Latest release: v0.20.2 (2026-07-19, patch) — remove-autodelivery-focus-gate (GH #38). Prior: v0.20.1 (patch) touched-files-write-race + flow-message-pagination; v0.20.0 (minor) actor-touched-files.
+- Latest release: v0.21.0 (2026-07-22, minor) — jarvis-syspilot (GH #39), msg-notify-sender-id (GH #40), msg-notify-default-text-fix, dev-launchconfig-syspilot, syspilot-release-readiness. Note: packages/syspilot is now a 9th package to bump on every release.
 - Workflow/branch-name/versioning/validation-suite are tailorable (2026-07-14 onward): re-read `syspilot.release.tailoring.md` + `syspilot.branching` skill + its `tailoring.md` fresh each release, not just the agent file. Jarvis specifics: branch is `develop`; feature branches local-only, retained by default (no deletion step); validation suite is `compile:packages` -> `lint` -> `test` (vitest) -> `sphinx-build -W`, run in order, stop at first failure, before touching any files.
 - `docs/changes/` root scan is authoritative for archival, but verify each CD is actually merged first (squash-merges break `git log develop..branch`; use `git log develop --oneline --grep <name>` instead) — exclude stub/unimplemented CDs (zero code diff vs develop) and flag the exclusion to PM.
 - New packages need adding to the version-bump file list each release (check `packages/` dir + tailoring's "Version Marker Location"); non-standard build steps (e.g. flow's `build.js`/`webview-build.js`) need separate validation beyond `tsc`.
