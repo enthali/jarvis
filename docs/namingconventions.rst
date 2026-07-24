@@ -82,6 +82,11 @@ Theme Abbreviations
      - Message Flow Visualization (separate add-on module, D3 chord diagram of
        inter-agent message flow, Webview Panel editor tab)
      - ``US_FLOW_CHORDVIEW``, ``REQ_FLOW_WEBVIEWPANEL``, ``SPEC_FLOW_CHORDRENDER``
+   * - ``INJ``
+     - Prompt Injection (the foundational primitive for all session
+       communication, including init prompts, message delivery,
+       slash-commands, and programmatic agent interaction)
+     - ``US_INJ_INJECT``, ``REQ_INJ_PRIMITIVE``, ``SPEC_INJ_INJECT``
    * - ``SPL``
      - Syspilot Lifecycle (version detection, update handoff to syspilot Setup
        Agent, suspend/skip state management)

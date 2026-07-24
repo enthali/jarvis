@@ -21,10 +21,6 @@ function yamlString(value: string): string {
     return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
 }
 
-function applyTemplate(template: string, vars: Record<string, string>): string {
-    return template.replace(/\$\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m));
-}
-
 interface AgentModeEntry { name: string; filePath: string; }
 
 function readFrontmatterString(content: string, key: string): string | undefined {
@@ -81,34 +77,6 @@ async function pickAgentMode(): Promise<string | undefined> {
         matchOnDescription: true,
     });
     return pick === undefined ? undefined : pick.mode;
-}
-
-async function openChatForEntity(name: string, kind: string, folder: string, agent: string | undefined): Promise<void> {
-    if (agent) {
-        try {
-            await vscode.commands.executeCommand('workbench.action.chat.open', { mode: agent });
-            await new Promise(resolve => setTimeout(resolve, 300));
-        } catch { /* ignore */ }
-    }
-    await vscode.commands.executeCommand('workbench.action.openChat');
-    await new Promise(resolve => setTimeout(resolve, 800));
-    await vscode.commands.executeCommand('workbench.action.chat.open', { query: `/rename ${name}` });
-    await new Promise(resolve => setTimeout(resolve, 800));
-    const contextPath = path.join(folder, 'context.md');
-    const defaultInitPrompt =
-        `You are the agent session for the \${kind} "\${name}".\n\n` +
-        `Use only \`\${contextPath}\` as your persistent memory. Read it now.\n\n` +
-        `Keep it minimal and action-oriented:\n` +
-        `- Store only long-lived items under Decision / Finding / Next.\n` +
-        `- One concise line per bullet. Prune aggressively.\n` +
-        `- Replace outdated bullets — never append logs.\n` +
-        `- Never store retries, raw tool output, or transient chatter.\n` +
-        `- Before writing, ask: "Will this still matter in 2 weeks?" If no, skip.\n` +
-        `- When a topic grows past ~5 bullets, move it to a dedicated file beside \`context.md\` and leave a one-line summary with a relative link in \`context.md\`.`;
-    const rawTemplate = vscode.workspace.getConfiguration('jarvis').get<string>('agentSession.initPromptTemplate') ?? '';
-    const initTemplate = rawTemplate.trim() ? rawTemplate : defaultInitPrompt;
-    const initPrompt = applyTemplate(initTemplate, { kind, name, contextPath });
-    await vscode.commands.executeCommand('workbench.action.chat.open', { query: initPrompt });
 }
 
 // --- Activation -----------------------------------------------------------------
@@ -215,7 +183,7 @@ export function activate(context: vscode.ExtensionContext): void {
             }
         } catch (err) { log.warn(`[PIM] Failed to create Outlook category: ${err}`); }
         await vscode.commands.executeCommand('jarvis.rescan');
-        await openChatForEntity(input, 'project', targetPath, agentInput);
+        await api.openActorSession(input);
     }));
 
     // New Event
@@ -263,7 +231,7 @@ export function activate(context: vscode.ExtensionContext): void {
             }
         } catch (err) { log.warn(`[PIM] Failed to create Outlook category: ${err}`); }
         await vscode.commands.executeCommand('jarvis.rescan');
-        await openChatForEntity(nameInput, 'event', targetPath, agentInput);
+        await api.openActorSession(nameInput);
     }));
 
     // Refresh Categories

@@ -19,6 +19,7 @@ import { deleteMessage, appendMessage, popMessage, readAutoDelivery, addAutoDeli
 import { addReminder, readReminders, removeReminder, popDueReminders, setRemindersLogger } from './apps/session/reminders';
 import { lookupSessionUUID, getAllSessions, initSessionLookup, setSessionLookupLogger, filterNamedSessions, getValidDestinations } from './engine/sessions/sessionLookup';
 import { discoverAgentModes } from './engine/sessions/agentDiscovery';
+import { injectPrompt, initInjectPrompt } from './engine/sessions/injectPrompt';
 import { checkForUpdates } from './engine/core/updateCheck';
 import { HookEngine } from './engine/hooks/hookEngine';
 import { HookIntake } from './engine/hooks/hookIntake';
@@ -364,65 +365,6 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         }
     }
 
-    // Shared entity-chat opener (SPEC_EXP_ENTITY_TREECLICK / SPEC_SES_NEWENTITY)
-    async function openChatForEntity(
-        name: string,
-        kind: string,
-        folder: string,
-        agent: string | undefined
-    ): Promise<void> {
-        if (agent) {
-            try {
-                await vscode.commands.executeCommand(
-                    'workbench.action.chat.open', { mode: agent });
-                await new Promise(resolve => setTimeout(resolve, 300));
-            } catch (err) {
-                log.warn(`[MSG] openChatForEntity: failed to prime agent mode "${agent}": ${err}`);
-            }
-        }
-        await openNewChatEditor();
-        await renameFocusedChatSession(name);
-
-        // SPEC_EXP_AGENTSESSION_INITPROMPT
-        const contextPath = path.join(folder, 'context.md');
-        const defaultInitPrompt =
-            `You are the agent session for the \${kind} "\${name}".\n\n` +
-            `Use only \`\${contextPath}\` as your persistent memory. Read it now.\n\n` +
-            `Keep it minimal and action-oriented:\n` +
-            `- Store only long-lived items under Decision / Finding / Next.\n` +
-            `- One concise line per bullet. Prune aggressively.\n` +
-            `- Replace outdated bullets — never append logs.\n` +
-            `- Never store retries, raw tool output, or transient chatter.\n` +
-            `- Before writing, ask: "Will this still matter in 2 weeks?" If no, skip.\n` +
-            `- When a topic grows past ~5 bullets, move it to a dedicated file beside \`context.md\` and leave a one-line summary with a relative link in \`context.md\`.`;
-        const rawInitTemplate = vscode.workspace.getConfiguration('jarvis')
-            .get<string>('agentSession.initPromptTemplate') ?? '';
-        const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : defaultInitPrompt;
-        const initPrompt = applyTemplate(initTemplate, { kind, name, contextPath });
-        await vscode.commands.executeCommand(
-            'workbench.action.chat.open', { query: initPrompt });
-
-        // project-actor-click-placement-fix CR: guarantee Main placement
-        // even for a freshly created session (REQ_ENT_AGENTSESSION AC-7,
-        // REQ_MSG_EDITORPLACEMENT AC-12/AC-13). The rename above has
-        // already completed, so the session is now resolvable by name —
-        // reuse the exact same close+reopen mechanism as the
-        // existing-session branch instead of trying to influence which
-        // column the chat editor was born in (VS Code exposes no API
-        // for that — see SPEC_MSG_OPENCHAT).
-        const newUuid = await lookupSessionUUID(name);
-        if (newUuid) {
-            const newB64 = Buffer.from(newUuid).toString('base64');
-            const newUri = vscode.Uri.parse(
-                `vscode-chat-session://local/${newB64}`
-            );
-            await openAtMain(newUri, name);  // SPEC_MSG_EDITORPLACEMENT
-        }
-        // Silent no-op if newUuid is still unresolved (rare rename-
-        // propagation edge case, REQ_MSG_EDITORPLACEMENT AC-13) — the
-        // session is still fully usable, just not repositioned.
-    }
-
     // Engine (kind-driven scanner + generic tree factory) for session kind
     const kindDrivenScanner = new KindDrivenScanner(
         () => { engine.treeFactory.refreshAll(); },
@@ -441,6 +383,17 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     const engine = new JarvisEngine(kindDrivenScanner, treeFactory);
     context.subscriptions.push({ dispose: () => engine.dispose() });
     engine.setMessaging(resolveMessagesPath, () => messageProvider.reload());
+
+    // Initialize injectPrompt primitive (SPEC_INJ_INJECT)
+    initInjectPrompt({
+        scanner: kindDrivenScanner,
+        log,
+        openAtMain,
+        openAtSecondary,
+        openNewChatEditor,
+        renameFocusedChatSession,
+        reapplyAgentMode,
+    });
 
     // Activity indicator (SPEC_HOOK_ACTIVITY): hook-driven 2-state tree icon.
     // Constructed after `engine` exists (onChange needs treeFactory.refreshKind
@@ -628,67 +581,20 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
                 return;
             }
             log.info(`[MSG] sendMessages: destination="${node.destination}", count=${node.children.length}`);
-            const uuid = await lookupSessionUUID(node.destination);
 
-            if (uuid) {
-                const entityForSend = kindDrivenScanner.entities.find(e => e.name === node.destination);
-                const b64 = Buffer.from(uuid).toString('base64');
-                const uri = vscode.Uri.parse(`vscode-chat-session://local/${b64}`);
-                // Main placement: close+reopen at column 1 if open elsewhere
-                // (SPEC_MSG_EDITORPLACEMENT, REQ_MSG_SEND AC-9)
-                await openAtMain(uri, node.destination);
-                // agent-mode-persistence: VS Code drops the custom agent mode
-                // on window reload; re-apply it to the focused editor.
-                if (entityForSend?.agent) {
-                    await reapplyAgentMode(entityForSend.agent, node.destination);
-                }
-                await new Promise(resolve => setTimeout(resolve, 800));
-            } else {
-                const entityForSend = kindDrivenScanner.entities.find(e => e.name === node.destination);
-                if (entityForSend?.agent) {
-                    try {
-                        await vscode.commands.executeCommand('workbench.action.chat.open', { mode: entityForSend.agent });
-                        await new Promise(resolve => setTimeout(resolve, 300));
-                    } catch (err) {
-                        log.warn(`[MSG] sendMessages: failed to prime agent mode "${entityForSend.agent}": ${err}`);
-                    }
-                }
-                await openNewChatEditor();
-                await renameFocusedChatSession(node.destination);
-                if (entityForSend) {
-                    const kind = entityForSend.kind ?? 'session';
-                    const folder = entityForSend.folder ?? '';
-                    const contextPath = path.join(folder, 'context.md');
-                    const rawInitTemplate = vscode.workspace.getConfiguration('jarvis').get<string>('agentSession.initPromptTemplate') ?? '';
-                    const defaultInitPrompt =
-                        `You are the ${kind} "${entityForSend.name}".\n\n` +
-                        `Use only \`${contextPath}\` as your persistent memory. Read it now.\n\n` +
-                        `Keep it minimal and action-oriented:\n` +
-                        `- Store only long-lived items under Decision / Finding / Next.\n` +
-                        `- One concise line per bullet. Prune aggressively.\n` +
-                        `- Replace outdated bullets — never append logs.\n` +
-                        `- Never store retries, raw tool output, or transient chatter.\n` +
-                        `- Before writing, ask: "Will this still matter in 2 weeks?" If no, skip.\n` +
-                        `- When a topic grows past ~5 bullets, move it to a dedicated file beside \`context.md\` and leave a one-line summary with a relative link in \`context.md\`.`;
-                    const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : defaultInitPrompt;
-                    const initPrompt = applyTemplate(initTemplate, { kind, name: entityForSend.name, contextPath });
-                    await vscode.commands.executeCommand('workbench.action.chat.open', { query: initPrompt });
-                }
-            }
-
+            // 1. Compose notification stub
             const count = node.children.length;
-            const sender = [...new Set(node.children.map(c => c.sender))].join(', ');
-            const defaultNotifTemplate =
-                `[Jarvis Message Service] You have \${count} new message(s) in your inbox.\n` +
-                `Sender(s): \${sender}\n` +
-                `Read them with the jarvis_receiveMessage tool (destination: "\${destination}") until remaining = 0.`;
-            const rawNotifTemplate = vscode.workspace.getConfiguration('jarvis').get<string>('messages.notificationTemplate') ?? '';
-            const notifTemplate = rawNotifTemplate.trim() ? rawNotifTemplate : defaultNotifTemplate;
-            const stub = applyTemplate(notifTemplate, { count: String(count), destination: node.destination, sender });
-            await vscode.commands.executeCommand(
-                'workbench.action.chat.open',
-                { query: stub }
-            );
+            const senders = [...new Set(node.children.map((c: any) => c.sender))].join(', ');
+            const cfg = vscode.workspace.getConfiguration('jarvis');
+            const stub = applyTemplate(
+                cfg.get<string>('messages.notificationTemplate', ''),
+                { count: String(count), destination: node.destination, sender: senders }
+            );  // REQ_MSG_NOTIFICATION_TEMPLATE
+
+            // 2. Delegate to injectPrompt (SPEC_INJ_INJECT)
+            await injectPrompt(node.destination, stub, { placement: 'main' });
+
+            // 3. Refresh tree (messages stay in queue)
             messageProvider.reload();
         }
     );
@@ -736,19 +642,27 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             const entity = kindDrivenScanner.getEntity(element.id);
             if (!entity) { return; }
 
-            const uuid = await lookupSessionUUID(entity.name);
+            // Compose init prompt (SPEC_ENT_AGENTSESSION_INITPROMPT)
+            const kind = entity.kind ?? 'project';
+            const folder = entity.folder ?? path.dirname(element.id);
+            const contextPath = path.join(folder, 'context.md');
+            const rawInitTemplate = vscode.workspace.getConfiguration('jarvis')
+                .get<string>('agentSession.initPromptTemplate') ?? '';
+            const defaultInitPrompt =
+                `You are the agent session for the \${kind} "\${name}".\n\n` +
+                `Use only \`\${contextPath}\` as your persistent memory. Read it now.\n\n` +
+                `Keep it minimal and action-oriented:\n` +
+                `- Store only long-lived items under Decision / Finding / Next.\n` +
+                `- One concise line per bullet. Prune aggressively.\n` +
+                `- Replace outdated bullets — never append logs.\n` +
+                `- Never store retries, raw tool output, or transient chatter.\n` +
+                `- Before writing, ask: "Will this still matter in 2 weeks?" If no, skip.\n` +
+                `- When a topic grows past ~5 bullets, move it to a dedicated file beside \`context.md\` and leave a one-line summary with a relative link in \`context.md\`.`;
+            const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : defaultInitPrompt;
+            const initPrompt = applyTemplate(initTemplate, { kind, name: entity.name, contextPath });
 
-            if (uuid) {
-                // Open existing session, always at Main (column 1) — close+reopen
-                // if currently open elsewhere (SPEC_MSG_EDITORPLACEMENT)
-                const b64 = Buffer.from(uuid).toString('base64');
-                const uri = vscode.Uri.parse(`vscode-chat-session://local/${b64}`);
-                await openAtMain(uri, entity.name);
-            } else {
-                const kind = entity.kind ?? 'session';
-                const folder = entity.folder ?? path.dirname(element.id);
-                await openChatForEntity(entity.name, kind, folder, entity.agent);
-            }
+            // Delegate to injectPrompt (SPEC_INJ_INJECT)
+            await injectPrompt(entity.name, initPrompt, { placement: 'main', skipInitPrompt: true });
         }
     );
 
@@ -1236,6 +1150,60 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     );
     }
 
+    // Inject prompt tool (SPEC_INJ_TOOL)
+    const injectPromptTool = engine.registerTool('jarvis_injectPrompt',
+        'Inject a prompt or slash-command into a named entity\'s chat session. '
+        + 'The entity can be an actor, project, or event. '
+        + 'If no session exists, one is spawned automatically.',
+        async (options: vscode.LanguageModelToolInvocationOptions<any>, _token: vscode.CancellationToken) => {
+            const { actor, text } = options.input as { actor: string; text: string };
+            try {
+                await injectPrompt(actor, text);
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart(`Injected into "${actor}": ${text.slice(0, 80)}${text.length > 80 ? '…' : ''}`)
+                ]);
+            } catch (err) {
+                const msg = err instanceof Error ? err.message : String(err);
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart(`Error: ${msg}`)
+                ]);
+            }
+        }
+    );
+
+    // Inject prompt command (SPEC_INJ_COMMAND)
+    const injectPromptCommand = vscode.commands.registerCommand(
+        'jarvis.injectPrompt',
+        async () => {
+            const entities = kindDrivenScanner.entities;
+            if (entities.length === 0) {
+                vscode.window.showWarningMessage('Jarvis: No entities found.');
+                return;
+            }
+            const items = entities.map(e => ({
+                label: e.name,
+                description: e.kind ?? 'project'
+            }));
+            const picked = await vscode.window.showQuickPick(items, {
+                placeHolder: 'Select entity to inject into'
+            });
+            if (!picked) { return; }
+
+            const text = await vscode.window.showInputBox({
+                prompt: 'Text or slash-command to inject',
+                placeHolder: '/compact'
+            });
+            if (!text) { return; }
+
+            try {
+                await injectPrompt(picked.label, text);
+            } catch (err) {
+                const msg = err instanceof Error ? err.message : String(err);
+                vscode.window.showWarningMessage(msg);
+            }
+        }
+    );
+
     // New session command (SPEC_SES_NEWENTITY)
     const newSessionCommand = vscode.commands.registerCommand(
         'jarvis.newActor',
@@ -1263,7 +1231,25 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             await fs.promises.writeFile(path.join(targetPath, 'context.md'), contextContent, 'utf-8');
             await kindDrivenScanner.rescan();
             log.info(`[NewSession] created session "${nameInput}" at ${targetPath}`);
-            await openChatForEntity(nameInput, 'session', targetPath, agentInput);
+
+            // Compose init prompt and delegate to injectPrompt (SPEC_INJ_INJECT)
+            const kind = 'session';
+            const contextPath = path.join(targetPath, 'context.md');
+            const defaultInitPrompt =
+                `You are the agent session for the \${kind} "\${name}".\n\n` +
+                `Use only \`\${contextPath}\` as your persistent memory. Read it now.\n\n` +
+                `Keep it minimal and action-oriented:\n` +
+                `- Store only long-lived items under Decision / Finding / Next.\n` +
+                `- One concise line per bullet. Prune aggressively.\n` +
+                `- Replace outdated bullets — never append logs.\n` +
+                `- Never store retries, raw tool output, or transient chatter.\n` +
+                `- Before writing, ask: "Will this still matter in 2 weeks?" If no, skip.\n` +
+                `- When a topic grows past ~5 bullets, move it to a dedicated file beside \`context.md\` and leave a one-line summary with a relative link in \`context.md\`.`;
+            const rawInitTemplate = vscode.workspace.getConfiguration('jarvis')
+                .get<string>('agentSession.initPromptTemplate') ?? '';
+            const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : defaultInitPrompt;
+            const initPrompt = applyTemplate(initTemplate, { kind, name: nameInput, contextPath });
+            await injectPrompt(nameInput, initPrompt, { placement: 'main', skipInitPrompt: true });
         }
     );
 
@@ -1401,56 +1387,18 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
                 // Snapshot focus before the disruptive delivery (SPEC_MSG_FOCUSRESTORE)
                 const focus = await snapshotFocus();
                 try {
-                    const uuid = await lookupSessionUUID(sessionName);
-                    if (uuid) {
-                        const entityForPoll = kindDrivenScanner.entities.find(e => e.name === sessionName);
-                        // Open at Secondary placement — focus-in-place if already
-                        // open anywhere, else the last existing column (SPEC_MSG_EDITORPLACEMENT)
-                        const b64 = Buffer.from(uuid).toString('base64');
-                        const uri = vscode.Uri.parse(`vscode-chat-session://local/${b64}`);
-                        await openAtSecondary(uri, sessionName);
-                        // agent-mode-persistence: re-apply custom agent mode
-                        // dropped by VS Code on window reload.
-                        if (entityForPoll?.agent) {
-                            await reapplyAgentMode(entityForPoll.agent, sessionName);
-                        }
-                    } else {
-                        const entityForPoll = kindDrivenScanner.entities.find(e => e.name === sessionName);
-                        if (entityForPoll?.agent) {
-                            try {
-                                await vscode.commands.executeCommand('workbench.action.chat.open', { mode: entityForPoll.agent });
-                                await new Promise(resolve => setTimeout(resolve, 300));
-                            } catch (err) { log.warn(`[MSG] autoDelivery: failed to prime agent mode "${entityForPoll.agent}": ${err}`); }
-                        }
-                        await openNewChatEditor();
-                        await renameFocusedChatSession(sessionName);
-                        if (entityForPoll) {
-                            const kind = entityForPoll.kind ?? 'session';
-                            const folder = entityForPoll.folder ?? '';
-                            const contextPath = path.join(folder, 'context.md');
-                            const rawInitTemplate = vscode.workspace.getConfiguration('jarvis').get<string>('agentSession.initPromptTemplate') ?? '';
-                            const defaultInitPrompt =
-                                `You are the ${kind} "${entityForPoll.name}".\n\n` +
-                                `Use only \`${contextPath}\` as your persistent memory. Read it now.\n\n` +
-                                `Keep it minimal and action-oriented:\n` +
-                                `- Store only long-lived items under Decision / Finding / Next.\n` +
-                                `- One concise line per bullet. Prune aggressively.\n` +
-                                `- Replace outdated bullets — never append logs.\n` +
-                                `- Never store retries, raw tool output, or transient chatter.\n` +
-                                `- Before writing, ask: "Will this still matter in 2 weeks?" If no, skip.\n` +
-                                `- When a topic grows past ~5 bullets, move it to a dedicated file beside \`context.md\` and leave a one-line summary with a relative link in \`context.md\`.`;
-                            const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : defaultInitPrompt;
-                            const initPrompt = applyTemplate(initTemplate, { kind, name: entityForPoll.name, contextPath });
-                            await vscode.commands.executeCommand('workbench.action.chat.open', { query: initPrompt });
-                        }
-                    }
-                    const count = pending.length;
-                    const sender = [...new Set(pending.map(m => m.sender))].join(', ');
-                    const defaultNotifTemplate = `[Jarvis Message Service] You have \${count} new message(s) in your inbox.\nSender(s): \${sender}\nRead them with the jarvis_receiveMessage tool (destination: "\${destination}") until remaining = 0.`;
-                    const rawNotifTemplate = vscode.workspace.getConfiguration('jarvis').get<string>('messages.notificationTemplate') ?? '';
-                    const notifTemplate = rawNotifTemplate.trim() ? rawNotifTemplate : defaultNotifTemplate;
-                    const stub = applyTemplate(notifTemplate, { count: String(count), destination: sessionName, sender });
-                    await vscode.commands.executeCommand('workbench.action.chat.open', { query: stub });
+                    // Compose notification stub
+                    const cfg = vscode.workspace.getConfiguration('jarvis');
+                    const senders = [...new Set(pending.map(m => m.sender))].join(', ');
+                    const stub = applyTemplate(
+                        cfg.get<string>('messages.notificationTemplate', ''),
+                        { count: String(pending.length), destination: sessionName, sender: senders }
+                    );  // REQ_MSG_NOTIFICATION_TEMPLATE
+
+                    // Delegate to injectPrompt (SPEC_INJ_INJECT)
+                    await injectPrompt(sessionName, stub, { placement: 'secondary' });
+
+                    // Mark messages as notified
                     const updated = readQueue(messagesPath);
                     let changed = false;
                     for (const m of updated) { if (m.destination === sessionName && !m.notified) { m.notified = true; changed = true; } }
@@ -1504,6 +1452,8 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         readMessageTool,
         listActorsTool,
         ...(createActorTool ? [createActorTool] : []),
+        injectPromptTool,
+        injectPromptCommand,
         registerJobTool,
         unregisterJobTool,
         listJobsTool,

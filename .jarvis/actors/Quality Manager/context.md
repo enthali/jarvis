@@ -39,4 +39,4 @@ Three files, strict separation of concerns:
 
 ## Active Reviews
 
-None currently. All recent CRs cleared, including message-flow-diagram, heartbeat-venv-autodetect, ui-improvements, hook-log-level-reduction, entity-tree-context-menu, and the pim-treenode-filenode-fix hotfix (all CLEAR — see scan-state.md).
+None currently. prompt-injection-tool CR (#43) cleared in Round 2 — all findings resolved, traceability verified, code-vs-spec PASS, build clean. CLEAR verdict sent to CM 2026-07-24.

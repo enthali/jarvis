@@ -54,6 +54,7 @@ end-to-end verification of each feature.
    req_uat_entity_contextmenu
    req_uat_collapseall
    req_uat_flow
+   req_uat_injectprompt
 
 All UAT Requirements
 --------------------

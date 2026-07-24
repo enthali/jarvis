@@ -190,4 +190,14 @@ export interface JarvisCoreApi {
      * their own. Delivery still goes through the standard auto-delivery queue.
      */
     sendMessage(destination: string, sender: string, text: string): void;
+
+    // --- Actor Session API (SPEC_PIM_OPENACTORSESSION) ---
+
+    /**
+     * Open (or spawn) the chat session for a named entity and send the
+     * init prompt. The entity must already exist in the scanner cache
+     * (call rescan() first if just created). Core resolves folder, kind,
+     * agent, and contextPath internally — callers need no prompt knowledge.
+     */
+    openActorSession(entityName: string, options?: { placement?: 'main' | 'secondary' }): Promise<void>;
 }

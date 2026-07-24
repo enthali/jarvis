@@ -271,7 +271,7 @@ Actor Design Specifications
 .. spec:: sessions-feature: newEntity Command — Session Branch
    :id: SPEC_ACT_NEWENTITY
    :status: draft
-   :links: REQ_ACT_NEWENTITY; SPEC_ACT_DUALPATH_SCANNER
+   :links: REQ_ACT_NEWENTITY; SPEC_ACT_DUALPATH_SCANNER; SPEC_INJ_INJECT
 
    **(actor-internal-identifiers-rename CR amendment):** the command ID
    ``jarvis.newSession`` referenced throughout this spec is renamed to
@@ -333,34 +333,20 @@ Actor Design Specifications
 
    9. Call ``scanner.rescan()`` so the new session appears in the tree
       immediately (no window reload required).
-   10. Open the chat editor using the consolidated chat-open primitive
-       (per ``SPEC_ENT_AGENT_PICKER`` Chat-Open Primitive). Cancel path is
-       handled by the early-return guard after ``pickAgentMode()``, so this
-       code is only reached for ``""`` or a concrete agent::
+   10. Compose the init prompt via ``SPEC_ENT_AGENTSESSION_INITPROMPT``
+       template expansion (uses ``name``, ``summary``, ``agentInput`` collected
+       in earlier steps). Then delegate session creation and injection to the
+       consolidated primitive (``SPEC_INJ_INJECT``)::
 
-          // Mode-prime (only for concrete agent)
-          if (agentInput) {
-              try {
-                  await vscode.commands.executeCommand(
-                      'workbench.action.chat.open', { mode: agentInput }
-                  );
-                  await new Promise(resolve => setTimeout(resolve, 300));
-              } catch (err) {
-                  log.warn(`Mode-prime failed: ${err}`);
-              }
-          }
-          // Editor creation (always) — SPEC_MSG_OPENCHAT
-          await openNewChatEditor();
+          await injectPrompt(nameInput, initPrompt, { placement: 'main', skipInitPrompt: true });
 
-   .. note::
+       Cancel path is handled by the early-return guard after
+       ``pickAgentMode()`` (``SPEC_ENT_AGENT_PICKER``), so this code is only
+       reached for ``""`` or a concrete agent.
 
-      (``project-actor-click-placement-fix`` CR) This creation flow funnels
-      through the same shared ``openChatForEntity()`` helper as
-      ``jarvis.openAgentSession``'s fresh-session-creation branch
-      (``SPEC_ENT_AGENTSESSION``) — it automatically gains that helper's
-      guaranteed Main-placement relocate step (rename + init-prompt, then
-      ``lookupSessionUUID`` + ``openAtMain``) with no separate change needed
-      here.
+       Mode priming, editor creation, rename, Main-placement repositioning,
+       and text injection are all delegated to ``injectPrompt``
+       (``SPEC_INJ_INJECT``).
 
    **``jarvis.newEntity`` Session branch** (``src/extension.ts`` newEntityCommand):
 

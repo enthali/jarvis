@@ -103,6 +103,7 @@
       { "command": "jarvis.deleteMessage", "title": "Jarvis: Delete Queued Message", "icon": "$(trash)" },
       { "command": "jarvis.openSession", "title": "Jarvis: Open Chat Session" },
       { "command": "jarvis.openAgentSession", "title": "Jarvis: Open Chat", "icon": "$(comment-discussion)" },
+      { "command": "jarvis.injectPrompt", "title": "Jarvis: Inject Prompt" },
       { "command": "jarvis.newEntity", "title": "Jarvis: New Entity", "icon": "$(add)" },
       { "command": "jarvis.newActor", "title": "Jarvis: New Actor", "icon": "$(add)" },
       { "command": "jarvis.migrateSessionToActor", "title": "Jarvis: Migrate Session to Actor" },
@@ -351,6 +352,13 @@
         "modelDescription": "Cancels a pending reminder by id.",
         "canBeReferencedInPrompt": true, "toolReferenceName": "cancelReminder", "icon": "$(bell-slash)",
         "inputSchema": { "type": "object", "required": ["id"], "properties": { "id": { "type": "string" } } }
+      },
+      {
+        "name": "jarvis_injectPrompt",
+        "displayName": "Inject Prompt",
+        "modelDescription": "Inject a prompt or slash-command into a named entity's chat session. The entity can be an actor, project, or event. If no session exists, one is spawned automatically.",
+        "canBeReferencedInPrompt": true, "toolReferenceName": "injectPrompt", "icon": "$(terminal)",
+        "inputSchema": { "type": "object", "required": ["actor", "text"], "properties": { "actor": { "type": "string", "description": "The name of the target entity (actor, project, or event)." }, "text": { "type": "string", "description": "The text or slash-command to inject (e.g. \"/compact\", \"read your context.md\")." } } }
       }
     ]
   }

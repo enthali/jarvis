@@ -52,7 +52,7 @@ Message Queue Requirements
    :id: REQ_MSG_SEND
    :status: draft
    :priority: optional
-   :links: US_MSG_CHATQUEUE; REQ_MSG_SESSIONLOOKUP; REQ_MSG_QUEUE; REQ_ENT_AGENTPROMPT_TEMPLATE; REQ_MSG_EDITORPLACEMENT
+   :links: US_MSG_CHATQUEUE; REQ_MSG_SESSIONLOOKUP; REQ_MSG_QUEUE; REQ_ENT_AGENTPROMPT_TEMPLATE; REQ_MSG_EDITORPLACEMENT; REQ_INJ_PRIMITIVE
 
    **Description:**
    The extension SHALL provide a command to notify a VS Code Chat session about
@@ -62,43 +62,20 @@ Message Queue Requirements
 
    * AC-1: A send action SHALL be available on each session group node in the
      Messages tree view
-   * AC-2: The extension SHALL focus the target chat tab before submitting
-   * AC-3: The extension SHALL submit a single notification stub via
-     ``workbench.action.chat.open({ query })`` informing the session about the
-     number of pending messages and instructing it to read them via the
-     ``jarvis_receiveMessage`` tool (message-api-rename CR — was
-     ``jarvis_readMessage``; the underlying stub text is the same one governed
-     by ``REQ_MSG_NOTIFICATION_TEMPLATE`` AC-7)
+   * AC-2: Session resolution, editor focus, mode-priming, session spawning
+     (including rename and init prompt), and prompt submission SHALL be
+     delegated to ``REQ_INJ_PRIMITIVE``
+   * AC-3: The extension SHALL submit a single notification stub informing the
+     session about the number of pending messages and instructing it to read
+     them via the ``jarvis_receiveMessage`` tool (the stub text is governed by
+     ``REQ_MSG_NOTIFICATION_TEMPLATE`` AC-7)
    * AC-4: Messages SHALL remain in the queue after notification — the session
      is responsible for consuming them via ``REQ_MSG_READ``
    * AC-5: The Messages tree view SHALL refresh after send completes
-   * AC-6: The extension SHALL focus the target session via
-     ``vscode.commands.executeCommand('vscode.open',
-     Uri.parse('vscode-chat-session://local/<b64uuid>'), { viewColumn })``
-     where the UUID is obtained from ``REQ_MSG_SESSIONLOOKUP`` and
-     ``viewColumn`` is resolved per the Main placement target (AC-9,
-     ``REQ_MSG_EDITORPLACEMENT``)
-   * AC-7: If ``REQ_MSG_SESSIONLOOKUP`` returns ``undefined`` for the target
-     session, the extension SHALL open a new editor chat via
-     ``REQ_MSG_OPENCHAT`` instead of raising an error
-   * AC-8: In the new-session branch (AC-7): if the matched entity has an
-     ``agent`` field, the extension SHALL prime the VS Code Chat mode selector
-     to ``entity.agent`` (via ``workbench.action.chat.open { mode }`` + 300 ms
-     settle) **before** ``REQ_MSG_OPENCHAT`` creates the chat editor, so the new
-     session inherits the bound mode at creation time. After ``REQ_MSG_OPENCHAT``
-     creates the chat editor and the session is renamed to ``node.destination``,
-     the extension SHALL look up the entity whose display name equals
-     ``node.destination`` in the scanner entity store. If an entity is found, the
-     extension SHALL send a context initialization prompt using the same template,
-     placeholder substitution, and agent-mode binding as
-     ``REQ_ENT_AGENTPROMPT_TEMPLATE`` — **before** sending the notification stub
-     (AC-3). If no entity matches the destination name, the init prompt is skipped.
-   * AC-9: The target chat tab (AC-2/AC-6) SHALL be focused at the Main
-     placement target (view column 1, fixed), including the Main-target
-     close+reopen rule when the tab is open in a different column
+   * AC-6: The target session SHALL be focused at the Main placement target
      (``REQ_MSG_EDITORPLACEMENT`` AC-1/AC-5/AC-9) — the same target used for
-     an Actor tree click, since this command is likewise a user-initiated
-     action.
+     an Actor tree click, since this command is a user-initiated action.  The
+     placement is passed to ``REQ_INJ_PRIMITIVE``.
 
 .. req:: Delete Individual Message
    :id: REQ_MSG_DELETE
@@ -357,7 +334,7 @@ Message Queue Requirements
    :id: REQ_MSG_AUTODELIVER_POLL
    :status: draft
    :priority: optional
-   :links: US_MSG_AUTODELIVERY; REQ_MSG_AUTODELIVER_CONFIG; REQ_MSG_AUTODELIVER_TAG; REQ_MSG_SEND; REQ_ENT_AGENTPROMPT_TEMPLATE; REQ_MSG_EDITORPLACEMENT; REQ_MSG_FOCUSRESTORE
+   :links: US_MSG_AUTODELIVERY; REQ_MSG_AUTODELIVER_CONFIG; REQ_MSG_AUTODELIVER_TAG; REQ_MSG_SEND; REQ_ENT_AGENTPROMPT_TEMPLATE; REQ_MSG_EDITORPLACEMENT; REQ_MSG_FOCUSRESTORE; REQ_INJ_PRIMITIVE
 
    **Description:**
    The extension SHALL run a background poll loop that automatically sends
@@ -376,12 +353,13 @@ Message Queue Requirements
      ``autodelivery.json``
    * AC-3: For each session in the auto-delivery list, if at least one message
      exists with ``notified !== true``, the loop SHALL deliver the
-     notification directly via its own inlined logic — it does **not**
-     invoke ``jarvis.sendMessages`` (``REQ_MSG_SEND``), which remains a
-     separate, manually-triggered command — opening the session's chat tab
-     using the Secondary placement target
-     (``REQ_MSG_EDITORPLACEMENT`` AC-3/AC-4), wrapped in a
-     Focus-Snapshot/Restore cycle (``REQ_MSG_FOCUSRESTORE``).
+     notification by delegating session resolution, editor focus,
+     mode-priming, session spawning (including rename and init prompt), and
+     prompt submission to ``REQ_INJ_PRIMITIVE``, using the Secondary placement
+     target (``REQ_MSG_EDITORPLACEMENT`` AC-3/AC-4), wrapped in a
+     Focus-Snapshot/Restore cycle (``REQ_MSG_FOCUSRESTORE``).  The loop does
+     **not** invoke ``jarvis.sendMessages`` (``REQ_MSG_SEND``), which remains a
+     separate, manually-triggered command.
    * AC-4: After notification the loop SHALL set ``notified: true`` on all
      messages that were just notified for that session and persist the queue
    * AC-5: The loop SHALL process at most one session per tick (first-found order)
@@ -389,17 +367,11 @@ Message Queue Requirements
      deactivated
    * AC-7: Errors in a single tick SHALL be caught, logged as warnings, and SHALL
      NOT stop the poll loop
-   * AC-8: In the new-session branch (no UUID found): if the matched entity has
-     an ``agent`` field, the poll loop SHALL prime the VS Code Chat mode selector
-     to ``entity.agent`` (via ``workbench.action.chat.open { mode }`` + 300 ms
-     settle) **before** ``REQ_MSG_OPENCHAT`` creates the chat editor, so the new
-     session inherits the bound mode at creation time. After ``REQ_MSG_OPENCHAT``
-     creates the chat editor and the session is renamed to the session name, the
-     poll loop SHALL look up the entity whose display name equals the session name
-     in the scanner entity store. If an entity is found, the poll loop SHALL send
-     a context initialization prompt per ``REQ_ENT_AGENTPROMPT_TEMPLATE`` —
-     **before** sending the notification stub. If no entity matches the session
-     name, the init prompt is skipped.
+   * AC-8: In the new-session branch (no UUID found): mode-priming, chat
+     editor creation, rename, and init-prompt injection are delegated to
+     ``REQ_INJ_PRIMITIVE``. The init prompt follows
+     ``REQ_ENT_AGENTPROMPT_TEMPLATE`` and is sent **before** the notification
+     stub.
    * AC-9: The Focus-Snapshot (``REQ_MSG_FOCUSRESTORE`` AC-1/AC-2) SHALL be
      taken once per tick, immediately before AC-3's delivery action; the
      Focus-Restore (``REQ_MSG_FOCUSRESTORE`` AC-3) SHALL run immediately
@@ -634,7 +606,7 @@ Message Queue Requirements
    * AC-12 (``project-actor-click-placement-fix`` CR): For the **fresh
      session creation** path (``jarvis.openAgentSession``'s no-existing-tab
      branch, and equally the entity-creation commands that create-and-open
-     a chat — both funnel through the shared ``openChatForEntity()``
+     a chat — both funnel through the shared ``injectPrompt()``
      helper), the extension SHALL perform a **follow-up relocate step**
      after the new session is created, renamed, and initialized: resolve
      the now-existing session's UUID (``REQ_MSG_SESSIONLOOKUP`` —

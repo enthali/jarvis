@@ -157,28 +157,26 @@ Message Queue Design Specifications
 .. spec:: Send Messages Command
    :id: SPEC_MSG_SENDCOMMAND
    :status: draft
-   :links: REQ_MSG_SEND; REQ_MSG_SESSIONLOOKUP; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_QUEUESTORE; REQ_MSG_AUTODELIVER_TAG; REQ_MSG_NOTIFICATION_TEMPLATE; REQ_ENT_AGENTPROMPT_TEMPLATE; SPEC_ENT_AGENTSESSION_INITPROMPT; SPEC_MSG_EDITORPLACEMENT; SPEC_MSG_OPENCHAT
+   :links: REQ_MSG_SEND; REQ_MSG_SESSIONLOOKUP; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_QUEUESTORE; REQ_MSG_AUTODELIVER_TAG; REQ_MSG_NOTIFICATION_TEMPLATE; REQ_ENT_AGENTPROMPT_TEMPLATE; SPEC_ENT_AGENTSESSION_INITPROMPT; SPEC_MSG_EDITORPLACEMENT; SPEC_MSG_OPENCHAT; SPEC_INJ_INJECT
 
    **Description:**
    Register ``jarvis.sendMessages`` in ``extension.ts``. Invoked from the session
-   group node's inline action. Focuses the chat session tab at the Main
-   placement target (``SPEC_MSG_EDITORPLACEMENT`` — same target as an Actor
-   tree click, since this is likewise a user-initiated action), submits a
-   single notification stub informing the session about pending messages,
-   then refreshes the tree. Messages remain in the queue — the session
-   consumes them via ``jarvis_readMessage``.
+   group node's inline action. Composes a notification stub, then delegates
+   session resolution, placement, and text injection to ``injectPrompt``
+   (``SPEC_INJ_INJECT``). Messages remain in the queue — the session consumes
+   them via ``jarvis_readMessage``.
 
    When invoked from the Command Palette (without a node argument), a warning is
    shown and the command returns early.
 
    **Stub format:**
 
-   The notification stub is sent as a single ``workbench.action.chat.open`` query.
-   The text is produced by calling ``applyTemplate(template, vars)`` (see
-   ``SPEC_ENT_AGENTSESSION_INITPROMPT`` for the shared helper definition), where
-   ``template`` is the value of ``jarvis.messages.notificationTemplate`` (falling
-   back to the built-in English default from ``REQ_MSG_NOTIFICATION_TEMPLATE``
-   when empty/whitespace), and ``vars`` is ``{ count, destination, sender }``.
+   The notification stub text is produced by calling
+   ``applyTemplate(template, vars)`` (see ``SPEC_ENT_AGENTSESSION_INITPROMPT``
+   for the shared helper definition), where ``template`` is the value of
+   ``jarvis.messages.notificationTemplate`` (falling back to the built-in English
+   default from ``REQ_MSG_NOTIFICATION_TEMPLATE`` when empty/whitespace), and
+   ``vars`` is ``{ count, destination, sender }``.
 
    The ``sender`` value is the comma-joined list of distinct sender names from
    the pending messages for that session (e.g. ``"Change Manager"`` or
@@ -204,72 +202,20 @@ Message Queue Design Specifications
             return;
           }
 
-          // 1. Resolve session UUID
-          const uuid = await lookupSessionUUID(node.destination);
-
-          // 2. Focus existing session or create new one
-          if (uuid) {
-            const b64 = Buffer.from(uuid).toString('base64');
-            const uri = vscode.Uri.parse(
-              `vscode-chat-session://local/${b64}`
-            );
-            // Main placement: close+reopen at column 1 if open elsewhere
-            // (SPEC_MSG_EDITORPLACEMENT, REQ_MSG_SEND AC-9)
-            await openAtMain(uri, node.destination);
-            // agent-mode-persistence (GH #25): VS Code drops a session's custom
-            // agent mode on window reload; defensively re-apply it to the now
-            // focused editor. See SPEC_MSG_OPENCHAT reapplyAgentMode() note.
-            const entityForSend = scanner?.entities.find(e => e.name === node.destination);
-            if (entityForSend?.agent) {
-              await reapplyAgentMode(entityForSend.agent, node.destination);
-            }
-            await new Promise(resolve => setTimeout(resolve, 800));
-          } else {
-            // Resolve entity first (needed for mode-prime and init-prompt)
-            const entity = scanner?.entities.find(e => e.name === node.destination);
-
-            // Mode-primed creation: prime the VS Code Chat mode selector BEFORE
-            // openNewChatEditor() so the new session is born in the bound mode.
-            // (SPEC_MSG_OPENCHAT mode-prime note, REQ_ENT_AGENTPROMPT_TEMPLATE AC-6)
-            if (entity?.agent) {
-              await vscode.commands.executeCommand(
-                  'workbench.action.chat.open', { mode: entity.agent }
-              );
-              await new Promise(resolve => setTimeout(resolve, 300));
-            }
-
-            // No existing session — create new pinned chat editor (inherits primed mode)
-            await openNewChatEditor();  // SPEC_MSG_OPENCHAT (includes 800 ms settle delay)
-
-            // Name the new chat session so future deliveries can resolve it.
-            await renameFocusedChatSession(node.destination);
-
-            // Send init prompt if the destination matches a known entity
-            // (REQ_MSG_SEND AC-8, SPEC_ENT_AGENTSESSION_INITPROMPT)
-            if (entity) {
-              const kind = entity.kind ?? 'project';
-              const contextPath = path.join(entity.folder, 'context.md');
-              const rawInitTemplate = vscode.workspace.getConfiguration('jarvis')
-                  .get<string>('agentSession.initPromptTemplate') ?? '';
-              const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : DEFAULT_INIT_PROMPT;
-              const initPrompt = applyTemplate(initTemplate, { kind, name: entity.name, contextPath });
-              await vscode.commands.executeCommand(
-                  'workbench.action.chat.open', { query: initPrompt }
-              );
-            }
-          }
-
-          // 3. Send single notification stub
+          // 1. Compose notification stub
           const count = node.children.length;
           const senders = [...new Set(node.children.map((c: any) => c.sender))].join(', ');
           const cfg = vscode.workspace.getConfiguration('jarvis');
           const stub = applyTemplate(
             cfg.get<string>('messages.notificationTemplate', ''),
             { count: String(count), destination: node.destination, sender: senders }
-          );  // REQ_MSG_NOTIFICATION_TEMPLATE, SPEC_ENT_AGENTSESSION_INITPROMPT
-          await sendPromptToFocusedAgentChat(stub);  // SPEC_MSG_SENDPROMPT
+          );  // REQ_MSG_NOTIFICATION_TEMPLATE
 
-          // 4. Refresh tree (messages stay in queue)
+          // 2. Delegate to injectPrompt (SPEC_INJ_INJECT)
+          //    - resolves entity, finds/spawns session, places at Main, injects stub
+          await injectPrompt(node.destination, stub, { placement: 'main' });
+
+          // 3. Refresh tree (messages stay in queue)
           messageProvider.reload();
         }
       );
@@ -281,17 +227,6 @@ Message Queue Design Specifications
    Also registers ``jarvis.deleteMessage`` for single message deletion.
    The ``jarvis.openSession`` command is specified separately in
    ``SPEC_MSG_OPENSESSION``.
-
-   **Design notes:**
-
-   * ``openAtMain`` (``SPEC_MSG_EDITORPLACEMENT``) replaces the prior
-     ``openPinnedResource`` call for the existing-session branch — the same
-     helper used by ``jarvis.openAgentSession`` (``SPEC_ENT_AGENTSESSION``),
-     since both are user-initiated actions that SHALL land at Main
-     (``REQ_MSG_SEND`` AC-9). The fresh-session-creation branch
-     (``openNewChatEditor``/``renameFocusedChatSession``) is unchanged for
-     the same reason documented in ``SPEC_ENT_AGENTSESSION``: no VS Code API
-     exists to force the view column of a chat editor at creation time.
 
 
 .. spec:: Read Message LM Tool
@@ -1088,7 +1023,7 @@ Message Queue Design Specifications
 .. spec:: Auto-Delivery Poll Loop
    :id: SPEC_MSG_AUTODELIVER_POLL
    :status: draft
-   :links: REQ_MSG_AUTODELIVER_POLL; SPEC_MSG_AUTODELIVER_STORE; SPEC_MSG_AUTODELIVER_TAG; SPEC_MSG_SENDCOMMAND; REQ_MSG_NOTIFICATION_TEMPLATE; SPEC_MSG_OPENCHAT; REQ_ENT_AGENTPROMPT_TEMPLATE; SPEC_ENT_AGENTSESSION_INITPROMPT; SPEC_MSG_EDITORPLACEMENT; SPEC_MSG_FOCUSRESTORE
+   :links: REQ_MSG_AUTODELIVER_POLL; SPEC_MSG_AUTODELIVER_STORE; SPEC_MSG_AUTODELIVER_TAG; SPEC_MSG_SENDCOMMAND; REQ_MSG_NOTIFICATION_TEMPLATE; SPEC_MSG_OPENCHAT; REQ_ENT_AGENTPROMPT_TEMPLATE; SPEC_ENT_AGENTSESSION_INITPROMPT; SPEC_MSG_EDITORPLACEMENT; SPEC_MSG_FOCUSRESTORE; SPEC_INJ_INJECT
 
    **Description:**
 
@@ -1130,64 +1065,17 @@ Message Queue Design Specifications
           // Snapshot focus before the disruptive delivery (SPEC_MSG_FOCUSRESTORE)
           const focus = await snapshotFocus();
 
-          // Open chat session directly via UUID lookup
-          const uuid = await lookupSessionUUID(sessionName);
-          if (uuid) {
-            // Open at Secondary placement — focus-in-place if already open
-            // anywhere, else the last existing column (SPEC_MSG_EDITORPLACEMENT)
-            const b64 = Buffer.from(uuid).toString('base64');
-            const uri = vscode.Uri.parse(`vscode-chat-session://local/${b64}`);
-            await openAtSecondary(uri, sessionName);
-            // agent-mode-persistence (GH #25): re-apply the custom agent mode
-            // VS Code drops on window reload, to the now focused editor.
-            // See SPEC_MSG_OPENCHAT reapplyAgentMode() note.
-            const entityForPoll = scanner?.entities.find(e => e.name === sessionName);
-            if (entityForPoll?.agent) {
-              await reapplyAgentMode(entityForPoll.agent, sessionName);
-            }
-          } else {
-            // Resolve entity first (needed for mode-prime and init-prompt)
-            const entity = scanner?.entities.find(e => e.name === sessionName);
-
-            // Mode-primed creation: prime the VS Code Chat mode selector BEFORE
-            // openNewChatEditor() so the new session is born in the bound mode.
-            // (SPEC_MSG_OPENCHAT mode-prime note, REQ_ENT_AGENTPROMPT_TEMPLATE AC-6)
-            if (entity?.agent) {
-              await vscode.commands.executeCommand(
-                  'workbench.action.chat.open', { mode: entity.agent }
-              );
-              await new Promise(resolve => setTimeout(resolve, 300));
-            }
-
-            // Create a fresh chat editor (inherits primed mode)
-            await openNewChatEditor();  // SPEC_MSG_OPENCHAT (includes 800 ms settle delay)
-            await renameFocusedChatSession(sessionName);
-
-            // Send init prompt if the session name matches a known entity
-            // (REQ_MSG_AUTODELIVER_POLL AC-8, SPEC_ENT_AGENTSESSION_INITPROMPT)
-            if (entity) {
-              const kind = entity.kind ?? 'project';
-              const contextPath = path.join(entity.folder, 'context.md');
-              const rawInitTemplate = vscode.workspace.getConfiguration('jarvis')
-                  .get<string>('agentSession.initPromptTemplate') ?? '';
-              const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : DEFAULT_INIT_PROMPT;
-              const initPrompt = applyTemplate(initTemplate, { kind, name: entity.name, contextPath });
-              await vscode.commands.executeCommand(
-                  'workbench.action.chat.open', { query: initPrompt }
-              );
-            }
-          }
-
-          // Send notification stub
+          // Compose notification stub
           const cfg = vscode.workspace.getConfiguration('jarvis');
           const senders = [...new Set(pending.map(m => m.sender))].join(', ');
           const stub = applyTemplate(
             cfg.get<string>('messages.notificationTemplate', ''),
             { count: String(pending.length), destination: sessionName, sender: senders }
-          );  // REQ_MSG_NOTIFICATION_TEMPLATE, SPEC_ENT_AGENTSESSION_INITPROMPT
-          await vscode.commands.executeCommand(
-            'workbench.action.chat.open', { query: stub, isPartialQuery: false }
-          );
+          );  // REQ_MSG_NOTIFICATION_TEMPLATE
+
+          // Delegate to injectPrompt (SPEC_INJ_INJECT)
+          //   - resolves entity, finds/spawns session, places at Secondary, injects stub
+          await injectPrompt(sessionName, stub, { placement: 'secondary' });
 
           // Mark messages as notified
           const updated = readQueue(messagesPath);
@@ -1210,11 +1098,10 @@ Message Queue Design Specifications
 
    **Design notes:**
 
-   * Delivery logic is inlined rather than delegating to ``jarvis.sendMessages``
-     — the poll loop opens the session tab directly via ``lookupSessionUUID`` and
-     ``workbench.action.chat.open`` with ``{ isPartialQuery: false }``, avoiding
-     the synthetic ``SessionGroupNode`` and preserving the session's agent mode
-     (unlike ``sendPromptToFocusedAgentChat`` which uses ``openAgent``)
+   * The poll loop composes the notification stub and delegates session
+     resolution, placement, and injection to ``injectPrompt``
+     (``SPEC_INJ_INJECT``). Focus-snapshot/restore wraps the call since that
+     is the caller's responsibility, not the primitive's.
    * ``break`` after the first notified session implements the "max 1 per tick"
      constraint from ``REQ_MSG_AUTODELIVER_POLL AC-5``
    * ``context.subscriptions.push({ dispose: () => clearInterval(...) })``
@@ -1224,10 +1111,6 @@ Message Queue Design Specifications
    * The active-use opt-out check (``isSessionActiveTab``) was removed by
      the ``remove-autodelivery-focus-gate`` CR — the poll loop now delivers
      to any session with pending messages regardless of focus state
-   * ``openAtSecondary`` (``SPEC_MSG_EDITORPLACEMENT``) replaces the prior
-     ad-hoc tab-opening logic for the UUID-found branch; the fresh-session
-     branch (``openNewChatEditor``) is intentionally left unchanged — a
-     brand-new session has no prior tab to place relative to
 
 
 .. spec:: Auto-Delivery Message Tree Provider
@@ -2036,46 +1919,38 @@ Message Queue Design Specifications
 .. spec:: Agent Session Init Sequence
    :id: SPEC_MSG_AGENTSESSION
    :status: draft
-   :links: REQ_MSG_AGENTSESSION; REQ_ENT_AGENTSESSION; SPEC_MSG_OPENCHAT; SPEC_MSG_SENDPROMPT; SPEC_MSG_PINNED
+   :links: REQ_MSG_AGENTSESSION; REQ_ENT_AGENTSESSION; SPEC_MSG_OPENCHAT; SPEC_MSG_SENDPROMPT; SPEC_MSG_PINNED; SPEC_INJ_INJECT
 
    **Description:**
-   The `jarvis.openAgentSession` command orchestrates the full lifecycle of
+   The ``jarvis.openAgentSession`` command orchestrates the full lifecycle of
    opening or creating an agent chat session for a project or event leaf node.
+   Delegates session resolution, spawning, and prompt injection to
+   ``injectPrompt`` (``SPEC_INJ_INJECT``).
 
    **Sequence (existing session):**
 
-   1. Resolve UUID via `lookupSessionUUID(entity.name)`
-   2. Open pinned via `openPinnedResource(chatSessionUri)`
+   1. Compose init prompt via ``SPEC_ENT_AGENTSESSION_INITPROMPT`` template
+      expansion.
+   2. ``await injectPrompt(entity.name, initPrompt, { placement: 'main', skipInitPrompt: true })``
+      — the primitive finds the existing session and injects the init prompt.
+      ``skipInitPrompt`` is set because the caller provides the init prompt as
+      ``text``.
 
    **Sequence (new session):**
 
-   1. Resolve UUID -- not found
-   2. If ``entity.agent`` is set: ``workbench.action.chat.open { mode: entity.agent }``
-      + 300 ms settle -- primes the VS Code Chat mode selector
-   3. ``openNewChatEditor()`` (includes 800 ms settle delay -- SPEC_MSG_OPENCHAT)
-      -- creates fresh session inheriting the primed mode
-   4. ``renameFocusedChatSession(entity.name)`` -- wait 800 ms
-   5. Build ``contextPath``: ``path.dirname(element.id)`` (the actual YAML folder)
-      joined with ``context.md`` via ``path.join()``
-   6. ``workbench.action.chat.open { query: initPrompt }`` -- mode-param omitted;
-      mode was set at creation in step 2–3
+   1. Same as above — ``injectPrompt`` handles the new-session path internally
+      (mode-prime, open, rename). Since ``skipInitPrompt: true``, the primitive
+      does not send its own init prompt; the caller's ``text`` serves as the
+      init prompt.
 
    **Design notes:**
 
-   * Mode must be applied at session creation time (step 2). ``workbench.action.chat.open
-     { mode }`` on an already-focused session does NOT switch its mode; this is why
-     the mode was unreliable in the pre-delta implementation (mode was set in the
-     final ``chat.open`` call, after the session was already born without a mode).
-   * The 300 ms delay (step 2) is a heuristic to let the VS Code Chat mode selector
-     settle before ``workbench.action.openChat`` reads it. Callers skip step 2 when
-     ``entity.agent`` is absent; ``openNewChatEditor()`` opens in the user's current mode.
-   * The 800 ms delay in step 3 (within ``openNewChatEditor()``) is the tab-open
-     animation settle delay; see ``SPEC_MSG_OPENCHAT``.
-   * ``contextPath`` is derived from ``path.dirname(element.id)`` (the actual folder
-     of the entity's YAML file) rather than from the display name, avoiding
-     kebab-case derivation errors.
-   * ``lookupSessionUUID`` uses exact title match; prefix or suffix issues may
-     cause a new session to be created instead of reusing an existing one.
+   * Both existing and new session paths are unified into a single
+     ``injectPrompt`` call. The command's responsibility is reduced to composing
+     the init prompt text and delegating.
+   * ``contextPath`` is derived from ``path.dirname(element.id)`` (the actual
+     folder of the entity's YAML file) rather than from the display name,
+     avoiding kebab-case derivation errors.
 
 
 .. spec:: Reminder Store Module

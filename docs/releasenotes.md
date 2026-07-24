@@ -1,5 +1,16 @@
 # Release Notes
 
+## v0.23.0 — Prompt Injection Tool
+
+*2026-07-24*
+
+### Features
+
+- **prompt-injection-tool** (GH #43): New `jarvis_injectPrompt` LM tool and `jarvis.injectPrompt` Command Palette command that inject arbitrary text or slash-commands (e.g. `/compact`) into a named actor/project/event session, spawning the session automatically if it does not yet exist. This enables agents and heartbeat jobs to programmatically trigger slash-commands such as `/compact` — which cannot travel through the message queue, since queued text is read by the agent rather than executed. The canonical use-case is compacting all actor sessions after a completed CR: loop over `jarvis_listActors` and call `jarvis_injectPrompt(actor, "/compact")` per actor. The underlying session-targeted injection mechanism is consolidated from three duplicated call sites (session-start init prompt, message notification, auto-delivery) into a single `injectPrompt` primitive; external behavior is unchanged.
+  *(US_INJ_INJECT; REQ_INJ_PRIMITIVE; REQ_INJ_TOOL; REQ_INJ_COMMAND; SPEC_INJ_INJECT; SPEC_INJ_TOOL; SPEC_INJ_COMMAND)*
+
+---
+
 ## v0.22.0 — Heartbeat Output Vars + Actor Destination Fix
 
 *2026-07-23*

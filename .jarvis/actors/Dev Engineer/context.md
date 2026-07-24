@@ -4,9 +4,9 @@ the development engineer - the actual coder
 
 ## Current
 
-- **Change:** entity-files-tree (feature/entity-files-tree)
-- **Status:** Implementation + bugfix committed — expandable file children, agent-file resolution fixed
-- **Commits:** `8d73d35` (initial), `4fe0bdc` (agent-file resolution fix per amended SPEC_EXP_ENTITY_FILE_CHILDREN)
+- **Change:** prompt-injection-tool (feature/prompt-injection-tool)
+- **Status:** Committed `29dd7f3` + `6a8420f` + `f3da959` — SPEC_PIM_OPENACTORSESSION replaces injectPrompt on API
+- **SPECs:** SPEC_INJ_INJECT, SPEC_INJ_TOOL, SPEC_INJ_COMMAND, SPEC_MSG_SENDCOMMAND, SPEC_MSG_AUTODELIVER_POLL, SPEC_ENT_AGENTSESSION, SPEC_ACT_NEWENTITY, SPEC_PIM_OPENACTORSESSION, SPEC_ENG_API
 
 ## Decisions
 

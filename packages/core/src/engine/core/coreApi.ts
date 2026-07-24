@@ -196,6 +196,38 @@ export class JarvisEngine implements JarvisCoreApi {
         this._onMessageQueued?.();
     }
 
+    // --- Actor Session API (SPEC_PIM_OPENACTORSESSION) ---
+
+    async openActorSession(entityName: string, options?: { placement?: 'main' | 'secondary' }): Promise<void> {
+        const entity = this._scanner.entities.find(e => e.name === entityName);
+        if (!entity) {
+            throw new Error(`Jarvis: Entity not found: ${entityName}`);
+        }
+        const kind = entity.kind ?? 'project';
+        const folder = entity.folder ?? '';
+        const path = await import('path');
+        const vscode = await import('vscode');
+        const contextPath = path.join(folder, 'context.md');
+        const defaultInitPrompt =
+            `You are the agent session for the \${kind} "\${name}".\n\n` +
+            `Use only \`\${contextPath}\` as your persistent memory. Read it now.\n\n` +
+            `Keep it minimal and action-oriented:\n` +
+            `- Store only long-lived items under Decision / Finding / Next.\n` +
+            `- One concise line per bullet. Prune aggressively.\n` +
+            `- Replace outdated bullets \u2014 never append logs.\n` +
+            `- Never store retries, raw tool output, or transient chatter.\n` +
+            `- Before writing, ask: "Will this still matter in 2 weeks?" If no, skip.\n` +
+            `- When a topic grows past ~5 bullets, move it to a dedicated file beside \`context.md\` and leave a one-line summary with a relative link in \`context.md\`.`;
+        const rawTemplate = vscode.workspace.getConfiguration('jarvis').get<string>('agentSession.initPromptTemplate') ?? '';
+        const initTemplate = rawTemplate.trim() ? rawTemplate : defaultInitPrompt;
+        const initPrompt = initTemplate.replace(/\$\{(\w+)\}/g, (m: string, k: string) => {
+            const vars: Record<string, string> = { kind, name: entityName, contextPath };
+            return k in vars ? vars[k] : m;
+        });
+        const { injectPrompt: inject } = await import('../sessions/injectPrompt');
+        return inject(entityName, initPrompt, { placement: options?.placement, skipInitPrompt: true });
+    }
+
     dispose(): void {
         for (const [, entry] of this._tools) {
             entry.disposable.dispose();
