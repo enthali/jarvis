@@ -1,0 +1,3 @@
+name: "Change Manager"
+summary: "Manages the change pipeline: spec, implementation, and documentation."
+agent: ""
