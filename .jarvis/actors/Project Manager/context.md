@@ -63,11 +63,7 @@
 
 ## Active CR
 
-- **prompt-injection-tool (#43, user-guided) — dispatched to CM 2026-07-24**:
-  expose existing prompt-injection primitive as `jarvis_injectPrompt(actor, text)`
-  tool+command; consolidate 3 internal call sites (init prompt, msg-notification
-  stub, /rename). Unblocks #22 (compact via loop listActors + inject /compact).
-  No broadcast. User wants to discuss US/REQ/SPEC shape with System Designer.
+_(none — #43 merged to develop 2026-07-24; board → Merged)_
 
 ## Ideas
 
