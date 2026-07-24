@@ -1080,6 +1080,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
 
     // createActor tool
     let createActorTool: vscode.Disposable | undefined;
+    let whoAmITool: vscode.Disposable | undefined;
     if (cfg.get<boolean>('sessions.enabled', true)) {
         const createSession = async (args: { name: string; summary?: string; agent?: string; initialMessage?: string }): Promise<{ created: boolean; reason?: string; path: string }> => {
             const { name, summary, agent, initialMessage } = args;
@@ -1148,6 +1149,39 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
                 return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart(JSON.stringify(result))]);
             }
     );
+
+        // whoAmI tool (SPEC_ACT_WHOAMI)
+        whoAmITool = engine.registerTool('jarvis_whoAmI',
+            'Returns the calling actor\'s name and the absolute path to its context.md. Call this after /compact or context loss to recover your identity. No input parameters required.',
+            async (_options: vscode.LanguageModelToolInvocationOptions<any>, _token: vscode.CancellationToken) => {
+                const activeTab = vscode.window.tabGroups.activeTabGroup.activeTab;
+                if (!activeTab) {
+                    return new vscode.LanguageModelToolResult([
+                        new vscode.LanguageModelTextPart(JSON.stringify({
+                            error: 'No active tab. Please ask the user which actor you are.'
+                        }))
+                    ]);
+                }
+                const label = activeTab.label;
+                const actor = kindDrivenScanner.entities
+                    .find(e => e.kind === 'session' && e.name === label);
+                if (!actor) {
+                    return new vscode.LanguageModelToolResult([
+                        new vscode.LanguageModelTextPart(JSON.stringify({
+                            error: 'You are not a registered actor. Please ask the user which actor you are.'
+                        }))
+                    ]);
+                }
+                const contextPath = path.join(actor.folder, 'context.md');
+                log.info(`[SES] whoAmI: "${actor.name}" → ${contextPath}`);
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart(JSON.stringify({
+                        name: actor.name,
+                        contextPath
+                    }))
+                ]);
+            }
+        );
     }
 
     // Inject prompt tool (SPEC_INJ_TOOL)
@@ -1452,6 +1486,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         readMessageTool,
         listActorsTool,
         ...(createActorTool ? [createActorTool] : []),
+        ...(whoAmITool ? [whoAmITool] : []),
         injectPromptTool,
         injectPromptCommand,
         registerJobTool,

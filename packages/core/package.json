@@ -263,6 +263,16 @@
     ],
     "languageModelTools": [
       {
+        "name": "jarvis_whoAmI",
+        "displayName": "Who Am I",
+        "toolReferenceName": "whoAmI",
+        "icon": "$(account)",
+        "canBeReferencedInPrompt": true,
+        "userDescription": "Returns your actor name and context.md path for identity recovery after /compact.",
+        "modelDescription": "Returns the calling actor's name and the absolute path to its context.md. Call this after /compact or context loss to recover your identity. No input parameters required.",
+        "inputSchema": { "type": "object", "properties": {} }
+      },
+      {
         "name": "jarvis_createActor",
         "displayName": "Create Actor",
         "modelDescription": "Creates a new Jarvis Actor folder with actor.yaml and context.md under <workspace>/.jarvis/actors/<name>/. Idempotent.",

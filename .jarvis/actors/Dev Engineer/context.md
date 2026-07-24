@@ -4,9 +4,8 @@ the development engineer - the actual coder
 
 ## Current
 
-- **Change:** prompt-injection-tool (feature/prompt-injection-tool)
-- **Status:** Committed `29dd7f3` + `6a8420f` + `f3da959` — SPEC_PIM_OPENACTORSESSION replaces injectPrompt on API
-- **SPECs:** SPEC_INJ_INJECT, SPEC_INJ_TOOL, SPEC_INJ_COMMAND, SPEC_MSG_SENDCOMMAND, SPEC_MSG_AUTODELIVER_POLL, SPEC_ENT_AGENTSESSION, SPEC_ACT_NEWENTITY, SPEC_PIM_OPENACTORSESSION, SPEC_ENG_API
+- **Change:** jarvis-whoami (feature/jarvis-whoami)
+- **Status:** Committed `49e1d7e` — SPEC_ACT_WHOAMI implemented, compile+lint clean
 
 ## Decisions
 

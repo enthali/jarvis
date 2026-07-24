@@ -27,7 +27,7 @@ capability modules. Install only what you need.
 
 - **Actors & sessions** — persistent entities with their own `context.md` memory, shown in an explorer sidebar and expandable to their core files and recently-touched files
 - **Heartbeat scheduler** — cron-based jobs running scripts (Python, PowerShell), VS Code commands, or single-shot LLM calls
-- **Messaging, reminders & LM tools** — an inter-actor message queue, reminders, and tools like `#listActors`, `#sendMessage`, `#receiveMessage`, `#createActor`, and `#injectPrompt`
+- **Messaging, reminders & LM tools** — an inter-actor message queue, reminders, and tools like `#listActors`, `#sendMessage`, `#receiveMessage`, `#createActor`, `#injectPrompt`, and `#whoAmI`
 - **Prompt injection** — inject any text or slash-command (e.g. `/compact`) into a named actor's session via the `jarvis_injectPrompt` LM tool or the **Jarvis: Inject Prompt** command; spawns the session automatically if none exists. Useful for bulk operations such as compacting all actors after a CR:
   ```
   jarvis_injectPrompt(actor="Change Manager", text="/compact")

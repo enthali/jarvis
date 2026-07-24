@@ -1,5 +1,16 @@
 # Release Notes
 
+## v0.23.1 — Actor Identity Recovery Tool
+
+*2026-07-24*
+
+### Features
+
+- **jarvis-whoami** (GH #44): New zero-parameter `jarvis_whoAmI` LM tool that returns `{ name, contextPath }` for the calling actor's session — or an error if the session is not a registered actor. Designed for identity recovery after `/compact`, which can cause an actor to lose its name and `context.md` path from working memory. The kernel instructions now direct actors to call this tool as the first recovery step.
+  *(SPEC_ACT_WHOAMI)*
+
+---
+
 ## v0.23.0 — Prompt Injection Tool
 
 *2026-07-24*

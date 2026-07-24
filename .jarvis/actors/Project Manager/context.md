@@ -26,7 +26,6 @@
 - **Branch + CD before dispatch**: CM cannot start a CR without an existing
   branch + template-copied CD — create both before/with the CR message, not
   just mention them.
-- **Bugs are (almost always) spec problems**: check traceability/links first
   when debugging, not just the code diff — missing spec cross-links are a
   common root cause (see `pim-treenode-filenode-fix`).
 - **No-Blame, Verify-Before-Send**: confirm shared understanding of a finding
@@ -63,7 +62,8 @@
 
 ## Active CR
 
-_(none — #43 merged to develop 2026-07-24; board → Merged)_
+- **jarvis-whoami (#44, autonomous) — dispatched to CM 2026-07-24**:
+  `jarvis_whoAmI` tool returns actor name + context.md path; error + escalate-to-user if not a registered actor. Phase 1 of Jarvis Actor Package.
 
 ## Ideas
 

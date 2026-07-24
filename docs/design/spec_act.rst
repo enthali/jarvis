@@ -1818,3 +1818,109 @@ Actor Design Specifications
    * ``src/extension.ts`` — ``openAgentSessionCommand`` handler: replace the
      single ``workbench.action.chat.open`` call in the new-session branch with
      the conditional ``chatOpenOptions`` construction shown above.
+
+
+.. spec:: jarvis_whoAmI Tool Registration
+   :id: SPEC_ACT_WHOAMI
+   :status: draft
+   :links: REQ_ACT_WHOAMI; SPEC_ACT_TOOLS
+
+   **Description:**
+   Register ``jarvis_whoAmI`` via ``engine.registerTool()`` in
+   ``src/extension.ts``, inside the
+   ``if (cfg.get<boolean>('sessions.enabled', true))`` activation
+   block (same gating as ``SPEC_ACT_TOOLS``).
+
+   **Gating:**
+   The tool is registered only when ``jarvis.sessions.enabled`` is ``true`` at
+   activation time. Statically gated per ADR ``tool-deregistration.md``.
+
+   **Calling-session resolution:**
+   The VS Code API does not expose which chat session invokes an LM tool.
+   ``LanguageModelToolInvocationOptions`` contains only ``toolInvocationToken``
+   (opaque), ``input``, and ``tokenizationOptions`` — no session identity.
+
+   The tool uses a heuristic: ``vscode.window.tabGroups.activeTabGroup.activeTab.label``
+   gives the chat session name. When a tool is invoked by the LM, the invoking
+   chat session is the active tab. This heuristic is reliable for the identity
+   use case — an actor calls the tool from its own session, which is focused.
+
+   **Algorithm:**
+
+   1. Read ``vscode.window.tabGroups.activeTabGroup.activeTab``.
+      If no active tab → return error.
+   2. Extract ``label`` from the active tab.
+   3. Search the scanner's entity list for an entity with
+      ``kind === 'session'`` and ``name === label``.
+   4. If found: return ``{ name: entity.name, contextPath: path.join(entity.folder, 'context.md') }``.
+   5. If not found: return error ``"You are not a registered actor. Please ask the user which actor you are."``.
+
+   **Handler sketch** (``extension.ts``):
+
+   .. code-block:: typescript
+
+      const whoAmITool = engine.registerTool(
+          'jarvis_whoAmI',
+          'Returns the calling actor\'s name and the absolute path to its context.md. Call this after /compact or context loss to recover your identity. Requires no input parameters.',
+          async (
+              _options: vscode.LanguageModelToolInvocationOptions<Record<string, never>>,
+              _token: vscode.CancellationToken
+          ) => {
+              const activeTab = vscode.window.tabGroups.activeTabGroup.activeTab;
+              if (!activeTab) {
+                  return new vscode.LanguageModelToolResult([
+                      new vscode.LanguageModelTextPart(JSON.stringify({
+                          error: 'No active tab. Please ask the user which actor you are.'
+                      }))
+                  ]);
+              }
+              const label = activeTab.label;
+              const actor = kindDrivenScanner.entities
+                  .find(e => e.kind === 'session' && e.name === label);
+              if (!actor) {
+                  return new vscode.LanguageModelToolResult([
+                      new vscode.LanguageModelTextPart(JSON.stringify({
+                          error: `You are not a registered actor. Please ask the user which actor you are.`
+                      }))
+                  ]);
+              }
+              const contextPath = path.join(actor.folder, 'context.md');
+              log.info(`[SES] whoAmI: "${actor.name}" → ${contextPath}`);
+              return new vscode.LanguageModelToolResult([
+                  new vscode.LanguageModelTextPart(JSON.stringify({
+                      name: actor.name,
+                      contextPath
+                  }))
+              ]);
+          }
+      );
+
+   **``package.json`` ``contributes.languageModelTools`` entry:**
+
+   .. code-block:: json
+
+      {
+        "name": "jarvis_whoAmI",
+        "displayName": "Who Am I",
+        "toolReferenceName": "whoAmI",
+        "icon": "$(account)",
+        "canBeReferencedInPrompt": true,
+        "userDescription": "Returns your actor name and context.md path for identity recovery after /compact.",
+        "modelDescription": "Returns the calling actor's name and the absolute path to its context.md. Call this after /compact or context loss to recover your identity. No input parameters required.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+
+   **Acceptance Criteria:**
+
+   * AC-1: The tool is registered via ``engine.registerTool()`` inside the
+     ``sessions.enabled`` gate.
+   * AC-2: Active-tab label matching a registered Actor (kind ``session``)
+     returns ``{ name, contextPath }``.
+   * AC-3: No match returns error with instruction to ask the user.
+   * AC-4: No active tab returns error.
+   * AC-5: The tool requires no input parameters (empty ``inputSchema``).
+   * AC-6: ``package.json`` contains the ``languageModelTools`` entry with
+     ``toolReferenceName: "whoAmI"``.

@@ -851,3 +851,34 @@ Actor Requirements
       identity is ``name?.trim() || filename-stem``.  See
       ``SPEC_ACT_AGENT_DISCOVERY`` for the identity-drift edge case (out of
       scope for this CR).
+
+
+.. req:: jarvis_whoAmI LM+MCP Tool
+   :id: REQ_ACT_WHOAMI
+   :status: draft
+   :priority: required
+   :links: US_ACT_WHOAMI; REQ_ACT_LISTTOOL
+
+   **Description:**
+   A Language Model and MCP tool ``jarvis_whoAmI`` SHALL resolve the calling
+   chat session to its registered Actor and return the Actor's name and
+   ``context.md`` path.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The tool SHALL accept no input parameters. The calling session's
+     identity SHALL be resolved automatically by the extension using the
+     currently active chat editor tab label.
+   * AC-2: When the active tab label matches the ``name`` of a registered Actor
+     entity (kind ``session``), the tool SHALL return a JSON object
+     ``{ "name": "<actorName>", "contextPath": "<absolutePath>" }`` where
+     ``contextPath`` is the absolute filesystem path to the Actor's
+     ``context.md``.
+   * AC-3: When the active tab label does NOT match any registered Actor, the
+     tool SHALL return an error message instructing the session to ask the
+     user to resolve its identity (e.g. "You are not a registered actor.
+     Please ask the user which actor you are.").
+   * AC-4: The tool SHALL be registered only when ``jarvis.sessions.enabled``
+     is ``true`` at activation time (same gating as ``REQ_ACT_LISTTOOL``).
+   * AC-5: The tool SHALL appear in the VS Code Chat tool picker with
+     ``toolReferenceName`` ``whoAmI``.
