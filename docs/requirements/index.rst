@@ -23,6 +23,7 @@ Requirements describe **what** the system must do.
    req_act
    req_ent
    req_mod
+   req_inj
    req_eng
    req_hook
    req_flow

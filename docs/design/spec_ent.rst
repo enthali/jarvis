@@ -61,20 +61,13 @@ level).
 .. spec:: Open Agent Session Command
    :id: SPEC_ENT_AGENTSESSION
    :status: draft
-   :links: REQ_ENT_AGENTSESSION; SPEC_MSG_SESSIONLOOKUP; SPEC_EXP_PROVIDER; SPEC_ENT_OPENYAML_CMD; SPEC_MSG_OPENCHAT; SPEC_MSG_PINNED; SPEC_MSG_AGENTSESSION; SPEC_ENT_AGENTSESSION_INITPROMPT; SPEC_MSG_EDITORPLACEMENT
+   :links: REQ_ENT_AGENTSESSION; SPEC_MSG_SESSIONLOOKUP; SPEC_EXP_PROVIDER; SPEC_ENT_OPENYAML_CMD; SPEC_MSG_OPENCHAT; SPEC_MSG_PINNED; SPEC_MSG_AGENTSESSION; SPEC_ENT_AGENTSESSION_INITPROMPT; SPEC_MSG_EDITORPLACEMENT; SPEC_INJ_INJECT
 
    **Description:**
    Register ``jarvis.openAgentSession`` in ``extension.ts``. Invoked from the
    inline ``$(comment-discussion)`` button on every project and event leaf node.
-   Looks up a chat session whose title matches the entity ``name`` and opens it;
-   if no session is found, creates a **fresh** chat editor via
-   ``openNewChatEditor()`` (``SPEC_MSG_OPENCHAT``) and sends an initialization
-   prompt. The full lifecycle sequence is specified in ``SPEC_MSG_AGENTSESSION``.
-
-   **Rationale — URI-reuse bug fix:**
-   ``openNewChatEditor()`` (``SPEC_MSG_OPENCHAT``) ensures each invocation
-   produces a unique session URI and a dedicated editor; see
-   ``SPEC_MSG_OPENCHAT`` for the canonical rationale.
+   Composes the init prompt and delegates session resolution, spawning, placement,
+   and injection to ``injectPrompt`` (``SPEC_INJ_INJECT``).
 
    **Handler:**
 
@@ -86,68 +79,19 @@ level).
           const entity = scanner.getEntity(element.id);
           if (!entity) { return; }
 
-          const uuid = await lookupSessionUUID(entity.name);
+          // Compose init prompt (SPEC_ENT_AGENTSESSION_INITPROMPT)
+          const kind = entity.kind ?? 'project';
+          const folder = entity.folder ?? path.dirname(element.id);
+          const contextPath = path.join(folder, 'context.md');
+          const rawInitTemplate = vscode.workspace.getConfiguration('jarvis')
+              .get<string>('agentSession.initPromptTemplate') ?? '';
+          const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : DEFAULT_INIT_PROMPT;
+          const initPrompt = applyTemplate(initTemplate, { kind, name: entity.name, contextPath });
 
-          if (uuid) {
-            // Open existing session, always at Main (column 1) — close+reopen
-            // if currently open elsewhere (SPEC_MSG_EDITORPLACEMENT AC-5, the
-            // one exception to the don't-move rule)
-            const b64 = Buffer.from(uuid).toString('base64');
-            const uri = vscode.Uri.parse(
-              `vscode-chat-session://local/${b64}`
-            );
-            await openAtMain(uri, entity.name);  // SPEC_MSG_EDITORPLACEMENT
-          } else {
-            // Mode-primed creation: set the mode selector BEFORE openNewChatEditor()
-            // so the new session is born in the bound agent mode (SPEC_MSG_OPENCHAT
-            // mode-prime note). workbench.action.chat.open with mode does NOT
-            // retroactively change an already-active session's mode.
-            if (entity.agent) {
-                await vscode.commands.executeCommand(
-                    'workbench.action.chat.open', { mode: entity.agent }
-                );
-                await new Promise(resolve => setTimeout(resolve, 300));
-            }
-
-            // Create a fresh chat editor — opens in the primed mode
-            await openNewChatEditor();  // SPEC_MSG_OPENCHAT (includes 800 ms settle delay)
-
-            // Rename session so future lookups can resolve it by name
-            await renameFocusedChatSession(entity.name);
-
-            // Send initialization prompt (SPEC_ENT_AGENTSESSION_INITPROMPT)
-            const kind = entity.kind ?? 'project';
-            const folder = entity.folder ?? path.dirname(element.id);
-            const contextPath = path.join(folder, 'context.md');
-            const rawInitTemplate = vscode.workspace.getConfiguration('jarvis')
-                .get<string>('agentSession.initPromptTemplate') ?? '';
-            const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : DEFAULT_INIT_PROMPT;
-            const initPrompt = applyTemplate(initTemplate, { kind, name: entity.name, contextPath });
-            // Mode is already set at creation time — submit prompt without mode param
-            await vscode.commands.executeCommand(
-                'workbench.action.chat.open', { query: initPrompt }
-            );
-
-            // project-actor-click-placement-fix CR: guarantee Main placement
-            // even for a freshly created session (REQ_ENT_AGENTSESSION AC-7,
-            // REQ_MSG_EDITORPLACEMENT AC-12/AC-13). The rename above has
-            // already completed, so the session is now resolvable by name —
-            // reuse the exact same close+reopen mechanism as the
-            // existing-session branch instead of trying to influence which
-            // column the chat editor was born in (VS Code exposes no API
-            // for that — see SPEC_MSG_OPENCHAT).
-            const newUuid = await lookupSessionUUID(entity.name);
-            if (newUuid) {
-                const newB64 = Buffer.from(newUuid).toString('base64');
-                const newUri = vscode.Uri.parse(
-                    `vscode-chat-session://local/${newB64}`
-                );
-                await openAtMain(newUri, entity.name);  // SPEC_MSG_EDITORPLACEMENT
-            }
-            // Silent no-op if newUuid is still unresolved (rare rename-
-            // propagation edge case, REQ_MSG_EDITORPLACEMENT AC-13) — the
-            // session is still fully usable, just not repositioned.
-          }
+          // Delegate to injectPrompt (SPEC_INJ_INJECT)
+          //   - resolves session (existing or spawn), places at Main, injects init prompt
+          //   - skipInitPrompt: true because we provide the init prompt as text
+          await injectPrompt(entity.name, initPrompt, { placement: 'main', skipInitPrompt: true });
         }
       );
 
@@ -195,6 +139,9 @@ level).
 
    **Design notes:**
 
+   * Session resolution, spawning, mode-priming, editor placement, and text
+     injection are all delegated to ``injectPrompt`` (``SPEC_INJ_INJECT``).
+     This command's only responsibility is composing the init prompt text.
    * ``contextValue`` uses namespaced values (``jarvisProject``, ``jarvisEvent``,
      ``jarvisFolder``) to prevent collisions with other extensions — the button
      appears on all ``jarvisProject`` and ``jarvisEvent`` items and is now the
@@ -203,44 +150,15 @@ level).
      ``SPEC_ENT_OPENCONTEXT_CMD``)
    * No changes to ``yamlScanner.ts`` — uses existing ``entity.name`` from the
      entity store
-   * ``openAtMain`` (``SPEC_MSG_EDITORPLACEMENT``) replaces the prior
-     ``openPinnedResource`` call for the existing-session branch: the tab is
-     always found and, if necessary, closed and reopened at column 1 rather
-     than merely focused wherever it happens to be (``REQ_ENT_AGENTSESSION``
-     AC-6 — guaranteed)
-   * The fresh-session-creation branch (``openNewChatEditor`` /
-     ``renameFocusedChatSession``) now **also guarantees Main placement**
-     (``project-actor-click-placement-fix`` CR, ``REQ_ENT_AGENTSESSION``
-     AC-7 — corrected): after the rename and init-prompt steps complete, a
-     follow-up ``lookupSessionUUID`` + ``openAtMain`` call relocates the
-     newly created session exactly as the existing-session branch does.
-     VS Code still exposes no API to force the view column of a chat editor
-     *at creation time* — that fact is unchanged — but this CR closes the
-     gap by relocating *after* creation instead, using only already-proven
-     mechanisms.
-   * **Spec/implementation naming note (pre-existing, not introduced by this
-     CR):** the actual ``packages/core/src/extension.ts`` implementation
-     factors the else-branch shown above into a shared private helper,
-     ``openChatForEntity()``, called from both ``jarvis.openAgentSession``
-     and the entity-creation commands (``jarvis.newSession`` et al., see
-     ``SPEC_ACT_NEWENTITY``) — this spec's code sample inlines that logic
-     rather than naming the shared function explicitly. The relocate-step
-     fix above lives once in that shared helper, so both callers gain the
-     Main-placement guarantee automatically; not re-documented separately
-     in ``SPEC_ACT_NEWENTITY`` beyond a cross-reference note.
-   * No changes to ``sessionLookup.ts`` — reuses ``lookupSessionUUID()`` as-is
-   * The initialization prompt is submitted directly via
-     ``workbench.action.chat.open`` (not via the message queue)
    * Disposable pushed to ``context.subscriptions``
    * **The verbatim prompt template is specified in
-     ``SPEC_ENT_AGENTSESSION_INITPROMPT``.** The old hardcoded wording shown
-     above is retained for historical reference only.
+     ``SPEC_ENT_AGENTSESSION_INITPROMPT``.**
 
 
 .. spec:: Agent-Session Identity Prompt Template
    :id: SPEC_ENT_AGENTSESSION_INITPROMPT
    :status: draft
-   :links: REQ_ACT_AGENTPROMPT; REQ_ENT_AGENTPROMPT_TEMPLATE
+   :links: REQ_ACT_AGENTPROMPT; REQ_ENT_AGENTPROMPT_TEMPLATE; SPEC_INJ_INJECT
 
    **Description:**
    When ``jarvis.openAgentSession`` or ``jarvis.newSession`` opens a **new** chat
@@ -302,32 +220,29 @@ level).
 
    **Trigger points:**
 
-   * ``jarvis.openAgentSession`` — new-session branch only (no existing UUID found).
-   * ``jarvis.newSession`` — always (a new session folder is always created).
-   * ``jarvis.sendMessages`` — new-session branch only (no UUID found) AND the
-     scanner entity store contains an entity whose ``name`` matches
-     ``node.destination``. If no entity matches, the init prompt is skipped.
-   * Auto-delivery poll loop — new-session branch only (no UUID found) AND the
-     scanner entity store contains an entity whose ``name`` matches the session
-     name being delivered to. If no entity matches, the init prompt is skipped.
+   All trigger points route through ``injectPrompt`` (``SPEC_INJ_INJECT``).
+   The primitive calls this spec's template expansion logic in its spawn-session
+   path (step 3b) when ``skipInitPrompt`` is not set. Callers that supply their
+   own init prompt as ``text`` (e.g. ``jarvis.openAgentSession``) pass
+   ``skipInitPrompt: true`` and handle template expansion themselves.
 
-   **Mode-apply sequencing (delta — mode-prime pattern):**
-   For all trigger points, when ``entity.agent`` is set the bound mode must be
-   applied at session creation time, not post-creation. The caller primes the VS
-   Code Chat mode selector with ``workbench.action.chat.open { mode: entity.agent }``
-   + 300 ms settle *before* calling ``openNewChatEditor()``. The subsequently
-   created session inherits the primed mode. The final init-prompt submission uses
-   ``workbench.action.chat.open { query: initPrompt }`` without a ``mode``
-   parameter — the mode is already set. See ``SPEC_MSG_OPENCHAT`` mode-prime note
-   for the design rationale.
+   * ``jarvis.openAgentSession`` — composes init prompt, passes as ``text`` with
+     ``skipInitPrompt: true``.
+   * ``jarvis.newSession`` — same pattern.
+   * ``jarvis.sendMessages`` — calls ``injectPrompt`` with the notification stub;
+     the primitive handles init prompt internally on spawn.
+   * Auto-delivery poll loop — same as ``jarvis.sendMessages``.
 
-   **Scope:** Cross-entity — benefits projects, events, and sessions. The spec
-   lives here (``spec_exp.rst``) because ``jarvis.openAgentSession`` is an EXP
-   command; the triggering requirements live in ``REQ_ACT_AGENTPROMPT`` (sessions
-   CR) and ``REQ_ENT_AGENTPROMPT_TEMPLATE`` (this CR).
+   **Mode-apply sequencing:**
+   Mode priming (``entity.agent``) is handled by ``injectPrompt``
+   (``SPEC_INJ_INJECT`` step 3b) — callers no longer implement this directly.
 
-   **File touchpoint:** ``src/extension.ts`` — ``openAgentSessionCommand`` and
-   ``newSessionCommand``.
+   **Scope:** Cross-entity — benefits projects, events, and sessions. This spec
+   defines the template content and placeholder definitions; the injection
+   mechanism is owned by ``SPEC_INJ_INJECT``.
+
+   **File touchpoint:** ``packages/core/src/engine/sessions/injectPrompt.ts``
+   (template expansion logic called by ``injectPrompt``).
 
 
 .. spec:: Shared Agent Picker Component

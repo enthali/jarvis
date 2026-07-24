@@ -198,3 +198,27 @@ Actor User Stories
      results in an error ``"invalid session name: <reason>"`` — the folder name
      is used verbatim (no slug-ification) to preserve round-trip consistency
      with ``jarvis_sendToSession``.
+
+
+.. story:: Actor Identity Recovery Tool
+   :id: US_ACT_WHOAMI
+   :status: draft
+   :priority: required
+   :links: US_ACT_ACTORS
+
+   **As a** Jarvis Actor operating in a chat session,
+   **I want** a tool ``jarvis_whoAmI`` that tells me my own name and the path
+   to my ``context.md``,
+   **so that** I can reliably recover my identity after ``/compact`` or context
+   loss and resume my role by reading my persistent memory.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Calling ``jarvis_whoAmI`` from a chat session that is a registered
+     Actor SHALL return the Actor's name and the absolute path to its
+     ``context.md``.
+   * AC-2: Calling ``jarvis_whoAmI`` from a chat session that is NOT a
+     registered Actor SHALL return an error instructing the session to ask
+     the user to resolve its identity.
+   * AC-3: The tool SHALL require no input parameters — the extension resolves
+     the calling session's identity automatically.

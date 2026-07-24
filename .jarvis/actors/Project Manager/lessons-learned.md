@@ -1,5 +1,8 @@
 # PM Lessons Learned
 
+### Platform-first cut: separate foundation primitives from user-requests (2026-07-24)
+When a user-request (e.g. #22 "auto-compact sessions") requires a missing platform primitive, create a separate foundation issue (#43 "prompt-injection tool") rather than rewriting the user-request. The user-request stays open as the motivating story; the foundation issue is what gets implemented and closed. This keeps user-requests clean and platform features independently trackable. Resolution: comment on the user-request with the exact usage pattern (3 lines), then close it. No skill file or doc page needed when the pattern is trivially composable from the new tool.
+
 ### QM's gate is not skippable by CR size — MECE/Trace PASS is input, not a substitute (2026-07-21)
 Merged `msg-notify-default-text-fix` to `develop` after MECE QUALITY PASS + Trace verification, self-authoring the CD's QM Findings section as "cleared, no dedicated QM pass needed — it's a small follow-up fix." QM's independent Round 2 review (run *after* the merge) confirmed the change was functionally correct, but flagged the sequencing itself as the real problem: only QM renders the CLEAR/BLOCK gate signal, and CM had explicitly routed the CR to QM "per standard workflow" — PM merged ahead of that step. No harm this time (QM's own review came back CLEAR), but the rule going forward: **never merge before QM has posted its own CLEAR/BLOCK message directly**, regardless of how small or low-risk the CR looks — size is not a valid reason to shortcut a role.
 

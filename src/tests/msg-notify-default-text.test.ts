@@ -34,20 +34,20 @@ describe('REQ_MSG_NOTIFICATION_TEMPLATE AC-3/AC-7: default notification text at 
         expect(setting!.default).not.toContain('jarvis_readMessage');
     });
 
-    it('jarvis.sendMessages manual command fallback default includes Sender(s) and jarvis_receiveMessage (not the nonexistent enthali.jarvis-core/receiveMessage)', () => {
+    it('jarvis.sendMessages manual command composes stub via applyTemplate from config, not inline default', () => {
         const idx = extensionSrc.indexOf("'jarvis.sendMessages'");
         expect(idx).toBeGreaterThan(-1);
-        const slice = extensionSrc.slice(idx, idx + 6000);
-        expect(slice).toContain('Sender(s): \\${sender}');
-        expect(slice).toContain('jarvis_receiveMessage');
-        expect(slice).not.toContain('enthali.jarvis-core/receiveMessage');
+        const slice = extensionSrc.slice(idx, idx + 2000);
+        // Verifies the refactored architecture: stub is composed from cfg.get (template from package.json)
+        expect(slice).toContain("cfg.get<string>('messages.notificationTemplate'");
+        expect(slice).toContain('applyTemplate(');
     });
 
-    it('auto-delivery poll loop fallback default includes Sender(s) and jarvis_receiveMessage', () => {
-        const idx = extensionSrc.indexOf('Auto-delivery poll loop');
+    it('auto-delivery poll loop composes stub via applyTemplate from config, not inline default', () => {
+        const idx = extensionSrc.indexOf('const pollInterval = setInterval');
         expect(idx).toBeGreaterThan(-1);
-        const slice = extensionSrc.slice(idx, idx + 8000);
-        expect(slice).toContain('Sender(s): \\${sender}');
-        expect(slice).toContain('jarvis_receiveMessage');
+        const slice = extensionSrc.slice(idx, idx + 3000);
+        expect(slice).toContain("cfg.get<string>('messages.notificationTemplate'");
+        expect(slice).toContain('applyTemplate(');
     });
 });

@@ -2,6 +2,12 @@
 *.vsix
 *.pyc
 
+# Actor Kernel instructions — private IP, not for public repo
+.github/instructions/
+
+# Syspilot runtime state — local only
+.jarvis/syspilot-state.json
+
 #environment files
 .env
 .venv/

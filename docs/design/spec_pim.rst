@@ -721,6 +721,67 @@ PIM Design Specifications
    registers a ``"Jarvis: Task Refresh"`` heartbeat job when ``taskService``
    has providers and ``scanInterval > 0``:
 
+
+.. spec:: PIM Actor Session Delegation
+   :id: SPEC_PIM_OPENACTORSESSION
+   :status: draft
+   :links: REQ_INJ_PRIMITIVE; SPEC_ENG_API
+
+   **Description:**
+   The PIM package's inline session-creation pipeline (``openChatForEntity()``)
+   is replaced by delegation to the core engine's ``openActorSession`` API
+   (``JarvisCoreApi.openActorSession``). This eliminates the duplicated fragile
+   ``workbench.action.chat.open`` / rename / init-prompt logic from PIM.
+   PIM no longer composes init prompts or touches chat APIs — core owns the
+   entire session lifecycle.
+
+   **Before (removed):**
+
+   PIM's ``packages/pim/src/extension.ts`` contained a local
+   ``openChatForEntity(name, kind, folder, agent)`` function that duplicated:
+   mode-prime → ``openChat`` → ``/rename`` → init-prompt template expansion →
+   send prompt. This was called by both ``jarvis.newProject`` and
+   ``jarvis.newEvent``.
+
+   **After (consolidated):**
+
+   Both creation commands write the entity's YAML + ``context.md``, call
+   ``api.rescan()`` so the scanner indexes the new entity, then delegate
+   session creation entirely to core::
+
+      await api.openActorSession(nameInput, { placement: 'main' });
+
+   The local ``openChatForEntity()`` function and the local ``applyTemplate()``
+   init-prompt logic are deleted from PIM. Core resolves the entity from the
+   scanner cache (which already knows its folder, kind, agent, and context
+   path) and handles mode-prime, rename, init prompt, and placement internally
+   via ``injectPrompt`` (``SPEC_INJ_INJECT``).
+
+   **Call sites:**
+
+   1. ``jarvis.newProject`` (``packages/pim/src/extension.ts``): after writing
+      ``project.yaml`` + ``context.md`` and calling ``api.rescan()``, call
+      ``await api.openActorSession(input, { placement: 'main' })``.
+
+   2. ``jarvis.newEvent`` (``packages/pim/src/extension.ts``): same pattern —
+      after writing ``event.yaml`` + ``context.md`` and ``api.rescan()``, call
+      ``await api.openActorSession(nameInput, { placement: 'main' })``.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``openChatForEntity()`` is deleted from ``packages/pim/src/extension.ts``.
+   * AC-2: PIM's ``applyTemplate()`` init-prompt logic is deleted — core owns
+     init-prompt composition via ``SPEC_ENT_AGENTSESSION_INITPROMPT``.
+   * AC-3: Both ``jarvis.newProject`` and ``jarvis.newEvent`` call
+     ``api.openActorSession()`` instead.
+   * AC-4: PIM no longer directly invokes ``workbench.action.chat.open``,
+     ``workbench.action.openChat``, or ``/rename`` for session creation.
+   * AC-5: The ``JarvisCoreApi`` type imported by PIM includes
+     ``openActorSession``.
+   * AC-6: Functional parity — a newly created project/event opens a chat
+     session with agent mode, correct name, and init prompt (same observable
+     behavior as before).
+
    .. code-block:: typescript
 
       function syncTaskRefreshJob(): void {

@@ -26,7 +26,6 @@
 - **Branch + CD before dispatch**: CM cannot start a CR without an existing
   branch + template-copied CD — create both before/with the CR message, not
   just mention them.
-- **Bugs are (almost always) spec problems**: check traceability/links first
   when debugging, not just the code diff — missing spec cross-links are a
   common root cause (see `pim-treenode-filenode-fix`).
 - **No-Blame, Verify-Before-Send**: confirm shared understanding of a finding
@@ -63,13 +62,30 @@
 
 ## Active CR
 
-_(none — #40, #39, and follow-up fix msg-notify-default-text-fix all merged to develop 2026-07-20/21; awaiting release)_
+_(none — pipeline clear)_
 
 ## Ideas
 
 - [PIM Modularization](ideas/pim-modularization.md) — drop per-component enable/disable settings, go installable-sub-extensions instead
 - [Session Recording](ideas/recording-design.md) — meeting recording + transcription pipeline
-- [jarvis-syspilot scope](ideas/jarvis-syspilot-scope.md) — GH #39 agreed model (Frontmatter contract, Syspilot Setup Engineer actor, delay/skip tools) — for the tonight black-ops CR
+
+## Watch Items
+
+- **GH #34 scope may shrink (2026-07-23)**: user is consolidating Gmail into
+  Outlook via IMAP in the `c:\workspace\Assistant` spike — works well so far.
+  If it holds up, the "provider abstraction (Outlook/Gmail)" half of #34 may
+  become unnecessary. Not acting yet — revisit #34's scope once IMAP approach
+  proves stable. The other half (import agents/skills from Assistant spike,
+  incl. two agent.md persona files the user likes) still stands independently.
+- **AHP migration research spike (planned, week of 2026-07-28)**: VS Code 1.130
+  confirmed AHP as the platform direction. FI-2026-07-21 documents the right
+  path: `editorService.openEditor({ resource })` + Session-URIs instead of
+  `chat.open` hack. Goal: assess what it takes to migrate Jarvis session-layer
+  to AHP-native. No GH issue yet — create one after the spike when scope is clear.
+  Also investigate during spike (obs. 2026-07-23, likely 1.130): opening an
+  actor session can spawn a phantom "broken" chat in a 2nd editor tab; split
+  view mirrors one session synchronously into both panes (same session, not
+  two actors). Fits AHP session-layer rework — assess together.
 
 ## Syspilot Testing Ground
 

@@ -5,7 +5,7 @@ Messaging User Stories
    :id: US_MSG_CHATQUEUE
    :status: approved
    :priority: mandatory
-   :links: US_EXP_SIDEBAR; US_AUT_HEARTBEAT; US_CFG_MSG
+   :links: US_EXP_SIDEBAR; US_AUT_HEARTBEAT; US_CFG_MSG; US_INJ_INJECT
 
    **As a** Jarvis User,
    **I want** messages from Heartbeat jobs to be queued and displayed in the Jarvis

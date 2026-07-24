@@ -4,9 +4,8 @@ the development engineer - the actual coder
 
 ## Current
 
-- **Change:** entity-files-tree (feature/entity-files-tree)
-- **Status:** Implementation + bugfix committed — expandable file children, agent-file resolution fixed
-- **Commits:** `8d73d35` (initial), `4fe0bdc` (agent-file resolution fix per amended SPEC_EXP_ENTITY_FILE_CHILDREN)
+- **Change:** jarvis-whoami (feature/jarvis-whoami)
+- **Status:** Committed `49e1d7e` — SPEC_ACT_WHOAMI implemented, compile+lint clean
 
 ## Decisions
 

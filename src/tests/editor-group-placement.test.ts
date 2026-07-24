@@ -24,6 +24,7 @@ import * as path from 'path';
 
 const coreSrcDir = path.resolve(__dirname, '..', '..', 'packages', 'core', 'src');
 const extensionSrc = fs.readFileSync(path.join(coreSrcDir, 'extension.ts'), 'utf-8');
+const injectPromptSrc = fs.readFileSync(path.join(coreSrcDir, 'engine', 'sessions', 'injectPrompt.ts'), 'utf-8');
 
 describe('SPEC_MSG_EDITORPLACEMENT: placement helpers', () => {
     it('resolveSecondaryColumn uses Math.max(2, groupCount) — never N alone (Main-collision) and never +1 (runaway-column)', () => {
@@ -51,11 +52,11 @@ describe('SPEC_MSG_EDITORPLACEMENT: placement helpers', () => {
         expect(extensionSrc).toContain('const DOCS_COLUMN = vscode.ViewColumn.Two;');
     });
 
-    it('jarvis.openAgentSession existing-session branch calls openAtMain', () => {
+    it('jarvis.openAgentSession delegates to injectPrompt with placement main', () => {
         const idx = extensionSrc.indexOf("'jarvis.openAgentSession'");
         expect(idx).toBeGreaterThan(-1);
-        const handlerSlice = extensionSrc.slice(idx, idx + 1500);
-        expect(handlerSlice).toContain('await openAtMain(uri, entity.name);');
+        const handlerSlice = extensionSrc.slice(idx, idx + 2000);
+        expect(handlerSlice).toContain("await injectPrompt(entity.name, initPrompt, { placement: 'main'");
     });
 
     it('jarvis.openEntityFile calls openAtDocs with preview (non-.md branch)', () => {
@@ -65,15 +66,20 @@ describe('SPEC_MSG_EDITORPLACEMENT: placement helpers', () => {
         expect(handlerSlice).toContain('await openAtDocs(uri, { preview: true });');
     });
 
-    it('jarvis.sendMessages (Play-button) existing-session branch calls openAtMain, not bare openPinnedResource', () => {
+    it('jarvis.sendMessages (Play-button) delegates to injectPrompt with placement main', () => {
         const idx = extensionSrc.indexOf("'jarvis.sendMessages'");
         expect(idx).toBeGreaterThan(-1);
-        const handlerSlice = extensionSrc.slice(idx, idx + 1000);
-        expect(handlerSlice).toContain('await openAtMain(uri, node.destination);');
+        const handlerSlice = extensionSrc.slice(idx, idx + 1500);
+        expect(handlerSlice).toContain("await injectPrompt(node.destination, stub, { placement: 'main' }");
     });
 
-    it('the poll loop calls openAtSecondary for the existing-session branch', () => {
-        expect(extensionSrc).toContain('await openAtSecondary(uri, sessionName);');
+    it('the poll loop delegates to injectPrompt with placement secondary', () => {
+        expect(extensionSrc).toContain("await injectPrompt(sessionName, stub, { placement: 'secondary' }");
+    });
+
+    it('injectPrompt.ts calls openAtMain for main placement and openAtSecondary for secondary', () => {
+        expect(injectPromptSrc).toContain('await _openAtMain(');
+        expect(injectPromptSrc).toContain('await _openAtSecondary(');
     });
 });
 

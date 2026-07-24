@@ -219,7 +219,7 @@ Jarvis Entity kinds (Project / Event / Actor). Kind-agnostic engine plumbing
    :id: US_ENT_AGENTSESSION_PROMPT
    :status: draft
    :priority: optional
-   :links: US_ENT_ENTITY; US_ENT_AGENTSESSION
+   :links: US_ENT_ENTITY; US_ENT_AGENTSESSION; US_INJ_INJECT
 
    **As a** Jarvis User,
    **I want** the agent-session initialization prompt to enforce disciplined

@@ -223,7 +223,7 @@ generic/user-facing, ``ENG`` = kind-agnostic plumbing, no US level).
    :id: REQ_ENT_AGENTPROMPT_TEMPLATE
    :status: draft
    :priority: optional
-   :links: US_ENT_AGENTSESSION_PROMPT
+   :links: US_ENT_AGENTSESSION_PROMPT; REQ_INJ_PRIMITIVE
 
    **Description:**
    The extension SHALL read the agent-session initialization prompt from the VS

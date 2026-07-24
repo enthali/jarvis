@@ -282,6 +282,22 @@ Engine Design Specifications
            * (jarvis-syspilot CR, GH #39)
            */
           sendMessage(destination: string, sender: string, text: string): void;
+
+          // --- Actor Session Lifecycle (SPEC_ENT_AGENTSESSION) ---
+
+          /**
+           * Open (or create) the chat session for a named entity. Resolves
+           * the entity via the scanner, finds an existing session or spawns
+           * a new one (with mode-prime, rename, init prompt, placement),
+           * and focuses it. Add-ons (e.g. PIM) call this after entity
+           * creation + ``rescan()`` to open the session — they never
+           * compose prompts or touch chat APIs directly.
+           * Internally delegates to ``injectPrompt`` (``SPEC_INJ_INJECT``).
+           */
+          openActorSession(
+              entityName: string,
+              options?: { placement?: 'main' | 'secondary' }
+          ): Promise<void>;
       }
 
    **Acceptance Criteria:**

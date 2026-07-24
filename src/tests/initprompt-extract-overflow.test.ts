@@ -62,11 +62,12 @@ describe('TC-2: New bullet is the last bullet in the list', () => {
 describe('TC-3: No per-kind branching — identical default across kinds', () => {
     it('extension.ts has no conditional branching around the new bullet', () => {
         // The defaultInitPrompt strings should not be wrapped in kind-specific if/switch
-        // We verify by counting occurrences of the new bullet — should match the number of
-        // defaultInitPrompt declarations (3 copies currently)
-        const matches = extensionSrc.match(/When a topic grows past ~5 bullets/g);
-        expect(matches).not.toBeNull();
-        expect(matches!.length).toBeGreaterThanOrEqual(3);
+        // After SPEC_INJ_INJECT consolidation, the default lives in extension.ts (openAgentSession, newActor)
+        // and injectPrompt.ts (the primitive's own spawn path). We count across both.
+        const injectPromptSrc = fs.readFileSync(path.join(coreSrcDir, 'engine', 'sessions', 'injectPrompt.ts'), 'utf-8');
+        const extMatches = extensionSrc.match(/When a topic grows past ~5 bullets/g) || [];
+        const injMatches = injectPromptSrc.match(/When a topic grows past ~5 bullets/g) || [];
+        expect(extMatches.length + injMatches.length).toBeGreaterThanOrEqual(3);
     });
 
     it('package.json default does not mention specific entity kinds in bullet list', () => {

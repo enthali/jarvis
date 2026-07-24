@@ -23,6 +23,7 @@ User Stories or Stakeholder needs describe **why** functionality is needed from 
    us_act
    us_ent
    us_mod
+   us_inj
    us_hook
    us_flow
    us_spl

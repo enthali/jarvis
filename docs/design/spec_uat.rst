@@ -54,6 +54,8 @@ outcome tables** for each feature's acceptance tests.
    spec_uat_entity_contextmenu
    spec_uat_collapseall
    spec_uat_flow
+   spec_uat_injectprompt
+   spec_uat_whoami
 
 All UAT Specifications
 ----------------------
