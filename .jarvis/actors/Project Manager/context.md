@@ -62,8 +62,7 @@
 
 ## Active CR
 
-- **jarvis-whoami (#44, autonomous) — dispatched to CM 2026-07-24**:
-  `jarvis_whoAmI` tool returns actor name + context.md path; error + escalate-to-user if not a registered actor. Phase 1 of Jarvis Actor Package.
+_(none — pipeline clear)_
 
 ## Ideas
 
