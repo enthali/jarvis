@@ -62,7 +62,16 @@
 
 ## Active CR
 
-_(none — pipeline clear)_
+- **jarvis-kanban (#46, user-guided) — dispatched to CM 2026-07-25**:
+  Phase 1 of kanban epic (#45). New standalone `packages/kanban/` module,
+  read-only board renderer, GH-Projects-shaped YAML schema, convention-based
+  discovery (`kanban.yaml`/`<name>.kanban.yaml` in actor/entity folder), tree
+  button + command to open, 3 tools (create/verify/open) resolving owner via
+  `jarvis_whoAmI`. Explicit AC: full module integration (build/CI/webview/
+  manifest/README) like flow/pim/recorder. **User offline overnight** — told
+  CM to make + document design decisions rather than block; **hard gate: user
+  reviews before merge (tomorrow 2026-07-26)**. Phases 2 (#47 swimlanes/
+  write-back) + 3 (#48 importer, icebox) on backlog.
 
 ## Ideas
 

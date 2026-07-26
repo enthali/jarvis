@@ -1,0 +1,160 @@
+{
+  "name": "jarvis-kanban",
+  "displayName": "Jarvis Kanban",
+  "description": "Jarvis Kanban — convention-based kanban boards for actors, projects, and events",
+  "version": "0.24.0",
+  "publisher": "enthali",
+  "icon": "resources/jarvis-128.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/enthali/Jarvis.git"
+  },
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "main": "./out/extension.js",
+  "extensionDependencies": [
+    "enthali.jarvis-core"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "categories": [
+    "Other"
+  ],
+  "scripts": {
+    "compile": "tsc -p ./",
+    "bundle": "node build.js && node webview-build.js",
+    "package": "vsce package --no-dependencies",
+    "vscode:prepublish": "npm run compile && npm run bundle"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.5.0"
+  },
+  "dependencies": {
+    "ajv": "^8.17.0",
+    "jarvis-core": "*",
+    "yaml": "^2.7.0"
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "jarvis.openKanbanBoard",
+        "title": "Jarvis: Open Kanban Board",
+        "icon": "$(list-unordered)"
+      },
+      {
+        "command": "jarvis.createKanbanBoard",
+        "title": "Jarvis: Create Kanban Board",
+        "icon": "$(add)"
+      },
+      {
+        "command": "jarvis.openKanbanAsText",
+        "title": "Jarvis: Open Kanban as Text",
+        "icon": "$(go-to-file)"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        { "command": "jarvis.openKanbanBoard" },
+        { "command": "jarvis.createKanbanBoard" },
+        { "command": "jarvis.openKanbanAsText", "when": "activeCustomEditorId == jarvis.kanbanEditor" }
+      ],
+      "view/item/context": [
+        { "command": "jarvis.createKanbanBoard", "title": "Add Kanban Board", "when": "viewItem =~ /^jarvis(Session|Project|Event)/", "group": "kanban@1" }
+      ],
+      "editor/title": [
+        { "command": "jarvis.openKanbanAsText", "when": "activeCustomEditorId == jarvis.kanbanEditor", "group": "navigation" }
+      ]
+    },
+    "customEditors": [
+      {
+        "viewType": "jarvis.kanbanEditor",
+        "displayName": "Kanban Board",
+        "selector": [
+          { "filenamePattern": "*.kanban.yaml" },
+          { "filenamePattern": "kanban.yaml" }
+        ],
+        "priority": "default"
+      }
+    ],
+    "yamlValidation": [
+      {
+        "fileMatch": "kanban.yaml",
+        "url": "./schemas/kanban.schema.json"
+      },
+      {
+        "fileMatch": "*.kanban.yaml",
+        "url": "./schemas/kanban.schema.json"
+      }
+    ],
+    "languageModelTools": [
+      {
+        "name": "jarvis_createKanbanBoard",
+        "displayName": "Create Kanban Board",
+        "toolReferenceName": "createKanbanBoard",
+        "icon": "$(add)",
+        "canBeReferencedInPrompt": true,
+        "modelDescription": "Creates a new kanban board YAML file for an actor, project, or event. Returns the file path. If ownerName is omitted, resolves the calling actor via jarvis_whoAmI.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "boardName": { "type": "string", "description": "Board file name (without .kanban.yaml suffix). Omit for default 'kanban.yaml'." },
+            "ownerName": { "type": "string", "description": "Name of the owning actor/project/event. Omit to auto-resolve via jarvis_whoAmI." }
+          }
+        }
+      },
+      {
+        "name": "jarvis_verifyKanbanSchema",
+        "displayName": "Verify Kanban Schema",
+        "toolReferenceName": "verifyKanbanSchema",
+        "icon": "$(check)",
+        "canBeReferencedInPrompt": true,
+        "modelDescription": "Validates a kanban board YAML file against the schema and semantic rules. Returns structured errors and warnings.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "boardName": { "type": "string", "description": "Board file name (without .kanban.yaml suffix). Omit for default 'kanban.yaml'." },
+            "ownerName": { "type": "string", "description": "Name of the owning actor/project/event. Omit to auto-resolve via jarvis_whoAmI." }
+          }
+        }
+      },
+      {
+        "name": "jarvis_openKanbanBoard",
+        "displayName": "Open Kanban Board",
+        "toolReferenceName": "openKanbanBoard",
+        "icon": "$(list-unordered)",
+        "canBeReferencedInPrompt": true,
+        "modelDescription": "Opens a kanban board in the webview renderer. If ownerName is omitted, resolves the calling actor via jarvis_whoAmI.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "boardName": { "type": "string", "description": "Board file name (without .kanban.yaml suffix). Omit for default 'kanban.yaml'." },
+            "ownerName": { "type": "string", "description": "Name of the owning actor/project/event. Omit to auto-resolve via jarvis_whoAmI." }
+          }
+        }
+      },
+      {
+        "name": "jarvis_updateKanbanItem",
+        "displayName": "Update Kanban Item",
+        "toolReferenceName": "updateKanbanItem",
+        "icon": "$(edit)",
+        "canBeReferencedInPrompt": true,
+        "modelDescription": "Updates fields on an existing kanban board item by ID. Merges changes into the item, validates status values. If ownerName is omitted, resolves the calling actor via jarvis_whoAmI.",
+        "inputSchema": {
+          "type": "object",
+          "required": ["itemId", "changes"],
+          "properties": {
+            "itemId": { "type": "integer", "description": "The ID of the item to update." },
+            "changes": { "type": "object", "description": "Key-value pairs of fields to update. The 'id' field cannot be changed.", "additionalProperties": { "type": "string" } },
+            "boardName": { "type": "string", "description": "Board file name (without .kanban.yaml suffix). Omit for default 'kanban.yaml'." },
+            "ownerName": { "type": "string", "description": "Name of the owning actor/project/event. Omit to auto-resolve via jarvis_whoAmI." }
+          }
+        }
+      }
+    ]
+  }
+}

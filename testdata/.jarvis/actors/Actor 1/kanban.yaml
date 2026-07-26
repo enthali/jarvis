@@ -1,0 +1,39 @@
+title: Actor 1
+fields:
+  - name: status
+    type: single_select
+    options:
+      - name: Backlog
+      - name: In Progress
+      - name: Merged
+      - name: Done
+  - name: priority
+    type: single_select
+    options:
+      - name: Low
+      - name: Medium
+      - name: High
+items:
+  - name: Link kanban board in context memory
+    status: In Progress
+    priority: Medium
+    notes: The quick brown fox jumps over the lazy dog and keeps running past the
+      old barn, through the misty meadow, and into the deep, whispering forest
+      beyond.
+    labels:
+      - grün
+      - rosa
+      - blau
+  - name: Verify kanban schema for Actor 1
+    status: Backlog
+    priority: High
+    labels:
+      - rot
+      - orange
+  - name: Review kanban board formatting
+    status: Backlog
+    priority: Low
+    labels:
+      - gelb
+      - violet
+      - türkis

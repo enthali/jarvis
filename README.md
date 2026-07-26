@@ -20,6 +20,7 @@ capability modules. Install only what you need.
 | **Jarvis Recorder** | Session recording with a Whisper transcription pipeline and transcript notifications |
 | **Jarvis MCP** | MCP server exposing Jarvis tools over HTTP transport |
 | **Jarvis Message Flow** | Interactive visualization and history of inter-actor message traffic |
+| **Jarvis Kanban** | Read-only kanban board renderer — convention-based YAML discovery, schema validation, and webview rendering |
 
 ## Features
 
@@ -27,7 +28,7 @@ capability modules. Install only what you need.
 
 - **Actors & sessions** — persistent entities with their own `context.md` memory, shown in an explorer sidebar and expandable to their core files and recently-touched files
 - **Heartbeat scheduler** — cron-based jobs running scripts (Python, PowerShell), VS Code commands, or single-shot LLM calls
-- **Messaging, reminders & LM tools** — an inter-actor message queue, reminders, and tools like `#listActors`, `#sendMessage`, `#receiveMessage`, `#createActor`, `#injectPrompt`, and `#whoAmI`
+- **Messaging, reminders & LM tools** — an inter-actor message queue, reminders, and tools like `#listActors`, `#sendMessage`, `#receiveMessage`, `#createActor`, `#injectPrompt`, `#whoAmI`, `#createKanbanBoard`, `#verifyKanbanSchema`, and `#openKanbanBoard`
 - **Prompt injection** — inject any text or slash-command (e.g. `/compact`) into a named actor's session via the `jarvis_injectPrompt` LM tool or the **Jarvis: Inject Prompt** command; spawns the session automatically if none exists. Useful for bulk operations such as compacting all actors after a CR:
   ```
   jarvis_injectPrompt(actor="Change Manager", text="/compact")
@@ -50,6 +51,12 @@ capability modules. Install only what you need.
 
 - **Chord diagram** — an interactive D3 visualization of message traffic between actors, with a time-lens slider; click an actor node to open its chat
 - **Message history** — a browsable list of all messages behind the diagram
+
+### Jarvis Kanban
+
+- **Convention-based discovery** — place a `kanban.yaml` (or `<name>.kanban.yaml`) in any actor or entity folder; a board button appears automatically in the explorer tree
+- **Read-only webview renderer** — GitHub-Projects-shaped schema (`fields[]` + `items[]`; `status` field drives columns); open via tree button or Command Palette **Jarvis: Open Kanban Board**
+- **LM tools** — `jarvis_createKanbanBoard(boardName?, ownerName?)` creates the YAML file; `jarvis_verifyKanbanSchema(boardName?, ownerName?)` validates it; `jarvis_openKanbanBoard(boardName?, ownerName?)` opens the webview; `jarvis_updateKanbanItem(itemId, changes, boardName?, ownerName?)` updates an existing item by its stable integer ID
 
 ## Configuration
 

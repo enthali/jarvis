@@ -1,0 +1,54 @@
+title: Change Tracker
+nextId: 6
+fields:
+  - name: status
+    type: single_select
+    options:
+      - name: Backlog
+        color: "#6c757d"
+      - name: In Progress
+        color: "#0d6efd"
+      - name: Review
+        color: "#ffc107"
+      - name: Done
+        color: "#198754"
+  - name: priority
+    type: single_select
+    options:
+      - name: Low
+      - name: Medium
+      - name: High
+items:
+  - id: 1
+    name: "CR #43 prompt-injection-tool"
+    status: Done
+    priority: High
+    labels:
+      - security
+    notes: "Prompt injection detection for tool outputs"
+  - id: 2
+    name: "CR #44 jarvis-whoami"
+    status: Done
+    priority: Medium
+  - id: 3
+    name: "CR #46 jarvis-kanban"
+    status: In Progress
+    priority: High
+    labels:
+      - feature
+      - module
+    notes: "New kanban module — Phase 1"
+  - id: 4
+    name: "CR #47 kanban-writeback"
+    status: Backlog
+    priority: Medium
+    labels:
+      - feature
+    notes: "Phase 2 — full write-back and swimlanes"
+  - id: 5
+    name: "CR #48 github-importer"
+    status: Backlog
+    priority: Low
+    labels:
+      - feature
+    notes: "Phase 3 — GitHub Issues import"

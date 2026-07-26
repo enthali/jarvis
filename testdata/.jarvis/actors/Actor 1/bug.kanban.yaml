@@ -1,0 +1,23 @@
+title: bug
+fields:
+  - name: status
+    type: single_select
+    options:
+      - name: Open
+      - name: Closed
+  - name: priority
+    type: single_select
+    options:
+      - name: Low
+      - name: Medium
+      - name: High
+items:
+  - name: Fix login crash on startup
+    status: Open
+    priority: High
+  - name: Kanban board fails to render labels
+    status: Open
+    priority: Medium
+  - name: Typo in error message
+    status: Closed
+    priority: Low

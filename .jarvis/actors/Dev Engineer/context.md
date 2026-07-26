@@ -4,8 +4,8 @@ the development engineer - the actual coder
 
 ## Current
 
-- **Change:** jarvis-whoami (feature/jarvis-whoami)
-- **Status:** Committed `49e1d7e` — SPEC_ACT_WHOAMI implemented, compile+lint clean
+- **Change:** jarvis-kanban (feature/jarvis-kanban)
+- **Status:** Committed `a75aa20` — all SPEC_KAN_* implemented, compile+lint+272 tests clean
 
 ## Decisions
 

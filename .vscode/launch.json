@@ -3,6 +3,7 @@
 {
     "version": "0.2.0",
     "configurations": [
+
         {
             "name": "Run Core (enthali.jarvis)",
             "type": "extensionHost",
@@ -40,6 +41,22 @@
                 "${workspaceFolder}/packages/recorder/out/**/*.js"
             ],
             "preLaunchTask": "compile core+pim+recorder"
+        },
+        {
+            "name": "Run Core + PIM + Kanban",
+            "type": "extensionHost",
+            "request": "launch",
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/core",
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/pim",
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/kanban"
+            ],
+            "outFiles": [
+                "${workspaceFolder}/packages/core/out/**/*.js",
+                "${workspaceFolder}/packages/pim/out/**/*.js",
+                "${workspaceFolder}/packages/kanban/out/**/*.js"
+            ],
+            "preLaunchTask": "compile core+pim+kanban"
         },
         {
             "name": "Run Core + Syspilot",

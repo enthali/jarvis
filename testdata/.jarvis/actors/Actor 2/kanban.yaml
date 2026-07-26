@@ -1,0 +1,16 @@
+title: Actor 2
+nextId: 1
+fields:
+  - name: status
+    type: single_select
+    options:
+      - name: Backlog
+      - name: In Progress
+      - name: Done
+  - name: priority
+    type: single_select
+    options:
+      - name: Low
+      - name: Medium
+      - name: High
+items: []
