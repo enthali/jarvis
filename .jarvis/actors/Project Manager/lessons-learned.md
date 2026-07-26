@@ -1,5 +1,8 @@
 # PM Lessons Learned
 
+### README readiness check must include packages/core/README.md, not just root + module README (2026-07-26)
+During CR #46 release-readiness audit I checked root `README.md` and `packages/kanban/README.md` but skipped `packages/core/README.md` — which is actually the content shown on the Marketplace listing for `jarvis-core` (the entry point most users see). It still had the old Add-ons table (missing Jarvis Kanban) and a stale "install via Jarvis Suite" link (Suite is deprecated). User caught it by pasting the live Marketplace text. Fix applied post-release (won't go live until the next publish). Going forward: README readiness check = root README + the specific new module's README + `packages/core/README.md`'s Add-ons table, every time a new module ships.
+
 ### New package's lint gap only caught at release time, not during CR QM rounds (2026-07-26)
 `packages/kanban` used `require('yaml')` (forbidden by `@typescript-eslint/no-require-imports`) in two files; it passed all 9 QM rounds of CR #46 and only surfaced when the Release Engineer ran a full release-time lint/build pass. QM's rounds checked tests/traceability/spec-match but apparently didn't run (or didn't block on) `npm run lint` for the new package. Fix going forward: confirm `npm run lint` is part of QM's standard verification for any CR that adds a new package, not just `npm test`/compile.
 
