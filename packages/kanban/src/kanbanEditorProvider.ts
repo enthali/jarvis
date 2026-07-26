@@ -4,6 +4,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as yaml from 'yaml';
 
 interface BoardData {
     title: string;
@@ -14,7 +15,6 @@ interface BoardData {
 function parseBoard(filePath: string): BoardData | { error: string } {
     try {
         const raw = fs.readFileSync(filePath, 'utf-8');
-        const yaml = require('yaml');
         return yaml.parse(raw) as BoardData;
     } catch (e) {
         return { error: `Failed to parse board: ${e}` };

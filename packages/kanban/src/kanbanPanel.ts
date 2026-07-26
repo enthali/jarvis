@@ -4,6 +4,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as yaml from 'yaml';
 
 const KANBAN_VIEWTYPE = 'jarvisKanbanBoard';
 const DOCS_COLUMN = vscode.ViewColumn.Two;
@@ -20,9 +21,6 @@ interface BoardData {
 function parseBoard(filePath: string): BoardData | { error: string } {
     try {
         const raw = fs.readFileSync(filePath, 'utf-8');
-        // Simple YAML parse — we use a basic approach here
-        // The webview-build bundles this for node, so yaml package is available
-        const yaml = require('yaml');
         return yaml.parse(raw) as BoardData;
     } catch (e) {
         return { error: `Failed to parse board: ${e}` };
