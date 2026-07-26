@@ -1,5 +1,8 @@
 # PM Lessons Learned
 
+### New package's lint gap only caught at release time, not during CR QM rounds (2026-07-26)
+`packages/kanban` used `require('yaml')` (forbidden by `@typescript-eslint/no-require-imports`) in two files; it passed all 9 QM rounds of CR #46 and only surfaced when the Release Engineer ran a full release-time lint/build pass. QM's rounds checked tests/traceability/spec-match but apparently didn't run (or didn't block on) `npm run lint` for the new package. Fix going forward: confirm `npm run lint` is part of QM's standard verification for any CR that adds a new package, not just `npm test`/compile.
+
 ### Platform-first cut: separate foundation primitives from user-requests (2026-07-24)
 When a user-request (e.g. #22 "auto-compact sessions") requires a missing platform primitive, create a separate foundation issue (#43 "prompt-injection tool") rather than rewriting the user-request. The user-request stays open as the motivating story; the foundation issue is what gets implemented and closed. This keeps user-requests clean and platform features independently trackable. Resolution: comment on the user-request with the exact usage pattern (3 lines), then close it. No skill file or doc page needed when the pattern is trivially composable from the new tool.
 
