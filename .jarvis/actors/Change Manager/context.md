@@ -27,3 +27,9 @@ not covered there.
 
 Hard-won process knowledge accumulated across CRs.
 See [lessons-learned.md](lessons-learned.md).
+
+## Active CRs
+
+- **CR #43 prompt-injection-tool** — `feature/prompt-injection-tool`, status `ready-for-merge`, QM Round 2 CLEAR, PM notified
+- **CR #44 jarvis-whoami** — `feature/jarvis-whoami`, status `ready-for-merge`, QM CLEAR, PM notified
+- **CR #46 jarvis-kanban** — `feature/jarvis-kanban`, status `ready-for-merge`, QM Round 5 CLEAR; PM review required before merge; 4 tools (create/verify/open/update), item IDs, 23 UAT scenarios

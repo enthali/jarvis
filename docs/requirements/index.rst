@@ -27,6 +27,7 @@ Requirements describe **what** the system must do.
    req_eng
    req_hook
    req_flow
+   req_kan
    req_spl
    req_uat
 

@@ -1,0 +1,22 @@
+title: Sprint 2
+nextId: 4
+fields:
+  - name: status
+    type: single_select
+    options:
+      - name: Todo
+        color: "#6c757d"
+      - name: Active
+        color: "#0d6efd"
+      - name: Done
+        color: "#198754"
+items:
+  - id: 1
+    name: "Write test protocol for CR #46"
+    status: Active
+  - id: 2
+    name: "Schema validation edge cases"
+    status: Todo
+  - id: 3
+    name: "Renderer dark-mode contrast check"
+    status: Done

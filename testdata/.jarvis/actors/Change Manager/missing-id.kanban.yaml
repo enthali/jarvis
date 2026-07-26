@@ -1,0 +1,14 @@
+title: Missing ID Board
+nextId: 3
+fields:
+  - name: status
+    type: single_select
+    options:
+      - name: Backlog
+      - name: Done
+items:
+  - id: 1
+    name: Good Item
+    status: Backlog
+  - name: Item Without ID
+    status: Done

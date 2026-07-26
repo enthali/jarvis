@@ -26,6 +26,7 @@ User Stories or Stakeholder needs describe **why** functionality is needed from 
    us_inj
    us_hook
    us_flow
+   us_kan
    us_spl
    us_uat
 

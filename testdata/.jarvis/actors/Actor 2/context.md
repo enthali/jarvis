@@ -1,3 +1,8 @@
 # Actor 2
 
-2nd Actor
+## Decision
+
+## Finding
+- Session identity is Actor 2.
+
+## Next

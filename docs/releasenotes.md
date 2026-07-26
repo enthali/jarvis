@@ -1,5 +1,16 @@
 # Release Notes
 
+## v0.24.0 — Jarvis Kanban Module
+
+*2026-07-25*
+
+### Features
+
+- **jarvis-kanban** (GH #46): New optional `enthali.jarvis-kanban` module that adds read-only kanban board support. Place a `kanban.yaml` (or `<name>.kanban.yaml`) in any actor or entity folder — a board button appears automatically in the explorer tree. The schema is GitHub-Projects-shaped (`fields[]` + `items[]`; the `status` field drives columns). Three new LM tools: `jarvis_createKanbanBoard` creates the YAML file in the target entity's folder; `jarvis_verifyKanbanSchema` validates it against `schemas/kanban.schema.json` and returns structured `errors[]`/`warnings[]`; `jarvis_openKanbanBoard` opens the webview renderer. Both **Jarvis: Open Kanban Board** and **Jarvis: Create Kanban Board** are available in the Command Palette.
+  *(US_KAN_*; REQ_KAN_*; SPEC_KAN_*)*
+
+---
+
 ## v0.23.0 — Prompt Injection Tool + Actor Identity Recovery
 
 *2026-07-24*

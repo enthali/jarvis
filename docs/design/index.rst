@@ -27,6 +27,7 @@ Design Specifications describe **how** requirements are fulfilled technically.
    spec_inj
    spec_hook
    spec_flow
+   spec_kan
    spec_spl
    spec_uat
 

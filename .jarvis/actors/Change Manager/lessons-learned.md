@@ -42,3 +42,13 @@
   all" task, which chains core → pim → recorder → mcp) so cross-package type breakage is
   caught before MECE/Trace/QM, not after. Applies even when the CR only appears to touch
   one package — dependents may still be affected.
+- **Package-local schema copy is mandatory — never workspace-relative** — when a new
+  package needs a JSON schema for validation or yamlValidation, the schema MUST live inside
+  the package (e.g. `packages/kanban/schemas/kanban.schema.json`), not only at the repo root
+  `schemas/`. `loadSchema()` must resolve via `context.extensionPath`, not
+  `vscode.workspace.workspaceFolders[0]`. Root `schemas/` is for tooling/docs only. SD must
+  mandate this in both SPEC_*_SCHEMA and SPEC_*_MODULE. Precedent: `packages/core/schemas/session.schema.json`.
+- **Always enumerate commits from git log before each QM round request** — reconstructing
+  the commit list from memory leads to incomplete round summaries (missed this twice in CR #46).
+  Before sending a QM review request, run `git log <last-qm-commit>..HEAD --oneline` and
+  list every commit explicitly. This prevents "undisclosed commit" findings that erode QM trust.

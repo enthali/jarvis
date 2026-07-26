@@ -1,0 +1,40 @@
+title: Test Board
+nextId: 5
+fields:
+  - name: status
+    type: single_select
+    options:
+      - name: Backlog
+        color: "#6c757d"
+      - name: In Progress
+        color: "#0d6efd"
+      - name: Done
+        color: "#198754"
+  - name: priority
+    type: single_select
+    options:
+      - name: Low
+      - name: Medium
+      - name: High
+items:
+  - id: 1
+    name: First Task
+    status: Backlog
+    priority: High
+    labels:
+      - urgent
+    notes: "This is a very long note that exceeds the 30 character truncation limit for display"
+  - id: 2
+    name: Second Task
+    status: In Progress
+    priority: Medium
+  - id: 3
+    name: Third Task
+    status: Done
+    priority: Low
+  - id: 4
+    name: Another Urgent
+    status: Backlog
+    priority: High
+    labels:
+      - urgent
