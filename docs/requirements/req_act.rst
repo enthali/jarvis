@@ -857,7 +857,7 @@ Actor Requirements
    :id: REQ_ACT_WHOAMI
    :status: draft
    :priority: required
-   :links: US_ACT_WHOAMI; REQ_ACT_LISTTOOL
+   :links: US_ACT_WHOAMI; REQ_ACT_LISTTOOL; REQ_HOOK_INTAKE
 
    **Description:**
    A Language Model and MCP tool ``jarvis_whoAmI`` SHALL resolve the calling
@@ -867,18 +867,43 @@ Actor Requirements
    **Acceptance Criteria:**
 
    * AC-1: The tool SHALL accept no input parameters. The calling session's
-     identity SHALL be resolved automatically by the extension using the
-     currently active chat editor tab label.
-   * AC-2: When the active tab label matches the ``name`` of a registered Actor
-     entity (kind ``session``), the tool SHALL return a JSON object
+     identity SHALL be resolved automatically by the extension.
+   * AC-2: When the calling session is a registered Actor entity (kind
+     ``session``), the tool SHALL return a JSON object
      ``{ "name": "<actorName>", "contextPath": "<absolutePath>" }`` where
      ``contextPath`` is the absolute filesystem path to the Actor's
      ``context.md``.
-   * AC-3: When the active tab label does NOT match any registered Actor, the
-     tool SHALL return an error message instructing the session to ask the
-     user to resolve its identity (e.g. "You are not a registered actor.
+   * AC-3: When the calling session is not a registered Actor, the tool SHALL
+     return an error message instructing the session to ask the user to
+     resolve its identity (e.g. "You are not a registered actor.
      Please ask the user which actor you are.").
    * AC-4: The tool SHALL be registered only when ``jarvis.sessions.enabled``
      is ``true`` at activation time (same gating as ``REQ_ACT_LISTTOOL``).
    * AC-5: The tool SHALL appear in the VS Code Chat tool picker with
      ``toolReferenceName`` ``whoAmI``.
+   * AC-6: (**whoami-session-id-resolution CR, GH #51**) Identity SHALL be
+     derived from the **identity of the calling chat session** and from
+     nothing else. Editor focus — including
+     ``vscode.window.tabGroups.activeTabGroup.activeTab`` — SHALL NOT be used
+     as an identity source, neither as the primary mechanism nor as a
+     fallback. Consequently the result SHALL be invariant under any change of
+     editor focus, open files, or active tab group between or during calls,
+     and repeated calls from one unchanged session SHALL return the same
+     Actor.
+   * AC-7: (**whoami-session-id-resolution CR, GH #51**) The tool SHALL NOT
+     return an identity it cannot attribute to the calling session. When the
+     calling session cannot be determined, or cannot be determined
+     unambiguously, the tool SHALL return the AC-3 error rather than a
+     best-guess Actor. A wrong identity is a more severe failure than no
+     identity: the actor would load another actor's memory and act under a
+     false role, and neither the actor nor the user is given any signal that
+     this happened.
+   * AC-8: (**whoami-session-id-resolution CR, GH #51**) The AC-3 error SHALL
+     be returned only when the calling session genuinely has no bound Actor,
+     or per AC-7 when the calling session is undeterminable. It SHALL NOT be
+     reachable as a side effect of the user's editor focus.
+   * AC-9: (**whoami-session-id-resolution CR, GH #51**) The mechanism that
+     supplies the calling session's identity is the hook intake path
+     (``REQ_HOOK_INTAKE``). This is a deliberate, documented dependency: when
+     hook intake is unavailable, ``jarvis_whoAmI`` degrades to the AC-3 error
+     per AC-7 and SHALL NOT fall back to any focus-based heuristic.

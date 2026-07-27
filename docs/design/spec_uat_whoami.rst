@@ -151,33 +151,37 @@ Actor Identity Recovery (jarvis_whoAmI) UAT Design Specifications
 
       * - T-4
 
-          No active tab — graceful error
+          Focus independence — identity does not follow the cursor
 
-          *(AC-2 edge, robustness)*
-        - Precondition: This scenario tests the "no active tab" branch.
-          In practice this is hard to trigger manually (there is almost always
-          an active tab in VS Code); test by reviewing the handler code or
-          simulating via unit test.
+          *(GH #51 — the regression this CR removes)*
+        - Precondition: The ``Change Manager`` and ``Test Designer`` actors are
+          both registered and both have chat sessions open.
 
-          If testable manually: close all editor tabs and all chat panels
-          such that ``vscode.window.tabGroups.activeTabGroup.activeTab`` is
-          ``undefined``, then invoke ``#whoAmI``.
+          From within the ``Change Manager`` chat session, invoke ``#whoAmI``
+          and note the result.
 
-          Observe the tool result.
-        - **Graceful error returned:** The tool returns an error object:
+          Without leaving or restarting that session, open
+          ``testdata/.jarvis/actors/Test Designer/context.md`` in an editor
+          tab, then click back into the ``Change Manager`` chat input and
+          invoke ``#whoAmI`` again.
+
+          Repeat once more with an unrelated file open (e.g. ``README.md``).
+        - **Same answer every time:** All three invocations return
 
           .. code-block:: json
 
-             {
-               "error": "No active tab. Please ask the user which actor you are."
-             }
+             { "name": "Change Manager", "contextPath": "..." }
 
-          **No crash:** No exception propagates to the user.
+          **No drift to the focused file's actor:** No invocation returns
+          ``"Test Designer"``.
 
-          **Note:** If this scenario cannot be triggered manually in the EDH,
-          it is acceptable to verify by code inspection that the ``!activeTab``
-          guard is present in the handler.
-        - REQ_ACT_WHOAMI AC-3; SPEC_ACT_WHOAMI algorithm step 1
+          **No spurious error:** No invocation returns "You are not a
+          registered actor" — that error must not be reachable via focus.
+
+          **Note:** Before this CR the same procedure produced correct → wrong
+          actor → "not registered" → correct across successive calls. Any
+          variation in the answer is a failure.
+        - REQ_ACT_WHOAMI AC-6, AC-8; US_ACT_WHOAMI AC-4; SPEC_ACT_WHOAMI AC-4, AC-7
 
       * - T-5
 

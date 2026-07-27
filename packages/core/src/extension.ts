@@ -17,7 +17,7 @@ import { UnifiedEntityTreeProvider } from './engine/core/unifiedEntityTreeProvid
 import type { EntityKindConfig, JarvisCoreApi } from './engine/core/types';
 import { deleteMessage, appendMessage, popMessage, readAutoDelivery, addAutoDelivery, removeAutoDelivery, readQueue, writeQueue } from './engine/sessions/messageQueue';
 import { addReminder, readReminders, removeReminder, popDueReminders, setRemindersLogger } from './apps/session/reminders';
-import { lookupSessionUUID, getAllSessions, initSessionLookup, setSessionLookupLogger, filterNamedSessions, getValidDestinations } from './engine/sessions/sessionLookup';
+import { lookupSessionUUID, getAllSessions, initSessionLookup, setSessionLookupLogger, filterNamedSessions, getValidDestinations, getEntityNameForSessionId } from './engine/sessions/sessionLookup';
 import { discoverAgentModes } from './engine/sessions/agentDiscovery';
 import { injectPrompt, initInjectPrompt } from './engine/sessions/injectPrompt';
 import { checkForUpdates } from './engine/core/updateCheck';
@@ -1132,30 +1132,80 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             }
     );
 
+        // whoAmI correlation buffer (SPEC_ACT_WHOAMI, whoami-session-id-resolution CR #51)
+        // Captures PreToolUse events for jarvis_whoAmI and provides the calling
+        // session's session_id to the tool handler. See spec for 5 behavioural
+        // properties: filter at capture, consume on read, expire on age,
+        // ambiguity is an error, absence is an error.
+        const WHOAMI_FRESHNESS_MS = 10_000; // 10 seconds — exceeds hook round-trip with margin
+        const whoAmIBuffer: Array<{ sessionId: string; timestamp: number }> = [];
+
+        hookEngine.on('PreToolUse', (event) => {
+            const toolName = event.payload?.tool_name as string | undefined;
+            // Decision 6: trace-log actual payload.tool_name for live verification
+            log.trace(`[whoAmI] PreToolUse payload.tool_name = ${JSON.stringify(toolName)}`);
+            // Filter: only retain events for jarvis_whoAmI (may appear bare or with transport prefix)
+            if (!toolName || !toolName.endsWith('jarvis_whoAmI')) { return; }
+            if (!event.sessionId) { return; }
+            whoAmIBuffer.push({ sessionId: event.sessionId, timestamp: Date.now() });
+        });
+
+        /** Consume the buffer and return the unambiguous session_id, or undefined. */
+        function takeCallingSessionId(): string | undefined {
+            const now = Date.now();
+            // Drain and filter: take all entries, discard stale ones
+            const entries = whoAmIBuffer.splice(0);
+            const fresh = entries.filter(e => (now - e.timestamp) < WHOAMI_FRESHNESS_MS);
+            if (fresh.length === 0) {
+                log.debug('[whoAmI] no fresh buffer entries (absence)');
+                return undefined;
+            }
+            const uniqueIds = new Set(fresh.map(e => e.sessionId));
+            if (uniqueIds.size > 1) {
+                log.warn(`[whoAmI] ambiguous buffer: ${uniqueIds.size} distinct session_ids — returning error`);
+                return undefined;
+            }
+            return fresh[0].sessionId;
+        }
+
         // whoAmI tool (SPEC_ACT_WHOAMI)
         whoAmITool = engine.registerTool('jarvis_whoAmI',
             'Returns the calling actor\'s name and the absolute path to its context.md. Call this after /compact or context loss to recover your identity. No input parameters required.',
             async (_options: vscode.LanguageModelToolInvocationOptions<any>, _token: vscode.CancellationToken) => {
-                const activeTab = vscode.window.tabGroups.activeTabGroup.activeTab;
-                if (!activeTab) {
+                const ERROR_MSG = 'You are not a registered actor. Please ask the user which actor you are.';
+
+                // 1. Obtain calling session's session_id from correlation buffer
+                const sessionId = takeCallingSessionId();
+                if (!sessionId) {
+                    // Accepted limitation: if hooks are disabled, buffer is always empty.
+                    log.info('[whoAmI] no session_id from buffer (hooks disabled, absent, stale, or ambiguous)');
                     return new vscode.LanguageModelToolResult([
-                        new vscode.LanguageModelTextPart(JSON.stringify({
-                            error: 'No active tab. Please ask the user which actor you are.'
-                        }))
+                        new vscode.LanguageModelTextPart(JSON.stringify({ error: ERROR_MSG }))
                     ]);
                 }
-                const label = activeTab.label;
+
+                // 2. Resolve session_id to entity name
+                const entityName = await getEntityNameForSessionId(sessionId);
+                if (!entityName) {
+                    log.info(`[whoAmI] session_id=${sessionId} could not be resolved to an entity`);
+                    return new vscode.LanguageModelToolResult([
+                        new vscode.LanguageModelTextPart(JSON.stringify({ error: ERROR_MSG }))
+                    ]);
+                }
+
+                // 3. Find the scanner entity with kind === 'session'
                 const actor = kindDrivenScanner.entities
-                    .find(e => e.kind === 'session' && e.name === label);
+                    .find(e => e.kind === 'session' && e.name === entityName);
                 if (!actor) {
+                    log.info(`[whoAmI] entity "${entityName}" is not a registered session actor`);
                     return new vscode.LanguageModelToolResult([
-                        new vscode.LanguageModelTextPart(JSON.stringify({
-                            error: 'You are not a registered actor. Please ask the user which actor you are.'
-                        }))
+                        new vscode.LanguageModelTextPart(JSON.stringify({ error: ERROR_MSG }))
                     ]);
                 }
+
+                // 4. Return identity
                 const contextPath = path.join(actor.folder, 'context.md');
-                log.info(`[SES] whoAmI: "${actor.name}" → ${contextPath}`);
+                log.info(`[SES] whoAmI: "${actor.name}" → ${contextPath} (via session_id=${sessionId})`);
                 return new vscode.LanguageModelToolResult([
                     new vscode.LanguageModelTextPart(JSON.stringify({
                         name: actor.name,

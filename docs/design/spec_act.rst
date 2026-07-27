@@ -1828,7 +1828,7 @@ Actor Design Specifications
 .. spec:: jarvis_whoAmI Tool Registration
    :id: SPEC_ACT_WHOAMI
    :status: draft
-   :links: REQ_ACT_WHOAMI; SPEC_ACT_TOOLS
+   :links: REQ_ACT_WHOAMI; SPEC_ACT_TOOLS; SPEC_HOOK_ROUTE; SPEC_HOOK_INTAKE
 
    **Description:**
    Register ``jarvis_whoAmI`` via ``engine.registerTool()`` in
@@ -1840,67 +1840,133 @@ Actor Design Specifications
    The tool is registered only when ``jarvis.sessions.enabled`` is ``true`` at
    activation time. Statically gated per ADR ``tool-deregistration.md``.
 
-   **Calling-session resolution:**
+   **Calling-session resolution (whoami-session-id-resolution CR, GH #51):**
+
    The VS Code API does not expose which chat session invokes an LM tool.
-   ``LanguageModelToolInvocationOptions`` contains only ``toolInvocationToken``
-   (opaque), ``input``, and ``tokenizationOptions`` — no session identity.
+   ``LanguageModelToolInvocationOptions`` carries only ``toolInvocationToken``
+   (opaque), ``input``, and ``tokenizationOptions`` — no session identity, and
+   no value that can be compared against anything outside the invocation.
 
-   The tool uses a heuristic: ``vscode.window.tabGroups.activeTabGroup.activeTab.label``
-   gives the chat session name. When a tool is invoked by the LM, the invoking
-   chat session is the active tab. This heuristic is reliable for the identity
-   use case — an actor calls the tool from its own session, which is focused.
+   ~~The tool therefore used a heuristic: the label of
+   ``vscode.window.tabGroups.activeTabGroup.activeTab``, on the assumption that
+   the invoking chat session is the focused tab.~~
 
-   **Algorithm:**
+   **The focus heuristic is withdrawn and SHALL NOT be reintroduced, in any
+   role including as a fallback** (REQ_ACT_WHOAMI AC-6). Its defect is not that
+   it is imprecise but that it is *confidently wrong*: editor focus is under
+   the user's control and moves independently of which session is executing.
+   Moving focus to another actor's ``context.md``, or to any unrelated file,
+   silently re-answers the question — producing a different actor, or the "not
+   a registered actor" error, from the same unchanged session. The observed
+   symptom was correct → wrong actor → "not registered" → correct again across
+   successive calls, with no session change between them (GH #51). An actor
+   that acts on a wrong answer adopts another actor's memory and role, and
+   nothing in the result distinguishes that from a correct one.
 
-   1. Read ``vscode.window.tabGroups.activeTabGroup.activeTab``.
-      If no active tab → return error.
-   2. Extract ``label`` from the active tab.
-   3. Search the scanner's entity list for an entity with
-      ``kind === 'session'`` and ``name === label``.
-   4. If found: return ``{ name: entity.name, contextPath: path.join(entity.folder, 'context.md') }``.
-   5. If not found: return error ``"You are not a registered actor. Please ask the user which actor you are."``.
+   Identity is instead taken from the **calling session's own hook
+   ``session_id``**, resolved via ``getEntityNameForSessionId()``
+   (``packages/core/src/engine/sessions/sessionLookup.ts``) — the same
+   session-id → entity-name resolution already relied on by ``ActivityTracker``
+   (SPEC_HOOK_ACTIVITY) and ``TouchTracker`` (SPEC_ENT_TOUCHEDFILES). No new
+   lookup path is introduced.
 
-   **Handler sketch** (``extension.ts``):
+   **Correlating an invocation with its own hook event:**
+
+   The ``session_id`` arrives out-of-process on a ``PreToolUse`` event while the
+   tool handler runs synchronously in-process. The two are correlated by
+   *ordering*, not by a shared token — no shared token exists.
+
+   Per ``SPEC_HOOK_INTAKE`` (dispatch-before-response) the ordering is a stated
+   guarantee, not a race: an invocation's own ``PreToolUse`` event has already
+   been dispatched to subscribers before the tool handler runs. A subscriber
+   registered on ``PreToolUse`` (via ``SPEC_HOOK_ROUTE``'s ``on()``) that
+   records events for this tool therefore has the calling session's id
+   available when the handler asks for it.
+
+   Required behaviour of the correlation buffer:
+
+   1. **Filter at capture.** Only ``PreToolUse`` events identifying the
+      ``jarvis_whoAmI`` tool are retained. Every other tool call is ignored, so
+      the buffer holds entries only around an actual invocation.
+   2. **Consume on read.** The handler takes and clears the buffered
+      entries. An entry is never served to two invocations.
+   3. **Expire on age.** Entries older than a short freshness window are
+      discarded rather than used. The window must exceed the hook round-trip
+      by a comfortable margin while remaining far below the cadence at which
+      an actor calls ``whoAmI``; the exact value is left to implementation.
+      Without expiry, an invocation whose own hook failed to arrive would
+      silently inherit the ``session_id`` of an earlier, unrelated call —
+      reintroducing the wrong-identity failure this CR removes.
+   4. **Ambiguity is an error, not a tie-break.** If the buffered entries do
+      not all carry the same ``session_id``, the calling session cannot be
+      determined and the handler returns the standard error
+      (REQ_ACT_WHOAMI AC-7). It SHALL NOT pick the newest, the oldest, or any
+      other candidate. Entries agreeing on ``session_id`` are unambiguous
+      regardless of count.
+   5. **Absence is an error.** No usable entry — hooks disabled, transport
+      failure, hook timeout, or a stale-only buffer — yields the same error.
+      There is no secondary identity source.
+
+   Point 4 is the reason the buffer is not simply a "most recent event" slot.
+   Jarvis is explicitly a multi-actor workspace: several actor sessions run
+   concurrently in one window, so two sessions invoking ``jarvis_whoAmI`` in
+   close succession is an ordinary occurrence, not a pathological one. A
+   single-slot buffer would answer one of them with the other's identity —
+   the same class of silent misattribution this CR exists to remove, merely
+   with a different cause.
+
+   **Resolver contract** (shape only — placement and implementation are
+   Dev's):
 
    .. code-block:: typescript
 
-      const whoAmITool = engine.registerTool(
-          'jarvis_whoAmI',
-          'Returns the calling actor\'s name and the absolute path to its context.md. Call this after /compact or context loss to recover your identity. Requires no input parameters.',
-          async (
-              _options: vscode.LanguageModelToolInvocationOptions<Record<string, never>>,
-              _token: vscode.CancellationToken
-          ) => {
-              const activeTab = vscode.window.tabGroups.activeTabGroup.activeTab;
-              if (!activeTab) {
-                  return new vscode.LanguageModelToolResult([
-                      new vscode.LanguageModelTextPart(JSON.stringify({
-                          error: 'No active tab. Please ask the user which actor you are.'
-                      }))
-                  ]);
-              }
-              const label = activeTab.label;
-              const actor = kindDrivenScanner.entities
-                  .find(e => e.kind === 'session' && e.name === label);
-              if (!actor) {
-                  return new vscode.LanguageModelToolResult([
-                      new vscode.LanguageModelTextPart(JSON.stringify({
-                          error: `You are not a registered actor. Please ask the user which actor you are.`
-                      }))
-                  ]);
-              }
-              const contextPath = path.join(actor.folder, 'context.md');
-              log.info(`[SES] whoAmI: "${actor.name}" → ${contextPath}`);
-              return new vscode.LanguageModelToolResult([
-                  new vscode.LanguageModelTextPart(JSON.stringify({
-                      name: actor.name,
-                      contextPath
-                  }))
-              ]);
-          }
-      );
+      /** Session id of the invocation whose PreToolUse event is buffered,
+       *  or undefined when absent, stale, or ambiguous. Consumes the buffer. */
+      takeCallingSessionId(): string | undefined;
+
+   **Algorithm:**
+
+   1. Obtain the calling session's ``session_id`` from the correlation buffer.
+      If undefined (absent, stale, or ambiguous) → return the AC-3 error.
+   2. Resolve the ``session_id`` to an entity name via
+      ``getEntityNameForSessionId()``. If unresolved → return the AC-3 error.
+   3. Find the scanner entity with ``kind === 'session'`` and that name.
+      If not found → return the AC-3 error.
+   4. Return ``{ name: entity.name, contextPath: path.join(entity.folder, 'context.md') }``.
+
+   All failure paths converge on one error string —
+   ``"You are not a registered actor. Please ask the user which actor you are."``
+   — because the actor's remedy is identical in every case: ask the user. The
+   distinguishing cause is written to the log, not to the tool result, so that
+   diagnosis is possible without giving the model branch-specific text to
+   reason about.
+
+   **``tool_name`` matching — verify against a live payload.**
+   The value of ``payload.tool_name`` for a Jarvis-registered LM tool must be
+   confirmed by inspecting a real ``PreToolUse`` payload at ``trace`` log level
+   before the matching predicate is fixed; it may be exposed bare
+   (``jarvis_whoAmI``) or with a transport-specific prefix, and the tool is
+   reachable both as an LM tool and over MCP. The predicate must recognise the
+   tool in whichever forms actually occur. This is called out explicitly
+   because an unverified payload-key assumption has already caused one silent,
+   long-lived defect on this exact path: ``HookEvent.sessionId`` read
+   ``parsed.sessionId`` (camelCase) instead of ``session_id`` and was therefore
+   always ``undefined`` (REQ_HOOK_INTAKE AC-8). A wrong ``tool_name`` predicate
+   fails the same way — the buffer stays empty and every call returns the
+   error, with nothing pointing at the cause.
+
+   **Known limitation — dependency on hook intake.**
+   ``jarvis_whoAmI`` is gated on ``jarvis.sessions.enabled`` but now depends on
+   hook intake (``jarvis.hooks.autoInstall``, SPEC_HOOK_AUTOINST) being active.
+   With hooks disabled the tool is registered but always returns the error.
+   This is accepted deliberately: the alternative — falling back to focus — is
+   precisely the defect being removed, and a tool that reliably says "ask the
+   user" is safe, whereas one that sometimes lies is not. Surfacing this
+   configuration mismatch to the user is out of scope for this CR and is
+   flagged in the Change Document.
 
    **``package.json`` ``contributes.languageModelTools`` entry:**
+
 
    .. code-block:: json
 
@@ -1922,10 +1988,19 @@ Actor Design Specifications
 
    * AC-1: The tool is registered via ``engine.registerTool()`` inside the
      ``sessions.enabled`` gate.
-   * AC-2: Active-tab label matching a registered Actor (kind ``session``)
-     returns ``{ name, contextPath }``.
-   * AC-3: No match returns error with instruction to ask the user.
-   * AC-4: No active tab returns error.
+   * AC-2: A calling session resolvable to a registered Actor (kind
+     ``session``) returns ``{ name, contextPath }``.
+   * AC-3: An unresolvable calling session, or one with no bound Actor,
+     returns the error with instruction to ask the user.
+   * AC-4: (GH #51) The handler reads no editor-focus API. The result is
+     unchanged when editor focus moves to another actor's ``context.md``, to
+     an unrelated file, or when no editor tab is open at all.
    * AC-5: The tool requires no input parameters (empty ``inputSchema``).
    * AC-6: ``package.json`` contains the ``languageModelTools`` entry with
      ``toolReferenceName: "whoAmI"``.
+   * AC-7: (GH #51) Repeated invocations from one unchanged session return the
+     same Actor.
+   * AC-8: (GH #51) Buffered entries disagreeing on ``session_id`` yield the
+     AC-3 error, not an arbitrary pick.
+   * AC-9: (GH #51) A buffered entry is consumed by at most one invocation, and
+     entries past the freshness window are discarded rather than used.
