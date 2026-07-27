@@ -165,6 +165,8 @@ export async function injectPrompt(
         }
     }
 
-    // 4. Text injection
-    await sendPromptToFocusedAgentChat(text);
+    // 4. Text injection (skip if empty — avoids re-injecting init prompt on re-focus)
+    if (text) {
+        await sendPromptToFocusedAgentChat(text);
+    }
 }

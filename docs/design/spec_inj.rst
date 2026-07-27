@@ -42,12 +42,17 @@ Prompt Injection Design Specifications
      event). Matched against ``scanner.entities`` by ``e.name``.
    * ``text`` — the text to inject into the chat input. May be a plain
      instruction, a slash-command (e.g. ``/compact``), or a notification stub.
+     **May be the empty string**, which means "open/focus only, submit nothing"
+     — see step 4.
    * ``options.placement`` — editor-group placement target. ``'main'`` (default)
      for user-initiated actions (``SPEC_MSG_EDITORPLACEMENT`` Main target);
      ``'secondary'`` for system-initiated actions (auto-delivery).
-   * ``options.skipInitPrompt`` — when ``true``, skip the init prompt on
-     session spawn. Used by ``jarvis.openAgentSession`` which sends its own
-     init prompt as the ``text`` argument.
+   * ``options.skipInitPrompt`` — **deprecated** (agent-session-reinit-fix CR,
+     GH #52). When ``true``, skip the init prompt on session spawn. The
+     init-prompt gating is fully owned by step 3b's ``if (!skipInitPrompt)``
+     block; callers that only want open/focus now pass an empty ``text``
+     instead. Retained in the signature for backwards compatibility; new
+     callers SHALL NOT pass it.
 
    **Algorithm:**
 
@@ -88,8 +93,14 @@ Prompt Injection Design Specifications
          view column at chat-editor creation time — this relocate-after-creation
          pattern is the established workaround.
 
-   4. **Text injection:** Call ``sendPromptToFocusedAgentChat(text)``
-      (``SPEC_MSG_SENDPROMPT``).
+   4. **Text injection:** If ``text`` is non-empty, call
+      ``sendPromptToFocusedAgentChat(text)`` (``SPEC_MSG_SENDPROMPT``). If
+      ``text`` is empty, skip — this allows callers that only want session
+      open/focus (not text injection) to pass the empty string
+      (``REQ_INJ_PRIMITIVE`` AC-7). Before the agent-session-reinit-fix CR
+      this step was unconditional, so every re-focus of an already-open
+      session re-submitted the caller-composed init prompt as a live chat
+      message (GH #52).
 
    **Focus-restore responsibility:**
    ``injectPrompt`` does NOT perform focus-snapshot/restore. Callers that need
@@ -114,11 +125,14 @@ Prompt Injection Design Specifications
      logic with
      ``await injectPrompt(sessionName, stub, { placement: 'secondary' })``,
      wrapped in focus-snapshot/restore.
-   * ``SPEC_MSG_AGENTSESSION`` (``jarvis.openAgentSession``) — replaces inline
+   * ``SPEC_ENT_AGENTSESSION`` (``jarvis.openAgentSession``) — replaces inline
      new-session sequence with
-     ``await injectPrompt(entity.name, initPrompt, { skipInitPrompt: true })``.
-     The init prompt is passed as ``text`` because the caller composes it; the
-     primitive's own init-prompt path is skipped to avoid double-injection.
+     ``await injectPrompt(entity.name, '', { placement: 'main' })``. Passes the
+     empty string as ``text`` — session open/focus only; the init prompt on
+     spawn is handled entirely by step 3b (agent-session-reinit-fix CR).
+   * ``SPEC_ACT_NEWENTITY`` (``jarvis.newSession``) — same shape:
+     ``await injectPrompt(nameInput, '', { placement: 'main' })``. The entity is
+     freshly created, so step 3b always fires and sends exactly one init prompt.
 
    **``/rename`` exception:**
    ``renameFocusedChatSession()`` is NOT migrated to ``injectPrompt``. It targets

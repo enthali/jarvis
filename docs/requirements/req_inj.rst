@@ -28,10 +28,14 @@ Prompt Injection Requirements
      AC-6), open a new chat editor (``REQ_MSG_OPENCHAT``), rename it to the
      entity name, and send the init prompt (``REQ_ENT_AGENTPROMPT_TEMPLATE``).
    * AC-5: After the session is focused or spawned, the function SHALL inject
-     ``text`` via ``REQ_MSG_SENDPROMPT``.
+     ``text`` via ``REQ_MSG_SENDPROMPT`` — subject to AC-7.
    * AC-6: The function SHALL be the single call site for session-targeted text
      injection. All existing injection paths (message notification, auto-delivery,
      init prompt on tree-click) SHALL route through this function.
+   * AC-7: When ``text`` is empty (or absent), the primitive SHALL open/focus the
+     session silently without submitting any message. This does not affect the
+     init prompt sent on spawn (AC-4), which is gated on the new-session branch
+     only.
 
 
 .. req:: Prompt Injection LM Tool

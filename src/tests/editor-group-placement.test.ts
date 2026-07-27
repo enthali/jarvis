@@ -56,7 +56,7 @@ describe('SPEC_MSG_EDITORPLACEMENT: placement helpers', () => {
         const idx = extensionSrc.indexOf("'jarvis.openAgentSession'");
         expect(idx).toBeGreaterThan(-1);
         const handlerSlice = extensionSrc.slice(idx, idx + 2000);
-        expect(handlerSlice).toContain("await injectPrompt(entity.name, initPrompt, { placement: 'main'");
+        expect(handlerSlice).toContain("await injectPrompt(entity.name, '', { placement: 'main' }");
     });
 
     it('jarvis.openEntityFile calls openAtDocs with preview (non-.md branch)', () => {

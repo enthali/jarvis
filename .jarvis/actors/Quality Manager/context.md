@@ -40,6 +40,7 @@ Three files, strict separation of concerns:
 
 ## Active Reviews
 
+CR #52 (agent-session-reinit-fix) — **CLEAR (Round 1, 2026-07-27)**: code+spec fix (injectPrompt.ts step 4 gate, extension.ts x2 handlers, coreApi.ts) verified correct and consistent end-to-end; build+285/285 tests independently confirmed. 3 non-blocking items flagged to PM: CD's own "Open item" section is stale (bug it describes was actually fixed by the branch's last commit, CD text never updated); zero UAT coverage anywhere for the CR's core fixed behavior (flagged for PM decision, not blocking, same handling as CR #44's testdata gap); new tests are static source-text pattern matches not runtime/behavioral tests (methodology note only).
 CR #46 (jarvis-kanban) — **CLEAR (Round 9, 2026-07-26)**: all Round 8 BLOCK items (AC-7 label inversion, REQ_KAN_UX traceability gap) fixed cleanly and correctly on the first attempt, plus all non-blocking items (UAT count, dead code, when-clause) closed. Full US→REQ→SPEC→UAT chain for context-menu-create now connected end-to-end. No open findings remain. CM's disclosure practice held for 3 consecutive rounds (R7, R8, R9) — the earlier recurring undisclosed-commit pattern (R3/R4/R6) appears resolved. CR #44 (jarvis-whoami) CLEAR (Round 2, 2026-07-25). CR #43 (prompt-injection-tool) CLEAR (Round 2, 2026-07-24).
 
 ## Lessons

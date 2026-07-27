@@ -642,27 +642,9 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             const entity = kindDrivenScanner.getEntity(element.id);
             if (!entity) { return; }
 
-            // Compose init prompt (SPEC_ENT_AGENTSESSION_INITPROMPT)
-            const kind = entity.kind ?? 'project';
-            const folder = entity.folder ?? path.dirname(element.id);
-            const contextPath = path.join(folder, 'context.md');
-            const rawInitTemplate = vscode.workspace.getConfiguration('jarvis')
-                .get<string>('agentSession.initPromptTemplate') ?? '';
-            const defaultInitPrompt =
-                `You are the agent session for the \${kind} "\${name}".\n\n` +
-                `Use only \`\${contextPath}\` as your persistent memory. Read it now.\n\n` +
-                `Keep it minimal and action-oriented:\n` +
-                `- Store only long-lived items under Decision / Finding / Next.\n` +
-                `- One concise line per bullet. Prune aggressively.\n` +
-                `- Replace outdated bullets — never append logs.\n` +
-                `- Never store retries, raw tool output, or transient chatter.\n` +
-                `- Before writing, ask: "Will this still matter in 2 weeks?" If no, skip.\n` +
-                `- When a topic grows past ~5 bullets, move it to a dedicated file beside \`context.md\` and leave a one-line summary with a relative link in \`context.md\`.`;
-            const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : defaultInitPrompt;
-            const initPrompt = applyTemplate(initTemplate, { kind, name: entity.name, contextPath });
-
-            // Delegate to injectPrompt (SPEC_INJ_INJECT)
-            await injectPrompt(entity.name, initPrompt, { placement: 'main', skipInitPrompt: true });
+            // Delegate to injectPrompt — init prompt is owned by injectPrompt.ts
+            // (SPEC_INJ_INJECT, SPEC_ENT_AGENTSESSION_INITPROMPT)
+            await injectPrompt(entity.name, '', { placement: 'main' });
         }
     );
 
@@ -1266,24 +1248,9 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             await kindDrivenScanner.rescan();
             log.info(`[NewSession] created session "${nameInput}" at ${targetPath}`);
 
-            // Compose init prompt and delegate to injectPrompt (SPEC_INJ_INJECT)
-            const kind = 'session';
-            const contextPath = path.join(targetPath, 'context.md');
-            const defaultInitPrompt =
-                `You are the agent session for the \${kind} "\${name}".\n\n` +
-                `Use only \`\${contextPath}\` as your persistent memory. Read it now.\n\n` +
-                `Keep it minimal and action-oriented:\n` +
-                `- Store only long-lived items under Decision / Finding / Next.\n` +
-                `- One concise line per bullet. Prune aggressively.\n` +
-                `- Replace outdated bullets — never append logs.\n` +
-                `- Never store retries, raw tool output, or transient chatter.\n` +
-                `- Before writing, ask: "Will this still matter in 2 weeks?" If no, skip.\n` +
-                `- When a topic grows past ~5 bullets, move it to a dedicated file beside \`context.md\` and leave a one-line summary with a relative link in \`context.md\`.`;
-            const rawInitTemplate = vscode.workspace.getConfiguration('jarvis')
-                .get<string>('agentSession.initPromptTemplate') ?? '';
-            const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : defaultInitPrompt;
-            const initPrompt = applyTemplate(initTemplate, { kind, name: nameInput, contextPath });
-            await injectPrompt(nameInput, initPrompt, { placement: 'main', skipInitPrompt: true });
+            // Delegate to injectPrompt — init prompt is owned by injectPrompt.ts
+            // (SPEC_INJ_INJECT, SPEC_ENT_AGENTSESSION_INITPROMPT)
+            await injectPrompt(nameInput, '', { placement: 'main' });
         }
     );
 

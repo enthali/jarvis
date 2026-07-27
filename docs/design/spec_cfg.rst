@@ -453,8 +453,11 @@ Configuration Design Specifications
       template text as their ``"default"`` in ``package.json`` (not empty
       string), so users see and edit the default directly in the Settings UI.
       The ``"default": ""`` shown above is a documentation shorthand. An empty
-      or whitespace-only value falls back to the built-in constant in
-      ``src/extension.ts`` (see ``SPEC_ENT_AGENTSESSION_INITPROMPT`` and
+      or whitespace-only value falls back to the built-in constant
+      (``DEFAULT_INIT_PROMPT`` in
+      ``packages/core/src/engine/sessions/injectPrompt.ts``, respectively the
+      notification-template constant in ``extension.ts`` — see
+      ``SPEC_ENT_AGENTSESSION_INITPROMPT`` and
       ``REQ_MSG_NOTIFICATION_TEMPLATE``).
 
    **Updates group:** The ``jarvis.checkForUpdates`` setting lives in the

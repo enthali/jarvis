@@ -66,8 +66,8 @@ level).
    **Description:**
    Register ``jarvis.openAgentSession`` in ``extension.ts``. Invoked from the
    inline ``$(comment-discussion)`` button on every project and event leaf node.
-   Composes the init prompt and delegates session resolution, spawning, placement,
-   and injection to ``injectPrompt`` (``SPEC_INJ_INJECT``).
+   Delegates session resolution, spawning, placement, and injection to
+   ``injectPrompt`` (``SPEC_INJ_INJECT``).
 
    **Handler:**
 
@@ -79,19 +79,10 @@ level).
           const entity = scanner.getEntity(element.id);
           if (!entity) { return; }
 
-          // Compose init prompt (SPEC_ENT_AGENTSESSION_INITPROMPT)
-          const kind = entity.kind ?? 'project';
-          const folder = entity.folder ?? path.dirname(element.id);
-          const contextPath = path.join(folder, 'context.md');
-          const rawInitTemplate = vscode.workspace.getConfiguration('jarvis')
-              .get<string>('agentSession.initPromptTemplate') ?? '';
-          const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : DEFAULT_INIT_PROMPT;
-          const initPrompt = applyTemplate(initTemplate, { kind, name: entity.name, contextPath });
-
           // Delegate to injectPrompt (SPEC_INJ_INJECT)
-          //   - resolves session (existing or spawn), places at Main, injects init prompt
-          //   - skipInitPrompt: true because we provide the init prompt as text
-          await injectPrompt(entity.name, initPrompt, { placement: 'main', skipInitPrompt: true });
+          //   - existing session: open/focus at Main, no message submitted
+          //   - new session: spawn, rename, init prompt (3b), place at Main
+          await injectPrompt(entity.name, '', { placement: 'main' });
         }
       );
 
@@ -139,9 +130,17 @@ level).
 
    **Design notes:**
 
-   * Session resolution, spawning, mode-priming, editor placement, and text
-     injection are all delegated to ``injectPrompt`` (``SPEC_INJ_INJECT``).
-     This command's only responsibility is composing the init prompt text.
+   * Session resolution, spawning, mode-priming, editor placement, init-prompt
+     composition, and text injection are all delegated to ``injectPrompt``
+     (``SPEC_INJ_INJECT``). This command's only responsibility is triggering
+     ``injectPrompt`` — init prompt composition is owned by ``SPEC_INJ_INJECT``
+     step 3b / ``SPEC_ENT_AGENTSESSION_INITPROMPT``.
+   * The ``text`` argument is the empty string: this command wants session
+     open/focus only, never a submitted chat message. On an **existing**
+     session ``injectPrompt`` step 4 therefore skips injection entirely
+     (``REQ_ENT_AGENTSESSION`` AC-8); on a **new** session the init prompt is
+     still sent, but by step 3b — not by this caller
+     (agent-session-reinit-fix CR, GH #52).
    * ``contextValue`` uses namespaced values (``jarvisProject``, ``jarvisEvent``,
      ``jarvisFolder``) to prevent collisions with other extensions — the button
      appears on all ``jarvisProject`` and ``jarvisEvent`` items and is now the
@@ -169,7 +168,7 @@ level).
    substituted at send-time. This applies to all entity kinds: ``project``,
    ``event``, and ``session``.
 
-   **Template substitution** (``src/extension.ts``, shared private helper ``applyTemplate``):
+   **Template substitution** (``applyTemplate``, private helper):
 
    .. code-block:: typescript
 
@@ -180,15 +179,28 @@ level).
       }
 
    **Call site (init prompt):**
+   Composition happens in exactly one place — the new-session branch (3b) of
+   ``injectPrompt`` (``packages/core/src/engine/sessions/injectPrompt.ts``,
+   ``SPEC_INJ_INJECT``). Callers such as ``SPEC_ENT_AGENTSESSION`` and
+   ``SPEC_ACT_NEWENTITY`` do **not** compose the prompt themselves; they pass
+   the empty string as ``text`` and let 3b own it (agent-session-reinit-fix CR,
+   GH #52).
 
    .. code-block:: typescript
 
+      // packages/core/src/engine/sessions/injectPrompt.ts — step 3b only
+      const kind = entity.kind ?? 'project';
+      const contextPath = path.join(entity.folder ?? '', 'context.md');
       const rawInitTemplate = vscode.workspace.getConfiguration('jarvis')
           .get<string>('agentSession.initPromptTemplate') ?? '';
       const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : DEFAULT_INIT_PROMPT;
       const initPrompt = applyTemplate(initTemplate, { kind, name: entity.name, contextPath });
+      await sendPromptToFocusedAgentChat(initPrompt);
 
-   **Default prompt** (``DEFAULT_INIT_PROMPT`` constant in ``extension.ts``):
+   **Default prompt** (``DEFAULT_INIT_PROMPT`` constant in
+   ``packages/core/src/engine/sessions/injectPrompt.ts`` — single source of
+   truth; the former verbatim duplicate in ``extension.ts`` was removed by the
+   agent-session-reinit-fix CR):
 
    .. code-block:: text
 

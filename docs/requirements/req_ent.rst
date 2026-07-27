@@ -93,6 +93,10 @@ generic/user-facing, ``ENG`` = kind-agnostic plumbing, no US level).
      but is no longer the deciding factor: the guarantee is now achieved by
      relocating *after* creation instead of trying to influence *where* the
      session is created.
+   * AC-8: (**agent-session-reinit-fix CR, GH #52**) Clicking the tree button on
+     an entity with an already-open session SHALL open/focus that session
+     without submitting any chat message. The init prompt (AC-2/AC-3) applies to
+     the new-session branch only; it SHALL NOT be re-sent on subsequent clicks.
 
 
 .. req:: Rescan Button in Title Bar

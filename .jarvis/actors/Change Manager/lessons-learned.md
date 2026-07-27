@@ -52,3 +52,10 @@
   the commit list from memory leads to incomplete round summaries (missed this twice in CR #46).
   Before sending a QM review request, run `git log <last-qm-commit>..HEAD --oneline` and
   list every commit explicitly. This prevents "undisclosed commit" findings that erode QM trust.
+- **SD is the spec's single source of truth — never dictate spec content in a CM message** —
+  CM messages to SD must state *what* to investigate (affected spec IDs, bug description,
+  desired behavior) but never prescribe AC text, code blocks, or wording. SD reads the
+  current specs independently and formulates changes. Dictating spec content in the CM
+  message creates drift: SD translates CM's interpretation instead of reasoning from the
+  spec itself. Consequence: SD must always finish and commit before Dev starts — no
+  parallel SD+Dev dispatch.

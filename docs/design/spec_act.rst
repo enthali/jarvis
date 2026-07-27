@@ -333,20 +333,25 @@ Actor Design Specifications
 
    9. Call ``scanner.rescan()`` so the new session appears in the tree
       immediately (no window reload required).
-   10. Compose the init prompt via ``SPEC_ENT_AGENTSESSION_INITPROMPT``
-       template expansion (uses ``name``, ``summary``, ``agentInput`` collected
-       in earlier steps). Then delegate session creation and injection to the
-       consolidated primitive (``SPEC_INJ_INJECT``)::
+   10. Delegate session creation and injection to the consolidated primitive
+       (``SPEC_INJ_INJECT``)::
 
-          await injectPrompt(nameInput, initPrompt, { placement: 'main', skipInitPrompt: true });
+          await injectPrompt(nameInput, '', { placement: 'main' });
+
+       The empty ``text`` means "open/focus only, submit nothing". Because the
+       entity was just created, no session exists yet, so ``injectPrompt``
+       always takes the new-session branch (3b) and sends exactly one init
+       prompt composed there via ``SPEC_ENT_AGENTSESSION_INITPROMPT``. This
+       command does **not** compose the prompt itself
+       (agent-session-reinit-fix CR, GH #52).
 
        Cancel path is handled by the early-return guard after
        ``pickAgentMode()`` (``SPEC_ENT_AGENT_PICKER``), so this code is only
        reached for ``""`` or a concrete agent.
 
-       Mode priming, editor creation, rename, Main-placement repositioning,
-       and text injection are all delegated to ``injectPrompt``
-       (``SPEC_INJ_INJECT``).
+       Mode priming, editor creation, rename, init-prompt composition,
+       Main-placement repositioning, and text injection are all delegated to
+       ``injectPrompt`` (``SPEC_INJ_INJECT``).
 
    **``jarvis.newEntity`` Session branch** (``src/extension.ts`` newEntityCommand):
 
