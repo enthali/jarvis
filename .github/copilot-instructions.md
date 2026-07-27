@@ -84,3 +84,10 @@ scannable:
 ## Delegation Discipline
 
 When invoking a specialist agent (subagent), communicate the goal, the rationale, and the inputs the specialist cannot find themselves. The specialist owns their own workflow; trust it, and re-state only what they cannot already know from their own agent file or `copilot-instructions.md`.
+
+<!-- mermaid-ai-skills:start -->
+## Mermaid Diagrams
+
+When the user asks to create, edit, or visualize a diagram, follow the
+instructions in `.github/instructions/mermaid.instructions.md`.
+<!-- mermaid-ai-skills:end -->
