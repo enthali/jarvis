@@ -76,6 +76,12 @@ Message Queue Requirements
      (``REQ_MSG_EDITORPLACEMENT`` AC-1/AC-5/AC-9) — the same target used for
      an Actor tree click, since this command is a user-initiated action.  The
      placement is passed to ``REQ_INJ_PRIMITIVE``.
+   * AC-7: (**notification-agent-mode-reset CR, GH #54**) Notifying a session
+     that is already open SHALL NOT change that session's agent mode. An actor
+     running in a custom persona mode SHALL still be in that mode after the
+     notification stub has been submitted — both for this command and for the
+     auto-delivery path (``REQ_MSG_AUTODELIVER_POLL``). Delegated to
+     ``REQ_INJ_PRIMITIVE`` AC-8.
 
 .. req:: Delete Individual Message
    :id: REQ_MSG_DELETE
@@ -779,8 +785,9 @@ Message Queue Requirements
    * AC-1: The extension SHALL first attempt to focus the chat input via
      ``workbench.action.chat.focusInput`` (best-effort; failures are silently
      swallowed)
-   * AC-2: The primary submission mechanism SHALL be
-     ``workbench.action.chat.openAgent`` with ``{ query, isPartialQuery: false }``
+   * AC-2: The primary submission mechanism for the **mode-setting** variant
+     (AC-6) SHALL be ``workbench.action.chat.openAgent`` with
+     ``{ query, isPartialQuery: false }``
    * AC-3: If ``workbench.action.chat.openAgent`` throws, the extension SHALL
      fall back to ``workbench.action.chat.open`` with
      ``{ query, isPartialQuery: false, mode: 'agent' }``
@@ -789,6 +796,15 @@ Message Queue Requirements
    * AC-5: Both ``workbench.action.chat.openAgent`` and
      ``workbench.action.chat.open`` are VS Code internal commands with no public
      stability guarantee — the try/catch fallback is mandatory
+   * AC-6: (**notification-agent-mode-reset CR, GH #54**) The helper SHALL offer
+     a **mode-preserving** submission variant that submits the query without
+     altering the target chat session's agent mode. It SHALL NOT use any command
+     that carries a bound mode (the ``workbench.action.chat.open<ModeName>``
+     family, of which ``workbench.action.chat.openAgent`` is a member — see
+     ``REQ_MSG_OPENCHAT`` and GH #25). Its fallback path SHALL likewise request
+     no mode.
+   * AC-7: The choice of variant SHALL be made by the caller. The helper SHALL
+     NOT infer it from global editor or session state.
 
 
 .. req:: Agent Session Init Sequence

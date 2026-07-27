@@ -81,7 +81,7 @@ Prompt Injection Design Specifications
        - Call ``renameFocusedChatSession(entityName)``.
        - Unless ``skipInitPrompt`` is ``true``: build and inject the init prompt
          via ``SPEC_ENT_AGENTSESSION_INITPROMPT`` template expansion, then submit
-         via ``sendPromptToFocusedAgentChat(initPrompt)`` (``SPEC_MSG_SENDPROMPT``).
+         via ``sendPromptModeSetting(initPrompt)`` (``SPEC_MSG_SENDPROMPT``).
          Wait 800 ms for the init prompt to settle.
        - **Post-spawn repositioning** (``placement === 'main'`` only): call
          ``lookupSessionUUID(entityName)``; if a UUID is found, call
@@ -93,14 +93,43 @@ Prompt Injection Design Specifications
          view column at chat-editor creation time — this relocate-after-creation
          pattern is the established workaround.
 
-   4. **Text injection:** If ``text`` is non-empty, call
-      ``sendPromptToFocusedAgentChat(text)`` (``SPEC_MSG_SENDPROMPT``). If
-      ``text`` is empty, skip — this allows callers that only want session
-      open/focus (not text injection) to pass the empty string
-      (``REQ_INJ_PRIMITIVE`` AC-7). Before the agent-session-reinit-fix CR
-      this step was unconditional, so every re-focus of an already-open
+   4. **Text injection:** If ``text`` is non-empty, submit it via
+      ``SPEC_MSG_SENDPROMPT``. If ``text`` is empty, skip — this allows callers
+      that only want session open/focus (not text injection) to pass the empty
+      string (``REQ_INJ_PRIMITIVE`` AC-7). Before the agent-session-reinit-fix
+      CR this step was unconditional, so every re-focus of an already-open
       session re-submitted the caller-composed init prompt as a live chat
       message (GH #52).
+
+      **The submission variant depends on which branch was taken**
+      (notification-agent-mode-reset CR, GH #54):
+
+      - **After branch 3a (existing session):** use the **mode-preserving**
+        variant (``SPEC_MSG_SENDPROMPT``). The session's agent mode is already
+        established, and step 3a may have just restored a custom mode via
+        ``reapplyAgentMode()``. A mode-setting submission here would immediately
+        clobber that restoration, which is precisely the GH #54 defect — and,
+        for the auto-delivery path, a re-occurrence of the v0.5.8 regression
+        (``docs/changes/v0.5.8/hotfix-agent-reset.md``) that the injectPrompt
+        consolidation flattened away.
+      - **After branch 3b (new session):** the mode-setting variant remains
+        acceptable — the session was just created and any custom mode is bound
+        by the mode-prime step, not by this submission.
+
+      The variant is selected by this step from the branch it took; it is not
+      a caller-facing option and not something ``SPEC_MSG_SENDPROMPT`` infers
+      from global state.
+
+   .. note:: **Known related gap (not fixed by this CR).**
+      Branch 3b submits the init prompt through the mode-setting variant while
+      the session was just created in a *custom* mode via the mode-prime step
+      (``entity.agent`` set). By the command taxonomy in
+      ``SPEC_MSG_SENDPROMPT``, that submission resets the freshly primed custom
+      mode to generic "Agent" — the same coupling as GH #54, on the
+      new-session path. It is out of scope here (the CR scopes 3b as
+      unchanged) and is not user-visible in the same way, because a new session
+      has no prior conversation to lose context from. Recorded so it is not
+      re-discovered as a fresh defect.
 
    **Focus-restore responsibility:**
    ``injectPrompt`` does NOT perform focus-snapshot/restore. Callers that need

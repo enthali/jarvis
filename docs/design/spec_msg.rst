@@ -1843,15 +1843,65 @@ Message Queue Design Specifications
    :links: REQ_MSG_SENDPROMPT; SPEC_MSG_OPENCHAT
 
    **Description:**
-   Private async helper ``sendPromptToFocusedAgentChat`` in ``extension.ts``
-   submits a query string to the active VS Code Chat input in agent mode. Uses
-   a two-level fallback to tolerate API differences across VS Code builds.
+   Two private async helpers ``sendPromptModeSetting`` and
+   ``sendPromptModePreserving`` in
+   ``packages/core/src/engine/sessions/injectPrompt.ts`` submit a query string
+   to the active VS Code Chat input, using different command strategies to
+   control whether the target session's agent mode is altered.
 
-   **Implementation:**
+   **Two submission variants (notification-agent-mode-reset CR, GH #54):**
+
+   Submission must distinguish two situations, because the command used to
+   submit also decides the target session's agent mode:
+
+   * **Mode-setting submission** — used only when the target session's mode is
+     still being established (the new-session path, ``SPEC_INJ_INJECT`` 3b).
+     May use the per-mode ``workbench.action.chat.openAgent`` command, which
+     forces the generic built-in "Agent" mode.
+   * **Mode-preserving submission** — used for every submission into a chat
+     session whose mode is already established (the existing-session path,
+     ``SPEC_INJ_INJECT`` 3a). SHALL NOT use any command that carries a bound
+     mode. The submission must leave the session's current agent mode untouched
+     (``REQ_MSG_SENDPROMPT`` AC-6).
+
+   Which variant applies is decided by the caller/branch, not by this helper
+   inspecting global state. The implementation shape (extra parameter, two
+   exported functions, …) is left to implementation.
+
+   **Why ``chat.openAgent`` resets the mode:**
+   This is not an incidental side effect — it follows directly from the command
+   taxonomy documented in ``SPEC_MSG_OPENCHAT`` (amendment, GH #25). VS Code
+   registers a per-mode command ``workbench.action.chat.open<ModeName>`` for
+   every discovered mode; those commands carry a bound ``this.mode`` and
+   therefore switch the **focused chat editor's** mode in place.
+   ``workbench.action.chat.openAgent`` is simply the member of that family for
+   the built-in "Agent" mode. It is the exact same mechanism
+   ``reapplyAgentMode()`` deliberately exploits to *restore* a custom mode —
+   applied here in the opposite direction, which is why a notification
+   submitted through it silently clobbers the mode that ``SPEC_INJ_INJECT``
+   step 3a just restored.
+
+   By contrast the **generic** ``workbench.action.chat.open`` carries no bound
+   mode, so it cannot change a focused editor's mode. This is the documented
+   basis for the mode-preserving variant; it was also established empirically
+   by the v0.5.8 hotfix (``docs/changes/v0.5.8/hotfix-agent-reset.md``), which
+   fixed this same symptom for the auto-delivery path by submitting via
+   ``workbench.action.chat.open`` with ``isPartialQuery: false`` and no ``mode``
+   parameter. That path-specific fix was flattened away when prompt injection
+   was consolidated into ``SPEC_INJ_INJECT``; this CR reinstates it at the
+   choke point instead of per caller.
+
+   **Fallback:** The existing fallback (``workbench.action.chat.open`` with
+   ``mode: 'agent'``) is mode-safe for an existing session by the taxonomy above
+   — the generic command ignores the bound-mode path. It is nonetheless
+   inappropriate for the mode-preserving variant, whose fallback must not
+   request a mode at all.
+
+   **Reference implementation (mode-setting variant, unchanged):**
 
    .. code-block:: typescript
 
-      async function sendPromptToFocusedAgentChat(query: string): Promise<void> {
+      async function sendPromptModeSetting(query: string): Promise<void> {
           try {
               await vscode.commands.executeCommand('workbench.action.chat.focusInput');
           } catch {
@@ -1874,38 +1924,35 @@ Message Queue Design Specifications
       }
 
    **Callers:**
+   All submission now flows through ``SPEC_INJ_INJECT``, which owns the choice
+   of variant:
 
-   * ``jarvis.sendMessages`` — submits the notification stub
-   * ``jarvis.openAgentSession`` (new session path) — submits the ``/rename``
-     command only; the init prompt is submitted directly via
-     ``workbench.action.chat.open { query: initPrompt }`` (see
-     ``SPEC_ENT_AGENTSESSION``)
-   * Auto-delivery poll loop — submits the notification stub for each
-     auto-delivery session
+   * ``SPEC_INJ_INJECT`` step 3b — init prompt on a freshly spawned session
+     (mode-setting)
+   * ``SPEC_INJ_INJECT`` step 4 — caller-supplied text (mode-preserving when
+     the session already existed, i.e. branch 3a was taken)
 
-   .. note::
-
-      The full new-session sequence for ``jarvis.openAgentSession`` (including
-      the mode-prime step and init-prompt submission) is canonical in
-      ``SPEC_ENT_AGENTSESSION``.
+   The user-facing entry points (``SPEC_MSG_SENDCOMMAND``,
+   ``SPEC_MSG_AUTODELIVER_POLL``, ``SPEC_ENT_AGENTSESSION``,
+   ``SPEC_ACT_NEWENTITY``) no longer call this helper directly.
 
    **Design decisions:**
 
    * ``workbench.action.chat.focusInput`` failure is silently swallowed — it is
      purely a UX hint and the submission step does not depend on it.
-   * ``workbench.action.chat.openAgent`` is the preferred submission command
-     because it targets agent mode explicitly.
-   * The fallback uses ``workbench.action.chat.open`` with ``mode: 'agent'`` —
-     an older API shape that achieves the same effect on pre-1.100 builds.
-   * Both commands are VS Code internals with no public stability guarantee.
-   * The 800 ms ``setTimeout`` between the two ``sendPromptToFocusedAgentChat``
-     calls is a heuristic to allow the VS Code Chat input to settle between prompt
-     submissions. The tab-open settle delay is handled internally by
-     ``openNewChatEditor()`` (see ``SPEC_MSG_OPENCHAT``).
-   * ``contextPath`` is derived from ``path.dirname(element.id)`` — the actual
-     folder containing the entity's YAML file (D-3). This avoids kebab-case
-     derivation errors when entity names contain characters that do not map
-     cleanly to folder names.
+   * ``workbench.action.chat.openAgent`` is the preferred command for the
+     **mode-setting** variant because it targets agent mode explicitly. It is
+     disqualified for the mode-preserving variant for exactly the same reason.
+   * The mode-setting fallback uses ``workbench.action.chat.open`` with
+     ``mode: 'agent'`` — an older API shape that achieves the same effect on
+     pre-1.100 builds.
+   * All of these are VS Code internals with no public stability guarantee; the
+     try/catch fallback is mandatory for both variants.
+   * Mode is a property of the chat **session**, established at creation
+     (``SPEC_MSG_OPENCHAT`` mode-prime pattern) or restored via
+     ``reapplyAgentMode()``. Submitting text is not a legitimate occasion to
+     change it — that coupling is what produced both GH #54 and the earlier
+     v0.5.8 regression.
 
    **Open edge — title normalization:**
 
@@ -1929,28 +1976,27 @@ Message Queue Design Specifications
 
    **Sequence (existing session):**
 
-   1. Compose init prompt via ``SPEC_ENT_AGENTSESSION_INITPROMPT`` template
-      expansion.
-   2. ``await injectPrompt(entity.name, initPrompt, { placement: 'main', skipInitPrompt: true })``
-      — the primitive finds the existing session and injects the init prompt.
-      ``skipInitPrompt`` is set because the caller provides the init prompt as
-      ``text``.
+   1. ``await injectPrompt(entity.name, '', { placement: 'main' })`` — the
+      primitive finds the existing session, focuses it at Main, and restores the
+      custom agent mode if ``entity.agent`` is set. Because ``text`` is empty,
+      no chat message is submitted (agent-session-reinit-fix CR, GH #52) and the
+      restored mode therefore survives (GH #54).
 
    **Sequence (new session):**
 
-   1. Same as above — ``injectPrompt`` handles the new-session path internally
-      (mode-prime, open, rename). Since ``skipInitPrompt: true``, the primitive
-      does not send its own init prompt; the caller's ``text`` serves as the
-      init prompt.
+   1. Same call — ``injectPrompt`` handles the new-session path internally
+      (mode-prime, open, rename, init prompt via ``SPEC_INJ_INJECT`` step 3b).
+      The init prompt is composed inside the primitive, not by this command.
 
    **Design notes:**
 
    * Both existing and new session paths are unified into a single
-     ``injectPrompt`` call. The command's responsibility is reduced to composing
-     the init prompt text and delegating.
-   * ``contextPath`` is derived from ``path.dirname(element.id)`` (the actual
-     folder of the entity's YAML file) rather than from the display name,
-     avoiding kebab-case derivation errors.
+     ``injectPrompt`` call. The command's only responsibility is triggering the
+     primitive — it neither composes the init prompt nor passes
+     ``skipInitPrompt``. Canonical description in ``SPEC_ENT_AGENTSESSION``.
+   * ``contextPath`` derivation now lives inside ``injectPrompt`` step 3b and is
+     taken from ``entity.folder`` (the actual folder of the entity's YAML file)
+     rather than from the display name, avoiding kebab-case derivation errors.
 
 
 .. spec:: Reminder Store Module

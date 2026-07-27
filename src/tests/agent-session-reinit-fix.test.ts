@@ -1,11 +1,13 @@
 /**
- * Unit tests for agent-session-reinit-fix change (#52).
+ * Unit tests for agent-session-reinit-fix change (#52) and
+ * notification-agent-mode-reset (#54).
  *
- * TC-1: sendPromptToFocusedAgentChat is NOT called when text is ''
- * TC-2: sendPromptToFocusedAgentChat IS called with init prompt on new session
+ * TC-1: No submission when text is ''
+ * TC-2: New session path injects init prompt via sendPromptModeSetting
  * TC-3: Init prompt content comes from injectPrompt.ts DEFAULT_INIT_PROMPT, not extension.ts
  * TC-4: extension.ts callers pass empty string, not skipInitPrompt
  * TC-5: coreApi.ts openActorSession passes empty string (no local composition)
+ * TC-6: Mode-preserving submission for existing sessions (#54)
  */
 import { describe, it, expect } from 'vitest';
 import * as fs from 'fs';
@@ -17,17 +19,17 @@ const injectPromptSrc = fs.readFileSync(
 const extensionSrc = fs.readFileSync(path.join(coreSrcDir, 'extension.ts'), 'utf-8');
 const coreApiSrc = fs.readFileSync(path.join(coreSrcDir, 'engine', 'core', 'coreApi.ts'), 'utf-8');
 
-describe('TC-1: empty text does not trigger sendPromptToFocusedAgentChat', () => {
+describe('TC-1: empty text does not trigger submission', () => {
     it('step 4 in injectPrompt.ts guards on non-empty text', () => {
-        // The guard pattern: if (text) { await sendPromptToFocusedAgentChat(text); }
-        expect(injectPromptSrc).toMatch(/if\s*\(text\)\s*\{[\s\S]*?sendPromptToFocusedAgentChat\(text\)/);
+        // The guard pattern: if (text) { ... sendPromptModePreserving or sendPromptModeSetting ... }
+        expect(injectPromptSrc).toMatch(/if\s*\(text\)\s*\{/);
     });
 });
 
 describe('TC-2: new session path injects init prompt via DEFAULT_INIT_PROMPT', () => {
-    it('branch 3b calls sendPromptToFocusedAgentChat with initPrompt when skipInitPrompt is false', () => {
-        // In the "new session" branch, the init prompt is built and sent
-        expect(injectPromptSrc).toContain('await sendPromptToFocusedAgentChat(initPrompt)');
+    it('branch 3b calls sendPromptModeSetting with initPrompt when skipInitPrompt is false', () => {
+        // In the "new session" branch, the init prompt is built and sent via mode-setting variant
+        expect(injectPromptSrc).toContain('await sendPromptModeSetting(initPrompt)');
     });
 
     it('skipInitPrompt defaults to false', () => {
@@ -103,5 +105,50 @@ describe('TC-5: coreApi.ts openActorSession passes empty string', () => {
         const methodEnd = coreApiSrc.indexOf('}', coreApiSrc.indexOf('return inject', methodStart));
         const methodBody = coreApiSrc.slice(methodStart, methodEnd);
         expect(methodBody).not.toContain('skipInitPrompt');
+    });
+});
+
+describe('TC-6: mode-preserving submission for existing sessions (#54)', () => {
+    it('sendPromptModePreserving function exists and uses chat.open without mode param', () => {
+        expect(injectPromptSrc).toContain('async function sendPromptModePreserving');
+        // Uses workbench.action.chat.open
+        const fnStart = injectPromptSrc.indexOf('async function sendPromptModePreserving');
+        const fnEnd = injectPromptSrc.indexOf('\n}', fnStart);
+        const fnBody = injectPromptSrc.slice(fnStart, fnEnd);
+        expect(fnBody).toContain("'workbench.action.chat.open'");
+        // Must NOT carry a mode parameter
+        expect(fnBody).not.toContain("mode:");
+        expect(fnBody).not.toContain("mode :");
+    });
+
+    it('sendPromptModeSetting function exists and uses chat.openAgent', () => {
+        expect(injectPromptSrc).toContain('async function sendPromptModeSetting');
+        const fnStart = injectPromptSrc.indexOf('async function sendPromptModeSetting');
+        const fnEnd = injectPromptSrc.indexOf('\n}', fnStart);
+        const fnBody = injectPromptSrc.slice(fnStart, fnEnd);
+        expect(fnBody).toContain("'workbench.action.chat.openAgent'");
+    });
+
+    it('step 4 uses sendPromptModePreserving for existing sessions (isExistingSession)', () => {
+        // After branch 3a, isExistingSession = true → mode-preserving variant
+        const step4Section = injectPromptSrc.split('// 4. Text injection')[1];
+        expect(step4Section).toBeDefined();
+        expect(step4Section).toContain('isExistingSession');
+        expect(step4Section).toContain('sendPromptModePreserving(text)');
+    });
+
+    it('step 4 uses sendPromptModeSetting for new sessions', () => {
+        const step4Section = injectPromptSrc.split('// 4. Text injection')[1];
+        expect(step4Section).toContain('sendPromptModeSetting(text)');
+    });
+
+    it('isExistingSession is set to true only in branch 3a', () => {
+        expect(injectPromptSrc).toContain('isExistingSession = true');
+        // Should appear inside the uuid-truthy (3a) branch
+        const branch3a = injectPromptSrc.slice(
+            injectPromptSrc.indexOf('// 3a. Existing session'),
+            injectPromptSrc.indexOf('// 3b. New session')
+        );
+        expect(branch3a).toContain('isExistingSession = true');
     });
 });

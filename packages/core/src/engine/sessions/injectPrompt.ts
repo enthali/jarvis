@@ -53,9 +53,10 @@ const DEFAULT_INIT_PROMPT =
 
 /**
  * Send a prompt/slash-command to the focused chat editor (SPEC_MSG_SENDPROMPT).
- * Two-level fallback: openAgent → chat.open.
+ * Mode-setting variant: uses openAgent which forces "Agent" mode.
+ * Used only for new-session init prompt (branch 3b).
  */
-async function sendPromptToFocusedAgentChat(query: string): Promise<void> {
+async function sendPromptModeSetting(query: string): Promise<void> {
     try {
         await vscode.commands.executeCommand('workbench.action.chat.focusInput');
     } catch {
@@ -74,6 +75,29 @@ async function sendPromptToFocusedAgentChat(query: string): Promise<void> {
             'workbench.action.chat.open',
             { query, isPartialQuery: false, mode: 'agent' }
         );
+    }
+}
+
+/**
+ * Send a prompt to the focused chat editor without changing its agent mode
+ * (SPEC_MSG_SENDPROMPT, mode-preserving variant).
+ * Used for text injection into existing sessions (branch 3a → step 4).
+ */
+async function sendPromptModePreserving(query: string): Promise<void> {
+    try {
+        await vscode.commands.executeCommand('workbench.action.chat.focusInput');
+    } catch {
+        // Best effort
+    }
+
+    try {
+        await vscode.commands.executeCommand(
+            'workbench.action.chat.open',
+            { query, isPartialQuery: false }
+        );
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        _log?.warn(`[INJ] chat.open (mode-preserving) failed: ${message}`);
     }
 }
 
@@ -106,9 +130,11 @@ export async function injectPrompt(
 
     // 2. Session lookup
     const uuid = await lookupSessionUUID(entityName);
+    let isExistingSession = false;
 
     if (uuid) {
         // 3a. Existing session
+        isExistingSession = true;
         const b64 = Buffer.from(uuid).toString('base64');
         const uri = vscode.Uri.parse(`vscode-chat-session://local/${b64}`);
 
@@ -147,7 +173,7 @@ export async function injectPrompt(
                 .get<string>('agentSession.initPromptTemplate') ?? '';
             const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : DEFAULT_INIT_PROMPT;
             const initPrompt = applyTemplate(initTemplate, { kind, name: entity.name, contextPath });
-            await sendPromptToFocusedAgentChat(initPrompt);
+            await sendPromptModeSetting(initPrompt);
             await new Promise(resolve => setTimeout(resolve, 800));
         }
 
@@ -166,7 +192,12 @@ export async function injectPrompt(
     }
 
     // 4. Text injection (skip if empty — avoids re-injecting init prompt on re-focus)
+    // Branch-aware: mode-preserving after 3a, mode-setting after 3b (SPEC_MSG_SENDPROMPT)
     if (text) {
-        await sendPromptToFocusedAgentChat(text);
+        if (isExistingSession) {
+            await sendPromptModePreserving(text);
+        } else {
+            await sendPromptModeSetting(text);
+        }
     }
 }

@@ -36,6 +36,10 @@ Prompt Injection Requirements
      session silently without submitting any message. This does not affect the
      init prompt sent on spawn (AC-4), which is gated on the new-session branch
      only.
+   * AC-8: When injecting into a session that already existed (AC-3), the
+     primitive SHALL preserve that session's current agent mode. Submitting the
+     text SHALL NOT change the mode, in particular SHALL NOT undo a custom mode
+     restored under AC-3 (``REQ_MSG_SENDPROMPT`` AC-6).
 
 
 .. req:: Prompt Injection LM Tool
