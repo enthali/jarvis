@@ -23,6 +23,11 @@ Kanban User Stories
      value).
    * AC-5: The board is read-only in Phase 1 — no drag-and-drop or inline
      editing.
+   * AC-6: The YAML file is a hand-authored, git-tracked source of truth.
+     Comments and formatting I write by hand survive programmatic updates, and
+     a tool-driven change produces a diff limited to what actually changed —
+     so I can mix hand editing and tool use without losing context or reading
+     noisy diffs.
 
 
 .. story:: Convention-Based Board Discovery

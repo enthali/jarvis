@@ -511,18 +511,68 @@ Kanban Design Specifications
    **Algorithm:**
 
    1. Resolve owner and filename (same as ``SPEC_KAN_CREATE`` steps 1–2).
-   2. Read and parse the YAML file. If not found → return
-      ``{ error: "board not found" }``.
+   2. Read the file and parse it into a **round-trip representation** — one
+      that retains comments, key order, and per-node formatting style
+      alongside the data (see "Round-trip fidelity" below). If not found →
+      return ``{ error: "board not found" }``.
    3. Find the item with ``id === itemId``. If not found → return
       ``{ error: "item not found", itemId }``.
-   4. Merge ``changes`` into the item. The ``id`` field is immutable — if
-      present in ``changes``, it is silently ignored.
+   4. Apply ``changes`` **to the round-trip representation itself**, field by
+      field. The ``id`` field is immutable — if present in ``changes``, it is
+      silently ignored.
    5. If ``changes.status`` is provided, validate it against the ``status``
-      field's options. If invalid → return
+      field's options. The options are read from the same round-trip
+      representation — the file SHALL NOT be parsed a second time, so
+      validation and mutation cannot disagree about the file's content.
+      If invalid → return
       ``{ error: "invalid status", value, validOptions }``.
-   6. Write the updated YAML back to the file (preserving field order where
-      practical).
+   6. Serialize the round-trip representation back to the file. Untouched
+      regions SHALL be byte-identical to what was read.
    7. Return ``{ path, updated: true, itemId }``.
+
+   **Round-trip fidelity (kanban-yaml-comment-preservation CR, GH #53):**
+
+   The board file is a hand-authored, git-tracked artifact
+   (``REQ_KAN_SCHEMA`` AC-9). This tool SHALL therefore satisfy:
+
+   * Comments — header, standalone, and inline — survive verbatim.
+   * Key order and per-node style (flow vs. block sequences, string wrapping
+     and quoting) are preserved for every node the update did not change.
+   * The resulting diff is confined to the field(s) actually changed.
+
+   **The load-bearing constraint is *where* mutation happens, not which parse
+   function is called.** Comments and style exist only in the round-trip
+   representation; a plain JavaScript object has nowhere to store them. So
+   deriving a plain object from the parsed file, mutating that, and
+   re-serializing it loses everything — *regardless* of which parse function
+   produced the document. Any implementation that reads with a round-trip
+   parser but writes from a plain-object projection satisfies the letter of
+   "use the round-trip API" while still failing every acceptance criterion
+   above.
+
+   Reading the representation into a plain object for **read-only** purposes
+   (e.g. locating the item, reading the ``status`` options in step 5) is
+   unaffected by this constraint.
+
+   The ``yaml`` package's ``Document`` API (``parseDocument`` /
+   ``toString()``) provides these properties and is the established means; the
+   choice of accessor methods is left to implementation.
+
+   **Scope — read-only paths are deliberately unchanged.**
+   ``SPEC_KAN_RENDERER``, ``SPEC_KAN_FILEOPEN``, and ``SPEC_KAN_VERIFY`` only
+   read the board and never write it back, so the data-only parse is correct
+   there and SHALL NOT be migrated. Round-trip parsing is required only where
+   a load → modify → save cycle exists. ``SPEC_KAN_CREATE`` writes a fresh
+   file from a template and has no prior content to preserve.
+
+   .. note::
+      This constraint is stated at ``REQ_KAN_SCHEMA`` AC-9 as a property of
+      the board file, binding **every** writer — not only this tool. Phase 2
+      write-back (GH #47) introduces a second write path from drag-and-drop,
+      where the same defect would be far more visible: a rewrite on every
+      interaction rather than only on explicit tool calls. Recording the rule
+      against the file rather than against the tool that first exhibited the
+      defect is deliberate.
 
    **Acceptance Criteria:**
 
@@ -531,6 +581,10 @@ Kanban Design Specifications
    * AC-3: Returns error for invalid ``status`` value.
    * AC-4: ``id`` field is immutable — never changed by this tool.
    * AC-5: Registers with ``toolReferenceName: "updateKanbanItem"``.
+   * AC-6: A board file containing comments retains all of them, verbatim,
+     after an update to an unrelated field (``REQ_KAN_UPDATE`` AC-6).
+   * AC-7: An update to one field produces a diff touching only that field —
+     no reformatting of untouched lines.
 
 
 .. spec:: Kanban File Open via Custom Editor

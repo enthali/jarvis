@@ -542,7 +542,7 @@ export function activate(context: vscode.ExtensionContext): void {
                 ]);
             }
 
-            // Read and parse YAML
+            // 2. Read file and parse into round-trip representation (SPEC_KAN_UPDATE)
             let rawContent: string;
             try {
                 rawContent = fs.readFileSync(boardPath, 'utf-8');
@@ -552,25 +552,31 @@ export function activate(context: vscode.ExtensionContext): void {
                 ]);
             }
 
-            let data: { items: Array<Record<string, unknown>>; fields: Array<{ name: string; options: Array<{ name: string }> }>; [k: string]: unknown };
+            const yaml = await import('yaml');
+            let doc: import('yaml').Document;
             try {
-                const yaml = await import('yaml');
-                data = yaml.parse(rawContent);
+                doc = yaml.parseDocument(rawContent);
             } catch (e) {
                 return new vscode.LanguageModelToolResult([
                     new vscode.LanguageModelTextPart(JSON.stringify({ error: `YAML parse error: ${e}` }))
                 ]);
             }
 
-            // Find item by id
-            const item = data.items.find(i => i.id === input.itemId);
-            if (!item) {
+            // Read plain data from the document for lookup and validation
+            const data = doc.toJSON() as {
+                items: Array<Record<string, unknown>>;
+                fields: Array<{ name: string; options: Array<{ name: string }> }>;
+            };
+
+            // 3. Find item by id
+            const itemIndex = data.items.findIndex(i => i.id === input.itemId);
+            if (itemIndex === -1) {
                 return new vscode.LanguageModelToolResult([
                     new vscode.LanguageModelTextPart(JSON.stringify({ error: `item with id ${input.itemId} not found` }))
                 ]);
             }
 
-            // Validate status change if present
+            // 5. Validate status change if present (read from same representation)
             if (input.changes.status) {
                 const statusField = data.fields.find(f => f.name === 'status');
                 const validOptions = statusField ? new Set(statusField.options.map(o => o.name)) : undefined;
@@ -583,16 +589,17 @@ export function activate(context: vscode.ExtensionContext): void {
                 }
             }
 
-            // Merge changes (id is immutable)
+            // 4. Apply changes to the round-trip representation (Document node)
+            const itemsSeq = doc.get('items') as import('yaml').YAMLSeq;
+            const itemNode = itemsSeq.get(itemIndex) as import('yaml').YAMLMap;
             for (const [key, value] of Object.entries(input.changes)) {
                 if (key === 'id') { continue; } // immutable
-                item[key] = value;
+                itemNode.set(key, value);
             }
 
-            // Write back
+            // 6. Serialize round-trip representation back to file
             try {
-                const yaml = await import('yaml');
-                await fs.promises.writeFile(boardPath, yaml.stringify(data));
+                await fs.promises.writeFile(boardPath, doc.toString());
             } catch (e) {
                 return new vscode.LanguageModelToolResult([
                     new vscode.LanguageModelTextPart(JSON.stringify({ error: `failed to write file: ${e}` }))
@@ -603,7 +610,7 @@ export function activate(context: vscode.ExtensionContext): void {
             // Trigger 3: direct panel refresh after tool write
             refreshKanbanPanel(boardPath);
             return new vscode.LanguageModelToolResult([
-                new vscode.LanguageModelTextPart(JSON.stringify({ path: boardPath, updated: item }))
+                new vscode.LanguageModelTextPart(JSON.stringify({ path: boardPath, updated: true, itemId: input.itemId }))
             ]);
         }
     ));
