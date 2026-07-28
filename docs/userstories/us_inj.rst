@@ -31,3 +31,9 @@ Prompt Injection User Stories
      produce a user-visible error.
    * AC-6: Injecting ``/compact`` into an actor demonstrably compacts that
      actor's session (end-to-end acceptance).
+   * AC-7: (**notification-template-empty-fallback CR, GH #56**) When the
+     primitive is asked to inject nothing, it opens/focuses the session and
+     submits nothing — a legitimate outcome, not an error — but it never leaves
+     that outcome indistinguishable from a real submission: the log records
+     which entity was opened without a submission, so a caller that passed an
+     empty payload by mistake is diagnosable from the log alone.

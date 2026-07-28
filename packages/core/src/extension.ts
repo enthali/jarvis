@@ -19,7 +19,7 @@ import { deleteMessage, appendMessage, popMessage, readAutoDelivery, addAutoDeli
 import { addReminder, readReminders, removeReminder, popDueReminders, setRemindersLogger } from './apps/session/reminders';
 import { lookupSessionUUID, getAllSessions, initSessionLookup, setSessionLookupLogger, filterNamedSessions, getValidDestinations, getEntityNameForSessionId } from './engine/sessions/sessionLookup';
 import { discoverAgentModes } from './engine/sessions/agentDiscovery';
-import { injectPrompt, initInjectPrompt } from './engine/sessions/injectPrompt';
+import { injectPrompt, initInjectPrompt, resolveNotificationText } from './engine/sessions/injectPrompt';
 import { checkForUpdates } from './engine/core/updateCheck';
 import { HookEngine } from './engine/hooks/hookEngine';
 import { HookIntake } from './engine/hooks/hookIntake';
@@ -582,13 +582,14 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             }
             log.info(`[MSG] sendMessages: destination="${node.destination}", count=${node.children.length}`);
 
-            // 1. Compose notification stub
+            // 1. Compose notification stub (SPEC_MSG_NOTIFICATION_RESOLVE)
             const count = node.children.length;
             const senders = [...new Set(node.children.map((c: any) => c.sender))].join(', ');
             const cfg = vscode.workspace.getConfiguration('jarvis');
-            const stub = applyTemplate(
+            const stub = resolveNotificationText(
                 cfg.get<string>('messages.notificationTemplate', ''),
-                { count: String(count), destination: node.destination, sender: senders }
+                { count: String(count), destination: node.destination, sender: senders },
+                node.destination
             );  // REQ_MSG_NOTIFICATION_TEMPLATE
 
             // 2. Delegate to injectPrompt (SPEC_INJ_INJECT)
@@ -1438,12 +1439,13 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
                 // Snapshot focus before the disruptive delivery (SPEC_MSG_FOCUSRESTORE)
                 const focus = await snapshotFocus();
                 try {
-                    // Compose notification stub
+                    // Compose notification stub (SPEC_MSG_NOTIFICATION_RESOLVE)
                     const cfg = vscode.workspace.getConfiguration('jarvis');
                     const senders = [...new Set(pending.map(m => m.sender))].join(', ');
-                    const stub = applyTemplate(
+                    const stub = resolveNotificationText(
                         cfg.get<string>('messages.notificationTemplate', ''),
-                        { count: String(pending.length), destination: sessionName, sender: senders }
+                        { count: String(pending.length), destination: sessionName, sender: senders },
+                        sessionName
                     );  // REQ_MSG_NOTIFICATION_TEMPLATE
 
                     // Delegate to injectPrompt (SPEC_INJ_INJECT)

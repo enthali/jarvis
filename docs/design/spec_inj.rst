@@ -4,7 +4,7 @@ Prompt Injection Design Specifications
 .. spec:: Prompt Injection Primitive
    :id: SPEC_INJ_INJECT
    :status: draft
-   :links: REQ_INJ_PRIMITIVE; REQ_MSG_SESSIONLOOKUP; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_OPENCHAT; SPEC_MSG_SENDPROMPT; SPEC_MSG_EDITORPLACEMENT; SPEC_ENT_AGENTSESSION_INITPROMPT
+   :links: REQ_INJ_PRIMITIVE; REQ_MSG_SESSIONLOOKUP; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_OPENCHAT; SPEC_MSG_SENDPROMPT; SPEC_MSG_EDITORPLACEMENT; SPEC_ENT_AGENTSESSION_INITPROMPT; SPEC_MSG_NOTIFICATION_RESOLVE
 
    **Description:**
    Async function ``injectPrompt`` in
@@ -100,6 +100,34 @@ Prompt Injection Design Specifications
       CR this step was unconditional, so every re-focus of an already-open
       session re-submitted the caller-composed init prompt as a live chat
       message (GH #52).
+
+      **Emptiness is evaluated after trimming**
+      (``text.trim().length === 0``, notification-template-empty-fallback CR,
+      GH #56). The previous ``if (text)`` guard treated a whitespace-only
+      payload as deliverable while the template layer treated it as empty; one
+      definition now applies to both (``REQ_INJ_PRIMITIVE`` AC-7).
+
+      **A skipped submission is logged** (``REQ_INJ_PRIMITIVE`` AC-9)::
+
+         _log?.info(`[INJ] injectPrompt: empty text for "${entityName}" — session opened/focused, nothing submitted`);
+
+      Level is ``info``, deliberately not ``warn``: open/focus-only is ordinary
+      operation for ``SPEC_ENT_AGENTSESSION`` and ``SPEC_ACT_NEWENTITY``, and a
+      warning on a normal path would be noise that readers learn to skip — the
+      same blindness that let GH #56 run undetected. The diagnostic value comes
+      from the entry existing at all: an unintended empty payload now appears in
+      the log immediately after the caller's own delivery log line, instead of
+      leaving no trace. The *warning* for an intended-but-empty notification is
+      raised one layer up, where delivery intent is known
+      (``SPEC_MSG_NOTIFICATION_RESOLVE``).
+
+      .. note:: **This step is not the fix for GH #56.**
+         The guard was doing exactly what it was specified to do; the defect was
+         that the notification path handed it an empty string. Hardening the
+         guard into an error would break the legitimate open/focus-only contract
+         (``REQ_INJ_PRIMITIVE`` AC-7) that GH #52 introduced. The fix is
+         upstream — the stub is non-empty by construction
+         (``SPEC_MSG_NOTIFICATION_RESOLVE``); this step only stops being silent.
 
       **The submission variant depends on which branch was taken**
       (notification-agent-mode-reset CR, GH #54):

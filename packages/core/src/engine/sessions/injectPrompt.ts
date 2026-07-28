@@ -51,6 +51,32 @@ const DEFAULT_INIT_PROMPT =
     `- Before writing, ask: "Will this still matter in 2 weeks?" If no, skip.\n` +
     `- When a topic grows past ~5 bullets, move it to a dedicated file beside \`context.md\` and leave a one-line summary with a relative link in \`context.md\`.`;
 
+export const DEFAULT_NOTIFICATION =
+    '[Jarvis Message Service] You have ${count} new message(s) in your inbox.\n' +
+    'Sender(s): ${sender}\n' +
+    'Read them with the jarvis_receiveMessage tool (destination: "${destination}") until remaining = 0.';
+
+/**
+ * Resolve the notification stub text (SPEC_MSG_NOTIFICATION_RESOLVE).
+ * REQ_MSG_NOTIFICATION_TEMPLATE AC-1/AC-8/AC-9/AC-10.
+ */
+export function resolveNotificationText(
+    rawTemplate: string,
+    vars: Record<string, string>,
+    destination: string
+): string {
+    const template = rawTemplate.trim() ? rawTemplate : DEFAULT_NOTIFICATION;
+    const text = applyTemplate(template, vars);
+    if (!text.trim()) {
+        // Defensive: only reachable if DEFAULT_NOTIFICATION itself is empty.
+        _log?.warn(
+            `[MSG] resolveNotificationText: resolved notification text is empty for `
+            + `"${destination}" — nothing will be submitted to chat`
+        );
+    }
+    return text;
+}
+
 /**
  * Send a prompt/slash-command to the focused chat editor (SPEC_MSG_SENDPROMPT).
  * Mode-setting variant: uses openAgent which forces "Agent" mode.
@@ -193,11 +219,13 @@ export async function injectPrompt(
 
     // 4. Text injection (skip if empty — avoids re-injecting init prompt on re-focus)
     // Branch-aware: mode-preserving after 3a, mode-setting after 3b (SPEC_MSG_SENDPROMPT)
-    if (text) {
+    if (text.trim()) {
         if (isExistingSession) {
             await sendPromptModePreserving(text);
         } else {
             await sendPromptModeSetting(text);
         }
+    } else {
+        _log?.info(`[INJ] injectPrompt: empty text for "${entityName}" — session opened/focused, nothing submitted`);
     }
 }

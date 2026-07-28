@@ -220,6 +220,14 @@ level).
    not set, the built-in ``DEFAULT_INIT_PROMPT`` is used. Unknown placeholders in
    a custom template are passed through unchanged.
 
+   **Symmetric counterpart** (notification-template-empty-fallback CR, GH #56):
+   the notification path applies the same trim-based rule against
+   ``DEFAULT_NOTIFICATION`` in the same module
+   (``SPEC_MSG_NOTIFICATION_RESOLVE``). The two constants are co-located
+   deliberately — the absence of the notification-side fallback, while this one
+   existed, is what made GH #56 look like a new-session-versus-existing-session
+   problem rather than a shared empty-template problem.
+
    **Placeholder definitions:**
 
    * ``${kind}`` — ``entity.kind`` (``'project' | 'event' | 'session'``), defaulting

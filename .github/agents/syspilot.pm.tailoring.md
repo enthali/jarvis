@@ -105,6 +105,31 @@ to CM while a release is in progress.
 This constraint will be lifted when Git worktrees are introduced (tracked via GH
 CLI; not yet available). Until then, sequential single-CR dispatch is mandatory.
 
+## Actor Memory Commits on Non-Mergeable Branches (2026-07-28)
+
+Normal rule (unchanged): an actor's memory commits (`.jarvis/actors/<Name>/`)
+follow the branch the actor is already working on — they land on the feature
+branch and reach `develop` via the eventual squash-merge, same as any other
+commit on that branch.
+
+**Exception**: branches that are planned to never be merged (`research-*`,
+`experiment/*`) break that path — a Research/Experiment actor's memory would
+otherwise depend on someone remembering to cherry-pick it across before the
+branch is deleted, a manual step whose omission is silent (no error, no
+build failure — the finding is just gone). Same failure class as the #56 bug
+this session was fixing when the proposal came in. Risk of the alternative
+(direct commit) is near-zero: additive only, confined to the actor's own
+folder, cannot break the build or spec state.
+
+Rule: on a branch that is planned to never be merged, the actor commits its
+own memory directly to `develop` instead of to that branch, subject to:
+- only files under its own `.jarvis/actors/<Name>/`, never mixed with code/specs;
+- its own commit, prefixed `docs(<actor>)`;
+- a message to PM afterward, as information — not a request for permission.
+
+This does not change how memory commits work on any branch that is intended
+to merge — only branches excluded from the merge path by design.
+
 ## QM Sign-off
 
 Wait for a **direct message from Quality Manager** before merging.

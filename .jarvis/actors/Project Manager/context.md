@@ -26,6 +26,13 @@
 - **Branch + CD before dispatch**: CM cannot start a CR without an existing
   branch + template-copied CD — create both before/with the CR message, not
   just mention them.
+- **Copy the template literally — never paraphrase its structure (2026-07-28)**:
+  the CD is the contract between agents. PM's part is the header fields
+  (Status/Branch/Created/Author/Operation Mode) + Summary (root cause, fix
+  direction, ACs, GitHub Issue line) — Level 0/1/2, Final Consistency Check,
+  and QM Findings stay as the template's own skeleton, untouched, for System
+  Designer/QM to fill. Use `npm run new-change -- <name>` (creates the branch
+  + copies/renames the template) instead of hand-authoring a CD's structure.
   when debugging, not just the code diff — missing spec cross-links are a
   common root cause (see `pim-treenode-filenode-fix`).
 - **No-Blame, Verify-Before-Send**: confirm shared understanding of a finding

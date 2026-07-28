@@ -367,7 +367,17 @@ Message Queue Requirements
      **not** invoke ``jarvis.sendMessages`` (``REQ_MSG_SEND``), which remains a
      separate, manually-triggered command.
    * AC-4: After notification the loop SHALL set ``notified: true`` on all
-     messages that were just notified for that session and persist the queue
+     messages that were just notified for that session and persist the queue.
+     (**notification-template-empty-fallback CR, GH #56**) This flag is set
+     unconditionally after the AC-3 delivery action returns; it records "a
+     delivery was attempted", not "a delivery was confirmed". That is only safe
+     because the submitted text is non-empty by construction
+     (``REQ_MSG_NOTIFICATION_TEMPLATE`` AC-10), so the flag can no longer be
+     set for a delivery that silently submitted nothing. Gating the flag on
+     *confirmed* delivery is deliberately NOT required here: without a bounded
+     retry/backoff/dead-letter design it would turn every delivery failure into
+     an unbounded re-injection loop — a worse failure mode than the drop it
+     replaces. That gating remains a separate design question.
    * AC-5: The loop SHALL process at most one session per tick (first-found order)
    * AC-6: The timer SHALL be stopped (``clearInterval``) when the extension is
      deactivated
@@ -925,9 +935,9 @@ Message Queue Requirements
 
 .. req:: Notification Template Setting
    :id: REQ_MSG_NOTIFICATION_TEMPLATE
-   :status: implemented
+   :status: draft
    :priority: optional
-   :links: US_MSG_NOTIFICATION_TEMPLATE; REQ_MSG_SEND; REQ_MSG_AUTODELIVER_POLL
+   :links: US_MSG_NOTIFICATION_TEMPLATE; REQ_MSG_SEND; REQ_MSG_AUTODELIVER_POLL; REQ_INJ_PRIMITIVE
 
    **Description:**
    The extension SHALL expose a configurable string setting for the auto-delivery
@@ -977,6 +987,28 @@ Message Queue Requirements
      setting's substitution logic (AC-1 through AC-6) is otherwise unaffected.
      Users with a customized (non-default) template are unaffected — the
      built-in default only changes for users who have never overridden it.
+   * AC-8: (**notification-template-empty-fallback CR, GH #56**) The AC-1
+     fallback SHALL be enforced in extension code and SHALL NOT rely on the
+     ``"default"`` declared in ``package.json``. VS Code's Settings UI persists
+     an explicit empty string at User scope as soon as the text field is
+     cleared, and a persisted ``""`` shadows the declared default —
+     ``getConfiguration().get()`` then returns ``''``, not the declared text.
+     The declared default therefore governs only what the user *sees*, never
+     what the delivery paths *use*.
+   * AC-9: (**GH #56**) The built-in default text SHALL exist exactly once in
+     the codebase as a named constant, symmetric to ``DEFAULT_INIT_PROMPT``
+     (``REQ_ENT_AGENTPROMPT_TEMPLATE``), and both delivery paths SHALL obtain
+     the resolved notification text through one shared resolution helper. No
+     delivery path may re-implement the empty/whitespace fallback locally.
+   * AC-10: (**GH #56**) The notification text handed to ``REQ_INJ_PRIMITIVE``
+     by either delivery path SHALL be non-empty by construction. The primitive's
+     documented "empty text means open/focus only" contract
+     (``REQ_INJ_PRIMITIVE`` AC-7) SHALL therefore never be triggered by a
+     notification delivery. If the resolved text is nevertheless empty or
+     whitespace-only (only reachable if the built-in constant itself were
+     empty — a code defect), the resolution helper SHALL log a warning naming
+     the destination, and SHALL NOT return silently as if the notification were
+     well-formed.
 
 
 .. req:: Reminders Tree View

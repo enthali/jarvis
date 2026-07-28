@@ -154,10 +154,108 @@ Message Queue Design Specifications
    to refresh the entire tree. Called after queue mutations and setting changes.
 
 
+.. spec:: Notification Text Resolution
+   :id: SPEC_MSG_NOTIFICATION_RESOLVE
+   :status: draft
+   :links: REQ_MSG_NOTIFICATION_TEMPLATE; REQ_INJ_PRIMITIVE; SPEC_MSG_SENDCOMMAND; SPEC_MSG_AUTODELIVER_POLL; SPEC_INJ_INJECT; SPEC_CFG_MANIFEST
+
+   **Description:**
+   Single home for turning the ``jarvis.messages.notificationTemplate`` setting
+   into the text that is actually submitted to a chat session. Introduced by the
+   ``notification-template-empty-fallback`` CR (GH #56); before it, both
+   delivery paths called ``applyTemplate(cfg.get(...), vars)`` directly and no
+   fallback existed anywhere on the notification path.
+
+   **Defect being closed (GH #56):**
+   ``package.json`` ships the full default text (``SPEC_CFG_MANIFEST``), so the
+   setting reads non-empty out of the box. But VS Code's Settings UI persists an
+   explicit ``""`` at User scope the moment the text field is cleared \u2014 only
+   "Reset Setting" removes the key. A persisted ``""`` shadows the declared
+   default, so ``cfg.get<string>('messages.notificationTemplate', '')`` returns
+   ``''`` and the ``''`` default argument never fires either (the key exists).
+   The empty stub then hit ``SPEC_INJ_INJECT`` step 4, whose ``if (text)`` guard
+   \u2014 correct in itself, and introduced for open/focus-only callers by the
+   ``agent-session-reinit-fix`` CR (GH #52) \u2014 skipped submission entirely. Both
+   call sites nevertheless proceeded, and the poll loop marked the messages
+   ``notified: true``. Net effect: no chat turn, no exception, no log entry,
+   message dropped.
+
+   Two facts made this hard to see and are recorded so the shape is recognised
+   next time: the init-prompt path has a ``DEFAULT_INIT_PROMPT`` fallback and so
+   kept working, which made *new* sessions look healthy and misdirected the
+   investigation at the existing-session branch; and the failure produced no
+   signal at all, so nothing in the log distinguished it from a healthy tick.
+
+   **Built-in constant** (``DEFAULT_NOTIFICATION`` in
+   ``packages/core/src/engine/sessions/injectPrompt.ts`` \u2014 single source of
+   truth, deliberately co-located with ``DEFAULT_INIT_PROMPT`` so the two
+   template paths stay symmetric and cannot drift apart again):
+
+   .. code-block:: text
+
+      [Jarvis Message Service] You have ${count} new message(s) in your inbox.
+      Sender(s): ${sender}
+      Read them with the jarvis_receiveMessage tool (destination: "${destination}") until remaining = 0.
+
+   The text is verbatim identical to the ``package.json`` default
+   (``SPEC_CFG_MANIFEST``) and to ``REQ_MSG_NOTIFICATION_TEMPLATE``'s built-in
+   default block. ``src/tests/msg-notify-default-text.test.ts`` already pins the
+   ``package.json`` text; the constant SHALL be pinned against it the same way.
+
+   **Resolution helper** (exported from the same module, next to
+   ``applyTemplate``):
+
+   .. code-block:: typescript
+
+      export const DEFAULT_NOTIFICATION = ...; // verbatim text above
+
+      /**
+       * Resolve the notification stub text (SPEC_MSG_NOTIFICATION_RESOLVE).
+       * REQ_MSG_NOTIFICATION_TEMPLATE AC-1/AC-8/AC-9/AC-10.
+       */
+      export function resolveNotificationText(
+          rawTemplate: string,
+          vars: Record<string, string>,
+          destination: string
+      ): string {
+          const template = rawTemplate.trim() ? rawTemplate : DEFAULT_NOTIFICATION;
+          const text = applyTemplate(template, vars);
+          if (!text.trim()) {
+              // Defensive: only reachable if DEFAULT_NOTIFICATION itself is empty.
+              _log?.warn(
+                  `[MSG] resolveNotificationText: resolved notification text is empty for `
+                  + `"${destination}" \u2014 nothing will be submitted to chat`
+              );
+          }
+          return text;
+      }
+
+   **Rules:**
+
+   * The fallback is keyed on ``rawTemplate.trim()``, identical to the
+     init-prompt rule in ``SPEC_ENT_AGENTSESSION_INITPROMPT`` \u2014 one definition
+     of "empty template" for both template paths.
+   * Substitution stays ``applyTemplate`` (``SPEC_ENT_AGENTSESSION_INITPROMPT``);
+     unknown placeholders are still passed through unchanged
+     (``REQ_MSG_NOTIFICATION_TEMPLATE`` AC-4).
+   * The setting is still read per delivery, uncached
+     (``REQ_MSG_NOTIFICATION_TEMPLATE`` AC-6) \u2014 the helper takes the raw value
+     as a parameter rather than reading configuration itself, so it stays
+     directly unit-testable without a VS Code configuration host.
+   * The warning is placed here, not in ``SPEC_INJ_INJECT``, because this is the
+     only layer that knows the caller *intended* to deliver a notification. The
+     primitive cannot distinguish an unintended empty payload from a deliberate
+     open/focus-only call, so a warning there would fire during ordinary
+     operation (``REQ_INJ_PRIMITIVE`` AC-9).
+
+   **Call sites:** ``SPEC_MSG_SENDCOMMAND`` and ``SPEC_MSG_AUTODELIVER_POLL``
+   \u2014 exhaustively. No other code composes notification text.
+
+
 .. spec:: Send Messages Command
    :id: SPEC_MSG_SENDCOMMAND
    :status: draft
-   :links: REQ_MSG_SEND; REQ_MSG_SESSIONLOOKUP; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_QUEUESTORE; REQ_MSG_AUTODELIVER_TAG; REQ_MSG_NOTIFICATION_TEMPLATE; REQ_ENT_AGENTPROMPT_TEMPLATE; SPEC_ENT_AGENTSESSION_INITPROMPT; SPEC_MSG_EDITORPLACEMENT; SPEC_MSG_OPENCHAT; SPEC_INJ_INJECT
+   :links: REQ_MSG_SEND; REQ_MSG_SESSIONLOOKUP; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_QUEUESTORE; REQ_MSG_AUTODELIVER_TAG; REQ_MSG_NOTIFICATION_TEMPLATE; SPEC_MSG_NOTIFICATION_RESOLVE; REQ_ENT_AGENTPROMPT_TEMPLATE; SPEC_ENT_AGENTSESSION_INITPROMPT; SPEC_MSG_EDITORPLACEMENT; SPEC_MSG_OPENCHAT; SPEC_INJ_INJECT
 
    **Description:**
    Register ``jarvis.sendMessages`` in ``extension.ts``. Invoked from the session
@@ -172,11 +270,15 @@ Message Queue Design Specifications
    **Stub format:**
 
    The notification stub text is produced by calling
-   ``applyTemplate(template, vars)`` (see ``SPEC_ENT_AGENTSESSION_INITPROMPT``
-   for the shared helper definition), where ``template`` is the value of
-   ``jarvis.messages.notificationTemplate`` (falling back to the built-in English
-   default from ``REQ_MSG_NOTIFICATION_TEMPLATE`` when empty/whitespace), and
-   ``vars`` is ``{ count, destination, sender }``.
+   ``resolveNotificationText(rawTemplate, vars, destination)``
+   (``SPEC_MSG_NOTIFICATION_RESOLVE``), where ``rawTemplate`` is the raw value of
+   ``jarvis.messages.notificationTemplate`` and ``vars`` is
+   ``{ count, destination, sender }``. The helper owns the empty/whitespace
+   fallback to ``DEFAULT_NOTIFICATION``; this command does **not** apply
+   ``applyTemplate`` directly and does **not** re-implement the fallback
+   (``REQ_MSG_NOTIFICATION_TEMPLATE`` AC-9). The resulting stub is therefore
+   non-empty by construction, so ``SPEC_INJ_INJECT`` step 4 always submits it
+   (``REQ_MSG_NOTIFICATION_TEMPLATE`` AC-10).
 
    The ``sender`` value is the comma-joined list of distinct sender names from
    the pending messages for that session (e.g. ``"Change Manager"`` or
@@ -187,8 +289,8 @@ Message Queue Design Specifications
    sender="Change Manager")::
 
       [Jarvis Message Service] You have 2 new message(s) in your inbox.
-      Read them with the jarvis_readMessage tool (destination: "Atlas") until remaining = 0.
       Sender(s): Change Manager
+      Read them with the jarvis_receiveMessage tool (destination: "Atlas") until remaining = 0.
 
    .. code-block:: typescript
 
@@ -202,13 +304,14 @@ Message Queue Design Specifications
             return;
           }
 
-          // 1. Compose notification stub
+          // 1. Compose notification stub (SPEC_MSG_NOTIFICATION_RESOLVE)
           const count = node.children.length;
           const senders = [...new Set(node.children.map((c: any) => c.sender))].join(', ');
           const cfg = vscode.workspace.getConfiguration('jarvis');
-          const stub = applyTemplate(
+          const stub = resolveNotificationText(
             cfg.get<string>('messages.notificationTemplate', ''),
-            { count: String(count), destination: node.destination, sender: senders }
+            { count: String(count), destination: node.destination, sender: senders },
+            node.destination
           );  // REQ_MSG_NOTIFICATION_TEMPLATE
 
           // 2. Delegate to injectPrompt (SPEC_INJ_INJECT)
@@ -1023,7 +1126,7 @@ Message Queue Design Specifications
 .. spec:: Auto-Delivery Poll Loop
    :id: SPEC_MSG_AUTODELIVER_POLL
    :status: draft
-   :links: REQ_MSG_AUTODELIVER_POLL; SPEC_MSG_AUTODELIVER_STORE; SPEC_MSG_AUTODELIVER_TAG; SPEC_MSG_SENDCOMMAND; REQ_MSG_NOTIFICATION_TEMPLATE; SPEC_MSG_OPENCHAT; REQ_ENT_AGENTPROMPT_TEMPLATE; SPEC_ENT_AGENTSESSION_INITPROMPT; SPEC_MSG_EDITORPLACEMENT; SPEC_MSG_FOCUSRESTORE; SPEC_INJ_INJECT
+   :links: REQ_MSG_AUTODELIVER_POLL; SPEC_MSG_AUTODELIVER_STORE; SPEC_MSG_AUTODELIVER_TAG; SPEC_MSG_SENDCOMMAND; REQ_MSG_NOTIFICATION_TEMPLATE; SPEC_MSG_NOTIFICATION_RESOLVE; SPEC_MSG_OPENCHAT; REQ_ENT_AGENTPROMPT_TEMPLATE; SPEC_ENT_AGENTSESSION_INITPROMPT; SPEC_MSG_EDITORPLACEMENT; SPEC_MSG_FOCUSRESTORE; SPEC_INJ_INJECT
 
    **Description:**
 
@@ -1065,12 +1168,13 @@ Message Queue Design Specifications
           // Snapshot focus before the disruptive delivery (SPEC_MSG_FOCUSRESTORE)
           const focus = await snapshotFocus();
 
-          // Compose notification stub
+          // Compose notification stub (SPEC_MSG_NOTIFICATION_RESOLVE)
           const cfg = vscode.workspace.getConfiguration('jarvis');
           const senders = [...new Set(pending.map(m => m.sender))].join(', ');
-          const stub = applyTemplate(
+          const stub = resolveNotificationText(
             cfg.get<string>('messages.notificationTemplate', ''),
-            { count: String(pending.length), destination: sessionName, sender: senders }
+            { count: String(pending.length), destination: sessionName, sender: senders },
+            sessionName
           );  // REQ_MSG_NOTIFICATION_TEMPLATE
 
           // Delegate to injectPrompt (SPEC_INJ_INJECT)
@@ -1102,6 +1206,13 @@ Message Queue Design Specifications
      resolution, placement, and injection to ``injectPrompt``
      (``SPEC_INJ_INJECT``). Focus-snapshot/restore wraps the call since that
      is the caller's responsibility, not the primitive's.
+   * (**notification-template-empty-fallback CR, GH #56**) The stub is resolved
+     through ``SPEC_MSG_NOTIFICATION_RESOLVE`` and is non-empty by construction,
+     so the unconditional ``notified: true`` marking below can no longer follow
+     a submission that silently sent nothing (``REQ_MSG_AUTODELIVER_POLL``
+     AC-4). The marking remains unconditional — gating it on confirmed delivery
+     without bounded retry would replace a silent drop with an unbounded
+     re-injection loop, which is out of scope here.
    * ``break`` after the first notified session implements the "max 1 per tick"
      constraint from ``REQ_MSG_AUTODELIVER_POLL AC-5``
    * ``context.subscriptions.push({ dispose: () => clearInterval(...) })``

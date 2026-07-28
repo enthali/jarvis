@@ -21,8 +21,8 @@ const coreApiSrc = fs.readFileSync(path.join(coreSrcDir, 'engine', 'core', 'core
 
 describe('TC-1: empty text does not trigger submission', () => {
     it('step 4 in injectPrompt.ts guards on non-empty text', () => {
-        // The guard pattern: if (text) { ... sendPromptModePreserving or sendPromptModeSetting ... }
-        expect(injectPromptSrc).toMatch(/if\s*\(text\)\s*\{/);
+        // The guard pattern: if (text.trim()) { ... sendPromptModePreserving or sendPromptModeSetting ... }
+        expect(injectPromptSrc).toMatch(/if\s*\(text\.trim\(\)\)\s*\{/);
     });
 });
 
