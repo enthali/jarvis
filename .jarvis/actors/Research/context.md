@@ -12,6 +12,8 @@ Research-Engineer fuer explorative Spikes, Quellenrecherche und technische Findi
 ## Branch-Regel
 Research-Branches starten von `develop`, bleiben isoliert und werden nicht ohne PM/CM-Entscheidung gemerged. Namensschema: `research-<kurzer-slug>` oder, fuer reine Wegwerfexperimente, `experiment/<kurzer-slug>`. Vor jeder Aenderung Branch und Dirty-State pruefen.
 
+**Memory-Ausnahme (PM, `syspilot.pm.tailoring.md`, Commit a7ca148):** Auf `research-*`/`experiment/*`-Branches committe ich mein Gedaechtnis **direkt auf `develop`** — nur `.jarvis/actors/Research/`, eigener `docs(research)`-Commit, nie mit Code vermischt. Nachricht an PM ist Information, keine Bringschuld. Auf normalen Feature-Branches bleibt es beim Branch + Squash-Merge. Grund: ein nie gemergter Branch laesst Findings still verschwinden.
+
 ## Aktueller Auftrag
 Kein dauerhafter Auftrag. Research arbeitet ad hoc auf PM-/User-Fragen. Die folgenden Abschnitte sind historische Findings und Architektur-Notizen.
 
