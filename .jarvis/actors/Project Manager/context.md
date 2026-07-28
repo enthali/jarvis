@@ -12,8 +12,8 @@
   working on a feature branch), PM may ONLY `git commit` files inside its own
   session folder (`.jarvis/sessions/Project Manager/`). No `git checkout`,
   `pull`, `push`, or touching any other branch/file — even read-only-looking
-  operations like `checkout develop` to inspect something disrupt the shared
-  working tree. Where PM's own commits land (which branch is checked out at
+  operations like `checkout development` to inspect something disrupt the
+  shared working tree. Where PM's own commits land (which branch is checked out at
   the time) doesn't matter — everything gets merged eventually. Mistake made
   2026-07-02: checked out `develop` + pulled/pushed while `ui-improvements`
   was running on `feature/ui-improvements` — caught by the user before it
