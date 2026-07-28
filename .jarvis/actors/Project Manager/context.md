@@ -69,10 +69,18 @@
 
 ## Active CR
 
-- **None** — jarvis-kanban (#46) released as v0.24.0 on 2026-07-26 (tag on
-  `main` @ 76426cb, develop back-merged, issue closed, board → Done). Phase 2
-  (#47, swimlanes + drag-and-drop, chat write-back already shipped in #46)
-  and Phase 3 (#48, GH Issues importer, icebox) remain on backlog.
+- **#56 notification-template-empty-fallback** (P0, in progress): CD on
+  `feature/notification-template-empty-fallback`, dispatched to CM. Fix
+  (DEFAULT_NOTIFICATION fallback + resolveNotificationText, trim-based guard)
+  already committed by Dev Engineer, 323 tests passing. Awaiting QM review;
+  CM's mode reset mid-CR (see Watch Items) — flag to QM for closer scrutiny
+  of the Level 0-2 spec edits made while CM lacked its delegation persona.
+
+## Recently Shipped
+
+- jarvis-kanban (#46) released as v0.24.0 on 2026-07-26 (tag on `main` @
+  76426cb, develop back-merged, issue closed, board → Done). Phase 2 (#47,
+  swimlanes + drag-and-drop) and Phase 3 (#48, GH Issues importer) on backlog.
 
 ## Ideas
 
@@ -96,6 +104,9 @@
   actor session can spawn a phantom "broken" chat in a 2nd editor tab; split
   view mirrors one session synchronously into both panes (same session, not
   two actors). Fits AHP session-layer rework — assess together.
+- **CR #51 (agent-mode-reset fix) merged but not yet released (2026-07-28)**:
+  live mode resets still happen (PM + CM both hit it mid-CR-#56) until the
+  next release ships. Not a new bug — expected until then.
 
 ## Syspilot Testing Ground
 
