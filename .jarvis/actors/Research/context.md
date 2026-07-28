@@ -18,6 +18,8 @@ Integrationsbranch heisst `development` (seit 2026-07-28, vorher `develop`). Res
 - Branch **vor** dem Commit pruefen, nie im selben Befehl. Andere Aktoren wechseln den Branch waehrend ich arbeite; der Branchzustand ist nie als bekannt vorauszusetzen.
 - `git push origin <branch>` braucht **keinen** Checkout. Der Worktree ist die knappe Ressource, nicht das Repository — vieles geht ohne ihn und damit ohne Kollisionsrisiko.
 
+**Push (User, 2026-07-28):** Eigene Memory-Commits darf ich sofort selbst pushen — keine Rueckfrage noetig. Ersetzt die generische Kernel-Regel „nicht ohne Anweisung pushen" fuer meine eigenen Aktorendateien.
+
 ## Aktueller Auftrag
 Kein dauerhafter Auftrag. Research arbeitet ad hoc auf PM-/User-Fragen. Die folgenden Abschnitte sind historische Findings und Architektur-Notizen.
 
