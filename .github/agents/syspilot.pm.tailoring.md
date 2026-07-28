@@ -10,7 +10,7 @@ Work is tracked on **GitHub Project "Jarvis" #2** (board fields: Status,
 Priority). GitHub Issues are PM-owned end-to-end — no other agent opens,
 edits, or closes them (subject to the explicit-approval rule below).
 
-**After PM merges a feature branch into `develop` (workflow step 13):**
+**After PM merges a feature branch into `development` (workflow step 13):**
 - Set the board Status of every tracked issue to **"Merged"**
   (`gh project item-edit --project-id PVT_kwHOAFDYiM4BdUee --field-id PVTSSF_lAHOAFDYiM4BdUeezhX22FU --single-select-option-id c859fa25 ...`).
 - Leave the GitHub Issue **open** — not done until released.
@@ -62,7 +62,7 @@ experiment (not yet a generic mechanism) feeding the future housekeeping
 capability tracked in GH #23:
 
 1. **GitHub issue comment**: comment on the issue(s) this CR addressed —
-   merged to develop, ships in the next release (do not close yet —
+   merged to development, ships in the next release (do not close yet —
    closure happens at release time, see `syspilot.release.tailoring.md`).
 2. **Session file review** — actively re-read `context.md` and
    `lessons-learned.md` from disk right now, rather than relying on what
@@ -109,7 +109,7 @@ CLI; not yet available). Until then, sequential single-CR dispatch is mandatory.
 
 Normal rule (unchanged): an actor's memory commits (`.jarvis/actors/<Name>/`)
 follow the branch the actor is already working on — they land on the feature
-branch and reach `develop` via the eventual squash-merge, same as any other
+branch and reach `development` via the eventual squash-merge, same as any other
 commit on that branch.
 
 **Exception**: branches that are planned to never be merged (`research-*`,
@@ -122,7 +122,7 @@ this session was fixing when the proposal came in. Risk of the alternative
 folder, cannot break the build or spec state.
 
 Rule: on a branch that is planned to never be merged, the actor commits its
-own memory directly to `develop` instead of to that branch, subject to:
+own memory directly to `development` instead of to that branch, subject to:
 - only files under its own `.jarvis/actors/<Name>/`, never mixed with code/specs;
 - its own commit, prefixed `docs(<actor>)`;
 - a message to PM afterward, as information — not a request for permission.
@@ -158,7 +158,7 @@ on the branch context from when it started. If PM checks out or resets a
 different branch while that agent is mid-flight, the agent has no way of
 noticing — its next `git commit` silently lands on whatever branch happens
 to be checked out at that moment, not the one it believes it's on. This
-has already caused commits to land on the wrong branch (e.g. `develop`
+This has already caused commits to land on the wrong branch (e.g. `development`
 instead of the intended feature branch) more than once. The fix is
 procedural, not technical: PM simply never runs `git checkout`/`switch`/
 `reset` while another session could still be active on the shared working
@@ -187,14 +187,14 @@ recurred multiple times (most recently: `message-log-viewer` was filed at
 `docs/changes/v0.18.0/message-log-viewer.md` while still in development;
 v0.18.0 was tagged before that CR merged, so the archive falsely implied
 it shipped when it hadn't). Corrected 2026-07-17 by moving the files back
-to `docs/changes/` root on `develop`. When creating any CD going forward,
+to `docs/changes/` root on `development`. When creating any CD going forward,
 PM double-checks the path contains no version segment before committing
 it.
 
 ## Post-Release Distribution
 
 **Fully automatic via CD.** No manual step required.
-Pushing to `main` triggers the GitHub Action which publishes to the VS Code Marketplace and creates GitHub Release VSIX files (consumed by the auto-updater). PM back-merges `main` → `develop` after the tag is pushed.
+Pushing to `main` triggers the GitHub Action which publishes to the VS Code Marketplace and creates GitHub Release VSIX files (consumed by the auto-updater). PM back-merges `main` → `development` after the tag is pushed.
 
 ## README Staleness Report from Release Engineer
 
@@ -221,7 +221,7 @@ Tooling, CI, Sphinx config, release pipeline changes are **not spec-driven**.
 - PM creates a feature branch + lightweight change document (L0-L2 sections marked "N/A — infrastructure change")
 - PM implements directly (does not send to CM)
 - QM review is still performed
-- PM merges to `develop` after QM sign-off
+- PM merges to `development` after QM sign-off
 
 This exception is **narrowly scoped** to tooling/CI/build/release-pipeline
 config — it does NOT cover actual product code fixes or features (e.g. a
