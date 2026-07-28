@@ -1,5 +1,28 @@
 # Release Notes
 
+## v0.24.1 — Bug Fix Batch: Messaging, Identity & Kanban
+
+*2026-07-28*
+
+### Fixes
+
+- **notification-template-empty-fallback** (GH #56): Fixes a bug where a message is silently marked `notified: true` even though no chat command was issued, when `jarvis.messages.notificationTemplate` resolves to an empty string (e.g. the VS Code Settings UI persists `""` when a text field is cleared). Adds `DEFAULT_NOTIFICATION` constant and a `resolveNotificationText()` helper to `injectPrompt.ts`; both `extension.ts` call sites now use the resolver so `text` is never empty by construction. The `injectPrompt` step-4 guard is tightened to `trim()`-based with an info log on skip. The empty-fallback is symmetric to the existing `DEFAULT_INIT_PROMPT` handling for the init-prompt path.
+  *(SPEC_MSG_NOTIFICATION_RESOLVE; REQ_INJ_PRIMITIVE AC-9)*
+
+- **notification-agent-mode-reset** (GH #54): Fixes a regression where delivering a message notification to an already-open session with a custom `entity.agent` mode resets that session back to the built-in generic "Agent" mode, undoing the mode-persistence fix from GH #25 (v0.17.1). Root cause: `injectPrompt` branch 3a called `reapplyAgentMode()` but then fell through to `sendPromptToFocusedAgentChat(text)` which unconditionally uses `workbench.action.chat.openAgent` — clobbering the just-restored mode. Fix: branch 3a now submits via `workbench.action.chat.open` without a `mode` parameter, matching the safe path established in the v0.5.8 hotfix.
+  *(SPEC_INJ_INJECT; SPEC_MSG_OPENCHAT)*
+
+- **kanban-yaml-comment-preservation** (GH #53): Fixes a bug where `jarvis_updateKanbanItem` silently destroys all hand-authored comments and reformats unrelated content on every call. Root cause: the read/write path used `yaml.parse`/`yaml.stringify` (data-only API), discarding all comment and formatting metadata. Switched to the `yaml` `Document` round-trip API (`YAML.parseDocument` / `document.toString()` with `document.setIn`/`getIn` for mutations), which preserves comments, key order, and per-node style across load → modify → write cycles.
+  *(SPEC_KAN_UPDATEITEM; REQ_KAN_UPDATE)*
+
+- **agent-session-reinit-fix** (GH #52): Fixes a bug where clicking an actor/project/event tree node (default command `jarvis.openAgentSession`) re-sends the full init prompt as a live chat message into an already-open session on every click. Root cause: `jarvis.openAgentSession` composed the init prompt itself and passed it as `text` to `injectPrompt`, bypassing the primitive's own 3b-only guard. Fix: callers no longer compose or pass `text`; `injectPrompt`'s own 3b logic owns init-prompt composition exclusively, and step 4 now skips silently when `text` is empty. `DEFAULT_INIT_PROMPT` now lives in exactly one place.
+  *(SPEC_INJ_INJECT; SPEC_ENT_AGENTSESSION; REQ_INJ_PRIMITIVE AC-9)*
+
+- **whoami-session-id-resolution** (GH #51): Fixes a bug where `jarvis_whoAmI` intermittently resolves the wrong actor identity, or errors with "not a registered actor", within a single unchanged session because identity was derived from the active VS Code editor tab rather than from the calling session. Editor-focus resolution is withdrawn normatively — including as a fallback — because it fails plausibly: it returns a real actor's real `context.md`, so an actor silently adopts another actor's memory. Fix: identity is now resolved via `getEntityNameForSessionId(sessionId)` using the hook `PreToolUse` correlation mechanism, with a protocol-level happens-before guarantee that the `PreToolUse` event is always dispatched before the tool handler runs.
+  *(SPEC_ACT_WHOAMI; REQ_ACT_WHOAMI; REQ_HOOK_INTAKE AC-9)*
+
+---
+
 ## v0.24.0 — Jarvis Kanban Module
 
 *2026-07-26*
