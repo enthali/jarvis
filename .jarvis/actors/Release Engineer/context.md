@@ -5,7 +5,9 @@ This file captures operational details not covered there.
 
 ## Findings
 
-- Latest release: v0.24.0 (2026-07-26, minor) — jarvis-kanban Phase 1 (GH #46, feat, new module enthali.jarvis-kanban). Prior: v0.23.0 (minor) prompt-injection + whoAmI.
+- Latest release: v0.24.1 (2026-07-28, patch) — notification-template-empty-fallback (#56) + whoami-session-id-resolution (#51–#54); GH #51/#52/#53/#54/#56 closed. Prior: v0.24.0 (minor) jarvis-kanban.
+- v0.24.1 NOTE: 3 pre-existing ESLint "rule not found" config errors confirmed unchanged from develop — not a regression, no action taken; watch for recurrence.
+- v0.24.1 was released via runSubagent (process error, PM acknowledged) — this entry is a PM-provided backfill; no actor validation was run by me.
 - Workflow/branch-name/versioning/validation-suite are tailorable (2026-07-14 onward): re-read `syspilot.release.tailoring.md` + `syspilot.branching` skill + its `tailoring.md` fresh each release, not just the agent file. Jarvis specifics: branch is `develop`; feature branches local-only, retained by default (no deletion step); validation suite is `compile:packages` -> `lint` -> `test` (vitest) -> `sphinx-build -W`, run in order, stop at first failure, before touching any files.
 - `docs/changes/` root scan is authoritative for archival, but verify each CD is actually merged first (squash-merges break `git log develop..branch`; use `git log develop --oneline --grep <name>` instead) — exclude stub/unimplemented CDs (zero code diff vs develop) and flag the exclusion to PM.
 - New packages need adding to the version-bump file list each release (check `packages/` dir + tailoring's "Version Marker Location"); non-standard build steps (e.g. flow's `build.js`/`webview-build.js`) need separate validation beyond `tsc`.
