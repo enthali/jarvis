@@ -4,6 +4,7 @@
     "version": "0.2.0",
     "configurations": [
 
+
         {
             "name": "Run Core (enthali.jarvis)",
             "type": "extensionHost",
@@ -13,64 +14,72 @@
             "preLaunchTask": "compile core"
         },
         {
-            "name": "Run Core + PIM",
-            "type": "extensionHost",
-            "request": "launch",
-            "args": [
-                "--extensionDevelopmentPath=${workspaceFolder}/packages/core",
-                "--extensionDevelopmentPath=${workspaceFolder}/packages/pim"
-            ],
-            "outFiles": [
-                "${workspaceFolder}/packages/core/out/**/*.js",
-                "${workspaceFolder}/packages/pim/out/**/*.js"
-            ],
-            "preLaunchTask": "compile core+pim"
-        },
-        {
-            "name": "Run Core + PIM + Recorder",
+            "name": "Run Core + PIM + Flow",
             "type": "extensionHost",
             "request": "launch",
             "args": [
                 "--extensionDevelopmentPath=${workspaceFolder}/packages/core",
                 "--extensionDevelopmentPath=${workspaceFolder}/packages/pim",
-                "--extensionDevelopmentPath=${workspaceFolder}/packages/recorder"
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/flow"
             ],
             "outFiles": [
                 "${workspaceFolder}/packages/core/out/**/*.js",
                 "${workspaceFolder}/packages/pim/out/**/*.js",
-                "${workspaceFolder}/packages/recorder/out/**/*.js"
+                "${workspaceFolder}/packages/flow/out/**/*.js"
             ],
-            "preLaunchTask": "compile core+pim+recorder"
+            "preLaunchTask": "compile core+pim+flow"
         },
         {
-            "name": "Run Core + PIM + Kanban",
+            "name": "Run Core + PIM + Recorder + Flow",
             "type": "extensionHost",
             "request": "launch",
             "args": [
                 "--extensionDevelopmentPath=${workspaceFolder}/packages/core",
                 "--extensionDevelopmentPath=${workspaceFolder}/packages/pim",
-                "--extensionDevelopmentPath=${workspaceFolder}/packages/kanban"
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/recorder",
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/flow"
             ],
             "outFiles": [
                 "${workspaceFolder}/packages/core/out/**/*.js",
                 "${workspaceFolder}/packages/pim/out/**/*.js",
-                "${workspaceFolder}/packages/kanban/out/**/*.js"
+                "${workspaceFolder}/packages/recorder/out/**/*.js",
+                "${workspaceFolder}/packages/flow/out/**/*.js"
             ],
-            "preLaunchTask": "compile core+pim+kanban"
+            "preLaunchTask": "compile core+pim+recorder+flow"
         },
         {
-            "name": "Run Core + Syspilot",
+            "name": "Run Core + PIM + Kanban + Flow",
             "type": "extensionHost",
             "request": "launch",
             "args": [
                 "--extensionDevelopmentPath=${workspaceFolder}/packages/core",
-                "--extensionDevelopmentPath=${workspaceFolder}/packages/syspilot"
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/pim",
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/kanban",
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/flow"
             ],
             "outFiles": [
                 "${workspaceFolder}/packages/core/out/**/*.js",
-                "${workspaceFolder}/packages/syspilot/out/**/*.js"
+                "${workspaceFolder}/packages/pim/out/**/*.js",
+                "${workspaceFolder}/packages/kanban/out/**/*.js",
+                "${workspaceFolder}/packages/flow/out/**/*.js"
             ],
-            "preLaunchTask": "compile core+syspilot"
+            "preLaunchTask": "compile core+pim+kanban+flow"
+        },
+        {
+            "name": "Run Core + Syspilot + Flow",
+            "type": "extensionHost",
+            "request": "launch",
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/core",
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/syspilot",
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/flow"
+            ],
+            "outFiles": [
+                "${workspaceFolder}/packages/core/out/**/*.js",
+                "${workspaceFolder}/packages/syspilot/out/**/*.js",
+                "${workspaceFolder}/packages/flow/out/**/*.js"
+            ],
+            "preLaunchTask": "compile core+syspilot+flow"
         },
         {
             "name": "Run All (Core + PIM + Recorder + MCP + Flow + Syspilot)",

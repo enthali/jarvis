@@ -98,7 +98,7 @@ Press **F5** in VS Code to launch the Extension Development Host.
 ## Documentation
 
 This project uses [syspilot](https://github.com/enthali/syspilot) for requirements engineering.
-Published at: https://enthali.github.io/Jarvis
+Published at: https://enthali.github.io/jarvis
 
 - User Stories: `docs/userstories/`
 - Requirements: `docs/requirements/`

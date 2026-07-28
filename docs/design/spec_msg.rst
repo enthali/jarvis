@@ -154,10 +154,108 @@ Message Queue Design Specifications
    to refresh the entire tree. Called after queue mutations and setting changes.
 
 
+.. spec:: Notification Text Resolution
+   :id: SPEC_MSG_NOTIFICATION_RESOLVE
+   :status: draft
+   :links: REQ_MSG_NOTIFICATION_TEMPLATE; REQ_INJ_PRIMITIVE; SPEC_MSG_SENDCOMMAND; SPEC_MSG_AUTODELIVER_POLL; SPEC_INJ_INJECT; SPEC_CFG_MANIFEST
+
+   **Description:**
+   Single home for turning the ``jarvis.messages.notificationTemplate`` setting
+   into the text that is actually submitted to a chat session. Introduced by the
+   ``notification-template-empty-fallback`` CR (GH #56); before it, both
+   delivery paths called ``applyTemplate(cfg.get(...), vars)`` directly and no
+   fallback existed anywhere on the notification path.
+
+   **Defect being closed (GH #56):**
+   ``package.json`` ships the full default text (``SPEC_CFG_MANIFEST``), so the
+   setting reads non-empty out of the box. But VS Code's Settings UI persists an
+   explicit ``""`` at User scope the moment the text field is cleared \u2014 only
+   "Reset Setting" removes the key. A persisted ``""`` shadows the declared
+   default, so ``cfg.get<string>('messages.notificationTemplate', '')`` returns
+   ``''`` and the ``''`` default argument never fires either (the key exists).
+   The empty stub then hit ``SPEC_INJ_INJECT`` step 4, whose ``if (text)`` guard
+   \u2014 correct in itself, and introduced for open/focus-only callers by the
+   ``agent-session-reinit-fix`` CR (GH #52) \u2014 skipped submission entirely. Both
+   call sites nevertheless proceeded, and the poll loop marked the messages
+   ``notified: true``. Net effect: no chat turn, no exception, no log entry,
+   message dropped.
+
+   Two facts made this hard to see and are recorded so the shape is recognised
+   next time: the init-prompt path has a ``DEFAULT_INIT_PROMPT`` fallback and so
+   kept working, which made *new* sessions look healthy and misdirected the
+   investigation at the existing-session branch; and the failure produced no
+   signal at all, so nothing in the log distinguished it from a healthy tick.
+
+   **Built-in constant** (``DEFAULT_NOTIFICATION`` in
+   ``packages/core/src/engine/sessions/injectPrompt.ts`` \u2014 single source of
+   truth, deliberately co-located with ``DEFAULT_INIT_PROMPT`` so the two
+   template paths stay symmetric and cannot drift apart again):
+
+   .. code-block:: text
+
+      [Jarvis Message Service] You have ${count} new message(s) in your inbox.
+      Sender(s): ${sender}
+      Read them with the jarvis_receiveMessage tool (destination: "${destination}") until remaining = 0.
+
+   The text is verbatim identical to the ``package.json`` default
+   (``SPEC_CFG_MANIFEST``) and to ``REQ_MSG_NOTIFICATION_TEMPLATE``'s built-in
+   default block. ``src/tests/msg-notify-default-text.test.ts`` already pins the
+   ``package.json`` text; the constant SHALL be pinned against it the same way.
+
+   **Resolution helper** (exported from the same module, next to
+   ``applyTemplate``):
+
+   .. code-block:: typescript
+
+      export const DEFAULT_NOTIFICATION = ...; // verbatim text above
+
+      /**
+       * Resolve the notification stub text (SPEC_MSG_NOTIFICATION_RESOLVE).
+       * REQ_MSG_NOTIFICATION_TEMPLATE AC-1/AC-8/AC-9/AC-10.
+       */
+      export function resolveNotificationText(
+          rawTemplate: string,
+          vars: Record<string, string>,
+          destination: string
+      ): string {
+          const template = rawTemplate.trim() ? rawTemplate : DEFAULT_NOTIFICATION;
+          const text = applyTemplate(template, vars);
+          if (!text.trim()) {
+              // Defensive: only reachable if DEFAULT_NOTIFICATION itself is empty.
+              _log?.warn(
+                  `[MSG] resolveNotificationText: resolved notification text is empty for `
+                  + `"${destination}" \u2014 nothing will be submitted to chat`
+              );
+          }
+          return text;
+      }
+
+   **Rules:**
+
+   * The fallback is keyed on ``rawTemplate.trim()``, identical to the
+     init-prompt rule in ``SPEC_ENT_AGENTSESSION_INITPROMPT`` \u2014 one definition
+     of "empty template" for both template paths.
+   * Substitution stays ``applyTemplate`` (``SPEC_ENT_AGENTSESSION_INITPROMPT``);
+     unknown placeholders are still passed through unchanged
+     (``REQ_MSG_NOTIFICATION_TEMPLATE`` AC-4).
+   * The setting is still read per delivery, uncached
+     (``REQ_MSG_NOTIFICATION_TEMPLATE`` AC-6) \u2014 the helper takes the raw value
+     as a parameter rather than reading configuration itself, so it stays
+     directly unit-testable without a VS Code configuration host.
+   * The warning is placed here, not in ``SPEC_INJ_INJECT``, because this is the
+     only layer that knows the caller *intended* to deliver a notification. The
+     primitive cannot distinguish an unintended empty payload from a deliberate
+     open/focus-only call, so a warning there would fire during ordinary
+     operation (``REQ_INJ_PRIMITIVE`` AC-9).
+
+   **Call sites:** ``SPEC_MSG_SENDCOMMAND`` and ``SPEC_MSG_AUTODELIVER_POLL``
+   \u2014 exhaustively. No other code composes notification text.
+
+
 .. spec:: Send Messages Command
    :id: SPEC_MSG_SENDCOMMAND
    :status: draft
-   :links: REQ_MSG_SEND; REQ_MSG_SESSIONLOOKUP; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_QUEUESTORE; REQ_MSG_AUTODELIVER_TAG; REQ_MSG_NOTIFICATION_TEMPLATE; REQ_ENT_AGENTPROMPT_TEMPLATE; SPEC_ENT_AGENTSESSION_INITPROMPT; SPEC_MSG_EDITORPLACEMENT; SPEC_MSG_OPENCHAT; SPEC_INJ_INJECT
+   :links: REQ_MSG_SEND; REQ_MSG_SESSIONLOOKUP; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_QUEUESTORE; REQ_MSG_AUTODELIVER_TAG; REQ_MSG_NOTIFICATION_TEMPLATE; SPEC_MSG_NOTIFICATION_RESOLVE; REQ_ENT_AGENTPROMPT_TEMPLATE; SPEC_ENT_AGENTSESSION_INITPROMPT; SPEC_MSG_EDITORPLACEMENT; SPEC_MSG_OPENCHAT; SPEC_INJ_INJECT
 
    **Description:**
    Register ``jarvis.sendMessages`` in ``extension.ts``. Invoked from the session
@@ -172,11 +270,15 @@ Message Queue Design Specifications
    **Stub format:**
 
    The notification stub text is produced by calling
-   ``applyTemplate(template, vars)`` (see ``SPEC_ENT_AGENTSESSION_INITPROMPT``
-   for the shared helper definition), where ``template`` is the value of
-   ``jarvis.messages.notificationTemplate`` (falling back to the built-in English
-   default from ``REQ_MSG_NOTIFICATION_TEMPLATE`` when empty/whitespace), and
-   ``vars`` is ``{ count, destination, sender }``.
+   ``resolveNotificationText(rawTemplate, vars, destination)``
+   (``SPEC_MSG_NOTIFICATION_RESOLVE``), where ``rawTemplate`` is the raw value of
+   ``jarvis.messages.notificationTemplate`` and ``vars`` is
+   ``{ count, destination, sender }``. The helper owns the empty/whitespace
+   fallback to ``DEFAULT_NOTIFICATION``; this command does **not** apply
+   ``applyTemplate`` directly and does **not** re-implement the fallback
+   (``REQ_MSG_NOTIFICATION_TEMPLATE`` AC-9). The resulting stub is therefore
+   non-empty by construction, so ``SPEC_INJ_INJECT`` step 4 always submits it
+   (``REQ_MSG_NOTIFICATION_TEMPLATE`` AC-10).
 
    The ``sender`` value is the comma-joined list of distinct sender names from
    the pending messages for that session (e.g. ``"Change Manager"`` or
@@ -187,8 +289,8 @@ Message Queue Design Specifications
    sender="Change Manager")::
 
       [Jarvis Message Service] You have 2 new message(s) in your inbox.
-      Read them with the jarvis_readMessage tool (destination: "Atlas") until remaining = 0.
       Sender(s): Change Manager
+      Read them with the jarvis_receiveMessage tool (destination: "Atlas") until remaining = 0.
 
    .. code-block:: typescript
 
@@ -202,13 +304,14 @@ Message Queue Design Specifications
             return;
           }
 
-          // 1. Compose notification stub
+          // 1. Compose notification stub (SPEC_MSG_NOTIFICATION_RESOLVE)
           const count = node.children.length;
           const senders = [...new Set(node.children.map((c: any) => c.sender))].join(', ');
           const cfg = vscode.workspace.getConfiguration('jarvis');
-          const stub = applyTemplate(
+          const stub = resolveNotificationText(
             cfg.get<string>('messages.notificationTemplate', ''),
-            { count: String(count), destination: node.destination, sender: senders }
+            { count: String(count), destination: node.destination, sender: senders },
+            node.destination
           );  // REQ_MSG_NOTIFICATION_TEMPLATE
 
           // 2. Delegate to injectPrompt (SPEC_INJ_INJECT)
@@ -1023,7 +1126,7 @@ Message Queue Design Specifications
 .. spec:: Auto-Delivery Poll Loop
    :id: SPEC_MSG_AUTODELIVER_POLL
    :status: draft
-   :links: REQ_MSG_AUTODELIVER_POLL; SPEC_MSG_AUTODELIVER_STORE; SPEC_MSG_AUTODELIVER_TAG; SPEC_MSG_SENDCOMMAND; REQ_MSG_NOTIFICATION_TEMPLATE; SPEC_MSG_OPENCHAT; REQ_ENT_AGENTPROMPT_TEMPLATE; SPEC_ENT_AGENTSESSION_INITPROMPT; SPEC_MSG_EDITORPLACEMENT; SPEC_MSG_FOCUSRESTORE; SPEC_INJ_INJECT
+   :links: REQ_MSG_AUTODELIVER_POLL; SPEC_MSG_AUTODELIVER_STORE; SPEC_MSG_AUTODELIVER_TAG; SPEC_MSG_SENDCOMMAND; REQ_MSG_NOTIFICATION_TEMPLATE; SPEC_MSG_NOTIFICATION_RESOLVE; SPEC_MSG_OPENCHAT; REQ_ENT_AGENTPROMPT_TEMPLATE; SPEC_ENT_AGENTSESSION_INITPROMPT; SPEC_MSG_EDITORPLACEMENT; SPEC_MSG_FOCUSRESTORE; SPEC_INJ_INJECT
 
    **Description:**
 
@@ -1065,12 +1168,13 @@ Message Queue Design Specifications
           // Snapshot focus before the disruptive delivery (SPEC_MSG_FOCUSRESTORE)
           const focus = await snapshotFocus();
 
-          // Compose notification stub
+          // Compose notification stub (SPEC_MSG_NOTIFICATION_RESOLVE)
           const cfg = vscode.workspace.getConfiguration('jarvis');
           const senders = [...new Set(pending.map(m => m.sender))].join(', ');
-          const stub = applyTemplate(
+          const stub = resolveNotificationText(
             cfg.get<string>('messages.notificationTemplate', ''),
-            { count: String(pending.length), destination: sessionName, sender: senders }
+            { count: String(pending.length), destination: sessionName, sender: senders },
+            sessionName
           );  // REQ_MSG_NOTIFICATION_TEMPLATE
 
           // Delegate to injectPrompt (SPEC_INJ_INJECT)
@@ -1102,6 +1206,13 @@ Message Queue Design Specifications
      resolution, placement, and injection to ``injectPrompt``
      (``SPEC_INJ_INJECT``). Focus-snapshot/restore wraps the call since that
      is the caller's responsibility, not the primitive's.
+   * (**notification-template-empty-fallback CR, GH #56**) The stub is resolved
+     through ``SPEC_MSG_NOTIFICATION_RESOLVE`` and is non-empty by construction,
+     so the unconditional ``notified: true`` marking below can no longer follow
+     a submission that silently sent nothing (``REQ_MSG_AUTODELIVER_POLL``
+     AC-4). The marking remains unconditional — gating it on confirmed delivery
+     without bounded retry would replace a silent drop with an unbounded
+     re-injection loop, which is out of scope here.
    * ``break`` after the first notified session implements the "max 1 per tick"
      constraint from ``REQ_MSG_AUTODELIVER_POLL AC-5``
    * ``context.subscriptions.push({ dispose: () => clearInterval(...) })``
@@ -1843,15 +1954,65 @@ Message Queue Design Specifications
    :links: REQ_MSG_SENDPROMPT; SPEC_MSG_OPENCHAT
 
    **Description:**
-   Private async helper ``sendPromptToFocusedAgentChat`` in ``extension.ts``
-   submits a query string to the active VS Code Chat input in agent mode. Uses
-   a two-level fallback to tolerate API differences across VS Code builds.
+   Two private async helpers ``sendPromptModeSetting`` and
+   ``sendPromptModePreserving`` in
+   ``packages/core/src/engine/sessions/injectPrompt.ts`` submit a query string
+   to the active VS Code Chat input, using different command strategies to
+   control whether the target session's agent mode is altered.
 
-   **Implementation:**
+   **Two submission variants (notification-agent-mode-reset CR, GH #54):**
+
+   Submission must distinguish two situations, because the command used to
+   submit also decides the target session's agent mode:
+
+   * **Mode-setting submission** — used only when the target session's mode is
+     still being established (the new-session path, ``SPEC_INJ_INJECT`` 3b).
+     May use the per-mode ``workbench.action.chat.openAgent`` command, which
+     forces the generic built-in "Agent" mode.
+   * **Mode-preserving submission** — used for every submission into a chat
+     session whose mode is already established (the existing-session path,
+     ``SPEC_INJ_INJECT`` 3a). SHALL NOT use any command that carries a bound
+     mode. The submission must leave the session's current agent mode untouched
+     (``REQ_MSG_SENDPROMPT`` AC-6).
+
+   Which variant applies is decided by the caller/branch, not by this helper
+   inspecting global state. The implementation shape (extra parameter, two
+   exported functions, …) is left to implementation.
+
+   **Why ``chat.openAgent`` resets the mode:**
+   This is not an incidental side effect — it follows directly from the command
+   taxonomy documented in ``SPEC_MSG_OPENCHAT`` (amendment, GH #25). VS Code
+   registers a per-mode command ``workbench.action.chat.open<ModeName>`` for
+   every discovered mode; those commands carry a bound ``this.mode`` and
+   therefore switch the **focused chat editor's** mode in place.
+   ``workbench.action.chat.openAgent`` is simply the member of that family for
+   the built-in "Agent" mode. It is the exact same mechanism
+   ``reapplyAgentMode()`` deliberately exploits to *restore* a custom mode —
+   applied here in the opposite direction, which is why a notification
+   submitted through it silently clobbers the mode that ``SPEC_INJ_INJECT``
+   step 3a just restored.
+
+   By contrast the **generic** ``workbench.action.chat.open`` carries no bound
+   mode, so it cannot change a focused editor's mode. This is the documented
+   basis for the mode-preserving variant; it was also established empirically
+   by the v0.5.8 hotfix (``docs/changes/v0.5.8/hotfix-agent-reset.md``), which
+   fixed this same symptom for the auto-delivery path by submitting via
+   ``workbench.action.chat.open`` with ``isPartialQuery: false`` and no ``mode``
+   parameter. That path-specific fix was flattened away when prompt injection
+   was consolidated into ``SPEC_INJ_INJECT``; this CR reinstates it at the
+   choke point instead of per caller.
+
+   **Fallback:** The existing fallback (``workbench.action.chat.open`` with
+   ``mode: 'agent'``) is mode-safe for an existing session by the taxonomy above
+   — the generic command ignores the bound-mode path. It is nonetheless
+   inappropriate for the mode-preserving variant, whose fallback must not
+   request a mode at all.
+
+   **Reference implementation (mode-setting variant, unchanged):**
 
    .. code-block:: typescript
 
-      async function sendPromptToFocusedAgentChat(query: string): Promise<void> {
+      async function sendPromptModeSetting(query: string): Promise<void> {
           try {
               await vscode.commands.executeCommand('workbench.action.chat.focusInput');
           } catch {
@@ -1874,38 +2035,35 @@ Message Queue Design Specifications
       }
 
    **Callers:**
+   All submission now flows through ``SPEC_INJ_INJECT``, which owns the choice
+   of variant:
 
-   * ``jarvis.sendMessages`` — submits the notification stub
-   * ``jarvis.openAgentSession`` (new session path) — submits the ``/rename``
-     command only; the init prompt is submitted directly via
-     ``workbench.action.chat.open { query: initPrompt }`` (see
-     ``SPEC_ENT_AGENTSESSION``)
-   * Auto-delivery poll loop — submits the notification stub for each
-     auto-delivery session
+   * ``SPEC_INJ_INJECT`` step 3b — init prompt on a freshly spawned session
+     (mode-setting)
+   * ``SPEC_INJ_INJECT`` step 4 — caller-supplied text (mode-preserving when
+     the session already existed, i.e. branch 3a was taken)
 
-   .. note::
-
-      The full new-session sequence for ``jarvis.openAgentSession`` (including
-      the mode-prime step and init-prompt submission) is canonical in
-      ``SPEC_ENT_AGENTSESSION``.
+   The user-facing entry points (``SPEC_MSG_SENDCOMMAND``,
+   ``SPEC_MSG_AUTODELIVER_POLL``, ``SPEC_ENT_AGENTSESSION``,
+   ``SPEC_ACT_NEWENTITY``) no longer call this helper directly.
 
    **Design decisions:**
 
    * ``workbench.action.chat.focusInput`` failure is silently swallowed — it is
      purely a UX hint and the submission step does not depend on it.
-   * ``workbench.action.chat.openAgent`` is the preferred submission command
-     because it targets agent mode explicitly.
-   * The fallback uses ``workbench.action.chat.open`` with ``mode: 'agent'`` —
-     an older API shape that achieves the same effect on pre-1.100 builds.
-   * Both commands are VS Code internals with no public stability guarantee.
-   * The 800 ms ``setTimeout`` between the two ``sendPromptToFocusedAgentChat``
-     calls is a heuristic to allow the VS Code Chat input to settle between prompt
-     submissions. The tab-open settle delay is handled internally by
-     ``openNewChatEditor()`` (see ``SPEC_MSG_OPENCHAT``).
-   * ``contextPath`` is derived from ``path.dirname(element.id)`` — the actual
-     folder containing the entity's YAML file (D-3). This avoids kebab-case
-     derivation errors when entity names contain characters that do not map
-     cleanly to folder names.
+   * ``workbench.action.chat.openAgent`` is the preferred command for the
+     **mode-setting** variant because it targets agent mode explicitly. It is
+     disqualified for the mode-preserving variant for exactly the same reason.
+   * The mode-setting fallback uses ``workbench.action.chat.open`` with
+     ``mode: 'agent'`` — an older API shape that achieves the same effect on
+     pre-1.100 builds.
+   * All of these are VS Code internals with no public stability guarantee; the
+     try/catch fallback is mandatory for both variants.
+   * Mode is a property of the chat **session**, established at creation
+     (``SPEC_MSG_OPENCHAT`` mode-prime pattern) or restored via
+     ``reapplyAgentMode()``. Submitting text is not a legitimate occasion to
+     change it — that coupling is what produced both GH #54 and the earlier
+     v0.5.8 regression.
 
    **Open edge — title normalization:**
 
@@ -1929,28 +2087,27 @@ Message Queue Design Specifications
 
    **Sequence (existing session):**
 
-   1. Compose init prompt via ``SPEC_ENT_AGENTSESSION_INITPROMPT`` template
-      expansion.
-   2. ``await injectPrompt(entity.name, initPrompt, { placement: 'main', skipInitPrompt: true })``
-      — the primitive finds the existing session and injects the init prompt.
-      ``skipInitPrompt`` is set because the caller provides the init prompt as
-      ``text``.
+   1. ``await injectPrompt(entity.name, '', { placement: 'main' })`` — the
+      primitive finds the existing session, focuses it at Main, and restores the
+      custom agent mode if ``entity.agent`` is set. Because ``text`` is empty,
+      no chat message is submitted (agent-session-reinit-fix CR, GH #52) and the
+      restored mode therefore survives (GH #54).
 
    **Sequence (new session):**
 
-   1. Same as above — ``injectPrompt`` handles the new-session path internally
-      (mode-prime, open, rename). Since ``skipInitPrompt: true``, the primitive
-      does not send its own init prompt; the caller's ``text`` serves as the
-      init prompt.
+   1. Same call — ``injectPrompt`` handles the new-session path internally
+      (mode-prime, open, rename, init prompt via ``SPEC_INJ_INJECT`` step 3b).
+      The init prompt is composed inside the primitive, not by this command.
 
    **Design notes:**
 
    * Both existing and new session paths are unified into a single
-     ``injectPrompt`` call. The command's responsibility is reduced to composing
-     the init prompt text and delegating.
-   * ``contextPath`` is derived from ``path.dirname(element.id)`` (the actual
-     folder of the entity's YAML file) rather than from the display name,
-     avoiding kebab-case derivation errors.
+     ``injectPrompt`` call. The command's only responsibility is triggering the
+     primitive — it neither composes the init prompt nor passes
+     ``skipInitPrompt``. Canonical description in ``SPEC_ENT_AGENTSESSION``.
+   * ``contextPath`` derivation now lives inside ``injectPrompt`` step 3b and is
+     taken from ``entity.folder`` (the actual folder of the entity's YAML file)
+     rather than from the display name, avoiding kebab-case derivation errors.
 
 
 .. spec:: Reminder Store Module

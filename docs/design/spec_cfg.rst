@@ -279,7 +279,7 @@ Configuration Design Specifications
 .. spec:: settings-cleanup: Full Configuration Manifest (package.json)
    :id: SPEC_CFG_MANIFEST
    :status: implemented
-   :links: REQ_CFG_TOGGLES; REQ_CFG_GROUPS; REQ_CFG_MCPDEFAULTOFF; REQ_CFG_RENAMES; REQ_ENT_AGENTPROMPT_TEMPLATE; REQ_MSG_NOTIFICATION_TEMPLATE
+   :links: REQ_CFG_TOGGLES; REQ_CFG_GROUPS; REQ_CFG_MCPDEFAULTOFF; REQ_CFG_RENAMES; REQ_ENT_AGENTPROMPT_TEMPLATE; REQ_MSG_NOTIFICATION_TEMPLATE; SPEC_MSG_NOTIFICATION_RESOLVE
 
    **Description:**
    The complete ``contributes.configuration`` array in ``package.json`` after
@@ -453,9 +453,24 @@ Configuration Design Specifications
       template text as their ``"default"`` in ``package.json`` (not empty
       string), so users see and edit the default directly in the Settings UI.
       The ``"default": ""`` shown above is a documentation shorthand. An empty
-      or whitespace-only value falls back to the built-in constant in
-      ``src/extension.ts`` (see ``SPEC_ENT_AGENTSESSION_INITPROMPT`` and
-      ``REQ_MSG_NOTIFICATION_TEMPLATE``).
+      or whitespace-only value falls back to the built-in constant —
+      ``DEFAULT_INIT_PROMPT`` respectively ``DEFAULT_NOTIFICATION``, both in
+      ``packages/core/src/engine/sessions/injectPrompt.ts`` (see
+      ``SPEC_ENT_AGENTSESSION_INITPROMPT`` and
+      ``SPEC_MSG_NOTIFICATION_RESOLVE``).
+
+      **The declared default governs display, never behaviour**
+      (notification-template-empty-fallback CR, GH #56). Clearing the text
+      field in the Settings UI persists an explicit ``""`` at User scope; a
+      persisted ``""`` shadows the ``package.json`` default, so
+      ``getConfiguration().get()`` returns ``''`` and the ``get(key, '')``
+      fallback argument does not fire either (the key exists). Only "Reset
+      Setting" removes the key. Every consumer of these two settings
+      therefore MUST apply its own trim-based fallback to the built-in
+      constant — shipping the text in ``package.json`` is not a substitute
+      (``REQ_MSG_NOTIFICATION_TEMPLATE`` AC-8). Before GH #56 the note above
+      claimed a notification-template constant existed in ``extension.ts``;
+      it never did, and the notification path had no fallback at all.
 
    **Updates group:** The ``jarvis.checkForUpdates`` setting lives in the
    Updates group (the 11th group). This was the CM’s autonomous decision

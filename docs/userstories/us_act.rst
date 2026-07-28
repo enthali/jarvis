@@ -222,3 +222,14 @@ Actor User Stories
      the user to resolve its identity.
    * AC-3: The tool SHALL require no input parameters — the extension resolves
      the calling session's identity automatically.
+   * AC-4: (**whoami-session-id-resolution CR, GH #51**) The answer SHALL
+     depend only on **which session asked**. It SHALL NOT depend on which
+     editor tab, file, or panel happens to be focused when I ask. Repeated
+     calls from one unchanged session SHALL return the same actor every time —
+     I must be able to trust the answer without first checking where the
+     user's cursor is.
+   * AC-5: (**whoami-session-id-resolution CR, GH #51**) If the extension
+     cannot determine which session asked, it SHALL say so and ask the user,
+     rather than return a guess. A confidently wrong identity is worse than no
+     identity — I would adopt another actor's memory and act as the wrong
+     actor.

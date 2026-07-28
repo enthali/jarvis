@@ -2,7 +2,7 @@
   "name": "jarvis",
   "displayName": "Jarvis",
   "description": "Personal assistant for managing projects and events in VS Code",
-  "version": "0.24.0",
+  "version": "0.24.1",
   "publisher": "enthali",
   "workspaces": [
     "packages/*"
@@ -25,7 +25,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "package": "cd packages/core && npx vsce package --no-dependencies",
-    "generate-icons": "node scripts/generate-icons.mjs"
+    "generate-icons": "node scripts/generate-icons.mjs",
+    "new-change": "node scripts/new-change.mjs"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",

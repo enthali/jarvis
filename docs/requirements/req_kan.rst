@@ -37,6 +37,19 @@ Kanban Requirements
      SHALL use it for auto-incrementing IDs; if absent, derive from
      ``max(existing ids) + 1``.
    * AC-8: Item IDs SHALL never be reassigned or reused after deletion.
+   * AC-9: (**kanban-yaml-comment-preservation CR, GH #53**) The board file is
+     a hand-authored, git-tracked artifact. Content that carries meaning to the
+     author but has no schema representation — comments, key order, and
+     per-node formatting style (flow vs. block sequences, string wrapping and
+     quoting) — is first-class file content. **Every** write path that modifies
+     an *existing* board file SHALL preserve it: the file SHALL change only
+     where the operation semantically changed it. This binds all current and
+     future writers (``REQ_KAN_UPDATE`` today; Phase 2 write-back and any later
+     editing surface), not only the write path where the defect was first
+     observed.
+
+     Creating a *new* board file (``REQ_KAN_CREATE``) is out of scope — there
+     is no prior authored content to preserve.
 
 
 .. req:: Kanban Board Renderer
@@ -246,6 +259,17 @@ Kanban Requirements
      On unknown owner → ``{ error: "actor unknown" }``.
    * AC-5: Item IDs SHALL never be reassigned or reused — the ``id`` field
      is immutable.
+   * AC-6: (**kanban-yaml-comment-preservation CR, GH #53**) The tool SHALL
+     preserve everything in the board file that it did not semantically change,
+     per ``REQ_KAN_SCHEMA`` AC-9. Specifically: comments (header, standalone,
+     and inline) SHALL survive verbatim, and lines the update did not touch
+     SHALL NOT be reformatted. An update that changes one field SHALL produce a
+     diff confined to that field.
+   * AC-7: Apart from serialization fidelity, behaviour SHALL be unchanged:
+     lookup by ``id``, the immutable ``id`` (AC-5), ``status`` validation
+     against the ``status`` field's options, and every error path
+     (board not found, item not found, invalid status, read/write failure)
+     SHALL behave exactly as before.
 
 
 .. req:: Kanban File Open

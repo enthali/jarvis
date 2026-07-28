@@ -28,10 +28,31 @@ Prompt Injection Requirements
      AC-6), open a new chat editor (``REQ_MSG_OPENCHAT``), rename it to the
      entity name, and send the init prompt (``REQ_ENT_AGENTPROMPT_TEMPLATE``).
    * AC-5: After the session is focused or spawned, the function SHALL inject
-     ``text`` via ``REQ_MSG_SENDPROMPT``.
+     ``text`` via ``REQ_MSG_SENDPROMPT`` — subject to AC-7.
    * AC-6: The function SHALL be the single call site for session-targeted text
      injection. All existing injection paths (message notification, auto-delivery,
      init prompt on tree-click) SHALL route through this function.
+   * AC-7: When ``text`` is empty, absent, or whitespace-only, the primitive
+     SHALL open/focus the session without submitting any message. This is a
+     legitimate contract for open/focus-only callers, so it SHALL NOT be
+     treated as an error. This does not affect the init prompt sent on spawn
+     (AC-4), which is gated on the new-session branch only.
+     (**notification-template-empty-fallback CR, GH #56**) "Empty" SHALL be
+     evaluated after trimming, so that the primitive and the template-fallback
+     rules (``REQ_MSG_NOTIFICATION_TEMPLATE`` AC-1) share one definition of an
+     empty payload.
+   * AC-8: When injecting into a session that already existed (AC-3), the
+     primitive SHALL preserve that session's current agent mode. Submitting the
+     text SHALL NOT change the mode, in particular SHALL NOT undo a custom mode
+     restored under AC-3 (``REQ_MSG_SENDPROMPT`` AC-6).
+   * AC-9: (**GH #56**) A submission skipped under AC-7 SHALL be recorded in
+     the extension log, naming the target entity, so that a caller which passed
+     an empty payload unintentionally is diagnosable from the log alone. The
+     primitive SHALL NOT leave a skipped submission indistinguishable from a
+     completed one. The log entry SHALL NOT be a warning or an error: the
+     open/focus-only path is ordinary operation (``REQ_ENT_AGENTSESSION``,
+     ``REQ_ACT_NEWENTITY``), and a warning that fires during normal use trains
+     readers to ignore it — reproducing the very defect this CR fixes.
 
 
 .. req:: Prompt Injection LM Tool

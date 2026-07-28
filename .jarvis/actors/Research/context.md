@@ -12,12 +12,15 @@ Research-Engineer fuer explorative Spikes, Quellenrecherche und technische Findi
 ## Branch-Regel
 Research-Branches starten von `develop`, bleiben isoliert und werden nicht ohne PM/CM-Entscheidung gemerged. Namensschema: `research-<kurzer-slug>` oder, fuer reine Wegwerfexperimente, `experiment/<kurzer-slug>`. Vor jeder Aenderung Branch und Dirty-State pruefen.
 
+**Memory-Ausnahme (PM, `syspilot.pm.tailoring.md`, Commit a7ca148):** Auf `research-*`/`experiment/*`-Branches committe ich mein Gedaechtnis **direkt auf `develop`** — nur `.jarvis/actors/Research/`, eigener `docs(research)`-Commit, nie mit Code vermischt. Nachricht an PM ist Information, keine Bringschuld. Auf normalen Feature-Branches bleibt es beim Branch + Squash-Merge. Grund: ein nie gemergter Branch laesst Findings still verschwinden.
+
 ## Aktueller Auftrag
 Kein dauerhafter Auftrag. Research arbeitet ad hoc auf PM-/User-Fragen. Die folgenden Abschnitte sind historische Findings und Architektur-Notizen.
 
 ## Weitere Research-Artefakte (in diesem Ordner)
 - `architecture-review-2026-05.md` — 11 Findings (F1–F11) zur Tech-Debt-Welle, priorisiert. Spawn-Quelle fuer kommende CRs an PM.
 - `future-ideas.md` — strategische Ideen, die noch keine CRs sind (Trigger / Idee / offene Fragen / Status). Neue Eintraege oben anfuegen.
+- `chat-injection-findings-2026-07.md` — Verhalten von `workbench.action.chat.*` in VS Code 1.130: Namenskonvention, Widget-Aufloesung, `needToClearSession`-Risiko, validierte Minimalsequenz fuer Injektion in Bestandssessions.
 
 ## Historische Findings: Background Agent Sessions (proposed APIs)
 
@@ -422,3 +425,22 @@ CRs werden einzeln aus dem Review-Doc abgeleitet und an PM gegeben. Reihenfolge 
 
 ### Decision: Copilot Memory für Workflow-Wissen disabled (global User Settings)
 `github.copilot.chat.tools.memory.enabled: false`, `github.copilot.chat.copilotMemory.enabled: false`. Begründung in `.github/copilot-instructions.md` (Memory Considerations Section): Workflow-Wissen = Code, gehört ins Repository, nicht in Copilots opaken AppData-Storage.
+
+---
+
+## 2026-07-28 — Spike: Message-Delivery kam nicht mehr an (Branch `research-message-delivery-noop`)
+
+### Finding: Ursache war ein leeres `jarvis.messages.notificationTemplate`, nicht `chat.open`
+Leerer Wert in den **User**-Settings → `applyTemplate` liefert `''` → `if (text)` in `injectPrompt` ueberspringt Schritt 4 → keine Injektion, kein Fehler — und die Auto-Delivery markiert die Nachricht danach trotzdem als `notified: true`. Nachricht verloren. A/B live belegt: leer → kein `step4`; 181 bzw. 192 Zeichen → Zustellung inkl. `UserPromptSubmit`.
+
+### Finding: CR #54 war unschuldig; der Verdacht kam von einer Asymmetrie
+Der Init-Prompt hat einen eingebauten Fallback (`DEFAULT_INIT_PROMPT`), das Notification-Template nicht — obwohl seine Settings-Beschreibung einen verspricht. Neue Sessions bekamen darum den Init-Prompt und wirkten funktionsfaehig, nur Bestandssessions taten nichts. Das lenkte den Verdacht auf den Bestandssession-Pfad.
+
+### Finding: Der deklarierte Default greift; der leere Wert kam aus der Settings-UI
+Mit geloeschtem Eintrag liefert die Konfiguration 192 Zeichen — frische Installationen sind nicht betroffen. Die Settings-UI schreibt beim Bearbeiten den Wert explizit in `settings.json`; Leeren des Feldes hinterlaesst `""`, nur das Zahnrad → „Reset Setting" entfernt den Eintrag. Nebenbefund: materialisierte Defaults altern still — zwei Profile tragen bis heute die Fassung mit dem deaktivierten `jarvis_readMessage`.
+
+### Lesson: „Still erfolgreich" ist die gefaehrlichste Fehlerklasse
+Gleiche Klasse wie der `whoAmI`-Defekt (#51): es scheitert plausibel statt laut. Regel fuer Zustellketten — jeder Schritt, der nichts tun kann, muss entweder etwas tun oder Fehlschlag melden, und die Queue darf erst nach bestaetigter Zustellung mutiert werden.
+
+### Lesson: Bundle-Analyse liefert Fakten, nicht Schlussfolgerungen
+Meine `chat.open`-Theorie war statisch gut belegt und trotzdem falsch. Erst Laufzeitexperimente haben diskriminiert; einziges belastbares Signal war der Hook `UserPromptSubmit` mit Session-UUID. API-Details in `chat-injection-findings-2026-07.md`.

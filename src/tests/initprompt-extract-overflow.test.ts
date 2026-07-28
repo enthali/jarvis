@@ -6,14 +6,17 @@
  * TC-3: No per-kind branching — same default across project/event/session
  * TC-4: Non-regression on the five pre-existing bullets
  * TC-5: Custom-template override path unbroken
+ *
+ * NOTE: After agent-session-reinit-fix (#52), the init prompt source of truth
+ * is injectPrompt.ts (not extension.ts). Tests adapted accordingly.
  */
 import { describe, it, expect } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const srcDir = path.resolve(__dirname, '..');
 const coreSrcDir = path.resolve(__dirname, '..', '..', 'packages', 'core', 'src');
-const extensionSrc = fs.readFileSync(path.join(coreSrcDir, 'extension.ts'), 'utf-8');
+const injectPromptSrc = fs.readFileSync(
+    path.join(coreSrcDir, 'engine', 'sessions', 'injectPrompt.ts'), 'utf-8');
 const packageJson = JSON.parse(fs.readFileSync(path.join(coreSrcDir, '..', 'package.json'), 'utf-8'));
 
 const NEW_BULLET = '- When a topic grows past ~5 bullets, move it to a dedicated file beside `context.md` and leave a one-line summary with a relative link in `context.md`.';
@@ -37,10 +40,9 @@ describe('TC-1: Verbatim presence of the new bullet', () => {
         expect(packageDefault).toContain(NEW_BULLET);
     });
 
-    it('extension.ts source contains the exact new bullet text', () => {
-        // In template literals, backticks are escaped as \`, so we check the core text
-        expect(extensionSrc).toContain('When a topic grows past ~5 bullets, move it to a dedicated file beside');
-        expect(extensionSrc).toContain('and leave a one-line summary with a relative link in');
+    it('injectPrompt.ts source contains the exact new bullet text', () => {
+        expect(injectPromptSrc).toContain('When a topic grows past ~5 bullets, move it to a dedicated file beside');
+        expect(injectPromptSrc).toContain('and leave a one-line summary with a relative link in');
     });
 });
 
@@ -60,14 +62,10 @@ describe('TC-2: New bullet is the last bullet in the list', () => {
 });
 
 describe('TC-3: No per-kind branching — identical default across kinds', () => {
-    it('extension.ts has no conditional branching around the new bullet', () => {
-        // The defaultInitPrompt strings should not be wrapped in kind-specific if/switch
-        // After SPEC_INJ_INJECT consolidation, the default lives in extension.ts (openAgentSession, newActor)
-        // and injectPrompt.ts (the primitive's own spawn path). We count across both.
-        const injectPromptSrc = fs.readFileSync(path.join(coreSrcDir, 'engine', 'sessions', 'injectPrompt.ts'), 'utf-8');
-        const extMatches = extensionSrc.match(/When a topic grows past ~5 bullets/g) || [];
-        const injMatches = injectPromptSrc.match(/When a topic grows past ~5 bullets/g) || [];
-        expect(extMatches.length + injMatches.length).toBeGreaterThanOrEqual(3);
+    it('injectPrompt.ts has exactly one DEFAULT_INIT_PROMPT (no per-kind branching)', () => {
+        // After #52, the single source of truth is injectPrompt.ts.
+        const matches = injectPromptSrc.match(/When a topic grows past ~5 bullets/g) || [];
+        expect(matches.length).toBe(1);
     });
 
     it('package.json default does not mention specific entity kinds in bullet list', () => {
@@ -86,19 +84,19 @@ describe('TC-4: Non-regression on the five pre-existing bullets', () => {
         });
     }
 
-    it('all five original bullets appear in extension.ts', () => {
+    it('all five original bullets appear in injectPrompt.ts', () => {
         for (const bullet of EXISTING_BULLETS) {
             // Bullets in template literals have escaped backticks, check core text
             const core = bullet.replace(/`/g, '');
-            expect(extensionSrc).toContain(core);
+            expect(injectPromptSrc).toContain(core);
         }
     });
 });
 
 describe('TC-5: Custom-template override path unbroken', () => {
-    it('extension.ts still checks rawInitTemplate.trim() before falling back to default', () => {
-        const pattern = /rawInitTemplate\.trim\(\)\s*\?\s*rawInitTemplate\s*:\s*defaultInitPrompt/;
-        const matches = extensionSrc.match(pattern);
+    it('injectPrompt.ts checks rawInitTemplate.trim() before falling back to DEFAULT_INIT_PROMPT', () => {
+        const pattern = /rawInitTemplate\.trim\(\)\s*\?\s*rawInitTemplate\s*:\s*DEFAULT_INIT_PROMPT/;
+        const matches = injectPromptSrc.match(pattern);
         expect(matches).not.toBeNull();
         expect(matches!.length).toBeGreaterThanOrEqual(1);
     });

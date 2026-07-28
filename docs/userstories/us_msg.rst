@@ -358,9 +358,9 @@ Messaging User Stories
 
 .. story:: Configurable Auto-Delivery Notification Template
    :id: US_MSG_NOTIFICATION_TEMPLATE
-   :status: implemented
+   :status: draft
    :priority: optional
-   :links: US_MSG_CHATQUEUE; US_MSG_AUTODELIVERY
+   :links: US_MSG_CHATQUEUE; US_MSG_AUTODELIVERY; US_INJ_INJECT
 
    **As a** Jarvis User,
    **I want** the auto-delivery notification message to be in English by default
@@ -386,6 +386,16 @@ Messaging User Stories
      the 5-second auto-delivery poll loop
    * AC-5: Leaving the setting empty restores the built-in English default
      without requiring an extension restart
+   * AC-6: (**notification-template-empty-fallback CR, GH #56**) The built-in
+     default applies regardless of *how* the setting became empty. Clearing the
+     text field in the Settings UI persists an explicit empty string at User
+     scope, which is not the same state as "setting never touched" — but the
+     user cannot see that difference and must not have to. Both states, plus a
+     whitespace-only value, produce the same delivered notification
+   * AC-7: (**GH #56**) A notification that is never submitted to chat is never
+     silent. The Jarvis log always shows whether a delivery attempt actually
+     submitted text, so a configuration mistake shows up as a diagnosable log
+     entry instead of messages that appear delivered but were never announced
 
 
 .. story:: Safe Send-to-Session (Destination Validation)

@@ -59,9 +59,14 @@ Actor Identity Recovery (jarvis_whoAmI) UAT Requirements
      restart the EDH with ``jarvis.sessions.enabled: false`` and confirm the
      tool is absent from the picker.
 
-   * CR AC-5 (T-4 — code inspection):
-     The tester SHALL verify by code inspection that the handler contains a
-     guard for ``!activeTab`` that returns an error message (not throws).
+   * CR AC-5 (T-4 — focus independence, GH #51):
+     The tester SHALL verify that repeated ``#whoAmI`` invocations from one
+     unchanged session return the identical Actor while editor focus is moved
+     to another actor's ``context.md`` and to an unrelated file in between.
+     The tester SHALL additionally verify by code inspection that the handler
+     reads no editor-focus API (no
+     ``vscode.window.tabGroups.activeTabGroup.activeTab``), neither as the
+     primary mechanism nor as a fallback.
 
    **End-to-End Recovery (T-8):**
    The tester SHALL compact the ``Change Manager`` session via ``/compact``

@@ -4,7 +4,7 @@ Prompt Injection Design Specifications
 .. spec:: Prompt Injection Primitive
    :id: SPEC_INJ_INJECT
    :status: draft
-   :links: REQ_INJ_PRIMITIVE; REQ_MSG_SESSIONLOOKUP; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_OPENCHAT; SPEC_MSG_SENDPROMPT; SPEC_MSG_EDITORPLACEMENT; SPEC_ENT_AGENTSESSION_INITPROMPT
+   :links: REQ_INJ_PRIMITIVE; REQ_MSG_SESSIONLOOKUP; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_OPENCHAT; SPEC_MSG_SENDPROMPT; SPEC_MSG_EDITORPLACEMENT; SPEC_ENT_AGENTSESSION_INITPROMPT; SPEC_MSG_NOTIFICATION_RESOLVE
 
    **Description:**
    Async function ``injectPrompt`` in
@@ -42,12 +42,17 @@ Prompt Injection Design Specifications
      event). Matched against ``scanner.entities`` by ``e.name``.
    * ``text`` — the text to inject into the chat input. May be a plain
      instruction, a slash-command (e.g. ``/compact``), or a notification stub.
+     **May be the empty string**, which means "open/focus only, submit nothing"
+     — see step 4.
    * ``options.placement`` — editor-group placement target. ``'main'`` (default)
      for user-initiated actions (``SPEC_MSG_EDITORPLACEMENT`` Main target);
      ``'secondary'`` for system-initiated actions (auto-delivery).
-   * ``options.skipInitPrompt`` — when ``true``, skip the init prompt on
-     session spawn. Used by ``jarvis.openAgentSession`` which sends its own
-     init prompt as the ``text`` argument.
+   * ``options.skipInitPrompt`` — **deprecated** (agent-session-reinit-fix CR,
+     GH #52). When ``true``, skip the init prompt on session spawn. The
+     init-prompt gating is fully owned by step 3b's ``if (!skipInitPrompt)``
+     block; callers that only want open/focus now pass an empty ``text``
+     instead. Retained in the signature for backwards compatibility; new
+     callers SHALL NOT pass it.
 
    **Algorithm:**
 
@@ -76,7 +81,7 @@ Prompt Injection Design Specifications
        - Call ``renameFocusedChatSession(entityName)``.
        - Unless ``skipInitPrompt`` is ``true``: build and inject the init prompt
          via ``SPEC_ENT_AGENTSESSION_INITPROMPT`` template expansion, then submit
-         via ``sendPromptToFocusedAgentChat(initPrompt)`` (``SPEC_MSG_SENDPROMPT``).
+         via ``sendPromptModeSetting(initPrompt)`` (``SPEC_MSG_SENDPROMPT``).
          Wait 800 ms for the init prompt to settle.
        - **Post-spawn repositioning** (``placement === 'main'`` only): call
          ``lookupSessionUUID(entityName)``; if a UUID is found, call
@@ -88,8 +93,71 @@ Prompt Injection Design Specifications
          view column at chat-editor creation time — this relocate-after-creation
          pattern is the established workaround.
 
-   4. **Text injection:** Call ``sendPromptToFocusedAgentChat(text)``
-      (``SPEC_MSG_SENDPROMPT``).
+   4. **Text injection:** If ``text`` is non-empty, submit it via
+      ``SPEC_MSG_SENDPROMPT``. If ``text`` is empty, skip — this allows callers
+      that only want session open/focus (not text injection) to pass the empty
+      string (``REQ_INJ_PRIMITIVE`` AC-7). Before the agent-session-reinit-fix
+      CR this step was unconditional, so every re-focus of an already-open
+      session re-submitted the caller-composed init prompt as a live chat
+      message (GH #52).
+
+      **Emptiness is evaluated after trimming**
+      (``text.trim().length === 0``, notification-template-empty-fallback CR,
+      GH #56). The previous ``if (text)`` guard treated a whitespace-only
+      payload as deliverable while the template layer treated it as empty; one
+      definition now applies to both (``REQ_INJ_PRIMITIVE`` AC-7).
+
+      **A skipped submission is logged** (``REQ_INJ_PRIMITIVE`` AC-9)::
+
+         _log?.info(`[INJ] injectPrompt: empty text for "${entityName}" — session opened/focused, nothing submitted`);
+
+      Level is ``info``, deliberately not ``warn``: open/focus-only is ordinary
+      operation for ``SPEC_ENT_AGENTSESSION`` and ``SPEC_ACT_NEWENTITY``, and a
+      warning on a normal path would be noise that readers learn to skip — the
+      same blindness that let GH #56 run undetected. The diagnostic value comes
+      from the entry existing at all: an unintended empty payload now appears in
+      the log immediately after the caller's own delivery log line, instead of
+      leaving no trace. The *warning* for an intended-but-empty notification is
+      raised one layer up, where delivery intent is known
+      (``SPEC_MSG_NOTIFICATION_RESOLVE``).
+
+      .. note:: **This step is not the fix for GH #56.**
+         The guard was doing exactly what it was specified to do; the defect was
+         that the notification path handed it an empty string. Hardening the
+         guard into an error would break the legitimate open/focus-only contract
+         (``REQ_INJ_PRIMITIVE`` AC-7) that GH #52 introduced. The fix is
+         upstream — the stub is non-empty by construction
+         (``SPEC_MSG_NOTIFICATION_RESOLVE``); this step only stops being silent.
+
+      **The submission variant depends on which branch was taken**
+      (notification-agent-mode-reset CR, GH #54):
+
+      - **After branch 3a (existing session):** use the **mode-preserving**
+        variant (``SPEC_MSG_SENDPROMPT``). The session's agent mode is already
+        established, and step 3a may have just restored a custom mode via
+        ``reapplyAgentMode()``. A mode-setting submission here would immediately
+        clobber that restoration, which is precisely the GH #54 defect — and,
+        for the auto-delivery path, a re-occurrence of the v0.5.8 regression
+        (``docs/changes/v0.5.8/hotfix-agent-reset.md``) that the injectPrompt
+        consolidation flattened away.
+      - **After branch 3b (new session):** the mode-setting variant remains
+        acceptable — the session was just created and any custom mode is bound
+        by the mode-prime step, not by this submission.
+
+      The variant is selected by this step from the branch it took; it is not
+      a caller-facing option and not something ``SPEC_MSG_SENDPROMPT`` infers
+      from global state.
+
+   .. note:: **Known related gap (not fixed by this CR).**
+      Branch 3b submits the init prompt through the mode-setting variant while
+      the session was just created in a *custom* mode via the mode-prime step
+      (``entity.agent`` set). By the command taxonomy in
+      ``SPEC_MSG_SENDPROMPT``, that submission resets the freshly primed custom
+      mode to generic "Agent" — the same coupling as GH #54, on the
+      new-session path. It is out of scope here (the CR scopes 3b as
+      unchanged) and is not user-visible in the same way, because a new session
+      has no prior conversation to lose context from. Recorded so it is not
+      re-discovered as a fresh defect.
 
    **Focus-restore responsibility:**
    ``injectPrompt`` does NOT perform focus-snapshot/restore. Callers that need
@@ -114,11 +182,14 @@ Prompt Injection Design Specifications
      logic with
      ``await injectPrompt(sessionName, stub, { placement: 'secondary' })``,
      wrapped in focus-snapshot/restore.
-   * ``SPEC_MSG_AGENTSESSION`` (``jarvis.openAgentSession``) — replaces inline
+   * ``SPEC_ENT_AGENTSESSION`` (``jarvis.openAgentSession``) — replaces inline
      new-session sequence with
-     ``await injectPrompt(entity.name, initPrompt, { skipInitPrompt: true })``.
-     The init prompt is passed as ``text`` because the caller composes it; the
-     primitive's own init-prompt path is skipped to avoid double-injection.
+     ``await injectPrompt(entity.name, '', { placement: 'main' })``. Passes the
+     empty string as ``text`` — session open/focus only; the init prompt on
+     spawn is handled entirely by step 3b (agent-session-reinit-fix CR).
+   * ``SPEC_ACT_NEWENTITY`` (``jarvis.newSession``) — same shape:
+     ``await injectPrompt(nameInput, '', { placement: 'main' })``. The entity is
+     freshly created, so step 3b always fires and sends exactly one init prompt.
 
    **``/rename`` exception:**
    ``renameFocusedChatSession()`` is NOT migrated to ``injectPrompt``. It targets
