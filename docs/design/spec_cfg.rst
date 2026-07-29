@@ -733,3 +733,98 @@ Configuration Design Specifications
    (that spec used ``config.jarvis.heartbeatConfigFile != ''`` and
    ``config.jarvis.messagesFile != ''``; those conditions no longer apply after
    the configurable paths are removed).
+
+
+Workspace File Layout & VCS Visibility
+--------------------------------------
+
+.. spec:: Jarvis-Owned Workspace Files and Ignore Patterns
+   :id: SPEC_CFG_WORKSPACEFILES
+   :status: approved
+   :links: REQ_CFG_FILEPREFIX; REQ_CFG_FIXEDPATHS; SPEC_HOOK_CONFIG
+
+   **Description:**
+   Jarvis writes generated files into the user's workspace. This section is the
+   single reference for *where* those files go, *how they are named*, and *what
+   a consuming project should exclude from version control*.
+
+   **Two categories, two mechanisms.**
+
+   .. list-table::
+      :header-rows: 1
+      :widths: 22 30 24 24
+
+      * - Directory
+        - Ownership
+        - Attribution mechanism
+        - Ignore pattern
+      * - ``.jarvis/``
+        - Exclusively Jarvis-owned
+        - The directory itself
+        - ``.jarvis/`` *(as a unit)*
+      * - ``.github/hooks/``
+        - Shared — pinned by GitHub Copilot, open to other tools and to the
+          project's own hook files
+        - ``jarvis-`` filename prefix
+        - ``.github/hooks/jarvis-*``
+
+   The mechanism follows from the ownership, not from preference. A directory
+   Jarvis owns outright is already selectively ignorable as a unit, so a
+   per-file prefix inside it would add nothing (``REQ_CFG_FILEPREFIX``
+   applicability clause). A directory Jarvis shares offers no such boundary, so
+   the boundary has to be carried in the filenames.
+
+   **Generated files in** ``.github/hooks/``:
+
+   .. list-table::
+      :header-rows: 1
+      :widths: 30 45 25
+
+      * - File
+        - Role
+        - Lifecycle
+      * - ``jarvis-hooks.json``
+        - Hook event registration (SPEC_HOOK_CONFIG)
+        - Rewritten on each activation
+      * - ``jarvis-bridge.mjs``
+        - Event forwarder (SPEC_HOOK_BRIDGE)
+        - Rewritten on each activation
+      * - ``jarvis-port``
+        - Published listener port (SPEC_HOOK_INTAKE)
+        - Rewritten per activation, removed on deactivate
+
+   All three are **generated artifacts owned by the engine** — they are
+   re-written on activation to stay consistent with the engine version, and
+   carry no user-authored content. A consuming project therefore gains nothing
+   by tracking them, and tracking them produces churn on every activation.
+
+   **Recommended** ``.gitignore`` **entry for a consuming project:**
+
+   .. code-block:: text
+
+      # Jarvis-generated hook artifacts (regenerated on activation)
+      .github/hooks/jarvis-*
+
+   **Why not ignore** ``.github/hooks/`` **wholesale.**
+   That is what this repository did before the ``jarvis-hook-file-prefix`` CR
+   (GH #58), and it is lossy in both directions: it hides hook files the
+   project itself may want to version, and it hides any other tool's
+   contributions to a directory GitHub Copilot pins and shares. Excluding a
+   shared directory to remove one tool's artifacts is a workaround for missing
+   attribution, not a layout decision. Once the artifacts are attributable by
+   name, the narrower pattern is strictly better and the directory stays
+   available to everyone.
+
+   **Naming rule (the standing constraint).**
+   Any file Jarvis generates into a directory it does not exclusively own is
+   named with the ``jarvis-`` prefix (``REQ_CFG_FILEPREFIX`` AC-1). This binds
+   files added in future, which is the point: the convention was not absent
+   before GH #58 — ``jarvis-hooks.json`` already followed it — it was simply
+   not carried to the two files generated into the same directory later. A rule
+   that lives only in the filenames that happen to exist is re-broken by the
+   next file added; recording it here as a constraint on the *act of
+   generating* is what makes it hold.
+
+   **Scope note.** This section is written to serve the ``.jarvis/`` layout
+   reorganisation (GH #59) as well. When that CR lands it extends the table
+   above rather than introducing a second, competing layout reference.

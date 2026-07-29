@@ -333,3 +333,107 @@ Configuration Requirements
    * AC-2: Extension code SHALL reference only the new key names.
    * AC-3: The release notes SHALL include a migration note for each renamed/removed
      key.
+
+
+.. req:: Jarvis File Prefix in Shared Directories
+   :id: REQ_CFG_FILEPREFIX
+   :status: approved
+   :priority: required
+   :links: US_CFG_WORKSPACEFILES
+
+   **Description:**
+   Every file Jarvis generates into a workspace directory that Jarvis does not
+   exclusively own SHALL be named with the ``jarvis-`` prefix, so that it is
+   attributable to Jarvis by name alone and coverable by a single ignore
+   pattern.
+
+   The convention is **unenforced rather than missing**
+   (``jarvis-hook-file-prefix`` CR, GH #58). It is already applied to
+   ``.github/hooks/jarvis-hooks.json`` and repo-wide (``jarvis-core``,
+   ``jarvis-flow``, ``jarvis-pim``, ``jarvis-recorder``, ``jarvis-mcp``,
+   ``jarvis-suite``, ``jarvis-128.png``, ``jarvis-actor-kernel.instructions.md``).
+   Two files generated later into the same directory — ``bridge.mjs`` and
+   ``port`` — did not inherit it. This requirement therefore states the rule
+   **prospectively**, binding files Jarvis adds in future, rather than
+   enumerating a one-time fix.
+
+   **Applicability:** a directory is *not exclusively owned* when another tool
+   or the user may legitimately place files in it. ``.github/hooks/`` is such a
+   directory: it is pinned by GitHub Copilot and is not relocatable, other
+   tools contribute hook configurations there, and the project itself may want
+   to version its own hook files. ``.jarvis/`` is exclusively Jarvis-owned and
+   is therefore **out of scope** for the prefix — it is already selectively
+   ignorable as a unit (``REQ_CFG_FIXEDPATHS``).
+
+   **Acceptance Criteria:**
+
+   * AC-1: Every file Jarvis generates into a directory it does not exclusively
+     own SHALL have a name beginning with ``jarvis-``. This is a standing rule
+     binding future generated files, not a list of the files that exist today.
+   * AC-2: The files Jarvis generates into ``.github/hooks/`` SHALL be exactly
+     ``jarvis-hooks.json``, ``jarvis-bridge.mjs``, and ``jarvis-port``.
+   * AC-3: The glob ``.github/hooks/jarvis-*`` SHALL match every file Jarvis
+     generates in that directory and SHALL NOT match any file Jarvis does not
+     generate — a user excluding Jarvis's artifacts therefore never has to
+     exclude their own (``US_CFG_WORKSPACEFILES`` AC-3).
+   * AC-4: No active Jarvis source, generated content, configuration, or
+     documentation SHALL reference ``bridge.mjs`` or ``port`` as current hook
+     filenames. Historic Change Documents under ``docs/changes/`` are exempt
+     (acceptable historic stranding).
+   * AC-5: The convention and the ignore pattern that follows from it SHALL be
+     documented in the design specification, so a user can apply them without
+     reading Jarvis's source (``US_CFG_WORKSPACEFILES`` AC-6).
+   * AC-6: This repository's own ``.gitignore`` SHALL exclude
+     ``.github/hooks/jarvis-*`` (and the ``testdata/`` equivalent) instead of
+     excluding ``.github/hooks/`` wholesale. Jarvis dogfoods itself, so this is
+     both the fix for a real defect in this repository and the working
+     demonstration that AC-3 holds.
+
+
+.. req:: Superseded Generated File Cleanup
+   :id: REQ_CFG_FILEMIGRATION
+   :status: approved
+   :priority: required
+   :links: US_CFG_WORKSPACEFILES; REQ_CFG_FILEPREFIX
+
+   **Description:**
+   When a Jarvis version supersedes the name of a file it generates, Jarvis
+   SHALL remove the file under its superseded name, and the installation SHALL
+   remain functional across the transition without any user action.
+
+   Renaming without cleanup would leave ``bridge.mjs`` and ``port`` behind in a
+   shared directory as unattributable orphans — reproducing precisely the
+   condition ``REQ_CFG_FILEPREFIX`` exists to remove, and doing so in every
+   workspace that upgrades rather than only in new ones.
+
+   **Superseded names (this CR):**
+
+   * ``.github/hooks/bridge.mjs`` → ``.github/hooks/jarvis-bridge.mjs``
+   * ``.github/hooks/port`` → ``.github/hooks/jarvis-port``
+
+   **Acceptance Criteria:**
+
+   * AC-1: On activation with self-install enabled, Jarvis SHALL remove
+     ``.github/hooks/bridge.mjs`` and ``.github/hooks/port`` if present.
+   * AC-2: Cleanup SHALL be confined to names Jarvis itself previously
+     generated. No other file in the directory SHALL be touched, and the
+     directory itself SHALL NOT be removed (consistent with
+     ``REQ_HOOK_AUTOINST`` AC-7).
+   * AC-3: An upgraded installation SHALL remain functional throughout: after
+     activation the hook configuration SHALL reference only current filenames,
+     and at no point SHALL an installed hook configuration reference a file
+     that has been removed. Hooks continue to fire; no reinstall, workspace
+     reset, or manual repair is required.
+   * AC-4: Cleanup SHALL be best-effort — a failure to delete (file locked,
+     insufficient permissions) SHALL be logged and SHALL NOT abort activation
+     or prevent self-install from completing (consistent with
+     ``REQ_HOOK_AUTOINST`` AC-2 and the best-effort self-install contract).
+   * AC-5: Cleanup SHALL be idempotent: absent files are not an error, and
+     repeated activations produce neither repeated side effects nor repeated
+     log entries.
+   * AC-6: **Every** code path that removes Jarvis-managed hook files SHALL
+     cover superseded names as well as current ones — both the activation
+     cleanup above and the ``jarvis.hooks.autoInstall: false`` teardown
+     (``REQ_HOOK_AUTOINST`` AC-3). A removal path that handles only current
+     names would leave an upgraded workspace littered by exactly the files
+     this requirement exists to remove.

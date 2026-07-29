@@ -100,7 +100,7 @@ Hook Engine Requirements
    :id: REQ_HOOK_AUTOINST
    :status: draft
    :priority: optional
-   :links: US_HOOK_CONTROL
+   :links: US_HOOK_CONTROL; REQ_CFG_FILEMIGRATION
 
    **Description:**
    The extension SHALL provide a ``jarvis.hooks.autoInstall`` VS Code setting
@@ -118,8 +118,13 @@ Hook Engine Requirements
      change from current default.
    * AC-3: When ``jarvis.hooks.autoInstall`` is ``false``, the extension SHALL
      remove the following Jarvis-managed files if they exist:
-     ``.github/hooks/jarvis-hooks.json``, ``.github/hooks/bridge.mjs``, and
-     ``.github/hooks/port``.
+     ``.github/hooks/jarvis-hooks.json``, ``.github/hooks/jarvis-bridge.mjs``,
+     and ``.github/hooks/jarvis-port``, plus the superseded names
+     ``.github/hooks/bridge.mjs`` and ``.github/hooks/port`` written by
+     versions before the ``jarvis-hook-file-prefix`` CR (GH #58). Both sets are
+     Jarvis-managed, so removing both is consistent with AC-7; omitting the
+     superseded names would leave an upgraded workspace littered after opting
+     out (``REQ_CFG_FILEMIGRATION`` AC-6).
    * AC-4: When ``jarvis.hooks.autoInstall`` is ``false``, the extension SHALL NOT
      write any hook files during activation or at any later time.
    * AC-5: When ``jarvis.hooks.autoInstall`` is changed from ``false`` to ``true``,

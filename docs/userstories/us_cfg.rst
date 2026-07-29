@@ -144,6 +144,51 @@ Configuration User Stories
      one-time warning and short-circuit gracefully — no errors are thrown.
 
 
+.. story:: Identifiable Jarvis-Owned Workspace Files
+   :id: US_CFG_WORKSPACEFILES
+   :status: approved
+   :priority: required
+   :links: US_CFG_FIXEDPATHS
+
+   **As a** Jarvis user whose workspace is a version-controlled repository,
+   **I want** every file Jarvis generates into my workspace to be recognisable
+   as Jarvis-owned and selectively ignorable,
+   **so that** I can keep Jarvis's runtime artifacts out of my repository
+   without also losing control over my own files in the same directories, and
+   without having to investigate each unfamiliar file that appears.
+
+   *Context: Jarvis writes generated files into* ``.github/hooks/`` *— a
+   directory pinned by GitHub Copilot and shared with any other tool's hook
+   contributions, as well as with hook files the project itself may want to
+   version. Two of the three files Jarvis writes there are named*
+   ``bridge.mjs`` *and* ``port`` *: names that identify neither their owner nor
+   their purpose. The only ignore pattern that reliably covers them today is
+   the whole directory, which is why this repository's own* ``.gitignore``
+   *excludes* ``.github/hooks/`` *entirely.*
+
+   **Acceptance Criteria:**
+
+   * AC-1: Every file Jarvis generates into a directory it does not
+     exclusively own SHALL be attributable to Jarvis from its name alone,
+     without opening the file or consulting documentation.
+   * AC-2: All Jarvis-generated files in such a directory SHALL be coverable
+     by a single ignore pattern that also covers files Jarvis adds there in
+     future — the user SHALL NOT have to enumerate filenames or revisit the
+     pattern after a Jarvis upgrade.
+   * AC-3: Ignoring Jarvis's generated files SHALL NOT require ignoring files
+     the user or another tool owns in the same directory. Directory-wide
+     exclusion SHALL NOT be the only available remedy.
+   * AC-4: Upgrading Jarvis SHALL NOT leave generated files behind under names
+     a previous version used — no orphaned or duplicated artifacts accumulate
+     across upgrades.
+   * AC-5: An existing installation SHALL keep working across such an upgrade:
+     hooks continue to fire and no manual repair, reinstall, or workspace
+     reset is required.
+   * AC-6: The naming convention and the ignore pattern that follows from it
+     SHALL be documented, so a user can apply them without reading Jarvis's
+     source.
+
+
 .. story:: Grouped Settings Organization
    :id: US_CFG_GROUPS
    :status: implemented

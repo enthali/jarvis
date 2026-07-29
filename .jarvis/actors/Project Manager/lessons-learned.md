@@ -1,5 +1,8 @@
 # PM Lessons Learned
 
+### Operation Mode changed directly with CM mid-CR, PM not notified (2026-07-29)
+During CR #58, the user told CM directly to flip the CD's Operation Mode from `user-guided` to `autonomous` at CM's first checkpoint, without looping PM in — PM only discovered the change later by noticing an unexplained commit (`docs(cd): flip to autonomous mode...`) in the git log. No harm done here (user confirmed the change was intentional), but PM's own record of the CR's mode was silently stale in the meantime. Going forward: Operation Mode is a PM-set header field — settle it with the user *before* dispatching the CR to CM, and if it needs to change mid-flight, that goes through PM (SEND), not directly to CM, so PM's picture of the CR stays accurate.
+
 ### runSubagent used for a persistent actor (Release Engineer) instead of SEND (2026-07-28)
 Dispatched the v0.24.1 release via `runSubagent` — it executed fine (verified clean via git reflog, no stash/other-actor damage), but Release Engineer is a real Jarvis actor with its own `context.md`. Running it as a stateless subagent meant it never called `whoAmI`, never read its own memory, and never wrote to it — its context.md still said "v0.24.0" afterward. Caught by the user in real time. Fix: backfilled the actor via a SEND message so it can update its own memory (ownership rule — PM doesn't write another actor's memory directly). Going forward: any actor listed in `jarvis_listActors` gets `jarvis_sendMessage`, never `runSubagent` — subagents are for stateless/exploratory work only, never for a role with persistent memory.
 

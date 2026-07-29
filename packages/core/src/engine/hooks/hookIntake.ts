@@ -15,7 +15,7 @@ export class HookIntake {
     constructor(hookEngine: HookEngine, hooksDir: string) {
         this.hookEngine = hookEngine;
         this.hooksDir = hooksDir;
-        this.portFile = path.join(hooksDir, 'port');
+        this.portFile = path.join(hooksDir, 'jarvis-port');
     }
 
     async start(): Promise<number> {

@@ -4,7 +4,7 @@ Hook Engine Design Specifications
 .. spec:: Hook Configuration Self-Install
    :id: SPEC_HOOK_CONFIG
    :status: implemented
-   :links: REQ_HOOK_INTAKE
+   :links: REQ_HOOK_INTAKE; REQ_CFG_FILEPREFIX
 
    **Description:**
    On activation, the hook engine self-installs its VS Code Agent Hook wiring into
@@ -25,23 +25,27 @@ Hook Engine Design Specifications
 
          {
            "hooks": {
-             "SessionStart":     [{ "type": "command", "command": "node .github/hooks/bridge.mjs --event SessionStart", "timeout": 10 }],
-             "UserPromptSubmit": [{ "type": "command", "command": "node .github/hooks/bridge.mjs --event UserPromptSubmit", "timeout": 10 }],
-             "PreToolUse":       [{ "type": "command", "command": "node .github/hooks/bridge.mjs --event PreToolUse", "timeout": 10 }],
-             "PostToolUse":      [{ "type": "command", "command": "node .github/hooks/bridge.mjs --event PostToolUse", "timeout": 10 }],
-             "PreCompact":       [{ "type": "command", "command": "node .github/hooks/bridge.mjs --event PreCompact", "timeout": 10 }],
-             "SubagentStart":    [{ "type": "command", "command": "node .github/hooks/bridge.mjs --event SubagentStart", "timeout": 10 }],
-             "SubagentStop":     [{ "type": "command", "command": "node .github/hooks/bridge.mjs --event SubagentStop", "timeout": 10 }],
-             "Stop":             [{ "type": "command", "command": "node .github/hooks/bridge.mjs --event Stop", "timeout": 10 }]
+             "SessionStart":     [{ "type": "command", "command": "node .github/hooks/jarvis-bridge.mjs --event SessionStart", "timeout": 10 }],
+             "UserPromptSubmit": [{ "type": "command", "command": "node .github/hooks/jarvis-bridge.mjs --event UserPromptSubmit", "timeout": 10 }],
+             "PreToolUse":       [{ "type": "command", "command": "node .github/hooks/jarvis-bridge.mjs --event PreToolUse", "timeout": 10 }],
+             "PostToolUse":      [{ "type": "command", "command": "node .github/hooks/jarvis-bridge.mjs --event PostToolUse", "timeout": 10 }],
+             "PreCompact":       [{ "type": "command", "command": "node .github/hooks/jarvis-bridge.mjs --event PreCompact", "timeout": 10 }],
+             "SubagentStart":    [{ "type": "command", "command": "node .github/hooks/jarvis-bridge.mjs --event SubagentStart", "timeout": 10 }],
+             "SubagentStop":     [{ "type": "command", "command": "node .github/hooks/jarvis-bridge.mjs --event SubagentStop", "timeout": 10 }],
+             "Stop":             [{ "type": "command", "command": "node .github/hooks/jarvis-bridge.mjs --event Stop", "timeout": 10 }]
            }
          }
 
-   3. **Write the bridge** ``.github/hooks/bridge.mjs`` (SPEC_HOOK_BRIDGE).
+   3. **Write the bridge** ``.github/hooks/jarvis-bridge.mjs`` (SPEC_HOOK_BRIDGE).
    4. **Publish the port.** After the intake listener binds an ephemeral port
       (SPEC_HOOK_INTAKE), the engine writes that port as plain text to
-      ``.github/hooks/port``. The bridge reads this file to find its instance's
-      listener (SPEC_HOOK_BRIDGE). ``jarvis-hooks.json`` stays **static** (only the
-      bridge command); only the small ``port`` file changes per activation.
+      ``.github/hooks/jarvis-port``. The bridge reads this file to find its
+      instance's listener (SPEC_HOOK_BRIDGE). ``jarvis-hooks.json`` stays
+      **static** (only the bridge command); only the small ``jarvis-port`` file
+      changes per activation.
+   5. **Remove superseded names.** Delete ``.github/hooks/bridge.mjs`` and
+      ``.github/hooks/port`` if present (SPEC_HOOK_MIGRATE) — see the migration
+      note below.
 
    **Design notes:**
 
@@ -50,17 +54,25 @@ Hook Engine Design Specifications
      support is a known follow-up (MVP targets the primary dev host).
    * The config and bridge are **generated artifacts** owned by the engine â€” they
      are re-written on activation so they stay consistent with the engine version.
-   * ``.github/hooks/port`` is a generated runtime artifact and SHOULD be
-     git-ignored.
+   * All three generated files carry the ``jarvis-`` prefix, because
+     ``.github/hooks/`` is a shared, platform-pinned directory. This makes them
+     attributable and coverable by the single ignore pattern
+     ``.github/hooks/jarvis-*`` — see SPEC_CFG_WORKSPACEFILES for the rule and
+     the recommended ``.gitignore`` entry. Any file added to this directory in
+     future carries the prefix too.
+   * ``.github/hooks/jarvis-port`` is a generated runtime artifact and SHOULD be
+     git-ignored (covered by the pattern above).
    * **Multi-instance:** each workspace has its own ``.github/hooks/`` folder, so
-     each VS Code instance writes its own ``port`` file â€” parallel instances on
-     *different* workspaces are naturally collision-free. **Known limitation:** the
-     same workspace opened in two windows shares one ``port`` file; the later
-     activation wins. This is out of scope for the observe-only MVP.
+     each VS Code instance writes its own ``jarvis-port`` file â€” parallel
+     instances on *different* workspaces are naturally collision-free. **Known
+     limitation:** the same workspace opened in two windows shares one
+     ``jarvis-port`` file; the later activation wins. This is out of scope for
+     the observe-only MVP.
 
    **Security & lifecycle (known, partly deferred):**
 
-   * **Agent-editable bridge â€” security consideration.** ``bridge.mjs`` lives in
+   * **Agent-editable bridge â€” security consideration.** ``jarvis-bridge.mjs``
+     lives in
      ``.github/hooks/`` and is therefore reachable by the agent's edit tools; an
      agent that rewrites it could execute arbitrary code on the next hook. Per the
      VS Code hooks docs, protect hook scripts from unattended edits (e.g.
@@ -76,22 +88,26 @@ Hook Engine Design Specifications
 
    * AC-1: On activation, ``.github/hooks/jarvis-hooks.json`` exists and registers
      all eight events, each invoking the bridge.
-   * AC-2: ``.github/hooks/bridge.mjs`` exists after activation.
-   * AC-3: After the intake listener binds, ``.github/hooks/port`` contains the
-     bound ephemeral port as plain text.
+   * AC-2: ``.github/hooks/jarvis-bridge.mjs`` exists after activation.
+   * AC-3: After the intake listener binds, ``.github/hooks/jarvis-port`` contains
+     the bound ephemeral port as plain text.
    * AC-4: ``jarvis-hooks.json`` is static across activations (it carries no port);
-     only ``.github/hooks/port`` changes.
+     only ``.github/hooks/jarvis-port`` changes.
    * AC-5: When hooks are not supported/disabled, activation still succeeds (the
      self-install is best-effort and never throws into activation).
+   * AC-6: Every file this step writes into ``.github/hooks/`` is named with the
+     ``jarvis-`` prefix, and no file is written under a superseded name
+     (REQ_CFG_FILEPREFIX AC-1/AC-2).
 
 
 .. spec:: Hook Bridge
    :id: SPEC_HOOK_BRIDGE
    :status: implemented
-   :links: REQ_HOOK_INTAKE
+   :links: REQ_HOOK_INTAKE; REQ_CFG_FILEPREFIX
 
    **Description:**
-   ``.github/hooks/bridge.mjs`` is a short-lived Node script that VS Code spawns per
+   ``.github/hooks/jarvis-bridge.mjs`` is a short-lived Node script that VS Code
+   spawns per
    hook event. It reads the event JSON from stdin, forwards it to the in-extension
    hook-intake HTTP listener (SPEC_HOOK_INTAKE), and returns a non-blocking result.
 
@@ -100,7 +116,7 @@ Hook Engine Design Specifications
    .. code-block:: javascript
 
       #!/usr/bin/env node
-      // .github/hooks/bridge.mjs — forwards a VS Code agent hook event to jarvis-core.
+      // .github/hooks/jarvis-bridge.mjs — forwards a VS Code agent hook event to jarvis-core.
       import http from 'node:http';
       import { readFileSync } from 'node:fs';
       import { fileURLToPath } from 'node:url';
@@ -117,7 +133,7 @@ Hook Engine Design Specifications
       // The intake listener's ephemeral port is published next to this script.
       const here = dirname(fileURLToPath(import.meta.url));
       let port;
-      try { port = readFileSync(join(here, 'port'), 'utf8').trim(); }
+      try { port = readFileSync(join(here, 'jarvis-port'), 'utf8').trim(); }
       catch { process.stdout.write(JSON.stringify({ continue: true })); process.exit(0); }
 
       function readStdin() {
@@ -150,7 +166,8 @@ Hook Engine Design Specifications
    **Acceptance Criteria:**
 
    * AC-1: The bridge reads the full hook event JSON from stdin.
-   * AC-2: The bridge reads the listener port from ``.github/hooks/port`` (located
+   * AC-2: The bridge reads the listener port from ``.github/hooks/jarvis-port``
+     (located
      next to the bridge) and POSTs the raw event JSON to
      ``http://127.0.0.1:<port>/hooks``.
    * AC-3: The bridge **always** writes ``{"continue": true}`` to stdout and exits 0,
@@ -176,7 +193,7 @@ Hook Engine Design Specifications
    * Binds to ``127.0.0.1`` on an **ephemeral port** (``server.listen(0)`` â€” the OS
      assigns a guaranteed-free port), avoiding fixed-port collisions across the
      user's parallel VS Code instances. The bound port is published to
-     ``.github/hooks/port`` (SPEC_HOOK_CONFIG) so the bridge can find it.
+     ``.github/hooks/jarvis-port`` (SPEC_HOOK_CONFIG) so the bridge can find it.
    * Handles ``POST /hooks``: reads the JSON body, parses it into a ``HookEvent``,
      and passes it to ``HookEngine.receive(event)``. Responds ``200`` with
      ``{"continue": true}`` (the MVP never returns an agent-influencing decision).
@@ -274,7 +291,8 @@ Hook Engine Design Specifications
 
    The guarantee holds only while the hook actually fires and the transport
    succeeds. It does **not** hold when hook intake is disabled
-   (SPEC_HOOK_AUTOINST), when ``.github/hooks/port`` is missing or stale, when
+   (SPEC_HOOK_AUTOINST), when ``.github/hooks/jarvis-port`` is missing or stale,
+   when
    the POST fails, or when VS Code's hook timeout elapses. In all of these the
    bridge still continues (AC-3) and the tool simply runs with no event
    delivered — consumers must define their own behaviour for that case.
@@ -302,7 +320,7 @@ Hook Engine Design Specifications
 
    * AC-1: A core HTTP listener binds ``127.0.0.1`` on an ephemeral port
      (``server.listen(0)``), independent of the MCP server; the bound port is
-     written to ``.github/hooks/port``.
+     written to ``.github/hooks/jarvis-port``.
    * AC-2: ``POST /hooks`` parses the body into a ``HookEvent`` (``eventName``,
      ``sessionId?`` — read from the payload's ``session_id`` field —,
      ``timestamp?``, raw ``payload``) and calls ``HookEngine.receive(event)``.
@@ -380,7 +398,7 @@ Hook Engine Design Specifications
 .. spec:: Hook Auto-Install Setting
    :id: SPEC_HOOK_AUTOINST
    :status: implemented
-   :links: REQ_HOOK_AUTOINST; SPEC_HOOK_CONFIG; SPEC_HOOK_INTAKE
+   :links: REQ_HOOK_AUTOINST; SPEC_HOOK_CONFIG; SPEC_HOOK_INTAKE; SPEC_HOOK_MIGRATE
 
    **Description:**
    A workspace-scoped VS Code setting `jarvis.hooks.autoInstall` (boolean, default
@@ -406,17 +424,22 @@ Hook Engine Design Specifications
 
    1. Read `jarvis.hooks.autoInstall` from workspace configuration.
    2. **If `true`:** execute the self-install sequence (SPEC_HOOK_CONFIG steps
-      1–4) as before. Start the intake listener (SPEC_HOOK_INTAKE).
+      1–5) as before. Start the intake listener (SPEC_HOOK_INTAKE).
    3. **If `false`:** execute teardown, then skip intake listener start.
 
    **Teardown sequence (autoInstall = false):**
 
    1. Delete `.github/hooks/jarvis-hooks.json` if it exists.
-   2. Delete `.github/hooks/bridge.mjs` if it exists.
-   3. Delete `.github/hooks/port` if it exists.
-   4. Do **not** remove the `.github/hooks/` directory itself — other tools or
+   2. Delete `.github/hooks/jarvis-bridge.mjs` if it exists.
+   3. Delete `.github/hooks/jarvis-port` if it exists.
+   4. Delete the superseded names `.github/hooks/bridge.mjs` and
+      `.github/hooks/port` if they exist (SPEC_HOOK_MIGRATE). Teardown is one of
+      the two removal paths that must cover superseded names
+      (REQ_CFG_FILEMIGRATION AC-6); a workspace that upgraded and then opted out
+      would otherwise keep exactly the unattributable files this CR removes.
+   5. Do **not** remove the `.github/hooks/` directory itself — other tools or
       user-managed hooks may reside there.
-   5. Do **not** start the Hook Intake HTTP listener (SPEC_HOOK_INTAKE).
+   6. Do **not** start the Hook Intake HTTP listener (SPEC_HOOK_INTAKE).
 
    **Configuration change listener:**
 
@@ -447,8 +470,10 @@ Hook Engine Design Specifications
      SPEC_HOOK_CONFIG self-install and starts the SPEC_HOOK_INTAKE listener — no
      behavioural change from current default.
    * AC-3: When `jarvis.hooks.autoInstall` is `false`, activation deletes
-     `.github/hooks/jarvis-hooks.json`, `.github/hooks/bridge.mjs`, and
-     `.github/hooks/port` (if present) and does NOT start the intake listener.
+     `.github/hooks/jarvis-hooks.json`, `.github/hooks/jarvis-bridge.mjs`,
+     `.github/hooks/jarvis-port`, and the superseded names
+     `.github/hooks/bridge.mjs` and `.github/hooks/port` (each if present) and
+     does NOT start the intake listener.
    * AC-4: The `.github/hooks/` directory itself is never removed.
    * AC-5: A runtime change `true` → `false` stops the intake listener and runs
      teardown; `false` → `true` runs self-install and starts the listener.
@@ -456,6 +481,97 @@ Hook Engine Design Specifications
      produces no errors.
    * AC-7: The setting is workspace-scoped — different workspaces can have different
      values.
+
+
+.. spec:: Superseded Hook File Cleanup
+   :id: SPEC_HOOK_MIGRATE
+   :status: approved
+   :links: REQ_CFG_FILEMIGRATION; SPEC_HOOK_CONFIG; SPEC_HOOK_AUTOINST; SPEC_CFG_WORKSPACEFILES
+
+   **Description:**
+   Versions before the ``jarvis-hook-file-prefix`` CR (GH #58) generated
+   ``.github/hooks/bridge.mjs`` and ``.github/hooks/port``. Renaming them to
+   ``jarvis-bridge.mjs`` / ``jarvis-port`` without removing the old files would
+   leave two unattributable Jarvis artifacts in a shared directory in **every
+   workspace that upgrades** — the exact condition REQ_CFG_FILEPREFIX exists to
+   remove, reproduced by the fix for it. This spec defines the cleanup.
+
+   **Superseded names (the complete, closed list):**
+
+   .. list-table::
+      :header-rows: 1
+      :widths: 40 40 20
+
+      * - Superseded name
+        - Current name
+        - Introduced in
+      * - ``.github/hooks/bridge.mjs``
+        - ``.github/hooks/jarvis-bridge.mjs``
+        - GH #58
+      * - ``.github/hooks/port``
+        - ``.github/hooks/jarvis-port``
+        - GH #58
+
+   **Where cleanup runs.** Both removal paths, and only those:
+
+   * the self-install sequence (SPEC_HOOK_CONFIG step 5), and
+   * the ``autoInstall: false`` teardown (SPEC_HOOK_AUTOINST teardown step 4).
+
+   Covering only one of the two is the failure mode this spec guards against:
+   a user who upgrades and then opts out would end up with a directory that
+   still contains the superseded files, having explicitly asked Jarvis to leave
+   nothing behind.
+
+   **Required properties:**
+
+   * **Explicit list, never a pattern.** Cleanup removes exactly the names in
+     the table above. It SHALL NOT delete by wildcard, by extension, or by
+     "anything that looks Jarvis-written" — the whole point of the prefix is
+     that Jarvis stops guessing which files in a shared directory are its own,
+     and a heuristic deletion would reintroduce that guess with far worse
+     consequences than a stale file.
+   * **No window of inconsistency.** Removal happens after the hook
+     configuration has been rewritten to the current names, so the persisted
+     configuration never references a file that has been removed.
+   * **Failure is not fatal.** A file that cannot be deleted (locked, permission
+     denied) is logged and skipped. Activation and self-install complete
+     regardless — consistent with the best-effort self-install contract
+     (SPEC_HOOK_CONFIG AC-5). A leftover file is a cosmetic defect; a failed
+     activation is not.
+   * **Idempotent and quiet.** Absent files are the normal case after the first
+     upgrade and are not an error. Steady-state activations produce no cleanup
+     log entries — otherwise every activation for the rest of the product's
+     life reports on a migration that finished long ago.
+   * **No observable session behaviour change.** Hook events continue to fire
+     across the upgrade; the user performs no reinstall, workspace reset, or
+     manual repair. If VS Code momentarily still holds a cached configuration
+     naming the superseded bridge, the worst case is identical to the already
+     documented teardown case: the bridge file is absent, the hook invocation
+     fails gracefully, and the agent is never blocked (SPEC_HOOK_BRIDGE AC-3).
+
+   **Lifetime of this spec (recorded, not decided).** The superseded-name list
+   is migration debt: it exists solely for workspaces that ran a pre-GH-#58
+   version. It may be retired once such installations are no longer supported.
+   That is a product decision for the Project Manager, not a design decision —
+   noted here so the list is retired deliberately rather than forgotten and
+   carried indefinitely.
+
+   **Acceptance Criteria:**
+
+   * AC-1: On activation with ``jarvis.hooks.autoInstall`` ``true``, both
+     superseded names are removed if present.
+   * AC-2: On ``autoInstall: false`` teardown, both superseded names are removed
+     if present, in addition to the current names
+     (SPEC_HOOK_AUTOINST AC-3).
+   * AC-3: No file other than the two names listed above is removed by cleanup,
+     and the ``.github/hooks/`` directory itself is never removed.
+   * AC-4: A deletion failure is logged and does not abort activation, teardown,
+     or self-install.
+   * AC-5: Cleanup is idempotent: with the files already absent it performs no
+     action and emits no log entry.
+   * AC-6: An installation upgraded from a pre-GH-#58 version continues to
+     deliver hook events after activation, with no user action required
+     (REQ_CFG_FILEMIGRATION AC-3).
 
 
 .. spec:: Hook Event Routing Registry
