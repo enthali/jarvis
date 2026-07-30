@@ -61,7 +61,10 @@ Hook Engine Design Specifications
      the recommended ``.gitignore`` entry. Any file added to this directory in
      future carries the prefix too.
    * ``.github/hooks/jarvis-port`` is a generated runtime artifact and SHOULD be
-     git-ignored (covered by the pattern above).
+     git-ignored (covered by the pattern above). **(GH #60)** The pattern is no
+     longer something the consuming project writes: it is one entry of the
+     region Jarvis maintains in the workspace-root ``.gitignore``
+     (``SPEC_CFG_IGNOREMANAGER``).
    * **Multi-instance:** each workspace has its own ``.github/hooks/`` folder, so
      each VS Code instance writes its own ``jarvis-port`` file â€” parallel
      instances on *different* workspaces are naturally collision-free. **Known

@@ -259,6 +259,17 @@
             "description": "When true (default), Jarvis auto-installs hook bridge files in .github/hooks/. Set to false to remove managed files and stop hook management."
           }
         }
+      },
+      {
+        "title": "Gitignore",
+        "properties": {
+          "jarvis.gitignore.autoManage": {
+            "type": "boolean",
+            "default": true,
+            "scope": "resource",
+            "description": "When true (default), Jarvis keeps a marked block in the workspace-root .gitignore listing the files it generates. Set to false to remove the block and stop managing it."
+          }
+        }
       }
     ],
     "languageModelTools": [

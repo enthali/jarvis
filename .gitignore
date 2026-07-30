@@ -5,9 +5,6 @@
 # Actor Kernel instructions — private IP, not for public repo
 .github/instructions/
 
-# Syspilot runtime state — local only
-.jarvis/syspilot-state.json
-
 #environment files
 .env
 .venv/
@@ -24,18 +21,22 @@ out/
 # docs build artifacts
 docs/_build/
 
-# jarvis log files
+# BEGIN JARVIS MANAGED (see jarvis.gitignore.autoManage)
 .jarvis/logs/
 .jarvis/messages/
-.jarvis/reminders.yaml
-.jarvis/heartbeat.yaml
 .jarvis/state/
+.jarvis/heartbeat.yaml
+.jarvis/reminders.yaml
+.jarvis/syspilot-state.json
+.github/hooks/jarvis-*
+# END JARVIS MANAGED
 
 # testdata workspace runtime/scratch state (Dev Host manual testing,
 # not automated-test fixtures - those live under testdata/heartbeat/)
 testdata/.jarvis/messages/
 testdata/.jarvis/heartbeat.yaml
 testdata/.jarvis/state/
+testdata/.jarvis/syspilot-state.json
 
 # OS
 Thumbs.db
@@ -44,14 +45,9 @@ Thumbs.db
 # Workspace (machine-specific)
 Jarvis.code-workspace
 
-# Hook Engine bridge files (workspace-specific, installed at runtime)
-.github/hooks/jarvis-*
+# testdata hook engine bridge files
 testdata/.github/hooks/jarvis-*
 
 # Vitest compiled artifacts (vitest.config.ts is the source)
-vitest.config.js
-vitest.config.js.map
-
-# Vitest compiled artifacts
 vitest.config.js
 vitest.config.js.map

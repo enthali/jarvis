@@ -28,6 +28,7 @@ import { ActivityTracker } from './engine/hooks/activityTracker';
 import { ActivityDecorator } from './engine/hooks/activityDecorator';
 import { TouchStore } from './engine/hooks/touchStore';
 import { TouchTracker } from './engine/hooks/touchTracker';
+import { applyGitignore, setIgnoreManagerLogger } from './engine/core/gitignoreManager';
 
 import { CronExpressionParser } from 'cron-parser';
 
@@ -106,6 +107,10 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     context.subscriptions.push(log);
     setSessionLookupLogger(log);
     setRemindersLogger(log);
+    setIgnoreManagerLogger(log);
+
+    // Gitignore auto-management (SPEC_CFG_IGNOREMANAGER)
+    applyGitignore();
 
     // Hook Engine (SPEC_HOOK_LOG, SPEC_HOOK_INTAKE, SPEC_HOOK_CONFIG)
     const hookEngine = new HookEngine(log);
@@ -167,6 +172,13 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         }
     });
     context.subscriptions.push(hookAutoInstallListener);
+
+    // Configuration change listener for jarvis.gitignore.autoManage (SPEC_CFG_IGNOREMANAGER AC-8)
+    const gitignoreAutoManageListener = vscode.workspace.onDidChangeConfiguration(e => {
+        if (!e.affectsConfiguration('jarvis.gitignore.autoManage')) { return; }
+        applyGitignore();
+    });
+    context.subscriptions.push(gitignoreAutoManageListener);
 
     async function renameFocusedChatSession(sessionName: string): Promise<void> {
         await vscode.commands.executeCommand(

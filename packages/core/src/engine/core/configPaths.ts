@@ -120,3 +120,27 @@ export function ensureActorsDir(): string | undefined {
     fs.mkdirSync(dir, { recursive: true });
     return dir;
 }
+
+// --- WORKSPACE_PATHS (GH #60, SPEC_CFG_PATHRESOLVER) ---
+
+type Durability = 'transient' | 'durable';
+
+export const WORKSPACE_PATHS: ReadonlyArray<{ rel: string; durability: Durability }> = [
+    { rel: '.jarvis/logs/',              durability: 'transient' },
+    { rel: '.jarvis/messages/',          durability: 'transient' },
+    { rel: '.jarvis/state/',             durability: 'transient' },
+    { rel: '.jarvis/heartbeat.yaml',     durability: 'transient' },
+    { rel: '.jarvis/reminders.yaml',     durability: 'transient' },
+    { rel: '.jarvis/syspilot-state.json', durability: 'transient' },
+    { rel: '.github/hooks/jarvis-*',     durability: 'transient' },
+    { rel: '.jarvis/actors/',            durability: 'durable' },
+    { rel: '.jarvis/sessions/',          durability: 'durable' },
+];
+
+/** The entries of the managed .gitignore region, in declaration order.
+ *  Independent of whether a workspace is open (paths are workspace-relative). */
+export function getIgnoreEntries(): string[] {
+    return WORKSPACE_PATHS
+        .filter(p => p.durability === 'transient')
+        .map(p => p.rel);
+}

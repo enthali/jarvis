@@ -248,6 +248,58 @@ Configuration User Stories
      confusion exists.
 
 
+.. story:: Automatically Maintained Ignore Entries
+   :id: US_CFG_AUTOGITIGNORE
+   :status: approved
+   :priority: required
+   :links: US_CFG_WORKSPACEFILES; US_CFG_RUNTIMELAYOUT
+
+   **As a** Jarvis user whose workspace is a version-controlled repository,
+   **I want** Jarvis to keep the ignore entries for its own generated files
+   current by itself,
+   **so that** my repository stays free of Jarvis runtime state without me
+   having to learn which files Jarvis writes, transcribe them into
+   ``.gitignore``, and revisit that list after every Jarvis upgrade.
+
+   *Context:* ``US_CFG_WORKSPACEFILES`` *AC-2 and* ``US_CFG_RUNTIMELAYOUT``
+   *AC-2 both promise that one pattern suffices and keeps covering files the
+   same feature adds later. Both reduce what the user has to write down;
+   neither removes the step of writing it down at all, nor the step of noticing
+   that it has to be written down again. This repository shows the residue: its
+   own* ``.gitignore`` *carries six hand-maintained Jarvis entries, and the two
+   most recent changes to Jarvis's file layout (GH #58, GH #59) each required
+   editing it by hand. A consuming project has the same work with none of the
+   insight into when it becomes necessary.*
+
+   **Acceptance Criteria:**
+
+   * AC-1: Jarvis SHALL maintain its own ignore entries without user action —
+     neither at first use nor after an upgrade that changes what Jarvis
+     generates SHALL the user have to edit the file.
+   * AC-2: The maintained region SHALL be delimited so that a reader of a plain
+     diff can tell which lines Jarvis owns, that Jarvis owns them, and how to
+     turn the behaviour off — without consulting documentation or source.
+     Jarvis writes into a file the user version-controls, so the change has to
+     explain itself where it appears.
+   * AC-3: Everything outside the maintained region SHALL be preserved exactly
+     as the user left it — including the user's own Jarvis-related entries,
+     their order, their comments, and the file's existing line endings.
+   * AC-4: The maintained region SHALL NOT cause any file authored by the user
+     or by another tool to be ignored. An ignore rule that silently withholds
+     an authored file from version control is worse than the manual
+     maintenance it replaces, because the loss is discovered later and
+     elsewhere (``US_CFG_WORKSPACEFILES`` AC-3).
+   * AC-5: Turning the behaviour off SHALL both stop the maintenance and remove
+     the region Jarvis previously wrote — an opted-out workspace SHALL NOT be
+     left carrying a managed block that nothing maintains.
+   * AC-6: Once the file is current, further activations SHALL leave it
+     byte-identical — the user SHALL NOT see the file appear as modified
+     merely because Jarvis started.
+   * AC-7: In a workspace where the behaviour does not apply — no folder open,
+     or the folder is not version-controlled — Jarvis SHALL do nothing and
+     SHALL continue to start normally.
+
+
 .. story:: Grouped Settings Organization
    :id: US_CFG_GROUPS
    :status: implemented

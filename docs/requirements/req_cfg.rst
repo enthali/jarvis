@@ -408,6 +408,18 @@ Configuration Requirements
      excluding ``.github/hooks/`` wholesale. Jarvis dogfoods itself, so this is
      both the fix for a real defect in this repository and the working
      demonstration that AC-3 holds.
+   * AC-7: This requirement binds the **act of generating** and nothing else.
+     A file Jarvis generates into a shared directory carries the prefix; a file
+     carrying the prefix is **not** thereby Jarvis-generated, transient, or
+     disposable. The converse does not hold and SHALL NOT be relied upon:
+     "Jarvis" is also the product name, so authored artefacts carry it too —
+     the package names, ``jarvis-128.png``, the actor-kernel instruction files,
+     and every Change Document named after the change it describes. Fifteen
+     tracked files in this repository match ``jarvis-*``; none of them is
+     generated. Recorded as an acceptance criterion because the
+     ``jarvis-gitignore-automanage`` CR (GH #60) read the converse out of this
+     requirement's AC-1 and proposed a repo-wide ignore rule on that basis
+     (``REQ_CFG_IGNOREPATTERNS``).
 
 
 .. req:: Superseded Generated File Cleanup
@@ -618,3 +630,163 @@ Configuration Requirements
      explicit decision recorded in a Change Document, naming the release from
      which the superseded path is no longer read. It SHALL NOT be dropped
      silently as cleanup.
+
+
+.. req:: Ignore Entries Jarvis Maintains
+   :id: REQ_CFG_IGNOREPATTERNS
+   :status: approved
+   :priority: required
+   :links: US_CFG_AUTOGITIGNORE; REQ_CFG_FIXEDPATHS; REQ_CFG_FILEPREFIX; REQ_CFG_PATHSINGLESOURCE
+
+   **Description:**
+   This requirement governs *what* Jarvis writes into the maintained region of
+   ``.gitignore``. ``REQ_CFG_IGNOREBLOCK`` governs *how* the region is
+   maintained, and ``REQ_CFG_IGNOREAUTOMANAGE`` governs whether it is
+   maintained at all.
+
+   The region covers the paths Jarvis writes that hold **transient runtime
+   state** — regenerable, safe to lose — and nothing else. Every entry is
+   anchored to a directory Jarvis writes into.
+
+   **Why not one recursive prefix glob.** The obvious candidate,
+   ``**/jarvis-*``, rests on the converse of ``REQ_CFG_FILEPREFIX`` AC-7: that
+   carrying the prefix implies being generated and disposable. It does not.
+   Evaluated against this repository with git's own matcher, ``**/jarvis-*``
+   matches fifteen tracked, authored files — seven shipped extension icons, six
+   Change Documents, and an actor-memory note. Tracked files are unaffected by
+   ``.gitignore``, so the pattern would break nothing on the day it landed and
+   would silently withhold the next icon and the next Change Document from
+   version control.
+
+   **Why brevity is not the criterion.** The pattern was chosen for brevity
+   because the file was hand-maintained; every additional line was a line the
+   user had to write and later revisit. Once Jarvis maintains the region, line
+   count stops being a user-facing cost, while over-matching remains a silent
+   data-loss risk. The precise, anchored form is therefore strictly better
+   under automation, and the argument that favoured the glob no longer applies.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The region SHALL cover every path Jarvis writes that holds transient
+     runtime state, including paths added by later Jarvis versions.
+   * AC-2: The region SHALL NOT cover any path that holds durable, authored
+     content. ``.jarvis/actors/`` and the legacy actor root
+     ``.jarvis/sessions/`` hold actor memory and are durable — they are the
+     artefact the actor model exists to accumulate, and a consuming project is
+     expected to version them.
+   * AC-3: Every entry SHALL be anchored to a directory Jarvis writes into. No
+     entry SHALL be an unanchored recursive glob. An unanchored entry's blast
+     radius is the whole repository and is therefore not knowable from the
+     entry itself.
+   * AC-4: No entry SHALL match a path Jarvis does not write
+     (``US_CFG_AUTOGITIGNORE`` AC-4, ``REQ_CFG_FILEPREFIX`` AC-3).
+   * AC-5: The entries SHALL be derived from the same source that resolves
+     those paths at runtime (``REQ_CFG_PATHSINGLESOURCE``), so the region
+     cannot describe a layout Jarvis no longer writes.
+   * AC-6: Introducing a new generated path SHALL require changing that source
+     only. A second, separately maintained list of ignore entries SHALL NOT
+     exist — it is the enumeration this change removes, moved one level down.
+   * AC-7: An entry that classifies a path as transient SHALL be justified by
+     that path's role, not by its name. A path is transient when Jarvis
+     regenerates it and nothing is lost if it is deleted; the ``jarvis-``
+     prefix is neither necessary nor sufficient for that.
+
+
+.. req:: Marked Region Maintenance in .gitignore
+   :id: REQ_CFG_IGNOREBLOCK
+   :status: approved
+   :priority: required
+   :links: US_CFG_AUTOGITIGNORE; REQ_CFG_IGNOREPATTERNS
+
+   **Description:**
+   Jarvis SHALL maintain its ignore entries inside a delimited region of the
+   workspace-root ``.gitignore``, rewriting only that region and leaving the
+   rest of the file exactly as the user left it.
+
+   ``.gitignore`` is a file the user owns and version-controls. Jarvis is
+   writing into it uninvited, so the region has to be recognisable, reversible,
+   and confined.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The region SHALL be delimited by a begin marker and an end marker,
+     each a ``.gitignore`` comment line, and the begin marker SHALL name the
+     setting that controls the behaviour — a reader of a plain diff learns what
+     wrote the lines and how to stop it without leaving the diff
+     (``US_CFG_AUTOGITIGNORE`` AC-2).
+   * AC-2: Maintenance SHALL apply to the ``.gitignore`` at the workspace root
+     only. ``.gitignore`` files in subdirectories SHALL NOT be read or written.
+   * AC-3: When the region is absent, Jarvis SHALL append it; when the file
+     itself is absent, Jarvis SHALL create it containing the region.
+   * AC-4: When the region is present and its content already matches
+     ``REQ_CFG_IGNOREPATTERNS``, Jarvis SHALL NOT write to the file at all —
+     not a rewrite with identical bytes (``US_CFG_AUTOGITIGNORE`` AC-6).
+   * AC-5: When the region is present and its content differs, Jarvis SHALL
+     replace the lines between the markers and SHALL leave every byte outside
+     them unchanged — including the user's own entries, their order, their
+     comments, blank lines, and the file's existing line-ending style.
+   * AC-6: A newly created file SHALL use LF line endings; an existing file's
+     dominant line-ending style SHALL be adopted for the region's own lines,
+     so maintenance never converts a file wholesale.
+   * AC-7: When the markers are malformed — an end marker without a begin
+     marker, a begin marker without an end marker, or more than one region —
+     Jarvis SHALL make no change, SHALL log the condition once, and SHALL NOT
+     throw. The boundary of the managed region is then unknown, and guessing it
+     risks deleting user content.
+   * AC-8: Maintenance SHALL run only when a workspace folder is open and that
+     folder is a git working tree. Otherwise Jarvis SHALL do nothing and SHALL
+     activate normally (``US_CFG_AUTOGITIGNORE`` AC-7).
+   * AC-9: Maintenance SHALL be best-effort: a read or write failure SHALL be
+     logged and SHALL NOT abort activation, consistent with the self-install
+     contract (``REQ_HOOK_AUTOINST`` AC-2, ``REQ_CFG_FILEMIGRATION`` AC-4).
+   * AC-10: Exactly one Jarvis extension SHALL perform this maintenance. Jarvis
+     ships as several independently installed extensions that activate in the
+     same workspace in no guaranteed order (``US_CFG_RUNTIMELAYOUT`` AC-5); if
+     more than one wrote the region, two activations could interleave on the
+     same file and leave it duplicated or truncated. The other extensions SHALL
+     neither write nor remove the region, even when they generate files the
+     region covers.
+   * AC-11: Maintenance SHALL be idempotent — repeated activations produce
+     neither a second region nor a repeated log entry.
+
+
+.. req:: Ignore Auto-Management Setting
+   :id: REQ_CFG_IGNOREAUTOMANAGE
+   :status: approved
+   :priority: required
+   :links: US_CFG_AUTOGITIGNORE; REQ_CFG_IGNOREBLOCK; REQ_CFG_FILEMIGRATION
+
+   **Description:**
+   Jarvis SHALL provide a ``jarvis.gitignore.autoManage`` setting (boolean,
+   default ``true``) controlling the maintenance defined in
+   ``REQ_CFG_IGNOREBLOCK``. Turning it off SHALL remove the region Jarvis
+   previously wrote.
+
+   Opting out of a managed artefact has to remove the artefact, not merely stop
+   updating it. ``REQ_CFG_FILEMIGRATION`` AC-6 established this for hook files
+   after a removal path that handled only current names left upgraded
+   workspaces littered; a region left behind here would be worse, because it
+   sits in a version-controlled file, still names the setting that no longer
+   maintains it, and still hides files.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The setting SHALL be contributed as a boolean with default ``true``.
+   * AC-2: When ``true``, maintenance SHALL proceed as defined in
+     ``REQ_CFG_IGNOREBLOCK``.
+   * AC-3: When ``false``, Jarvis SHALL remove the region if present, leaving
+     every byte outside the markers unchanged (``REQ_CFG_IGNOREBLOCK`` AC-5).
+   * AC-4: When ``false``, Jarvis SHALL NOT write the region during activation
+     or at any later time.
+   * AC-5: When changed from ``false`` to ``true``, maintenance SHALL resume on
+     the next activation.
+   * AC-6: The setting SHALL be workspace-scoped, so each workspace can opt in
+     or out independently (consistent with ``REQ_HOOK_AUTOINST`` AC-6).
+   * AC-7: Removal SHALL NOT delete the ``.gitignore`` file itself, even when
+     the region was its only content and Jarvis created the file. An empty file
+     is not orphaned managed state, whereas deleting a file Jarvis cannot prove
+     it created is unrecoverable for the user (consistent with
+     ``REQ_HOOK_AUTOINST`` AC-7, which forbids removing the shared directory).
+   * AC-8: Removal SHALL be idempotent and best-effort — an absent region is
+     not an error, and a failure to write SHALL be logged without aborting
+     activation.
