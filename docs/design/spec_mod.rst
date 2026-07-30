@@ -121,7 +121,7 @@ Modular Delivery Design Specifications
    contributes a title-bar button to the core's existing ``jarvisMessages``
    tree view (via a ``menus`` contribution keyed to that view id, not by
    modifying the core's manifest) and a Webview Panel command. It reads
-   ``message-log.json`` directly from the workspace — it registers no new
+   the message audit log directly from the workspace — it registers no new
    engine tools and does not require PIM or the recorder.
 
    **Acceptance Criteria:**

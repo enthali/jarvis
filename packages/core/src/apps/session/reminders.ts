@@ -21,10 +21,6 @@ export function setRemindersLogger(logger: vscode.LogOutputChannel): void {
     log = logger;
 }
 
-export function resolveRemindersPath(messagesPath: string): string {
-    return path.join(path.dirname(messagesPath), 'reminders.yaml');
-}
-
 export function readReminders(filePath: string): Reminder[] {
     if (!fs.existsSync(filePath)) { return []; }
     try {

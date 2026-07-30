@@ -39,15 +39,26 @@ Configuration User Stories
 
 .. story:: Message Queue Storage Location
    :id: US_CFG_MSG
-   :status: approved
+   :status: deprecated
    :priority: optional
-   :links: US_MSG_CHATQUEUE
+   :links: US_MSG_CHATQUEUE; US_CFG_FIXEDPATHS
+
+   **Superseded by:** ``US_CFG_FIXEDPATHS`` (settings-cleanup CR, 2026-05-18;
+   formally deprecated by the ``jarvis-messages-dir-grouping`` CR, GH #59).
+
+   Both acceptance criteria below became false when the settings-cleanup CR
+   removed ``jarvis.messagesFile`` and fixed the queue at a non-configurable
+   ``.jarvis/`` path (``REQ_CFG_RENAMES``). The story was left ``approved``,
+   so for over a year it asserted a configurable default that the code does
+   not offer and that ``US_CFG_FIXEDPATHS`` explicitly forbids. Retained for
+   historical traceability; the user goal it describes — choosing the queue
+   location — is deliberately no longer served.
 
    **As a** Jarvis User,
    **I want** to control where Jarvis stores queued messages,
    **so that** I can place the queue file in a shared or backed-up location if needed.
 
-   **Acceptance Criteria:**
+   **Acceptance Criteria (historic — no longer in force):**
 
    * AC-1: By default, ``messages.json`` is stored in VS Code workspace storage
      (``context.storageUri``)
@@ -123,8 +134,8 @@ Configuration User Stories
    :priority: required
 
    **As a** Jarvis user,
-   **I want** the runtime files (heartbeat.yaml, messages.json, reminders.yaml,
-   message-log.json, autodelivery.json) to live at fixed paths under ``.jarvis/``
+   **I want** the runtime files (heartbeat.yaml, the message files under
+   messages/, reminders.yaml) to live at fixed paths under ``.jarvis/``
    in my workspace root
    **so that** Jarvis works out of the box without any manual path configuration.
 
@@ -132,12 +143,13 @@ Configuration User Stories
 
    * AC-3: ``heartbeat.yaml`` is always resolved as
      ``<workspaceRoot>/.jarvis/heartbeat.yaml`` and is not configurable.
-   * AC-4: ``messages.json`` is always resolved as
-     ``<workspaceRoot>/.jarvis/messages.json`` and is not configurable.
+   * AC-4: The message queue is always resolved as
+     ``<workspaceRoot>/.jarvis/messages/queue.json`` and is not configurable.
    * AC-5: ``reminders.yaml`` is always resolved as
      ``<workspaceRoot>/.jarvis/reminders.yaml`` and is not configurable.
-   * AC-7: ``message-log.json`` and ``autodelivery.json`` are also stored under
-     ``<workspaceRoot>/.jarvis/`` and are not configurable.
+   * AC-7: The message log and the auto-delivery list are also stored under
+     ``<workspaceRoot>/.jarvis/messages/`` (``log.json`` and
+     ``autodelivery.json``) and are not configurable.
    * The ``.jarvis/`` directory is created lazily on first write; Jarvis does not
      create it at activation time.
    * When no workspace folder is open, features that require ``.jarvis/`` log a
@@ -187,6 +199,53 @@ Configuration User Stories
    * AC-6: The naming convention and the ignore pattern that follows from it
      SHALL be documented, so a user can apply them without reading Jarvis's
      source.
+
+
+.. story:: Comprehensible Runtime File Layout
+   :id: US_CFG_RUNTIMELAYOUT
+   :status: approved
+   :priority: required
+   :links: US_CFG_FIXEDPATHS; US_CFG_WORKSPACEFILES
+
+   **As a** Jarvis user who inspects or maintains the ``.jarvis/`` directory
+   in my workspace,
+   **I want** runtime files that belong to the same feature to be grouped
+   together and named for what they hold,
+   **so that** I can understand, back up, ignore, or clear a feature's state as
+   one unit, without first learning which of several flat files belong
+   together.
+
+   *Context:* ``.jarvis/`` *currently mixes persistent team knowledge*
+   (``actors/``) *with flat runtime files. Three of them —*
+   ``messages.json``, ``message-log.json``, ``autodelivery.json`` *— are all
+   message-related, but neither their names nor their location says so. The
+   consequence is visible in this repository's own* ``.gitignore``\ *, which
+   has to enumerate the three files individually; adding a fourth message file
+   would silently leave it tracked.* ``state/touched-files/`` *already shows
+   the grouped, well-named pattern this story generalises.*
+
+   **Acceptance Criteria:**
+
+   * AC-1: Runtime files that belong to one feature SHALL be discoverable as a
+     group from the directory listing alone — a user SHALL NOT have to open a
+     file or read documentation to learn that it belongs with another.
+   * AC-2: Each such group SHALL be addressable as a single unit for ignoring,
+     backing up, or clearing — one path SHALL suffice, and it SHALL keep
+     covering files the same feature adds later.
+   * AC-3: A file's name SHALL describe what it holds within its group,
+     without repeating the group name.
+   * AC-4: Reorganising the layout SHALL NOT lose or duplicate any pending
+     runtime data — no queued message, log entry, or auto-delivery
+     registration is dropped, and none is delivered or recorded twice.
+   * AC-5: AC-4 SHALL hold regardless of the order in which Jarvis's separately
+     installed extensions activate, and regardless of whether they are all on
+     the same version — the user upgrades extensions independently and is not
+     required to upgrade them together.
+   * AC-6: No manual migration step, workspace reset, or configuration change
+     SHALL be required of the user.
+   * AC-7: Files that do not belong to a group SHALL remain where they are —
+     the layout SHALL NOT be changed for its own sake where no user-visible
+     confusion exists.
 
 
 .. story:: Grouped Settings Organization

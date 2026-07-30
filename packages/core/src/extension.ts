@@ -495,7 +495,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         context.subscriptions.push(messageView);
 
         if (cfg.get<boolean>('reminders.enabled', true)) {
-            remindersProvider = new RemindersTreeProvider(resolveMessagesPath);
+            remindersProvider = new RemindersTreeProvider();
             const remindersView = vscode.window.createTreeView('jarvisReminders', { treeDataProvider: remindersProvider, showCollapseAll: true });
             context.subscriptions.push(remindersView);
         } else {

@@ -75,15 +75,26 @@ Configuration Requirements
 
 .. req:: Message Queue File Path
    :id: REQ_CFG_MSGPATH
-   :status: implemented
+   :status: deprecated
    :priority: optional
-   :links: US_CFG_MSG; REQ_MSG_QUEUE
+   :links: US_CFG_MSG; REQ_MSG_QUEUE; REQ_CFG_FIXEDPATHS
+
+   **Superseded by:** ``REQ_CFG_FIXEDPATHS`` (queue path) — deprecated together
+   with its parent story ``US_CFG_MSG`` by the ``jarvis-messages-dir-grouping``
+   CR (GH #59).
 
    **Description:**
    The extension SHALL resolve the message queue file path with a sensible default
    and provide an optional user override.
 
-   **Acceptance Criteria:**
+   AC-1 and AC-2 became false when ``REQ_CFG_RENAMES`` removed
+   ``jarvis.messagesFile`` and fixed the queue at a non-configurable ``.jarvis/``
+   path. The requirement nonetheless remained ``implemented`` and was still
+   referenced by ``REQ_MSG_QUEUE`` AC-4 as the authority for the queue location —
+   so the trace pointed at a removed setting. Retained for historical
+   traceability only.
+
+   **Acceptance Criteria (historic — no longer in force):**
 
    * AC-1: The default queue file path SHALL be
      ``context.storageUri/messages.json``
@@ -233,21 +244,30 @@ Configuration Requirements
    **Fixed file paths:**
 
    * ``<workspaceRoot>/.jarvis/heartbeat.yaml``
-   * ``<workspaceRoot>/.jarvis/messages.json``
    * ``<workspaceRoot>/.jarvis/reminders.yaml``
-   * ``<workspaceRoot>/.jarvis/message-log.json``
-   * ``<workspaceRoot>/.jarvis/autodelivery.json``
+   * ``<workspaceRoot>/.jarvis/messages/queue.json``
+   * ``<workspaceRoot>/.jarvis/messages/log.json``
+   * ``<workspaceRoot>/.jarvis/messages/autodelivery.json``
+
+   The three message files were relocated from ``.jarvis/messages.json``,
+   ``.jarvis/message-log.json`` and ``.jarvis/autodelivery.json`` by the
+   ``jarvis-messages-dir-grouping`` CR (GH #59); see ``REQ_CFG_MSGDIR`` for the
+   grouping rule and ``REQ_CFG_STATEMIGRATION`` for the transition.
 
    **Acceptance Criteria:**
 
    * AC-1: The ``.jarvis/`` directory is created lazily on first write; it SHALL
-     NOT be created at extension activation.
+     NOT be created at extension activation. The same applies to subdirectories
+     of ``.jarvis/``.
    * AC-2: Read operations (e.g., ``readQueue``) SHALL return an empty result if
      the file does not yet exist — no error thrown.
    * AC-3: When no workspace folder is open, affected features SHALL log a
      one-time ``warn``-level message and short-circuit; no exception is thrown.
    * AC-4: The paths are not exposed as VS Code settings — no user override
      is possible.
+   * AC-5: Each path above SHALL be obtained from the central path resolver;
+     no runtime path may be derived from another runtime path
+     (``REQ_CFG_PATHSINGLESOURCE``).
 
 
 .. req:: Settings Group Structure
@@ -437,3 +457,164 @@ Configuration Requirements
      (``REQ_HOOK_AUTOINST`` AC-3). A removal path that handles only current
      names would leave an upgraded workspace littered by exactly the files
      this requirement exists to remove.
+
+
+.. req:: Message Runtime Files Grouped in .jarvis/messages/
+   :id: REQ_CFG_MSGDIR
+   :status: approved
+   :priority: required
+   :links: US_CFG_RUNTIMELAYOUT; REQ_CFG_FIXEDPATHS
+
+   **Description:**
+   The runtime files that hold message state SHALL live together in
+   ``<workspaceRoot>/.jarvis/messages/``, and each SHALL be named for what it
+   holds within that directory.
+
+   **Grouping:**
+
+   .. list-table::
+      :header-rows: 1
+      :widths: 30 34 36
+
+      * - Superseded path
+        - Current path
+        - Holds
+      * - ``.jarvis/messages.json``
+        - ``.jarvis/messages/queue.json``
+        - pending messages
+      * - ``.jarvis/message-log.json``
+        - ``.jarvis/messages/log.json``
+        - delivered-message audit log
+      * - ``.jarvis/autodelivery.json``
+        - ``.jarvis/messages/autodelivery.json``
+        - auto-delivery session list
+
+   **Acceptance Criteria:**
+
+   * AC-1: The three files above SHALL reside in ``.jarvis/messages/`` and
+     nowhere else.
+   * AC-2: ``.jarvis/messages/`` SHALL contain only message state. A runtime
+     file that is not message state SHALL NOT be placed there, and no message
+     state file SHALL be placed outside it — this is what makes the single
+     path ``.jarvis/messages/`` a correct and complete unit for ignoring,
+     backing up, or clearing.
+   * AC-3: A file's name SHALL NOT repeat the directory name
+     (``log.json``, not ``message-log.json``).
+   * AC-4: ``reminders.yaml`` and ``heartbeat.yaml`` SHALL remain directly under
+     ``.jarvis/``. They are not message state, and each is the only file of its
+     category; a directory holding one file adds a level of nesting without
+     making anything easier to find or handle
+     (``US_CFG_RUNTIMELAYOUT`` AC-7).
+   * AC-5: The directory SHALL be created lazily on first write, consistent with
+     ``REQ_CFG_FIXEDPATHS`` AC-1 — its absence is a normal state, not an error.
+   * AC-6: The layout SHALL be documented in one place that a user can read
+     without consulting Jarvis's source (``REQ_CFG_FILEPREFIX`` AC-6 records the
+     same obligation for file identity; both are served by the same document
+     section).
+
+
+.. req:: Single-Source Runtime Path Resolution
+   :id: REQ_CFG_PATHSINGLESOURCE
+   :status: approved
+   :priority: required
+   :links: US_CFG_FIXEDPATHS; REQ_CFG_FIXEDPATHS
+
+   **Description:**
+   Every runtime file path SHALL be obtained from the central path resolver.
+   No runtime path may be computed from another runtime path.
+
+   ``REQ_CFG_FIXEDPATHS`` states *what* the paths are; this requirement states
+   *how they must be obtained*, and it exists because stating the values proved
+   insufficient. Four call sites currently derive a path from the queue path by
+   replacing its filename — and three requirements mandate that derivation in so
+   many words: ``REQ_MSG_AUTODELIVER_CONFIG`` AC-2,
+   ``REQ_MSG_REMINDERS_PERSIST`` AC-2 and ``REQ_MSG_AUDITLOG`` AC-1 each require
+   a file to sit "in the same directory as ``messages.json``".
+
+   Co-location is not a property of these files; it was a coincidence of the flat
+   layout. ``REQ_CFG_MSGDIR`` ends that coincidence, and the derivations then
+   fail in three different ways at once: ``reminders.yaml`` moves into
+   ``messages/`` where nothing reads it, the audit log lands in the right
+   directory under the wrong name, and the auto-delivery list happens to land
+   correctly. The last is the dangerous one — it passes every test while
+   preserving the false invariant, and it will break silently the next time any
+   of these paths moves.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Each runtime file SHALL be reachable through exactly one resolver
+     accessor. Two accessors returning the same path, or a path obtainable
+     without the resolver, SHALL be treated as a defect.
+   * AC-2: No code SHALL construct a runtime path from another runtime path by
+     string manipulation of its directory or filename.
+   * AC-3: The obligation SHALL apply to every consumer of a runtime path,
+     regardless of its architectural layer — persistence modules, view
+     providers, commands, and code in any Jarvis package alike. It SHALL NOT be
+     expressed as a list of modules: the reminders defect
+     (``REQ_EXP_REMINDER_OPENFILE``) arose in a view provider that fell outside
+     an enumeration of persistence modules, and any enumeration will exclude the
+     next such case in the same way.
+   * AC-4: Where a package cannot import the resolver, it SHALL still satisfy
+     AC-2, and its local resolution SHALL be marked as mirroring the resolver so
+     that a change to a path can be traced to every place that must follow it.
+   * AC-5: No requirement or design element SHALL specify a file location by
+     reference to another file's location. Locations are stated absolutely, and
+     ``REQ_CFG_FIXEDPATHS`` is their single owner.
+
+
+.. req:: Runtime State Relocation Without Loss
+   :id: REQ_CFG_STATEMIGRATION
+   :status: approved
+   :priority: required
+   :links: US_CFG_RUNTIMELAYOUT; US_CFG_WORKSPACEFILES; REQ_CFG_MSGDIR; REQ_CFG_FILEMIGRATION
+
+   **Description:**
+   When Jarvis relocates a runtime file that holds pending user data, no data
+   SHALL be lost or duplicated, and the transition SHALL require no action from
+   the user.
+
+   ``REQ_CFG_FILEMIGRATION`` governs the neighbouring case: *generated* files,
+   which Jarvis can simply delete and rewrite because it is their sole author.
+   The three message files are different in kind — they hold state the user is
+   waiting on. A dropped entry here is an undelivered message, and it is
+   undelivered silently.
+
+   **Concurrency premise.** ``core``, ``flow`` and ``syspilot`` ship as separate
+   VS Code extensions. They activate in no guaranteed order, and — because a
+   user updates extensions independently — they may run at different versions
+   for an unbounded period. Any migration mechanism SHALL be correct under both
+   conditions. This rules out a one-time move at activation, and it equally
+   rules out reading the superseded path only when the current path is absent:
+   once a newer package has created the current file, an older package still
+   writing the superseded one would be ignored indefinitely, and its messages
+   would never be delivered.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A read SHALL yield the union of the state held at the current and the
+     superseded path. Entries present at either location SHALL be returned;
+     the presence of one location SHALL NOT suppress the other.
+   * AC-2: Union SHALL be duplicate-free with respect to entry identity, so that
+     an entry appearing at both locations is delivered, logged, or registered
+     once.
+   * AC-3: Writes SHALL go to the current path only. The superseded path SHALL
+     never be re-created once removed.
+   * AC-4: The superseded file SHALL be removed once its content is present at
+     the current path, so that no file remains under a name a previous version
+     used (``US_CFG_WORKSPACEFILES`` AC-4). Removal SHALL NOT precede that
+     point: a removal that is not preceded by a successful union write is
+     data loss.
+   * AC-5: Interruption at any point — crash, shutdown, or a failed removal —
+     SHALL leave a state from which the next read still satisfies AC-1 and AC-2.
+     No intermediate state may exist in which pending data is reachable from
+     neither path.
+   * AC-6: Migration SHALL be silent in the steady state: once no superseded
+     file exists, it SHALL produce no log output, no notification, and no
+     measurable cost on the read path.
+   * AC-7: A package that only reads a relocated file SHALL NOT remove the
+     superseded one. Removal is the writing owner's responsibility, because only
+     a writer can establish the AC-4 precondition.
+   * AC-8: Migration support for a given file SHALL be retired only by an
+     explicit decision recorded in a Change Document, naming the release from
+     which the superseded path is no longer read. It SHALL NOT be dropped
+     silently as cleanup.

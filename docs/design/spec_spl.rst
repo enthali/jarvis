@@ -250,7 +250,17 @@ Syspilot Lifecycle Design Specifications
           `or delay it for N days by calling jarvis_delaySyspilotUpdate(N).`;
         api.sendMessage('Syspilot Setup Engineer', 'jarvis-syspilot', text);
         // Ensure auto-delivery is enabled (idempotent, same pattern as reminders)
-        addAutoDelivery(resolveMessagesPath(workspaceRoot), 'Syspilot Setup Engineer');
+        addAutoDelivery(resolveAutoDeliveryPath(workspaceRoot), 'Syspilot Setup Engineer');
+      }
+
+      /** (GH #59) Mirrors configPaths.getAutoDeliveryPath(); syspilot ships as a
+       *  separate extension and cannot import configPaths. It resolves this path
+       *  in its own right — it does NOT derive it from the queue path
+       *  (REQ_CFG_PATHSINGLESOURCE AC-2/AC-4). The previous derivation would have
+       *  remained correct after REQ_CFG_MSGDIR by coincidence, which is why it is
+       *  replaced rather than left alone. */
+      function resolveAutoDeliveryPath(workspaceRoot: string): string {
+        return path.join(workspaceRoot, '.jarvis', 'messages', 'autodelivery.json');
       }
 
    **Design note:** Uses ``api.sendMessage(destination, sender, text)`` —
@@ -268,11 +278,16 @@ Syspilot Lifecycle Design Specifications
      skip this version, or delay for N days. Tool names use underscore
      notation (``jarvis_SyspilotSkipThisVersion``,
      ``jarvis_delaySyspilotUpdate``) so the actor can invoke them directly.
-   * AC-4: Before or after queuing, ``addAutoDelivery(resolveMessagesPath(workspaceRoot),
+   * AC-4: Before or after queuing, ``addAutoDelivery(resolveAutoDeliveryPath(workspaceRoot),
      'Syspilot Setup Engineer')`` is called (idempotent) to ensure the actor
      is on the auto-delivery list — same pattern as the reminders feature
      (``SPEC_MSG_REMINDERS_POLL``). No manual registration by the user is
      required.
+   * AC-5: (GH #59) The auto-delivery path is resolved independently, not
+     derived from the queue path, and the read unions the superseded
+     ``.jarvis/autodelivery.json`` (``REQ_CFG_STATEMIGRATION``). ``syspilot``
+     may run at a different version from ``core``, so a registration written by
+     either must be visible to the other.
 
 
 .. spec:: Suspend Command

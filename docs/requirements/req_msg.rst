@@ -5,7 +5,7 @@ Message Queue Requirements
    :id: REQ_MSG_QUEUE
    :status: implemented
    :priority: optional
-   :links: US_MSG_CHATQUEUE; REQ_AUT_JOBEXEC; REQ_CFG_MSGPATH
+   :links: US_MSG_CHATQUEUE; REQ_AUT_JOBEXEC; REQ_CFG_FIXEDPATHS
 
    **Description:**
    The extension SHALL maintain a persistent JSON file as a message queue for
@@ -19,7 +19,10 @@ Message Queue Requirements
    * AC-2: The queue file SHALL be a JSON array of message entries
    * AC-3: Writing a new message SHALL append to the array without losing existing
      entries
-   * AC-4: The queue file location SHALL be determined by ``REQ_CFG_MSGPATH``
+   * AC-4: The queue file location SHALL be determined by ``REQ_CFG_FIXEDPATHS``
+     (``<workspaceRoot>/.jarvis/messages/queue.json``). The previous reference to
+     ``REQ_CFG_MSGPATH`` pointed at a requirement describing a setting that had
+     already been removed.
 
 .. req:: Message Tree Display
    :id: REQ_MSG_EXPLORER
@@ -314,18 +317,21 @@ Message Queue Requirements
    :id: REQ_MSG_AUTODELIVER_CONFIG
    :status: implemented
    :priority: optional
-   :links: US_MSG_AUTODELIVERY; REQ_MSG_QUEUE
+   :links: US_MSG_AUTODELIVERY; REQ_MSG_QUEUE; REQ_CFG_FIXEDPATHS
 
    **Description:**
-   The extension SHALL maintain a persistent JSON file ``autodelivery.json``
-   co-located with ``messages.json`` that stores the list of session names
-   for which auto-delivery is enabled.
+   The extension SHALL maintain a persistent JSON file at
+   ``<workspaceRoot>/.jarvis/messages/autodelivery.json`` that stores the list of
+   session names for which auto-delivery is enabled.
 
    **Acceptance Criteria:**
 
    * AC-1: The file SHALL be a JSON array of strings (session destination names)
-   * AC-2: The file SHALL be located in the same directory as ``messages.json``
-     (derived from ``resolveMessagesPath()`` by replacing the filename)
+   * AC-2: The path SHALL be obtained from the central path resolver
+     (``REQ_CFG_PATHSINGLESOURCE``). It SHALL NOT be derived from the queue
+     path. The previous wording required exactly that derivation, which
+     ``REQ_CFG_MSGDIR`` would have left accidentally correct — passing tests
+     while preserving an invariant that does not hold.
    * AC-3: If the file does not exist, the extension SHALL treat the auto-delivery
      list as empty (no error)
    * AC-4: Adding a session SHALL append its name to the array and persist the
@@ -355,8 +361,8 @@ Message Queue Requirements
 
    * AC-1: A ``setInterval`` timer with a 5 000 ms period SHALL be started during
      extension activation
-   * AC-2: On each tick the loop SHALL read the current ``messages.json`` and
-     ``autodelivery.json``
+   * AC-2: On each tick the loop SHALL read the current queue and
+     auto-delivery files
    * AC-3: For each session in the auto-delivery list, if at least one message
      exists with ``notified !== true``, the loop SHALL deliver the
      notification by delegating session resolution, editor focus,
@@ -503,10 +509,12 @@ Message Queue Requirements
 
    **Acceptance Criteria:**
 
-   * AC-1: The audit log file SHALL be named ``message-log.json`` and SHALL
-     reside in the same directory as ``messages.json``
+   * AC-1: The audit log file SHALL be
+     ``<workspaceRoot>/.jarvis/messages/log.json``, obtained from the central
+     path resolver and not derived from the queue path
+     (``REQ_CFG_PATHSINGLESOURCE``)
    * AC-2: The audit log file format SHALL be a JSON array of ``QueuedMessage``
-     entries — identical to ``messages.json``
+     entries — identical to the queue file
    * AC-3: Only ``appendMessage()`` writes to the audit log; ``popMessage()``,
      ``deleteMessage()``, and ``deleteByDestination()`` SHALL NOT modify it
    * AC-4: If the audit log file does not exist when the first message is
@@ -847,11 +855,11 @@ Message Queue Requirements
    :id: REQ_MSG_REMINDERS_PERSIST
    :status: draft
    :priority: optional
-   :links: US_MSG_REMINDERS; REQ_MSG_QUEUE; REQ_CFG_MSGPATH
+   :links: US_MSG_REMINDERS; REQ_MSG_QUEUE; REQ_CFG_FIXEDPATHS
 
    **Description:**
-   The extension SHALL maintain a persistent YAML file ``reminders.yaml``
-   co-located with ``messages.json`` that stores all pending reminders.
+   The extension SHALL maintain a persistent YAML file at
+   ``<workspaceRoot>/.jarvis/reminders.yaml`` that stores all pending reminders.
 
    **Acceptance Criteria:**
 
@@ -860,8 +868,11 @@ Message Queue Requirements
      where ``id`` is a UUID string, ``text`` is the message body,
      ``session`` is the target chat tab label, ``deliverAt`` is an ISO 8601
      timestamp, and ``createdAt`` is an ISO 8601 timestamp
-   * AC-2: The file SHALL be located in the same directory as ``messages.json``
-     (path derived from ``resolveMessagesPath()`` by replacing the filename)
+   * AC-2: The path SHALL be obtained from the central path resolver
+     (``REQ_CFG_PATHSINGLESOURCE``). It SHALL NOT be derived from the queue
+     path: reminders are not message state and do not move into
+     ``.jarvis/messages/`` (``REQ_CFG_MSGDIR`` AC-4), so the previous derivation
+     would have relocated the file to a directory nothing reads.
    * AC-3: If the file does not exist, the extension SHALL treat the reminder
      list as empty (no error)
    * AC-4: If the file is malformed, the extension SHALL fall back to an empty

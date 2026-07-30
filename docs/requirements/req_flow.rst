@@ -12,7 +12,7 @@ Message Flow Visualization Requirements
    installed extension package (``enthali.jarvis-flow``), analogous to the
    existing PIM and Recorder add-ons — not folded into the core ``MSG``
    theme/module. It depends on the core extension for its shared runtime
-   and reads ``message-log.json`` directly from the workspace (no new
+   and reads the message audit log directly from the workspace (no new
    engine API surface is introduced for this CR).
 
    **Acceptance Criteria:**
@@ -33,18 +33,24 @@ Message Flow Visualization Requirements
    :id: REQ_FLOW_DATASOURCE
    :status: draft
    :priority: optional
-   :links: US_FLOW_CHORDVIEW; REQ_MSG_LOGSETTING
+   :links: US_FLOW_CHORDVIEW; REQ_MSG_LOGSETTING; REQ_CFG_FIXEDPATHS
 
    **Description:**
-   The diagram SHALL source its data from the existing, fixed-path
-   ``message-log.json`` file (``{destination, sender, text, timestamp}``
+   The diagram SHALL source its data from the existing message audit log
+   at ``<workspaceRoot>/.jarvis/messages/log.json``
+   (``{destination, sender, text, timestamp}``
    per entry, per ``REQ_MSG_LOGSETTING``/``SPEC_MSG_LOGSETTING``) — no new
    logging, no new file format, no new persisted data.
+
+   ``flow`` is a read-only consumer of that file. It therefore reads the
+   superseded path as well while migration support is in force, and never
+   removes it (``REQ_CFG_STATEMIGRATION`` AC-7) — a separately installed
+   extension may be at a different version from the writer.
 
    **Acceptance Criteria:**
 
    * AC-1: If ``jarvis.messages.logging`` has never been enabled (no
-     ``message-log.json`` file exists), the diagram SHALL show an empty
+     audit log file exists at either path), the diagram SHALL show an empty
      state explaining that message logging must be enabled to populate the
      diagram, rather than an error.
    * AC-2: To bound diagram size and rendering cost, the data set SHALL be
@@ -220,7 +226,7 @@ Message Flow Visualization Requirements
    * AC-3: If the panel is already open (in any column, including one the
      user manually moved it to), the command/button SHALL reveal/focus the
      existing panel rather than creating a second instance.
-   * AC-4: The panel's content SHALL refresh by polling ``message-log.json``
+   * AC-4: The panel's content SHALL refresh by polling the audit log
      every 5 seconds while the panel is visible — matching the existing
      Auto-Delivery poll-loop cadence (``REQ_MSG_AUTODELIVER_POLL``); no
      file-watcher is introduced for v1, since delivery itself is not faster
@@ -270,7 +276,7 @@ Message Flow Visualization Requirements
    **Description:**
    A command ``jarvis.openMessageLog`` SHALL create (or reveal, if already
    open) a single ``vscode.WebviewPanel`` showing every entry of the
-   persistent audit log (``message-log.json``, ``REQ_MSG_AUDITLOG``),
+   persistent audit log (``REQ_MSG_AUDITLOG``),
    newest first, with scroll-position-driven auto-refresh. This is the
    read/browse half of the feature; ``REQ_FLOW_REQUEUE`` covers the
    Requeue action.
@@ -288,7 +294,7 @@ Message Flow Visualization Requirements
      SHALL invoke the same command — same contribution point already used
      for ``jarvis.openMessageFlow`` (``REQ_FLOW_WEBVIEWPANEL`` AC-3), a
      second button alongside it, not a replacement.
-   * AC-4: If ``message-log.json`` does not exist or fails to parse, the
+   * AC-4: If the audit log does not exist or fails to parse, the
      panel SHALL show an empty state (e.g. "No message history yet" /
      "Enable message logging to populate this view") rather than an error
      — same tolerant-empty-state precedent as ``REQ_FLOW_DATASOURCE`` AC-1.
@@ -338,10 +344,10 @@ Message Flow Visualization Requirements
 
    **Description:**
    A "Requeue" button on each log-viewer entry SHALL copy that message back
-   into the live message queue (``messages.json``), addressed to its
+   into the live message queue (``REQ_MSG_QUEUE``), addressed to its
    original recipient — a redelivery of a past message, not a new send.
    This SHALL NOT create a new entry in the persistent audit log
-   (``message-log.json``), even when audit logging
+   (``REQ_MSG_AUDITLOG``), even when audit logging
    (``jarvis.messages.logging``, ``REQ_MSG_LOGSETTING``) is enabled — a
    deliberate, explicit divergence from the normal message-send path (which
    always logs when enabled), since a requeue is a redelivery of an entry
@@ -350,7 +356,7 @@ Message Flow Visualization Requirements
    **Acceptance Criteria:**
 
    * AC-1: Clicking "Requeue" on an entry SHALL append a new entry to
-     ``messages.json`` with the same ``destination`` (recipient),
+     the message queue (``REQ_MSG_QUEUE``) with the same ``destination`` (recipient),
      ``text`` (content), and the **same** ``timestamp`` as the original
      entry (preserving the original send time, not stamping a new one) —
      the redelivered entry is otherwise an exact copy of the logged entry.
@@ -362,18 +368,18 @@ Message Flow Visualization Requirements
      effect — packages/flow (a separate extension package with no
      compile-time access to core's internal ``appendMessage()`` function)
      SHALL implement its own minimal, local queue-append function that
-     writes only to ``messages.json``, mirroring ``QueuedMessage``'s exact
+     writes only to the queue, mirroring ``QueuedMessage``'s exact
      JSON shape (``REQ_MSG_AUDITLOG`` AC-2) — it SHALL NOT duplicate or
      reimplement any log-writing logic, simply omit it.
    * AC-4: After a successful requeue, the log viewer SHALL show a brief,
      non-blocking confirmation (e.g. a status message or toast) — no modal
      dialog, no panel reload required.
-   * AC-5: If ``messages.json``'s parent directory does not exist (no
-     workspace open, or ``.jarvis`` missing), the requeue action SHALL fail
+   * AC-5: If the queue file's parent directory does not exist (no
+     workspace open, or ``.jarvis/messages/`` missing), the requeue action SHALL fail
      open: show an error notification, and SHALL NOT throw an unhandled
      exception or crash the panel.
    * AC-6: Requeuing the same log entry multiple times SHALL be permitted
-     and SHALL each independently append a new ``messages.json`` entry —
+     and SHALL each independently append a new queue entry —
      no idempotency/deduplication guard, matching the "any number of
      redeliveries" nature of the feature (a user may deliberately want to
      resend the same message more than once).

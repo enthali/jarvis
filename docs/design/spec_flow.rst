@@ -4,12 +4,20 @@ Message Flow Visualization Design Specifications
 .. spec:: Flow Data Service
    :id: SPEC_FLOW_DATASERVICE
    :status: draft
-   :links: REQ_FLOW_DATASOURCE; REQ_FLOW_LOADMORE; SPEC_MSG_LOGSETTING
+   :links: REQ_FLOW_DATASOURCE; REQ_FLOW_LOADMORE; SPEC_MSG_LOGSETTING; REQ_CFG_STATEMIGRATION
 
    **Description:**
-   ``packages/flow/src/dataService.ts`` reads ``message-log.json`` (same file
+   ``packages/flow/src/dataService.ts`` reads the message audit log at
+   ``.jarvis/messages/log.json`` (same file
    and format as ``SPEC_MSG_LOGSETTING``) and aggregates it into the node/edge
    shape the renderer consumes. Read-only — never writes to the log.
+
+   **(GH #59)** ``flow`` is a separate extension and may run at a different
+   version from ``core``, so its read unions the superseded
+   ``.jarvis/message-log.json`` with the current path
+   (``SPEC_CFG_STATEMIGRATION``). Being read-only, it never removes the
+   superseded file (``REQ_CFG_STATEMIGRATION`` AC-7) — removal requires having
+   persisted the union, which only the writer does.
    **Amended (flow-time-lens CR):** ``loadFlowData`` now accepts an explicit
    ``cap`` parameter (``REQ_FLOW_LOADMORE`` AC-1) instead of a fixed module
    constant, and ``FlowData`` additionally carries the raw, capped, entry list
@@ -46,7 +54,7 @@ Message Flow Visualization Design Specifications
       export const DEFAULT_CAP = 30;
 
       function loadFlowData(logPath: string, cap: number = DEFAULT_CAP): FlowData {
-        const raw = readMessageLog(logPath); // reuses message-log.json reader
+        const raw = readMessageLog(logPath); // reuses the audit-log reader
         const capped = raw.slice(-cap); // most recent `cap` entries, no time boundary
         return {
           ...aggregate(capped),
@@ -56,7 +64,8 @@ Message Flow Visualization Design Specifications
 
    **Acceptance Criteria:**
 
-   * AC-1: If ``message-log.json`` does not exist or fails to parse, returns
+   * AC-1: If the audit log does not exist at either path or fails to parse,
+     returns
      ``{ nodes: [], edges: [], entries: [] }`` (empty state, no thrown error)
      — mirrors the existing tolerant-parse pattern in
      ``readQueue()``/``SPEC_MSG_QUEUESTORE``.
@@ -398,7 +407,7 @@ Message Flow Visualization Design Specifications
      available regardless of which extension registered the command) —
      no dependency on ``JarvisCoreApi``'s exports for this interaction,
      unlike ``SPEC_FLOW_DATASERVICE``'s direct file read of
-     ``message-log.json``.
+     the audit log.
 
 
 .. spec:: Message Log Viewer Panel
@@ -411,8 +420,9 @@ Message Flow Visualization Design Specifications
    a second singleton ``vscode.WebviewPanel`` alongside the existing
    ``jarvis.openMessageFlow`` panel (``SPEC_FLOW_WEBVIEW``), reusing the
    same viewtype-per-panel/reveal/Docs-column pattern. It reads
-   ``message-log.json`` directly (the same file ``SPEC_FLOW_DATASERVICE``
-   reads for the chord diagram) via a small local reader — the log
+   the audit log directly (the same file ``SPEC_FLOW_DATASERVICE``
+   reads for the chord diagram, resolved the same way and with the same
+   migration union) via a small local reader — the log
    viewer's own reader returns the raw, un-aggregated entry list
    (reverse-chronological), rather than the chord diagram's
    node/edge-aggregated ``FlowData`` shape, since it displays individual
@@ -583,19 +593,25 @@ Message Flow Visualization Design Specifications
 .. spec:: Message Requeue (Redelivery)
    :id: SPEC_FLOW_REQUEUE
    :status: draft
-   :links: REQ_FLOW_REQUEUE; SPEC_FLOW_LOGVIEWER; SPEC_MSG_QUEUESTORE
+   :links: REQ_FLOW_REQUEUE; SPEC_FLOW_LOGVIEWER; SPEC_MSG_QUEUESTORE; REQ_CFG_STATEMIGRATION
 
    **Description:**
    A local, minimal queue-append function in ``packages/flow`` (NOT an
    import of core's ``appendMessage()`` — cross-package compile-time
    imports between separately-bundled extensions are not possible; this
    mirrors the existing precedent of ``dataService.ts`` maintaining its own
-   ``message-log.json`` reader rather than importing core's) writes a copy
-   of the requeued entry into ``messages.json``, preserving the original
+   audit-log reader rather than importing core's) writes a copy
+   of the requeued entry into the message queue, preserving the original
    ``sender`` and ``timestamp`` verbatim (per user decision during L1
    review — a requeue is an exact redelivery of the original entry, not a
    new event with a new send time). It deliberately does **not** touch
-   ``message-log.json`` — no audit-log side effect, unlike a normal send.
+   the audit log — no audit-log side effect, unlike a normal send.
+
+   **(GH #59)** This is a *writer* in a separately versioned package, so it is
+   the case ``REQ_CFG_STATEMIGRATION`` is written for: it unions the superseded
+   queue path into what it writes, and removes the superseded file afterwards.
+   Its local path resolution mirrors ``configPaths`` and derives nothing
+   (``REQ_CFG_PATHSINGLESOURCE`` AC-4).
 
    **Implementation:**
 
@@ -608,31 +624,36 @@ Message Flow Visualization Design Specifications
           timestamp: string; // preserved verbatim from the original log entry
       }
 
-      /** Resolves <workspaceRoot>/.jarvis/messages.json — mirrors configPaths.getMessagesPath(). */
+      /** Mirrors configPaths.getMessagesPath() — <workspaceRoot>/.jarvis/messages/queue.json. */
       function resolveMessagesPath(): string | undefined {
+          const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+          return root ? path.join(root, '.jarvis', 'messages', 'queue.json') : undefined;
+      }
+
+      /** Mirrors configPaths.getLegacyMessagesPath() — read/remove only (GH #59). */
+      function resolveLegacyMessagesPath(): string | undefined {
           const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
           return root ? path.join(root, '.jarvis', 'messages.json') : undefined;
       }
 
       /**
-       * Appends `entry` to messages.json only — deliberately does NOT write
-       * to message-log.json, even if jarvis.messages.logging is enabled
+       * Appends `entry` to the queue only — deliberately does NOT write
+       * to the audit log, even if jarvis.messages.logging is enabled
        * (REQ_FLOW_REQUEUE: a requeue is a redelivery of an already-logged
        * entry, not a new event to log again).
        */
       async function requeueMessage(entry: QueuedMessageCopy): Promise<void> {
           const messagesPath = resolveMessagesPath();
           if (!messagesPath) { throw new Error('No workspace open'); }
-          let queue: QueuedMessageCopy[] = [];
-          try {
-              const raw = await fs.promises.readFile(messagesPath, 'utf-8');
-              queue = JSON.parse(raw);
-          } catch {
-              queue = []; // missing/unparseable file → start fresh, same tolerant pattern as readMessageLog()
-          }
+          const legacyPath = resolveLegacyMessagesPath();
+          // Union read (SPEC_CFG_STATEMIGRATION): an older core may still be
+          // writing the flat path; ignoring it would strand those messages.
+          const { entries: queue, legacyPresent } = await readQueueUnion(messagesPath, legacyPath);
           queue.push(entry);
           await fs.promises.mkdir(path.dirname(messagesPath), { recursive: true });
           await fs.promises.writeFile(messagesPath, JSON.stringify(queue, null, 2));
+          // Only now is the union durable — removal before this point is data loss.
+          if (legacyPresent) { await fs.promises.unlink(legacyPath!).catch(() => {}); }
       }
 
       async function handleRequeue(
@@ -675,12 +696,12 @@ Message Flow Visualization Design Specifications
 
    **Acceptance Criteria:**
 
-   1. ``requeueMessage()`` writes only to ``messages.json`` — no code path
-      in this function touches ``message-log.json``.
+   1. ``requeueMessage()`` writes only to the queue — no code path
+      in this function touches the audit log.
    2. The appended entry's ``sender`` and ``timestamp`` are copied verbatim
       from the original log entry; only ``destination``/``text`` are
       otherwise involved (also copied verbatim — nothing is transformed).
-   3. A missing/unparseable ``messages.json`` is treated as an empty queue
+   3. A missing/unparseable queue file at either path is treated as empty
       (tolerant, consistent with ``readMessageLog()``'s existing pattern)
       — the requeue still succeeds, creating the file fresh.
    4. No workspace open (``resolveMessagesPath()`` returns ``undefined``)

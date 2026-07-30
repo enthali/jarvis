@@ -26,17 +26,14 @@ docs/_build/
 
 # jarvis log files
 .jarvis/logs/
-.jarvis/message-log.json
-.jarvis/autodelivery.json
-.jarvis/messages.json
+.jarvis/messages/
 .jarvis/reminders.yaml
 .jarvis/heartbeat.yaml
 .jarvis/state/
 
 # testdata workspace runtime/scratch state (Dev Host manual testing,
 # not automated-test fixtures - those live under testdata/heartbeat/)
-testdata/.jarvis/messages.json
-testdata/.jarvis/autodelivery.json
+testdata/.jarvis/messages/
 testdata/.jarvis/heartbeat.yaml
 testdata/.jarvis/state/
 

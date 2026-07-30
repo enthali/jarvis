@@ -36,26 +36,59 @@ export function getHeartbeatPath(): string | undefined {
     return dir ? path.join(dir, 'heartbeat.yaml') : undefined;
 }
 
-/** Returns <workspaceRoot>/.jarvis/messages.json, or undefined. */
-export function getMessagesPath(): string | undefined {
+/** Returns <workspaceRoot>/.jarvis/messages, or undefined.
+ *  (GH #59) The group directory for message state — REQ_CFG_MSGDIR. */
+export function getMessagesDir(): string | undefined {
     const dir = getJarvisDir();
-    return dir ? path.join(dir, 'messages.json') : undefined;
+    return dir ? path.join(dir, 'messages') : undefined;
 }
 
-/** Returns <workspaceRoot>/.jarvis/reminders.yaml, or undefined. */
+/** Ensures <workspaceRoot>/.jarvis/messages exists (mkdir -p), or undefined.
+ *  Called on first write, never at activation — REQ_CFG_FIXEDPATHS AC-1. */
+export function ensureMessagesDir(): string | undefined {
+    const dir = getMessagesDir();
+    if (!dir) { return undefined; }
+    fs.mkdirSync(dir, { recursive: true });
+    return dir;
+}
+
+/** Returns <workspaceRoot>/.jarvis/messages/queue.json, or undefined. */
+export function getMessagesPath(): string | undefined {
+    const dir = getMessagesDir();
+    return dir ? path.join(dir, 'queue.json') : undefined;
+}
+
+/** Returns <workspaceRoot>/.jarvis/reminders.yaml, or undefined.
+ *  Not message state — stays directly under .jarvis/ (REQ_CFG_MSGDIR AC-4). */
 export function getRemindersPath(): string | undefined {
     const dir = getJarvisDir();
     return dir ? path.join(dir, 'reminders.yaml') : undefined;
 }
 
-/** Returns <workspaceRoot>/.jarvis/message-log.json, or undefined. */
+/** Returns <workspaceRoot>/.jarvis/messages/log.json, or undefined. */
 export function getMessageLogPath(): string | undefined {
+    const dir = getMessagesDir();
+    return dir ? path.join(dir, 'log.json') : undefined;
+}
+
+/** Returns <workspaceRoot>/.jarvis/messages/autodelivery.json, or undefined. */
+export function getAutoDeliveryPath(): string | undefined {
+    const dir = getMessagesDir();
+    return dir ? path.join(dir, 'autodelivery.json') : undefined;
+}
+
+/** (GH #59) Superseded flat paths, read-only, for migration — see
+ *  SPEC_CFG_STATEMIGRATION. Exposed so that no consumer reconstructs
+ *  them by hand (REQ_CFG_PATHSINGLESOURCE AC-2). */
+export function getLegacyMessagesPath(): string | undefined {
+    const dir = getJarvisDir();
+    return dir ? path.join(dir, 'messages.json') : undefined;
+}
+export function getLegacyMessageLogPath(): string | undefined {
     const dir = getJarvisDir();
     return dir ? path.join(dir, 'message-log.json') : undefined;
 }
-
-/** Returns <workspaceRoot>/.jarvis/autodelivery.json, or undefined. */
-export function getAutoDeliveryPath(): string | undefined {
+export function getLegacyAutoDeliveryPath(): string | undefined {
     const dir = getJarvisDir();
     return dir ? path.join(dir, 'autodelivery.json') : undefined;
 }

@@ -355,7 +355,7 @@ Configuration Design Specifications
             "jarvis.messages.logging": {
               "type": "boolean",
               "default": true,
-              "description": "When enabled, every queued message is also appended to .jarvis/message-log.json (append-only audit log)."
+              "description": "When enabled, every queued message is also appended to the audit log at .jarvis/messages/log.json (append-only)."
             },
             "jarvis.messages.notificationTemplate": {
               "type": "string",
@@ -495,12 +495,18 @@ Configuration Design Specifications
 .. spec:: settings-cleanup: Central Path Resolver Module (configPaths.ts)
    :id: SPEC_CFG_PATHRESOLVER
    :status: implemented
-   :links: REQ_CFG_FIXEDPATHS; REQ_ACT_DUALPATH_SCANNER
+   :links: REQ_CFG_FIXEDPATHS; REQ_ACT_DUALPATH_SCANNER; REQ_CFG_MSGDIR; REQ_CFG_PATHSINGLESOURCE
 
    **(actor-dualpath-scanner CR amendment):** adds ``getActorsDir()``/
    ``ensureActorsDir()`` below, mirroring the existing
    ``getSessionsDir()``/``ensureSessionsDir()`` pair — see
    ``SPEC_ACT_DUALPATH_SCANNER`` for how these are wired into the scanner.
+
+   **(jarvis-messages-dir-grouping CR, GH #59 amendment):** the three message
+   getters now resolve into ``.jarvis/messages/``, a ``getMessagesDir()``/
+   ``ensureMessagesDir()`` pair is added, and the usage contract below is
+   restated as a property binding every consumer rather than an enumeration of
+   persistence modules.
 
    **Description:**
    New module ``src/configPaths.ts`` provides all runtime file-path resolution
@@ -540,26 +546,59 @@ Configuration Design Specifications
         return dir ? path.join(dir, 'heartbeat.yaml') : undefined;
       }
 
-      /** Returns <workspaceRoot>/.jarvis/messages.json, or undefined. */
-      export function getMessagesPath(): string | undefined {
+      /** Returns <workspaceRoot>/.jarvis/messages, or undefined.
+       *  (GH #59) The group directory for message state — REQ_CFG_MSGDIR. */
+      export function getMessagesDir(): string | undefined {
         const dir = getJarvisDir();
-        return dir ? path.join(dir, 'messages.json') : undefined;
+        return dir ? path.join(dir, 'messages') : undefined;
       }
 
-      /** Returns <workspaceRoot>/.jarvis/reminders.yaml, or undefined. */
+      /** Ensures <workspaceRoot>/.jarvis/messages exists (mkdir -p), or undefined.
+       *  Called on first write, never at activation — REQ_CFG_FIXEDPATHS AC-1. */
+      export function ensureMessagesDir(): string | undefined {
+        const dir = getMessagesDir();
+        if (!dir) { return undefined; }
+        fs.mkdirSync(dir, { recursive: true });
+        return dir;
+      }
+
+      /** Returns <workspaceRoot>/.jarvis/messages/queue.json, or undefined. */
+      export function getMessagesPath(): string | undefined {
+        const dir = getMessagesDir();
+        return dir ? path.join(dir, 'queue.json') : undefined;
+      }
+
+      /** Returns <workspaceRoot>/.jarvis/reminders.yaml, or undefined.
+       *  Not message state — stays directly under .jarvis/ (REQ_CFG_MSGDIR AC-4). */
       export function getRemindersPath(): string | undefined {
         const dir = getJarvisDir();
         return dir ? path.join(dir, 'reminders.yaml') : undefined;
       }
 
-      /** Returns <workspaceRoot>/.jarvis/message-log.json, or undefined. */
+      /** Returns <workspaceRoot>/.jarvis/messages/log.json, or undefined. */
       export function getMessageLogPath(): string | undefined {
+        const dir = getMessagesDir();
+        return dir ? path.join(dir, 'log.json') : undefined;
+      }
+
+      /** Returns <workspaceRoot>/.jarvis/messages/autodelivery.json, or undefined. */
+      export function getAutoDeliveryPath(): string | undefined {
+        const dir = getMessagesDir();
+        return dir ? path.join(dir, 'autodelivery.json') : undefined;
+      }
+
+      /** (GH #59) Superseded flat paths, read-only, for migration — see
+       *  SPEC_CFG_STATEMIGRATION. Exposed so that no consumer reconstructs
+       *  them by hand (REQ_CFG_PATHSINGLESOURCE AC-2). */
+      export function getLegacyMessagesPath(): string | undefined {
+        const dir = getJarvisDir();
+        return dir ? path.join(dir, 'messages.json') : undefined;
+      }
+      export function getLegacyMessageLogPath(): string | undefined {
         const dir = getJarvisDir();
         return dir ? path.join(dir, 'message-log.json') : undefined;
       }
-
-      /** Returns <workspaceRoot>/.jarvis/autodelivery.json, or undefined. */
-      export function getAutoDeliveryPath(): string | undefined {
+      export function getLegacyAutoDeliveryPath(): string | undefined {
         const dir = getJarvisDir();
         return dir ? path.join(dir, 'autodelivery.json') : undefined;
       }
@@ -597,25 +636,47 @@ Configuration Design Specifications
         return dir;
       }
 
-   **Usage contract for persistence modules:**
+   **Usage contract (GH #59: every consumer, not a list of modules):**
 
-   Each persistence module (``messageQueue.ts``, ``reminders.ts``,
-   ``heartbeat.ts``) SHALL:
+   Every consumer of a runtime path — persistence module, view provider,
+   command handler, or any other caller, in any Jarvis package — SHALL:
 
    1. Call the appropriate getter on every read/write operation (not cached at
       activation time).
    2. On reads: if the getter returns ``undefined`` (no workspace), return empty
       / no-op silently.
-   3. On writes: call ``ensureJarvisDir()`` once before the first
+   3. On writes: call ``ensureJarvisDir()`` — or ``ensureMessagesDir()`` for
+      files inside ``.jarvis/messages/`` — once before the first
       ``fs.writeFileSync`` to guarantee the directory exists.
+   4. Never construct a runtime path from another runtime path
+      (``REQ_CFG_PATHSINGLESOURCE`` AC-2). If a needed path has no getter, the
+      getter is added here; it is not derived at the call site.
+
+   The previous wording bound "each persistence module (``messageQueue.ts``,
+   ``reminders.ts``, ``heartbeat.ts``)". ``remindersTreeProvider.ts`` is a view
+   provider, so it was outside that scope and resolved the reminders path by
+   derivation instead — which is why the contract is now stated as a property.
+   An enumeration excludes whichever consumer is added next, and it does so
+   silently.
+
+   **Packages that cannot import this module** (``flow``, ``syspilot`` ship as
+   separate extensions) SHALL mirror the getter they need in one place, marked
+   as mirroring ``configPaths``, so that a path change is traceable to every
+   site that must follow it (``REQ_CFG_PATHSINGLESOURCE`` AC-4). Mirroring the
+   getter is permitted; deriving one path from another is not.
 
    **Design notes:**
 
    * ``ensureJarvisDir()`` is intentionally NOT called at extension activation —
-     the ``.jarvis/`` directory is created only on first write.
+     the ``.jarvis/`` directory is created only on first write. The same holds
+     for ``ensureMessagesDir()``.
    * When no workspace is open, all getters return ``undefined`` and persistence
      modules short-circuit. A one-time ``log.warn`` is emitted (not an error).
    * The module has no runtime state; it is safe to call functions multiple times.
+   * The ``getLegacy*`` getters exist so that migration code has one place to
+     change when the superseded paths are finally dropped
+     (``REQ_CFG_STATEMIGRATION`` AC-8). They are read-only by convention: no
+     write path resolves through them.
 
 
 .. spec:: settings-cleanup: Feature Toggle Guards in activate()
@@ -741,7 +802,7 @@ Workspace File Layout & VCS Visibility
 .. spec:: Jarvis-Owned Workspace Files and Ignore Patterns
    :id: SPEC_CFG_WORKSPACEFILES
    :status: approved
-   :links: REQ_CFG_FILEPREFIX; REQ_CFG_FIXEDPATHS; SPEC_HOOK_CONFIG
+   :links: REQ_CFG_FILEPREFIX; REQ_CFG_FIXEDPATHS; REQ_CFG_MSGDIR; SPEC_HOOK_CONFIG
 
    **Description:**
    Jarvis writes generated files into the user's workspace. This section is the
@@ -828,3 +889,190 @@ Workspace File Layout & VCS Visibility
    **Scope note.** This section is written to serve the ``.jarvis/`` layout
    reorganisation (GH #59) as well. When that CR lands it extends the table
    above rather than introducing a second, competing layout reference.
+
+   **Inside** ``.jarvis/`` **(GH #59).**
+   Ownership makes the directory ignorable as a unit; it does not make its
+   contents comprehensible. Runtime files that belong to one feature are grouped
+   into a subdirectory and named for what they hold within it
+   (``REQ_CFG_MSGDIR``).
+
+   .. list-table::
+      :header-rows: 1
+      :widths: 34 40 26
+
+      * - Path
+        - Holds
+        - Superseded path
+      * - ``.jarvis/actors/``
+        - Actor folders and ``context.md`` memory
+        - —
+      * - ``.jarvis/sessions/``
+        - Session records
+        - —
+      * - ``.jarvis/state/``
+        - Engine-internal state (e.g. ``touched-files``)
+        - —
+      * - ``.jarvis/messages/queue.json``
+        - Pending messages
+        - ``.jarvis/messages.json``
+      * - ``.jarvis/messages/log.json``
+        - Delivered-message audit log
+        - ``.jarvis/message-log.json``
+      * - ``.jarvis/messages/autodelivery.json``
+        - Auto-delivery session list
+        - ``.jarvis/autodelivery.json``
+      * - ``.jarvis/heartbeat.yaml``
+        - Heartbeat job definitions
+        - —
+      * - ``.jarvis/reminders.yaml``
+        - Pending reminders
+        - —
+
+   ``heartbeat.yaml`` and ``reminders.yaml`` stay at the top level: each is the
+   only file of its category, and a directory holding one file adds nesting
+   without making anything easier to find (``REQ_CFG_MSGDIR`` AC-4). The
+   criterion for grouping is that files belong together, not that every category
+   gets a folder.
+
+   **Effect on this repository's** ``.gitignore``.
+   Before GH #59 the three message files had to be listed individually
+   (``.jarvis/message-log.json``, ``.jarvis/autodelivery.json``,
+   ``.jarvis/messages.json``), and each of the two locations that ignore them —
+   the repository root and ``testdata/`` — repeated the list. Nothing in those
+   entries said the files belonged together, and a fourth message file would
+   have stayed tracked until someone noticed. The grouped layout replaces each
+   list with one entry:
+
+   .. code-block:: text
+
+      .jarvis/messages/
+      testdata/.jarvis/messages/
+
+   This is the same argument as the ``jarvis-`` prefix above, applied to the
+   directory Jarvis does own: a single pattern that keeps covering files the
+   feature adds later, instead of an enumeration that silently stops being
+   complete.
+
+   *Note: applying the* ``.gitignore`` *change is Developer scope; it is
+   specified here, not performed.*
+
+
+.. spec:: Loss-Free Relocation of Message Runtime State
+   :id: SPEC_CFG_STATEMIGRATION
+   :status: approved
+   :links: REQ_CFG_STATEMIGRATION; REQ_CFG_MSGDIR; SPEC_CFG_PATHRESOLVER; SPEC_MSG_QUEUESTORE
+
+   **Description:**
+   The three message files move to ``.jarvis/messages/`` while workspaces
+   already hold pending data at the flat paths. This element specifies how that
+   data reaches the new location without any of it being lost, duplicated, or
+   requiring the user to act.
+
+   **What rules out the two obvious mechanisms.**
+
+   A *one-time move at activation* is unavailable: ``core``, ``flow`` and
+   ``syspilot`` are separate extensions with no guaranteed activation order, so
+   there is no single point at which the move can be performed before anyone
+   reads.
+
+   A *fallback read* — "read the new path; if absent, read the old" — is
+   likewise unsafe, and for a reason the activation-order argument does not
+   cover. Extensions are also upgraded independently, so an older ``syspilot``
+   may run beside a newer ``core`` for an unbounded period and keep writing
+   ``messages.json``. Under fallback semantics, ``core`` creates
+   ``messages/queue.json`` once, and from that moment the older writer's
+   messages are never read again. Nothing errors; the messages are simply never
+   delivered. Fallback also never removes the old file, leaving it in place
+   permanently under a name a previous version used — which
+   ``US_CFG_WORKSPACEFILES`` AC-4 forbids.
+
+   **Mechanism: union on read, write new, then remove.**
+
+   Every read of a relocated file resolves both paths and returns their union.
+   Every write goes to the new path only. Once a write has persisted a union
+   that includes the old file's content, the old file is removed. The three
+   steps happen inside one read-modify-write cycle, which is what makes the
+   ordering safe without coordination between extensions:
+
+   .. code-block:: typescript
+
+      // Illustrative shape, not prescriptive code.
+      function readWithMigration<T>(
+        currentPath: string | undefined,
+        legacyPath: string | undefined,
+        parse: (raw: string) => T[],
+        identity: (entry: T) => string,
+      ): { entries: T[]; legacyPresent: boolean } {
+        const current = readOrEmpty(currentPath, parse);
+        const legacy = readOrEmpty(legacyPath, parse);
+        if (legacy.length === 0 && !exists(legacyPath)) {
+          return { entries: current, legacyPresent: false };   // steady state
+        }
+        const seen = new Set(current.map(identity));
+        const merged = [...current];
+        for (const e of legacy) {
+          if (!seen.has(identity(e))) { seen.add(identity(e)); merged.push(e); }
+        }
+        return { entries: merged, legacyPresent: true };
+      }
+
+      // Writers only:
+      function writeWithMigration<T>(currentPath, legacyPath, entries, legacyPresent) {
+        ensureMessagesDir();
+        writeAtomic(currentPath, entries);      // union is now durable
+        if (legacyPresent) { tryUnlink(legacyPath); }   // best-effort
+      }
+
+   **Why removal comes after the write, and only after a union write.**
+   Removing first would drop data if the write then failed. Removing after a
+   write that did *not* include the old content would drop it just as
+   effectively. The precondition is therefore not "a write happened" but "a
+   write happened that carried the union" — a property of the cycle above, which
+   is why the two functions are specified as a pair.
+
+   **Identity and ordering per file:**
+
+   .. list-table::
+      :header-rows: 1
+      :widths: 26 22 30 22
+
+      * - File
+        - Shape
+        - Entry identity
+        - Order after union
+      * - ``messages/queue.json``
+        - Array of ``QueuedMessage``
+        - ``destination`` + ``sender`` + ``text`` + ``timestamp``
+        - Ascending ``timestamp``
+      * - ``messages/log.json``
+        - Array of ``QueuedMessage``
+        - Same tuple
+        - Ascending ``timestamp``
+      * - ``messages/autodelivery.json``
+        - Array of session names
+        - The name itself
+        - Insertion order, duplicates dropped
+
+   Identity is needed because removal is best-effort: if the ``unlink`` fails
+   (file locked, permissions), the next read sees both files again and must not
+   deliver the same message twice. Ordering by ``timestamp`` matters because the
+   queue is consumed head-first and the log is displayed newest-first; a union
+   that preserved file order would interleave the two sources arbitrarily.
+
+   **Read-only consumers.** ``flow`` reads the audit log and writes nothing. It
+   performs the union read and **never** removes the old file
+   (``REQ_CFG_STATEMIGRATION`` AC-7): only a writer can establish the
+   "union has been persisted" precondition, and a reader that deletes on the
+   strength of having *read* the data would discard it if it never gets written.
+
+   **Steady-state cost.** After the old file is gone, the union read is one
+   ``existsSync`` on a path that is absent. No log line, no notification, no
+   user-visible trace (``REQ_CFG_STATEMIGRATION`` AC-6). Migration that
+   announces itself is migration the user has to think about.
+
+   **Retirement.** The ``getLegacy*`` getters and the union path are removed
+   only by an explicit decision in a future Change Document naming the release
+   from which the flat paths are no longer read
+   (``REQ_CFG_STATEMIGRATION`` AC-8). Until then this code looks dead and is
+   not — the same construction, and the same reason, as ``SPEC_HOOK_MIGRATE``
+   (GH #58).

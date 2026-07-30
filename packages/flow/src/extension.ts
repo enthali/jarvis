@@ -5,51 +5,47 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { loadFlowData, loadMessageLogEntries, DEFAULT_CAP } from './dataService';
+import { requeueWithMigration, QueuedMessageCopy } from './requeueService';
 
 const FLOW_VIEWTYPE = 'jarvisMessageFlow';
 const LOGVIEWER_VIEWTYPE = 'jarvisMessageLog';
 const DOCS_COLUMN = vscode.ViewColumn.Two; // aka "Content" column (SPEC_MSG_EDITORPLACEMENT)
 const POLL_MS = 5000; // matches REQ_MSG_AUTODELIVER_POLL (SPEC_FLOW_WEBVIEW AC-2)
 
-/** <workspaceRoot>/.jarvis/message-log.json — fixed path, mirrors configPaths.getMessageLogPath(). */
+/** <workspaceRoot>/.jarvis/messages/log.json — current path (SPEC_CFG_PATHRESOLVER GH #59). */
 function resolveMessageLogPath(): string | undefined {
+    const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    return root ? path.join(root, '.jarvis', 'messages', 'log.json') : undefined;
+}
+
+/** Legacy log path for union read (SPEC_CFG_STATEMIGRATION). */
+function resolveLegacyMessageLogPath(): string | undefined {
     const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
     return root ? path.join(root, '.jarvis', 'message-log.json') : undefined;
 }
 
-/** <workspaceRoot>/.jarvis/messages.json — mirrors configPaths.getMessagesPath() (SPEC_FLOW_REQUEUE). */
+/** <workspaceRoot>/.jarvis/messages/queue.json — current path (SPEC_CFG_PATHRESOLVER GH #59). */
 function resolveMessagesPath(): string | undefined {
+    const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    return root ? path.join(root, '.jarvis', 'messages', 'queue.json') : undefined;
+}
+
+/** Legacy queue path for union read (SPEC_CFG_STATEMIGRATION). */
+function resolveLegacyMessagesPath(): string | undefined {
     const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
     return root ? path.join(root, '.jarvis', 'messages.json') : undefined;
 }
 
-interface QueuedMessageCopy {
-    destination: string;
-    sender: string;
-    text: string;
-    timestamp: string; // preserved verbatim from the original log entry
-}
-
 /**
- * Appends `entry` to messages.json only — deliberately does NOT write to
- * message-log.json, even if jarvis.messages.logging is enabled
+ * Appends `entry` to messages/queue.json — deliberately does NOT write to
+ * messages/log.json, even if jarvis.messages.logging is enabled
  * (REQ_FLOW_REQUEUE: a requeue is a redelivery of an already-logged entry,
- * not a new event to log again). Local minimal append — cannot import
- * core's appendMessage() across the package boundary (SPEC_FLOW_REQUEUE).
+ * not a new event to log again). Full union-write-remove cycle (SPEC_CFG_STATEMIGRATION).
  */
 async function requeueMessage(entry: QueuedMessageCopy): Promise<void> {
     const messagesPath = resolveMessagesPath();
     if (!messagesPath) { throw new Error('No workspace open'); }
-    let queue: QueuedMessageCopy[] = [];
-    try {
-        const raw = await fs.promises.readFile(messagesPath, 'utf-8');
-        queue = JSON.parse(raw);
-    } catch {
-        queue = []; // missing/unparseable file — start fresh, same tolerant pattern as readMessageLog()
-    }
-    queue.push(entry);
-    await fs.promises.mkdir(path.dirname(messagesPath), { recursive: true });
-    await fs.promises.writeFile(messagesPath, JSON.stringify(queue, null, 2));
+    await requeueWithMigration(messagesPath, resolveLegacyMessagesPath(), entry);
 }
 
 async function handleRequeue(
@@ -122,7 +118,7 @@ function makeOpenMessageFlow(
     function postData(): void {
         if (!panel) { return; }
         const logPath = resolveMessageLogPath();
-        const payload = logPath ? loadFlowData(logPath, currentCap) : { nodes: [], edges: [], entries: [] };
+        const payload = logPath ? loadFlowData(logPath, currentCap, resolveLegacyMessageLogPath()) : { nodes: [], edges: [], entries: [] };
         panel.webview.postMessage({ type: 'data', payload });
     }
 
@@ -207,7 +203,7 @@ function makeOpenMessageLog(
     function postData(): void {
         if (!panel) { return; }
         const logPath = resolveMessageLogPath();
-        const entries = logPath ? loadMessageLogEntries(logPath) : [];
+        const entries = logPath ? loadMessageLogEntries(logPath, resolveLegacyMessageLogPath()) : [];
         panel.webview.postMessage({ type: 'logData', payload: entries });
     }
 
