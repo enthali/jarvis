@@ -107,6 +107,13 @@
 - **CR #51 (agent-mode-reset fix) merged but not yet released (2026-07-28)**:
   live mode resets still happen (PM + CM both hit it mid-CR-#56) until the
   next release ships. Not a new bug — expected until then.
+- **Terminal context leaks across actor sessions (2026-07-30)**: the
+  "Terminals" block injected into every turn showed OTHER actors' (CM/Dev
+  Engineer/QM) commands, not just this session's own — because VS Code
+  terminals are workspace-scoped, not chat-session-scoped. User disabled
+  `chat.agentSessionProjection.enabled` as the likely cause; not yet
+  confirmed whether it fully stops the leak. Don't assume a "Last Command"
+  in a Terminal block was run by this session.
 
 ## Syspilot Testing Ground
 
