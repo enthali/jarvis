@@ -639,13 +639,13 @@ Release Design Specifications
 .. spec:: Release Notes on Update
    :id: SPEC_REL_RELEASENOTES
    :status: approved
-   :links: REQ_REL_NOTESTARGET; REQ_REL_NOTESMARKER; REQ_REL_NOTESONCE; REQ_REL_NOTESCOMMAND; REQ_REL_NOTESSETTING; SPEC_DEV_LOGCHANNEL
+   :links: REQ_REL_NOTESTARGET; REQ_REL_NOTESMARKER; REQ_REL_NOTESONCE; REQ_REL_NOTESCOMMAND; REQ_REL_NOTESSETTING; REQ_CFG_FIXEDPATHS; REQ_CFG_PATHSINGLESOURCE; REQ_CFG_IGNOREPATTERNS; SPEC_CFG_PATHRESOLVER; SPEC_DEV_LOGCHANNEL
 
    **Description:**
-   New module ``packages/core/src/engine/core/releaseNotes.ts`` opens the GitHub
-   release page for the installed version — automatically the first time that
-   version runs, and on demand from the Command Palette. Contributed by
-   ``enthali.jarvis-core`` only.
+   New module ``packages/core/src/engine/core/releaseNotes.ts`` shows the GitHub
+   release page for the installed version in the editor's own browser view —
+   automatically the first time that version runs, and on demand from the
+   Command Palette. Contributed by ``enthali.jarvis-core`` only.
 
    **Manifest contributions (**\ ``packages/core/package.json``\ **):**
 
@@ -665,7 +665,7 @@ Release Design Specifications
         "type": "boolean",
         "default": true,
         "scope": "application",
-        "description": "Open the release notes in your browser the first time a newly installed Jarvis version runs. The command \"Jarvis: Show Release Notes\" works regardless of this setting."
+        "description": "Open the release notes in the editor the first time a newly installed Jarvis version runs. The command \"Jarvis: Show Release Notes\" works regardless of this setting."
       }
 
    No new settings group is introduced, so ``REQ_CFG_GROUPS`` is neither
@@ -674,17 +674,41 @@ Release Design Specifications
    contributions rather than amending that snapshot, following the
    ``SPEC_HOOK_AUTOINST`` precedent.
 
-   **Marker key:**
+   **Marker file:**
 
    .. code-block:: typescript
 
-      // Frozen. Never derive this from the setting id: renaming the setting
-      // must not orphan every installed user's marker.
-      const MARKER_KEY = 'jarvis.releaseNotes.lastShownVersion';
+      import * as fs from 'fs';
+      import {
+          getJarvisDir, ensureStateDir, getReleaseNotesStatePath
+      } from '../core/configPaths';
+
+      interface ReleaseNotesState { lastShownVersion?: string; }
+
+      function readState(): ReleaseNotesState | undefined {
+          const file = getReleaseNotesStatePath();
+          if (!file || !fs.existsSync(file)) { return undefined; }
+          try {
+              return JSON.parse(fs.readFileSync(file, 'utf8')) as ReleaseNotesState;
+          } catch {
+              return undefined;
+          }
+      }
+
+      function writeState(version: string): void {
+          ensureStateDir();
+          const file = getReleaseNotesStatePath()!;
+          fs.writeFileSync(
+              file, JSON.stringify({ lastShownVersion: version }, null, 2), 'utf8'
+          );
+      }
 
    **Target and opening:**
 
    .. code-block:: typescript
+
+      const INTEGRATED_BROWSER = 'workbench.action.browser.open';
+      const SIMPLE_BROWSER_OPEN = 'simpleBrowser.api.open';
 
       function notesUri(version: string): vscode.Uri {
           return vscode.Uri.parse(
@@ -692,15 +716,26 @@ Release Design Specifications
           );
       }
 
+      async function openInEditor(uri: vscode.Uri): Promise<boolean> {
+          const commands = await vscode.commands.getCommands(true);
+          if (!commands.includes(INTEGRATED_BROWSER)) { return false; }
+          await vscode.commands.executeCommand(SIMPLE_BROWSER_OPEN, uri);
+          return true;
+      }
+
       async function open(version: string, log?: vscode.LogOutputChannel): Promise<void> {
           const uri = notesUri(version);
-          const opened = await vscode.env.openExternal(uri);
-          if (!opened) {
-              log?.warn(`[ReleaseNotes] openExternal declined: ${uri.toString()}`);
-              void vscode.window.showInformationMessage(
-                  `Jarvis release notes: ${uri.toString()}`
-              );
+          try {
+              if (await openInEditor(uri)) { return; }
+              log?.warn(`[ReleaseNotes] integrated browser unavailable: ${uri.toString()}`);
+          } catch (e) {
+              log?.warn(`[ReleaseNotes] in-editor open failed: ${e}`);
           }
+          const choice = await vscode.window.showInformationMessage(
+              `Jarvis release notes: ${uri.toString()}`,
+              'Open in Browser'
+          );
+          if (choice) { void vscode.env.openExternal(uri); }
       }
 
    **Automatic path:**
@@ -711,19 +746,29 @@ Release Design Specifications
           context: vscode.ExtensionContext,
           log?: vscode.LogOutputChannel
       ): Promise<void> {
+          if (!getReleaseNotesStatePath()) {
+              log?.warn('[ReleaseNotes] no workspace folder open, nothing to announce');
+              return;
+          }
+
           const installed: string = context.extension.packageJSON.version;
-          const seen = context.globalState.get<string>(MARKER_KEY);
+          const seen = readState()?.lastShownVersion;
           if (seen === installed) { return; }
 
+          // Must be sampled before writeState(): ensureStateDir() creates
+          // .jarvis/ and would make every workspace look known.
+          const jarvisDir = getJarvisDir();
+          const knownWorkspace = !!jarvisDir && fs.existsSync(jarvisDir);
+
           try {
-              await context.globalState.update(MARKER_KEY, installed);
+              writeState(installed);
           } catch (e) {
               log?.error(`[ReleaseNotes] marker write failed, not opening: ${e}`);
               return;
           }
 
-          if (seen === undefined) {
-              log?.info(`[ReleaseNotes] first install, recorded v${installed}`);
+          if (seen === undefined && !knownWorkspace) {
+              log?.info(`[ReleaseNotes] workspace new to Jarvis, recorded v${installed}`);
               return;
           }
 
@@ -732,7 +777,7 @@ Release Design Specifications
               .get<boolean>('showOnUpdate', true);
           if (!enabled) { return; }
 
-          log?.info(`[ReleaseNotes] v${seen} → v${installed}, opening notes`);
+          log?.info(`[ReleaseNotes] ${seen ?? 'unrecorded'} → v${installed}, opening notes`);
           await open(installed, log);
       }
 
@@ -751,7 +796,7 @@ Release Design Specifications
 
    .. code-block:: typescript
 
-      // Deliberately not awaited: activation must not wait on a browser
+      // Deliberately not awaited: activation must not wait on a browser view
       // (REQ_REL_NOTESONCE AC-8).
       void announceIfNewVersion(context, log);
 
@@ -762,13 +807,44 @@ Release Design Specifications
 
    **Design notes:**
 
-   * **Why** ``globalState`` **and not a file.** The marker is one short string
-     that must outlive an extension update and must exist when no folder is
-     open. ``context.globalStorageUri`` would work and would mean a second
-     file-based state mechanism with its own read, write, and corrupt-content
-     handling. ``globalState`` also has the property that decided it: it has no
-     path at all, so it cannot later be swept into ``WORKSPACE_PATHS`` or a
-     ``.gitignore`` region by someone tidying up runtime files.
+   * **Why the integrated browser is probed for rather than assumed.**
+     ``simpleBrowser.api.open`` is not one behaviour. It tests for
+     ``workbench.action.browser.open`` and delegates to the integrated browser
+     when present; otherwise it renders the page in its own iframe-based
+     webview. GitHub serves the release page with ``X-Frame-Options: deny`` and
+     ``frame-ancestors 'none'``, so in the fallback the frame is refused and the
+     user gets an empty pane — while the command resolves successfully, leaving
+     nothing to detect afterwards. Probing first turns a blank pane into the
+     message of ``REQ_REL_NOTESTARGET`` AC-6.
+
+   * **Why the probe is not too early at activation time.**
+     ``workbench.action.browser.open`` is a workbench command, registered by
+     VS Code itself rather than by an extension, so its presence does not depend
+     on activation order. ``simpleBrowser.api.open`` is contributed by a
+     built-in extension that declares ``onCommand:simpleBrowser.api.open``, so
+     executing it activates that extension on demand.
+
+   * **Why** ``.jarvis/state/`` **and not a new top-level runtime file.** That
+     directory already exists, already holds transient state, and is already
+     declared ``transient`` in ``WORKSPACE_PATHS``. The marker therefore reaches
+     the maintained ``.gitignore`` region without a new entry and without a
+     second list to keep in step — which is what ``REQ_CFG_IGNOREPATTERNS``
+     AC-6 asks for. A file directly under ``.jarvis/`` would have needed one.
+
+   * **Why the path comes from the resolver.** ``getReleaseNotesStatePath()``
+     is the only way this module learns where the marker lives, and its
+     ``undefined`` return is the module's "no workspace open" signal
+     (``REQ_CFG_FIXEDPATHS`` AC-3). Resolving the workspace root here instead
+     would be the defect ``REQ_CFG_PATHSINGLESOURCE`` AC-1 names, and the
+     ``?? ''`` that usually accompanies it would turn "no workspace" into a
+     path under the process working directory.
+
+   * **Why** ``knownWorkspace`` **is sampled before the marker is written.**
+     ``writeState()`` calls ``ensureStateDir()``, which creates ``.jarvis/``
+     on the way to ``.jarvis/state/``. Reading the directory's existence
+     afterwards would report every workspace as known and open the notes in
+     brand-new projects, which ``US_REL_WHATSNEW`` AC-3 forbids. The two lines
+     look independent and are not.
 
    * **Why the setting is read after the marker is written.** The guard reads
      as though it belongs at the top of the function, and moving it there is the
@@ -777,54 +853,74 @@ Release Design Specifications
      turning the setting back on months later would send the user to the notes
      of whichever version was current when they turned it off.
 
-   * ``setKeysForSync`` **is deliberately not called for** ``MARKER_KEY``.
-     Adding it is a one-line change that looks like an improvement. A synced
-     marker suppresses the notes on a second machine that *did* receive the
-     update — a silent omission. Unsynced, the user sees the notes once per
-     machine, which is an accurate description of what happened to each machine.
+   * **A marker that cannot be parsed is treated as absent.** ``readState()``
+     swallows the parse error deliberately: the file holds one regenerable
+     string, and ``REQ_REL_NOTESMARKER`` AC-5 makes its loss a non-event. The
+     alternative — surfacing a JSON error to the user during activation —
+     reports a problem they did not cause and cannot act on.
 
-   * **The** ``undefined`` **branch is separate from the difference branch on
-     purpose.** Collapsing them into ``if (seen !== installed) { open(); }``
-     is shorter and opens a browser tab at the end of every fresh installation,
-     which ``REQ_REL_NOTESONCE`` AC-2 forbids. The two cases look alike in the
-     data and are opposite in intent.
+   * **The two silent cases are kept apart on purpose.** Collapsing them into
+     ``if (seen !== installed) { open(); }`` is shorter and opens a tab in
+     every project the user opens for the first time, which
+     ``REQ_REL_NOTESONCE`` AC-2 forbids; collapsing the other way, into
+     ``if (seen === undefined) { return; }``, silences the release that
+     introduces the marker in every existing workspace. The distinguishing
+     evidence is the ``.jarvis/`` directory, not the marker.
 
-   * **Only** ``core`` **registers this.** Per-extension global state means each
-     of the nine ``enthali.*`` extensions would otherwise keep its own marker
-     and announce one update nine times, and each would contribute its own
-     palette entry. Same single-writer constraint, and the same premise, as
-     ``SPEC_CFG_IGNOREMANAGER`` (``US_CFG_RUNTIMELAYOUT`` AC-5: no activation
-     order is guaranteed).
+   * **Only** ``core`` **registers this.** All nine ``enthali.*`` extensions
+     activate in the same workspace, so nine of them would write the same
+     marker file and race to announce the same update, and each would
+     contribute its own palette entry. Same single-writer constraint, and the
+     same premise, as ``SPEC_CFG_IGNOREMANAGER`` (``US_CFG_RUNTIMELAYOUT``
+     AC-5: no activation order is guaranteed).
 
-   * **No network call is made here.** The URL is built from a version already
-     known locally. ``SPEC_REL_UPDATECHECK`` uses the API because only the API
-     knows what the newest release is; that reason does not apply to a version
-     the extension host is currently running.
+   * **No network call is made by this module.** The URL is built from a version
+     already known locally. The browser view then fetches the page, as any
+     browser would; what ``REQ_REL_NOTESTARGET`` AC-4 rules out is Jarvis
+     resolving or validating the target itself. ``SPEC_REL_UPDATECHECK`` uses
+     the API because only the API knows what the newest release is; that reason
+     does not apply to a version the extension host is currently running.
 
    **Acceptance Criteria:**
 
    * AC-1: ``packages/core/package.json`` contributes the command and the
      setting exactly as shown, and the setting appears in the ``Updates`` group
-   * AC-2: With empty global state, activation opens nothing and leaves the
-     marker equal to the installed version
-   * AC-3: With the marker equal to the installed version, activation performs
-     no browser open, no notification and no network request
-   * AC-4: With a marker differing from the installed version and the setting
-     ``true``, exactly one ``openExternal`` call is made, with
-     ``https://github.com/enthali/jarvis/releases/tag/v{installed}``
-   * AC-5: With a marker differing from the installed version and the setting
+   * AC-2: With no workspace folder open, activation opens nothing, writes
+     nothing, throws nothing, and logs one warning
+   * AC-3: With no marker file and no ``.jarvis/`` directory, activation opens
+     nothing and leaves ``.jarvis/state/release-notes.json`` holding the
+     installed version
+   * AC-4: With no marker file, an existing ``.jarvis/`` directory and the
+     setting ``true``, activation opens the notes for the installed version
+   * AC-5: With the marker equal to the installed version, activation opens
+     nothing, shows no notification and makes no network request
+   * AC-6: With a marker differing from the installed version and the setting
+     ``true``, exactly one ``simpleBrowser.api.open`` call is made, with a
+     ``Uri`` of ``https://github.com/enthali/jarvis/releases/tag/v{installed}``,
+     and ``vscode.env.openExternal`` is not called
+   * AC-7: With a marker differing from the installed version and the setting
      ``false``, nothing is opened and the marker is advanced to the installed
      version
-   * AC-6: If ``globalState.update`` rejects, nothing is opened
-   * AC-7: If ``openExternal`` resolves ``false``, an information message
-     containing the URL is shown
-   * AC-8: The manual command opens the installed version's notes irrespective
-     of marker and setting, and leaves the marker unchanged
-   * AC-9: ``setKeysForSync`` is not called with ``MARKER_KEY`` anywhere in the
-     codebase
-   * AC-10: No package other than ``core`` registers ``jarvis.showReleaseNotes``
-     or reads or writes ``MARKER_KEY``
-   * AC-11: Activation completes even if ``openExternal`` never resolves
+   * AC-8: If the marker write throws, nothing is opened
+   * AC-9: A marker file that is absent, empty, or unparseable produces the
+     behaviour of AC-3/AC-4 and no user-visible error
+   * AC-10: If ``workbench.action.browser.open`` is absent from
+     ``getCommands(true)``, ``simpleBrowser.api.open`` is not invoked. In that
+     case, and in the case where it is invoked and throws, an information
+     message containing the URL and an **"Open in Browser"** control is shown;
+     ``vscode.env.openExternal`` is called if and only if that control is chosen
+   * AC-11: The manual command opens the installed version's notes irrespective
+     of marker and setting, leaves the marker unchanged, and works with no
+     workspace folder open
+   * AC-12: The module obtains the marker path only from
+     ``getReleaseNotesStatePath()`` and contains no ``workspaceFolders``
+     reference and no ``globalState`` access
+   * AC-13: No package other than ``core`` registers ``jarvis.showReleaseNotes``
+     or reads or writes the marker file
+   * AC-14: Activation completes even if ``simpleBrowser.api.open`` never
+     resolves
+   * AC-15: ``vscode.env.openExternal`` appears in this module only on the
+     user-chosen branch of AC-10
 
 
 .. spec:: Extension Package Contract

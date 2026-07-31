@@ -513,6 +513,13 @@ Configuration Design Specifications
    durability, and ``getIgnoreEntries()`` derives the maintained ``.gitignore``
    region from that declaration (``REQ_CFG_IGNOREPATTERNS`` AC-5/AC-6).
 
+   **(jarvis-release-notes-on-update CR, GH #63 amendment):** adds a
+   ``getStateDir()``/``ensureStateDir()`` pair for ``.jarvis/state/`` and
+   ``getReleaseNotesStatePath()`` below. ``.jarvis/state/`` is already declared
+   ``transient`` in ``WORKSPACE_PATHS``, so the marker is covered by the
+   maintained ``.gitignore`` region without a new entry
+   (``REQ_REL_NOTESMARKER`` AC-2).
+
    **Description:**
    New module ``src/configPaths.ts`` provides all runtime file-path resolution
    for Jarvis. It is the single source of truth for the ``.jarvis/`` directory
@@ -639,6 +646,32 @@ Configuration Design Specifications
         if (!dir) { return undefined; }
         fs.mkdirSync(dir, { recursive: true });
         return dir;
+      }
+
+      /** (GH #63) Returns <workspaceRoot>/.jarvis/state, or undefined.
+       *  The group directory for transient state that is neither message
+       *  state nor a top-level runtime file. */
+      export function getStateDir(): string | undefined {
+        const dir = getJarvisDir();
+        return dir ? path.join(dir, 'state') : undefined;
+      }
+
+      /** (GH #63) Ensures <workspaceRoot>/.jarvis/state exists (mkdir -p),
+       *  or undefined. Called on first write, never at activation —
+       *  REQ_CFG_FIXEDPATHS AC-1. */
+      export function ensureStateDir(): string | undefined {
+        const dir = getStateDir();
+        if (!dir) { return undefined; }
+        fs.mkdirSync(dir, { recursive: true });
+        return dir;
+      }
+
+      /** (GH #63) Returns <workspaceRoot>/.jarvis/state/release-notes.json,
+       *  or undefined. Records the last version announced in this workspace —
+       *  REQ_REL_NOTESMARKER. */
+      export function getReleaseNotesStatePath(): string | undefined {
+        const dir = getStateDir();
+        return dir ? path.join(dir, 'release-notes.json') : undefined;
       }
 
       /**

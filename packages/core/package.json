@@ -248,7 +248,7 @@
         "title": "Updates",
         "properties": {
           "jarvis.checkForUpdates": { "type": "boolean", "default": true, "description": "Check for new Jarvis releases on GitHub when the extension activates." },
-          "jarvis.releaseNotes.showOnUpdate": { "type": "boolean", "default": true, "scope": "application", "description": "Open the release notes in your browser the first time a newly installed Jarvis version runs. The command \"Jarvis: Show Release Notes\" works regardless of this setting." }
+          "jarvis.releaseNotes.showOnUpdate": { "type": "boolean", "default": true, "scope": "application", "description": "Open the release notes in the editor the first time a newly installed Jarvis version runs. The command \"Jarvis: Show Release Notes\" works regardless of this setting." }
         }
       },
       {

@@ -248,6 +248,7 @@ Configuration Requirements
    * ``<workspaceRoot>/.jarvis/messages/queue.json``
    * ``<workspaceRoot>/.jarvis/messages/log.json``
    * ``<workspaceRoot>/.jarvis/messages/autodelivery.json``
+   * ``<workspaceRoot>/.jarvis/state/release-notes.json`` (GH #63)
 
    The three message files were relocated from ``.jarvis/messages.json``,
    ``.jarvis/message-log.json`` and ``.jarvis/autodelivery.json`` by the

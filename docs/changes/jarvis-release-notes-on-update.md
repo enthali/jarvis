@@ -1,58 +1,191 @@
 # Change Document: jarvis-release-notes-on-update
 
-**Status**: in-progress
+**Status**: in-progress (reopened)
 **Branch**: feature/jarvis-release-notes-on-update
 **Created**: 2026-07-31
 **Author**: Project Manager
-**Operation Mode**: autonomous
+**Operation Mode**: user-guided
 
 ---
 
+## Reopened (2026-07-31)
+
+Merged (development `e4ace83`), but PM validation before release found the
+release notes open in the user's external default browser. That is not the
+intent — they should open inside VS Code (internal browser view), so the
+user stays in the editor. PM did not specify "external browser" as intent;
+it was an implementation detail that made it into the Summary below without
+PM/user agreement. Requesting System Designer pick the mechanism this time,
+not PM.
+
+## Reopen Delta (2026-07-31)
+
+Two separate corrections were made after reopening. They are recorded here
+rather than by rewriting the original findings, which remain an accurate
+record of what was decided the first time.
+
+### Delta 1 — the notes open inside the editor
+
+**Mechanism chosen:** `vscode.commands.executeCommand('simpleBrowser.api.open',
+uri)`, guarded by a probe for `workbench.action.browser.open` in
+`getCommands(true)`.
+
+**Why this one.** It is the only supported extension-facing entry point to the
+editor's own browser. `simpleBrowser.api.open` is not a single behaviour: it
+tests for `workbench.action.browser.open` and delegates to the integrated
+browser when present, and otherwise renders the page in an iframe-based webview
+of its own. GitHub serves the release page with `X-Frame-Options: deny` and
+`frame-ancestors 'none'` (verified against
+`https://github.com/enthali/jarvis/releases/tag/v0.24.1`), so the iframe
+fallback yields an empty pane — and the command still resolves successfully,
+leaving nothing to detect afterwards. The probe is therefore not defensive
+padding: it is the only point at which that failure is still observable, and it
+converts a blank pane into the message of `REQ_REL_NOTESTARGET` AC-6.
+
+**A correction to my own analysis, recorded because it nearly became
+normative.** From those same two headers I first concluded that the release page
+"cannot be displayed inside VS Code at all", and was on the way to specifying
+the external browser as unavoidable. That conflates framing with top-level
+navigation: the headers forbid the page being placed *in a frame*, not the
+integrated browser navigating to it. The user challenged the conclusion; it was
+checked by opening the page in the integrated browser, which loads it. The
+verified residue of the finding is what survives above, and it applies to the
+iframe fallback only.
+
+`vscode.env.openExternal` is no longer the delivery path. It remains reachable
+on exactly one branch — the user choosing **"Open in Browser"** on the fallback
+message — because the alternative to offering it is showing the user a URL and
+no way to follow it.
+
+### Delta 2 — the marker is per-workspace, not per-installation
+
+**This overturns the CM-confirmed decision in Issue 1**, at the user's
+direction. It is a reversal of a premise, not a refinement of a detail, and is
+flagged as such rather than folded quietly into the Summary.
+
+The original reasoning ran from "the version is a property of the installation"
+to "the marker belongs to the installation". The user's premise is different
+and it is the product premise, not the storage one: what the notes ask of the
+reader is *work in a project* — a diff to check, a moved file to accept, a
+breaking change to resolve. A user who read the notes in one project has not
+thereby fixed the other four, and by the time they open the fourth, possibly
+weeks later, they will not remember what the release changed. Under that
+premise the six-tabs-for-six-folders behaviour that Finding 1 treats as the
+defect is the intended behaviour, and `US_REL_WHATSNEW` AC-6 — which said the
+opposite in as many words — was inverted rather than reinterpreted.
+
+The two consequences Finding 1 raised against per-workspace storage are
+answered, not waived:
+
+- **No folder open.** `REQ_CFG_FIXEDPATHS` AC-3 already prescribes the
+  behaviour for every runtime path — warn once, short-circuit, throw nothing.
+  Nothing new is needed, and `US_REL_WHATSNEW` AC-9 states the user-facing
+  consequence: a window with no folder shows nothing and remembers nothing.
+- **A committed marker suppresses the notes for a whole team.** The marker is
+  transient state under `.jarvis/state/`, which `REQ_CFG_IGNOREPATTERNS` AC-1
+  keeps out of version control by construction. `REQ_REL_NOTESMARKER` AC-7
+  states what happens if it is committed anyway and refuses the usual
+  workaround (user- or machine-specific filenames), naming the residual risk
+  instead.
+
+**Storage location.** `<workspaceRoot>/.jarvis/state/release-notes.json`,
+resolved by a new `getReleaseNotesStatePath()` in `configPaths.ts` alongside a
+`getStateDir()`/`ensureStateDir()` pair (`SPEC_CFG_PATHRESOLVER` amendment).
+`.jarvis/state/` already exists, already holds transient state
+(`state/touched-files/`), and is already declared `transient` in
+`WORKSPACE_PATHS` — so the marker reaches the maintained `.gitignore` region
+with no new entry and no second list to keep in step. A file directly under
+`.jarvis/` would have needed one.
+
+**A new problem the reversal creates, and its resolution.** With a
+per-workspace marker, every existing workspace lacks one on the very release
+that introduces the feature — so reading "absent marker" as "first run" would
+make that release the one release that announces itself nowhere, and it is the
+release carrying the `.jarvis/` layout and `.gitignore` changes the notes exist
+to warn about. The two cases are separable without new state: a workspace Jarvis
+has written to before has a `.jarvis/` directory; one that is new to Jarvis does
+not. Written into `REQ_REL_NOTESONCE` AC-2 with its reason.
+
+### Elements touched by the reopen
+
+| ID | Level | Change | Status |
+|----|-------|--------|--------|
+| `US_REL_WHATSNEW` | L0 | Context extended (per-project premise); AC-2 and AC-6 rewritten; AC-8 (in-editor) and AC-9 (no folder) added | `draft` → re-approved |
+| `REQ_REL_NOTESTARGET` | L1 | Delivery via the editor's browser; probe rationale; fallback AC | `draft` → re-approved |
+| `REQ_REL_NOTESMARKER` | L1 | Storage reversed to `.jarvis/`; "why this is not workspace state" replaced; Settings-Sync AC removed; AC-7 residual risk added | `draft` → re-approved |
+| `REQ_REL_NOTESONCE` | L1 | AC-2 split by `.jarvis/` presence; wording de-browserised | `draft` → re-approved |
+| `REQ_REL_NOTESSETTING` | L1 | Rationale replaced only — no AC changed | stays `approved` |
+| `SPEC_REL_RELEASENOTES` | L2 | Probe + `simpleBrowser.api.open`; marker moved to a state file; ACs renumbered 1–15 | `draft` → re-approved |
+| `SPEC_CFG_PATHRESOLVER` | L2 | GH #63 amendment: `getStateDir()`, `ensureStateDir()`, `getReleaseNotesStatePath()` | stays `implemented` |
+| `REQ_CFG_FIXEDPATHS` | L1 | One entry added to the enumeration | stays `implemented` |
+
+Two status decisions are deliberate and recorded so they are not read as
+oversights:
+
+- **`REQ_REL_NOTESSETTING` stays `approved`.** Only its rationale changed — the
+  old one argued the setting exists because the notes leave the editor, which is
+  no longer true. The replacement argues from what is still true: it is the only
+  one of the four requirements that puts something in front of the user unasked.
+  No acceptance criterion moved, so there is nothing for re-approval to check.
+- **`REQ_CFG_FIXEDPATHS` and `SPEC_CFG_PATHRESOLVER` stay `implemented`** while
+  gaining an entry that is not yet implemented. The pending part is tracked by
+  `SPEC_REL_RELEASENOTES`, which is the element under change; demoting two
+  implemented elements would misreport the rest of what they govern. The
+  precedent is the GH #59 amendment already carried in `SPEC_CFG_PATHRESOLVER`.
+
 ## Summary
 
-GH #63: after Jarvis updates, the user has no in-editor way to see what
+GH #63: after Jarvis updates, the user needs an in-editor way to see what
 changed — increasingly important now that #58/#59/#60 change on-disk
 `.jarvis/` layout and auto-edit `.gitignore`. On activation of **core only**
 (single writer — same premise as #60), if the installed extension version
-differs from the last version for which release notes were announced, open
-`https://github.com/enthali/jarvis/releases/tag/v{version}` in the user's
-default browser (URL constructed, not resolved — offline-safe; a visible 404
-beats a silent skip). A Command-Palette command ("Jarvis: Show Release Notes")
-opens the current version's notes on demand. Opt-out:
-`jarvis.releaseNotes.showOnUpdate` (boolean, default `true`, scope
-`application`) in the existing Updates group — gates automatic announcement
-only, not the manual command.
+differs from the last version announced **in this workspace**, open
+`https://github.com/enthali/jarvis/releases/tag/v{version}` (URL constructed,
+not resolved) **inside VS Code's browser**, not the system default browser.
 
-**CM confirmed (2026-07-31) — Issue 1 / CD scope item 3:** the last-shown
-marker is **not** workspace/`jarvis-*`/`WORKSPACE_PATHS` state. What is
-versioned is `context.extension.packageJSON.version` (installation property).
-A per-workspace marker yields once-per-version-**per-folder**, fails with no
-folder open, and can be committed (one developer's update suppresses notes
-for everyone who pulls). Syspilot's workspace marker is correct for *workspace
-method files*, not for this. Normative storage: **`context.globalState`**
-(per-installation, survives extension updates, no path — cannot later be
-swept into WORKSPACE_PATHS). First use of `globalState` in this codebase is
-intentional.
+**Delivery (Reopen Delta 1 — settled with user 2026-07-31):** probe
+`getCommands(true)` for `workbench.action.browser.open`; if present, open via
+`vscode.commands.executeCommand('simpleBrowser.api.open', uri)`. If absent,
+show a message with a user-chosen **"Open in Browser"** action that may call
+`vscode.env.openExternal`. Automatic path never uses `openExternal`.
+`openExternal` is confined to that user-chosen fallback only
+(`SPEC_REL_RELEASENOTES` AC-15).
 
-**CM confirmed — Issue 2 / AC (1):** "at most once per version" is a **bound**,
-not a hard guarantee under concurrent multi-window activation (normal after
-update). Write-before-open is required; residual duplicate tabs are named;
-cross-window lock files are **forbidden**.
+**Marker (Reopen Delta 2 — settled with user 2026-07-31; overturns CM's first-pass
+Issue 1 confirmation of `globalState`):** per-workspace file
+`<workspaceRoot>/.jarvis/state/release-notes.json` via
+`getReleaseNotesStatePath()`. Product premise: notes ask for work **in a
+project**; once-per-folder is intended. No folder open: warn-once /
+short-circuit (`REQ_CFG_FIXEDPATHS` AC-3). Commit residual named; `.jarvis/state/`
+already transient under ignore machinery.
 
-**CM confirmed — Issue 3 / AC (3):** first install still only silently records
-the current version as seen (no open). Rationale is not "avoid a burst of past
-releases" (one tag URL cannot burst) but: a first install is not an update;
-do not navigate the user away from the editor they just opened.
+**Introducing-release heuristic (Issue 10 — decided, not open):** absent marker
++ existing `.jarvis/` → announce (Jarvis has run here before); absent marker +
+no `.jarvis/` → first-time workspace, record seen only, do not open
+(`REQ_REL_NOTESONCE` AC-2). Residual: deleted `.jarvis/` looks "new" once.
 
-**CM confirmed — Issue 4:** opt-out setting is in scope (addition to original
-CD).
+Command-Palette **"Jarvis: Show Release Notes"** opens current notes on demand.
+Opt-out: `jarvis.releaseNotes.showOnUpdate` (boolean, default `true`, scope
+`application`) gates automatic announcement only.
 
-Acceptance criteria: (1) automatic open is bounded to once per newly-installed
-version under normal single-window activation, with concurrent-window residual
-disclosed; (2) manual command anytime (independent of opt-out for auto);
-(3) first-ever install silently records current version as seen, does not open;
-(4) marker in `globalState`, not workspace paths; (5) core-only announcement;
-(6) `jarvis.releaseNotes.showOnUpdate` gates auto only. GitHub Issue: #63.
+**Still holds from first pass (CM 2026-07-31):** AC (1) once-per-version is a
+**bound** under concurrent multi-window activation (write-before-open; no lock
+file); first-ever-for-workspace silent record without open; opt-out in scope;
+core-only.
+
+**Historical first-pass CM confirmations (Issue 1 = globalState; Summary said
+"default browser") are superseded by Reopen Deltas 1–2 above.** Detail of the
+first-pass reasoning remains in the Reopen section and Issues history; this
+Summary is the current CM-owned intent.
+
+Acceptance criteria: (1) automatic open bounded once per newly-installed
+version **per workspace** under normal single-window activation, concurrent
+residual disclosed; (2) manual command anytime; (3) workspace new to Jarvis
+(no `.jarvis/`) silently records current version, does not open; (4) marker at
+`.jarvis/state/release-notes.json`, not `globalState`; (5) core-only; (6)
+opt-out gates auto only; (7) in-editor delivery with probe; `openExternal` only
+on user-chosen fallback; (8) introducing release uses `.jarvis/`-presence
+heuristic. GitHub Issue: #63.
 
 ---
 
@@ -451,36 +584,52 @@ collapsing them opens a browser tab at the end of every fresh installation.
 | `US_REL_SELFUPDATE` (parent) | `REQ_REL_UPDATECHECK`, `REQ_REL_UPDATENOTIFY`, `REQ_REL_UPDATECOMMAND`, `REQ_REL_UPDATEINSTALL` | `SPEC_REL_UPDATECHECK`, `SPEC_REL_UPDATENOTIFY`, `SPEC_REL_UPDATECOMMAND` | ✅ unchanged |
 | `US_REL_RELEASE` (parent) | `REQ_REL_RELEASEACTION` | `SPEC_REL_RELEASEACTION` | ✅ unchanged |
 | `US_SPL_LIFECYCLE` | `REQ_SPL_STATE` | `SPEC_SPL_STATE` | ✅ unchanged, evidence only |
+| `US_CFG_RUNTIMELAYOUT` (reopen) | `REQ_CFG_FIXEDPATHS`, `REQ_CFG_PATHSINGLESOURCE`, `REQ_CFG_IGNOREPATTERNS` | `SPEC_CFG_PATHRESOLVER` | ✅ amended, not restructured |
 
 Every new element is reachable from `US_REL_WHATSNEW`, and every new
-requirement is discharged by at least one AC of `SPEC_REL_RELEASENOTES`.
+requirement is discharged by at least one AC of `SPEC_REL_RELEASENOTES`. The
+reopen adds no element at any level; it changes the content of elements that
+already existed, and amends three approved `CFG` elements the marker now
+depends on.
 
-**Story acceptance criteria to both levels:**
+**Story acceptance criteria to both levels** (design AC numbers are the
+renumbered 1–15 list):
 
 | `US_REL_WHATSNEW` | Requirement | Design |
 |---|---|---|
-| AC-1 shown on first run of a version | `REQ_REL_NOTESONCE` AC-1 | AC-4 |
-| AC-2 not shown again for the same version | `REQ_REL_NOTESONCE` AC-4/AC-6, `REQ_REL_NOTESMARKER` AC-1/AC-3 | AC-3 |
-| AC-3 first install is silent | `REQ_REL_NOTESONCE` AC-2 | AC-2 |
-| AC-4 available on demand | `REQ_REL_NOTESCOMMAND` AC-1/AC-2 | AC-1/AC-8 |
-| AC-5 can be switched off, command survives | `REQ_REL_NOTESSETTING` AC-3/AC-5, `REQ_REL_NOTESCOMMAND` AC-4 | AC-5/AC-8 |
-| AC-6 does not multiply | `REQ_REL_NOTESMARKER` AC-1/AC-6, `REQ_REL_NOTESCOMMAND` AC-5, `REQ_REL_NOTESONCE` AC-5 | AC-10 |
-| AC-7 no silence when unreachable | `REQ_REL_NOTESTARGET` AC-4/AC-5 | AC-7 |
+| AC-1 shown on first run of a version | `REQ_REL_NOTESONCE` AC-1 | AC-6 |
+| AC-2 not shown again for the same version in that workspace | `REQ_REL_NOTESONCE` AC-4/AC-6, `REQ_REL_NOTESMARKER` AC-1/AC-4 | AC-5 |
+| AC-3 a workspace new to Jarvis is silent | `REQ_REL_NOTESONCE` AC-2 | AC-3/AC-4 |
+| AC-4 available on demand | `REQ_REL_NOTESCOMMAND` AC-1/AC-2 | AC-1/AC-11 |
+| AC-5 can be switched off, command survives | `REQ_REL_NOTESSETTING` AC-3/AC-5, `REQ_REL_NOTESCOMMAND` AC-4 | AC-7/AC-11 |
+| AC-6 one announcement per workspace | `REQ_REL_NOTESMARKER` AC-6, `REQ_REL_NOTESCOMMAND` AC-5, `REQ_REL_NOTESONCE` AC-5 | AC-13 |
+| AC-7 no silence when unreachable | `REQ_REL_NOTESTARGET` AC-5/AC-6 | AC-10 |
+| AC-8 the notes appear inside the editor | `REQ_REL_NOTESTARGET` AC-2/AC-3 | AC-6/AC-15 |
+| AC-9 no folder open, nothing shown or remembered | `REQ_REL_NOTESMARKER` AC-3 | AC-2 |
 
-`REQ_REL_NOTESMARKER` AC-4 and `SPEC_REL_RELEASENOTES` AC-9 discharge no story
-AC. They exist to forbid a one-line change that would silently break
-`US_REL_WHATSNEW` AC-1 on a second machine — recorded here so the absence of a
-story link is a deliberate choice and not a broken trace.
+`REQ_REL_NOTESMARKER` AC-4 and `SPEC_REL_RELEASENOTES` AC-12 discharge no story
+AC. AC-4 states the property the whole mechanism rests on — a marker that did
+not survive the update would measure nothing — and AC-12 discharges
+`REQ_CFG_PATHSINGLESOURCE` AC-1 rather than anything the user can observe. Both
+are recorded here so the absence of a story link reads as a deliberate choice
+and not as a broken trace.
 
 ### Artefakt-Removal-Check
 
-**Not applicable — this CR removes no artefact.** No file, field, configuration
-key or element ID ceases to exist; no element is deprecated. The CR is purely
-additive at every level: one story, five requirements, one design element, and
-no modification to any existing element.
+**Originally not applicable; the reopen makes it applicable.** No file,
+configuration key or element ID ceases to exist, and no element is deprecated.
+What the reopen removes is normative text inside elements that remain:
 
-The one edit to existing text is `US_REL_WHATSNEW` AC-2 itself, corrected within
-this CR after L1 Conflict 2 showed the mechanism contradicted it.
+| Removed | From | Why nothing is orphaned |
+|---|---|---|
+| The Settings-Sync acceptance criterion | `REQ_REL_NOTESMARKER` | It constrained `globalState`, which is no longer the storage. Nothing links to it, and a file under `.jarvis/` is not synced |
+| `MARKER_KEY` and every `globalState` access | `SPEC_REL_RELEASENOTES` | Replaced by the state file; `SPEC_REL_RELEASENOTES` AC-12 now forbids the access outright, so the removal is checkable rather than merely intended |
+| The `setKeysForSync` acceptance criterion (old AC-9) | `SPEC_REL_RELEASENOTES` | Discharged a requirement that no longer exists |
+| `vscode.env.openExternal` as the delivery path | `REQ_REL_NOTESTARGET`, `SPEC_REL_RELEASENOTES` | Retained on one user-chosen branch and confined there by AC-15, so the removal is of the *default*, not of the capability |
+
+The implementation merged at `e4ace83` uses `globalState` and `openExternal`
+today. Removing them is therefore a Developer task with a test consequence, not
+a paper change — see the implementation scope below.
 
 ### Issues Found
 
@@ -490,6 +639,10 @@ this CR after L1 Conflict 2 showed the mechanism contradicted it.
       property of the installation. A per-workspace marker announces one update
       once per folder. **CM confirmed 2026-07-31** — Summary updated:
       `context.globalState`, not WORKSPACE_PATHS / jarvis-*.
+      **⚠️ Reversed on reopen at the user's direction** — see Reopen Delta 2.
+      Once-per-folder is the intent, not the defect; the two consequences named
+      here are answered rather than waived. This entry is kept as written
+      because it records what was confirmed at the time.
 - [x] **Issue 2 — "at most once per version" was not achievable (L0 Finding 2,
       L1 Conflict 4).** Restored windows activate concurrently. Write-before-open
       ordering is required, the residual case is named, and the lock file that
@@ -515,12 +668,48 @@ this CR after L1 Conflict 2 showed the mechanism contradicted it.
       defaults to `window`**, although what it governs is per-installation, the
       same mismatch `REQ_REL_NOTESSETTING` AC-2 avoids for the new setting. Not
       changed: unrelated element, `:status: implemented`. Open.
+- [ ] **Issue 9 — the notes cannot be promised a specific editor group.** The
+      user asked for group one. `simpleBrowser.api.open` accepts a
+      `showOptions` argument but **drops it** when it delegates to
+      `workbench.action.browser.open` (verified in `microsoft/vscode`,
+      `extensions/simple-browser/src/extension.ts`) — that is, on exactly the
+      path this CR takes. Passing `{ viewColumn: ViewColumn.One }` would
+      therefore be honoured only on the iframe fallback the probe exists to
+      avoid, so it is **not** specified: a normative promise no supported call
+      can keep is worse than a stated gap. Whether
+      `workbench.action.browser.open` takes options of its own was not
+      established. Open — for the Developer to investigate; if it does, it is a
+      one-AC amendment.
+- [x] **Issue 10 — an absent marker had two meanings and needed a tie-breaker.**
+      With a per-workspace marker, every existing workspace lacks one on the
+      release that introduces the feature — so reading "absent" as "first run"
+      would silence the very release carrying the `.jarvis/` layout and
+      `.gitignore` changes the notes exist to warn about. **Decided with the
+      user in the reopen session:** the `.jarvis/` directory is the
+      tie-breaker — present means an earlier Jarvis ran here, absent means the
+      workspace is new to Jarvis. Written into `REQ_REL_NOTESONCE` AC-2 with
+      its reason. The residual is stated rather than approved away: a user who
+      deleted `.jarvis/` is read as new and is not shown the notes — silent and
+      one-off, preferred to announcing in every workspace ever opened.
+- [ ] **Issue 11 — `SPEC_CFG_PATHRESOLVER` has drifted from its
+      implementation.** The spec places the module at `src/configPaths.ts`; it
+      is at `packages/core/src/engine/core/configPaths.ts`. The spec's
+      `getJarvisDir()` inlines `workspaceFolders[0]`; the code factors it into
+      `getWorkspaceRoot()`, which is the better shape. Found while amending the
+      element, not introduced here. Reported to PM. Open — separate CR.
+- [ ] **Issue 12 — the workspace root is resolved outside the resolver in eight
+      places.** `treeFactory.ts`, `extension.ts` and `heartbeat.ts` build
+      `workspaceFolders?.[0]… ?? ''` inline, which turns "no workspace" into a
+      path under the process working directory instead of a short-circuit.
+      `REQ_CFG_PATHSINGLESOURCE` AC-1 already calls that a defect, so the fix
+      needs no new element at any level. Reported to PM as a conformance gap.
+      Open — separate CR.
 
 ### Sign-off
 
 - [x] All levels completed (no ⚠️ DEPRECATED markers remaining)
-- [x] All conflicts resolved (6 conflicts; Conflicts 1/4 and Issues 1–4
-      confirmed by CM 2026-07-31 — Summary matches specs)
+- [x] All conflicts resolved (first-pass Conflicts 1/4 and Issues 1–4; reopen
+      Deltas 1–2 settled with user; CM Summary updated 2026-07-31 to match)
 - [x] Traceability verified, including every story AC to both levels, with the
       two deliberately unlinked ACs disclosed
 - [x] Sphinx `-W --keep-going` clean at every commit
@@ -529,22 +718,64 @@ this CR after L1 Conflict 2 showed the mechanism contradicted it.
       `REQ_REL_NOTESCOMMAND`, `REQ_REL_NOTESSETTING`, `SPEC_REL_RELEASENOTES`
 - [x] Ready for implementation
 
+#### Sign-off — reopen (2026-07-31)
+
+- [x] Both deltas carried through all three levels; no level was skipped
+- [x] No normative text now requires or implies the system default browser as
+      the delivery path; `vscode.env.openExternal` survives only on the
+      user-chosen branch, confined by `SPEC_REL_RELEASENOTES` AC-15
+- [x] Traceability table and story-AC discharge table re-derived for the two
+      new story ACs and the renumbered design ACs
+- [x] Artefakt-Removal-Check redone — four removals of normative text, each
+      with its orphan check
+- [x] Sphinx `-W --keep-going` clean on a rebuilt `_build`
+- [x] Re-approved: `US_REL_WHATSNEW`, `REQ_REL_NOTESTARGET`,
+      `REQ_REL_NOTESMARKER`, `REQ_REL_NOTESONCE`, `SPEC_REL_RELEASENOTES`.
+      `REQ_REL_NOTESSETTING` and `REQ_REL_NOTESCOMMAND` never left `approved`
+- [x] **The specification is complete. Nothing in it awaits a decision.** Both
+      deltas were settled with the user in the reopen session, which is what
+      that session was for; Issue 10 is a decision, not a question. Issue 9 is
+      a factual unknown about a VS Code command, handed to the Developer to
+      establish during implementation — it changes no requirement and gates
+      nothing.
+- [x] Dispatch to the Developer — CM 2026-07-31: Summary updated for Deltas
+      1–2; Dev dispatched. Spec was already complete; this was CM housekeeping
+      + dispatch, not a further product decision.
+
 #### Implementation scope handed to the Developer
 
-Specification only — no source was modified by the System Designer.
+Specification only — no source was modified by the System Designer. The module
+already exists (merged at `e4ace83`); the reopen changes two of its mechanisms,
+so this is a rework, not a first implementation.
 
-1. `packages/core/src/engine/core/releaseNotes.ts` — new module per
-   `SPEC_REL_RELEASENOTES` (`MARKER_KEY`, `notesUri`, `open`,
-   `announceIfNewVersion`, `showReleaseNotes`).
-2. `packages/core/src/extension.ts` — `void announceIfNewVersion(context, log)`
-   during activation, and register `jarvis.showReleaseNotes` into
-   `context.subscriptions`.
-3. `packages/core/package.json` — the command entry, and
-   `jarvis.releaseNotes.showOnUpdate` (boolean, default `true`, scope
-   `application`) inside the existing `Updates` group.
-4. Tests — `SPEC_REL_RELEASENOTES` AC-2 to AC-8 are all expressible against a
-   faked `globalState` and a stubbed `openExternal`; AC-9 and AC-10 are
-   grep-shaped checks over the workspace.
+1. `packages/core/src/engine/core/configPaths.ts` — add `getStateDir()`,
+   `ensureStateDir()` and `getReleaseNotesStatePath()` per the GH #63 amendment
+   to `SPEC_CFG_PATHRESOLVER`. `WORKSPACE_PATHS` needs **no** new entry:
+   `.jarvis/state/` is already declared `transient`.
+2. `packages/core/src/engine/core/releaseNotes.ts` — replace `MARKER_KEY` and
+   both `globalState` calls with `readState()`/`writeState()` over
+   `getReleaseNotesStatePath()`; add the no-workspace short-circuit and the
+   `.jarvis/`-presence branch; replace `vscode.env.openExternal` as the delivery
+   path with the probe plus `simpleBrowser.api.open`, keeping `openExternal`
+   only on the **"Open in Browser"** branch.
+3. `packages/core/src/extension.ts` — unchanged in shape:
+   `void announceIfNewVersion(context, log)` and the registered command stay as
+   they are.
+4. `packages/core/package.json` — the setting's `description` text changes
+   ("Open the release notes in the editor…"); the key, type, default and scope
+   do not.
+5. Tests — `src/tests/release-notes.test.ts` currently stubs `openExternal` and
+   fakes `globalState`. **Both seams move.** The open seam becomes
+   `vscode.commands.executeCommand` (with `getCommands` stubbed to control the
+   probe), and the marker seam becomes the file at
+   `getReleaseNotesStatePath()`. `SPEC_REL_RELEASENOTES` AC-2 to AC-11 are
+   expressible against those two; AC-12, AC-13 and AC-15 are grep-shaped checks
+   over the workspace. AC-2 (no workspace folder) is new and has no existing
+   test.
+
+**Open questions carried to the Developer:** Issue 9 (whether
+`workbench.action.browser.open` accepts show options — the group-one request
+depends on it).
 
 **Not in scope, reported:** the working tree carries untracked residue from
 earlier CRs — `.github/hooks/`, `.jarvis/messages.json`,
@@ -588,6 +819,48 @@ Full `compile all` — clean. Independently re-ran `npx vitest run` — 385/385 
 UAT: no scenario family exists for this area (consistent with #58/#60's precedent), not raised as a new gap. Issues 6/7/8 (self-update omits kanban/suite; `REQ_CFG_GROUPS`/`SPEC_CFG_MANIFEST` stale; `jarvis.checkForUpdates` scope mismatch) are disclosed, correctly scoped out, and consistent with prior CRs' escalations — not re-raised.
 
 **Overall: CLEAR.** No findings. This is the first of the recent CR sequence (#58/#59/#60) where the real production function was tested directly from Round 1, without needing a fix-now round for test methodology. Ready to close from QM's side.
+
+#### PM Decisions
+
+| # | Finding # | Decision | Rationale |
+|---|-----------|----------|-----------|
+| — | — | — | — |
+
+### Round 2 — Reopen Rework (2026-07-31)
+
+**Reviewed by:** QM
+**Review date:** 2026-07-31
+**Scope:** Reopen Deltas 1–2 only (delivery mechanism → in-editor `simpleBrowser.api.open`; marker storage → per-workspace `.jarvis/state/release-notes.json`), per CM's dispatch.
+
+#### Findings
+
+| # | Level | Element ID | Finding | Severity |
+|---|-------|------------|---------|----------|
+| — | — | — | None. | — |
+
+**Independent verification (git log, code, specs, build):**
+
+Git log fully disclosed — 10 commits, exact match to CM's message (`d18b6cd` through `90eff9f`), correct order, zero undisclosed commits.
+
+All three re-approved levels read in full and cross-checked against the CD's own "Elements touched by the reopen" table:
+- `US_REL_WHATSNEW` — AC-2 and AC-6 correctly rewritten to the per-workspace premise; AC-8 (in-editor) and AC-9 (no-folder) present and match the CD's stated wording exactly.
+- `REQ_REL_NOTESTARGET` — AC-2/AC-3/AC-6 correctly specify `simpleBrowser.api.open`, the `workbench.action.browser.open` probe, and the user-chosen `openExternal` fallback; AC-1/AC-4/AC-5 (URL construction, no network validation) carried over unchanged from first pass, correctly.
+- `REQ_REL_NOTESMARKER` — storage reversed to `<workspaceRoot>/.jarvis/` (AC-1/AC-2); AC-7 (committed-marker residual) present and correctly refuses a user/machine-specific filename workaround, consistent with the CD's own reasoning.
+- `REQ_REL_NOTESONCE` — AC-2 correctly split on `.jarvis/`-presence as the introducing-release tie-breaker (Issue 10); AC-5's concurrent-activation bound (no lock file) carried over unchanged from first pass.
+- `SPEC_REL_RELEASENOTES` — full embedded code block (`readState`/`writeState`/`notesUri`/`openInEditor`/`open`/`announceIfNewVersion`/`showReleaseNotes`) compared line-by-line against `packages/core/src/engine/core/releaseNotes.ts` — verbatim match, including the `knownWorkspace` sampled-before-`writeState()` ordering and the setting-read-after-marker-write ordering, both independently re-derivable from the design notes' own stated reasons.
+- `SPEC_CFG_PATHRESOLVER` — GH #63 amendment paragraph and the `getStateDir()`/`ensureStateDir()`/`getReleaseNotesStatePath()` code block compared against `packages/core/src/engine/core/configPaths.ts` — verbatim match; `.jarvis/state/` confirmed already present in `WORKSPACE_PATHS` as `transient` (no new `.gitignore` entry needed, as claimed).
+
+`extension.ts` (`void announceIfNewVersion(context, log)`, unchanged in shape) and `package.json` (command unchanged; setting `description` now reads "in the editor…", key/type/default/scope unchanged) independently confirmed against the CD's "Implementation scope" list — both match exactly, no drift beyond what was disclosed.
+
+`release-notes.test.ts` read in full: both test seams moved as the CD specified — the open seam is now `vscode.commands.executeCommand`/`getCommands` (mocked), the marker seam is now the real file at a mocked `getReleaseNotesStatePath()` written to/read from a real temp directory via `fs`. 12 tests present, mapping 1:1 onto AC-2 through AC-11 as claimed: no-workspace warn (AC-2), no-marker/no-`.jarvis/` silent record (AC-3), no-marker/existing-`.jarvis/` opens (AC-4), marker-equals-installed no-op (AC-5), marker-differs+setting-true opens via `simpleBrowser.api.open` with no `openExternal` call (AC-6), marker-differs+setting-false no-open-but-marker-advances (AC-7), marker-write-failure no-open (AC-8), corrupt-marker-file treated as absent (AC-9), integrated-browser-absent shows fallback message (AC-10), user-chooses-"Open in Browser" calls `openExternal` (AC-10), manual command opens current version + leaves marker untouched (AC-11), manual command works with no workspace (AC-11). No simulated/duplicated logic — every test drives the real exported `announceIfNewVersion`/`showReleaseNotes`.
+
+Full `compile all` (`npx tsc -p packages/core`) — clean. Independently re-ran `npx vitest run` — 389/389 passed, 38/38 files, matching CM's disclosed count exactly (+4 over the first-pass 385, consistent with the claimed 12 tests replacing the prior 8).
+
+Issue 9 (whether `workbench.action.browser.open` accepts its own `showOptions`, needed for the group-one placement request) was left uninvestigated by the Developer — consistent with the CD's own sign-off text that this is "a factual unknown... it changes no requirement and gates nothing," not a blocking gap. Not re-raised.
+
+Issues 6/7/8/11/12 are disclosed, explicitly scoped to separate CRs by the CD itself, and consistent with prior CRs' escalations — not re-raised.
+
+**Overall: CLEAR.** No findings. Both reopen deltas are correctly and completely carried through all three levels and into code/tests with no drift, no undisclosed commits, and no test-methodology gap. Ready to close from QM's side.
 
 #### PM Decisions
 

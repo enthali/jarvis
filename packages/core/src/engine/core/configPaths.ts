@@ -121,6 +121,26 @@ export function ensureActorsDir(): string | undefined {
     return dir;
 }
 
+/** Returns <workspaceRoot>/.jarvis/state, or undefined when no workspace is open. */
+export function getStateDir(): string | undefined {
+    const dir = getJarvisDir();
+    return dir ? path.join(dir, 'state') : undefined;
+}
+
+/** Ensures <workspaceRoot>/.jarvis/state exists (mkdir -p) and returns its path, or undefined. */
+export function ensureStateDir(): string | undefined {
+    const dir = getStateDir();
+    if (!dir) { return undefined; }
+    fs.mkdirSync(dir, { recursive: true });
+    return dir;
+}
+
+/** Returns <workspaceRoot>/.jarvis/state/release-notes.json, or undefined. */
+export function getReleaseNotesStatePath(): string | undefined {
+    const dir = getStateDir();
+    return dir ? path.join(dir, 'release-notes.json') : undefined;
+}
+
 // --- WORKSPACE_PATHS (GH #60, SPEC_CFG_PATHRESOLVER) ---
 
 type Durability = 'transient' | 'durable';
