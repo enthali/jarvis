@@ -636,6 +636,197 @@ Release Design Specifications
       );
 
 
+.. spec:: Release Notes on Update
+   :id: SPEC_REL_RELEASENOTES
+   :status: approved
+   :links: REQ_REL_NOTESTARGET; REQ_REL_NOTESMARKER; REQ_REL_NOTESONCE; REQ_REL_NOTESCOMMAND; REQ_REL_NOTESSETTING; SPEC_DEV_LOGCHANNEL
+
+   **Description:**
+   New module ``packages/core/src/engine/core/releaseNotes.ts`` opens the GitHub
+   release page for the installed version — automatically the first time that
+   version runs, and on demand from the Command Palette. Contributed by
+   ``enthali.jarvis-core`` only.
+
+   **Manifest contributions (**\ ``packages/core/package.json``\ **):**
+
+   .. code-block:: json
+
+      {
+        "command": "jarvis.showReleaseNotes",
+        "title": "Jarvis: Show Release Notes"
+      }
+
+   Added to the existing ``Updates`` configuration group, beside
+   ``jarvis.checkForUpdates``:
+
+   .. code-block:: json
+
+      "jarvis.releaseNotes.showOnUpdate": {
+        "type": "boolean",
+        "default": true,
+        "scope": "application",
+        "description": "Open the release notes in your browser the first time a newly installed Jarvis version runs. The command \"Jarvis: Show Release Notes\" works regardless of this setting."
+      }
+
+   No new settings group is introduced, so ``REQ_CFG_GROUPS`` is neither
+   extended nor contradicted here. That requirement and ``SPEC_CFG_MANIFEST``
+   are both stale and were escalated by GH #60; this element defines its own
+   contributions rather than amending that snapshot, following the
+   ``SPEC_HOOK_AUTOINST`` precedent.
+
+   **Marker key:**
+
+   .. code-block:: typescript
+
+      // Frozen. Never derive this from the setting id: renaming the setting
+      // must not orphan every installed user's marker.
+      const MARKER_KEY = 'jarvis.releaseNotes.lastShownVersion';
+
+   **Target and opening:**
+
+   .. code-block:: typescript
+
+      function notesUri(version: string): vscode.Uri {
+          return vscode.Uri.parse(
+              `https://github.com/enthali/jarvis/releases/tag/v${version}`
+          );
+      }
+
+      async function open(version: string, log?: vscode.LogOutputChannel): Promise<void> {
+          const uri = notesUri(version);
+          const opened = await vscode.env.openExternal(uri);
+          if (!opened) {
+              log?.warn(`[ReleaseNotes] openExternal declined: ${uri.toString()}`);
+              void vscode.window.showInformationMessage(
+                  `Jarvis release notes: ${uri.toString()}`
+              );
+          }
+      }
+
+   **Automatic path:**
+
+   .. code-block:: typescript
+
+      export async function announceIfNewVersion(
+          context: vscode.ExtensionContext,
+          log?: vscode.LogOutputChannel
+      ): Promise<void> {
+          const installed: string = context.extension.packageJSON.version;
+          const seen = context.globalState.get<string>(MARKER_KEY);
+          if (seen === installed) { return; }
+
+          try {
+              await context.globalState.update(MARKER_KEY, installed);
+          } catch (e) {
+              log?.error(`[ReleaseNotes] marker write failed, not opening: ${e}`);
+              return;
+          }
+
+          if (seen === undefined) {
+              log?.info(`[ReleaseNotes] first install, recorded v${installed}`);
+              return;
+          }
+
+          const enabled = vscode.workspace
+              .getConfiguration('jarvis.releaseNotes')
+              .get<boolean>('showOnUpdate', true);
+          if (!enabled) { return; }
+
+          log?.info(`[ReleaseNotes] v${seen} → v${installed}, opening notes`);
+          await open(installed, log);
+      }
+
+   **Manual path:**
+
+   .. code-block:: typescript
+
+      export async function showReleaseNotes(
+          context: vscode.ExtensionContext,
+          log?: vscode.LogOutputChannel
+      ): Promise<void> {
+          await open(context.extension.packageJSON.version, log);
+      }
+
+   **In** ``extension.ts`` **activate():**
+
+   .. code-block:: typescript
+
+      // Deliberately not awaited: activation must not wait on a browser
+      // (REQ_REL_NOTESONCE AC-8).
+      void announceIfNewVersion(context, log);
+
+      const showReleaseNotesCommand = vscode.commands.registerCommand(
+          'jarvis.showReleaseNotes',
+          () => showReleaseNotes(context, log)
+      );
+
+   **Design notes:**
+
+   * **Why** ``globalState`` **and not a file.** The marker is one short string
+     that must outlive an extension update and must exist when no folder is
+     open. ``context.globalStorageUri`` would work and would mean a second
+     file-based state mechanism with its own read, write, and corrupt-content
+     handling. ``globalState`` also has the property that decided it: it has no
+     path at all, so it cannot later be swept into ``WORKSPACE_PATHS`` or a
+     ``.gitignore`` region by someone tidying up runtime files.
+
+   * **Why the setting is read after the marker is written.** The guard reads
+     as though it belongs at the top of the function, and moving it there is the
+     obvious tidy-up. It would implement ``REQ_REL_NOTESSETTING`` AC-4
+     backwards: with the setting off, the marker would stop advancing, and
+     turning the setting back on months later would send the user to the notes
+     of whichever version was current when they turned it off.
+
+   * ``setKeysForSync`` **is deliberately not called for** ``MARKER_KEY``.
+     Adding it is a one-line change that looks like an improvement. A synced
+     marker suppresses the notes on a second machine that *did* receive the
+     update — a silent omission. Unsynced, the user sees the notes once per
+     machine, which is an accurate description of what happened to each machine.
+
+   * **The** ``undefined`` **branch is separate from the difference branch on
+     purpose.** Collapsing them into ``if (seen !== installed) { open(); }``
+     is shorter and opens a browser tab at the end of every fresh installation,
+     which ``REQ_REL_NOTESONCE`` AC-2 forbids. The two cases look alike in the
+     data and are opposite in intent.
+
+   * **Only** ``core`` **registers this.** Per-extension global state means each
+     of the nine ``enthali.*`` extensions would otherwise keep its own marker
+     and announce one update nine times, and each would contribute its own
+     palette entry. Same single-writer constraint, and the same premise, as
+     ``SPEC_CFG_IGNOREMANAGER`` (``US_CFG_RUNTIMELAYOUT`` AC-5: no activation
+     order is guaranteed).
+
+   * **No network call is made here.** The URL is built from a version already
+     known locally. ``SPEC_REL_UPDATECHECK`` uses the API because only the API
+     knows what the newest release is; that reason does not apply to a version
+     the extension host is currently running.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``packages/core/package.json`` contributes the command and the
+     setting exactly as shown, and the setting appears in the ``Updates`` group
+   * AC-2: With empty global state, activation opens nothing and leaves the
+     marker equal to the installed version
+   * AC-3: With the marker equal to the installed version, activation performs
+     no browser open, no notification and no network request
+   * AC-4: With a marker differing from the installed version and the setting
+     ``true``, exactly one ``openExternal`` call is made, with
+     ``https://github.com/enthali/jarvis/releases/tag/v{installed}``
+   * AC-5: With a marker differing from the installed version and the setting
+     ``false``, nothing is opened and the marker is advanced to the installed
+     version
+   * AC-6: If ``globalState.update`` rejects, nothing is opened
+   * AC-7: If ``openExternal`` resolves ``false``, an information message
+     containing the URL is shown
+   * AC-8: The manual command opens the installed version's notes irrespective
+     of marker and setting, and leaves the marker unchanged
+   * AC-9: ``setKeysForSync`` is not called with ``MARKER_KEY`` anywhere in the
+     codebase
+   * AC-10: No package other than ``core`` registers ``jarvis.showReleaseNotes``
+     or reads or writes ``MARKER_KEY``
+   * AC-11: Activation completes even if ``openExternal`` never resolves
+
+
 .. spec:: Extension Package Contract
    :id: SPEC_REL_PKGCONTRACT
    :status: implemented

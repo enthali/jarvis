@@ -101,6 +101,51 @@ Release User Stories
      release, the release page is opened as fallback (no silent failure)
 
 
+.. story:: See What Changed After an Update
+   :id: US_REL_WHATSNEW
+   :status: approved
+   :priority: required
+   :links: US_REL_RELEASE; US_REL_SELFUPDATE
+
+   *Context: US_REL_SELFUPDATE already offers release notes* **before** *an
+   update — for a version the user does not yet have, as an aid to deciding
+   whether to install it. Nothing covers the moment* **after** *the update, when
+   the user has the new version and the question changes from "should I take
+   this?" to "what did I just get?". Releases 0.25.0 and later change the
+   on-disk* ``.jarvis/`` *layout (#59) and edit the user's* ``.gitignore``
+   *(#60), so that second question now has consequences the user can see in
+   their own working tree.*
+
+   **As a** Jarvis User,
+   **I want** Jarvis to show me what changed the first time I run a version I
+   have not run before, and to let me reopen those notes whenever I want,
+   **so that** I understand changes Jarvis has made to my workspace instead of
+   discovering them as unexplained diffs.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The first time Jarvis runs a version the user has not run before, the
+     release notes for **that installed version** are shown without the user
+     asking
+   * AC-2: Running the same version again does not show them again — on any
+     later start, in any folder, on that machine. Running a different version in
+     between and then coming back to this one does show them again: what is
+     remembered is the last version announced, not every version ever run
+   * AC-3: A first-ever installation is not treated as an update: nothing is
+     shown, and the installed version is recorded as already seen. A user who
+     has just chosen to install Jarvis is looking at the editor, and has not
+     asked to be sent anywhere else
+   * AC-4: The user can bring up the current version's notes at any time,
+     whether or not they were shown automatically
+   * AC-5: The automatic behaviour can be turned off, and turning it off leaves
+     the on-demand way of reading the notes intact
+   * AC-6: Having several folders, several windows, or several Jarvis extensions
+     installed does not multiply what the user is shown — one update is one
+     announcement
+   * AC-7: If the notes for the installed version cannot be reached, the user
+     is left with something they can act on, not with silence
+
+
 .. story:: VS Code Marketplace Discoverability
    :id: US_REL_MARKETPLACE
    :status: draft

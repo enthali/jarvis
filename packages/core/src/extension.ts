@@ -29,6 +29,7 @@ import { ActivityDecorator } from './engine/hooks/activityDecorator';
 import { TouchStore } from './engine/hooks/touchStore';
 import { TouchTracker } from './engine/hooks/touchTracker';
 import { applyGitignore, setIgnoreManagerLogger } from './engine/core/gitignoreManager';
+import { announceIfNewVersion, showReleaseNotes } from './engine/core/releaseNotes';
 
 import { CronExpressionParser } from 'cron-parser';
 
@@ -529,6 +530,14 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     const checkForUpdatesCommand = vscode.commands.registerCommand(
         'jarvis.checkForUpdates',
         () => checkForUpdates(context, false, log)
+    );
+
+    // Release notes on update (SPEC_REL_RELEASENOTES)
+    void announceIfNewVersion(context, log);
+
+    const showReleaseNotesCommand = vscode.commands.registerCommand(
+        'jarvis.showReleaseNotes',
+        () => showReleaseNotes(context, log)
     );
 
     // Rescan command
@@ -1513,6 +1522,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         newSessionCommand,
         { dispose: () => void stopHookIntake() },
         checkForUpdatesCommand,
+        showReleaseNotesCommand,
         sendToSessionTool,
         readMessageTool,
         listActorsTool,
