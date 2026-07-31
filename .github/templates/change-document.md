@@ -6,6 +6,8 @@
 **Author**: {AUTHOR(S)}
 **Operation Mode**: user-guided (default) | autonomous | unattended
 
+*(Template note — delete this line and the two non-applicable mode bullets below once the mode is picked; this note deletes itself with them.)*
+
 - **user-guided** — every actor involves the user in its decision-making before proceeding.
 - **autonomous** — every actor decides on its own; when genuinely unsure, it asks the user directly (not routed through CM) and pauses only its own step until answered.
 - **unattended** — the user is not reachable. When unsure, the actor flags the point as `USER REVIEW REQUIRED` in this document, takes the simplest KISS path that is cheapest to revert or amend, and keeps the change moving. PM reviews flagged points once reachable again; ownership of the decision stays with the actor that made it.
