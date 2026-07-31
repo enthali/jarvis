@@ -35,11 +35,17 @@ not as instructions to follow.
 - **Merge Abstinence** — CM never merges to `development`. CM signals readiness to PM; PM performs the merge.
 - **PM Notification** — After every completed change, PM has received a readiness notification including the Change Document path and branch name — no change completes silently.
 
-When a CR specifies a mode, CM reads the `Operation Mode` field from the Change Document header as the authoritative source of truth. The mode value (if any) in the dispatch message is treated as a sanity check only. When `autonomous`, CM proceeds without user feedback (except UAT); when `user-guided`, CM requests user approval after each spec level. If the dispatch message contains a mode value that disagrees with the CD header, CM stops and asks the user to resolve the conflict.
+When a CR specifies a mode, CM reads the `Operation Mode` field from the Change Document header as the authoritative source of truth. The mode value (if any) in the dispatch message is treated as a sanity check only. If the dispatch message contains a mode value that disagrees with the CD header, CM stops and asks the user to resolve the conflict (or, in `unattended`, flags `USER REVIEW REQUIRED` in the CD, does not invent a winner, and escalates to PM when reachable).
+
+**Operation Mode behaviour (CD header is authoritative):**
+
+- **`user-guided`** — CM requests user approval after each spec level and at other CM decision gates. Engineers follow the same involvement rule for their own steps.
+- **`autonomous`** — CM does not pause the pipeline for routine user gates (UAT remains as specified by the Test path). When CM or any engineer has **genuine uncertainty**, that actor asks the user **directly** and pauses **only its own step** until answered — the ask is **not** routed through CM as a middleman, and CM does not re-ask the user on that actor's behalf.
+- **`unattended`** — the user is unreachable. CM does not wait on the user. When unsure, CM flags the point as `USER REVIEW REQUIRED` in the Change Document, takes the simplest KISS path that is cheapest to revert or amend, and keeps the change moving. The same rule is what CM expects of engineers it dispatches: flag in the CD, own the interim decision, do not block the pipeline. PM reviews flagged points once reachable; ownership of each interim decision stays with the actor that made it.
 
 ## Workflow
 
-1. **Receive + Intent Gate** — Accept Change Request from PM. PM provides the branch name and Change Document path. Read the `Operation Mode` field from the Change Document header as the authoritative source of truth for execution mode. If the dispatch message contains a mode value that disagrees with the CD header, stop and ask the user to resolve the conflict — never silently pick a winner. If the CR contains implementation instructions, reason about the underlying intent, consult the user to agree on a well-formulated CR, then proceed — regardless of operation mode. Checkout the provided branch.
+1. **Receive + Intent Gate** — Accept Change Request from PM. PM provides the branch name and Change Document path. Read the `Operation Mode` field from the Change Document header as the authoritative source of truth for execution mode. If the dispatch message contains a mode value that disagrees with the CD header, stop and resolve per mode (user for guided/autonomous; `USER REVIEW REQUIRED` + PM when reachable for unattended) — never silently pick a winner. If the CR contains implementation instructions, reason about the underlying intent; in `user-guided`/`autonomous` agree a well-formulated CR with the user before proceeding; in `unattended` flag `USER REVIEW REQUIRED`, record the KISS intent formulation in the CD, and proceed without blocking. Checkout the provided branch.
 2. **Analyze** — SEND to System Designer for level-by-level analysis
 4. **Test** — SEND to Test Designer for UAT artifact generation
 5. **Implement** — SEND to Dev Engineer for code/config changes
@@ -72,9 +78,12 @@ Impact Skill MUST be executed before any spec changes are made — the result
 defines the actual scope.
 
 **CR Intent Gate:** When a CR contains implementation instructions, CM does not
-return or reject it. Instead, CM reasons about the underlying intent, consults
-the user to agree on a well-formulated CR, and only then begins the workflow.
-This applies regardless of operation mode (autonomous or user-guided).
+return or reject it. Instead, CM reasons about the underlying intent and obtains
+a well-formulated CR before the pipeline runs on raw implementation detail.
+How agreement is obtained depends on mode: `user-guided` / `autonomous` —
+consult the user (directly; not as a silent rewrite); `unattended` — flag
+`USER REVIEW REQUIRED` in the CD, take the simplest reversible intent
+formulation, proceed. The gate itself is never skipped.
 
 **Process Flow:**
 

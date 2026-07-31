@@ -11,8 +11,14 @@
   still live on develop; Release Engineer cleans up with `git rm` + a cleanup commit
 - **ESLint v9 lint failure is pre-existing** — known issue, deferred post-release; do
   not block CRs on it
-- **CR intent gate applies in every mode** — autonomous does not skip clarification
-  when a CR contains implementation details; clarify with the user first
+- **CR intent gate applies in every mode** — never skip clarifying raw implementation
+  detail into intent. `user-guided`/`autonomous`: agree with the user (direct ask;
+  autonomous does not route that ask through CM as middleman). `unattended`: flag
+  `USER REVIEW REQUIRED`, KISS reversible formulation in the CD, keep moving
+- **Three Operation Modes** (template + agent, 2026-07-31) — `user-guided` (gates),
+  `autonomous` (no routine gates; genuine uncertainty → actor asks user directly,
+  pauses only own step), `unattended` (user unreachable; flag in CD + KISS path;
+  PM reviews flags later; decision ownership stays with the acting actor)
 - **Fix small clerical issues directly** — typos, MECE-log appends; full delegation
   is overkill for one-line fixes
 - **US→US :links: is an anti-pattern** — sibling User Stories must not cross-link via `:links:`
