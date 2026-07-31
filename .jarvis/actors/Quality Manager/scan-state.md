@@ -14,18 +14,18 @@ check this note before treating a stale `Last Run` date as a process gap.
 
 ## Last Periodic Run
 
-- **Date:** 2026-07-17 (Friday heartbeat cycle)
-- **Report:** [reports/qr-2026-07-17-friday-heartbeat.md](reports/qr-2026-07-17-friday-heartbeat.md) — see [reports/index.md](reports/index.md) for full report history
+- **Date:** 2026-07-31 (Friday heartbeat cycle)
+- **Report:** [reports/qr-2026-07-31-friday-heartbeat.md](reports/qr-2026-07-31-friday-heartbeat.md) — see [reports/index.md](reports/index.md) for full report history
 
 ## Standing Check Status
 
 | ID | Last Run | Last Result |
 |---|---|---|
-| SC-001 | 2026-07-17 | Re-confirmed: same 11 persona findings as 2026-06-18 (no new US personas added since). Still outstanding — CR not yet delivered. |
-| SC-002 | 2026-07-17 | 3 findings (first run) — implementation detail leaking into US ACs: us_pim.rst US_PIM_CATEGORY AC-8 (`registerDualTool()`), us_msg.rst US_MSG_LISTJARVISSESSIONS AC-1 (`JarvisCoreApi.listJarvisSessions()` signature + return shape), us_msg.rst US_MSG_MCPSERVER AC-2 (`vscode.lm.registerTool()`) |
-| SC-003 | 2026-07-17 | PASS — every SPEC element across docs/design/spec_*.rst has a `:links:` field. 0 findings. |
-| SC-004 | 2026-07-17 | 14 findings (first run) — tst-*.md files (repo-wide, incl. version archives) with no matching val-*.md: session-agent-binding, devcontainer-session-lookup, context-file-discovery, heartbeat-feedback-toast, heartbeat-pause-resume, open-context, list-jobs-tool, validate-session-destination, create-session-tool, validate-heartbeat-queue-destination, agent-prompt-tuning, tree-search, session-tree-click-behavior, sessions-feature |
-| SC-005 | 2026-07-17 | PASS — both root-level in-progress CDs (actor-touched-files.md, message-log-viewer.md) have active feature branches (feature/actor-touched-files, feature/message-log-viewer). 0 findings. |
+| SC-001 | 2026-07-31 | Re-confirmed: same 11 persona findings, unchanged since 2026-07-17. 3 new US stories this cycle (US_CFG_RUNTIMELAYOUT, US_CFG_AUTOGITIGNORE, US_REL_WHATSNEW) all use conforming personas. Still outstanding — tracked GH #33. |
+| SC-002 | 2026-07-31 | Re-confirmed: same 3 findings, unchanged since 2026-07-17. 3 new US stories this cycle checked clean (no implementation detail). Deferred — GH #32. |
+| SC-003 | 2026-07-31 | PASS — 285 spec blocks / 285 :id: / 285 :links:, one-to-one, no gaps. Includes 3 new SPEC elements this cycle (SPEC_CFG_STATEMIGRATION, SPEC_CFG_IGNOREMANAGER, SPEC_REL_RELEASENOTES). 0 findings. |
+| SC-004 | 2026-07-31 | 17 findings (14 unchanged + 3 NEW): tst-jarvis-whoami.md (v0.23.0), tst-prompt-injection-tool.md (v0.23.0), tst-jarvis-kanban.md (v0.24.0) each lack a val-*.md despite QM having reviewed them live with full UAT verification — process/archival gap, not a review-coverage gap. Pending PM decision. |
+| SC-005 | 2026-07-31 | PASS — 3 root-level in-progress CDs (jarvis-gitignore-automanage.md, jarvis-messages-dir-grouping.md, jarvis-release-notes-on-update.md) all have active feature branches. 0 findings. |
 
 ## CR Review Log
 
@@ -77,7 +77,7 @@ in git history of this file.*
 
 ## Known Releases (at last scan)
 
-v0.0.1, v0.1.0, v0.1.1, v0.2.0, v0.3.0, v0.3.1, v0.4.0, v0.5.0, v0.5.1, v0.5.2, v0.5.3, v0.5.4, v0.5.5, v0.5.6, v0.5.7, v0.5.8, v0.5.9, v0.5.10, v0.5.11, v0.6.0, v0.6.1, v0.7.0, v0.8.0, v0.9.0, v0.10.0, v0.11.0, v0.11.1, v0.11.2, v0.12.0, v0.13.0, v0.13.1, v0.13.2, v0.13.3, v0.14.0, v0.15.0, v0.15.1, v0.15.2, v0.16.0, v0.17.0, v0.17.1, v0.17.2, v0.17.3, v0.18.0, v0.19.0
+v0.0.1, v0.1.0, v0.1.1, v0.2.0, v0.3.0, v0.3.1, v0.4.0, v0.5.0, v0.5.1, v0.5.2, v0.5.3, v0.5.4, v0.5.5, v0.5.6, v0.5.7, v0.5.8, v0.5.9, v0.5.10, v0.5.11, v0.6.0, v0.6.1, v0.7.0, v0.8.0, v0.9.0, v0.10.0, v0.11.0, v0.11.1, v0.11.2, v0.12.0, v0.13.0, v0.13.1, v0.13.2, v0.13.3, v0.14.0, v0.15.0, v0.15.1, v0.15.2, v0.16.0, v0.17.0, v0.17.1, v0.17.2, v0.17.3, v0.18.0, v0.19.0, v0.20.0, v0.20.1, v0.20.2, v0.21.0, v0.22.0, v0.23.0, v0.24.0, v0.24.1
 
 ## Known Root-Level Changes (at last scan — completed CRs reviewed by QM)
 
@@ -90,5 +90,6 @@ v0.0.1, v0.1.0, v0.1.1, v0.2.0, v0.3.0, v0.3.1, v0.4.0, v0.5.0, v0.5.1, v0.5.2, 
 - SC-001: 11 persona findings still outstanding — coupled to [GH #33](https://github.com/enthali/jarvis/issues/33) "Streamline persona roles in User Stories" (unchanged since 2026-06-18). Correction (PM, 2026-07-17): the earlier reference to a planned "Jarvis Agent persona CR" was mistaken — no such GH issue ever existed; GH #33 is the actual tracking issue, kept minimal. No escalation needed.
 - SC-002: 3 findings — PM decision 2026-07-17: **Defer**. Backlog issue GH #32 filed ("docs: remove implementation details from User Story acceptance criteria"). Low priority, bundled into future docs-cleanup CR, no active risk.
 - SC-004: 14 findings — PM decision 2026-07-17: **Accept-as-is**. Historical gaps predating the val- convention (SC-005 confirms the convention holds for current/root-level CDs). No active quality risk, no rework justified for closed/shipped changes.
+- SC-004: 3 NEW findings (2026-07-31) — tst-jarvis-whoami.md/tst-prompt-injection-tool.md (v0.23.0), tst-jarvis-kanban.md (v0.24.0) lack val-*.md despite QM having reviewed them live with full UAT verification recorded in the CR Review Log. Distinct from the accepted historical set — flagged to PM as a process/archival gap, decision pending.
 - remove-open-recording-icon PM decision: outstanding
 - ~~URGENT full-suite build break (collectLeaves()/FileNode)~~ — RESOLVED 2026-07-02 via pim-treenode-filenode-fix hotfix, QM CLEAR, full-suite build independently re-verified clean.
