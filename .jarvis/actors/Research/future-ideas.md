@@ -7,6 +7,30 @@ Sortierung: jüngste oben.
 
 ---
 
+## FI-2026-08-03 — Ephemerer, job-gebundener Kanal für `executeCommand` aus gespawnten Prozessen
+
+**Trigger:** Spike-Auftrag PM (2026-08-03). Heartbeat-Jobs stossen ans feste Step-Vokabular; jedes neue Bedürfnis zwingt zu Code-Erweiterung in Heartbeat oder MCP. Gesucht: ein Kanal, über den ein von Jarvis gestarteter Node-Prozess für seine Laufzeit `vscode.commands.executeCommand()` im Extension-Host aufrufen kann — ohne Dauerbetrieb-Port wie `jarvis.mcp.enabled`.
+
+**Status:** ⏸️ **Zurückgestellt (User, 2026-08-04)** — Funktion aktuell nicht nötig, keine Implementierung. PM führt es als Idee. Desk-Research ist gemacht; die Befunde unten ersparen beim Wiederaufgreifen den Grossteil des Spikes. Offen bleibt nur der eigentliche Fork-IPC-Messbeweis.
+
+**Befund 1 — Machbarkeit ist nicht offen, sie läuft produktiv.** `hookIntake.ts` macht `http.createServer().listen(0, '127.0.0.1')` im Extension-Host, publiziert den Port als Datei und schliesst sauber in `stop()`. Der Extension-Host ist ein normaler Node-Prozess; keine Einschränkung analog zu den AHP-Prozessgrenzen. Lebenszyklus-Kopplung ans Kind ist trivial, weil `spawnStep()` ohnehin auf `close` wartet.
+
+**Befund 2 — die Lücke ist kleiner als im Auftrag angenommen.** Heartbeat kann *heute schon* Commands ausführen: `type: 'command'` ruft `vscode.commands.executeCommand(step.run)` (mit Registrierungs-Check). Es fehlen drei Dinge: **keine Argumente**, **kein Rückgabewert**, **nicht aus einem Skript heraus**. Die genannte Motivation („variable Message an eine Actor-Liste") fällt vermutlich schon unter Punkt 1+2 ⇒ **billiger Teilfix als eigener kleiner CR: `args` + Output-Capture am command-Step**, ganz ohne neuen Kanal. Den Kanal braucht nur der allgemeine Fall (Skript rechnet → ruft → rechnet mit Ergebnis weiter).
+
+**Befund 3 — Trust-Modell: Vertrauen folgt aus Erreichbarkeit, nicht aus Herkunft.** Die Auftragsannahme („Prozess ist von Jarvis gestartet ⇒ kein Login nötig") leitet Vertrauen aus dem Spawn ab. Falsche Achse: ein Loopback-Port ist ein maschinenweiter Namensraum, den jeder lokale Prozess erreicht — und unauthentifizierte `localhost`-HTTP-Server sind zusätzlich aus dem Browser angreifbar (POST mit `text/plain` ohne Preflight, DNS-Rebinding). Einsatz ist hier hoch: generisches `executeCommand` erreicht u. a. `workbench.action.terminal.sendSequence` und `workbench.action.tasks.runTask` ⇒ effektiv Codeausführung mit User-Rechten.
+
+> **Regel:** Ein geschlossener Kanal ist genau dann möglich, wenn wir den Spawn kontrollieren. Wer einen Prozess nicht selbst startet, braucht einen Rendezvous-Namensraum — und „auffindbar" ist das Gegenteil von „geschlossen".
+
+**Empfehlung (begründet, nicht gemessen):** `cp.fork()` bzw. `stdio: [..., 'ipc']` für Node-Kinder — der Kanal *ist* das beim Spawn erzeugte Deskriptor-Paar: kein Namensraum, nichts zu entdecken, kein Token nötig, Erreichbarkeit per Konstruktion auf das eine Kind beschränkt. Named Pipe / Unix Socket als Rückfallebene für Python- und PowerShell-Steps. Ephemerer Port + Einmal-Token ist die **schlechteste** der drei Optionen (einzige mit global erreichbarem Namensraum).
+
+**Befund 4 — Ist-Sicherheitslage:** weder `hookIntake.ts` noch `mcpServer.ts` haben *irgendeine* Authentifizierung; beide binden nur an `127.0.0.1`. Die PM-Vermutung „Dauerbetrieb-Port ist das falsche Sicherheitsmodell" stimmt — aus einem schärferen Grund als vermutet.
+
+**Befund 5 — Workspace-Trust-Aspekt (im Auftrag nicht enthalten):** Heartbeat-`run:`-Skripte sind **Workspace-Inhalt**, kommen also aus dem geklonten Repo. „Von Jarvis gestartet" heisst nicht „von uns geschrieben" — der Kanal gäbe fremdem Repo-Inhalt Kontrolle über VS Code. `packages/core/package.json` deklariert derzeit keine `capabilities.untrustedWorkspaces`.
+
+**Nächster Schritt beim Wiederaufgreifen:** kleiner Messbeweis — Fork-Kind spawnen, `process.send()` → Extension-Host führt `executeCommand` mit Argumenten aus und schickt das Ergebnis zurück, Kanal stirbt mit dem Prozess. Braucht Probe-Code in `packages/core` (Dev-Host) ⇒ Branch-Abstimmung wegen geteiltem Worktree.
+
+---
+
 ## FI-2026-07-03 — Actor Monitoring: Self-Reminder-Watchdog (statt Hook-basiert)
 
 **Trigger:** Dritter Vorfall eines hängenden Agenten (Nemotron via GH Copilot, „Response contained no choices" — LLM-Inferenz-Fehler). Hook-Log analysiert: Sequenz bricht nach dem letzten `PostToolUse` einfach ab, kein `Stop`-Hook.
