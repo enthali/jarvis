@@ -77,3 +77,11 @@ System Designer for Jarvis — designs specs and resolves open design questions 
 - Before inventing a settings convention, grep for one — `jarvis.scanInterval`
   already established `minimum: 0` + "0 = disabled", so
   `jarvis.touchedFiles.windowDays` cost no new convention.
+- **A tasked fix can be forbidden, not merely redundant.** My conformance-gap
+  check asks "does a requirement already mandate this?" — extend it to "does
+  one already rule it out?". `jarvis-gitignore-automanage-followup` asked for
+  four ignore entries; `REQ_CFG_IGNOREPATTERNS` AC-4 forbids two of them.
+- **Verify the artefact, not the intake report.** Two of that CR's four
+  observations were stale — the files had been renamed by an earlier merged CR.
+  A CR description is evidence about what someone saw once, not about the
+  current tree.

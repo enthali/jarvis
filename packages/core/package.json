@@ -249,7 +249,17 @@
           "jarvis.reminders.enabled": { "type": "boolean", "default": true, "description": "Enable the Reminders sub-feature." }
         }
       },
-
+      {
+        "title": "Gitignore",
+        "properties": {
+          "jarvis.gitignore.autoManage": {
+            "type": "boolean",
+            "default": true,
+            "scope": "resource",
+            "description": "When true (default), Jarvis maintains a marked region in the workspace .gitignore listing its transient runtime paths. Set to false to remove the region."
+          }
+        }
+      },
       {
         "title": "Updates",
         "properties": {
