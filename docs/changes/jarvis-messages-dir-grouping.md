@@ -1,6 +1,6 @@
 # Change Document: jarvis-messages-dir-grouping
 
-**Status**: in-progress
+**Status**: merged
 **Branch**: feature/jarvis-messages-dir-grouping
 **Created**: 2026-07-29
 **Author**: Project Manager

@@ -1,6 +1,6 @@
 # Change Document: jarvis-release-notes-on-update
 
-**Status**: in-progress (reopened)
+**Status**: merged
 **Branch**: feature/jarvis-release-notes-on-update
 **Created**: 2026-07-31
 **Author**: Project Manager

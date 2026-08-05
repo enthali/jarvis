@@ -1,6 +1,6 @@
 # Change Document: jarvis-hook-file-prefix
 
-**Status**: draft
+**Status**: merged
 **Branch**: feature/jarvis-hook-file-prefix
 **Created**: 2026-07-29
 **Author**: Project Manager
