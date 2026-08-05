@@ -236,6 +236,8 @@ Release Requirements
    ``enthali.jarvis-recorder``     ``jarvis-recorder-{version}.vsix``
    ``enthali.jarvis-mcp``          ``jarvis-mcp-{version}.vsix``
    ``enthali.jarvis-flow``         ``jarvis-flow-{version}.vsix``
+   ``enthali.jarvis-kanban``       ``jarvis-kanban-{version}.vsix``
+   ``enthali.jarvis-suite``        ``jarvis-suite-{version}.vsix``
    ``enthali.jarvis-syspilot``     ``jarvis-syspilot-{version}.vsix``
    =============================== ======================================
 
