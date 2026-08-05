@@ -2,7 +2,7 @@
   "name": "jarvis-core",
   "displayName": "Jarvis Core",
   "description": "Jarvis core — sessions, messaging, reminders, heartbeat, engine",
-  "version": "0.24.1",
+  "version": "0.25.0",
   "publisher": "enthali",
   "icon": "resources/jarvis-128.png",
   "keywords": [

@@ -1,5 +1,29 @@
 # Release Notes
 
+## v0.25.0 — Recently Touched Files Cleanup + Gitignore Automanage + Messages Directory
+
+*2026-08-05*
+
+### Features
+
+- **touched-files-cleanup**: The "Recently Touched Files" tree now supports display filtering and multi-scope removal. A configurable rolling window (default: 0 = no limit; `jarvis.touchedFiles.maxAgeDays`) hides entries not touched within the configured number of days — the underlying data is unchanged, so widening the window brings entries back. Entries whose file no longer exists are hidden from the tree (not deleted), restoring automatically if the file returns (e.g. after a branch switch). The existing single-entry trash icon now also removes everything at a folder node or the whole category (including hidden entries). A new on-demand "clean up dead entries" action on the category permanently removes entries whose file is confirmed missing and reports the count. Nothing is removed automatically.
+
+- **jarvis-messages-dir-grouping** (GH #59): `.jarvis/` root transient state is now grouped. The three message-related files (`messages.json`, `message-log.json`, `autodelivery.json`) move to `.jarvis/messages/` as `queue.json`, `log.json`, and `autodelivery.json` respectively. On first activation after update, existing files are migrated automatically; `.gitignore` managed region is updated.
+
+- **jarvis-hook-file-prefix** (GH #58): Hook bridge files renamed from `bridge.mjs`/`port` to `jarvis-bridge.mjs`/`jarvis-port`, matching the repo-wide `jarvis-` prefix convention that marks Jarvis-generated artifacts. The gitignore automanage pattern for hook files is updated to `jarvis-*` to cover both.
+
+- **jarvis-gitignore-automanage** (GH #60): Jarvis now auto-manages the workspace-root `.gitignore` entries for its own generated transient state. On activation of core, a managed region is written (or updated) containing the paths Jarvis generates — `.jarvis/messages/`, hook files, state directories. The region is bracketed with `# Jarvis managed` markers; content outside is never touched. Setting `jarvis.gitignore.autoManage` to `false` removes the managed region on next activation.
+
+- **jarvis-release-notes-on-update** (GH #63): After a Jarvis Core update, the release page for the new version opens automatically in VS Code's built-in browser on first activation in any workspace where the version is new. The URL is constructed as `https://github.com/enthali/jarvis/releases/tag/v{version}` without a network call. Behavior is opt-out via `jarvis.releaseNotes.showOnUpdate`. First installs are silent. The manual command **Jarvis: Show Release Notes** is always available.
+
+### Fixes
+
+- **jarvis-gitignore-automanage-followup**: Restores the `jarvis.gitignore.autoManage` setting entry in `packages/core/package.json` (accidentally deleted by the touched-files-cleanup merge) and clarifies that flat message paths already in `.jarvis/` root are intentionally left visible in the managed region to aid discoverability during the transition period.
+
+- **jarvis-gitignore-wiring-restore**: Restores `jarvis-gitignore-automanage` and `jarvis-release-notes-on-update` activation wiring in `extension.ts` (also accidentally deleted by the same merge), and tightens the hook-file glob pattern to `jarvis-*` to match the renamed artifacts.
+
+---
+
 ## v0.24.1 — Bug Fix Batch: Messaging, Identity & Kanban
 
 *2026-07-28*
