@@ -7,6 +7,22 @@ Sortierung: jüngste oben.
 
 ---
 
+## FI-2026-08-05 — Recorder auf VS-Code-eigene Dictation stützen (Nemotron)
+
+**Trigger:** 1.131 bringt eingebaute Offline-Dictation (Nemotron, ersetzt die Speech-Extension); 1.132 macht sie **mehrsprachig** (Nemotron 3.5, #328366) und ergänzt **Chat: Install Dictation Model from Local Package…** (#328154). Damit kann die Plattform on-device, was wir extern zukaufen.
+
+**Ist-Stand `packages/recorder`:** externe, vom User selbst installierte Whisper-Pipeline über `jarvis.recording.whisperPath` (bei Georg als Docker-Setup), externes `recorder.py`, Datei-IPC über `.recording.json` / `.stop` / `input/` / `output/`, plus Polling-Heartbeat-Job „Jarvis: Check Transcripts". Der Recorder liefert damit etwas, das VS Code inzwischen auch kann — nur mit deutlich mehr Installationsaufwand beim User.
+
+**Idee:** Recorder auf die plattform-eigene Dictation stützen ⇒ keine externe Installation, keine Python-/Docker-Abhängigkeit, Mehrsprachigkeit ohne eigenes Modell-Management.
+
+**Kritische, UNVERIFIZIERTE Annahme — hier hängt die ganze Idee dran:** Dass Dictation für eine Extension **programmatisch** nutzbar ist. Die Release Notes beschreiben sie ausschliesslich als **Eingabemethode** (Chat-Input, Editor, Terminal) mit User-Settings (`dictation.enabled`, `dictation.showTranscript`, `dictation.experimental.llmCleanup`) — nicht als Transkriptions-API. Dazu kommt ein Nutzungsunterschied: Meeting-Mitschnitt ist **Langform-Batch über eine Audiodatei**, Diktat ist **Live-Eingabe in ein Feld**. Möglicherweise dieselbe Maschine darunter, aber ohne belegten Zugang für uns.
+
+**Erster Schritt beim Aufgreifen (bevor irgendein Plan darauf gebaut wird):** prüfen, ob es eine Extension-API oder ein Command für „transkribiere diese Audiodatei" gibt, bzw. ob das per `Install Dictation Model from Local Package` installierte Modell ausserhalb der Dictation-UI ansprechbar ist. Fällt das negativ aus, ist die Idee tot und der Recorder bleibt wie er ist.
+
+**Status:** ⏸️ Idee, zurückgestellt (User, 2026-08-05 — andere Prioritäten). PM informiert.
+
+---
+
 ## FI-2026-08-03 — Ephemerer, job-gebundener Kanal für `executeCommand` aus gespawnten Prozessen
 
 **Trigger:** Spike-Auftrag PM (2026-08-03). Heartbeat-Jobs stossen ans feste Step-Vokabular; jedes neue Bedürfnis zwingt zu Code-Erweiterung in Heartbeat oder MCP. Gesucht: ein Kanal, über den ein von Jarvis gestarteter Node-Prozess für seine Laufzeit `vscode.commands.executeCommand()` im Extension-Host aufrufen kann — ohne Dauerbetrieb-Port wie `jarvis.mcp.enabled`.
