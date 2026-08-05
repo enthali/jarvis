@@ -2,6 +2,7 @@
 
 ## Working Principles
 
+- **Merge gate = user validation only (2026-08-05)**: PM merges into development ONLY after the user explicitly confirms "OK to merge" following their own manual test. QM CLEAR is a necessary prerequisite but not the trigger — the user validates behavior, QM verifies artefacts. Never merge on QM CLEAR alone.
 - **Public repo — nothing goes out without user approval (2026-07-08)**:
   the jarvis repo is public. Anything posted externally (GitHub issue
   creation, comments, closing issues, PRs, releases) requires explicit
@@ -12,8 +13,8 @@
   working on a feature branch), PM may ONLY `git commit` files inside its own
   session folder (`.jarvis/sessions/Project Manager/`). No `git checkout`,
   `pull`, `push`, or touching any other branch/file — even read-only-looking
-  operations like `checkout develop` to inspect something disrupt the shared
-  working tree. Where PM's own commits land (which branch is checked out at
+  operations like `checkout development` to inspect something disrupt the
+  shared working tree. Where PM's own commits land (which branch is checked out at
   the time) doesn't matter — everything gets merged eventually. Mistake made
   2026-07-02: checked out `develop` + pulled/pushed while `ui-improvements`
   was running on `feature/ui-improvements` — caught by the user before it
@@ -69,15 +70,32 @@
 
 ## Active CR
 
-- **None** — jarvis-kanban (#46) released as v0.24.0 on 2026-07-26 (tag on
-  `main` @ 76426cb, develop back-merged, issue closed, board → Done). Phase 2
-  (#47, swimlanes + drag-and-drop, chat write-back already shipped in #46)
-  and Phase 3 (#48, GH Issues importer, icebox) remain on backlog.
+- **#56 notification-template-empty-fallback** (P0, in progress): CD on
+  `feature/notification-template-empty-fallback`, dispatched to CM. Fix
+  (DEFAULT_NOTIFICATION fallback + resolveNotificationText, trim-based guard)
+  already committed by Dev Engineer, 323 tests passing. Awaiting QM review;
+  CM's mode reset mid-CR (see Watch Items) — flag to QM for closer scrutiny
+  of the Level 0-2 spec edits made while CM lacked its delegation persona.
+
+## Recently Shipped
+
+- **touched-files-cleanup** merged to `development` @ 9a4611b (2026-08-05).
+  QM Round 1 pivoted design mid-flight from destructive delete to
+  display-filter (age window default 0=no limit, dead-file hiding) +
+  explicit removal at entry/folder/category scope + on-demand dead-entry
+  cleanup — see CD for the Level 0 findings (F-2..F-6) if this shape needs
+  explaining again. QM Round 2 CLEAR.
+- jarvis-kanban (#46) released as v0.24.0 on 2026-07-26 (tag on `main` @
+  76426cb, develop back-merged, issue closed, board → Done). Phase 2 (#47,
+  swimlanes + drag-and-drop) and Phase 3 (#48, GH Issues importer) on backlog.
 
 ## Ideas
 
 - [PIM Modularization](ideas/pim-modularization.md) — drop per-component enable/disable settings, go installable-sub-extensions instead
 - [Session Recording](ideas/recording-design.md) — meeting recording + transcription pipeline
+- Recorder on built-in VS Code dictation (deferred, 2026-08-05) — see Research's
+  `.jarvis/actors/Research/future-ideas.md` FI-2026-08-05; blocked on unverified
+  assumption (extension-facing access to the dictation model). Not planned.
 
 ## Watch Items
 
@@ -96,6 +114,22 @@
   actor session can spawn a phantom "broken" chat in a 2nd editor tab; split
   view mirrors one session synchronously into both panes (same session, not
   two actors). Fits AHP session-layer rework — assess together.
+- **CR #51 (agent-mode-reset fix) merged but not yet released (2026-07-28)**:
+  live mode resets still happen (PM + CM both hit it mid-CR-#56) until the
+  next release ships. Not a new bug — expected until then.
+- **Terminal context leaks across actor sessions (2026-07-30)**: the
+  "Terminals" block injected into every turn showed OTHER actors' (CM/Dev
+  Engineer/QM) commands, not just this session's own — because VS Code
+  terminals are workspace-scoped, not chat-session-scoped. User disabled
+  `chat.agentSessionProjection.enabled` as the likely cause; not yet
+  confirmed whether it fully stops the leak. Don't assume a "Last Command"
+  in a Terminal block was run by this session.
+- **HookIntake possible multi-window misattribution (2026-08-04, deferred)**:
+  Research flagged (code-read, not measured) that two VS Code windows on the
+  same workspace could both start a hook-intake HTTP server and write the
+  same workspace-relative port file — last writer wins, so touch-tracking
+  could fire for the wrong window's session. User: park until actually
+  observed, don't open as a defect yet.
 
 ## Syspilot Testing Ground
 

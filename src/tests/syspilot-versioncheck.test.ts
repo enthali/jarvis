@@ -142,7 +142,7 @@ describe('SPEC_SPL_STARTUP AC-4: checkSyspilotVersion first-run always notifies 
         const log = makeFakeLog();
         await checkSyspilotVersion(makeFakeApi(), tmpDir, log);
 
-        const adPath = path.join(tmpDir, '.jarvis', 'autodelivery.json');
+        const adPath = path.join(tmpDir, '.jarvis', 'messages', 'autodelivery.json');
         expect(fs.existsSync(adPath)).toBe(true);
         expect(JSON.parse(fs.readFileSync(adPath, 'utf-8'))).toEqual(['Syspilot Setup Engineer']);
 

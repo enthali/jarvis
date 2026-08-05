@@ -243,7 +243,7 @@ Explorer Requirements
    :id: REQ_EXP_REMINDER_OPENFILE
    :status: draft
    :priority: optional
-   :links: US_MSG_REMINDERS; US_EXP_OPENFILE
+   :links: US_MSG_REMINDERS; US_EXP_OPENFILE; REQ_CFG_PATHSINGLESOURCE
 
    **Description:**
    Clicking a reminder node in the "Reminders" sidebar view SHALL open
@@ -254,8 +254,13 @@ Explorer Requirements
 
    * AC-1: The command is triggered by clicking the reminder node
      (``TreeItem.command``)
-   * AC-2: The file opened is ``reminders.yaml`` resolved by
-     ``resolveRemindersPath(messagesPath)``
+   * AC-2: The file opened SHALL be the one reminders are persisted to
+     (``REQ_MSG_REMINDERS_PERSIST``), obtained from the central path resolver
+     (``REQ_CFG_PATHSINGLESOURCE``). This AC previously required the path to be
+     "resolved by ``resolveRemindersPath(messagesPath)``" — the derivation that
+     ``SPEC_MSG_REMINDERSTORE`` had already replaced. The view therefore opened
+     a different file from the one the store wrote whenever the two disagreed,
+     and after ``REQ_CFG_MSGDIR`` they would disagree always.
    * AC-3: The revealed line contains the matching ``id: <uuid>`` entry of
      the clicked reminder
    * AC-4: If the matching id cannot be found, the file opens at line 0

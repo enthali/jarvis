@@ -236,6 +236,8 @@ Release Requirements
    ``enthali.jarvis-recorder``     ``jarvis-recorder-{version}.vsix``
    ``enthali.jarvis-mcp``          ``jarvis-mcp-{version}.vsix``
    ``enthali.jarvis-flow``         ``jarvis-flow-{version}.vsix``
+   ``enthali.jarvis-kanban``       ``jarvis-kanban-{version}.vsix``
+   ``enthali.jarvis-suite``        ``jarvis-suite-{version}.vsix``
    ``enthali.jarvis-syspilot``     ``jarvis-syspilot-{version}.vsix``
    =============================== ======================================
 
@@ -271,6 +273,249 @@ Release Requirements
      is shown
    * AC-3: If already up to date, an information message reads
      ``"Jarvis is up to date (v{current})."``
+
+
+.. req:: Release Notes Target
+   :id: REQ_REL_NOTESTARGET
+   :status: implemented
+   :priority: required
+   :links: US_REL_WHATSNEW
+
+   **Description:**
+   Both the automatic trigger (``REQ_REL_NOTESONCE``) and the manual command
+   (``REQ_REL_NOTESCOMMAND``) open the same page: the GitHub release for the
+   installed version. This requirement owns *which* page and *how* it is
+   reached, so the two consumers cannot drift apart.
+
+   **Why the URL is constructed rather than resolved:**
+   ``REQ_REL_UPDATECHECK`` obtains ``html_url`` from the GitHub API, because it
+   is asking a question only the API can answer — what the *latest* release is.
+   Here the version is already known locally, so resolving it would add a
+   network call on every activation, a second consumer of the 60 requests/hour
+   the update check already lives within, and a failure mode when offline. The
+   price is that the URL can name a page that does not exist.
+
+   **Why the editor's own browser rather than the system default:**
+   The notes are read directly after an update, while the user is working. The
+   system default browser answers a different need — ``REQ_REL_UPDATENOTIFY``
+   sends the user *away* to decide whether to install something, which is a
+   decision made outside the editor. Here the user has already decided, has the
+   new version, and is reading about work Jarvis has done to their own working
+   tree. Taking their window away to do that is a cost with no matching reason,
+   which is what ``US_REL_WHATSNEW`` AC-8 records.
+
+   **Why availability is checked before the view is opened:**
+   ``simpleBrowser.api.open`` does not always open the same thing. It first
+   tests whether ``workbench.action.browser.open`` exists and delegates to that
+   integrated browser when it does; otherwise it falls back to its own
+   iframe-based webview. The GitHub release page cannot be shown in that
+   fallback: it is served with ``X-Frame-Options: deny`` and
+   ``Content-Security-Policy: frame-ancestors 'none'``, so the frame is refused
+   and the user is left with an empty pane. The command still resolves
+   successfully, so the failure cannot be detected after the fact — it has to be
+   ruled out before the call, which is what AC-3 does.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The target SHALL be
+     ``https://github.com/enthali/jarvis/releases/tag/v{version}``, where
+     ``{version}`` is the installed version of ``enthali.jarvis-core`` as read
+     from ``context.extension.packageJSON.version``
+   * AC-2: The target SHALL be opened inside VS Code, in the editor's own
+     browser view, via the command ``simpleBrowser.api.open``. Jarvis SHALL NOT
+     use ``vscode.env.openExternal`` as the delivery path for the notes
+   * AC-3: Jarvis SHALL establish that the integrated browser is available —
+     by testing for the command ``workbench.action.browser.open`` — before
+     invoking AC-2. If it is not available, Jarvis SHALL NOT invoke AC-2 and
+     SHALL take AC-6 instead
+   * AC-4: Jarvis SHALL NOT itself issue any network request to produce or
+     validate the target, and SHALL NOT use an authenticated or rate-limited
+     endpoint. The browser view fetches the page it displays; that is the
+     browser doing its job, not Jarvis validating the target
+   * AC-5: A version that was never released SHALL be allowed to produce a
+     "not found" page in the browser view. This is the accepted consequence of
+     AC-4 and SHALL NOT be worked around by suppressing the open, because
+     Jarvis cannot distinguish "not released" from "not released *yet*" without
+     the network call AC-4 forbids
+   * AC-6: Where the notes cannot be opened in the editor — AC-3 unmet, or the
+     open itself failing — the user SHALL be shown a message containing the URL
+     and offering to open it externally. Leaving the editor SHALL happen only
+     because the user chose that control, never on Jarvis's initiative
+     (``US_REL_WHATSNEW`` AC-7 and AC-8). Failure SHALL NOT be swallowed
+     silently and SHALL NOT block activation
+
+
+.. req:: Last-Shown Version Marker
+   :id: REQ_REL_NOTESMARKER
+   :status: implemented
+   :priority: required
+   :links: US_REL_WHATSNEW; REQ_REL_NOTESONCE; REQ_CFG_FIXEDPATHS; REQ_CFG_IGNOREPATTERNS
+
+   **Description:**
+   A marker records the version for which release notes have already been
+   handled in a workspace, so that a version announces itself once there and
+   not on every start.
+
+   **Why this is workspace state:**
+   The version is a property of the installation, and the *work the notes ask
+   for* is not: it is a diff to check, a moved file to accept, a breaking
+   change to resolve — in a project. A marker held once per machine would let
+   the first project the user happens to open absorb the announcement for all
+   the others, which is where ``US_REL_WHATSNEW`` AC-6 now puts the boundary.
+   ``.jarvis/syspilot-state.json`` already keeps a version marker per workspace
+   for the same kind of reason, and this marker sits beside it.
+
+   **Why per-workspace does not mean shared:**
+   A marker that is committed suppresses the notes for everyone who pulls it —
+   one developer's update would silence the announcement for the whole team,
+   the exact failure the per-workspace choice exists to avoid. The marker is
+   therefore transient runtime state under ``.jarvis/``, which
+   ``REQ_CFG_IGNOREPATTERNS`` AC-1 keeps out of version control by
+   construction, including for paths added after that requirement was written.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The marker SHALL be a fixed runtime path under
+     ``<workspaceRoot>/.jarvis/``, enumerated in ``REQ_CFG_FIXEDPATHS`` and
+     obtained from the central path resolver like every other runtime path
+     (``REQ_CFG_PATHSINGLESOURCE``). It SHALL NOT introduce a workspace-root
+     resolution rule of its own
+   * AC-2: The marker SHALL be transient runtime state in the sense of
+     ``REQ_CFG_IGNOREPATTERNS`` AC-7 — Jarvis regenerates it and nothing is
+     lost if it is deleted — and SHALL therefore be covered by the maintained
+     ``.gitignore`` region without a separately maintained entry
+     (``REQ_CFG_IGNOREPATTERNS`` AC-6)
+   * AC-3: When no workspace folder is open there SHALL be no marker and no
+     announcement, handled as ``REQ_CFG_FIXEDPATHS`` AC-3 already prescribes for
+     every runtime path: warn once, short-circuit, throw nothing
+     (``US_REL_WHATSNEW`` AC-9)
+   * AC-4: The marker SHALL survive VS Code restarts and extension updates —
+     surviving the update is the whole point, since the update is what it
+     measures
+   * AC-5: Loss of the marker SHALL NOT be an error condition. An absent marker
+     is indistinguishable from a workspace that has not yet seen this Jarvis
+     and is handled as one (``REQ_REL_NOTESONCE`` AC-2)
+   * AC-6: Exactly one Jarvis extension SHALL read and write the marker, so
+     that the nine ``enthali.*`` extensions do not announce one update nine
+     times in the same workspace
+   * AC-7: A marker that reaches version control despite AC-2 — because
+     ``REQ_CFG_IGNOREAUTOMANAGE`` is off, or because it was added deliberately
+     — SHALL be accepted as the user's own state and SHALL NOT be worked around
+     by making the filename user- or machine-specific. The residual effect is
+     that collaborators on that repository may not be shown the notes; naming
+     the file per user would trade one visible consequence for a class of
+     orphaned files nobody ever cleans up
+
+
+.. req:: Automatic Display on First Run of a Version
+   :id: REQ_REL_NOTESONCE
+   :status: implemented
+   :priority: required
+   :links: US_REL_WHATSNEW; REQ_REL_NOTESMARKER; REQ_REL_NOTESTARGET; REQ_REL_NOTESSETTING
+
+   **Description:**
+   On activation, Jarvis compares the installed version against the marker and
+   opens the release notes when they differ.
+
+   **Why an absent marker is not always a first run:**
+   The marker starts appearing with the release that introduces it, so on that
+   release every existing workspace is missing one. Reading "absent" as "first
+   run" would make the introducing release the one release that announces
+   itself nowhere — and that release is the one carrying the ``.jarvis/``
+   layout and ``.gitignore`` changes the notes exist to warn about. The two
+   cases are distinguishable without new state: a workspace Jarvis has written
+   to before has a ``.jarvis/`` directory, and one that is new to Jarvis does
+   not.
+
+   **Acceptance Criteria:**
+
+   * AC-1: If the marker is present and differs from the installed version, and
+     ``REQ_REL_NOTESSETTING`` permits it, the target SHALL be opened
+   * AC-2: If the marker is absent, the installed version SHALL be recorded,
+     and whether the notes are opened SHALL depend on whether the workspace has
+     used Jarvis before: a workspace with no ``.jarvis/`` directory is new to
+     Jarvis and SHALL be recorded silently (``US_REL_WHATSNEW`` AC-3); a
+     workspace that already has one has run an earlier Jarvis and SHALL be
+     treated as an update
+   * AC-3: The marker SHALL be written before the notes are opened. If the
+     write fails, the notes SHALL NOT be opened — an open that is not recorded
+     repeats on every subsequent activation, which is worse than not opening
+   * AC-4: If the marker equals the installed version, activation SHALL open
+     nothing, show no notification, and make no network request
+   * AC-5: Windows on the same workspace that activate concurrently, before the
+     first has written the marker, MAY each open the notes once. This SHALL NOT
+     be prevented by a lock file or comparable coordination: the cost is one
+     additional tab on one occasion, and the remedy would be new persistent
+     state with a stale-lock failure mode of its own. The limit of the guarantee
+     is stated here rather than claimed away
+   * AC-6: A marker naming a *newer* version than the installed one — a
+     rollback — SHALL be treated like any other difference and SHALL open the
+     notes for the version now installed. The marker records the last version
+     handled, not the set of versions ever seen
+   * AC-7: This behaviour SHALL be independent of ``jarvis.checkForUpdates``.
+     That setting governs polling GitHub for a version the user does not have;
+     this one concerns the version they are running. The two SHALL NOT be
+     merged into a single switch
+   * AC-8: Opening the notes SHALL NOT delay or block the rest of activation
+
+
+.. req:: Manual Release Notes Command
+   :id: REQ_REL_NOTESCOMMAND
+   :status: implemented
+   :priority: required
+   :links: US_REL_WHATSNEW; REQ_REL_NOTESTARGET
+
+   **Description:**
+   A Command Palette command opens the installed version's release notes on
+   demand.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A command ``jarvis.showReleaseNotes`` titled
+     ``Jarvis: Show Release Notes`` SHALL be available in the Command Palette
+   * AC-2: It SHALL open the target from ``REQ_REL_NOTESTARGET`` for the
+     installed version, whatever the marker says
+   * AC-3: It SHALL NOT write the marker. The command is a read; letting it
+     write would mean using it once silently disables the automatic
+     announcement of the version the user is about to receive
+   * AC-4: It SHALL work regardless of ``jarvis.releaseNotes.showOnUpdate``,
+     mirroring ``REQ_REL_UPDATECOMMAND`` against ``jarvis.checkForUpdates``
+   * AC-5: The command SHALL be contributed by exactly one Jarvis extension, so
+     that installing several does not produce several palette entries
+
+
+.. req:: Release Notes Auto-Open Setting
+   :id: REQ_REL_NOTESSETTING
+   :status: implemented
+   :priority: required
+   :links: US_REL_WHATSNEW; REQ_REL_NOTESONCE
+
+   **Description:**
+   A setting governs whether the release notes open by themselves.
+
+   **Why a setting exists at all:**
+   Every automatic activation-time behaviour in Jarvis has one —
+   ``jarvis.checkForUpdates``, ``jarvis.hooks.autoInstall``,
+   ``jarvis.gitignore.autoManage``. This is the only one of the four that puts
+   something in front of the user unasked: the others raise a notification, or
+   change files quietly. An editor tab that opens by itself is the kind of
+   thing a user wants a switch for. It is also the cheapest of the four to make
+   optional, because ``REQ_REL_NOTESCOMMAND`` keeps the capability: switching it
+   off removes an interruption, not a feature.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A setting ``jarvis.releaseNotes.showOnUpdate`` (boolean, default
+     ``true``) SHALL be contributed in the existing ``Updates`` group
+   * AC-2: The setting SHALL have application scope. The behaviour it governs is
+     per-installation, and a per-folder value would promise a distinction the
+     marker cannot make
+   * AC-3: When ``false``, no automatic open SHALL occur
+   * AC-4: When ``false``, the marker SHALL still be advanced to the installed
+     version. Freezing it would mean that enabling the setting later replays the
+     notes of whichever version was current when it was disabled
+   * AC-5: The setting SHALL NOT affect ``REQ_REL_NOTESCOMMAND``
+     (``US_REL_WHATSNEW`` AC-5)
 
 
 .. req:: Marketplace Metadata

@@ -94,7 +94,8 @@ Die Wette „an die VS Code Chat View andocken" ist **risikoarm, nicht riskant**
 ## MVP-Architektur (Design-Stand `hook-engine-mvp`)
 
 - `.jarvis/hooks/jarvis-hooks.json` (alle 8 Events) + `bridge.mjs` (Node) → **self-install** bei Aktivierung.
-- **Transport: dedizierter HTTP-Listener in core**, **ephemeral Port** (`listen(0)`), Port-File `.jarvis/hooks/port` → Multi-Instanz-tauglich (3–5 parallele Fenster). **Kein** File-Spool (Sackgasse), **kein** MCP-Zwang.
+- **Transport: dedizierter HTTP-Listener in core**, **ephemeral Port** (`listen(0)`), Port-File `.jarvis/hooks/port`. **Kein** File-Spool (Sackgasse), **kein** MCP-Zwang.
+  - **Korrektur (2026-08-04):** „Multi-Instanz-tauglich (3–5 parallele Fenster)" war zu weit gegriffen. Der ephemere Port löst die *Port*-Kollision, nicht die *Zuordnung*: der Port-File-Pfad ist workspace-relativ und für jedes Fenster identisch, `startHookIntake()` guardet nur pro Extension-Host. Zwei Fenster auf demselben Workspace ⇒ zwei Intakes, beide schreiben dieselbe Port-Datei, **last writer wins** — danach POSTet jede Bridge in die HookEngine des zuletzt gestarteten Fensters, unabhängig davon, wer die Session besitzt. Code-belegt (`hookIntake.ts`, `extension.ts` Z. 113–130), **nicht gemessen**. Ein Named Pipe würde daran nichts ändern: Benennungs-, kein Transportproblem.
 - **X-as-Code:** `chat.hookFilesLocations` wird in **Workspace-Settings** (`.vscode/settings.json`) gemerged, **nie** User/Machine → keine Host-Pollution.
 
 ### Prinzip: Subscriber-conditional Blocking

@@ -87,32 +87,50 @@ async function notifyActor(api: JarvisCoreApi, workspaceRoot: string, log: vscod
     // (SPEC_MSG_REMINDERS_POLL) — mirrored locally rather than imported from
     // messageQueue.ts, since that module is internal to packages/core and not
     // reachable across the package boundary (same precedent as packages/flow's
-    // local resolveMessagesPath()/resolveMessageLogPath() mirrors).
-    addAutoDelivery(resolveMessagesPath(workspaceRoot), ACTOR_NAME);
+    // local path resolution mirrors). Full union-write-remove cycle (SPEC_CFG_STATEMIGRATION).
+    addAutoDelivery(workspaceRoot, ACTOR_NAME);
     log.info('[SPL] notifyActor: ensured auto-delivery for actor');
 }
 
-/** Mirrors configPaths.getMessagesPath(): <workspaceRoot>/.jarvis/messages.json. */
-function resolveMessagesPath(workspaceRoot: string): string {
-    return path.join(workspaceRoot, '.jarvis', 'messages.json');
+/** Current auto-delivery path: <workspaceRoot>/.jarvis/messages/autodelivery.json (GH #59). */
+function resolveAutoDeliveryPath(workspaceRoot: string): string {
+    return path.join(workspaceRoot, '.jarvis', 'messages', 'autodelivery.json');
 }
 
-/** Mirrors messageQueue.ts's addAutoDelivery(): idempotent append to autodelivery.json. */
-function addAutoDelivery(messagesPath: string, sessionName: string): void {
-    const adPath = path.join(path.dirname(messagesPath), 'autodelivery.json');
-    let list: string[] = [];
-    try {
-        if (fs.existsSync(adPath)) {
-            list = JSON.parse(fs.readFileSync(adPath, 'utf8')) as string[];
+/** Legacy auto-delivery path for union read (SPEC_CFG_STATEMIGRATION). */
+function resolveLegacyAutoDeliveryPath(workspaceRoot: string): string {
+    return path.join(workspaceRoot, '.jarvis', 'autodelivery.json');
+}
+
+/**
+ * Mirrors messageQueue.ts's addAutoDelivery(): idempotent append to autodelivery.json.
+ * Full union-write-remove cycle (SPEC_CFG_STATEMIGRATION).
+ */
+function addAutoDelivery(workspaceRoot: string, sessionName: string): void {
+    const adPath = resolveAutoDeliveryPath(workspaceRoot);
+    const legacyPath = resolveLegacyAutoDeliveryPath(workspaceRoot);
+
+    // Union read
+    let current: string[] = [];
+    try { if (fs.existsSync(adPath)) { current = JSON.parse(fs.readFileSync(adPath, 'utf8')) as string[]; } } catch { current = []; }
+    let legacy: string[] = [];
+    let legacyPresent = false;
+    try { if (fs.existsSync(legacyPath)) { legacy = JSON.parse(fs.readFileSync(legacyPath, 'utf8')) as string[]; legacyPresent = true; } } catch { if (fs.existsSync(legacyPath)) { legacyPresent = true; } }
+
+    const merged = [...new Set([...current, ...legacy])];
+    if (merged.includes(sessionName)) {
+        // Already present — still persist union to migrate if legacy exists
+        if (legacyPresent) {
+            fs.mkdirSync(path.dirname(adPath), { recursive: true });
+            fs.writeFileSync(adPath, JSON.stringify(merged, null, 2));
+            try { fs.unlinkSync(legacyPath); } catch { /* best-effort */ }
         }
-    } catch {
-        list = [];
+        return;
     }
-    if (!list.includes(sessionName)) {
-        list.push(sessionName);
-        fs.mkdirSync(path.dirname(adPath), { recursive: true });
-        fs.writeFileSync(adPath, JSON.stringify(list, null, 2));
-    }
+    merged.push(sessionName);
+    fs.mkdirSync(path.dirname(adPath), { recursive: true });
+    fs.writeFileSync(adPath, JSON.stringify(merged, null, 2));
+    if (legacyPresent) { try { fs.unlinkSync(legacyPath); } catch { /* best-effort */ } }
 }
 
 function agentFilePath(workspaceRoot: string): string {

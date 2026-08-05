@@ -2,7 +2,8 @@
 // Requirements: REQ_MSG_REMINDERS_VIEW
 
 import * as vscode from 'vscode';
-import { Reminder, readReminders, resolveRemindersPath } from './reminders';
+import { Reminder, readReminders } from './reminders';
+import { getRemindersPath } from '../../engine/core/configPaths';
 
 export interface ReminderNode {
     kind: 'reminder';
@@ -14,7 +15,7 @@ export class RemindersTreeProvider implements vscode.TreeDataProvider<ReminderNo
     private _onDidChangeTreeData = new vscode.EventEmitter<ReminderNode | undefined>();
     readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
-    constructor(private _queuePath: () => string) {}
+    constructor() {}
 
     reload(): void {
         this._onDidChangeTreeData.fire(undefined);
@@ -22,7 +23,7 @@ export class RemindersTreeProvider implements vscode.TreeDataProvider<ReminderNo
 
     getChildren(element?: ReminderNode): ReminderNode[] {
         if (element) { return []; }
-        const reminders = readReminders(resolveRemindersPath(this._queuePath()));
+        const reminders = readReminders(getRemindersPath() ?? '');
         return reminders.map(r => ({ kind: 'reminder' as const, reminder: r }));
     }
 

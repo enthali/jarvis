@@ -100,6 +100,38 @@ export type TouchedFilesSubtreeNode =
 /** Union of scanner TreeNodes, internal child nodes, entity-file, and touched-file subtree nodes. */
 export type ProviderNode = TreeNode | ChildTreeNode | EntityFilesSubtreeNode | TouchedFilesSubtreeNode;
 
+/** Filters entry map to entries where the file exists on disk. */
+export function existingOnly(entries: Record<string, TouchEntry>, workspaceRoot: string): Record<string, TouchEntry> {
+    if (!workspaceRoot) { return entries; }
+    const result: Record<string, TouchEntry> = {};
+    for (const [relPath, entry] of Object.entries(entries)) {
+        if (fs.existsSync(path.join(workspaceRoot, relPath))) {
+            result[relPath] = entry;
+        }
+    }
+    return result;
+}
+
+/** Reads jarvis.touchedFiles.windowDays from workspace config (0 = no limit). */
+export function readWindowDays(): number {
+    return vscode.workspace.getConfiguration('jarvis.touchedFiles').get<number>('windowDays', 0) ?? 0;
+}
+
+/** Filters entry map to entries whose most recent touch is within the rolling window. */
+export function withinWindow(entries: Record<string, TouchEntry>, windowDays: number): Record<string, TouchEntry> {
+    if (windowDays <= 0) { return entries; }
+    const cutoff = Date.now() - windowDays * 86_400_000;
+    const result: Record<string, TouchEntry> = {};
+    for (const [relPath, entry] of Object.entries(entries)) {
+        const ts = Math.max(
+            entry.lastEdited ? new Date(entry.lastEdited).getTime() : 0,
+            entry.lastRead ? new Date(entry.lastRead).getTime() : 0,
+        );
+        if (ts >= cutoff) { result[relPath] = entry; }
+    }
+    return result;
+}
+
 /**
  * Builds the hierarchical touched-files tree from a flat relPath -> TouchEntry
  * map (no on-disk folder to recursively readdir here, unlike "Files" — the
@@ -414,11 +446,11 @@ export class GenericTreeDataProvider implements vscode.TreeDataProvider<Provider
             return item;
         }
 
-        // Touched-files subfolder — reuses the "Files" folder contextValue/menu (no distinct needs)
+        // Touched-files subfolder — distinct contextValue for remove command targeting
         if (element.kind === 'touchedFileFolder') {
             const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.Collapsed);
             item.tooltip = element.relFolderPath;
-            item.contextValue = 'jarvisEntityFileFolder';
+            item.contextValue = 'jarvisTouchedFileFolder';
             return item;
         }
 
@@ -636,12 +668,14 @@ export class GenericTreeDataProvider implements vscode.TreeDataProvider<Provider
         // resolveTouchStorageKind (bugfix, GH #18) — must match the key
         // TouchTracker wrote under, not just this._config.kind (always
         // 'session' for both raw sessions and actors).
+        // Category visibility keyed to withinWindow only — never to the existence check.
         const touchStore = this._getTouchStore();
         if (touchStore) {
             const name = entity ? entity.name : path.basename(entityFolder);
             const ownerKind = resolveTouchStorageKind(this._config.kind, entityFolder);
             const touchEntries = await touchStore.getEntries(ownerKind, name);
-            if (Object.keys(touchEntries).length > 0) {
+            const visible = withinWindow(touchEntries, readWindowDays());
+            if (Object.keys(visible).length > 0) {
                 categoryNodes.push({
                     kind: 'touchedFilesCategory', ownerKind, entityName: name,
                 });
@@ -677,11 +711,14 @@ export class GenericTreeDataProvider implements vscode.TreeDataProvider<Provider
     /**
      * Resolves the "Recently Touched Files" category's children from
      * TouchStore, walked fresh on every expansion (SPEC_ENT_TOUCHEDFILES AC-6).
+     * Applies withinWindow then existingOnly as display filters.
      */
     private async _getTouchedCategoryChildren(element: TouchedFilesCategoryNode): Promise<ProviderNode[]> {
         const store = this._getTouchStore();
-        const entries = store ? await store.getEntries(element.ownerKind, element.entityName) : {};
+        const raw = store ? await store.getEntries(element.ownerKind, element.entityName) : {};
         const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
+        const windowed = withinWindow(raw, readWindowDays());
+        const entries = existingOnly(windowed, workspaceRoot);
         return buildTouchedFileChildren(entries, '', workspaceRoot, element.ownerKind, element.entityName);
     }
 

@@ -6,9 +6,9 @@ never shipped by syspilot; survives skill updates.
 ## Do NOT push feature branches (2026-07-13)
 
 Feature branches (`feature/<name>`) are **local-only**. Do NOT `git push`
-them to the remote. Only `develop` and `main` are pushed:
+them to the remote. Only `development` and `main` are pushed:
 
-- `develop` — pushed after each squash-merge (PM / integration).
+- `development` — pushed after each squash-merge (PM / integration).
 - `main` — pushed by the Release Engineer at release time (+ tags).
 
 **Rationale (Jarvis setup):**
@@ -23,8 +23,8 @@ them to the remote. Only `develop` and `main` are pushed:
 **Applies to every agent** that performs git operations on a feature branch,
 not just PM. Commit locally as usual; just never `push` the feature branch.
 
-## Branch naming note
+## Branch naming (2026-07-28)
 
-This project's integration branch is named **`develop`** (not `development`
-as the generic skill diagram shows). Use `develop` everywhere the skill says
-`development`.
+Renamed the integration branch from `develop` to `development` (was a
+temporary deviation) — this project now matches the generic skill's naming
+convention with no override needed.

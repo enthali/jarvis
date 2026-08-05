@@ -5,7 +5,7 @@ Messaging User Stories
    :id: US_MSG_CHATQUEUE
    :status: approved
    :priority: mandatory
-   :links: US_EXP_SIDEBAR; US_AUT_HEARTBEAT; US_CFG_MSG; US_INJ_INJECT
+   :links: US_EXP_SIDEBAR; US_AUT_HEARTBEAT; US_CFG_FIXEDPATHS; US_INJ_INJECT
 
    **As a** Jarvis User,
    **I want** messages from Heartbeat jobs to be queued and displayed in the Jarvis
@@ -15,9 +15,9 @@ Messaging User Stories
    **Acceptance Criteria:**
 
    * AC-1: A Heartbeat step of type ``queue`` appends a message to the persistent
-     queue file (default ``context.storageUri/messages.json``, configurable via
-     ``jarvis.messagesFile``) with a ``session`` (target chat tab label) and ``text``
-     field
+     queue file with a ``session`` (target chat tab label) and ``text`` field.
+     The queue location is fixed and not configurable (``US_CFG_FIXEDPATHS``
+     AC-4); this story does not constrain it further.
    * AC-2: The Jarvis Explorer shows a "Messages" group with entries grouped by session
      name; the group label shows the message count (e.g. ``Atlas (2)``)
    * AC-3: Hovering a message entry shows a ``$(trash)`` button that deletes the
@@ -188,7 +188,10 @@ Messaging User Stories
      to the queue is also written to a persistent audit log file
    * AC-2: The audit log is never modified or truncated by read or delete
      operations — it grows monotonically
-   * AC-3: The audit log file is co-located with ``messages.json``
+   * AC-3: The audit log is stored with the other message state, so it can be
+     found, backed up, or cleared together with it
+     (``US_CFG_RUNTIMELAYOUT``). Its exact location is owned by
+     ``US_CFG_FIXEDPATHS``, not by this story
    * AC-4: Message logging is disabled by default (opt-in)
 
 

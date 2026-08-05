@@ -10,17 +10,19 @@ import * as path from 'path';
 import { loadFlowData } from '../../packages/flow/src/dataService';
 
 function tmpLogPath(): string {
-    return path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'jarvis-flow-test-')), 'message-log.json');
+    const p = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'jarvis-flow-test-')), 'messages', 'log.json');
+    fs.mkdirSync(path.dirname(p), { recursive: true });
+    return p;
 }
 
 describe('SPEC_FLOW_DATASERVICE: loadFlowData', () => {
-    it('AC-1: missing message-log.json -> empty { nodes: [], edges: [], entries: [] }, no throw', () => {
-        const logPath = path.join(os.tmpdir(), 'jarvis-flow-does-not-exist', 'message-log.json');
+    it('AC-1: missing log.json -> empty { nodes: [], edges: [], entries: [] }, no throw', () => {
+        const logPath = path.join(os.tmpdir(), 'jarvis-flow-does-not-exist', 'messages', 'log.json');
         const result = loadFlowData(logPath);
         expect(result).toEqual({ nodes: [], edges: [], entries: [] });
     });
 
-    it('AC-1: unparsable message-log.json -> empty { nodes: [], edges: [], entries: [] }, no throw', () => {
+    it('AC-1: unparsable log.json -> empty { nodes: [], edges: [], entries: [] }, no throw', () => {
         const logPath = tmpLogPath();
         fs.writeFileSync(logPath, '{not valid json');
         const result = loadFlowData(logPath);

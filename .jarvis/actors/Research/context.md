@@ -6,13 +6,19 @@ Research-Engineer fuer explorative Spikes, Quellenrecherche und technische Findi
 ## Arbeitsgrenzen
 - Research klaert Machbarkeit, Risiken, API-Verhalten und Workarounds.
 - Research darf kleine Spike-Branches und Experimente anlegen, um Hypothesen zu pruefen.
-- Research implementiert keine produktiven Aenderungen auf `develop` und merged nicht selbst. Findings gehen an PM/CM; produktive Umsetzung laeuft ueber den normalen Change-Prozess oder explizite User-Anweisung.
+- Research implementiert keine produktiven Aenderungen auf `development` und merged nicht selbst. Findings gehen an PM/CM; produktive Umsetzung laeuft ueber den normalen Change-Prozess oder explizite User-Anweisung.
 - Wenn Research ausnahmsweise einen Mini-Fix als Experiment committed, bleibt er isoliert auf dem Research-Branch, bis PM/CM uebernimmt.
 
 ## Branch-Regel
-Research-Branches starten von `develop`, bleiben isoliert und werden nicht ohne PM/CM-Entscheidung gemerged. Namensschema: `research-<kurzer-slug>` oder, fuer reine Wegwerfexperimente, `experiment/<kurzer-slug>`. Vor jeder Aenderung Branch und Dirty-State pruefen.
+Integrationsbranch heisst `development` (seit 2026-07-28, vorher `develop`). Research-Branches starten von dort, bleiben isoliert und werden nicht ohne PM/CM-Entscheidung gemerged. Namensschema: `research-<kurzer-slug>` oder, fuer reine Wegwerfexperimente, `experiment/<kurzer-slug>`.
 
-**Memory-Ausnahme (PM, `syspilot.pm.tailoring.md`, Commit a7ca148):** Auf `research-*`/`experiment/*`-Branches committe ich mein Gedaechtnis **direkt auf `develop`** — nur `.jarvis/actors/Research/`, eigener `docs(research)`-Commit, nie mit Code vermischt. Nachricht an PM ist Information, keine Bringschuld. Auf normalen Feature-Branches bleibt es beim Branch + Squash-Merge. Grund: ein nie gemergter Branch laesst Findings still verschwinden.
+**Memory-Ausnahme (PM, `syspilot.pm.tailoring.md`, Commit a7ca148):** Auf `research-*`/`experiment/*`-Branches committe ich mein Gedaechtnis **direkt auf `development`** — nur `.jarvis/actors/Research/`, eigener `docs(research)`-Commit, nie mit Code vermischt. Nachricht an PM ist Information, keine Bringschuld. Auf normalen Feature-Branches bleibt es beim Branch + Squash-Merge. Grund: ein nie gemergter Branch laesst Findings still verschwinden.
+
+**Geteilter Worktree — zwei Lehren aus einem Fehltritt (2026-07-28):**
+- Branch **vor** dem Commit pruefen, nie im selben Befehl. Andere Aktoren wechseln den Branch waehrend ich arbeite; der Branchzustand ist nie als bekannt vorauszusetzen.
+- `git push origin <branch>` braucht **keinen** Checkout. Der Worktree ist die knappe Ressource, nicht das Repository — vieles geht ohne ihn und damit ohne Kollisionsrisiko.
+
+**Push (User, 2026-07-28):** Eigene Memory-Commits darf ich sofort selbst pushen — keine Rueckfrage noetig. Ersetzt die generische Kernel-Regel „nicht ohne Anweisung pushen" fuer meine eigenen Aktorendateien.
 
 ## Aktueller Auftrag
 Kein dauerhafter Auftrag. Research arbeitet ad hoc auf PM-/User-Fragen. Die folgenden Abschnitte sind historische Findings und Architektur-Notizen.

@@ -4,15 +4,22 @@ Message Queue Design Specifications
 .. spec:: Message Queue File Store
    :id: SPEC_MSG_QUEUESTORE
    :status: implemented
-   :links: REQ_MSG_QUEUE; REQ_MSG_READ; REQ_CFG_MSGPATH; REQ_CFG_FIXEDPATHS
+   :links: REQ_MSG_QUEUE; REQ_MSG_READ; REQ_CFG_FIXEDPATHS; REQ_CFG_MSGDIR; REQ_CFG_STATEMIGRATION
 
    **Description:**
    Module ``src/messageQueue.ts`` provides synchronous file-backed read/write/delete
-   operations on the JSON message queue. The file path is resolved by
+   operations on the JSON message queue at ``.jarvis/messages/queue.json``.
+   The file path is resolved by
    ``configPaths.getMessagesPath()`` (see ``SPEC_CFG_PATHRESOLVER``). If that
    function returns ``undefined`` (no workspace open), reads return an empty list
-   and writes are silently skipped. The ``.jarvis/`` parent directory is created on
-   first write via ``configPaths.ensureJarvisDir()``.
+   and writes are silently skipped. The ``.jarvis/messages/`` parent directory is
+   created on first write via ``configPaths.ensureMessagesDir()``.
+
+   **(GH #59)** ``readQueue`` unions the superseded ``.jarvis/messages.json``
+   into its result, and the write paths remove that file once the union has been
+   persisted (``SPEC_CFG_STATEMIGRATION``). The ``:links:`` reference to the
+   deprecated ``REQ_CFG_MSGPATH`` is replaced by ``REQ_CFG_FIXEDPATHS``, which
+   is the actual owner of the location.
 
    **Data type:**
 
@@ -30,7 +37,15 @@ Message Queue Design Specifications
    .. code-block:: typescript
 
       function readQueue(filePath: string): QueuedMessage[] {
-        if (!fs.existsSync(filePath)) return [];
+        // (GH #59) Union with the superseded flat path — SPEC_CFG_STATEMIGRATION.
+        // Identity: destination + sender + text + timestamp; ordered by timestamp.
+        const current = readFileOrEmpty(filePath);
+        const legacy = readFileOrEmpty(configPaths.getLegacyMessagesPath());
+        return unionByIdentity(current, legacy);
+      }
+
+      function readFileOrEmpty(filePath: string | undefined): QueuedMessage[] {
+        if (!filePath || !fs.existsSync(filePath)) return [];
         try {
           const raw = fs.readFileSync(filePath, 'utf8');
           return JSON.parse(raw) as QueuedMessage[];
@@ -47,8 +62,17 @@ Message Queue Design Specifications
       ): void {
         const queue = readQueue(filePath);
         queue.push({ destination, sender, text, timestamp: new Date().toISOString() });
-        fs.mkdirSync(path.dirname(filePath), { recursive: true });
+        writeQueue(filePath, queue);
+      }
+
+      /** Single write path: persists the union, then retires the superseded file. */
+      function writeQueue(filePath: string, queue: QueuedMessage[]): void {
+        configPaths.ensureMessagesDir();
         fs.writeFileSync(filePath, JSON.stringify(queue, null, 2));
+        const legacy = configPaths.getLegacyMessagesPath();
+        if (legacy && fs.existsSync(legacy)) {
+          try { fs.unlinkSync(legacy); } catch { /* best-effort, REQ_CFG_STATEMIGRATION AC-5 */ }
+        }
       }
 
       function deleteMessage(
@@ -57,7 +81,7 @@ Message Queue Design Specifications
       ): void {
         const queue = readQueue(filePath);
         queue.splice(index, 1);
-        fs.writeFileSync(filePath, JSON.stringify(queue, null, 2));
+        writeQueue(filePath, queue);
       }
 
       function deleteByDestination(
@@ -65,7 +89,7 @@ Message Queue Design Specifications
         destination: string
       ): void {
         const queue = readQueue(filePath).filter(m => m.destination !== destination);
-        fs.writeFileSync(filePath, JSON.stringify(queue, null, 2));
+        writeQueue(filePath, queue);
       }
 
       function popMessage(
@@ -77,9 +101,20 @@ Message Queue Design Specifications
         if (idx === -1) { return { message: null, remaining: 0 }; }
         const [message] = queue.splice(idx, 1);
         const remaining = queue.filter(m => m.destination === destination).length;
-        fs.writeFileSync(filePath, JSON.stringify(queue, null, 2));
+        writeQueue(filePath, queue);
         return { message, remaining };
       }
+
+   **Index stability under the union (GH #59).**
+   ``deleteMessage`` addresses an entry by its position in the list returned by
+   ``readQueue``. Once ``readQueue`` returns a union, that position is only
+   meaningful if every caller sees the same ordering — hence the deterministic
+   ``timestamp`` ordering fixed by ``SPEC_CFG_STATEMIGRATION`` rather than
+   file-concatenation order. A view that listed entries in one order while
+   ``deleteMessage`` indexed another would delete the wrong message, and would
+   do so only in workspaces still holding a superseded file. This is the one
+   place where the union is not transparent to callers, so it is stated here
+   rather than left to be discovered.
 
 
 .. spec:: Message Tree Data Provider
@@ -1027,58 +1062,68 @@ Message Queue Design Specifications
 .. spec:: Auto-Delivery Config Store
    :id: SPEC_MSG_AUTODELIVER_STORE
    :status: implemented
-   :links: REQ_MSG_AUTODELIVER_CONFIG; SPEC_MSG_QUEUESTORE
+   :links: REQ_MSG_AUTODELIVER_CONFIG; SPEC_MSG_QUEUESTORE; REQ_CFG_PATHSINGLESOURCE
 
    **Description:**
    Helper functions in ``src/messageQueue.ts`` (or a dedicated
-   ``src/autoDelivery.ts`` module) manage the ``autodelivery.json`` file.
+   ``src/autoDelivery.ts`` module) manage the auto-delivery list at
+   ``.jarvis/messages/autodelivery.json``.
    The file is a flat JSON array of destination name strings.
 
-   **Path derivation:**
+   **Path resolution (GH #59):**
 
    .. code-block:: typescript
 
-      function resolveAutoDeliveryPath(messagesPath: string): string {
-        return path.join(path.dirname(messagesPath), 'autodelivery.json');
-      }
+      import * as configPaths from './configPaths';
+      // configPaths.getAutoDeliveryPath() — no derivation from the queue path.
+
+   The path was previously derived as
+   ``path.join(path.dirname(messagesPath), 'autodelivery.json')``. After
+   ``REQ_CFG_MSGDIR`` that derivation still lands on the correct path, which is
+   why it is called out rather than quietly replaced: it would have passed every
+   test while keeping "this file sits next to the queue" as a live assumption,
+   and the next relocation would break it silently. The functions therefore take
+   their own resolved path, not the queue's
+   (``REQ_CFG_PATHSINGLESOURCE`` AC-2).
 
    **Public API:**
 
    .. code-block:: typescript
 
-      function readAutoDelivery(messagesPath: string): string[] {
-        const filePath = resolveAutoDeliveryPath(messagesPath);
-        if (!fs.existsSync(filePath)) { return []; }
+      function readAutoDelivery(filePath: string | undefined): string[] {
+        if (!filePath || !fs.existsSync(filePath)) { return []; }
         try {
           const raw = fs.readFileSync(filePath, 'utf8');
           return JSON.parse(raw) as string[];
         } catch {
-          log.warn('[MSG] autodelivery.json malformed — falling back to empty list');
+          log.warn('[MSG] autodelivery list malformed — falling back to empty list');
           return [];
         }
       }
 
-      function addAutoDelivery(messagesPath: string, destination: string): void {
-        const list = readAutoDelivery(messagesPath);
+      function addAutoDelivery(filePath: string | undefined, destination: string): void {
+        if (!filePath) { return; }
+        const list = readAutoDelivery(filePath);
         if (!list.includes(destination)) {
           list.push(destination);
-          const filePath = resolveAutoDeliveryPath(messagesPath);
-          fs.mkdirSync(path.dirname(filePath), { recursive: true });
+          configPaths.ensureMessagesDir();
           fs.writeFileSync(filePath, JSON.stringify(list, null, 2));
         }
       }
 
-      function removeAutoDelivery(messagesPath: string, destination: string): void {
-        const list = readAutoDelivery(messagesPath).filter(d => d !== destination);
-        const filePath = resolveAutoDeliveryPath(messagesPath);
+      function removeAutoDelivery(filePath: string | undefined, destination: string): void {
+        if (!filePath) { return; }
+        const list = readAutoDelivery(filePath).filter(d => d !== destination);
         fs.writeFileSync(filePath, JSON.stringify(list, null, 2));
       }
 
    **Design notes:**
 
-   * ``resolveAutoDeliveryPath`` is a pure derivation — no new config key needed
-   * All three functions accept the resolved ``messages.json`` path so callers
-     use the same ``resolveMessagesPath()`` source of truth
+   * The signature change from ``messagesPath`` to the file's own path is the
+     substance of the fix. Passing the queue path and deriving inside is what
+     made the queue's location an input to three unrelated files.
+   * Reads participate in the union described by ``SPEC_CFG_STATEMIGRATION``
+     (identity = the session name, so the union is a plain set union).
    * ``log`` is the shared ``LogOutputChannel`` passed through or accessible
      via module scope
 
@@ -1234,7 +1279,7 @@ Message Queue Design Specifications
    separate manual sessions from auto-delivery sessions. A new
    ``AutoDeliveryGroupNode`` appears as a fixed root entry. The provider
    receives a ``resolveAutoDeliveryPath`` helper (or the ``messagesPath``
-   resolver) so it can read ``autodelivery.json``.
+   resolver) so it can read the auto-delivery list.
 
    **Extended node types:**
 
@@ -1344,7 +1389,7 @@ Message Queue Design Specifications
         'jarvis.enableAutoDelivery',
         (node?: SessionGroupNode) => {
           if (!node) { return; }
-          addAutoDelivery(resolveMessagesPath(), node.destination);
+          addAutoDelivery(configPaths.getAutoDeliveryPath(), node.destination);
           messageProvider.reload();
         }
       );
@@ -1353,7 +1398,7 @@ Message Queue Design Specifications
         'jarvis.disableAutoDelivery',
         (node?: SessionGroupNode) => {
           if (!node) { return; }
-          removeAutoDelivery(resolveMessagesPath(), node.destination);
+          removeAutoDelivery(configPaths.getAutoDeliveryPath(), node.destination);
           messageProvider.reload();
         }
       );
@@ -1401,26 +1446,29 @@ Message Queue Design Specifications
       "jarvis.messages.logging": {
         "type": "boolean",
         "default": false,
-        "description": "When enabled, every queued message is also appended to a persistent message-log.json audit file (never cleaned up by read/delete operations)."
+        "description": "When enabled, every queued message is also appended to a persistent audit log at .jarvis/messages/log.json (never cleaned up by read/delete operations)."
       }
 
 
 .. spec:: Message Audit Log Implementation
    :id: SPEC_MSG_AUDITLOG
    :status: implemented
-   :links: REQ_MSG_AUDITLOG; REQ_MSG_LOGSETTING; SPEC_MSG_QUEUESTORE; SPEC_MSG_LOGSETTING
+   :links: REQ_MSG_AUDITLOG; REQ_MSG_LOGSETTING; SPEC_MSG_QUEUESTORE; SPEC_MSG_LOGSETTING; REQ_CFG_PATHSINGLESOURCE
 
    **Description:**
    Extend ``appendMessage()`` in ``src/messageQueue.ts`` to optionally append
-   to ``message-log.json`` when ``jarvis.messages.logging`` is ``true``.
+   to the audit log at ``.jarvis/messages/log.json`` when
+   ``jarvis.messages.logging`` is ``true``.
 
-   **Log file path helper (module-internal):**
+   **Log file path (GH #59):**
 
-   .. code-block:: typescript
-
-      function resolveLogPath(messagesPath: string): string {
-          return path.join(path.dirname(messagesPath), 'message-log.json');
-      }
+   Obtained from ``configPaths.getMessageLogPath()``. The previous internal
+   helper derived it as
+   ``path.join(path.dirname(messagesPath), 'message-log.json')``. That
+   derivation is the one that fails *visibly* after ``REQ_CFG_MSGDIR``: it
+   would land in the right directory under the superseded filename
+   ``.jarvis/messages/message-log.json``, producing a second log that neither
+   ``flow`` nor the log viewer reads.
 
    **Updated ``appendMessage()``:**
 
@@ -1438,14 +1486,15 @@ Message Queue Design Specifications
           };
           const queue = readQueue(filePath);
           queue.push(entry);
-          fs.mkdirSync(path.dirname(filePath), { recursive: true });
+          configPaths.ensureMessagesDir();
           fs.writeFileSync(filePath, JSON.stringify(queue, null, 2));
 
           const loggingEnabled = vscode.workspace
               .getConfiguration('jarvis')
               .get<boolean>('messages.logging', false);
           if (loggingEnabled) {
-              const logPath = resolveLogPath(filePath);
+              const logPath = configPaths.getMessageLogPath();
+              if (!logPath) { return; }
               const log = readQueue(logPath);
               log.push(entry);
               fs.writeFileSync(logPath, JSON.stringify(log, null, 2));
@@ -1454,10 +1503,11 @@ Message Queue Design Specifications
 
    **Design notes:**
 
-   * ``resolveLogPath`` is not exported — internal to ``messageQueue.ts``
-   * The parent directory already exists at this point (``mkdirSync`` is called
-     above for ``messages.json``), so no additional ``mkdirSync`` is needed for
-     the log file
+   * The queue write and the log write both target ``.jarvis/messages/``, so the
+     single ``ensureMessagesDir()`` above covers both; the log write needs no
+     directory creation of its own. This remains a consequence of the two files
+     being in the same directory — it is not a licence to derive one path from
+     the other (``REQ_CFG_PATHSINGLESOURCE`` AC-2).
    * ``vscode.workspace.getConfiguration()`` is called live inside
      ``appendMessage()`` — no parameter change to the function signature; the
      setting is read on every call so hot-changes take effect immediately
@@ -2113,14 +2163,14 @@ Message Queue Design Specifications
 .. spec:: Reminder Store Module
    :id: SPEC_MSG_REMINDERSTORE
    :status: draft
-   :links: REQ_MSG_REMINDERS_PERSIST; SPEC_MSG_QUEUESTORE; REQ_CFG_FIXEDPATHS
+   :links: REQ_MSG_REMINDERS_PERSIST; SPEC_MSG_QUEUESTORE; REQ_CFG_FIXEDPATHS; REQ_CFG_PATHSINGLESOURCE
 
    **Description:**
    New module ``src/reminders.ts`` provides synchronous file-backed read/write
    operations for the ``reminders.yaml`` file. The file path is resolved by
    ``configPaths.getRemindersPath()`` (see ``SPEC_CFG_PATHRESOLVER``). The file
    lives at ``<workspaceRoot>/.jarvis/reminders.yaml``; it is not co-located by
-   path derivation from ``messages.json`` — both paths are independently resolved
+   path derivation from the message queue — both paths are independently resolved
    by the central path resolver.
 
    **File format (reminders.yaml):**
@@ -2223,8 +2273,20 @@ Message Queue Design Specifications
 
    * Path resolution is delegated to ``configPaths.getRemindersPath()``; the
      old ``resolveRemindersPath(messagesPath)`` helper (which derived the path
-     from ``messages.json``'s directory) is replaced by this delegation.
-     ``extension.ts`` calls ``configPaths.getRemindersPath()`` directly.
+     from the queue file's directory) is replaced by this delegation.
+     **This holds for every caller** — the store, the poll loop, the language
+     model tools, the tree provider and any future consumer — not only for the
+     call sites this element happens to name. The earlier wording named
+     ``extension.ts`` as *the* caller; ``remindersTreeProvider.ts`` then kept
+     the derivation, and nothing flagged it, because a spec that names one call
+     site says nothing about the second (``REQ_CFG_PATHSINGLESOURCE`` AC-3).
+     The helper itself is removed, so the derivation cannot be reintroduced by
+     calling it.
+   * ``reminders.yaml`` stays directly under ``.jarvis/`` after the message
+     files move into ``.jarvis/messages/`` (``REQ_CFG_MSGDIR`` AC-4). This is
+     what turns the dormant disagreement into a permanent one: the derived path
+     would become ``.jarvis/messages/reminders.yaml``, which nothing writes, so
+     the view would show an empty list and report no error.
    * ``popDueReminders`` is atomic: it reads, separates due from remaining,
      writes remaining, then returns due — no separate ``removeReminder`` call
      needed from the poll loop
@@ -2249,14 +2311,14 @@ Message Queue Design Specifications
    .. code-block:: typescript
 
       // --- Reminder delivery ---
-      const remindersPath = resolveRemindersPath(messagesPath);
+      const remindersPath = configPaths.getRemindersPath();
       const due = popDueReminders(remindersPath, new Date());
       for (const reminder of due) {
         try {
           // 1. Enqueue the reminder as a regular message
           appendMessage(messagesPath, reminder.session, 'Reminder', reminder.text);
           // 2. Ensure auto-delivery is enabled for this session
-          addAutoDelivery(messagesPath, reminder.session);
+          addAutoDelivery(configPaths.getAutoDeliveryPath(), reminder.session);
           log.info(
             `[MSG] Reminder "${reminder.id}" delivered to session "${reminder.session}"`
           );
@@ -2320,9 +2382,8 @@ Message Queue Design Specifications
               )
             ]);
           }
-          const messagesPath = resolveMessagesPath();
           const reminder = addReminder(
-            resolveRemindersPath(messagesPath), text, session, deliverAt
+            configPaths.getRemindersPath(), text, session, deliverAt
           );
           messageProvider.reload();
           return new vscode.LanguageModelToolResult([
@@ -2338,9 +2399,8 @@ Message Queue Design Specifications
           if (new Date(deliverAt) <= new Date()) {
             return { error: 'deliverAt must be in the future' };
           }
-          const messagesPath = resolveMessagesPath();
           const reminder = addReminder(
-            resolveRemindersPath(messagesPath), text, session, deliverAt
+            configPaths.getRemindersPath(), text, session, deliverAt
           );
           messageProvider.reload();
           return { id: reminder.id, deliverAt: reminder.deliverAt };
@@ -2354,8 +2414,7 @@ Message Queue Design Specifications
       registerDualTool(
         'jarvis_listReminders',
         async (_options, _token) => {
-          const messagesPath = resolveMessagesPath();
-          const reminders = readReminders(resolveRemindersPath(messagesPath));
+          const reminders = readReminders(configPaths.getRemindersPath());
           const now = Date.now();
           const result = reminders.map(r => ({
             ...r,
@@ -2368,8 +2427,7 @@ Message Queue Design Specifications
         'Returns all pending reminders with id, text, session, deliverAt, and remainingMs.',
         {},
         async (_args) => {
-          const messagesPath = resolveMessagesPath();
-          const reminders = readReminders(resolveRemindersPath(messagesPath));
+          const reminders = readReminders(configPaths.getRemindersPath());
           const now = Date.now();
           return {
             reminders: reminders.map(r => ({
@@ -2388,8 +2446,7 @@ Message Queue Design Specifications
         'jarvis_cancelReminder',
         async (options, _token) => {
           const { id } = options.input;
-          const messagesPath = resolveMessagesPath();
-          const removed = removeReminder(resolveRemindersPath(messagesPath), id);
+          const removed = removeReminder(configPaths.getRemindersPath(), id);
           messageProvider.reload();
 
 
@@ -2401,8 +2458,7 @@ Message Queue Design Specifications
         { id: z.string() },
         async (args) => {
           const id = args.id as string;
-          const messagesPath = resolveMessagesPath();
-          const removed = removeReminder(resolveRemindersPath(messagesPath), id);
+          const removed = removeReminder(configPaths.getRemindersPath(), id);
           messageProvider.reload();
           return { status: removed ? 'cancelled' : 'not_found' };
         }
@@ -2490,8 +2546,13 @@ Message Queue Design Specifications
 
    **TreeDataProvider behaviour:**
 
-   * Root: read ``readReminders(resolveRemindersPath(messagesPath))`` and
+   * Root: read ``readReminders(configPaths.getRemindersPath())`` and
      return one ``ReminderNode`` per entry (flat, no group node).
+     This provider is the site of the ``REQ_EXP_REMINDER_OPENFILE`` defect: it
+     resolved the path by derivation from the queue path, which agrees with the
+     resolver only in the flat layout. It obtains the path from the resolver
+     like every other consumer (``SPEC_CFG_PATHRESOLVER`` usage contract,
+     ``REQ_CFG_PATHSINGLESOURCE`` AC-3).
    * Leaf nodes have no children.
 
    **getTreeItem:**

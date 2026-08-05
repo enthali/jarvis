@@ -101,6 +101,69 @@ Release User Stories
      release, the release page is opened as fallback (no silent failure)
 
 
+.. story:: See What Changed After an Update
+   :id: US_REL_WHATSNEW
+   :status: implemented
+   :priority: required
+   :links: US_REL_RELEASE; US_REL_SELFUPDATE
+
+   *Context: US_REL_SELFUPDATE already offers release notes* **before** *an
+   update — for a version the user does not yet have, as an aid to deciding
+   whether to install it. Nothing covers the moment* **after** *the update, when
+   the user has the new version and the question changes from "should I take
+   this?" to "what did I just get?". Releases 0.25.0 and later change the
+   on-disk* ``.jarvis/`` *layout (#59) and edit the user's* ``.gitignore``
+   *(#60), so that second question now has consequences the user can see in
+   their own working tree.*
+
+   *Which is also why the announcement belongs to the workspace rather than to
+   the machine. What the notes ask of the user is work in a project: check a
+   diff, accept a moved file, resolve a breaking change. A user who read the
+   notes in one project has not thereby fixed the other four, and by the time
+   they open the fourth — possibly weeks later — they will not remember what
+   the release changed. Being told again in the project where the work is due
+   is not repetition; it is the announcement arriving where it can be acted on.*
+
+   **As a** Jarvis User,
+   **I want** Jarvis to show me what changed the first time I run a version I
+   have not run before, and to let me reopen those notes whenever I want,
+   **so that** I understand changes Jarvis has made to my workspace instead of
+   discovering them as unexplained diffs.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The first time Jarvis runs a version the user has not run before, the
+     release notes for **that installed version** are shown without the user
+     asking
+   * AC-2: Within a workspace, running that same version again does not show
+     the notes again, however often the user reopens it. Running a different
+     version in between and then coming back does show them again: what is
+     remembered per workspace is the last version announced there, not every
+     version ever run
+   * AC-3: A first-ever installation is not treated as an update: nothing is
+     shown, and the installed version is recorded as already seen. A user who
+     has just chosen to install Jarvis is looking at the editor, and has not
+     asked to be sent anywhere else
+   * AC-4: The user can bring up the current version's notes at any time,
+     whether or not they were shown automatically
+   * AC-5: The automatic behaviour can be turned off, and turning it off leaves
+     the on-demand way of reading the notes intact
+   * AC-6: One update is one announcement **per workspace**. Several windows on
+     the same workspace, and the several Jarvis extensions the user may have
+     installed, do not multiply it. Opening a different workspace does announce
+     again, and that is the intent, not an oversight
+   * AC-7: If the notes for the installed version cannot be reached, the user
+     is left with something they can act on, not with silence
+   * AC-8: The notes appear inside the editor. Reading them does not move the
+     user out of VS Code and into a separate application. Where Jarvis cannot
+     render them in the editor it may offer a way out to an external browser,
+     but the user decides to take it — finishing an update is not a reason to
+     change which window the user is looking at
+   * AC-9: A window with no folder open shows nothing and remembers nothing.
+     There is no project to act in, and the user meets the notes at the first
+     workspace they do open
+
+
 .. story:: VS Code Marketplace Discoverability
    :id: US_REL_MARKETPLACE
    :status: draft

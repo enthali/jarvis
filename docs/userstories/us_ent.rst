@@ -368,7 +368,7 @@ Jarvis Entity kinds (Project / Event / Actor). Kind-agnostic engine plumbing
 
 .. story:: Recently Touched Files per Entity
    :id: US_ENT_TOUCHEDFILES
-   :status: approved
+   :status: implemented
    :priority: optional
    :links: US_ENT_ENTITY_FILES_TREE; US_HOOK_ROUTE; US_ENT_ENTITY; US_EXP_SIDEBAR
 
@@ -378,6 +378,12 @@ Jarvis Entity kinds (Project / Event / Actor). Kind-agnostic engine plumbing
    now", it answers "what files has the agent actually read or written
    while working on this entity" — visibility a user currently only gets by
    manually checking git status or the file explorer.*
+
+   *Until AC-10 to AC-14, "recently" existed only in the title: an entry
+   stayed for good once written, and an entry pointing at a deleted file
+   stayed too. Those criteria make the word true. They do so by governing
+   what is displayed, not by discarding what was recorded — every automatic
+   rule here is reversible, and every irreversible one is asked for.*
 
    **As a** Jarvis User,
    **I want** each Actor, Project, and Event node in the Jarvis Explorer to
@@ -414,9 +420,38 @@ Jarvis Entity kinds (Project / Event / Actor). Kind-agnostic engine plumbing
    * AC-7: Right-click Copy Path / Copy Full Path / Reveal in Explorer are
      available on every touched-file entry (reusing the existing
      entity-file context-menu mechanism from US_ENT_ENTITY_FILES_TREE).
-   * AC-8: An inline trash icon on each entry removes it from the list
-     immediately (KISS — no separate "dismissed" state; the file
+   * AC-8: An inline trash icon removes entries from the list immediately.
+     It is available on a single entry, on a folder branch (removing every
+     entry below it), and on the "Recently Touched Files" category itself
+     (removing every entry recorded for that entity). Removal always covers
+     everything recorded below the node it sits on, including entries not
+     currently displayed (KISS — no separate "dismissed" state; a file
      reappears if touched again).
    * AC-9: This is purely additive — it does not change any existing
      entity-node behavior, the "Agent"/"Files" categories, or the Hook
      Engine's existing activity-tracking consumer (US_HOOK_ACTIVITY).
+   * AC-10: A file that does not currently exist on disk is not shown —
+     every action the list offers (open, diff, reveal) assumes the file is
+     there. It is not removed: absence is a state, not an event. A file
+     missing on one git branch is back after switching to another, and its
+     touch history is still true.
+   * AC-11: The list shows only files touched within a user-configurable
+     window, measured in days back from now against the most recent touch of
+     any kind (read or write). The window is a rolling period, not a
+     calendar-day boundary, so it does not cut off work in progress at
+     midnight. The default is 0, meaning no limit — the displayed list is
+     unchanged until the user chooses a window. A changed window takes
+     effect without restarting VS Code.
+   * AC-12: No entry is ever removed automatically. The window (AC-11) and
+     the existence check (AC-10) govern display only — widening the window,
+     or switching back to the branch that has the file, brings entries back
+     unchanged.
+   * AC-13: A dedicated action on the "Recently Touched Files" category
+     removes the entries whose files no longer exist, and afterwards reports
+     how many were removed — they accumulated unseen, so a silent run would
+     give the user nothing to go on. The action lives on the category node
+     and is therefore reachable whenever the category is; if every entry of
+     an entity is currently hidden, the next file the agent touches brings
+     back category and action together.
+   * AC-14: No removal is permanent — any file the agent touches again
+     reappears in the list.

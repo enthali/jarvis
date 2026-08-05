@@ -28,6 +28,8 @@ import { ActivityTracker } from './engine/hooks/activityTracker';
 import { ActivityDecorator } from './engine/hooks/activityDecorator';
 import { TouchStore } from './engine/hooks/touchStore';
 import { TouchTracker } from './engine/hooks/touchTracker';
+import { applyGitignore, setIgnoreManagerLogger } from './engine/core/gitignoreManager';
+import { announceIfNewVersion, showReleaseNotes } from './engine/core/releaseNotes';
 
 import { CronExpressionParser } from 'cron-parser';
 
@@ -106,6 +108,10 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     context.subscriptions.push(log);
     setSessionLookupLogger(log);
     setRemindersLogger(log);
+    setIgnoreManagerLogger(log);
+
+    // Gitignore auto-management (SPEC_CFG_IGNOREMANAGER)
+    applyGitignore();
 
     // Hook Engine (SPEC_HOOK_LOG, SPEC_HOOK_INTAKE, SPEC_HOOK_CONFIG)
     const hookEngine = new HookEngine(log);
@@ -167,6 +173,13 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         }
     });
     context.subscriptions.push(hookAutoInstallListener);
+
+    // Configuration change listener for jarvis.gitignore.autoManage (SPEC_CFG_IGNOREMANAGER AC-8)
+    const gitignoreAutoManageListener = vscode.workspace.onDidChangeConfiguration(e => {
+        if (!e.affectsConfiguration('jarvis.gitignore.autoManage')) { return; }
+        applyGitignore();
+    });
+    context.subscriptions.push(gitignoreAutoManageListener);
 
     async function renameFocusedChatSession(sessionName: string): Promise<void> {
         await vscode.commands.executeCommand(
@@ -495,7 +508,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         context.subscriptions.push(messageView);
 
         if (cfg.get<boolean>('reminders.enabled', true)) {
-            remindersProvider = new RemindersTreeProvider(resolveMessagesPath);
+            remindersProvider = new RemindersTreeProvider();
             const remindersView = vscode.window.createTreeView('jarvisReminders', { treeDataProvider: remindersProvider, showCollapseAll: true });
             context.subscriptions.push(remindersView);
         } else {
@@ -517,6 +530,14 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     const checkForUpdatesCommand = vscode.commands.registerCommand(
         'jarvis.checkForUpdates',
         () => checkForUpdates(context, false, log)
+    );
+
+    // Release notes on update (SPEC_REL_RELEASENOTES)
+    void announceIfNewVersion(context, log);
+
+    const showReleaseNotesCommand = vscode.commands.registerCommand(
+        'jarvis.showReleaseNotes',
+        () => showReleaseNotes(context, log)
     );
 
     // Rescan command
@@ -844,6 +865,41 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             engine.treeFactory.refreshKind(node.ownerKind === 'actor' ? 'session' : node.ownerKind);
         }
     );
+
+    // Remove all touched files under a folder or category (SPEC_ENT_TOUCHEDFILES)
+    const removeTouchedFilesCommand = vscode.commands.registerCommand(
+        'jarvis.removeTouchedFiles',
+        async (node: { kind: string; ownerKind: string; entityName: string; relFolderPath?: string }) => {
+            if (node.kind === 'touchedFileFolder') {
+                await touchStore.removeUnder(node.ownerKind, node.entityName, node.relFolderPath!);
+            } else {
+                await touchStore.removeAll(node.ownerKind, node.entityName);
+            }
+            engine.treeFactory.refreshKind(node.ownerKind === 'actor' ? 'session' : node.ownerKind);
+        }
+    );
+
+    // Clean up dead entries — probes each file for existence (SPEC_ENT_TOUCHEDFILES)
+    const cleanupTouchedFilesCommand = vscode.commands.registerCommand(
+        'jarvis.cleanupTouchedFiles',
+        async (node: { ownerKind: string; entityName: string }) => {
+            const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
+            const count = await touchStore.removeMissing(node.ownerKind, node.entityName, root);
+            void vscode.window.showInformationMessage(
+                count > 0
+                    ? `${node.entityName}: removed ${count} missing file(s).`
+                    : `${node.entityName}: nothing to clean up.`
+            );
+            engine.treeFactory.refreshKind(node.ownerKind === 'actor' ? 'session' : node.ownerKind);
+        }
+    );
+
+    // Refresh on windowDays configuration change (SPEC_ENT_TOUCHEDFILES AC-21)
+    const touchedFilesConfigWatcher = vscode.workspace.onDidChangeConfiguration(e => {
+        if (e.affectsConfiguration('jarvis.touchedFiles.windowDays')) {
+            engine.treeFactory.refreshAll();
+        }
+    });
 
     // --- Core LM tools ---
 
@@ -1496,11 +1552,15 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         copyCategoryNameCommand,
         diffTouchedFileCommand,
         removeTouchedFileCommand,
+        removeTouchedFilesCommand,
+        cleanupTouchedFilesCommand,
+        touchedFilesConfigWatcher,
         openSessionCommand,
         openAgentSessionCommand,
         newSessionCommand,
         { dispose: () => void stopHookIntake() },
         checkForUpdatesCommand,
+        showReleaseNotesCommand,
         sendToSessionTool,
         readMessageTool,
         listActorsTool,

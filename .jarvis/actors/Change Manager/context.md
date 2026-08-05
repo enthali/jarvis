@@ -17,11 +17,11 @@ not covered there.
 
 ## Git / Branching
 
-- Start every change on `feature/<name>` branched from `develop`
-- `develop` is the integration branch -- never pushed to remote directly
-- Squash-merge feature to develop: `git merge --squash feature/<name>`
+- Start every change on `feature/<name>` branched from `development`
+- `development` is the integration branch -- never pushed to remote directly
+- Squash-merge feature to development: `git merge --squash feature/<name>`
 - Delete the feature branch after merge
-- Only the Release Manager merges `develop -> main` and pushes
+- Only the Release Manager merges `development -> main` and pushes
 
 ## Lessons Learned
 

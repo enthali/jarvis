@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Scaffolds a new Change: branches off develop and copies the CD template
+// Scaffolds a new Change: branches off development and copies the CD template
 // into docs/changes/<name>.md, renamed and with {NAME}/{DATE} filled in.
 //
 // Usage: npm run new-change -- <change-name>
@@ -40,8 +40,8 @@ function run(cmd) {
     execSync(cmd, { cwd: repoRoot, stdio: 'inherit' });
 }
 
-// 1. Branch off develop
-run('git checkout develop');
+// 1. Branch off development
+run('git checkout development');
 run('git pull');
 run(`git checkout -b feature/${name}`);
 

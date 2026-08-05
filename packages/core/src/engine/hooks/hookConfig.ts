@@ -7,8 +7,12 @@ import * as vscode from 'vscode';
 
 const HOOKS_DIR = '.github/hooks';
 const CONFIG_FILE = 'jarvis-hooks.json';
-const BRIDGE_FILE = 'bridge.mjs';
-const PORT_FILE = 'port';
+const BRIDGE_FILE = 'jarvis-bridge.mjs';
+const PORT_FILE = 'jarvis-port';
+
+// Superseded filenames — explicit closed list for migration cleanup
+// (SPEC_HOOK_MIGRATE: never a glob or heuristic in this shared directory)
+const SUPERSEDED_FILES = ['bridge.mjs', 'port'];
 
 const ALL_EVENTS = [
     'SessionStart',
@@ -22,7 +26,7 @@ const ALL_EVENTS = [
 ];
 
 const BRIDGE_SOURCE = `#!/usr/bin/env node
-// .github/hooks/bridge.mjs — forwards a VS Code agent hook event to jarvis-core.
+// .github/hooks/jarvis-bridge.mjs — forwards a VS Code agent hook event to jarvis-core.
 // Reads hook event JSON from stdin, receives event name via --event argument,
 // POSTs to the port in .github/hooks/port. Never blocks the agent — exit 0, {"continue": true} always.
 
@@ -42,7 +46,7 @@ if (eventIdx !== -1 && eventIdx + 1 < args.length) {
 // The intake listener's ephemeral port is published next to this script.
 const here = dirname(fileURLToPath(import.meta.url));
 let port;
-try { port = parseInt(readFileSync(join(here, 'port'), 'utf8').trim(), 10); }
+try { port = parseInt(readFileSync(join(here, 'jarvis-port'), 'utf8').trim(), 10); }
 catch {
     // Port file missing — log and continue
     console.error('[Jarvis Hook Bridge] Port file not found, continuing');
@@ -107,8 +111,18 @@ export async function installHookConfig(workspaceRoot: string, log: vscode.LogOu
         // 1. Ensure hooks directory exists
         fs.mkdirSync(hooksDir, { recursive: true });
 
-        // 2. Write bridge.mjs (always overwrite to keep in sync)
+        // 2. Write jarvis-bridge.mjs (always overwrite to keep in sync)
         fs.writeFileSync(bridgePath, BRIDGE_SOURCE, 'utf-8');
+
+        // 2b. Migration: remove superseded files (SPEC_HOOK_MIGRATE, REQ_CFG_FILEMIGRATION AC-6)
+        for (const oldFile of SUPERSEDED_FILES) {
+            const oldPath = path.join(hooksDir, oldFile);
+            try { fs.unlinkSync(oldPath); } catch (err: unknown) {
+                if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+                    log.debug(`[HookConfig] Could not remove superseded file ${oldFile}: ${err}`);
+                }
+            }
+        }
 
         // 3. Write jarvis-hooks.json (always regenerate to keep in sync with spec)
         const hookEntries: Record<string, unknown> = {};
@@ -143,7 +157,8 @@ export async function installHookConfig(workspaceRoot: string, log: vscode.LogOu
 
 export async function uninstallHookConfig(workspaceRoot: string, log: vscode.LogOutputChannel): Promise<void> {
     const hooksDir = path.join(workspaceRoot, HOOKS_DIR);
-    const filesToRemove = [CONFIG_FILE, BRIDGE_FILE, PORT_FILE];
+    // Current files + superseded files (SPEC_HOOK_MIGRATE, REQ_CFG_FILEMIGRATION AC-6)
+    const filesToRemove = [CONFIG_FILE, BRIDGE_FILE, PORT_FILE, ...SUPERSEDED_FILES];
 
     try {
         for (const file of filesToRemove) {

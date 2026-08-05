@@ -11,8 +11,14 @@
   still live on develop; Release Engineer cleans up with `git rm` + a cleanup commit
 - **ESLint v9 lint failure is pre-existing** — known issue, deferred post-release; do
   not block CRs on it
-- **CR intent gate applies in every mode** — autonomous does not skip clarification
-  when a CR contains implementation details; clarify with the user first
+- **CR intent gate applies in every mode** — never skip clarifying raw implementation
+  detail into intent. `user-guided`/`autonomous`: agree with the user (direct ask;
+  autonomous does not route that ask through CM as middleman). `unattended`: flag
+  `USER REVIEW REQUIRED`, KISS reversible formulation in the CD, keep moving
+- **Three Operation Modes** (template + agent, 2026-07-31) — `user-guided` (gates),
+  `autonomous` (no routine gates; genuine uncertainty → actor asks user directly,
+  pauses only own step), `unattended` (user unreachable; flag in CD + KISS path;
+  PM reviews flags later; decision ownership stays with the acting actor)
 - **Fix small clerical issues directly** — typos, MECE-log appends; full delegation
   is overkill for one-line fixes
 - **US→US :links: is an anti-pattern** — sibling User Stories must not cross-link via `:links:`
@@ -35,12 +41,13 @@
   deprecated stub in the live spec tree. Only exception: class (c) historic Change Document
   prose (plain text, not a live sphinx-needs directive) — that's accepted stranding already,
   nothing to fix.
+- **Verify Engineer runs BEFORE QM, not after** — `val-<name>.md` on the feature branch
+  is a CM gate. CM dispatches Verify Engineer after Dev, waits for the report, then notifies
+  QM. A missing report is a CM blocker; do not let QM discover it at Release Engineer time.
 - **Verification must build the full package suite, not just the touched package** —
-  Dev Engineer's `npx tsc -p packages/core` (or similar single-package check) is not
-  sufficient before reporting "verify phase ready." Standing instruction for every
-  implementation dispatch: run the full monorepo build (`npm run compile` / the "compile
-  all" task, which chains core → pim → recorder → mcp) so cross-package type breakage is
-  caught before MECE/Trace/QM, not after. Applies even when the CR only appears to touch
+  Dev Engineer's single-package check is not sufficient before reporting "verify phase ready".
+  Run the full monorepo build (`npm run compile` / "compile all" task) so cross-package type
+  breakage is caught before QM, not after. Applies even when the CR only appears to touch
   one package — dependents may still be affected.
 - **Package-local schema copy is mandatory — never workspace-relative** — when a new
   package needs a JSON schema for validation or yamlValidation, the schema MUST live inside

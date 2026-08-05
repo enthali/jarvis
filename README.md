@@ -67,8 +67,10 @@ capability modules. Install only what you need.
 | `jarvis.scanInterval` | Background rescan interval in minutes (0 = disabled) | 2 |
 | `jarvis.heartbeatConfigFile` | Absolute path to `heartbeat.yaml` | workspace storage |
 | `jarvis.heartbeatInterval` | Scheduler tick interval in seconds | 60 |
-| `jarvis.messagesFile` | Absolute path to `messages.json` | extension storage |
 | `jarvis.hooks.autoInstall` | Auto-install hook bridge files in `.github/hooks/`. Set to `false` to remove managed files and opt out of hook management. | `true` |
+| `jarvis.gitignore.autoManage` | Maintain a marked region in the workspace `.gitignore` listing Jarvis transient runtime paths. Set to `false` to remove the region. | `true` |
+| `jarvis.releaseNotes.showOnUpdate` | Open the release notes in the editor the first time a newly installed Jarvis version runs. | `true` |
+| `jarvis.touchedFiles.windowDays` | Rolling window in days — only files touched within this window are shown in Recently Touched Files (0 = no limit). | `0` |
 
 ## Installation
 

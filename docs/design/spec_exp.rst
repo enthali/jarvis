@@ -590,12 +590,20 @@ Explorer Design Specifications
 .. spec:: Open Reminder File Command
    :id: SPEC_EXP_REMINDER_OPENFILE
    :status: draft
-   :links: REQ_EXP_REMINDER_OPENFILE; SPEC_MSG_REMINDERSVIEW; SPEC_MSG_REMINDERSTORE
+   :links: REQ_EXP_REMINDER_OPENFILE; SPEC_MSG_REMINDERSVIEW; SPEC_MSG_REMINDERSTORE; REQ_CFG_PATHSINGLESOURCE
 
    **Description:**
    Register ``jarvis.openReminderFile`` in ``extension.ts``. Set as
    ``TreeItem.command`` on every ``ReminderNode`` in ``RemindersTreeProvider``.
    Opens ``reminders.yaml`` and reveals the line with the matching reminder id.
+
+   The handler resolves the path through ``configPaths.getRemindersPath()`` —
+   the same accessor the reminder store writes through
+   (``SPEC_MSG_REMINDERSTORE``). It previously derived the path from the queue
+   path, contradicting the element it links; the two agreed only while the
+   layout was flat, and ``REQ_CFG_MSGDIR`` ends that. Opening a file by a
+   different route from the one that writes it is the defect, independent of
+   whether the two routes currently happen to agree.
 
    **Handler:**
 
@@ -604,10 +612,10 @@ Explorer Design Specifications
       vscode.commands.registerCommand(
         'jarvis.openReminderFile',
         async (node: ReminderNode) => {
-          const remindersPath = resolveRemindersPath(resolveMessagesPath());
-          if (!fs.existsSync(remindersPath)) {
+          const remindersPath = configPaths.getRemindersPath();
+          if (!remindersPath || !fs.existsSync(remindersPath)) {
             vscode.window.showWarningMessage(
-              `Jarvis: Cannot open reminders file: ${remindersPath}`
+              `Jarvis: Cannot open reminders file: ${remindersPath ?? '(no workspace)'}`
             );
             return;
           }

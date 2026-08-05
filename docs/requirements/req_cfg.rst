@@ -75,15 +75,26 @@ Configuration Requirements
 
 .. req:: Message Queue File Path
    :id: REQ_CFG_MSGPATH
-   :status: implemented
+   :status: deprecated
    :priority: optional
-   :links: US_CFG_MSG; REQ_MSG_QUEUE
+   :links: US_CFG_MSG; REQ_MSG_QUEUE; REQ_CFG_FIXEDPATHS
+
+   **Superseded by:** ``REQ_CFG_FIXEDPATHS`` (queue path) — deprecated together
+   with its parent story ``US_CFG_MSG`` by the ``jarvis-messages-dir-grouping``
+   CR (GH #59).
 
    **Description:**
    The extension SHALL resolve the message queue file path with a sensible default
    and provide an optional user override.
 
-   **Acceptance Criteria:**
+   AC-1 and AC-2 became false when ``REQ_CFG_RENAMES`` removed
+   ``jarvis.messagesFile`` and fixed the queue at a non-configurable ``.jarvis/``
+   path. The requirement nonetheless remained ``implemented`` and was still
+   referenced by ``REQ_MSG_QUEUE`` AC-4 as the authority for the queue location —
+   so the trace pointed at a removed setting. Retained for historical
+   traceability only.
+
+   **Acceptance Criteria (historic — no longer in force):**
 
    * AC-1: The default queue file path SHALL be
      ``context.storageUri/messages.json``
@@ -233,21 +244,31 @@ Configuration Requirements
    **Fixed file paths:**
 
    * ``<workspaceRoot>/.jarvis/heartbeat.yaml``
-   * ``<workspaceRoot>/.jarvis/messages.json``
    * ``<workspaceRoot>/.jarvis/reminders.yaml``
-   * ``<workspaceRoot>/.jarvis/message-log.json``
-   * ``<workspaceRoot>/.jarvis/autodelivery.json``
+   * ``<workspaceRoot>/.jarvis/messages/queue.json``
+   * ``<workspaceRoot>/.jarvis/messages/log.json``
+   * ``<workspaceRoot>/.jarvis/messages/autodelivery.json``
+   * ``<workspaceRoot>/.jarvis/state/release-notes.json`` (GH #63)
+
+   The three message files were relocated from ``.jarvis/messages.json``,
+   ``.jarvis/message-log.json`` and ``.jarvis/autodelivery.json`` by the
+   ``jarvis-messages-dir-grouping`` CR (GH #59); see ``REQ_CFG_MSGDIR`` for the
+   grouping rule and ``REQ_CFG_STATEMIGRATION`` for the transition.
 
    **Acceptance Criteria:**
 
    * AC-1: The ``.jarvis/`` directory is created lazily on first write; it SHALL
-     NOT be created at extension activation.
+     NOT be created at extension activation. The same applies to subdirectories
+     of ``.jarvis/``.
    * AC-2: Read operations (e.g., ``readQueue``) SHALL return an empty result if
      the file does not yet exist — no error thrown.
    * AC-3: When no workspace folder is open, affected features SHALL log a
      one-time ``warn``-level message and short-circuit; no exception is thrown.
    * AC-4: The paths are not exposed as VS Code settings — no user override
      is possible.
+   * AC-5: Each path above SHALL be obtained from the central path resolver;
+     no runtime path may be derived from another runtime path
+     (``REQ_CFG_PATHSINGLESOURCE``).
 
 
 .. req:: Settings Group Structure
@@ -333,3 +354,440 @@ Configuration Requirements
    * AC-2: Extension code SHALL reference only the new key names.
    * AC-3: The release notes SHALL include a migration note for each renamed/removed
      key.
+
+
+.. req:: Jarvis File Prefix in Shared Directories
+   :id: REQ_CFG_FILEPREFIX
+   :status: implemented
+   :priority: required
+   :links: US_CFG_WORKSPACEFILES
+
+   **Description:**
+   Every file Jarvis generates into a workspace directory that Jarvis does not
+   exclusively own SHALL be named with the ``jarvis-`` prefix, so that it is
+   attributable to Jarvis by name alone and coverable by a single ignore
+   pattern.
+
+   The convention is **unenforced rather than missing**
+   (``jarvis-hook-file-prefix`` CR, GH #58). It is already applied to
+   ``.github/hooks/jarvis-hooks.json`` and repo-wide (``jarvis-core``,
+   ``jarvis-flow``, ``jarvis-pim``, ``jarvis-recorder``, ``jarvis-mcp``,
+   ``jarvis-suite``, ``jarvis-128.png``, ``jarvis-actor-kernel.instructions.md``).
+   Two files generated later into the same directory — ``bridge.mjs`` and
+   ``port`` — did not inherit it. This requirement therefore states the rule
+   **prospectively**, binding files Jarvis adds in future, rather than
+   enumerating a one-time fix.
+
+   **Applicability:** a directory is *not exclusively owned* when another tool
+   or the user may legitimately place files in it. ``.github/hooks/`` is such a
+   directory: it is pinned by GitHub Copilot and is not relocatable, other
+   tools contribute hook configurations there, and the project itself may want
+   to version its own hook files. ``.jarvis/`` is exclusively Jarvis-owned and
+   is therefore **out of scope** for the prefix — it is already selectively
+   ignorable as a unit (``REQ_CFG_FIXEDPATHS``).
+
+   **Acceptance Criteria:**
+
+   * AC-1: Every file Jarvis generates into a directory it does not exclusively
+     own SHALL have a name beginning with ``jarvis-``. This is a standing rule
+     binding future generated files, not a list of the files that exist today.
+   * AC-2: The files Jarvis generates into ``.github/hooks/`` SHALL be exactly
+     ``jarvis-hooks.json``, ``jarvis-bridge.mjs``, and ``jarvis-port``.
+   * AC-3: The glob ``.github/hooks/jarvis-*`` SHALL match every file Jarvis
+     generates in that directory and SHALL NOT match any file Jarvis does not
+     generate — a user excluding Jarvis's artifacts therefore never has to
+     exclude their own (``US_CFG_WORKSPACEFILES`` AC-3).
+   * AC-4: No active Jarvis source, generated content, configuration, or
+     documentation SHALL reference ``bridge.mjs`` or ``port`` as current hook
+     filenames. Historic Change Documents under ``docs/changes/`` are exempt
+     (acceptable historic stranding).
+   * AC-5: The convention and the ignore pattern that follows from it SHALL be
+     documented in the design specification, so a user can apply them without
+     reading Jarvis's source (``US_CFG_WORKSPACEFILES`` AC-6).
+   * AC-6: This repository's own ``.gitignore`` SHALL exclude
+     ``.github/hooks/jarvis-*`` (and the ``testdata/`` equivalent) instead of
+     excluding ``.github/hooks/`` wholesale. Jarvis dogfoods itself, so this is
+     both the fix for a real defect in this repository and the working
+     demonstration that AC-3 holds.
+   * AC-7: This requirement binds the **act of generating** and nothing else.
+     A file Jarvis generates into a shared directory carries the prefix; a file
+     carrying the prefix is **not** thereby Jarvis-generated, transient, or
+     disposable. The converse does not hold and SHALL NOT be relied upon:
+     "Jarvis" is also the product name, so authored artefacts carry it too —
+     the package names, ``jarvis-128.png``, the actor-kernel instruction files,
+     and every Change Document named after the change it describes. Fifteen
+     tracked files in this repository match ``jarvis-*``; none of them is
+     generated. Recorded as an acceptance criterion because the
+     ``jarvis-gitignore-automanage`` CR (GH #60) read the converse out of this
+     requirement's AC-1 and proposed a repo-wide ignore rule on that basis
+     (``REQ_CFG_IGNOREPATTERNS``).
+
+
+.. req:: Superseded Generated File Cleanup
+   :id: REQ_CFG_FILEMIGRATION
+   :status: implemented
+   :priority: required
+   :links: US_CFG_WORKSPACEFILES; REQ_CFG_FILEPREFIX
+
+   **Description:**
+   When a Jarvis version supersedes the name of a file it generates, Jarvis
+   SHALL remove the file under its superseded name, and the installation SHALL
+   remain functional across the transition without any user action.
+
+   Renaming without cleanup would leave ``bridge.mjs`` and ``port`` behind in a
+   shared directory as unattributable orphans — reproducing precisely the
+   condition ``REQ_CFG_FILEPREFIX`` exists to remove, and doing so in every
+   workspace that upgrades rather than only in new ones.
+
+   **Superseded names (this CR):**
+
+   * ``.github/hooks/bridge.mjs`` → ``.github/hooks/jarvis-bridge.mjs``
+   * ``.github/hooks/port`` → ``.github/hooks/jarvis-port``
+
+   **Acceptance Criteria:**
+
+   * AC-1: On activation with self-install enabled, Jarvis SHALL remove
+     ``.github/hooks/bridge.mjs`` and ``.github/hooks/port`` if present.
+   * AC-2: Cleanup SHALL be confined to names Jarvis itself previously
+     generated. No other file in the directory SHALL be touched, and the
+     directory itself SHALL NOT be removed (consistent with
+     ``REQ_HOOK_AUTOINST`` AC-7).
+   * AC-3: An upgraded installation SHALL remain functional throughout: after
+     activation the hook configuration SHALL reference only current filenames,
+     and at no point SHALL an installed hook configuration reference a file
+     that has been removed. Hooks continue to fire; no reinstall, workspace
+     reset, or manual repair is required.
+   * AC-4: Cleanup SHALL be best-effort — a failure to delete (file locked,
+     insufficient permissions) SHALL be logged and SHALL NOT abort activation
+     or prevent self-install from completing (consistent with
+     ``REQ_HOOK_AUTOINST`` AC-2 and the best-effort self-install contract).
+   * AC-5: Cleanup SHALL be idempotent: absent files are not an error, and
+     repeated activations produce neither repeated side effects nor repeated
+     log entries.
+   * AC-6: **Every** code path that removes Jarvis-managed hook files SHALL
+     cover superseded names as well as current ones — both the activation
+     cleanup above and the ``jarvis.hooks.autoInstall: false`` teardown
+     (``REQ_HOOK_AUTOINST`` AC-3). A removal path that handles only current
+     names would leave an upgraded workspace littered by exactly the files
+     this requirement exists to remove.
+
+
+.. req:: Message Runtime Files Grouped in .jarvis/messages/
+   :id: REQ_CFG_MSGDIR
+   :status: implemented
+   :priority: required
+   :links: US_CFG_RUNTIMELAYOUT; REQ_CFG_FIXEDPATHS
+
+   **Description:**
+   The runtime files that hold message state SHALL live together in
+   ``<workspaceRoot>/.jarvis/messages/``, and each SHALL be named for what it
+   holds within that directory.
+
+   **Grouping:**
+
+   .. list-table::
+      :header-rows: 1
+      :widths: 30 34 36
+
+      * - Superseded path
+        - Current path
+        - Holds
+      * - ``.jarvis/messages.json``
+        - ``.jarvis/messages/queue.json``
+        - pending messages
+      * - ``.jarvis/message-log.json``
+        - ``.jarvis/messages/log.json``
+        - delivered-message audit log
+      * - ``.jarvis/autodelivery.json``
+        - ``.jarvis/messages/autodelivery.json``
+        - auto-delivery session list
+
+   **Acceptance Criteria:**
+
+   * AC-1: The three files above SHALL reside in ``.jarvis/messages/`` and
+     nowhere else.
+   * AC-2: ``.jarvis/messages/`` SHALL contain only message state. A runtime
+     file that is not message state SHALL NOT be placed there, and no message
+     state file SHALL be placed outside it — this is what makes the single
+     path ``.jarvis/messages/`` a correct and complete unit for ignoring,
+     backing up, or clearing.
+   * AC-3: A file's name SHALL NOT repeat the directory name
+     (``log.json``, not ``message-log.json``).
+   * AC-4: ``reminders.yaml`` and ``heartbeat.yaml`` SHALL remain directly under
+     ``.jarvis/``. They are not message state, and each is the only file of its
+     category; a directory holding one file adds a level of nesting without
+     making anything easier to find or handle
+     (``US_CFG_RUNTIMELAYOUT`` AC-7).
+   * AC-5: The directory SHALL be created lazily on first write, consistent with
+     ``REQ_CFG_FIXEDPATHS`` AC-1 — its absence is a normal state, not an error.
+   * AC-6: The layout SHALL be documented in one place that a user can read
+     without consulting Jarvis's source (``REQ_CFG_FILEPREFIX`` AC-6 records the
+     same obligation for file identity; both are served by the same document
+     section).
+
+
+.. req:: Single-Source Runtime Path Resolution
+   :id: REQ_CFG_PATHSINGLESOURCE
+   :status: implemented
+   :priority: required
+   :links: US_CFG_FIXEDPATHS; REQ_CFG_FIXEDPATHS
+
+   **Description:**
+   Every runtime file path SHALL be obtained from the central path resolver.
+   No runtime path may be computed from another runtime path.
+
+   ``REQ_CFG_FIXEDPATHS`` states *what* the paths are; this requirement states
+   *how they must be obtained*, and it exists because stating the values proved
+   insufficient. Four call sites currently derive a path from the queue path by
+   replacing its filename — and three requirements mandate that derivation in so
+   many words: ``REQ_MSG_AUTODELIVER_CONFIG`` AC-2,
+   ``REQ_MSG_REMINDERS_PERSIST`` AC-2 and ``REQ_MSG_AUDITLOG`` AC-1 each require
+   a file to sit "in the same directory as ``messages.json``".
+
+   Co-location is not a property of these files; it was a coincidence of the flat
+   layout. ``REQ_CFG_MSGDIR`` ends that coincidence, and the derivations then
+   fail in three different ways at once: ``reminders.yaml`` moves into
+   ``messages/`` where nothing reads it, the audit log lands in the right
+   directory under the wrong name, and the auto-delivery list happens to land
+   correctly. The last is the dangerous one — it passes every test while
+   preserving the false invariant, and it will break silently the next time any
+   of these paths moves.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Each runtime file SHALL be reachable through exactly one resolver
+     accessor. Two accessors returning the same path, or a path obtainable
+     without the resolver, SHALL be treated as a defect.
+   * AC-2: No code SHALL construct a runtime path from another runtime path by
+     string manipulation of its directory or filename.
+   * AC-3: The obligation SHALL apply to every consumer of a runtime path,
+     regardless of its architectural layer — persistence modules, view
+     providers, commands, and code in any Jarvis package alike. It SHALL NOT be
+     expressed as a list of modules: the reminders defect
+     (``REQ_EXP_REMINDER_OPENFILE``) arose in a view provider that fell outside
+     an enumeration of persistence modules, and any enumeration will exclude the
+     next such case in the same way.
+   * AC-4: Where a package cannot import the resolver, it SHALL still satisfy
+     AC-2, and its local resolution SHALL be marked as mirroring the resolver so
+     that a change to a path can be traced to every place that must follow it.
+   * AC-5: No requirement or design element SHALL specify a file location by
+     reference to another file's location. Locations are stated absolutely, and
+     ``REQ_CFG_FIXEDPATHS`` is their single owner.
+
+
+.. req:: Runtime State Relocation Without Loss
+   :id: REQ_CFG_STATEMIGRATION
+   :status: implemented
+   :priority: required
+   :links: US_CFG_RUNTIMELAYOUT; US_CFG_WORKSPACEFILES; REQ_CFG_MSGDIR; REQ_CFG_FILEMIGRATION
+
+   **Description:**
+   When Jarvis relocates a runtime file that holds pending user data, no data
+   SHALL be lost or duplicated, and the transition SHALL require no action from
+   the user.
+
+   ``REQ_CFG_FILEMIGRATION`` governs the neighbouring case: *generated* files,
+   which Jarvis can simply delete and rewrite because it is their sole author.
+   The three message files are different in kind — they hold state the user is
+   waiting on. A dropped entry here is an undelivered message, and it is
+   undelivered silently.
+
+   **Concurrency premise.** ``core``, ``flow`` and ``syspilot`` ship as separate
+   VS Code extensions. They activate in no guaranteed order, and — because a
+   user updates extensions independently — they may run at different versions
+   for an unbounded period. Any migration mechanism SHALL be correct under both
+   conditions. This rules out a one-time move at activation, and it equally
+   rules out reading the superseded path only when the current path is absent:
+   once a newer package has created the current file, an older package still
+   writing the superseded one would be ignored indefinitely, and its messages
+   would never be delivered.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A read SHALL yield the union of the state held at the current and the
+     superseded path. Entries present at either location SHALL be returned;
+     the presence of one location SHALL NOT suppress the other.
+   * AC-2: Union SHALL be duplicate-free with respect to entry identity, so that
+     an entry appearing at both locations is delivered, logged, or registered
+     once.
+   * AC-3: Writes SHALL go to the current path only. The superseded path SHALL
+     never be re-created once removed.
+   * AC-4: The superseded file SHALL be removed once its content is present at
+     the current path, so that no file remains under a name a previous version
+     used (``US_CFG_WORKSPACEFILES`` AC-4). Removal SHALL NOT precede that
+     point: a removal that is not preceded by a successful union write is
+     data loss.
+   * AC-5: Interruption at any point — crash, shutdown, or a failed removal —
+     SHALL leave a state from which the next read still satisfies AC-1 and AC-2.
+     No intermediate state may exist in which pending data is reachable from
+     neither path.
+   * AC-6: Migration SHALL be silent in the steady state: once no superseded
+     file exists, it SHALL produce no log output, no notification, and no
+     measurable cost on the read path.
+   * AC-7: A package that only reads a relocated file SHALL NOT remove the
+     superseded one. Removal is the writing owner's responsibility, because only
+     a writer can establish the AC-4 precondition.
+   * AC-8: Migration support for a given file SHALL be retired only by an
+     explicit decision recorded in a Change Document, naming the release from
+     which the superseded path is no longer read. It SHALL NOT be dropped
+     silently as cleanup.
+
+
+.. req:: Ignore Entries Jarvis Maintains
+   :id: REQ_CFG_IGNOREPATTERNS
+   :status: implemented
+   :priority: required
+   :links: US_CFG_AUTOGITIGNORE; REQ_CFG_FIXEDPATHS; REQ_CFG_FILEPREFIX; REQ_CFG_PATHSINGLESOURCE
+
+   **Description:**
+   This requirement governs *what* Jarvis writes into the maintained region of
+   ``.gitignore``. ``REQ_CFG_IGNOREBLOCK`` governs *how* the region is
+   maintained, and ``REQ_CFG_IGNOREAUTOMANAGE`` governs whether it is
+   maintained at all.
+
+   The region covers the paths Jarvis writes that hold **transient runtime
+   state** — regenerable, safe to lose — and nothing else. Every entry is
+   anchored to a directory Jarvis writes into.
+
+   **Why not one recursive prefix glob.** The obvious candidate,
+   ``**/jarvis-*``, rests on the converse of ``REQ_CFG_FILEPREFIX`` AC-7: that
+   carrying the prefix implies being generated and disposable. It does not.
+   Evaluated against this repository with git's own matcher, ``**/jarvis-*``
+   matches fifteen tracked, authored files — seven shipped extension icons, six
+   Change Documents, and an actor-memory note. Tracked files are unaffected by
+   ``.gitignore``, so the pattern would break nothing on the day it landed and
+   would silently withhold the next icon and the next Change Document from
+   version control.
+
+   **Why brevity is not the criterion.** The pattern was chosen for brevity
+   because the file was hand-maintained; every additional line was a line the
+   user had to write and later revisit. Once Jarvis maintains the region, line
+   count stops being a user-facing cost, while over-matching remains a silent
+   data-loss risk. The precise, anchored form is therefore strictly better
+   under automation, and the argument that favoured the glob no longer applies.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The region SHALL cover every path Jarvis writes that holds transient
+     runtime state, including paths added by later Jarvis versions.
+   * AC-2: The region SHALL NOT cover any path that holds durable, authored
+     content. ``.jarvis/actors/`` and the legacy actor root
+     ``.jarvis/sessions/`` hold actor memory and are durable — they are the
+     artefact the actor model exists to accumulate, and a consuming project is
+     expected to version them.
+   * AC-3: Every entry SHALL be anchored to a directory Jarvis writes into. No
+     entry SHALL be an unanchored recursive glob. An unanchored entry's blast
+     radius is the whole repository and is therefore not knowable from the
+     entry itself.
+   * AC-4: No entry SHALL match a path Jarvis does not write
+     (``US_CFG_AUTOGITIGNORE`` AC-4, ``REQ_CFG_FILEPREFIX`` AC-3).
+   * AC-5: The entries SHALL be derived from the same source that resolves
+     those paths at runtime (``REQ_CFG_PATHSINGLESOURCE``), so the region
+     cannot describe a layout Jarvis no longer writes.
+   * AC-6: Introducing a new generated path SHALL require changing that source
+     only. A second, separately maintained list of ignore entries SHALL NOT
+     exist — it is the enumeration this change removes, moved one level down.
+   * AC-7: An entry that classifies a path as transient SHALL be justified by
+     that path's role, not by its name. A path is transient when Jarvis
+     regenerates it and nothing is lost if it is deleted; the ``jarvis-``
+     prefix is neither necessary nor sufficient for that.
+
+
+.. req:: Marked Region Maintenance in .gitignore
+   :id: REQ_CFG_IGNOREBLOCK
+   :status: implemented
+   :priority: required
+   :links: US_CFG_AUTOGITIGNORE; REQ_CFG_IGNOREPATTERNS
+
+   **Description:**
+   Jarvis SHALL maintain its ignore entries inside a delimited region of the
+   workspace-root ``.gitignore``, rewriting only that region and leaving the
+   rest of the file exactly as the user left it.
+
+   ``.gitignore`` is a file the user owns and version-controls. Jarvis is
+   writing into it uninvited, so the region has to be recognisable, reversible,
+   and confined.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The region SHALL be delimited by a begin marker and an end marker,
+     each a ``.gitignore`` comment line, and the begin marker SHALL name the
+     setting that controls the behaviour — a reader of a plain diff learns what
+     wrote the lines and how to stop it without leaving the diff
+     (``US_CFG_AUTOGITIGNORE`` AC-2).
+   * AC-2: Maintenance SHALL apply to the ``.gitignore`` at the workspace root
+     only. ``.gitignore`` files in subdirectories SHALL NOT be read or written.
+   * AC-3: When the region is absent, Jarvis SHALL append it; when the file
+     itself is absent, Jarvis SHALL create it containing the region.
+   * AC-4: When the region is present and its content already matches
+     ``REQ_CFG_IGNOREPATTERNS``, Jarvis SHALL NOT write to the file at all —
+     not a rewrite with identical bytes (``US_CFG_AUTOGITIGNORE`` AC-6).
+   * AC-5: When the region is present and its content differs, Jarvis SHALL
+     replace the lines between the markers and SHALL leave every byte outside
+     them unchanged — including the user's own entries, their order, their
+     comments, blank lines, and the file's existing line-ending style.
+   * AC-6: A newly created file SHALL use LF line endings; an existing file's
+     dominant line-ending style SHALL be adopted for the region's own lines,
+     so maintenance never converts a file wholesale.
+   * AC-7: When the markers are malformed — an end marker without a begin
+     marker, a begin marker without an end marker, or more than one region —
+     Jarvis SHALL make no change, SHALL log the condition once, and SHALL NOT
+     throw. The boundary of the managed region is then unknown, and guessing it
+     risks deleting user content.
+   * AC-8: Maintenance SHALL run only when a workspace folder is open and that
+     folder is a git working tree. Otherwise Jarvis SHALL do nothing and SHALL
+     activate normally (``US_CFG_AUTOGITIGNORE`` AC-7).
+   * AC-9: Maintenance SHALL be best-effort: a read or write failure SHALL be
+     logged and SHALL NOT abort activation, consistent with the self-install
+     contract (``REQ_HOOK_AUTOINST`` AC-2, ``REQ_CFG_FILEMIGRATION`` AC-4).
+   * AC-10: Exactly one Jarvis extension SHALL perform this maintenance. Jarvis
+     ships as several independently installed extensions that activate in the
+     same workspace in no guaranteed order (``US_CFG_RUNTIMELAYOUT`` AC-5); if
+     more than one wrote the region, two activations could interleave on the
+     same file and leave it duplicated or truncated. The other extensions SHALL
+     neither write nor remove the region, even when they generate files the
+     region covers.
+   * AC-11: Maintenance SHALL be idempotent — repeated activations produce
+     neither a second region nor a repeated log entry.
+
+
+.. req:: Ignore Auto-Management Setting
+   :id: REQ_CFG_IGNOREAUTOMANAGE
+   :status: implemented
+   :priority: required
+   :links: US_CFG_AUTOGITIGNORE; REQ_CFG_IGNOREBLOCK; REQ_CFG_FILEMIGRATION
+
+   **Description:**
+   Jarvis SHALL provide a ``jarvis.gitignore.autoManage`` setting (boolean,
+   default ``true``) controlling the maintenance defined in
+   ``REQ_CFG_IGNOREBLOCK``. Turning it off SHALL remove the region Jarvis
+   previously wrote.
+
+   Opting out of a managed artefact has to remove the artefact, not merely stop
+   updating it. ``REQ_CFG_FILEMIGRATION`` AC-6 established this for hook files
+   after a removal path that handled only current names left upgraded
+   workspaces littered; a region left behind here would be worse, because it
+   sits in a version-controlled file, still names the setting that no longer
+   maintains it, and still hides files.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The setting SHALL be contributed as a boolean with default ``true``.
+   * AC-2: When ``true``, maintenance SHALL proceed as defined in
+     ``REQ_CFG_IGNOREBLOCK``.
+   * AC-3: When ``false``, Jarvis SHALL remove the region if present, leaving
+     every byte outside the markers unchanged (``REQ_CFG_IGNOREBLOCK`` AC-5).
+   * AC-4: When ``false``, Jarvis SHALL NOT write the region during activation
+     or at any later time.
+   * AC-5: When changed from ``false`` to ``true``, maintenance SHALL resume on
+     the next activation.
+   * AC-6: The setting SHALL be workspace-scoped, so each workspace can opt in
+     or out independently (consistent with ``REQ_HOOK_AUTOINST`` AC-6).
+   * AC-7: Removal SHALL NOT delete the ``.gitignore`` file itself, even when
+     the region was its only content and Jarvis created the file. An empty file
+     is not orphaned managed state, whereas deleting a file Jarvis cannot prove
+     it created is unrecoverable for the user (consistent with
+     ``REQ_HOOK_AUTOINST`` AC-7, which forbids removing the shared directory).
+   * AC-8: Removal SHALL be idempotent and best-effort — an absent region is
+     not an error, and a failure to write SHALL be logged without aborting
+     activation.
