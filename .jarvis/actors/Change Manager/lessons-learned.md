@@ -41,12 +41,13 @@
   deprecated stub in the live spec tree. Only exception: class (c) historic Change Document
   prose (plain text, not a live sphinx-needs directive) — that's accepted stranding already,
   nothing to fix.
+- **Verify Engineer runs BEFORE QM, not after** — `val-<name>.md` on the feature branch
+  is a CM gate. CM dispatches Verify Engineer after Dev, waits for the report, then notifies
+  QM. A missing report is a CM blocker; do not let QM discover it at Release Engineer time.
 - **Verification must build the full package suite, not just the touched package** —
-  Dev Engineer's `npx tsc -p packages/core` (or similar single-package check) is not
-  sufficient before reporting "verify phase ready." Standing instruction for every
-  implementation dispatch: run the full monorepo build (`npm run compile` / the "compile
-  all" task, which chains core → pim → recorder → mcp) so cross-package type breakage is
-  caught before MECE/Trace/QM, not after. Applies even when the CR only appears to touch
+  Dev Engineer's single-package check is not sufficient before reporting "verify phase ready".
+  Run the full monorepo build (`npm run compile` / "compile all" task) so cross-package type
+  breakage is caught before QM, not after. Applies even when the CR only appears to touch
   one package — dependents may still be affected.
 - **Package-local schema copy is mandatory — never workspace-relative** — when a new
   package needs a JSON schema for validation or yamlValidation, the schema MUST live inside

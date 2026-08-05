@@ -49,7 +49,7 @@ When a CR specifies a mode, CM reads the `Operation Mode` field from the Change 
 2. **Analyze** — SEND to System Designer for level-by-level analysis
 4. **Test** — SEND to Test Designer for UAT artifact generation
 5. **Implement** — SEND to Dev Engineer for code/config changes
-6. **Verify** — SEND to Quality Engineers (MECE, Trace) for final checks
+6. **Verify** — SEND to Verify Engineer; wait for `val-<name>.md` on the feature branch. **Gate: do not proceed to QM until the verification report exists.** A missing report is a CM blocker, not a QM finding.
 7. **Document** — SEND to Documentation Engineer for doc updates
 8. **Report** — Complete the change with traceability summary
 9. **Notify** — SEND readiness notification to PM and QM via Jarvis, including the Change Document path and branch name so QM can scope targeted checks and PM can perform the merge.
@@ -95,7 +95,7 @@ Change Request (from PM: branch name + Change Document path + CR content)
   |   → Quality Eng. MECE (advisory per level)
   → SEND to Test Designer (UAT artifacts)
   → SEND to Dev Engineer (implementation)
-  → SEND to Quality Eng. MECE (final check)
+  → SEND to Verify Engineer (val-<name>.md gate — must exist before QM)
   → SEND to Documentation Engineer
   → SEND readiness to PM + QM (with Change Document path + branch name)
   → Await PM Decision (PM evaluates QM findings: fix / defer / accept)
