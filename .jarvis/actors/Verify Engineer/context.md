@@ -3,18 +3,14 @@
 Role, duties, and workflow are defined in the agent description (`syspilot.verify`).
 This file captures operational details not covered there.
 
-## Active Backfill Requests
+## Findings
 
-Verification report backfill for 3 CRs (QM SC-004 finding, 2026-07-31):
-- ✅ **jarvis-whoami** (GH #44, v0.23.0) — val-jarvis-whoami.md WRITTEN & COMMITTED
-- ✅ **jarvis-kanban** (GH #46, v0.24.0) — val-jarvis-kanban.md WRITTEN & COMMITTED
-- ✅ **prompt-injection-tool** (GH #43, v0.23.0) — val-prompt-injection-tool.md WRITTEN & COMMITTED
+- Val reports verify the CD's *declared scope against shipped code*, not the CD's narrative — that is what makes the report worth writing.
+- Two accepted spec-vs-code divergences live on in touched-files-cleanup (helper module location; `inline@N` menu ordering). Recorded in its val report so the acceptance travels with the artefact.
+- Escalated, still open: self-update mapping omits `jarvis-kanban` and `jarvis-suite` (GH #63 L0 Finding 5) — core matches, so the "no matching assets" fallback never fires and add-ons are silently left behind on update.
+- No UAT scenario family exists for the CFG/HOOK/REL areas — standing gap, PM-accepted, tracked GH #61.
 
-**Status: COMPLETE** — All three validation reports backfilled and committed (git hash 796c4f9).
+## Next
 
-**Summary:**
-- **GH #44 (v0.23.0):** 8 UAT scenarios, all PASS (QM Round 2 ledger)
-- **GH #46 (v0.24.0):** 28 UAT scenarios, all PASS (QM Round 9 ledger)
-- **GH #43 (v0.23.0):** Fresh verification from code/specs; 14 UAT scenarios in protocol; traceability verified complete
+- None open. v0.25.0 archive gate satisfied (10 val-*.md now exist); PM re-triggers Release Engineer.
 
-**Findings:** No critical or medium findings across all three CRs. Low-priority UAT test-data fixture gaps (non-code) noted but consistent with prior CR handling.
