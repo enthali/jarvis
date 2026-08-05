@@ -109,6 +109,7 @@
       { "command": "jarvis.migrateSessionToActor", "title": "Jarvis: Migrate Session to Actor" },
       { "command": "jarvis.searchEntities", "title": "Jarvis: Search Entities", "icon": "$(search)" },
       { "command": "jarvis.checkForUpdates", "title": "Jarvis: Check for Updates" },
+      { "command": "jarvis.showReleaseNotes", "title": "Jarvis: Show Release Notes" },
       { "command": "jarvis.rescan", "title": "Jarvis: Rescan", "icon": "$(refresh)" },
       { "command": "jarvis.runJob", "title": "Jarvis: Run Job", "icon": "$(play)" },
       { "command": "jarvis.pauseHeartbeatJob", "title": "Jarvis: Pause Heartbeat Job", "icon": "$(debug-pause)" },
@@ -263,7 +264,8 @@
       {
         "title": "Updates",
         "properties": {
-          "jarvis.checkForUpdates": { "type": "boolean", "default": true, "description": "Check for new Jarvis releases on GitHub when the extension activates." }
+          "jarvis.checkForUpdates": { "type": "boolean", "default": true, "description": "Check for new Jarvis releases on GitHub when the extension activates." },
+          "jarvis.releaseNotes.showOnUpdate": { "type": "boolean", "default": true, "scope": "application", "description": "Open the release notes in the editor the first time a newly installed Jarvis version runs. The command \"Jarvis: Show Release Notes\" works regardless of this setting." }
         }
       },
       {

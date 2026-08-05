@@ -2,6 +2,7 @@
 
 ## Working Principles
 
+- **Merge gate = user validation only (2026-08-05)**: PM merges into development ONLY after the user explicitly confirms "OK to merge" following their own manual test. QM CLEAR is a necessary prerequisite but not the trigger — the user validates behavior, QM verifies artefacts. Never merge on QM CLEAR alone.
 - **Public repo — nothing goes out without user approval (2026-07-08)**:
   the jarvis repo is public. Anything posted externally (GitHub issue
   creation, comments, closing issues, PRs, releases) requires explicit
