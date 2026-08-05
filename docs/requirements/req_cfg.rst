@@ -358,7 +358,7 @@ Configuration Requirements
 
 .. req:: Jarvis File Prefix in Shared Directories
    :id: REQ_CFG_FILEPREFIX
-   :status: approved
+   :status: implemented
    :priority: required
    :links: US_CFG_WORKSPACEFILES
 
@@ -425,7 +425,7 @@ Configuration Requirements
 
 .. req:: Superseded Generated File Cleanup
    :id: REQ_CFG_FILEMIGRATION
-   :status: approved
+   :status: implemented
    :priority: required
    :links: US_CFG_WORKSPACEFILES; REQ_CFG_FILEPREFIX
 
@@ -474,7 +474,7 @@ Configuration Requirements
 
 .. req:: Message Runtime Files Grouped in .jarvis/messages/
    :id: REQ_CFG_MSGDIR
-   :status: approved
+   :status: implemented
    :priority: required
    :links: US_CFG_RUNTIMELAYOUT; REQ_CFG_FIXEDPATHS
 
@@ -528,7 +528,7 @@ Configuration Requirements
 
 .. req:: Single-Source Runtime Path Resolution
    :id: REQ_CFG_PATHSINGLESOURCE
-   :status: approved
+   :status: implemented
    :priority: required
    :links: US_CFG_FIXEDPATHS; REQ_CFG_FIXEDPATHS
 
@@ -577,7 +577,7 @@ Configuration Requirements
 
 .. req:: Runtime State Relocation Without Loss
    :id: REQ_CFG_STATEMIGRATION
-   :status: approved
+   :status: implemented
    :priority: required
    :links: US_CFG_RUNTIMELAYOUT; US_CFG_WORKSPACEFILES; REQ_CFG_MSGDIR; REQ_CFG_FILEMIGRATION
 
@@ -635,7 +635,7 @@ Configuration Requirements
 
 .. req:: Ignore Entries Jarvis Maintains
    :id: REQ_CFG_IGNOREPATTERNS
-   :status: approved
+   :status: implemented
    :priority: required
    :links: US_CFG_AUTOGITIGNORE; REQ_CFG_FIXEDPATHS; REQ_CFG_FILEPREFIX; REQ_CFG_PATHSINGLESOURCE
 
@@ -695,7 +695,7 @@ Configuration Requirements
 
 .. req:: Marked Region Maintenance in .gitignore
    :id: REQ_CFG_IGNOREBLOCK
-   :status: approved
+   :status: implemented
    :priority: required
    :links: US_CFG_AUTOGITIGNORE; REQ_CFG_IGNOREPATTERNS
 
@@ -753,7 +753,7 @@ Configuration Requirements
 
 .. req:: Ignore Auto-Management Setting
    :id: REQ_CFG_IGNOREAUTOMANAGE
-   :status: approved
+   :status: implemented
    :priority: required
    :links: US_CFG_AUTOGITIGNORE; REQ_CFG_IGNOREBLOCK; REQ_CFG_FILEMIGRATION
 

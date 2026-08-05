@@ -103,7 +103,7 @@ Release User Stories
 
 .. story:: See What Changed After an Update
    :id: US_REL_WHATSNEW
-   :status: approved
+   :status: implemented
    :priority: required
    :links: US_REL_RELEASE; US_REL_SELFUPDATE
 

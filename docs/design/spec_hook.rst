@@ -488,7 +488,7 @@ Hook Engine Design Specifications
 
 .. spec:: Superseded Hook File Cleanup
    :id: SPEC_HOOK_MIGRATE
-   :status: approved
+   :status: implemented
    :links: REQ_CFG_FILEMIGRATION; SPEC_HOOK_CONFIG; SPEC_HOOK_AUTOINST; SPEC_CFG_WORKSPACEFILES
 
    **Description:**

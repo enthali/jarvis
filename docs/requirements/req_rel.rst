@@ -275,7 +275,7 @@ Release Requirements
 
 .. req:: Release Notes Target
    :id: REQ_REL_NOTESTARGET
-   :status: approved
+   :status: implemented
    :priority: required
    :links: US_REL_WHATSNEW
 
@@ -345,7 +345,7 @@ Release Requirements
 
 .. req:: Last-Shown Version Marker
    :id: REQ_REL_NOTESMARKER
-   :status: approved
+   :status: implemented
    :priority: required
    :links: US_REL_WHATSNEW; REQ_REL_NOTESONCE; REQ_CFG_FIXEDPATHS; REQ_CFG_IGNOREPATTERNS
 
@@ -407,7 +407,7 @@ Release Requirements
 
 .. req:: Automatic Display on First Run of a Version
    :id: REQ_REL_NOTESONCE
-   :status: approved
+   :status: implemented
    :priority: required
    :links: US_REL_WHATSNEW; REQ_REL_NOTESMARKER; REQ_REL_NOTESTARGET; REQ_REL_NOTESSETTING
 
@@ -459,7 +459,7 @@ Release Requirements
 
 .. req:: Manual Release Notes Command
    :id: REQ_REL_NOTESCOMMAND
-   :status: approved
+   :status: implemented
    :priority: required
    :links: US_REL_WHATSNEW; REQ_REL_NOTESTARGET
 
@@ -484,7 +484,7 @@ Release Requirements
 
 .. req:: Release Notes Auto-Open Setting
    :id: REQ_REL_NOTESSETTING
-   :status: approved
+   :status: implemented
    :priority: required
    :links: US_REL_WHATSNEW; REQ_REL_NOTESONCE
 

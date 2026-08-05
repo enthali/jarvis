@@ -158,7 +158,7 @@ Configuration User Stories
 
 .. story:: Identifiable Jarvis-Owned Workspace Files
    :id: US_CFG_WORKSPACEFILES
-   :status: approved
+   :status: implemented
    :priority: required
    :links: US_CFG_FIXEDPATHS
 
@@ -203,7 +203,7 @@ Configuration User Stories
 
 .. story:: Comprehensible Runtime File Layout
    :id: US_CFG_RUNTIMELAYOUT
-   :status: approved
+   :status: implemented
    :priority: required
    :links: US_CFG_FIXEDPATHS; US_CFG_WORKSPACEFILES
 
@@ -250,7 +250,7 @@ Configuration User Stories
 
 .. story:: Automatically Maintained Ignore Entries
    :id: US_CFG_AUTOGITIGNORE
-   :status: approved
+   :status: implemented
    :priority: required
    :links: US_CFG_WORKSPACEFILES; US_CFG_RUNTIMELAYOUT
 

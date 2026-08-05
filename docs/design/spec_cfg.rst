@@ -893,7 +893,7 @@ Workspace File Layout & VCS Visibility
 
 .. spec:: Jarvis-Owned Workspace Files and Ignore Patterns
    :id: SPEC_CFG_WORKSPACEFILES
-   :status: approved
+   :status: implemented
    :links: REQ_CFG_FILEPREFIX; REQ_CFG_FIXEDPATHS; REQ_CFG_MSGDIR; REQ_CFG_IGNOREPATTERNS; SPEC_HOOK_CONFIG
 
    **Description:**
@@ -1114,7 +1114,7 @@ Workspace File Layout & VCS Visibility
 
 .. spec:: Loss-Free Relocation of Message Runtime State
    :id: SPEC_CFG_STATEMIGRATION
-   :status: approved
+   :status: implemented
    :links: REQ_CFG_STATEMIGRATION; REQ_CFG_MSGDIR; SPEC_CFG_PATHRESOLVER; SPEC_MSG_QUEUESTORE
 
    **Description:**
@@ -1235,7 +1235,7 @@ Workspace File Layout & VCS Visibility
 
 .. spec:: Managed .gitignore Region
    :id: SPEC_CFG_IGNOREMANAGER
-   :status: approved
+   :status: implemented
    :links: REQ_CFG_IGNOREBLOCK; REQ_CFG_IGNOREAUTOMANAGE; REQ_CFG_IGNOREPATTERNS; SPEC_CFG_PATHRESOLVER; SPEC_CFG_WORKSPACEFILES
 
    **Description:**
