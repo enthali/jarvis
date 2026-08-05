@@ -1,6 +1,6 @@
 # Change Document: touched-files-cleanup
 
-**Status**: in-progress
+**Status**: merged
 **Branch**: feature/touched-files-cleanup
 **Created**: 2026-08-04
 **Author**: PM
