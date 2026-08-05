@@ -75,6 +75,10 @@
   already committed by Dev Engineer, 323 tests passing. Awaiting QM review;
   CM's mode reset mid-CR (see Watch Items) — flag to QM for closer scrutiny
   of the Level 0-2 spec edits made while CM lacked its delegation persona.
+- **touched-files-cleanup** (2026-08-04): CD on `feature/touched-files-cleanup`,
+  dispatched to CM. Dead-entry removal + configurable expiry (default 2d) on
+  `TouchStore`, periodic + on-demand trigger, plus whole-folder removal
+  (today only single-file via `jarvis.removeTouchedFile`).
 
 ## Recently Shipped
 
@@ -114,6 +118,12 @@
   `chat.agentSessionProjection.enabled` as the likely cause; not yet
   confirmed whether it fully stops the leak. Don't assume a "Last Command"
   in a Terminal block was run by this session.
+- **HookIntake possible multi-window misattribution (2026-08-04, deferred)**:
+  Research flagged (code-read, not measured) that two VS Code windows on the
+  same workspace could both start a hook-intake HTTP server and write the
+  same workspace-relative port file — last writer wins, so touch-tracking
+  could fire for the wrong window's session. User: park until actually
+  observed, don't open as a defect yet.
 
 ## Syspilot Testing Ground
 

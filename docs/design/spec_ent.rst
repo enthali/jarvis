@@ -1403,7 +1403,7 @@ level).
 
 .. spec:: Recently Touched Files per Entity
    :id: SPEC_ENT_TOUCHEDFILES
-   :status: draft
+   :status: implemented
    :links: REQ_ENT_TOUCHEDFILES; SPEC_HOOK_ROUTE; SPEC_HOOK_ACTIVITY; SPEC_ENT_ENTITY_FILE_CHILDREN; SPEC_ENT_ENTITY_CONTEXTMENU; SPEC_ENG_TREEFACTORY
 
    **Description:**
@@ -1534,8 +1534,35 @@ level).
               return this._load(this._filePath(kind, name)).files;
           }
 
-          private _load(file: string): TouchFile {
-              try { return JSON.parse(fs.readFileSync(file, 'utf8')); }
+      // --- bulk and cleanup removal (touched-files-cleanup CR) ---
+
+      /** REQ_ENT_TOUCHEDFILES AC-13 — every entry recorded below a folder node. */
+      async removeUnder(kind: string, name: string, relFolderPath: string): Promise<void> {
+          const file = this._filePath(kind, name);
+          const data = this._load(file);
+          const prefix = relFolderPath + '/';
+          for (const relPath of Object.keys(data.files)) {
+              if (relPath.startsWith(prefix)) { delete data.files[relPath]; }
+          }
+          this._save(file, data);
+      }
+
+      /** AC-13 — the whole category. Deleting the file is equivalent: _load fails open to {}. */
+      async removeAll(kind: string, name: string): Promise<void> {
+          fs.rmSync(this._filePath(kind, name), { force: true });
+      }
+
+      /** AC-17 — dead entries, store-wide (the display window does not apply). Returns the count. */
+      async removeMissing(kind: string, name: string, workspaceRoot: string): Promise<number> {
+          const file = this._filePath(kind, name);
+          const data = this._load(file);
+          let removed = 0;
+          for (const relPath of Object.keys(data.files)) {
+              if (!fs.existsSync(path.join(workspaceRoot, relPath))) { delete data.files[relPath]; removed++; }
+          }
+          if (removed > 0) { this._save(file, data); }
+          return removed;
+      }
               catch { return { files: {} }; } // fail-open: missing/corrupt file → empty
           }
 
@@ -1642,7 +1669,9 @@ level).
           kind: 'touchedFileFolder';
           relFolderPath: string; // workspace-relative
           label: string;
-          entries: Record<string, TouchEntry>; // full flat entry map, for children resolution
+          entries: Record<string, TouchEntry>; // the *displayed* entry map (already
+                                               // window- and existence-filtered by the
+                                               // category expansion), for children resolution
           ownerKind: string;
           entityName: string;
       }
@@ -1657,6 +1686,54 @@ level).
       }
       export type ProviderNode = /* existing union, SPEC_ENT_ENTITY_FILE_CHILDREN */
           | TouchedFilesCategoryNode | TouchedFileFolderNode | TouchedFileLeafNode;
+
+   **Display filtering (``touched-files-cleanup`` CR) — two filters, applied
+   at two different points because they cost two very different things:**
+
+   .. code-block:: typescript
+
+      // packages/core/src/engine/hooks/touchStore.ts
+      export function readWindowDays(): number {
+          return vscode.workspace.getConfiguration('jarvis').get<number>('touchedFiles.windowDays', 0);
+      }
+
+      /** AC-15 — pure timestamp comparison against data already loaded; no file-system access. */
+      export function withinWindow(
+          entries: Record<string, TouchEntry>,
+          windowDays: number = readWindowDays(),
+      ): Record<string, TouchEntry> {
+          if (windowDays <= 0) { return entries; } // 0 = no limit
+          const cutoff = Date.now() - windowDays * 24 * 60 * 60 * 1000; // rolling, not a calendar boundary
+          const result: Record<string, TouchEntry> = {};
+          for (const [relPath, entry] of Object.entries(entries)) {
+              const latest = Math.max( // AC-15: the later of the two, either may be absent
+                  entry.lastEdited ? Date.parse(entry.lastEdited) : 0,
+                  entry.lastRead ? Date.parse(entry.lastRead) : 0,
+              );
+              if (latest >= cutoff) { result[relPath] = entry; }
+          }
+          return result;
+      }
+
+      /** AC-16 — one probe per surviving entry; called only when a category is expanded. */
+      export function existingOnly(
+          entries: Record<string, TouchEntry>,
+          workspaceRoot: string,
+      ): Record<string, TouchEntry> {
+          const result: Record<string, TouchEntry> = {};
+          for (const [relPath, entry] of Object.entries(entries)) {
+              if (fs.existsSync(path.join(workspaceRoot, relPath))) { result[relPath] = entry; }
+          }
+          return result;
+      }
+
+   ``withinWindow()`` alone decides whether the category node exists
+   (``_getLeafChildren()`` below), because that decision is taken for every
+   entity on every tree refresh — including the periodic one driven by
+   ``jarvis.scanInterval``. ``existingOnly()`` runs once per category
+   expansion, over the entries the window already let through, and its
+   result is what the folder nodes carry; expanding a folder therefore
+   costs no further probes (REQ_ENT_TOUCHEDFILES AC-7/AC-16).
 
    **Building the hierarchical tree from a flat relative-path map (new —
    the "Recently Touched Files" category has no on-disk folder to
@@ -1707,9 +1784,12 @@ level).
    .. code-block:: typescript
 
       if (element.kind === 'touchedFilesCategory') {
-          const entries = await touchStore.getEntries(element.ownerKind, element.entityName);
           const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
-          return buildTouchedFileChildren(entries, '', workspaceRoot, element.ownerKind, element.entityName);
+          const stored = await touchStore.getEntries(element.ownerKind, element.entityName);
+          // Both filters are applied exactly here. The filtered map is what the
+          // folder nodes below carry, so descending costs no further probes.
+          const visible = existingOnly(withinWindow(stored), workspaceRoot);
+          return buildTouchedFileChildren(visible, '', workspaceRoot, element.ownerKind, element.entityName);
       }
       if (element.kind === 'touchedFileFolder') {
           const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
@@ -1726,7 +1806,9 @@ level).
 
       const ownerKind = resolveTouchStorageKind(this._config.kind, entityFolder);
       const touchEntries = await touchStore.getEntries(ownerKind, entity?.name ?? '');
-      if (Object.keys(touchEntries).length > 0) { // AC-7: omitted entirely when empty
+      // AC-7: the window decides visibility, the existence check never does —
+      // this line runs for every entity on every refresh.
+      if (Object.keys(withinWindow(touchEntries)).length > 0) {
           categoryNodes.push({ kind: 'touchedFilesCategory', ownerKind, entityName: entity!.name });
       }
 
@@ -1742,7 +1824,7 @@ level).
       if (element.kind === 'touchedFileFolder') {
           const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.Collapsed);
           item.tooltip = element.relFolderPath;
-          item.contextValue = 'jarvisEntityFileFolder'; // reuses the existing folder contextValue/menu
+          item.contextValue = 'jarvisTouchedFileFolder'; // own value — carries the trash icon (AC-13)
           return item;
       }
       if (element.kind === 'touchedFileLeaf') {
@@ -1788,7 +1870,39 @@ level).
         }
       );
 
-   **Registration in package.json:**
+      // --- touched-files-cleanup CR ---
+
+      // AC-13 — folder node and category node share one handler: both mean
+      // "remove everything recorded below this node", they differ only in what
+      // "below" is.
+      vscode.commands.registerCommand(
+        'jarvis.removeTouchedFiles',
+        async (node: TouchedFileFolderNode | TouchedFilesCategoryNode) => {
+          if (node.kind === 'touchedFileFolder') {
+              await touchStore.removeUnder(node.ownerKind, node.entityName, node.relFolderPath);
+          } else {
+              await touchStore.removeAll(node.ownerKind, node.entityName);
+          }
+          engine.treeFactory.refreshKind(node.ownerKind === 'actor' ? 'session' : node.ownerKind);
+        }
+      );
+
+      // AC-17 — the report is part of the contract, not a courtesy: the entries
+      // this removes were hidden while they accumulated, so the zero case must
+      // be reported too, or the user cannot tell it ran.
+      vscode.commands.registerCommand(
+        'jarvis.cleanupTouchedFiles',
+        async (node: TouchedFilesCategoryNode) => {
+          const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
+          const removed = await touchStore.removeMissing(node.ownerKind, node.entityName, workspaceRoot);
+          void vscode.window.showInformationMessage(
+              removed === 0
+                  ? `${node.entityName}: no touched-file entry points at a missing file.`
+                  : `${node.entityName}: removed ${removed} touched-file ${removed === 1 ? 'entry' : 'entries'} with no file on disk.`,
+          );
+          engine.treeFactory.refreshKind(node.ownerKind === 'actor' ? 'session' : node.ownerKind);
+        }
+      );
 
    * ``contributes.commands``:
 
@@ -1796,7 +1910,9 @@ level).
 
         [
           { "command": "jarvis.diffTouchedFile", "title": "Jarvis: Show Changes" },
-          { "command": "jarvis.removeTouchedFile", "title": "Jarvis: Remove Touched File", "icon": "$(trash)" }
+          { "command": "jarvis.removeTouchedFile", "title": "Jarvis: Remove Touched File", "icon": "$(trash)" },
+          { "command": "jarvis.removeTouchedFiles", "title": "Jarvis: Remove Touched Files", "icon": "$(trash)" },
+          { "command": "jarvis.cleanupTouchedFiles", "title": "Jarvis: Clean Up Touched Files", "icon": "$(clear-all)" }
         ]
 
    * ``contributes.menus.view/item/context`` (``jarvisTouchedFile`` reuses
@@ -1814,8 +1930,25 @@ level).
           { "command": "jarvis.copyFileName", "when": "viewItem == jarvisTouchedFile", "group": "clipboard@3" },
           { "command": "jarvis.revealInExplorer", "when": "viewItem == jarvisTouchedFile", "group": "context-actions" },
           { "command": "jarvis.diffTouchedFile", "when": "viewItem == jarvisTouchedFile", "group": "diff" },
-          { "command": "jarvis.removeTouchedFile", "when": "viewItem == jarvisTouchedFile", "group": "inline" }
+          { "command": "jarvis.removeTouchedFile", "when": "viewItem == jarvisTouchedFile", "group": "inline" },
+          { "command": "jarvis.removeTouchedFiles", "when": "viewItem == jarvisTouchedFileFolder", "group": "inline" },
+          { "command": "jarvis.cleanupTouchedFiles", "when": "viewItem == jarvisEntityFileCategory:touched", "group": "inline@1" },
+          { "command": "jarvis.removeTouchedFiles", "when": "viewItem == jarvisEntityFileCategory:touched", "group": "inline@2" }
         ]
+
+   * ``contributes.configuration`` — into the existing **Hooks** group, so no
+     group is added or re-ordered (``REQ_ENT_TOUCHEDFILES`` AC-15):
+
+     .. code-block:: json
+
+        {
+          "jarvis.touchedFiles.windowDays": {
+            "type": "number",
+            "default": 0,
+            "minimum": 0,
+            "description": "Only show files touched within this many days in the \"Recently Touched Files\" tree (0 = no limit)."
+          }
+        }
 
    * ``contributes.menus.commandPalette``: hide both new commands (they
      require a tree node argument), same pattern as every other tree-only
@@ -1825,7 +1958,9 @@ level).
 
         [
           { "command": "jarvis.diffTouchedFile", "when": "false" },
-          { "command": "jarvis.removeTouchedFile", "when": "false" }
+          { "command": "jarvis.removeTouchedFile", "when": "false" },
+          { "command": "jarvis.removeTouchedFiles", "when": "false" },
+          { "command": "jarvis.cleanupTouchedFiles", "when": "false" }
         ]
 
    **Wiring (``extension.ts``, alongside the existing ``activityTracker``
@@ -1843,6 +1978,14 @@ level).
           (entityKind) => engine.treeFactory.refreshKind(entityKind),
           log,
       );
+
+      // AC-15a — the window governs display for every entity kind, so a change
+      // to it invalidates the whole tree, not one kind.
+      context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(e => {
+          if (e.affectsConfiguration('jarvis.touchedFiles.windowDays')) {
+              engine.treeFactory.refreshAll();
+          }
+      }));
 
    **Design notes:**
 
@@ -1864,13 +2007,49 @@ level).
      ``UnifiedEntityTreeProvider``'s duck-typing — the smaller, more local
      fix of the two, and consistent with not touching unrelated providers
      for a bug entirely contained in this CR's own new node types.
-   * **Why ``jarvisEntityFileFolder`` is reused for touched-file folder
-     nodes rather than a new contextValue:** a touched-file folder node has
-     exactly the same right-click needs as a "Files" category folder node
-     (none beyond what folders already get) — introducing a distinct
-     contextValue would require duplicating menu bindings for zero
-     behavioral difference. If a touched-file-folder-specific action is
-     ever needed, splitting the contextValue is a small, isolated follow-up.
+   * **Why touched-file folder nodes now carry their own
+     ``jarvisTouchedFileFolder`` contextValue:** the previous revision reused
+     ``jarvisEntityFileFolder`` and noted that splitting it would be a small,
+     isolated follow-up if a touched-file-folder-specific action were ever
+     needed. AC-13's folder-level trash is that action. The split is required
+     rather than preferred: ``jarvisEntityFileFolder`` is also worn by
+     "Files" category folders, which have no touched-file entries to remove,
+     so a shared value would put a trash icon on nodes where the command has
+     nothing to act on. ``jarvisEntityFileFolder`` currently has no menu
+     bindings at all, so nothing is lost by no longer using it here.
+   * **Why both filters are applied at the category expansion rather than
+     inside ``buildTouchedFileChildren()``:** a folder node must be shown
+     only if at least one *displayed* file sits below it, so the filtering
+     decision cannot be taken per node without re-examining the whole
+     subtree at every level. Filtering the entry map once, at the category
+     root, and carrying the filtered map on the folder nodes gives the same
+     result with one pass — and preserves the existing property that empty
+     branches never appear, because a folder node is still only ever created
+     for a path present in the map it is handed. This is what bounds the
+     file-system cost of AC-16 to one probe per displayed-window entry per
+     category expansion, and is why no caching layer is specified (CD
+     Level 1, Issue 2).
+   * **Why ``removeMissing()``'s existence probes sit inside the synchronous
+     critical section:** the whole read-mutate-write body must remain
+     uninterruptible (AC-6a, GH #35), so the ``fs.existsSync`` calls are
+     deliberately kept inside it rather than pre-computing the dead set
+     outside and deleting afterwards. Pre-computing would open a window in
+     which a file touched between the probe and the delete is removed
+     regardless. The cost is a longer blocking section — bounded by the
+     recorded entry count and paid only when the user invokes the command,
+     which is the same tradeoff already accepted for the write path.
+   * **Why ``removeAll()`` deletes the JSON file rather than writing an empty
+     one:** ``_load()`` already fails open to ``{ files: {} }`` for a missing
+     file, so the two are equivalent to every reader, and deleting leaves no
+     orphan file behind for an entity that may never be touched again.
+   * **Why the cleanup action ignores the display window:** it targets
+     entries that point at nothing, and an entry outside the window is no
+     more useful for being old. Restricting the sweep to the window would
+     also make the command's effect depend on a setting that has nothing to
+     do with its purpose.
+   * **Icon choice:** the codicon set has no broom; ``$(clear-all)`` is the
+     closest available and is already used elsewhere in VS Code for
+     "remove what is no longer relevant here".
    * **Why the diff command has no fallback path:** per the confirmed
      CM/user decision (CD Level 1), a non-git workspace or untracked file
      simply produces no visible diff when ``git.openChange`` is invoked —
@@ -1923,15 +2102,24 @@ level).
    5. (``touched-files-write-race`` CR, GH #35 — REQ_ENT_TOUCHEDFILES
       AC-6a) ``TouchStore``'s ``_load``/``_save`` SHALL use synchronous
       ``fs`` calls (``readFileSync``/``writeFileSync``/``mkdirSync``) with
-      no ``await`` between the read and the write inside
-      ``recordTouches()``/``removeEntry()`` — guaranteeing the
+      no ``await`` between the read and the write inside any mutating
+      method (``recordTouches()``, ``removeEntry()``, ``removeUnder()``,
+      ``removeMissing()``) — guaranteeing the
       read-mutate-write critical section cannot be interleaved by another
       overlapping call for the same entity, regardless of how many
       ``PostToolUse`` events arrive in the same tick.
-   6. The "Recently Touched Files" category node is included in
-      ``_getLeafChildren()`` output if and only if the entity's touch map
-      is non-empty; otherwise omitted entirely.
-   7. The category's children are computed by walking the flat
+   6. (``touched-files-cleanup`` CR — REQ_ENT_TOUCHEDFILES AC-7) The
+      "Recently Touched Files" category node is included in
+      ``_getLeafChildren()`` output if and only if at least one recorded
+      entry survives ``withinWindow()``; otherwise omitted entirely. This
+      test SHALL NOT consult ``existingOnly()`` or the file system in any
+      other way — it runs for every entity on every refresh, including the
+      periodic ``jarvis.scanInterval`` rescan. A consequence is accepted:
+      the category may be shown while all of its entries are filtered out
+      by ``existingOnly()`` on expansion, leaving it visible with no
+      children. That is the state in which the cleanup action (AC-20) is
+      needed, so making it reachable is the point.
+   7. The category's children are computed by walking the *filtered*
       ``relPath -> TouchEntry`` map on every expansion (never cached
       between expansions) — grouped into one folder node per distinct
       path segment and one leaf node per file, with empty branches never
@@ -1953,6 +2141,76 @@ level).
    12. This spec introduces no changes to ``SPEC_ENT_ENTITY_FILE_CHILDREN``'s
        "Agent"/"Files" categories or to ``SPEC_HOOK_ACTIVITY``'s
        ``ActivityTracker``/``ActivityDecorator``.
+
+   *AC-13 to AC-21 are introduced by the* ``touched-files-cleanup`` *CR.*
+
+   13. (REQ_ENT_TOUCHEDFILES AC-15) A ``number`` setting
+       ``jarvis.touchedFiles.windowDays`` is contributed to the existing
+       **Hooks** configuration group with ``default: 0`` and
+       ``minimum: 0``; no configuration group is added or re-ordered, so
+       ``REQ_CFG_GROUPS`` is unaffected. ``readWindowDays()`` reads it on
+       each use rather than caching it.
+   14. (REQ_ENT_TOUCHEDFILES AC-15) ``withinWindow()`` returns the entry
+       map unchanged when the setting is ``0`` or less — the value is a
+       limit, and no limit is the default. Otherwise an entry is retained
+       when the *later* of its ``lastRead``/``lastEdited`` timestamps —
+       either of which may be absent — falls within ``n × 24 h`` of the
+       moment the filter runs. The window is therefore rolling, not
+       calendar-day based, and needs no local-time conversion because the
+       stored timestamps are ISO 8601 UTC.
+   15. (REQ_ENT_TOUCHEDFILES AC-16) ``existingOnly()`` removes entries
+       whose path does not resolve to a file on disk. It is applied once,
+       at category expansion, to the output of ``withinWindow()`` — never
+       to the full recorded map — and the filtered map is what the folder
+       nodes below carry, so descending the tree costs no further probes.
+       No entry is deleted from the store by this filter: the store is
+       branch-blind (``.jarvis/state/`` is not under version control), so
+       an absent file is indistinguishable from one that is merely not on
+       the current branch. With no workspace root available the filter
+       fails open and returns the map unchanged — hiding every entry
+       would be the worse error, since nothing could then be probed to
+       show it wrong.
+   16. Touched-file folder nodes carry ``contextValue``
+       ``jarvisTouchedFileFolder``, replacing the previously shared
+       ``jarvisEntityFileFolder``. The split is required because the
+       shared value is also worn by "Files" category folders, which have
+       no touched-file entries and for which AC-18's action would be a
+       no-op.
+   17. (REQ_ENT_TOUCHEDFILES AC-13) ``TouchStore`` provides
+       ``removeUnder(kind, name, relFolderPath)``, deleting every entry
+       whose path lies below ``relFolderPath``, and ``removeAll(kind,
+       name)``, deleting the entity's JSON file — equivalent to writing an
+       empty map, because ``_load()`` already fails open to
+       ``{ files: {} }``. Both remove every entry recorded below the node,
+       including entries hidden by AC-14 or AC-15 at the time of the
+       action.
+   18. (REQ_ENT_TOUCHEDFILES AC-13) The command
+       ``jarvis.removeTouchedFiles`` is bound as an inline trash icon on
+       touched-file folder nodes and on the category node, and dispatches
+       on ``node.kind`` to ``removeUnder()`` or ``removeAll()``
+       respectively. It SHALL NOT prompt for confirmation.
+   19. (REQ_ENT_TOUCHEDFILES AC-17) ``TouchStore.removeMissing(kind, name,
+       workspaceRoot)`` deletes every entry with no file on disk and
+       returns the number removed. It operates on the whole recorded map,
+       ignoring the display window, and its ``fs.existsSync`` probes SHALL
+       remain inside the synchronous critical section required by AC-5 —
+       computing the dead set outside it would open a window in which a
+       file touched between probe and delete is removed regardless.
+   20. (REQ_ENT_TOUCHEDFILES AC-17) The command
+       ``jarvis.cleanupTouchedFiles`` is bound as an inline action on the
+       category node and reports the outcome through an information
+       message naming the entity — *including when nothing was removed*,
+       because the entries it targets are invisible, so silence would
+       leave the user unable to distinguish "nothing to do" from "the
+       command did not run".
+   21. (REQ_ENT_TOUCHEDFILES AC-15a, AC-18) A change to
+       ``jarvis.touchedFiles.windowDays`` takes effect through an
+       ``onDidChangeConfiguration`` subscription calling ``refreshAll()``
+       — the window governs display for every entity kind — with no
+       window reload. No other removal path exists: there is no
+       activation-time pass, no timer and no scheduled sweep, so every
+       entry removal is traceable to an explicit user action (AC-11,
+       AC-18, AC-20).
 
 
 .. spec:: Open Context File Command — Retired

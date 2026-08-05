@@ -109,7 +109,6 @@
       { "command": "jarvis.migrateSessionToActor", "title": "Jarvis: Migrate Session to Actor" },
       { "command": "jarvis.searchEntities", "title": "Jarvis: Search Entities", "icon": "$(search)" },
       { "command": "jarvis.checkForUpdates", "title": "Jarvis: Check for Updates" },
-      { "command": "jarvis.showReleaseNotes", "title": "Jarvis: Show Release Notes" },
       { "command": "jarvis.rescan", "title": "Jarvis: Rescan", "icon": "$(refresh)" },
       { "command": "jarvis.runJob", "title": "Jarvis: Run Job", "icon": "$(play)" },
       { "command": "jarvis.pauseHeartbeatJob", "title": "Jarvis: Pause Heartbeat Job", "icon": "$(debug-pause)" },
@@ -129,7 +128,9 @@
       { "command": "jarvis.copyCategoryName", "title": "Copy" },
       { "command": "jarvis.openMessageSession", "title": "Jarvis: Open Message Session" },
       { "command": "jarvis.diffTouchedFile", "title": "Jarvis: Show Changes" },
-      { "command": "jarvis.removeTouchedFile", "title": "Jarvis: Remove Touched File", "icon": "$(trash)" }
+      { "command": "jarvis.removeTouchedFile", "title": "Jarvis: Remove Touched File", "icon": "$(trash)" },
+      { "command": "jarvis.removeTouchedFiles", "title": "Jarvis: Remove Touched Files", "icon": "$(trash)" },
+      { "command": "jarvis.cleanupTouchedFiles", "title": "Jarvis: Clean Up Touched Files", "icon": "$(clear-all)" }
     ],
     "menus": {
       "commandPalette": [
@@ -158,7 +159,9 @@
         { "command": "jarvis.copyCategoryName", "when": "false" },
         { "command": "jarvis.openMessageSession", "when": "false" },
         { "command": "jarvis.diffTouchedFile", "when": "false" },
-        { "command": "jarvis.removeTouchedFile", "when": "false" }
+        { "command": "jarvis.removeTouchedFile", "when": "false" },
+        { "command": "jarvis.removeTouchedFiles", "when": "false" },
+        { "command": "jarvis.cleanupTouchedFiles", "when": "false" }
       ],
       "view/title": [
         { "command": "jarvis.searchEntities", "when": "view == jarvisEntities", "group": "navigation@1" },
@@ -193,7 +196,10 @@
         { "command": "jarvis.copyFileName", "when": "viewItem == jarvisTouchedFile", "group": "clipboard@3" },
         { "command": "jarvis.revealInExplorer", "when": "viewItem == jarvisTouchedFile", "group": "context-actions" },
         { "command": "jarvis.diffTouchedFile", "when": "viewItem == jarvisTouchedFile", "group": "diff" },
-        { "command": "jarvis.removeTouchedFile", "when": "viewItem == jarvisTouchedFile", "group": "inline" }
+        { "command": "jarvis.removeTouchedFile", "when": "viewItem == jarvisTouchedFile", "group": "inline" },
+        { "command": "jarvis.removeTouchedFiles", "when": "viewItem == jarvisTouchedFileFolder", "group": "inline" },
+        { "command": "jarvis.removeTouchedFiles", "when": "viewItem == jarvisEntityFileCategory:touched", "group": "inline" },
+        { "command": "jarvis.cleanupTouchedFiles", "when": "viewItem == jarvisEntityFileCategory:touched", "group": "inline" }
       ]
     },
     "configuration": [
@@ -247,8 +253,7 @@
       {
         "title": "Updates",
         "properties": {
-          "jarvis.checkForUpdates": { "type": "boolean", "default": true, "description": "Check for new Jarvis releases on GitHub when the extension activates." },
-          "jarvis.releaseNotes.showOnUpdate": { "type": "boolean", "default": true, "scope": "application", "description": "Open the release notes in the editor the first time a newly installed Jarvis version runs. The command \"Jarvis: Show Release Notes\" works regardless of this setting." }
+          "jarvis.checkForUpdates": { "type": "boolean", "default": true, "description": "Check for new Jarvis releases on GitHub when the extension activates." }
         }
       },
       {
@@ -259,17 +264,12 @@
             "default": true,
             "scope": "resource",
             "description": "When true (default), Jarvis auto-installs hook bridge files in .github/hooks/. Set to false to remove managed files and stop hook management."
-          }
-        }
-      },
-      {
-        "title": "Gitignore",
-        "properties": {
-          "jarvis.gitignore.autoManage": {
-            "type": "boolean",
-            "default": true,
-            "scope": "resource",
-            "description": "When true (default), Jarvis keeps a marked block in the workspace-root .gitignore listing the files it generates. Set to false to remove the block and stop managing it."
+          },
+          "jarvis.touchedFiles.windowDays": {
+            "type": "number",
+            "default": 0,
+            "minimum": 0,
+            "description": "(0 = no limit) Rolling window in days; only files touched within this window are shown. Changing this takes effect immediately."
           }
         }
       }

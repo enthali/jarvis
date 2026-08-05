@@ -84,6 +84,36 @@ export class TouchStore {
         return this._load(this._filePath(kind, name)).files;
     }
 
+    async removeUnder(kind: string, name: string, relFolderPrefix: string): Promise<void> {
+        const file = this._filePath(kind, name);
+        const data = this._load(file);
+        const prefix = relFolderPrefix.endsWith('/') ? relFolderPrefix : relFolderPrefix + '/';
+        for (const key of Object.keys(data.files)) {
+            if (key.startsWith(prefix)) { delete data.files[key]; }
+        }
+        this._save(file, data);
+    }
+
+    async removeAll(kind: string, name: string): Promise<void> {
+        const file = this._filePath(kind, name);
+        try { fs.unlinkSync(file); } catch { /* fail-open: missing file is success */ }
+    }
+
+    async removeMissing(kind: string, name: string, workspaceRoot: string): Promise<number> {
+        const file = this._filePath(kind, name);
+        const data = this._load(file);
+        let count = 0;
+        for (const relPath of Object.keys(data.files)) {
+            const abs = path.join(workspaceRoot, relPath);
+            if (!fs.existsSync(abs)) {
+                delete data.files[relPath];
+                count++;
+            }
+        }
+        if (count > 0) { this._save(file, data); }
+        return count;
+    }
+
     private _load(file: string): TouchFile {
         try { return JSON.parse(fs.readFileSync(file, 'utf8')); }
         catch { return { files: {} }; } // fail-open: missing/corrupt file → empty

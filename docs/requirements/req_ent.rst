@@ -576,7 +576,7 @@ generic/user-facing, ``ENG`` = kind-agnostic plumbing, no US level).
 
 .. req:: Recently Touched Files per Entity
    :id: REQ_ENT_TOUCHEDFILES
-   :status: approved
+   :status: implemented
    :priority: optional
    :links: US_ENT_TOUCHEDFILES; REQ_HOOK_ROUTE; REQ_ENT_ENTITY_FILE_CHILDREN; REQ_ENT_ENTITY_CONTEXTMENU
 
@@ -588,6 +588,11 @@ generic/user-facing, ``ENG`` = kind-agnostic plumbing, no US level).
    "Recently Touched Files", sibling to "Agent"/"Files"
    (``REQ_ENT_ENTITY_FILE_CHILDREN`` AC-2a), listing those files as a
    workspace-root-relative, persisted, hierarchical tree.
+
+   What is *recorded* and what is *displayed* are separate concerns
+   (AC-15 to AC-18): the recorded set only ever changes through a touch or
+   an explicit user action, while a display window and an existence check
+   decide what of it is shown.
 
    **Acceptance Criteria:**
 
@@ -642,9 +647,16 @@ generic/user-facing, ``ENG`` = kind-agnostic plumbing, no US level).
    * AC-7: Each entity leaf node SHALL gain a "Recently Touched Files"
      category child (``contextValue = 'jarvisEntityFileCategory:touched'``,
      ``collapsibleState = Collapsed``), positioned after "Agent"/"Files" —
-     shown **only when that entity has at least one touched-file entry**
-     (omitted entirely when empty, consistent with the "Agent" category's
-     fail-open omission pattern, ``REQ_ENT_ENTITY_FILE_CHILDREN`` AC-2c).
+     shown **only when that entity has at least one recorded entry inside
+     the display window** (AC-15), omitted entirely otherwise (consistent
+     with the "Agent" category's fail-open omission pattern,
+     ``REQ_ENT_ENTITY_FILE_CHILDREN`` AC-2c). Category visibility SHALL NOT
+     depend on the existence check (AC-16): that would require a
+     file-system probe per recorded entry of every entity on every tree
+     refresh, whereas the window is a comparison of timestamps already
+     loaded. The category therefore MAY be shown with no visible children —
+     which is precisely the state in which the cleanup action of AC-17 is
+     needed, and it is reachable there.
    * AC-8: Within that category, files SHALL be shown in a hierarchical
      tree mirroring their workspace-root-relative folder structure (not a
      flat list) — intermediate folder nodes that lead to no touched file
@@ -668,15 +680,54 @@ generic/user-facing, ``ENG`` = kind-agnostic plumbing, no US level).
      version (untracked), the entry SHALL be shown as-is with no special
      casing — it simply does not produce a diff in that case (confirmed
      PM/CM decision: keep it simple, no fallback path).
-   * AC-13: Each touched-file leaf SHALL show an inline "Remove" (trash)
-     icon that deletes that single entry from the persisted JSON
-     (AC-6) and refreshes the tree immediately — no separate "dismissed"
-     state; the entry reappears if the file is touched again (KISS, per
-     GH #18).
+   * AC-13: An inline "Remove" (trash) icon SHALL be available on a
+     touched-file leaf, on a folder node inside the category, and on the
+     category node itself. It SHALL delete every entry recorded below the
+     node it sits on from the persisted JSON (AC-6) and refresh the tree
+     immediately — including entries the window (AC-15) or the existence
+     check (AC-16) is currently hiding, since a "remove this folder" that
+     left entries behind would not be what was asked for. No confirmation
+     prompt SHALL be shown: there is no separate "dismissed" state and the
+     entry reappears if the file is touched again (KISS, per GH #18).
    * AC-14: This is purely additive — it does not alter the existing
      "Agent"/"Files" categories, existing entity-node click/context-menu
      behavior, or the Hook Engine's existing activity-tracking consumer
      (``REQ_HOOK_ACTIVITY``).
+   * AC-15: The extension SHALL contribute a
+     ``jarvis.touchedFiles.windowDays`` setting (``number``, default ``0``,
+     ``minimum`` 0, no explicit ``scope`` — VS Code's ``window`` default,
+     consistent with the other numeric settings) in the existing **Hooks**
+     settings group. No new settings group is introduced, so
+     ``REQ_CFG_GROUPS`` is neither extended nor re-ordered by this CR. A
+     value ``n > 0`` SHALL restrict the displayed list to entries whose
+     most recent touch of any kind (the later of last-read and last-edited,
+     AC-6) lies no more than ``n`` × 24 hours in the past — a rolling
+     period, not a calendar-day boundary, so a session running past
+     midnight is not truncated. Timestamps are ISO 8601 UTC (AC-6), so the
+     comparison SHALL require no local-time conversion and is unaffected by
+     time zone and daylight-saving transitions. A value of ``0`` SHALL mean
+     no limit, so the displayed list is unchanged for every existing user
+     until a window is chosen.
+   * AC-15a: A change to ``jarvis.touchedFiles.windowDays`` SHALL take
+     effect without reloading the VS Code window — the affected views
+     refresh on the configuration-change event.
+   * AC-16: A touched-file leaf whose file does not exist when its parent is
+     expanded SHALL NOT be shown, and SHALL NOT be removed from the
+     persisted JSON. The store is per workspace and holds no branch
+     information (``.jarvis/state/`` is deliberately not under version
+     control), so it cannot tell a deleted file from one that is merely
+     absent on the currently checked-out git branch; the entry SHALL
+     reappear unchanged when the file does.
+   * AC-17: The category node SHALL offer a cleanup action, distinct from
+     the trash icon of AC-13, that removes from that entity's persisted
+     JSON every entry whose file does not exist — including entries outside
+     the display window — and afterwards reports how many were removed. The
+     report is required rather than cosmetic: those entries were hidden
+     while they accumulated (AC-16), so a silent run would leave the user
+     with no evidence that anything happened.
+   * AC-18: No entry SHALL ever be removed without an explicit user action.
+     The window (AC-15) and the existence check (AC-16) govern display
+     only; there SHALL be no activation-time or scheduled removal pass.
 
 
 
