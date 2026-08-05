@@ -75,13 +75,15 @@
   already committed by Dev Engineer, 323 tests passing. Awaiting QM review;
   CM's mode reset mid-CR (see Watch Items) — flag to QM for closer scrutiny
   of the Level 0-2 spec edits made while CM lacked its delegation persona.
-- **touched-files-cleanup** (2026-08-04): CD on `feature/touched-files-cleanup`,
-  dispatched to CM. Dead-entry removal + configurable expiry (default 2d) on
-  `TouchStore`, periodic + on-demand trigger, plus whole-folder removal
-  (today only single-file via `jarvis.removeTouchedFile`).
 
 ## Recently Shipped
 
+- **touched-files-cleanup** merged to `development` @ 9a4611b (2026-08-05).
+  QM Round 1 pivoted design mid-flight from destructive delete to
+  display-filter (age window default 0=no limit, dead-file hiding) +
+  explicit removal at entry/folder/category scope + on-demand dead-entry
+  cleanup — see CD for the Level 0 findings (F-2..F-6) if this shape needs
+  explaining again. QM Round 2 CLEAR.
 - jarvis-kanban (#46) released as v0.24.0 on 2026-07-26 (tag on `main` @
   76426cb, develop back-merged, issue closed, board → Done). Phase 2 (#47,
   swimlanes + drag-and-drop) and Phase 3 (#48, GH Issues importer) on backlog.
