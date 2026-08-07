@@ -582,9 +582,9 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     // Context actions (SPEC_EXP_CONTEXTACTIONS) — generic, used by any entity
     // actor-touched-files CR: widened to also accept file-like nodes (filePath)
     // so "Reveal in Explorer" can be reused unchanged for jarvisTouchedFile.
-    const revealInExplorerCommand = vscode.commands.registerCommand('jarvis.revealInExplorer', (node: LeafNode | { filePath: string }) => {
-        const target = 'filePath' in node ? node.filePath : node.id;
-        vscode.commands.executeCommand('revealInExplorer', vscode.Uri.file(target));
+    const revealInExplorerCommand = vscode.commands.registerCommand('jarvis.revealInExplorer', (node: LeafNode | { filePath: string; resourceUri?: vscode.Uri }) => {
+        const uri = ('resourceUri' in node && node.resourceUri) ? node.resourceUri : vscode.Uri.file('filePath' in node ? node.filePath : (node as LeafNode).id);
+        vscode.commands.executeCommand('revealInExplorer', uri);
     });
     const revealInOSCommand = vscode.commands.registerCommand('jarvis.revealInOS', (node: LeafNode) => {
         vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(node.id));
@@ -746,8 +746,8 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     // Open entity file command (SPEC_ENT_ENTITY_FILE_CHILDREN) — fail-open, no auto-creation
     const openEntityFileCommand = vscode.commands.registerCommand(
         'jarvis.openEntityFile',
-        async (node: { filePath: string; label: string }) => {
-            const uri = vscode.Uri.file(node.filePath);
+        async (node: { filePath: string; label: string; resourceUri?: vscode.Uri }) => {
+            const uri = node.resourceUri ?? vscode.Uri.file(node.filePath);
             try {
                 await vscode.workspace.openTextDocument(uri); // validates existence first
                 if (path.extname(node.filePath).toLowerCase() === '.md') {
@@ -843,25 +843,25 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     // Show Changes / Remove for touched-file leaves (SPEC_ENT_TOUCHEDFILES)
     const diffTouchedFileCommand = vscode.commands.registerCommand(
         'jarvis.diffTouchedFile',
-        async (node: { filePath: string }) => {
-            // Delegates to the built-in Git extension's "Open Changes" command —
-            // no custom git-uri/diff wiring, no fallback for untracked/non-git
-            // files (REQ_ENT_TOUCHEDFILES AC-12, per CM/user decision).
-            await vscode.commands.executeCommand('git.openChange', vscode.Uri.file(node.filePath));
+        async (node: { filePath: string; resourceUri?: vscode.Uri }) => {
+            const uri = node.resourceUri ?? vscode.Uri.file(node.filePath);
+            await vscode.commands.executeCommand('git.openChange', uri);
         }
     );
 
     const removeTouchedFileCommand = vscode.commands.registerCommand(
         'jarvis.removeTouchedFile',
-        async (node: { filePath: string; ownerKind: string; entityName: string }) => {
-            const relPath = path.relative(
-                vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '', node.filePath
-            ).replace(/\\/g, '/');
-            await touchStore.removeEntry(node.ownerKind, node.entityName, relPath);
-            // node.ownerKind is the disambiguated TouchStore storage key
-            // ('actor'/'session'/'project'/'event' — see resolveTouchStorageKind);
-            // refreshKind() needs the real registered provider kind instead
-            // ('actor' entities are still rendered by the 'session' provider).
+        async (node: { filePath: string; ownerKind: string; entityName: string; resourceUri?: vscode.Uri; entry?: { rootUri?: string; relPath?: string } }) => {
+            // D-16: use canonical key (resourceUri string) for new records, fall back to relPath for legacy
+            let key: string;
+            if (node.resourceUri) {
+                key = node.resourceUri.toString(true);
+            } else {
+                key = path.relative(
+                    vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '', node.filePath
+                ).replace(/\\/g, '/');
+            }
+            await touchStore.removeEntry(node.ownerKind, node.entityName, key);
             engine.treeFactory.refreshKind(node.ownerKind === 'actor' ? 'session' : node.ownerKind);
         }
     );
@@ -869,9 +869,9 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     // Remove all touched files under a folder or category (SPEC_ENT_TOUCHEDFILES)
     const removeTouchedFilesCommand = vscode.commands.registerCommand(
         'jarvis.removeTouchedFiles',
-        async (node: { kind: string; ownerKind: string; entityName: string; relFolderPath?: string }) => {
+        async (node: { kind: string; ownerKind: string; entityName: string; relFolderPath?: string; rootUri?: string }) => {
             if (node.kind === 'touchedFileFolder') {
-                await touchStore.removeUnder(node.ownerKind, node.entityName, node.relFolderPath!);
+                await touchStore.removeUnder(node.ownerKind, node.entityName, node.relFolderPath!, node.rootUri);
             } else {
                 await touchStore.removeAll(node.ownerKind, node.entityName);
             }
@@ -879,12 +879,20 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         }
     );
 
-    // Clean up dead entries — probes each file for existence (SPEC_ENT_TOUCHEDFILES)
+    // Clean up dead entries — D-15: snapshot + async probes + synchronous compare-delete
     const cleanupTouchedFilesCommand = vscode.commands.registerCommand(
         'jarvis.cleanupTouchedFiles',
         async (node: { ownerKind: string; entityName: string }) => {
-            const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
-            const count = await touchStore.removeMissing(node.ownerKind, node.entityName, root);
+            const { probeTouchEntry } = await import('./engine/core/treeFactory');
+            const snapshot = await touchStore.getEntries(node.ownerKind, node.entityName);
+            const absentKeys: string[] = [];
+            await Promise.all(
+                Object.entries(snapshot).map(async ([key, entry]) => {
+                    const { result } = await probeTouchEntry(entry);
+                    if (result === 'absent') { absentKeys.push(key); }
+                })
+            );
+            const count = touchStore.removeEntriesIfUnchanged(node.ownerKind, node.entityName, snapshot, absentKeys);
             void vscode.window.showInformationMessage(
                 count > 0
                     ? `${node.entityName}: removed ${count} missing file(s).`

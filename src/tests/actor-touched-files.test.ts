@@ -23,6 +23,16 @@ vi.mock('../../packages/core/src/engine/sessions/sessionLookup', () => ({
 import { getEntityNameForSessionId } from '../../packages/core/src/engine/sessions/sessionLookup';
 import { TouchTracker } from '../../packages/core/src/engine/hooks/touchTracker';
 
+// Helper: re-key entries by relPath for assertion convenience
+function byRelPath(entries: Record<string, any>): Record<string, any> {
+    const result: Record<string, any> = {};
+    for (const [_key, entry] of Object.entries(entries)) {
+        const rp = entry.relPath ?? _key;
+        result[rp] = entry;
+    }
+    return result;
+}
+
 function createMockLogger() {
     return { info: vi.fn(), trace: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() };
 }
@@ -52,24 +62,24 @@ describe('TouchStore (SPEC_ENT_TOUCHEDFILES AC-4)', () => {
 
     it('persists a write touch and reads it back via getEntries', async () => {
         const store = new TouchStore(stateDir);
-        await store.recordTouches('session', 'Alpha', ['src/foo.ts'], 'write');
-        const entries = await store.getEntries('session', 'Alpha');
+        await store.recordTouches('session', 'Alpha', [{ rootUri: 'file:///ws', relPath: 'src/foo.ts', resourceUri: 'file:///ws/src/foo.ts' }], 'write');
+        const entries = byRelPath(await store.getEntries('session', 'Alpha'));
         expect(entries['src/foo.ts'].lastEdited).toBeTruthy();
         expect(entries['src/foo.ts'].lastRead).toBeUndefined();
     });
 
     it('records read and write separately, merging into one entry per file', async () => {
         const store = new TouchStore(stateDir);
-        await store.recordTouches('session', 'Alpha', ['src/foo.ts'], 'read');
-        await store.recordTouches('session', 'Alpha', ['src/foo.ts'], 'write');
-        const entries = await store.getEntries('session', 'Alpha');
+        await store.recordTouches('session', 'Alpha', [{ rootUri: 'file:///ws', relPath: 'src/foo.ts', resourceUri: 'file:///ws/src/foo.ts' }], 'read');
+        await store.recordTouches('session', 'Alpha', [{ rootUri: 'file:///ws', relPath: 'src/foo.ts', resourceUri: 'file:///ws/src/foo.ts' }], 'write');
+        const entries = byRelPath(await store.getEntries('session', 'Alpha'));
         expect(entries['src/foo.ts'].lastRead).toBeTruthy();
         expect(entries['src/foo.ts'].lastEdited).toBeTruthy();
     });
 
     it('fail-open: missing file yields empty entries', async () => {
         const store = new TouchStore(stateDir);
-        const entries = await store.getEntries('session', 'DoesNotExist');
+        const entries = byRelPath(await store.getEntries('session', 'DoesNotExist'));
         expect(entries).toEqual({});
     });
 
@@ -77,22 +87,25 @@ describe('TouchStore (SPEC_ENT_TOUCHEDFILES AC-4)', () => {
         fs.mkdirSync(stateDir, { recursive: true });
         fs.writeFileSync(path.join(stateDir, 'session-Corrupt.json'), '{ not valid json', 'utf8');
         const store = new TouchStore(stateDir);
-        const entries = await store.getEntries('session', 'Corrupt');
+        const entries = byRelPath(await store.getEntries('session', 'Corrupt'));
         expect(entries).toEqual({});
     });
 
     it('removeEntry deletes exactly the targeted file, leaving others intact', async () => {
         const store = new TouchStore(stateDir);
-        await store.recordTouches('session', 'Alpha', ['src/foo.ts', 'src/bar.ts'], 'write');
-        await store.removeEntry('session', 'Alpha', 'src/foo.ts');
-        const entries = await store.getEntries('session', 'Alpha');
+        await store.recordTouches('session', 'Alpha', [
+            { rootUri: 'file:///ws', relPath: 'src/foo.ts', resourceUri: 'file:///ws/src/foo.ts' },
+            { rootUri: 'file:///ws', relPath: 'src/bar.ts', resourceUri: 'file:///ws/src/bar.ts' },
+        ], 'write');
+        await store.removeEntry('session', 'Alpha', 'file:///ws/src/foo.ts');
+        const entries = byRelPath(await store.getEntries('session', 'Alpha'));
         expect(entries['src/foo.ts']).toBeUndefined();
         expect(entries['src/bar.ts']).toBeTruthy();
     });
 
     it('persists to <kind>-<name>.json under the state dir', async () => {
         const store = new TouchStore(stateDir);
-        await store.recordTouches('project', 'My Project', ['a.md'], 'write');
+        await store.recordTouches('project', 'My Project', [{ rootUri: 'file:///ws', relPath: 'a.md', resourceUri: 'file:///ws/a.md' }], 'write');
         expect(fs.existsSync(path.join(stateDir, 'project-My Project.json'))).toBe(true);
     });
 });
@@ -181,7 +194,7 @@ describe('TouchTracker (SPEC_ENT_TOUCHEDFILES AC-1/AC-2/AC-3)', () => {
         const { engine, onChange } = makeTracker();
         engine.receive(makeEvent({ toolName: 'read_file', toolInput: { filePath: 'C:\\workspace\\jarvis\\src\\foo.ts' } }));
         await vi.waitFor(() => expect(onChange).toHaveBeenCalled());
-        const entries = await store.getEntries('session', 'Alpha');
+        const entries = byRelPath(await store.getEntries('session', 'Alpha'));
         expect(entries['src/foo.ts'].lastRead).toBeTruthy();
         expect(entries['src/foo.ts'].lastEdited).toBeUndefined();
     });
@@ -193,7 +206,7 @@ describe('TouchTracker (SPEC_ENT_TOUCHEDFILES AC-1/AC-2/AC-3)', () => {
         await vi.waitFor(() => expect(onChange).toHaveBeenCalledTimes(1));
         engine.receive(makeEvent({ toolName: 'replace_string_in_file', toolInput: { filePath: 'C:\\workspace\\jarvis\\src\\new.ts' } }));
         await vi.waitFor(() => expect(onChange).toHaveBeenCalledTimes(2));
-        const entries = await store.getEntries('session', 'Alpha');
+        const entries = byRelPath(await store.getEntries('session', 'Alpha'));
         expect(entries['src/new.ts'].lastEdited).toBeTruthy();
     });
 
@@ -210,7 +223,7 @@ describe('TouchTracker (SPEC_ENT_TOUCHEDFILES AC-1/AC-2/AC-3)', () => {
             },
         }));
         await vi.waitFor(() => expect(onChange).toHaveBeenCalled());
-        const entries = await store.getEntries('session', 'Alpha');
+        const entries = byRelPath(await store.getEntries('session', 'Alpha'));
         expect(entries['src/a.ts'].lastEdited).toBeTruthy();
         expect(entries['src/b.ts'].lastEdited).toBeTruthy();
     });
@@ -221,7 +234,7 @@ describe('TouchTracker (SPEC_ENT_TOUCHEDFILES AC-1/AC-2/AC-3)', () => {
         engine.receive(makeEvent({ toolName: 'grep_search', toolInput: { query: 'x' } }));
         await new Promise(r => setTimeout(r, 10));
         expect(onChange).not.toHaveBeenCalled();
-        const entries = await store.getEntries('session', 'Alpha');
+        const entries = byRelPath(await store.getEntries('session', 'Alpha'));
         expect(entries).toEqual({});
     });
 
@@ -264,7 +277,7 @@ describe('TouchTracker (SPEC_ENT_TOUCHEDFILES AC-1/AC-2/AC-3)', () => {
             cwd: 'C:\\workspace\\jarvis',
         }));
         await vi.waitFor(() => expect(onChange).toHaveBeenCalled());
-        const entries = await store.getEntries('session', 'Alpha');
+        const entries = byRelPath(await store.getEntries('session', 'Alpha'));
         expect(Object.keys(entries)).toEqual(['packages/core/src/foo.ts']);
     });
 });

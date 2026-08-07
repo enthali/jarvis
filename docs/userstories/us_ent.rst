@@ -368,16 +368,16 @@ Jarvis Entity kinds (Project / Event / Actor). Kind-agnostic engine plumbing
 
 .. story:: Recently Touched Files per Entity
    :id: US_ENT_TOUCHEDFILES
-   :status: implemented
+   :status: approved
    :priority: optional
    :links: US_ENT_ENTITY_FILES_TREE; US_HOOK_ROUTE; US_ENT_ENTITY; US_EXP_SIDEBAR
 
-   *Context: US_HOOK_ROUTE gave the Hook Engine a typed dispatch registry
-   with no real consumer beyond activity tracking (US_HOOK_ACTIVITY). This
-   is a second consumer: instead of "is this entity's session active right
-   now", it answers "what files has the agent actually read or written
-   while working on this entity" — visibility a user currently only gets by
-   manually checking git status or the file explorer.*
+    *Context: US_HOOK_ROUTE gave the Hook Engine a typed dispatch registry
+    with no real consumer beyond activity tracking (US_HOOK_ACTIVITY). This
+    is a second consumer: instead of "is this entity's session active right
+    now", it answers "what files has the agent actually read or written
+    while working on this entity" — visibility a user currently only gets by
+    manually checking git status or the file explorer.*
 
    *Until AC-10 to AC-14, "recently" existed only in the title: an entry
    stayed for good once written, and an entry pointing at a deleted file
@@ -430,11 +430,12 @@ Jarvis Entity kinds (Project / Event / Actor). Kind-agnostic engine plumbing
    * AC-9: This is purely additive — it does not change any existing
      entity-node behavior, the "Agent"/"Files" categories, or the Hook
      Engine's existing activity-tracking consumer (US_HOOK_ACTIVITY).
-   * AC-10: A file that does not currently exist on disk is not shown —
-     every action the list offers (open, diff, reveal) assumes the file is
-     there. It is not removed: absence is a state, not an event. A file
-     missing on one git branch is back after switching to another, and its
-     touch history is still true.
+   * AC-10: A file that is *known* not to exist is not shown — every action
+     the list offers (open, diff, reveal) assumes the file is there. It is
+     not removed: absence is a state, not an event. A file missing on one
+     git branch is back after switching to another, and its touch history
+     is still true. Where existence cannot be established, AC-15 applies
+     instead.
    * AC-11: The list shows only files touched within a user-configurable
      window, measured in days back from now against the most recent touch of
      any kind (read or write). The window is a rolling period, not a
@@ -455,3 +456,20 @@ Jarvis Entity kinds (Project / Event / Actor). Kind-agnostic engine plumbing
      back category and action together.
    * AC-14: No removal is permanent — any file the agent touches again
      reappears in the list.
+   * AC-15: Uncertainty is not evidence of absence. Where Jarvis cannot
+     establish whether a file exists, the entry remains persisted and the
+     cleanup action (AC-13) does not remove it, but it is not shown. Display
+     requires a file Jarvis can address; removal requires proof that no file
+     exists. An undetermined entry satisfies neither condition and remains
+     dormant until a later touch records enough information to resolve it.
+
+     This also governs the history recorded before this rule existed: those
+     entries were written without recording which root they were relative
+     to, so some of them cannot be resolved at all. They remain permanently
+     undetermined and hidden; AC-15 keeps them rather than letting a repair
+     destroy the history it exists to protect.
+   * AC-16: The list addresses files the way the editor addresses them. Open,
+     diff and reveal behave in a remote workspace — WSL, SSH, dev container —
+     exactly as they do locally. AC-5 and AC-7 were written when a workspace
+     was assumed to be a local directory and silently took an entry to be a
+     local path; this criterion states the assumption they were missing.

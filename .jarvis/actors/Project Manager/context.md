@@ -8,6 +8,10 @@
   creation, comments, closing issues, PRs, releases) requires explicit
   user sign-off on the exact content BEFORE it's posted — draft first,
   ask, then post. Never fire-and-report.
+- **Deferred findings stay local first (2026-08-07)**: do not default a
+  deferred finding to a public GitHub issue. Record it in PM-local memory and
+  revisit public backlog handling with the user; the public-work policy needs
+  a later joint review.
 - **Shared Git Workspace — Finger weg outside own folder while a CR runs**:
   while another CR is actively in the pipeline (CM/Designer/Dev Engineer
   working on a feature branch), PM may ONLY `git commit` files inside its own

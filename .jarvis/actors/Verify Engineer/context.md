@@ -5,7 +5,9 @@ This file captures operational details not covered there.
 
 ## Findings
 
+- **A `:status: implemented` sweep asserts every AC of the element, not the ones a CR touched.** An unfinished clause is a known gap while `approved` and a false claim once `implemented` — check the whole AC list before agreeing to a status change. (AC-24 record-key clause, `SPEC_ENT_TOUCHEDFILES`.)
 - **A requirement mandating a manifest contribution is verified against the parsed `package.json`, never against the module that consumes it.** I marked REQ_REL_NOTESCOMMAND/NOTESSETTING implemented having checked only `releaseNotes.ts`; both contributions were already deleted. The report that exists to catch that said it had been checked.
+- **A test that constructs its own argument confirms the function, never the wiring.** touched-files-wsl-existence: `removeUnder`'s test passed a URI prefix the production call site never produces, so a silent no-op shipped green. When a CR changes a key/identity format, check every consumer of the old format against its *actual* caller.
 - To prove "nothing was lost", diff the branch tip against the last-good commit and show the result has **no deletion hunks** — stronger than comparing the fix to the CD.
 - A regression's blast radius is the full deletion set of the offending commit across *all* files, enumerated from git — not the subset a CD names.
 - Val reports verify the CD's *declared scope against shipped code*, not the CD's narrative — that is what makes the report worth writing.
@@ -17,6 +19,7 @@ This file captures operational details not covered there.
 
 ## Next
 
+- `touched-files-wsl-existence` PASSED R4 (dd912ce, local — never pushed). AC-27 reconciled, spec `implemented`. **Open:** AC-24's record-key clause is unimplemented under that marker — recommended amending AC-24 as AC-27 was. Manual WSL gate still outstanding (O-1 never answered).
 - Open, for PM to route: `jarvis.newEntity` is contributed in `package.json` but registered nowhere; hidden by `when: false` so no user impact, yet `SPEC_ACT_NEWENTITY` still describes `newEntityCommand` in `extension.ts` as live. Pre-existing, predates `9a4611b`.
 - Suggested to CM: keep the contributed-vs-registered command-id cross-check as a test — it would have caught the `showReleaseNotes` loss the moment `9a4611b` landed.
 

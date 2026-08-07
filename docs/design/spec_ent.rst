@@ -1402,9 +1402,9 @@ level).
 
 
 .. spec:: Recently Touched Files per Entity
-   :id: SPEC_ENT_TOUCHEDFILES
-   :status: implemented
-   :links: REQ_ENT_TOUCHEDFILES; SPEC_HOOK_ROUTE; SPEC_HOOK_ACTIVITY; SPEC_ENT_ENTITY_FILE_CHILDREN; SPEC_ENT_ENTITY_CONTEXTMENU; SPEC_ENG_TREEFACTORY
+  :id: SPEC_ENT_TOUCHEDFILES
+  :status: implemented
+  :links: REQ_ENT_TOUCHEDFILES; SPEC_HOOK_ROUTE; SPEC_HOOK_ACTIVITY; SPEC_ENT_ENTITY_FILE_CHILDREN; SPEC_ENT_ENTITY_CONTEXTMENU; SPEC_ENG_TREEFACTORY
 
    **Description:**
    A new ``TouchTracker`` (``packages/core/src/engine/hooks/touchTracker.ts``)
@@ -1468,15 +1468,39 @@ level).
               const storageKind = resolveTouchStorageKind(owner.kind, owner.folder);
               const cwd = event.payload?.cwd as string | undefined;
               if (!cwd) { return; }
-              const absPaths: string[] = rule.extract(event.payload?.tool_input) ?? [];
-              const relPaths = [...new Set(absPaths.filter(Boolean))] // dedupe, AC-2c
-                  .map(p => path.relative(cwd, p).replace(/\\/g, '/')); // AC-5
-              if (relPaths.length === 0) { return; }
-              await this._store.recordTouches(storageKind, owner.name, relPaths, rule.kind);
-              this._log?.debug(`[Touch] ${rule.kind} x${relPaths.length} -> ${storageKind}:${owner.name}`);
+                const touches = [...new Set(rule.extract(event.payload?.tool_input).filter(Boolean))]
+                  .map(p => resolveRecordedTouch(p, cwd, vscode.workspace.workspaceFolders ?? []))
+                  .filter((value): value is RecordedTouch => value !== undefined);
+                if (touches.length === 0) { return; }
+                await this._store.recordTouches(storageKind, owner.name, touches, rule.kind);
+                this._log?.debug(`[Touch] ${rule.kind} x${touches.length} -> ${storageKind}:${owner.name}`);
               this._onChange(owner.kind, owner.name);
           }
       }
+
+            interface RecordedTouch { recordKey: string; rootUri: string; relPath: string; }
+
+            function resolveRecordedTouch(
+              inputPath: string,
+              cwd: string,
+              folders: readonly vscode.WorkspaceFolder[],
+            ): RecordedTouch | undefined {
+              const absolute = path.resolve(cwd, inputPath);
+              const candidates = folders
+                .filter(folder => folder.uri.scheme === 'file')
+                .map(folder => ({ folder, rel: path.relative(folder.uri.fsPath, absolute) }))
+                .filter(({ rel }) => rel !== '..' && !rel.startsWith(`..${path.sep}`) && !path.isAbsolute(rel))
+                .sort((a, b) => b.folder.uri.fsPath.length - a.folder.uri.fsPath.length);
+              const match = candidates[0];
+              if (!match) { return undefined; }
+              const relPath = match.rel.split(path.sep).join('/');
+              const resourceUri = vscode.Uri.joinPath(match.folder.uri, ...relPath.split('/'));
+              return {
+                recordKey: resourceUri.toString(true),
+                rootUri: match.folder.uri.toString(true),
+                relPath,
+              };
+            }
 
    Entity-name resolution reuses ``getEntityNameForSessionId``
    (``sessionLookup.ts``, introduced by ``SPEC_HOOK_ACTIVITY``) — no new
@@ -1498,8 +1522,13 @@ level).
    .. code-block:: typescript
 
       // packages/core/src/engine/hooks/touchStore.ts
-      interface TouchEntry { lastRead?: string; lastEdited?: string; } // ISO 8601 UTC
-      interface TouchFile { files: Record<string, TouchEntry>; } // key = workspace-relative path
+        interface TouchEntry {
+          lastRead?: string;
+          lastEdited?: string;
+          rootUri?: string; // absent on records written before touched-files-wsl-existence
+          relPath?: string; // root-relative, forward-slash separated
+        }
+        interface TouchFile { files: Record<string, TouchEntry>; } // key = canonical resource URI for new records
 
       export class TouchStore {
           constructor(private readonly _stateDir: string) {} // <workspaceRoot>/.jarvis/state/touched-files
@@ -1511,14 +1540,16 @@ level).
               return path.join(this._stateDir, `${kind}-${name}.json`);
           }
 
-          async recordTouches(kind: string, name: string, relPaths: string[], touchKind: 'read' | 'write'): Promise<void> {
+            async recordTouches(kind: string, name: string, touches: RecordedTouch[], touchKind: 'read' | 'write'): Promise<void> {
               const file = this._filePath(kind, name);
               const data = this._load(file);      // sync — no await between load and save
               const now = new Date().toISOString();
-              for (const relPath of relPaths) {
-                  const entry = data.files[relPath] ?? {};
+              for (const touch of touches) {
+                const entry = data.files[touch.recordKey] ?? {};
                   if (touchKind === 'write') { entry.lastEdited = now; } else { entry.lastRead = now; }
-                  data.files[relPath] = entry;
+                entry.rootUri = touch.rootUri;
+                entry.relPath = touch.relPath;
+                data.files[touch.recordKey] = entry;
               }
               this._save(file, data);              // sync — completes before this call yields
           }
@@ -1537,12 +1568,15 @@ level).
       // --- bulk and cleanup removal (touched-files-cleanup CR) ---
 
       /** REQ_ENT_TOUCHEDFILES AC-13 — every entry recorded below a folder node. */
-      async removeUnder(kind: string, name: string, relFolderPath: string): Promise<void> {
+        async removeUnder(kind: string, name: string, rootUri: string, relFolderPath: string): Promise<void> {
           const file = this._filePath(kind, name);
           const data = this._load(file);
           const prefix = relFolderPath + '/';
-          for (const relPath of Object.keys(data.files)) {
-              if (relPath.startsWith(prefix)) { delete data.files[relPath]; }
+          for (const [key, entry] of Object.entries(data.files)) {
+            if (entry.rootUri === rootUri && entry.relPath &&
+              (relFolderPath === '' || entry.relPath.startsWith(prefix))) {
+              delete data.files[key];
+            }
           }
           this._save(file, data);
       }
@@ -1552,13 +1586,21 @@ level).
           fs.rmSync(this._filePath(kind, name), { force: true });
       }
 
-      /** AC-17 — dead entries, store-wide (the display window does not apply). Returns the count. */
-      async removeMissing(kind: string, name: string, workspaceRoot: string): Promise<number> {
+        /** Deletes only probe candidates whose stored value did not change while probes awaited. */
+        async removeEntriesIfUnchanged(
+          kind: string,
+          name: string,
+          snapshot: Record<string, TouchEntry>,
+          absentKeys: readonly string[],
+        ): Promise<number> {
           const file = this._filePath(kind, name);
           const data = this._load(file);
           let removed = 0;
-          for (const relPath of Object.keys(data.files)) {
-              if (!fs.existsSync(path.join(workspaceRoot, relPath))) { delete data.files[relPath]; removed++; }
+          for (const key of absentKeys) {
+            if (sameTouchEntry(data.files[key], snapshot[key])) {
+              delete data.files[key];
+              removed++;
+            }
           }
           if (removed > 0) { this._save(file, data); }
           return removed;
@@ -1667,18 +1709,18 @@ level).
       }
       interface TouchedFileFolderNode {
           kind: 'touchedFileFolder';
-          relFolderPath: string; // workspace-relative
+          rootUri: string;
+          relFolderPath: string; // relative to rootUri
           label: string;
-          entries: Record<string, TouchEntry>; // the *displayed* entry map (already
-                                               // window- and existence-filtered by the
-                                               // category expansion), for children resolution
+          entries: ResolvedTouchEntry[];
           ownerKind: string;
           entityName: string;
       }
       interface TouchedFileLeafNode {
           kind: 'touchedFileLeaf';
-          filePath: string;   // absolute — structurally compatible with EntityFileNode
-                              // for jarvis.openEntityFile/resolveCopyPaths/copyFileName reuse
+          recordKey: string;
+          resourceUri: vscode.Uri;
+          filePath: string; // compatibility text for copy commands; never used for I/O
           label: string;
           entry: TouchEntry;
           ownerKind: string;
@@ -1715,22 +1757,43 @@ level).
           return result;
       }
 
-      /** AC-16 — one probe per surviving entry; called only when a category is expanded. */
-      export function existingOnly(
-          entries: Record<string, TouchEntry>,
-          workspaceRoot: string,
-      ): Record<string, TouchEntry> {
-          const result: Record<string, TouchEntry> = {};
-          for (const [relPath, entry] of Object.entries(entries)) {
-              if (fs.existsSync(path.join(workspaceRoot, relPath))) { result[relPath] = entry; }
-          }
-          return result;
-      }
+        type ProbeState = 'present' | 'absent' | 'unknown';
+        interface ResolvedTouchEntry {
+          recordKey: string;
+          rootUri: string;
+          relPath: string;
+          resourceUri: vscode.Uri;
+          entry: TouchEntry;
+        }
 
-   ``withinWindow()`` alone decides whether the category node exists
-   (``_getLeafChildren()`` below), because that decision is taken for every
-   entity on every tree refresh — including the periodic one driven by
-   ``jarvis.scanInterval``. ``existingOnly()`` runs once per category
+        export async function probeTouchEntry(
+          recordKey: string,
+          entry: TouchEntry,
+        ): Promise<{ state: ProbeState; resolved?: ResolvedTouchEntry }> {
+          if (!entry.rootUri || !entry.relPath) { return { state: 'unknown' }; }
+          try {
+            const rootUri = vscode.Uri.parse(entry.rootUri, true);
+            const folder = vscode.workspace.getWorkspaceFolder(rootUri);
+            if (!folder || folder.uri.toString(true) !== entry.rootUri) { return { state: 'unknown' }; }
+            const resourceUri = vscode.Uri.joinPath(rootUri, ...entry.relPath.split('/'));
+            if (resourceUri.toString(true) !== recordKey) { return { state: 'unknown' }; }
+            const owner = vscode.workspace.getWorkspaceFolder(resourceUri);
+            if (!owner || owner.uri.toString(true) !== entry.rootUri) { return { state: 'unknown' }; }
+            await vscode.workspace.fs.stat(resourceUri);
+            return { state: 'present', resolved: { recordKey, rootUri: entry.rootUri, relPath: entry.relPath, resourceUri, entry } };
+          } catch (error) {
+            return error instanceof vscode.FileSystemError && error.code === 'FileNotFound'
+              ? { state: 'absent' }
+              : { state: 'unknown' };
+          }
+        }
+
+        export async function existingOnly(entries: Record<string, TouchEntry>): Promise<ResolvedTouchEntry[]> {
+          const probes = await Promise.all(Object.entries(entries).map(([key, entry]) => probeTouchEntry(key, entry)));
+          return probes.flatMap(result => result.state === 'present' && result.resolved ? [result.resolved] : []);
+        }
+
+  ``withinWindow()`` alone decides whether the category node exists (``_getLeafChildren()`` below), because that decision is taken for every entity on every tree refresh — including the periodic one driven by ``jarvis.scanInterval``. ``existingOnly()`` runs asynchronously once per category
    expansion, over the entries the window already let through, and its
    result is what the folder nodes carry; expanding a folder therefore
    costs no further probes (REQ_ENT_TOUCHEDFILES AC-7/AC-16).
@@ -1743,31 +1806,51 @@ level).
    .. code-block:: typescript
 
       function buildTouchedFileChildren(
-          entries: Record<string, TouchEntry>,
+          entries: ResolvedTouchEntry[],
           underFolder: string, // '' at category root; a relative folder path when descending
-          workspaceRoot: string, ownerKind: string, entityName: string,
+          rootUri: string, ownerKind: string, entityName: string,
       ): (TouchedFileFolderNode | TouchedFileLeafNode)[] {
           const seenFolders = new Set<string>();
           const result: (TouchedFileFolderNode | TouchedFileLeafNode)[] = [];
-          for (const [relPath, entry] of Object.entries(entries)) {
+          for (const resolved of entries.filter(value => value.rootUri === rootUri)) {
+            const { recordKey, relPath, resourceUri, entry } = resolved;
               if (underFolder && !relPath.startsWith(underFolder + '/')) { continue; }
               const rest = underFolder ? relPath.slice(underFolder.length + 1) : relPath;
               const sepIndex = rest.indexOf('/');
               if (sepIndex === -1) {
                   result.push({
                       kind: 'touchedFileLeaf', label: rest, entry, ownerKind, entityName,
-                      filePath: path.join(workspaceRoot, relPath),
+                      recordKey, resourceUri,
+                      filePath: resourceUri.scheme === 'file' ? resourceUri.fsPath : resourceUri.toString(true),
                   });
               } else {
                   const folderName = rest.slice(0, sepIndex);
                   const relFolderPath = underFolder ? `${underFolder}/${folderName}` : folderName;
                   if (seenFolders.has(relFolderPath)) { continue; } // AC-8: one node per folder, not per file
                   seenFolders.add(relFolderPath);
-                  result.push({ kind: 'touchedFileFolder', relFolderPath, label: folderName, entries, ownerKind, entityName });
+                  result.push({ kind: 'touchedFileFolder', rootUri, relFolderPath, label: folderName, entries, ownerKind, entityName });
               }
           }
           return result.sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
       }
+
+          function buildTouchedRootChildren(
+            entries: ResolvedTouchEntry[], ownerKind: string, entityName: string,
+          ): (TouchedFileFolderNode | TouchedFileLeafNode)[] {
+            const roots = [...new Set(entries.map(entry => entry.rootUri))];
+            if (roots.length === 1) {
+              return buildTouchedFileChildren(entries, '', roots[0], ownerKind, entityName);
+            }
+            return roots.map(rootUri => ({
+              kind: 'touchedFileFolder' as const,
+              rootUri,
+              relFolderPath: '',
+              label: vscode.workspace.getWorkspaceFolder(vscode.Uri.parse(rootUri, true))!.name,
+              entries,
+              ownerKind,
+              entityName,
+            })).sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
+          }
 
    This walks the flat entry map once per expansion (category root or any
    folder node) filtering by prefix — cheap for the expected touch-list
@@ -1784,16 +1867,12 @@ level).
    .. code-block:: typescript
 
       if (element.kind === 'touchedFilesCategory') {
-          const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
           const stored = await touchStore.getEntries(element.ownerKind, element.entityName);
-          // Both filters are applied exactly here. The filtered map is what the
-          // folder nodes below carry, so descending costs no further probes.
-          const visible = existingOnly(withinWindow(stored), workspaceRoot);
-          return buildTouchedFileChildren(visible, '', workspaceRoot, element.ownerKind, element.entityName);
+          const visible = await existingOnly(withinWindow(stored));
+          return buildTouchedRootChildren(visible, element.ownerKind, element.entityName);
       }
       if (element.kind === 'touchedFileFolder') {
-          const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
-          return buildTouchedFileChildren(element.entries, element.relFolderPath, workspaceRoot, element.ownerKind, element.entityName);
+          return buildTouchedFileChildren(element.entries, element.relFolderPath, element.rootUri, element.ownerKind, element.entityName);
       }
       if (element.kind === 'touchedFileLeaf') { return []; }
 
@@ -1843,6 +1922,15 @@ level).
 
    .. code-block:: typescript
 
+    // Shared commands preserve existing entity-file behavior while accepting
+    // the authoritative URI carried by touched-file leaves.
+    const nodeUri = (node: { filePath: string; resourceUri?: vscode.Uri }) =>
+      node.resourceUri ?? vscode.Uri.file(node.filePath);
+
+    // jarvis.openEntityFile uses nodeUri(node) for openTextDocument,
+    // markdown.showPreview and openAtDocs.
+    // jarvis.revealInExplorer passes nodeUri(node) to the built-in command.
+
       vscode.commands.registerCommand(
         'jarvis.diffTouchedFile',
         async (node: TouchedFileLeafNode) => {
@@ -1851,17 +1939,14 @@ level).
           // a git repo, or the file is untracked/has no HEAD version, this
           // command simply does nothing observable — no special-casing,
           // per CM/user decision (REQ_ENT_TOUCHEDFILES AC-12).
-          await vscode.commands.executeCommand('git.openChange', vscode.Uri.file(node.filePath));
+          await vscode.commands.executeCommand('git.openChange', node.resourceUri);
         }
       );
 
       vscode.commands.registerCommand(
         'jarvis.removeTouchedFile',
         async (node: TouchedFileLeafNode) => {
-          const relPath = path.relative(
-              vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '', node.filePath
-          ).replace(/\\/g, '/');
-          await touchStore.removeEntry(node.ownerKind, node.entityName, relPath);
+            await touchStore.removeEntry(node.ownerKind, node.entityName, node.recordKey);
           // node.ownerKind is the disambiguated TouchStore storage key
           // ('actor'/'session'/'project'/'event' — see resolveTouchStorageKind);
           // refreshKind() needs the real registered provider kind instead
@@ -1879,7 +1964,7 @@ level).
         'jarvis.removeTouchedFiles',
         async (node: TouchedFileFolderNode | TouchedFilesCategoryNode) => {
           if (node.kind === 'touchedFileFolder') {
-              await touchStore.removeUnder(node.ownerKind, node.entityName, node.relFolderPath);
+              await touchStore.removeUnder(node.ownerKind, node.entityName, node.rootUri, node.relFolderPath);
           } else {
               await touchStore.removeAll(node.ownerKind, node.entityName);
           }
@@ -1893,8 +1978,14 @@ level).
       vscode.commands.registerCommand(
         'jarvis.cleanupTouchedFiles',
         async (node: TouchedFilesCategoryNode) => {
-          const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
-          const removed = await touchStore.removeMissing(node.ownerKind, node.entityName, workspaceRoot);
+          const snapshot = await touchStore.getEntries(node.ownerKind, node.entityName);
+          const probes = await Promise.all(
+            Object.entries(snapshot).map(async ([key, entry]) => [key, await probeTouchEntry(key, entry)] as const),
+          );
+          const absentKeys = probes.filter(([, result]) => result.state === 'absent').map(([key]) => key);
+          const removed = await touchStore.removeEntriesIfUnchanged(
+            node.ownerKind, node.entityName, snapshot, absentKeys,
+          );
           void vscode.window.showInformationMessage(
               removed === 0
                   ? `${node.entityName}: no touched-file entry points at a missing file.`
@@ -2029,15 +2120,22 @@ level).
      file-system cost of AC-16 to one probe per displayed-window entry per
      category expansion, and is why no caching layer is specified (CD
      Level 1, Issue 2).
-   * **Why ``removeMissing()``'s existence probes sit inside the synchronous
-     critical section:** the whole read-mutate-write body must remain
-     uninterruptible (AC-6a, GH #35), so the ``fs.existsSync`` calls are
-     deliberately kept inside it rather than pre-computing the dead set
-     outside and deleting afterwards. Pre-computing would open a window in
-     which a file touched between the probe and the delete is removed
-     regardless. The cost is a longer blocking section — bounded by the
-     recorded entry count and paid only when the user invokes the command,
-     which is the same tradeoff already accepted for the write path.
+   * **Why cleanup probes outside the synchronous critical section without
+     reopening GH #35:** ``workspace.fs.stat`` must be awaited, so probing
+     cannot sit in an uninterruptible Node turn. The command snapshots the
+     store, probes the snapshot, then ``removeEntriesIfUnchanged()`` performs
+     one synchronous read-compare-delete-write turn and deletes only entries
+     whose complete stored value still equals the snapshot. A touch during
+     the probes changes a timestamp (and may add root metadata), so the stale
+     absence result cannot delete it. The synchronous section remains the
+     only mutation section; the asynchronous phase is read-only.
+   * **Why old records are not searched or migrated:** before this CR the key
+     recorded only a path relative to hook ``cwd``. The owning workspace root
+     cannot be reconstructed uniquely, especially in multi-root workspaces.
+     Searching for a matching suffix would turn coincidence into authority.
+     Per the user decision of 2026-08-06, records without ``rootUri`` and
+     ``relPath`` remain permanently unknown, persisted and hidden; a later
+     touch creates or updates the canonical URI-keyed record instead.
    * **Why ``removeAll()`` deletes the JSON file rather than writing an empty
      one:** ``_load()`` already fails open to ``{ files: {} }`` for a missing
      file, so the two are equivalent to every reader, and deleting leaves no
@@ -2104,7 +2202,7 @@ level).
       ``fs`` calls (``readFileSync``/``writeFileSync``/``mkdirSync``) with
       no ``await`` between the read and the write inside any mutating
       method (``recordTouches()``, ``removeEntry()``, ``removeUnder()``,
-      ``removeMissing()``) — guaranteeing the
+      ``removeEntriesIfUnchanged()``) — guaranteeing the
       read-mutate-write critical section cannot be interleaved by another
       overlapping call for the same entity, regardless of how many
       ``PostToolUse`` events arrive in the same tick.
@@ -2124,10 +2222,9 @@ level).
       between expansions) — grouped into one folder node per distinct
       path segment and one leaf node per file, with empty branches never
       constructed in the first place (see Design Notes).
-   8. Clicking a touched-file leaf invokes the existing
-      ``jarvis.openEntityFile`` command unchanged — no new open-file
-      command is introduced; the node's ``filePath``/``label`` shape is
-      structurally compatible with the command's existing parameter type.
+
+    8. Clicking a touched-file leaf invokes the existing ``jarvis.openEntityFile`` command — no new open-file command is introduced. The command uses ``resourceUri`` when supplied and falls back to ``Uri.file(filePath)`` for ordinary entity-file nodes, whose behavior remains unchanged.
+
    9. Each touched-file leaf's tooltip shows last-edited and/or last-read,
       whichever are set, with no separate child node.
    10. Right-click on a touched-file leaf shows Open, Copy Path, Copy Full
@@ -2158,44 +2255,37 @@ level).
        moment the filter runs. The window is therefore rolling, not
        calendar-day based, and needs no local-time conversion because the
        stored timestamps are ISO 8601 UTC.
-   15. (REQ_ENT_TOUCHEDFILES AC-16) ``existingOnly()`` removes entries
-       whose path does not resolve to a file on disk. It is applied once,
-       at category expansion, to the output of ``withinWindow()`` — never
-       to the full recorded map — and the filtered map is what the folder
-       nodes below carry, so descending the tree costs no further probes.
-       No entry is deleted from the store by this filter: the store is
-       branch-blind (``.jarvis/state/`` is not under version control), so
-       an absent file is indistinguishable from one that is merely not on
-       the current branch. With no workspace root available the filter
-       fails open and returns the map unchanged — hiding every entry
-       would be the worse error, since nothing could then be probed to
-       show it wrong.
+   15. (REQ_ENT_TOUCHEDFILES AC-16, AC-19) ``probeEntries()`` asynchronously
+       probes the output of ``withinWindow()`` through
+       ``vscode.workspace.fs.stat`` and returns only entries whose state is
+       ``present``. ``FileSystemError`` with code ``FileNotFound`` is the
+       only ``absent`` result; malformed/missing root metadata, authority
+       mismatch and every other error are ``unknown``. Both ``absent`` and
+       ``unknown`` are hidden, but neither is deleted by this filter.
    16. Touched-file folder nodes carry ``contextValue``
-       ``jarvisTouchedFileFolder``, replacing the previously shared
-       ``jarvisEntityFileFolder``. The split is required because the
-       shared value is also worn by "Files" category folders, which have
-       no touched-file entries and for which AC-18's action would be a
-       no-op.
+        ``jarvisTouchedFileFolder``, replacing the previously shared
+        ``jarvisEntityFileFolder``. The split is required because the
+        shared value is also worn by "Files" category folders, which have
+        no touched-file entries and for which AC-18's action would be a
+        no-op.
    17. (REQ_ENT_TOUCHEDFILES AC-13) ``TouchStore`` provides
-       ``removeUnder(kind, name, relFolderPath)``, deleting every entry
-       whose path lies below ``relFolderPath``, and ``removeAll(kind,
-       name)``, deleting the entity's JSON file — equivalent to writing an
-       empty map, because ``_load()`` already fails open to
-       ``{ files: {} }``. Both remove every entry recorded below the node,
-       including entries hidden by AC-14 or AC-15 at the time of the
-       action.
+        ``removeUnder(kind, name, rootUri, relFolderPath)`` for resolvable
+        entries below one recorded root and folder, and ``removeAll(kind,
+        name)`` for the whole entity. Both remove hidden resolvable entries.
+        Legacy unknown entries cannot be assigned safely to a root/folder
+        and are removed only by category-level ``removeAll()``.
    18. (REQ_ENT_TOUCHEDFILES AC-13) The command
-       ``jarvis.removeTouchedFiles`` is bound as an inline trash icon on
-       touched-file folder nodes and on the category node, and dispatches
-       on ``node.kind`` to ``removeUnder()`` or ``removeAll()``
-       respectively. It SHALL NOT prompt for confirmation.
-   19. (REQ_ENT_TOUCHEDFILES AC-17) ``TouchStore.removeMissing(kind, name,
-       workspaceRoot)`` deletes every entry with no file on disk and
-       returns the number removed. It operates on the whole recorded map,
-       ignoring the display window, and its ``fs.existsSync`` probes SHALL
-       remain inside the synchronous critical section required by AC-5 —
-       computing the dead set outside it would open a window in which a
-       file touched between probe and delete is removed regardless.
+        ``jarvis.removeTouchedFiles`` is bound as an inline trash icon on
+        touched-file folder nodes and on the category node, and dispatches
+        on ``node.kind`` to ``removeUnder()`` or ``removeAll()``
+        respectively. It SHALL NOT prompt for confirmation.
+   19. (REQ_ENT_TOUCHEDFILES AC-17) Cleanup probes the whole recorded map
+       with ``probeTouchEntry()`` (ignoring the display window), passes only
+       ``absent`` keys to ``TouchStore.removeEntriesIfUnchanged()``, and
+       returns the number actually removed. The latter compares each
+       candidate's complete current value with the snapshot and performs
+       deletion and save synchronously; a touch while probes await therefore
+       protects the changed entry from a stale absence result.
    20. (REQ_ENT_TOUCHEDFILES AC-17) The command
        ``jarvis.cleanupTouchedFiles`` is bound as an inline action on the
        category node and reports the outcome through an information
@@ -2211,6 +2301,41 @@ level).
        activation-time pass, no timer and no scheduled sweep, so every
        entry removal is traceable to an explicit user action (AC-11,
        AC-18, AC-20).
+   22. (REQ_ENT_TOUCHEDFILES AC-20) New entries are keyed by canonical
+       ``resourceUri.toString(true)`` and store ``rootUri`` plus a
+       forward-slash-separated ``relPath``. ``resolveRecordedTouch()`` first
+       resolves a tool path against hook ``cwd``, then selects the longest
+       ``file``-scheme workspace-folder root that contains the absolute
+       result using ``path.relative`` boundary checks — never string-prefix
+       matching. If no root is authoritative, no new record is written.
+   23. Existing entries without ``rootUri``/``relPath`` are ``unknown`` and
+       remain persisted and hidden. They are never searched for, guessed,
+       migrated or removed by cleanup. A later touch writes the canonical
+       URI-keyed record; it does not mutate the legacy key.
+   24. ``probeTouchEntry()`` parses ``rootUri``, requires an exact match to
+       a currently open workspace folder, joins ``relPath`` with
+       ``Uri.joinPath``, verifies both the canonical record key and owning
+       folder, then calls ``workspace.fs.stat``. This one resolver is used
+       by both display and cleanup.
+   25. ``TouchedFileLeafNode`` carries ``recordKey`` and ``resourceUri``.
+       Open, Reveal in Explorer and Show Changes pass ``resourceUri`` to
+       the VS Code command/API directly; they SHALL NOT reconstruct it with
+       ``Uri.file(filePath)``. The existing ``filePath`` field remains only
+       as display/copy text for structural compatibility.
+   26. ``removeTouchedFile`` deletes by ``recordKey`` rather than deriving
+       a key from the first workspace folder. Folder removal includes
+       ``rootUri`` in its scope so equal relative folders in two workspace
+       roots cannot remove one another.
+   27. In a multi-root workspace resolved entries are disambiguated by
+       ``rootUri`` instead of by an additional nesting level: folder nodes
+       are de-duplicated on ``rootUri`` plus relative folder path, carry the
+       owning ``rootUri``, and expose only that root's entries to their
+       children. When more than one workspace folder is open, a folder node
+       additionally shows that root's name as its ``description``. Top-level
+       leaf nodes carry no root description, so identically-named files at
+       the top level of two roots stay visually indistinguishable — accepted
+       as the normative behavior for this CR. A single-root workspace
+       retains the existing tree shape.
 
 
 .. spec:: Open Context File Command — Retired

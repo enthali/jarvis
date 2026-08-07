@@ -79,9 +79,10 @@ export interface TouchedFileFolderNode {
     kind: 'touchedFileFolder';
     relFolderPath: string; // workspace-relative
     label: string;
-    entries: Record<string, TouchEntry>; // full flat entry map, for children resolution
+    entries: Record<string, TouchEntry>; // entries scoped to this root, for children resolution
     ownerKind: string;
     entityName: string;
+    rootUri?: string; // workspace folder URI that owns this folder's entries
 }
 
 /** A touched file leaf — structurally compatible with EntityFileNode for command reuse. */
@@ -92,6 +93,7 @@ export interface TouchedFileLeafNode {
     entry: TouchEntry;
     ownerKind: string;
     entityName: string;
+    resourceUri?: vscode.Uri; // D-17: resolved workspace URI for remote-capable open/reveal/diff
 }
 
 export type TouchedFilesSubtreeNode =
@@ -100,13 +102,42 @@ export type TouchedFilesSubtreeNode =
 /** Union of scanner TreeNodes, internal child nodes, entity-file, and touched-file subtree nodes. */
 export type ProviderNode = TreeNode | ChildTreeNode | EntityFilesSubtreeNode | TouchedFilesSubtreeNode;
 
-/** Filters entry map to entries where the file exists on disk. */
-export function existingOnly(entries: Record<string, TouchEntry>, workspaceRoot: string): Record<string, TouchEntry> {
-    if (!workspaceRoot) { return entries; }
-    const result: Record<string, TouchEntry> = {};
-    for (const [relPath, entry] of Object.entries(entries)) {
-        if (fs.existsSync(path.join(workspaceRoot, relPath))) {
-            result[relPath] = entry;
+export type ProbeResult = 'present' | 'absent' | 'unknown';
+
+/** D-14: probes a touch entry via workspace.fs.stat. Only FileNotFound = absent. */
+export async function probeTouchEntry(entry: TouchEntry): Promise<{ result: ProbeResult; uri?: vscode.Uri }> {
+    if (!entry.rootUri || !entry.relPath) { return { result: 'unknown' }; }
+    // AC-24: validate rootUri against currently open workspace folders
+    const folders = vscode.workspace.workspaceFolders;
+    if (!folders?.some(f => f.uri.toString(true) === entry.rootUri)) { return { result: 'unknown' }; }
+    try {
+        const uri = vscode.Uri.joinPath(vscode.Uri.parse(entry.rootUri), entry.relPath);
+        await vscode.workspace.fs.stat(uri);
+        return { result: 'present', uri };
+    } catch (e: any) {
+        if (e?.code === 'FileNotFound' || e?.name === 'EntryNotFound (FileSystemError)' ||
+            (e instanceof vscode.FileSystemError && e.code === 'FileNotFound')) {
+            return { result: 'absent' };
+        }
+        return { result: 'unknown' };
+    }
+}
+
+/**
+ * D-14: filters entry map to entries that are probed as 'present'.
+ * Returns entries with their resolved URIs attached.
+ */
+export async function probeEntries(entries: Record<string, TouchEntry>): Promise<Record<string, TouchEntry & { _resolvedUri?: vscode.Uri }>> {
+    const result: Record<string, TouchEntry & { _resolvedUri?: vscode.Uri }> = {};
+    const probes = await Promise.all(
+        Object.entries(entries).map(async ([key, entry]) => {
+            const probe = await probeTouchEntry(entry);
+            return { key, entry, probe };
+        })
+    );
+    for (const { key, entry, probe } of probes) {
+        if (probe.result === 'present') {
+            result[key] = { ...entry, _resolvedUri: probe.uri } as any;
         }
     }
     return result;
@@ -133,35 +164,42 @@ export function withinWindow(entries: Record<string, TouchEntry>, windowDays: nu
 }
 
 /**
- * Builds the hierarchical touched-files tree from a flat relPath -> TouchEntry
- * map (no on-disk folder to recursively readdir here, unlike "Files" — the
- * hierarchy is derived purely from the recorded relative-path strings).
+ * Builds the hierarchical touched-files tree from a flat key -> TouchEntry map.
+ * For new records, entry.relPath is used for hierarchy; for legacy, the key itself.
  * Walked fresh on every expansion, never cached (SPEC_ENT_TOUCHEDFILES AC-6).
- * Empty branches never appear: a folder node is only ever created for a
- * relFolderPath that a real entry's path starts with.
  */
-function buildTouchedFileChildren(
-    entries: Record<string, TouchEntry>,
+export function buildTouchedFileChildren(
+    entries: Record<string, TouchEntry & { _resolvedUri?: vscode.Uri }>,
     underFolder: string,
     workspaceRoot: string, ownerKind: string, entityName: string,
 ): (TouchedFileFolderNode | TouchedFileLeafNode)[] {
     const seenFolders = new Set<string>();
     const result: (TouchedFileFolderNode | TouchedFileLeafNode)[] = [];
-    for (const [relPath, entry] of Object.entries(entries)) {
+    for (const [key, entry] of Object.entries(entries)) {
+        const relPath = entry.relPath ?? key;
         if (underFolder && !relPath.startsWith(underFolder + '/')) { continue; }
         const rest = underFolder ? relPath.slice(underFolder.length + 1) : relPath;
         const sepIndex = rest.indexOf('/');
         if (sepIndex === -1) {
+            const resourceUri = (entry as any)._resolvedUri as vscode.Uri | undefined;
             result.push({
                 kind: 'touchedFileLeaf', label: rest, entry, ownerKind, entityName,
-                filePath: path.join(workspaceRoot, relPath),
+                filePath: resourceUri?.fsPath ?? path.join(workspaceRoot, relPath),
+                resourceUri,
             });
         } else {
             const folderName = rest.slice(0, sepIndex);
             const relFolderPath = underFolder ? `${underFolder}/${folderName}` : folderName;
-            if (seenFolders.has(relFolderPath)) { continue; } // one node per folder, not per file
-            seenFolders.add(relFolderPath);
-            result.push({ kind: 'touchedFileFolder', relFolderPath, label: folderName, entries, ownerKind, entityName });
+            const rootUri = entry.rootUri;
+            // F3/F6: dedup on rootUri + relFolderPath for multi-root correctness
+            const dedupKey = `${rootUri ?? ''}|${relFolderPath}`;
+            if (seenFolders.has(dedupKey)) { continue; }
+            seenFolders.add(dedupKey);
+            // Scope entries to this root so children resolution stays within one root
+            const scopedEntries = rootUri
+                ? Object.fromEntries(Object.entries(entries).filter(([, e]) => e.rootUri === rootUri))
+                : entries;
+            result.push({ kind: 'touchedFileFolder', relFolderPath, label: folderName, entries: scopedEntries, ownerKind, entityName, rootUri });
         }
     }
     return result.sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
@@ -451,6 +489,12 @@ export class GenericTreeDataProvider implements vscode.TreeDataProvider<Provider
             const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.Collapsed);
             item.tooltip = element.relFolderPath;
             item.contextValue = 'jarvisTouchedFileFolder';
+            // AC-27: disambiguate when multiple workspace roots are open
+            const folders = vscode.workspace.workspaceFolders;
+            if (folders && folders.length > 1 && element.rootUri) {
+                const root = folders.find(f => f.uri.toString(true) === element.rootUri);
+                if (root) { item.description = root.name; }
+            }
             return item;
         }
 
@@ -711,14 +755,14 @@ export class GenericTreeDataProvider implements vscode.TreeDataProvider<Provider
     /**
      * Resolves the "Recently Touched Files" category's children from
      * TouchStore, walked fresh on every expansion (SPEC_ENT_TOUCHEDFILES AC-6).
-     * Applies withinWindow then existingOnly as display filters.
+     * Applies withinWindow then probeEntries (tri-state) as display filters.
      */
     private async _getTouchedCategoryChildren(element: TouchedFilesCategoryNode): Promise<ProviderNode[]> {
         const store = this._getTouchStore();
         const raw = store ? await store.getEntries(element.ownerKind, element.entityName) : {};
         const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
         const windowed = withinWindow(raw, readWindowDays());
-        const entries = existingOnly(windowed, workspaceRoot);
+        const entries = await probeEntries(windowed);
         return buildTouchedFileChildren(entries, '', workspaceRoot, element.ownerKind, element.entityName);
     }
 

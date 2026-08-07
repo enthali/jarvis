@@ -8,10 +8,13 @@ import * as configPaths from '../core/configPaths';
 export interface TouchEntry {
     lastRead?: string;   // ISO 8601 UTC
     lastEdited?: string; // ISO 8601 UTC
+    rootUri?: string;    // workspace folder URI that owns this entry (D-11)
+    relPath?: string;    // root-relative path (D-11)
 }
 
 interface TouchFile {
-    files: Record<string, TouchEntry>; // key = workspace-relative path
+    files: Record<string, TouchEntry>; // key = resourceUri.toString(true) for new records,
+                                       // workspace-relative path for legacy records
 }
 
 /**
@@ -61,14 +64,16 @@ export class TouchStore {
         return path.join(this._stateDir, `${kind}-${name}.json`);
     }
 
-    async recordTouches(kind: string, name: string, relPaths: string[], touchKind: 'read' | 'write'): Promise<void> {
+    async recordTouches(kind: string, name: string, touches: { rootUri: string; relPath: string; resourceUri: string }[], touchKind: 'read' | 'write'): Promise<void> {
         const file = this._filePath(kind, name);
         const data = this._load(file); // sync — no await between load and save
         const now = new Date().toISOString();
-        for (const relPath of relPaths) {
-            const entry = data.files[relPath] ?? {};
+        for (const t of touches) {
+            const entry = data.files[t.resourceUri] ?? { rootUri: t.rootUri, relPath: t.relPath };
+            entry.rootUri = t.rootUri;
+            entry.relPath = t.relPath;
             if (touchKind === 'write') { entry.lastEdited = now; } else { entry.lastRead = now; }
-            data.files[relPath] = entry;
+            data.files[t.resourceUri] = entry;
         }
         this._save(file, data); // sync — completes before this call yields
     }
@@ -84,12 +89,14 @@ export class TouchStore {
         return this._load(this._filePath(kind, name)).files;
     }
 
-    async removeUnder(kind: string, name: string, relFolderPrefix: string): Promise<void> {
+    async removeUnder(kind: string, name: string, relFolderPrefix: string, rootUri?: string): Promise<void> {
         const file = this._filePath(kind, name);
         const data = this._load(file);
         const prefix = relFolderPrefix.endsWith('/') ? relFolderPrefix : relFolderPrefix + '/';
-        for (const key of Object.keys(data.files)) {
-            if (key.startsWith(prefix)) { delete data.files[key]; }
+        for (const [key, entry] of Object.entries(data.files)) {
+            const rp = entry.relPath ?? key;
+            const matches = rp.startsWith(prefix) && (!rootUri || entry.rootUri === rootUri);
+            if (matches) { delete data.files[key]; }
         }
         this._save(file, data);
     }
@@ -99,14 +106,22 @@ export class TouchStore {
         try { fs.unlinkSync(file); } catch { /* fail-open: missing file is success */ }
     }
 
-    async removeMissing(kind: string, name: string, workspaceRoot: string): Promise<number> {
+    /**
+     * D-15: snapshot-safe removal. Deletes entries by key only if the stored
+     * entry has not been modified since the snapshot was taken. A concurrent
+     * touch updates the entry's timestamps, causing the compare to fail and
+     * preserving that entry. Returns count of actually removed entries.
+     */
+    removeEntriesIfUnchanged(kind: string, name: string, snapshot: Record<string, TouchEntry>, keysToRemove: string[]): number {
         const file = this._filePath(kind, name);
         const data = this._load(file);
         let count = 0;
-        for (const relPath of Object.keys(data.files)) {
-            const abs = path.join(workspaceRoot, relPath);
-            if (!fs.existsSync(abs)) {
-                delete data.files[relPath];
+        for (const key of keysToRemove) {
+            const current = data.files[key];
+            const snapped = snapshot[key];
+            if (!current || !snapped) { continue; }
+            if (current.lastRead === snapped.lastRead && current.lastEdited === snapped.lastEdited) {
+                delete data.files[key];
                 count++;
             }
         }
