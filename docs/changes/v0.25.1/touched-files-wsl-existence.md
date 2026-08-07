@@ -1,6 +1,6 @@
 # Change Document: touched-files-wsl-existence
 
-**Status**: in-progress
+**Status**: merged
 **Branch**: feature/touched-files-wsl-existence
 **Created**: 2026-08-06
 **Author**: Project Manager / Change Manager
