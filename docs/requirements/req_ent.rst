@@ -576,18 +576,18 @@ generic/user-facing, ``ENG`` = kind-agnostic plumbing, no US level).
 
 .. req:: Recently Touched Files per Entity
    :id: REQ_ENT_TOUCHEDFILES
-   :status: implemented
+   :status: approved
    :priority: optional
    :links: US_ENT_TOUCHEDFILES; REQ_HOOK_ROUTE; REQ_ENT_ENTITY_FILE_CHILDREN; REQ_ENT_ENTITY_CONTEXTMENU
 
-   **Description:**
-   The Hook Engine's ``on(eventName, handler)`` registry (``REQ_HOOK_ROUTE``)
-   SHALL gain a second consumer — a touch tracker that records, per entity,
-   which files the agent has read or written, driven by ``PostToolUse``
-   events. Each entity leaf node SHALL gain a third category child,
-   "Recently Touched Files", sibling to "Agent"/"Files"
-   (``REQ_ENT_ENTITY_FILE_CHILDREN`` AC-2a), listing those files as a
-   workspace-root-relative, persisted, hierarchical tree.
+    **Description:**
+    The Hook Engine's ``on(eventName, handler)`` registry (``REQ_HOOK_ROUTE``)
+    SHALL gain a second consumer — a touch tracker that records, per entity,
+    which files the agent has read or written, driven by ``PostToolUse``
+    events. Each entity leaf node SHALL gain a third category child,
+    "Recently Touched Files", sibling to "Agent"/"Files"
+    (``REQ_ENT_ENTITY_FILE_CHILDREN`` AC-2a), listing those files as a
+    workspace-root-relative, persisted, hierarchical tree.
 
    What is *recorded* and what is *displayed* are separate concerns
    (AC-15 to AC-18): the recorded set only ever changes through a touch or
@@ -681,14 +681,7 @@ generic/user-facing, ``ENG`` = kind-agnostic plumbing, no US level).
      casing — it simply does not produce a diff in that case (confirmed
      PM/CM decision: keep it simple, no fallback path).
    * AC-13: An inline "Remove" (trash) icon SHALL be available on a
-     touched-file leaf, on a folder node inside the category, and on the
-     category node itself. It SHALL delete every entry recorded below the
-     node it sits on from the persisted JSON (AC-6) and refresh the tree
-     immediately — including entries the window (AC-15) or the existence
-     check (AC-16) is currently hiding, since a "remove this folder" that
-     left entries behind would not be what was asked for. No confirmation
-     prompt SHALL be shown: there is no separate "dismissed" state and the
-     entry reappears if the file is touched again (KISS, per GH #18).
+     touched-file leaf, on a folder node inside the category, and on the category node itself. It SHALL delete every entry recorded below the node it sits on from the persisted JSON (AC-6) and refresh the tree immediately — including entries the window (AC-15) or the existence check (AC-16) is currently hiding, since a "remove this folder" that left entries behind would not be what was asked for. No confirmation prompt SHALL be shown: there is no separate "dismissed" state and the entry reappears if the file is touched again (KISS, per GH #18). Entries whose root is undetermined under AC-19 cannot be assigned safely to a folder and SHALL be retained by folder removal; the category-level action MAY remove them because its scope is the whole entity and needs no root inference.
    * AC-14: This is purely additive — it does not alter the existing
      "Agent"/"Files" categories, existing entity-node click/context-menu
      behavior, or the Hook Engine's existing activity-tracking consumer
@@ -711,23 +704,49 @@ generic/user-facing, ``ENG`` = kind-agnostic plumbing, no US level).
    * AC-15a: A change to ``jarvis.touchedFiles.windowDays`` SHALL take
      effect without reloading the VS Code window — the affected views
      refresh on the configuration-change event.
-   * AC-16: A touched-file leaf whose file does not exist when its parent is
-     expanded SHALL NOT be shown, and SHALL NOT be removed from the
-     persisted JSON. The store is per workspace and holds no branch
-     information (``.jarvis/state/`` is deliberately not under version
-     control), so it cannot tell a deleted file from one that is merely
-     absent on the currently checked-out git branch; the entry SHALL
-     reappear unchanged when the file does.
+   * AC-16: A touched-file leaf SHALL NOT be shown when its file is
+     *determined* not to exist at the time its parent is expanded, and SHALL
+     NOT be removed from the persisted JSON. Determination SHALL be made
+     through the file-system authority that owns the workspace folder the
+     entry belongs to — the same authority the editor would use to open it —
+     so that the result is correct for remote workspaces (WSL, SSH, dev
+     container) and virtual file systems, not only for a local directory.
+     Where existence cannot be determined, AC-19 applies. The store is per
+     workspace and holds no branch information (``.jarvis/state/`` is
+     deliberately not under version control), so it cannot tell a deleted
+     file from one that is merely absent on the currently checked-out git
+     branch; the entry SHALL reappear unchanged when the file does.
    * AC-17: The category node SHALL offer a cleanup action, distinct from
      the trash icon of AC-13, that removes from that entity's persisted
-     JSON every entry whose file does not exist — including entries outside
-     the display window — and afterwards reports how many were removed. The
-     report is required rather than cosmetic: those entries were hidden
+     JSON every entry whose file is *determined* not to exist — including
+     entries outside the display window — and afterwards reports how many
+     were removed. It SHALL use the same resolution and determination as
+     AC-16, so that no entry can be deleted that the tree would have shown.
+     The report is required rather than cosmetic: those entries were hidden
      while they accumulated (AC-16), so a silent run would leave the user
      with no evidence that anything happened.
    * AC-18: No entry SHALL ever be removed without an explicit user action.
      The window (AC-15) and the existence check (AC-16) govern display
      only; there SHALL be no activation-time or scheduled removal pass.
+   * AC-19: (``US_ENT_TOUCHEDFILES`` AC-15) Where existence cannot be
+     determined — the resolution fails, the probe reports anything other
+     than "no such file", or the owning workspace folder cannot be
+     identified — the entry SHALL remain persisted and SHALL NOT be removed
+     by AC-17, but SHALL NOT be shown by AC-16. Only a definite "no such
+     file" from the authority named in AC-16 SHALL count as absence; only a
+     successfully resolved file SHALL count as present for display.
+
+     Undetermined is therefore a durable third state, not an alias for
+     present or absent. A later touch MAY supersede it by recording enough
+     root-authority information to resolve the path.
+   * AC-20: An entry SHALL carry enough information to identify the workspace folder its path is relative to. The recording side (``REQ_HOOK_ROUTE``'s ``PostToolUse`` payload) supplies a working directory that is not guaranteed to be a workspace root, so a path stored without its basis cannot be resolved afterwards — neither for AC-16 nor for AC-9, AC-11 and AC-12. Entries persisted before this criterion carry no basis and SHALL therefore be undetermined under AC-19 rather than discarded or shown: a repair SHALL NOT destroy the history it exists to preserve, nor present a leaf whose actions cannot address it.
+   * AC-21: (``US_ENT_TOUCHEDFILES`` AC-16) Opening (AC-9), revealing
+     (AC-11) and diffing (AC-12) a touched-file leaf SHALL address the file
+     through the resolution of AC-16, not by assuming its stored path
+     denotes a local file-system location. An entry that the tree shows
+     SHALL be actionable by every action the tree offers on it; showing a
+     leaf whose actions cannot reach it is a worse outcome than not showing
+     it.
 
 
 

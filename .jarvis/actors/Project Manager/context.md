@@ -8,6 +8,10 @@
   creation, comments, closing issues, PRs, releases) requires explicit
   user sign-off on the exact content BEFORE it's posted — draft first,
   ask, then post. Never fire-and-report.
+- **Deferred findings stay local first (2026-08-07)**: do not default a
+  deferred finding to a public GitHub issue. Record it in PM-local memory and
+  revisit public backlog handling with the user; the public-work policy needs
+  a later joint review.
 - **Shared Git Workspace — Finger weg outside own folder while a CR runs**:
   while another CR is actively in the pipeline (CM/Designer/Dev Engineer
   working on a feature branch), PM may ONLY `git commit` files inside its own
@@ -70,24 +74,19 @@
 
 ## Active CR
 
-- **#56 notification-template-empty-fallback** (P0, in progress): CD on
-  `feature/notification-template-empty-fallback`, dispatched to CM. Fix
-  (DEFAULT_NOTIFICATION fallback + resolveNotificationText, trim-based guard)
-  already committed by Dev Engineer, 323 tests passing. Awaiting QM review;
-  CM's mode reset mid-CR (see Watch Items) — flag to QM for closer scrutiny
-  of the Level 0-2 spec edits made while CM lacked its delegation persona.
+- None in pipeline. Follow-up CRs in flight (unattended, 2026-08-05):
+  - `jarvis-newentity-cleanup`: remove dead `jarvis.newEntity` contribution (never registered, pre-existing)
+  - `jarvis-manifest-invariant`: add test asserting all contributed command IDs are registered
 
 ## Recently Shipped
 
-- **touched-files-cleanup** merged to `development` @ 9a4611b (2026-08-05).
-  QM Round 1 pivoted design mid-flight from destructive delete to
-  display-filter (age window default 0=no limit, dead-file hiding) +
-  explicit removal at entry/folder/category scope + on-demand dead-entry
-  cleanup — see CD for the Level 0 findings (F-2..F-6) if this shape needs
-  explaining again. QM Round 2 CLEAR.
-- jarvis-kanban (#46) released as v0.24.0 on 2026-07-26 (tag on `main` @
-  76426cb, develop back-merged, issue closed, board → Done). Phase 2 (#47,
-  swimlanes + drag-and-drop) and Phase 3 (#48, GH Issues importer) on backlog.
+- **v0.25.0** released 2026-08-05 @ `bcb5c96`. Contains: touched-files-cleanup, gitignore
+  automanage followup, wiring restore (gitignore + release-notes), kanban+suite in
+  self-update mapping. Issues #58/#59/#60/#63 closed.
+- **touched-files-cleanup** merged @ 9a4611b. Display-filter design (window + dead-file
+  hiding), bulk removal, cleanup command. Introduced regression in same merge (gitignore
+  + release-notes wiring deleted) — fixed in wiring-restore CR before release.
+- jarvis-kanban (#46) released as v0.24.0 on 2026-07-26.
 
 ## Ideas
 
@@ -96,6 +95,11 @@
 - Recorder on built-in VS Code dictation (deferred, 2026-08-05) — see Research's
   `.jarvis/actors/Research/future-ideas.md` FI-2026-08-05; blocked on unverified
   assumption (extension-facing access to the dictation model). Not planned.
+- **PIM/Outlook PS1 COM scripts (2026-08-05)**: user developing Outlook interface
+  as PowerShell COM scripts with local Ollama for email triage, in
+  `c:\workspace\Assistant`. Very promising; nearly directly portable to Jarvis.
+  Watch GH #34 scope — the Gmail/IMAP half may already be solved via IMAP-into-Outlook;
+  the Outlook COM script approach may replace or supplement the provider abstraction.
 
 ## Watch Items
 

@@ -28,7 +28,7 @@ docs/_build/
 .jarvis/heartbeat.yaml
 .jarvis/reminders.yaml
 .jarvis/syspilot-state.json
-.github/hooks/jarvis-*
+jarvis-*
 # END JARVIS MANAGED
 
 # testdata workspace runtime/scratch state (Dev Host manual testing,

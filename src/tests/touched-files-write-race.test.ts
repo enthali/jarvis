@@ -25,6 +25,21 @@ import * as os from 'os';
 import * as path from 'path';
 import { TouchStore } from '../../packages/core/src/engine/hooks/touchStore';
 
+// Helper: wrap relPath strings into the new recordTouches format
+function touches(relPaths: string[]) {
+    return relPaths.map(p => ({ rootUri: 'file:///ws', relPath: p, resourceUri: `file:///ws/${p}` }));
+}
+
+// Helper: re-key entries by relPath for assertion convenience
+function byRelPath(entries: Record<string, any>): Record<string, any> {
+    const result: Record<string, any> = {};
+    for (const [_key, entry] of Object.entries(entries)) {
+        const rp = entry.relPath ?? _key;
+        result[rp] = entry;
+    }
+    return result;
+}
+
 describe('TouchStore concurrency guarantee (SPEC_ENT_TOUCHEDFILES AC-6a, GH #35)', () => {
     let stateDir: string;
     let store: TouchStore;
@@ -41,12 +56,12 @@ describe('TouchStore concurrency guarantee (SPEC_ENT_TOUCHEDFILES AC-6a, GH #35)
     // --- Group A: Concurrent Same-Entity Touches ---------------------------
 
     it('A-1: 6 near-simultaneous touches in one turn — all new entries survive alongside 2 pre-existing', async () => {
-        await store.recordTouches('session', 'Alpha', ['pre/a.ts', 'pre/b.ts'], 'write');
+        await store.recordTouches('session', 'Alpha', touches(['pre/a.ts', 'pre/b.ts']), 'write');
 
         const files = ['f1.ts', 'f2.ts', 'f3.ts', 'f4.ts', 'f5.ts', 'f6.ts'];
-        await Promise.all(files.map(f => store.recordTouches('session', 'Alpha', [f], 'read')));
+        await Promise.all(files.map(f => store.recordTouches('session', 'Alpha', touches([f]), 'read')));
 
-        const entries = await store.getEntries('session', 'Alpha');
+        const entries = byRelPath(await store.getEntries('session', 'Alpha'));
         expect(Object.keys(entries)).toHaveLength(8);
         expect(entries['pre/a.ts']).toBeTruthy();
         expect(entries['pre/b.ts']).toBeTruthy();
@@ -54,23 +69,23 @@ describe('TouchStore concurrency guarantee (SPEC_ENT_TOUCHEDFILES AC-6a, GH #35)
     });
 
     it('A-2: 10 concurrent touches with 3 pre-existing entries — 13 total, none lost', async () => {
-        await store.recordTouches('session', 'Alpha', ['pre/a.ts', 'pre/b.ts', 'pre/c.ts'], 'write');
+        await store.recordTouches('session', 'Alpha', touches(['pre/a.ts', 'pre/b.ts', 'pre/c.ts']), 'write');
 
         const files = Array.from({ length: 10 }, (_, i) => `file${i}.ts`);
-        await Promise.all(files.map(f => store.recordTouches('session', 'Alpha', [f], 'read')));
+        await Promise.all(files.map(f => store.recordTouches('session', 'Alpha', touches([f]), 'read')));
 
-        const entries = await store.getEntries('session', 'Alpha');
+        const entries = byRelPath(await store.getEntries('session', 'Alpha'));
         expect(Object.keys(entries)).toHaveLength(13);
         for (const f of files) { expect(entries[f]).toBeTruthy(); }
     });
 
     it('A-3: concurrent read + write on the same file merges into one consistent entry', async () => {
         await Promise.all([
-            store.recordTouches('session', 'Alpha', ['shared.ts'], 'read'),
-            store.recordTouches('session', 'Alpha', ['shared.ts'], 'write'),
+            store.recordTouches('session', 'Alpha', touches(['shared.ts']), 'read'),
+            store.recordTouches('session', 'Alpha', touches(['shared.ts']), 'write'),
         ]);
 
-        const entries = await store.getEntries('session', 'Alpha');
+        const entries = byRelPath(await store.getEntries('session', 'Alpha'));
         expect(Object.keys(entries)).toHaveLength(1);
         expect(entries['shared.ts'].lastRead).toBeTruthy();
         expect(entries['shared.ts'].lastEdited).toBeTruthy();
@@ -78,12 +93,12 @@ describe('TouchStore concurrency guarantee (SPEC_ENT_TOUCHEDFILES AC-6a, GH #35)
 
     it('A-4: no previously-persisted entries lost during a concurrent burst', async () => {
         const preexisting = ['unrelated/1.ts', 'unrelated/2.ts', 'unrelated/3.ts', 'unrelated/4.ts', 'unrelated/5.ts'];
-        await store.recordTouches('session', 'Alpha', preexisting, 'write');
+        await store.recordTouches('session', 'Alpha', touches(preexisting), 'write');
 
         const burst = ['burst1.ts', 'burst2.ts', 'burst3.ts', 'burst4.ts', 'burst5.ts', 'burst6.ts'];
-        await Promise.all(burst.map(f => store.recordTouches('session', 'Alpha', [f], 'read')));
+        await Promise.all(burst.map(f => store.recordTouches('session', 'Alpha', touches([f]), 'read')));
 
-        const entries = await store.getEntries('session', 'Alpha');
+        const entries = byRelPath(await store.getEntries('session', 'Alpha'));
         expect(Object.keys(entries)).toHaveLength(11);
         for (const f of preexisting) { expect(entries[f].lastEdited).toBeTruthy(); }
         for (const f of burst) { expect(entries[f].lastRead).toBeTruthy(); }
@@ -91,13 +106,13 @@ describe('TouchStore concurrency guarantee (SPEC_ENT_TOUCHEDFILES AC-6a, GH #35)
 
     it('A-5: multi_replace_string_in_file-shaped n-path write concurrent with separate reads', async () => {
         await Promise.all([
-            store.recordTouches('session', 'Alpha', ['w1.ts', 'w2.ts', 'w3.ts'], 'write'), // one multi_replace call, 3 paths
-            store.recordTouches('session', 'Alpha', ['r1.ts'], 'read'),
-            store.recordTouches('session', 'Alpha', ['r2.ts'], 'read'),
-            store.recordTouches('session', 'Alpha', ['r3.ts'], 'read'),
+            store.recordTouches('session', 'Alpha', touches(['w1.ts', 'w2.ts', 'w3.ts']), 'write'), // one multi_replace call, 3 paths
+            store.recordTouches('session', 'Alpha', touches(['r1.ts']), 'read'),
+            store.recordTouches('session', 'Alpha', touches(['r2.ts']), 'read'),
+            store.recordTouches('session', 'Alpha', touches(['r3.ts']), 'read'),
         ]);
 
-        const entries = await store.getEntries('session', 'Alpha');
+        const entries = byRelPath(await store.getEntries('session', 'Alpha'));
         expect(Object.keys(entries)).toHaveLength(6);
         for (const f of ['w1.ts', 'w2.ts', 'w3.ts']) { expect(entries[f].lastEdited).toBeTruthy(); }
         for (const f of ['r1.ts', 'r2.ts', 'r3.ts']) { expect(entries[f].lastRead).toBeTruthy(); }
@@ -110,12 +125,12 @@ describe('TouchStore concurrency guarantee (SPEC_ENT_TOUCHEDFILES AC-6a, GH #35)
         const filesB = ['b1.ts', 'b2.ts', 'b3.ts', 'b4.ts', 'b5.ts', 'b6.ts'];
 
         await Promise.all([
-            ...filesA.map(f => store.recordTouches('session', 'EntityA', [f], 'read')),
-            ...filesB.map(f => store.recordTouches('project', 'EntityB', [f], 'read')),
+            ...filesA.map(f => store.recordTouches('session', 'EntityA', touches([f]), 'read')),
+            ...filesB.map(f => store.recordTouches('project', 'EntityB', touches([f]), 'read')),
         ]);
 
-        const entriesA = await store.getEntries('session', 'EntityA');
-        const entriesB = await store.getEntries('project', 'EntityB');
+        const entriesA = byRelPath(await store.getEntries('session', 'EntityA'));
+        const entriesB = byRelPath(await store.getEntries('project', 'EntityB'));
         expect(Object.keys(entriesA)).toHaveLength(6);
         expect(Object.keys(entriesB)).toHaveLength(6);
         for (const f of filesB) { expect(entriesA[f]).toBeUndefined(); }
@@ -126,11 +141,11 @@ describe('TouchStore concurrency guarantee (SPEC_ENT_TOUCHEDFILES AC-6a, GH #35)
         const burstA = Array.from({ length: 8 }, (_, i) => `burstA-${i}.ts`);
 
         await Promise.all([
-            ...burstA.map(f => store.recordTouches('session', 'EntityA', [f], 'write')),
-            store.recordTouches('project', 'EntityB', ['single.ts'], 'read'),
+            ...burstA.map(f => store.recordTouches('session', 'EntityA', touches([f]), 'write')),
+            store.recordTouches('project', 'EntityB', touches(['single.ts']), 'read'),
         ]);
 
-        const entriesB = await store.getEntries('project', 'EntityB');
+        const entriesB = byRelPath(await store.getEntries('project', 'EntityB'));
         expect(Object.keys(entriesB)).toHaveLength(1);
         expect(entriesB['single.ts'].lastRead).toBeTruthy();
     });
@@ -141,10 +156,10 @@ describe('TouchStore concurrency guarantee (SPEC_ENT_TOUCHEDFILES AC-6a, GH #35)
         const filePath = path.join(stateDir, 'session-Ghost.json');
         expect(fs.existsSync(filePath)).toBe(false);
 
-        await store.recordTouches('session', 'Ghost', ['new.ts'], 'write');
+        await store.recordTouches('session', 'Ghost', touches(['new.ts']), 'write');
 
         expect(fs.existsSync(filePath)).toBe(true);
-        const entries = await store.getEntries('session', 'Ghost');
+        const entries = byRelPath(await store.getEntries('session', 'Ghost'));
         expect(entries['new.ts'].lastEdited).toBeTruthy();
     });
 
@@ -152,9 +167,9 @@ describe('TouchStore concurrency guarantee (SPEC_ENT_TOUCHEDFILES AC-6a, GH #35)
         fs.mkdirSync(stateDir, { recursive: true });
         fs.writeFileSync(path.join(stateDir, 'session-Corrupt.json'), '{ not valid json', 'utf8');
 
-        await store.recordTouches('session', 'Corrupt', ['recovered.ts'], 'write');
+        await store.recordTouches('session', 'Corrupt', touches(['recovered.ts']), 'write');
 
-        const entries = await store.getEntries('session', 'Corrupt');
+        const entries = byRelPath(await store.getEntries('session', 'Corrupt'));
         expect(entries['recovered.ts'].lastEdited).toBeTruthy();
         const raw = fs.readFileSync(path.join(stateDir, 'session-Corrupt.json'), 'utf8');
         expect(() => JSON.parse(raw)).not.toThrow();
@@ -164,10 +179,10 @@ describe('TouchStore concurrency guarantee (SPEC_ENT_TOUCHEDFILES AC-6a, GH #35)
         fs.rmSync(stateDir, { recursive: true, force: true });
         expect(fs.existsSync(stateDir)).toBe(false);
 
-        await store.recordTouches('session', 'Alpha', ['first.ts'], 'write');
+        await store.recordTouches('session', 'Alpha', touches(['first.ts']), 'write');
 
         expect(fs.existsSync(stateDir)).toBe(true);
-        const entries = await store.getEntries('session', 'Alpha');
+        const entries = byRelPath(await store.getEntries('session', 'Alpha'));
         expect(entries['first.ts'].lastEdited).toBeTruthy();
     });
 });

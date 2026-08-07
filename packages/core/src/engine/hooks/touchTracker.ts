@@ -24,6 +24,28 @@ const TOUCH_RULES: Record<string, TouchRule> = {
 };
 
 /**
+ * D-12: selects the longest containing file-scheme workspace folder root.
+ * Returns { rootUri, relPath, resourceUri } or undefined if no root matches.
+ */
+function resolveRecordedTouch(absPath: string): { rootUri: string; relPath: string; resourceUri: string } | undefined {
+    const folders = vscode.workspace.workspaceFolders;
+    if (!folders) { return undefined; }
+    let best: { rootUri: string; relPath: string; fsPath: string } | undefined;
+    for (const folder of folders) {
+        if (folder.uri.scheme !== 'file') { continue; }
+        const root = folder.uri.fsPath;
+        const rel = path.relative(root, absPath);
+        if (rel.startsWith('..') || path.isAbsolute(rel)) { continue; }
+        if (!best || root.length > best.fsPath.length) {
+            best = { rootUri: folder.uri.toString(true), relPath: rel.replace(/\\/g, '/'), fsPath: root };
+        }
+    }
+    if (!best) { return undefined; }
+    const resourceUri = vscode.Uri.joinPath(vscode.Uri.parse(best.rootUri), best.relPath).toString(true);
+    return { rootUri: best.rootUri, relPath: best.relPath, resourceUri };
+}
+
+/**
  * Single PostToolUse subscription that classifies tool calls via
  * TOUCH_RULES, resolves the owning entity via getEntityNameForSessionId
  * (reused, no new session-id correlation mechanism), and persists the
@@ -61,11 +83,13 @@ export class TouchTracker {
         const cwd = event.payload?.cwd as string | undefined;
         if (!cwd) { return; }
         const absPaths: string[] = rule.extract(event.payload?.tool_input) ?? [];
-        const relPaths = [...new Set(absPaths.filter(Boolean))] // dedupe, AC-2c
-            .map(p => path.relative(cwd, p).replace(/\\/g, '/')); // AC-5
-        if (relPaths.length === 0) { return; }
-        await this._store.recordTouches(storageKind, owner.name, relPaths, rule.kind);
-        this._log?.debug(`[Touch] ${rule.kind} x${relPaths.length} -> ${storageKind}:${owner.name}`);
+        const resolved = [...new Set(absPaths.filter(Boolean))]
+            .map(p => path.isAbsolute(p) ? p : path.resolve(cwd, p))
+            .map(p => resolveRecordedTouch(p))
+            .filter((r): r is NonNullable<typeof r> => !!r);
+        if (resolved.length === 0) { return; }
+        await this._store.recordTouches(storageKind, owner.name, resolved, rule.kind);
+        this._log?.debug(`[Touch] ${rule.kind} x${resolved.length} -> ${storageKind}:${owner.name}`);
         this._onChange(owner.kind, owner.name);
     }
 }

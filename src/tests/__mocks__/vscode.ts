@@ -57,8 +57,13 @@ export class Disposable {
 }
 
 export const Uri = {
-    file: (path: string) => ({ fsPath: path, scheme: 'file', path }),
-    parse: (s: string) => ({ fsPath: s, scheme: 'file', path: s }),
+    file: (path: string) => ({ fsPath: path, scheme: 'file', path, toString: (skipEncoding?: boolean) => `file://${path}` }),
+    parse: (s: string) => ({ fsPath: s.replace(/^file:\/\//, ''), scheme: 'file', path: s, toString: (skipEncoding?: boolean) => s }),
+    joinPath: (base: any, ...parts: string[]) => {
+        const basePath = base.fsPath ?? base.path ?? '';
+        const joined = [basePath, ...parts].join('/');
+        return { fsPath: joined, scheme: 'file', path: joined, toString: () => `file://${joined}` };
+    },
     from: (components: { scheme: string; path: string; query?: string }) => ({
         scheme: components.scheme,
         path: components.path,
@@ -68,12 +73,27 @@ export const Uri = {
     }),
 };
 
+export class FileSystemError extends Error {
+    code: string;
+    constructor(messageOrUri?: string) {
+        super(messageOrUri);
+        this.code = 'FileNotFound';
+    }
+    static FileNotFound(messageOrUri?: string): FileSystemError { return new FileSystemError(messageOrUri); }
+}
+
 export const workspace = {
-    workspaceFolders: [],
+    workspaceFolders: [
+        { uri: { fsPath: 'C:\\workspace\\jarvis', scheme: 'file', toString: (_skip?: boolean) => 'file:///C%3A/workspace/jarvis' } },
+        { uri: { fsPath: '/ws', scheme: 'file', toString: (_skip?: boolean) => 'file:///ws' } },
+    ],
     getConfiguration: () => ({
         get: () => undefined,
     }),
     onDidChangeConfiguration: () => ({ dispose: () => {} }),
+    fs: {
+        stat: async () => ({ type: 1, size: 0, ctime: 0, mtime: 0 }),
+    },
 };
 
 export const window = {

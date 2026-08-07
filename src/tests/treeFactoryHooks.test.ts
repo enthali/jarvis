@@ -262,7 +262,7 @@ describe('Decorator extension point applies to leaf items with hooks', () => {
 // --- actor-touched-files CR (SPEC_ENT_TOUCHEDFILES): "Recently Touched Files" category ---
 
 describe('SPEC_ENT_TOUCHEDFILES: "Recently Touched Files" category rendering', () => {
-    function makeStubStore(entries: Record<string, { lastRead?: string; lastEdited?: string }>) {
+    function makeStubStore(entries: Record<string, { lastRead?: string; lastEdited?: string; rootUri?: string; relPath?: string }>) {
         return {
             getEntries: async (_kind: string, _name: string) => entries,
             recordTouches: async () => {},
@@ -285,7 +285,7 @@ describe('SPEC_ENT_TOUCHEDFILES: "Recently Touched Files" category rendering', (
 
     it('AC-5: category present (after Files) when the entity has touched files', async () => {
         const factory = new GenericTreeFactory(stubScanner);
-        factory.setTouchStore(makeStubStore({ 'src/foo.ts': { lastEdited: '2026-07-17T00:00:00.000Z' } }));
+        factory.setTouchStore(makeStubStore({ 'file:///ws/src/foo.ts': { lastEdited: '2026-07-17T00:00:00.000Z', rootUri: 'file:///ws', relPath: 'src/foo.ts' } }));
         factory.addKind({
             kind: 'thing', viewId: 'jarvisThings', folderSettingKey: 'jarvis.things.folder',
             label: (n: string) => n,
@@ -298,7 +298,7 @@ describe('SPEC_ENT_TOUCHEDFILES: "Recently Touched Files" category rendering', (
 
     it('category node renders label "Recently Touched Files", Collapsed, contextValue touched', async () => {
         const factory = new GenericTreeFactory(stubScanner);
-        factory.setTouchStore(makeStubStore({ 'src/foo.ts': { lastEdited: '2026-07-17T00:00:00.000Z' } }));
+        factory.setTouchStore(makeStubStore({ 'file:///ws/src/foo.ts': { lastEdited: '2026-07-17T00:00:00.000Z', rootUri: 'file:///ws', relPath: 'src/foo.ts' } }));
         factory.addKind({
             kind: 'thing', viewId: 'jarvisThings', folderSettingKey: 'jarvis.things.folder',
             label: (n: string) => n,
@@ -316,9 +316,9 @@ describe('SPEC_ENT_TOUCHEDFILES: "Recently Touched Files" category rendering', (
     it('AC-8: builds hierarchical folder/leaf nodes from flat relative paths, empty branches never appear', async () => {
         const factory = new GenericTreeFactory(stubScanner);
         factory.setTouchStore(makeStubStore({
-            'src/foo.ts': { lastEdited: '2026-07-17T00:00:00.000Z' },
-            'src/nested/bar.ts': { lastRead: '2026-07-17T01:00:00.000Z' },
-            'README.md': { lastRead: '2026-07-17T02:00:00.000Z' },
+            'file:///ws/src/foo.ts': { lastEdited: '2026-07-17T00:00:00.000Z', rootUri: 'file:///ws', relPath: 'src/foo.ts' },
+            'file:///ws/src/nested/bar.ts': { lastRead: '2026-07-17T01:00:00.000Z', rootUri: 'file:///ws', relPath: 'src/nested/bar.ts' },
+            'file:///ws/README.md': { lastRead: '2026-07-17T02:00:00.000Z', rootUri: 'file:///ws', relPath: 'README.md' },
         }));
         factory.addKind({
             kind: 'thing', viewId: 'jarvisThings', folderSettingKey: 'jarvis.things.folder',
@@ -347,7 +347,7 @@ describe('SPEC_ENT_TOUCHEDFILES: "Recently Touched Files" category rendering', (
     it('AC-9: leaf tooltip shows last-edited and last-read when both set', async () => {
         const factory = new GenericTreeFactory(stubScanner);
         factory.setTouchStore(makeStubStore({
-            'src/foo.ts': { lastEdited: '2026-07-17T00:00:00.000Z', lastRead: '2026-07-17T01:00:00.000Z' },
+            'file:///ws/src/foo.ts': { lastEdited: '2026-07-17T00:00:00.000Z', lastRead: '2026-07-17T01:00:00.000Z', rootUri: 'file:///ws', relPath: 'src/foo.ts' },
         }));
         factory.addKind({
             kind: 'thing', viewId: 'jarvisThings', folderSettingKey: 'jarvis.things.folder',

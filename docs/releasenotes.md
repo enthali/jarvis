@@ -1,5 +1,17 @@
 # Release Notes
 
+## v0.25.1 — WSL/Remote Recently Touched Files Fix
+
+*2026-08-07*
+
+### Fixes
+
+- **touched-files-wsl-existence**: Fixes a bug where Recently Touched Files silently hides files that exist and were genuinely touched in WSL and VS Code Remote workspaces. Root cause: `existingOnly()` used Node.js `fs.existsSync` with `uri.fsPath`, which cannot resolve UNC/remote paths on the host; the probe returned `false` for valid remote files, hiding them from the tree and risking permanent deletion by `cleanupTouchedFiles`. Fixed by replacing Node-fs probes with `vscode.workspace.fs.stat`, which delegates to the correct filesystem authority for local, WSL, SSH, and Dev Container workspaces. The fix also aligns the root authority used for probing with the root under which each path was recorded, fails open on lookup uncertainty, and carries a remote-capable `vscode.Uri` on each leaf node so that open/reveal/diff operations work correctly for remote entries. Local workspace behaviour is unchanged. **Post-release**: user WSL validation pending (remote environment not available pre-release).
+
+  Also resolves a rootUri propagation gap introduced by `touched-files-cleanup`: folder nodes now carry `rootUri` set at build time from the triggering entry, enabling correct multi-root disambiguation; folder description shows the workspace root name when multiple roots are open (AC-27).
+
+---
+
 ## v0.25.0 — Recently Touched Files Cleanup + Gitignore Automanage + Messages Directory
 
 *2026-08-05*
