@@ -1,0 +1,22 @@
+title: backlog
+nextId: 2
+fields:
+  - name: status
+    type: single_select
+    options:
+      - name: Backlog
+      - name: In Progress
+      - name: Done
+  - name: priority
+    type: single_select
+    options:
+      - name: Low
+      - name: Medium
+      - name: High
+items:
+  - id: 1
+    name: "Kanban: doc gaps, schema discoverability, missing skill, no freeform text field (GH #57)"
+    status: Backlog
+    priority: High
+    notes: "Prerequisite for dogfooding kanban as our own internal backlog (2026-08-20 decision)."
+

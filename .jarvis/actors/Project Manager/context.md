@@ -66,9 +66,14 @@
   keep what's relevant within ~2 weeks; larger topics → separate file with a
   one-line pointer here. Current release/version info lives in
   `docs/changes/` (revision history), not here.
-- **Backlog vs. Ideas**: Backlog = certain, we're doing it — lives ONLY in
-  [GitHub Issues](https://github.com/enthali/jarvis/issues), never duplicated
-  here. Ideas = may or may not happen — one file per idea under
+- **Backlog vs. Ideas (revised 2026-08-20 — dogfooding)**: internal backlog
+  now lives in [backlog.kanban.yaml](backlog.kanban.yaml) (open it via
+  `jarvis_openKanbanBoard`, edit items via `jarvis_updateKanbanItem` or direct
+  YAML edit), never duplicated here. GitHub Issues are reserved for EXTERNAL
+  reports only (someone else filing an issue on the public repo) — PM no
+  longer files or works its own backlog there. The 23 issues open before this
+  switch stay in GH as legacy, closed out as done, not migrated. Ideas = may
+  or may not happen — one file per idea under
   `.jarvis/actors/Project Manager/ideas/`,
   listed below as a link + one-line description only (no content inline).
 
