@@ -1,5 +1,5 @@
 title: backlog
-nextId: 2
+nextId: 4
 fields:
   - name: status
     type: single_select
@@ -19,4 +19,14 @@ items:
     status: Backlog
     priority: High
     notes: "Prerequisite for dogfooding kanban as our own internal backlog (2026-08-20 decision)."
+  - id: 2
+    name: "Kanban skill: document that ownerName must be resolved via jarvis_whoAmI before create/update calls"
+    status: Backlog
+    priority: Medium
+    notes: "By design, not a bug — no auto-detection of calling actor (safety). createKanbanBoard/updateKanbanItem error out instead of guessing. Skill should tell actors to call jarvis_whoAmI first. Found 2026-08-20 dogfooding."
+  - id: 3
+    name: "No tool to add a new item to an existing kanban board (only create board / update existing item)"
+    status: Backlog
+    priority: Medium
+    notes: "Had to hand-edit YAML to add an item. Found 2026-08-20 dogfooding."
 
