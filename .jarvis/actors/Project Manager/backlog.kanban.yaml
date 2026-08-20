@@ -1,5 +1,5 @@
 title: backlog
-nextId: 4
+nextId: 6
 fields:
   - name: status
     type: single_select
@@ -29,4 +29,14 @@ items:
     status: Backlog
     priority: Medium
     notes: "Had to hand-edit YAML to add an item. Found 2026-08-20 dogfooding."
+  - id: 4
+    name: "General mechanism: modules (core/kanban/pim/...) self-install their own skills + instructions into .github/skills, .github/instructions on activation"
+    status: Backlog
+    priority: High
+    notes: "2026-08-20 user request. Must land BEFORE item 5 (kanban skill depends on its convention). Design questions: asset source location inside each package, namespacing/orphan cleanup, don't clobber user edits — see syspilot.installer.agent.md for a similar (but manual, syspilot-specific) precedent."
+  - id: 5
+    name: "jarvis-kanban skill: ontology (schema) + tool descriptions, self-installed via item 4's mechanism"
+    status: Backlog
+    priority: High
+    notes: "2026-08-20 user request, most useful right now for user's RC-Auto project. Depends on item 4. Contributes to GH #57."
 
