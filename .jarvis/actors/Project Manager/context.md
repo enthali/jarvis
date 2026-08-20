@@ -90,6 +90,11 @@
 
 ## Ideas
 
+- **US/REQ/SPEC — is the SPEC level redundant? (2026-08-20)**: SPEC often ends up
+  just restating the code. Idea: try dropping it for one new feature as an
+  experiment. Not trivial — the 3-level structure is hardwired throughout
+  syspilot (agents, traceability, MECE/Trace engineers); current syspilot
+  version doesn't give the flexibility needed yet. Parked, revisit later.
 - [PIM Modularization](ideas/pim-modularization.md) — drop per-component enable/disable settings, go installable-sub-extensions instead
 - [Session Recording](ideas/recording-design.md) — meeting recording + transcription pipeline
 - Recorder on built-in VS Code dictation (deferred, 2026-08-05) — see Research's
