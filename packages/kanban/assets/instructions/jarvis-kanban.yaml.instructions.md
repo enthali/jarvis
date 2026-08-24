@@ -1,12 +1,12 @@
 ---
-applyTo: "**/*.kanban.yaml"
+applyTo: "**/{kanban.yaml,*.kanban.yaml}"
 ---
-# Jarvis Kanban YAML Conventions
+# Kanban Board YAML
 
-When editing `.kanban.yaml` files, follow these conventions:
-
-- Every board MUST have `title`, `nextId`, `fields`, and `items` keys.
-- `nextId` is an auto-incrementing integer — never reuse or decrement it.
-- Each item MUST have a unique integer `id` and a `title` string.
-- Field values on items must match the `options` defined in `fields`.
-- Use `jarvis_verifyKanbanSchema` to validate after manual edits.
+- Board-level required keys: `title`, `fields`, `items`. `nextId` is optional; when present it must only ever increase.
+- Each item requires `id` (integer ≥ 1, immutable, never reused), `name` (string), `status` (string matching a status option).
+- The item title property is `name`, not `title`.
+- A `single_select` field requires `options`; item values must match one of those option names.
+- A `text` field must not have `options`; item values are unconstrained strings.
+- A key on an item that matches no declared field name is accepted by the schema but **ignored by the renderer** — declare the field first.
+- Run `jarvis_verifyKanbanSchema` after manual edits, and read both the `errors` and `warnings` arrays.

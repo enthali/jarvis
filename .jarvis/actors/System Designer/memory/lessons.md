@@ -28,6 +28,16 @@ Durable lessons that should change how I design. Linked from `context.md`.
   observations were stale — the files had been renamed by an earlier merged CR.
   A CR description is evidence about what someone saw once, not about the
   current tree.
+- **Read the source issue, not only the intake summary of it.** On
+  `kanban-skill-content` the intake restated GH #57 wrongly twice: it asked to
+  add a `notes` field that already existed end-to-end, and to document an
+  `ownerName` convention that inverted the implemented one — while dropping the
+  gap the reporter said cost the most time. A summary is a lossy re-encoding;
+  when a CR cites an issue, the issue is the requirement.
+- **Traceability holds only if `:links:` says so.** Modifying a SPEC to realise
+  a new REQ does not link them — I edited three kanban specs for
+  `REQ_KAN_TEXTFIELD` and left it childless until the depth-2 impact query
+  showed it. Always re-run the query from each new element after writing L2.
 - **Grep for the existing convention twice: once for what I'd be reinventing,
   once for what I'd be omitting.** `jarvis.scanInterval` already established
   `minimum: 0` + "0 = disabled", so `jarvis.touchedFiles.windowDays` cost no

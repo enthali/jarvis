@@ -19,8 +19,10 @@ Kanban Requirements
      ``fields`` (required array of field definitions), and ``items`` (required
      array of item objects).
    * AC-2: Each field definition SHALL have ``name`` (required string) and
-     ``type`` (required, value ``single_select``), plus ``options`` (required
-     array of ``{ name: string, color?: string }``).
+     ``type`` (required), plus ``options``. Permitted ``type`` values are
+     ``single_select`` and ``text`` (``kanban-skill-content`` CR, GH #57).
+     ``options`` is required for ``single_select`` and SHALL be absent for
+     ``text`` — see ``REQ_KAN_TEXTFIELD``.
    * AC-3: Exactly one field SHALL have ``name: "status"`` — this is the
      column-driving field. The schema SHALL NOT enforce this structurally
      (it is a semantic constraint validated by ``REQ_KAN_VERIFY``).
@@ -71,6 +73,9 @@ Kanban Requirements
      ``status`` value.
    * AC-3: Cards SHALL display the item ``name``. Labels, notes, and other
      field values SHALL be shown when present.
+   * AC-3a: (``kanban-skill-content`` CR) Values of declared ``text`` fields
+     SHALL be rendered on the card, labelled with the field name so they are
+     distinguishable from the unnamed built-in ``notes``.
    * AC-4: The renderer SHALL support client-side filtering by label and by
      single-select field values (e.g. ``priority:High``).
    * AC-5: The renderer SHALL be read-only — no drag-and-drop, no inline
@@ -179,8 +184,9 @@ Kanban Requirements
      ``schemas/kanban.schema.json`` (structural validation).
    * AC-3: The tool SHALL additionally validate semantic constraints:
      exactly one field named ``status`` exists; every item's ``status`` value
-     matches a defined status option; item field values match defined field
-     options.
+     matches a defined status option; item values for ``single_select`` fields
+     match that field's defined options. Values for ``text`` fields SHALL NOT
+     be option-checked — any string is valid (``kanban-skill-content`` CR).
    * AC-4: The tool SHALL return
      ``{ board: "<path>", errors: [...], warnings: [...] }`` where each
      finding has ``field``, ``message``, and optionally ``item`` context.
@@ -291,3 +297,101 @@ Kanban Requirements
      access is deferred to a separate CR.
    * AC-3: Behavior SHALL be uniform with other kanban entry points (tree
      button, command palette, tools).
+
+
+.. req:: Freeform Text Field Type
+   :id: REQ_KAN_TEXTFIELD
+   :status: approved
+   :priority: required
+   :links: US_KAN_TEXTFIELD; REQ_KAN_SCHEMA
+
+   **Description:**
+   A board SHALL be able to declare a field of type ``text`` in ``fields[]``,
+   holding an arbitrary string per item. This complements the built-in ``notes``
+   property, which remains the single unnamed freeform slot; ``text`` fields are
+   named and unbounded in number.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``fields[].type`` SHALL accept ``text`` in addition to
+     ``single_select``.
+   * AC-2: A ``text`` field definition SHALL NOT carry ``options``; the schema
+     SHALL reject a ``text`` field that declares them, and SHALL reject a
+     ``single_select`` field that omits them.
+   * AC-3: An item value under a declared ``text`` field name SHALL accept any
+     string without option validation.
+   * AC-4: A field named ``status`` SHALL be of type ``single_select``; a
+     ``text`` status field SHALL be a validation error, since ``status`` drives
+     the board's columns and columns are enumerable by definition.
+   * AC-5: Boards containing no ``text`` field SHALL validate and render exactly
+     as before this change — the addition is backward compatible.
+   * AC-6: The built-in ``notes`` item property SHALL remain available and
+     unchanged (``REQ_KAN_SCHEMA`` AC-5).
+
+
+.. req:: Kanban Skill Asset Content
+   :id: REQ_KAN_SKILLCONTENT
+   :status: approved
+   :priority: required
+   :links: US_KAN_SKILL; REQ_KAN_SCHEMA; REQ_MOD_SKILL_PROVISION
+
+   **Description:**
+   The skill asset ``packages/kanban/assets/skills/jarvis-kanban.board/SKILL.md``
+   SHALL document the board ontology, the tool workflow, and the known authoring
+   traps, to the depth required for an actor to author a valid board without
+   opening ``kanban.schema.json``.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The skill SHALL document every item property: ``id``, ``name`` and
+     ``status`` as required; ``labels`` and ``notes`` as built-in optional; and
+     values keyed by declared field names.
+   * AC-2: The skill SHALL document both field types (``single_select``,
+     ``text``), including that ``options`` is required for the former and
+     forbidden for the latter.
+   * AC-3: The skill SHALL document that an item key matching no declared field
+     is accepted by the schema, reported as a **warning** rather than an error by
+     ``jarvis_verifyKanbanSchema``, and never rendered — naming this explicitly
+     as a silent-failure trap (GH #57).
+   * AC-4: The skill SHALL document the owner-resolution convention as
+     implemented: ``ownerName`` omitted addresses the calling actor's own board;
+     ``ownerName`` supplied addresses another entity's board and returns
+     ``{ error: "actor unknown" }`` if the name matches no scanned entity.
+   * AC-5: The skill SHALL state that ``status`` is a mandatory single-select
+     field whose options define the board's columns.
+   * AC-6: The skill SHALL include a complete, schema-valid example board
+     exercising both field types.
+   * AC-7: Every factual claim in the skill SHALL agree with
+     ``schemas/kanban.schema.json`` as amended by ``REQ_KAN_TEXTFIELD``.
+
+
+.. req:: Kanban Instructions Asset Content
+   :id: REQ_KAN_INSTRUCTIONS
+   :status: approved
+   :priority: required
+   :links: US_KAN_SKILL; REQ_KAN_SCHEMA
+
+   **Description:**
+   The instructions asset
+   ``packages/kanban/assets/instructions/jarvis-kanban.yaml.instructions.md``
+   applies whenever a board YAML file is edited directly. It SHALL state the
+   invariants that hand editing can violate, and nothing that contradicts the
+   schema.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Every claim about required keys SHALL match the schema: ``title``,
+     ``fields`` and ``items`` are required at board level; ``nextId`` is
+     optional (``REQ_KAN_SCHEMA`` AC-7).
+   * AC-2: Item properties SHALL be named as the schema names them — the
+     required title-like property is ``name``, not ``title``.
+   * AC-3: The instructions SHALL state that ``id`` is immutable and never
+     reused (``REQ_KAN_SCHEMA`` AC-8).
+   * AC-4: The instructions SHALL state that ``single_select`` values must match
+     that field's declared options, while ``text`` field values are unconstrained.
+   * AC-5: The instructions SHALL direct the author to
+     ``jarvis_verifyKanbanSchema`` after manual edits, and SHALL note that a run
+     reporting no errors can still emit warnings that matter
+     (``REQ_KAN_SKILLCONTENT`` AC-3).
+   * AC-6: The ``applyTo`` glob SHALL match both board filename conventions —
+     ``kanban.yaml`` and ``*.kanban.yaml`` (``REQ_KAN_DISCOVER`` AC-1, AC-2).

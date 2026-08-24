@@ -1,5 +1,5 @@
 title: backlog
-nextId: 10
+nextId: 11
 fields:
   - name: status
     type: single_select
@@ -16,14 +16,14 @@ fields:
 items:
   - id: 1
     name: "Kanban: doc gaps, schema discoverability, missing skill, no freeform text field (GH #57)"
-    status: Backlog
+    status: Done
     priority: High
-    notes: "Prerequisite for dogfooding kanban as our own internal backlog (2026-08-20 decision)."
+    notes: "Delivered via kanban-skill-content CR, merged to development 2026-08-24."
   - id: 2
     name: "Kanban skill: document that ownerName must be resolved via jarvis_whoAmI before create/update calls"
-    status: Backlog
+    status: Done
     priority: Medium
-    notes: "By design, not a bug — no auto-detection of calling actor (safety). createKanbanBoard/updateKanbanItem error out instead of guessing. Skill should tell actors to call jarvis_whoAmI first. Found 2026-08-20 dogfooding."
+    notes: "Delivered via kanban-skill-content CR, merged to development 2026-08-24."
   - id: 3
     name: "No tool to add a new item to an existing kanban board (only create board / update existing item)"
     status: Backlog
@@ -31,14 +31,14 @@ items:
     notes: "Had to hand-edit YAML to add an item. Found 2026-08-20 dogfooding."
   - id: 4
     name: "General mechanism: modules (core/kanban/pim/...) self-install their own skills + instructions into .github/skills, .github/instructions on activation"
-    status: In Progress
+    status: Done
     priority: High
-    notes: "CD drafted 2026-08-20, branch feature/module-skill-provisioning, dispatched to CM. Must land BEFORE item 5 (kanban skill depends on its convention)."
+    notes: "QM CLEARED (Round 4), user-validated together with item 5, merged to development 2026-08-24."
   - id: 5
     name: "jarvis-kanban skill: ontology (schema) + tool descriptions, self-installed via item 4's mechanism"
-    status: Backlog
+    status: Done
     priority: High
-    notes: "2026-08-20 user request, most useful right now for user's RC-Auto project. Depends on item 4. Contributes to GH #57."
+    notes: "Delivered as CR 'kanban-skill-content' (folded items 1+2+5), QM CLEARED (Round 2), user-validated, merged to development 2026-08-24."
   - id: 6
     name: "Remove dead jarvis.newEntity contribution (never registered, pre-existing)"
     status: Backlog
@@ -61,4 +61,10 @@ items:
     priority: Medium
     labels: ["bug"]
     notes: "2026-08-24, user-reported. A newly created file doesn't show up in Recently Touched Files, only edits to existing ones do. Small fix."
+  - id: 10
+    name: "Bug: gitignore 'jarvis-*' managed entry is unanchored, matches any file/dir by name anywhere in tree"
+    status: Backlog
+    priority: Medium
+    labels: ["bug"]
+    notes: "Found 2026-08-24 while committing docs/changes/jarvis-kanban-skill.md — git check-ignore confirmed .gitignore:31 jarvis-* swallowed it. Pattern meant for root-level VSIX build artifacts (e.g. jarvis-core-x.y.z.vsix) but the WORKSPACE_PATHS entry (configPaths.ts) has no leading slash, so it matches at any depth by filename. Fix: anchor to /jarvis-*.vsix or similar."
 

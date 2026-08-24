@@ -33,5 +33,6 @@ See [lessons-learned.md](lessons-learned.md).
 - **CR #43 prompt-injection-tool** — `feature/prompt-injection-tool`, status `ready-for-merge`, QM Round 2 CLEAR, PM notified
 - **CR #44 jarvis-whoami** — `feature/jarvis-whoami`, status `ready-for-merge`, QM CLEAR, PM notified
 - **CR #46 jarvis-kanban** — `feature/jarvis-kanban`, status `ready-for-merge`, QM Round 5 CLEAR; PM review required before merge; 4 tools (create/verify/open/update), item IDs, 23 UAT scenarios
-- **module-skill-provisioning** — `feature/module-skill-provisioning`, status `qm-round3`, MECE R3 CLEAR (3a1c089), QM + PM re-notified; awaiting QM Round 3 clearance and PM merge
+- **module-skill-provisioning** — `feature/module-skill-provisioning`, status `qm-cleared`, held pending user validation together with kanban-skill-content; do NOT merge until PM instructs
+- **kanban-skill-content** — `feature/kanban-skill-content` (stacked on module-skill-provisioning), status `ready-for-merge`, MECE CLEAR (15d76ff), PM + QM notified; joint user validation with module-skill-provisioning required before either merges
 - **CR module-skill-provisioning** — `feature/module-skill-provisioning`, status `design-in-progress`, generic self-install mechanism for module Copilot Skills/Instructions into `.github/`; PM flagged `syspilot.installer.agent.md` as prior art and asked Designer to verify (not assume) whether the `mermaid-ai-skills` marker block is Jarvis-owned before citing as precedent; backlog item 4 (item 5 = jarvis-kanban skill content, separate follow-up CR, not in scope here)

@@ -155,7 +155,7 @@ interface ValidationResult {
 
 function semanticValidate(data: {
     title: string;
-    fields: Array<{ name: string; type: string; options: Array<{ name: string }> }>;
+    fields: Array<{ name: string; type: string; options?: Array<{ name: string }> }>;
     items: Array<Record<string, unknown>>;
 }, boardPath: string): ValidationResult {
     const errors: ValidationFinding[] = [];
@@ -169,13 +169,22 @@ function semanticValidate(data: {
         errors.push({ field: 'fields', message: `Found ${statusFields.length} fields named 'status'. Exactly one is required.` });
     }
 
-    // Build field option maps
-    const fieldMap = new Map<string, Set<string>>();
-    for (const field of data.fields) {
-        fieldMap.set(field.name, new Set(field.options.map(o => o.name)));
+    // Status must be single_select
+    if (statusFields.length === 1 && statusFields[0].type !== 'single_select') {
+        errors.push({ field: 'fields', message: "The 'status' field must be of type 'single_select'." });
     }
 
-    const statusOptions = fieldMap.get('status');
+    // Build field map: name → { type, options? }
+    const fieldMap = new Map<string, { type: string; options?: Set<string> }>();
+    for (const field of data.fields) {
+        fieldMap.set(field.name, {
+            type: field.type,
+            options: field.options ? new Set(field.options.map(o => o.name)) : undefined,
+        });
+    }
+
+    const statusEntry = fieldMap.get('status');
+    const statusOptions = statusEntry?.options;
 
     // Validate each item
     for (const item of data.items) {
@@ -196,20 +205,23 @@ function semanticValidate(data: {
         const knownKeys = new Set(['id', 'name', 'status', 'labels', 'notes']);
         for (const [key, value] of Object.entries(item)) {
             if (knownKeys.has(key)) { continue; }
-            const fieldOpts = fieldMap.get(key);
-            if (!fieldOpts) {
+            const fieldEntry = fieldMap.get(key);
+            if (!fieldEntry) {
                 warnings.push({
                     field: key,
                     message: `Unknown field "${key}" — not defined in fields[].`,
                     item: itemName,
                 });
-            } else if (typeof value === 'string' && !fieldOpts.has(value)) {
-                errors.push({
-                    field: key,
-                    message: `Value "${value}" is not a defined option for field "${key}".`,
-                    item: itemName,
-                });
+            } else if (fieldEntry.type === 'single_select' && fieldEntry.options) {
+                if (typeof value === 'string' && !fieldEntry.options.has(value)) {
+                    errors.push({
+                        field: key,
+                        message: `Value "${value}" is not a defined option for field "${key}".`,
+                        item: itemName,
+                    });
+                }
             }
+            // text fields: any string accepted, no check
         }
     }
 

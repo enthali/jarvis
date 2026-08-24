@@ -58,6 +58,7 @@ end-to-end verification of each feature.
    req_uat_injectprompt
    req_uat_whoami
    req_uat_kanban
+   req_uat_kanban_skill
 
 All UAT Requirements
 --------------------

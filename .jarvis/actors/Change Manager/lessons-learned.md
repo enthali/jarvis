@@ -66,6 +66,7 @@
   message creates drift: SD translates CM's interpretation instead of reasoning from the
   spec itself. Consequence: SD must always finish and commit before Dev starts — no
   parallel SD+Dev dispatch.
+- **Always verify intake claims against code + specs before designing** — two of three items in a CR intake were materially wrong (one inverted, one already implemented); SD caught both by reading the code before designing. CM should flag this class of error in the intake so PM's CR formulation path can be improved.
 - **Concurrent actors on a shared working tree can silently branch-switch each other** —
   when SD and Dev work in the same repo working tree, a branch checkout by one session
   moves uncommitted edits from the other onto the wrong branch. Sequence actors on the

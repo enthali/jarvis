@@ -4,7 +4,7 @@ Kanban Design Specifications
 .. spec:: Kanban Board YAML Schema
    :id: SPEC_KAN_SCHEMA
    :status: draft
-   :links: REQ_KAN_SCHEMA
+   :links: REQ_KAN_SCHEMA; REQ_KAN_TEXTFIELD
 
    **Description:**
    JSON Schema ``schemas/kanban.schema.json`` defining the structure of a
@@ -39,7 +39,7 @@ Kanban Design Specifications
             "minItems": 1,
             "items": {
               "type": "object",
-              "required": ["name", "type", "options"],
+              "required": ["name", "type"],
               "additionalProperties": false,
               "properties": {
                 "name": {
@@ -48,7 +48,7 @@ Kanban Design Specifications
                 },
                 "type": {
                   "type": "string",
-                  "enum": ["single_select"]
+                  "enum": ["single_select", "text"]
                 },
                 "options": {
                   "type": "array",
@@ -69,7 +69,23 @@ Kanban Design Specifications
                     }
                   }
                 }
-              }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": { "type": { "const": "single_select" } },
+                    "required": ["type"]
+                  },
+                  "then": { "required": ["options"] }
+                },
+                {
+                  "if": {
+                    "properties": { "type": { "const": "text" } },
+                    "required": ["type"]
+                  },
+                  "then": { "not": { "required": ["options"] } }
+                }
+              ]
             }
           },
           "items": {
@@ -102,7 +118,7 @@ Kanban Design Specifications
               },
               "additionalProperties": {
                 "type": "string",
-                "description": "Values for user-defined single_select fields."
+                "description": "Values for user-defined single_select or text fields."
               }
             }
           }
@@ -132,6 +148,17 @@ Kanban Design Specifications
      This keeps the JSON Schema simple and the YAML easy to author.
    * ``color`` is optional on field options; when absent the renderer picks
      a default from the VS Code theme palette.
+   * (``kanban-skill-content`` CR, GH #57) ``options`` is bound to ``type`` by
+     an ``if``/``then`` pair rather than left merely optional: required for
+     ``single_select``, forbidden for ``text``. Leaving it optional would let a
+     ``text`` field carry an option list that nothing reads — accepted, ignored,
+     and invisible, which is the same silent-acceptance failure mode GH #57 was
+     filed about.
+   * (``kanban-skill-content`` CR) The structural schema still cannot express
+     "the ``status`` field must be ``single_select``", because it cannot reach
+     across array elements to the one named ``status``. That stays a semantic
+     check in ``SPEC_KAN_VERIFY``, consistent with how ``status``'s existence is
+     already handled.
 
    **Schema bundling:**
 
@@ -157,12 +184,18 @@ Kanban Design Specifications
    * AC-4: ``packages/kanban/schemas/kanban.schema.json`` exists as a
      package-local copy, kept in sync by ``build.js``.
    * AC-5: ``id`` is validated as integer >= 1.
+   * AC-6: (``kanban-skill-content`` CR) ``fields[].type`` accepts ``text``.
+   * AC-7: (``kanban-skill-content`` CR) A ``single_select`` field without
+     ``options`` is rejected; a ``text`` field with ``options`` is rejected.
+   * AC-8: (``kanban-skill-content`` CR) Every board under ``testdata/kanban/``
+     that validated before this change still validates — the schema change is
+     additive.
 
 
 .. spec:: Kanban Board Renderer
    :id: SPEC_KAN_RENDERER
    :status: draft
-   :links: REQ_KAN_RENDERER; SPEC_KAN_SCHEMA
+   :links: REQ_KAN_RENDERER; REQ_KAN_TEXTFIELD; SPEC_KAN_SCHEMA
 
    **Description:**
    A VS Code Webview Panel that renders a kanban board from a parsed YAML
@@ -184,8 +217,14 @@ Kanban Design Specifications
      the option definition (or a VS Code theme default) as header accent.
    * Cards show: ``#id`` prefix (e.g. ``#4 \u00b7 Item title``), ``name``
      (bold), ``labels`` (as colored badges), other field values (as key:
-     value pairs), ``notes`` (as smaller text below).
-   * Empty columns are shown (with a "No items" placeholder).
+     value pairs), ``notes`` (as smaller text below).   * (``kanban-skill-content`` CR) Values of declared ``text`` fields render as
+     labelled ``name: value`` pairs, in the same place as other declared field
+     values. They are labelled because, unlike ``notes``, they have a name that
+     carries the meaning — an unlabelled ``rationale`` is indistinguishable from
+     an unlabelled ``blocker``. Only keys matching a declared field are rendered;
+     an undeclared key is still skipped, which is the behaviour GH #57 found
+     surprising and which the skill must therefore document
+     (``REQ_KAN_SKILLCONTENT`` AC-3).   * Empty columns are shown (with a "No items" placeholder).
 
    **Filtering:**
 
@@ -402,7 +441,7 @@ Kanban Design Specifications
 .. spec:: jarvis_verifyKanbanSchema Tool
    :id: SPEC_KAN_VERIFY
    :status: draft
-   :links: REQ_KAN_VERIFY; SPEC_ACT_WHOAMI; SPEC_KAN_SCHEMA
+   :links: REQ_KAN_VERIFY; REQ_KAN_TEXTFIELD; SPEC_ACT_WHOAMI; SPEC_KAN_SCHEMA
 
    **Description:**
    Register ``jarvis_verifyKanbanSchema`` via ``engine.registerTool()`` in the
@@ -430,14 +469,30 @@ Kanban Design Specifications
 
       * Exactly one field named ``status`` exists → error if missing or
         duplicated.
+      * The ``status`` field is of type ``single_select`` → error if it is
+        ``text`` (``REQ_KAN_TEXTFIELD`` AC-4). Its options define the board's
+        columns; a non-enumerable status would render a board with none.
       * Every item's ``status`` value matches a defined ``status`` option →
         error for each mismatch.
-      * Item field values (``additionalProperties``) match a defined field
-        name and option → warning for unknown field names, error for values
-        not in the field's options.
+      * Item keys that are not built-in (``id``, ``name``, ``status``,
+        ``labels``, ``notes``) are resolved against the declared field names:
+
+        - no matching field → **warning** "Unknown field ... not defined in
+          fields[]". This stays a warning for backward compatibility, but is
+          the trap GH #57 reports, so ``REQ_KAN_SKILLCONTENT`` AC-3 requires
+          the skill to name it as one.
+        - matching field of type ``single_select`` → value must be one of that
+          field's options, else error.
+        - matching field of type ``text`` → any string accepted, no check.
 
    5. Return ``{ board: "<path>", errors: [...], warnings: [...] }`` where
       each finding is ``{ field: string, message: string, item?: string }``.
+
+   **Field lookup:**
+
+   The existing ``fieldMap`` (field name → option-name set) is widened to
+   field name → ``{ type, options? }``, because an empty option set can no
+   longer be distinguished from "this field does not constrain values".
 
    **Acceptance Criteria:**
 
@@ -445,6 +500,12 @@ Kanban Design Specifications
    * AC-2: Detects item ``status`` values not matching defined options.
    * AC-3: Returns structured findings with field and item context.
    * AC-4: Registers with ``toolReferenceName: "verifyKanbanSchema"``.
+   * AC-5: (``kanban-skill-content`` CR) A value under a declared ``text``
+     field produces neither error nor warning, whatever the string.
+   * AC-6: (``kanban-skill-content`` CR) A ``status`` field declared as
+     ``text`` produces an error.
+   * AC-7: (``kanban-skill-content`` CR) Existing single-select validation and
+     the unknown-field warning are unchanged in wording and severity.
 
 
 .. spec:: jarvis_openKanbanBoard Tool
@@ -729,3 +790,128 @@ Kanban Design Specifications
    * AC-9: ``loadSchema()`` in the verify tool resolves the schema path via
       ``context.extensionUri`` (extension install path), not the workspace
       root.
+
+
+.. spec:: Kanban Skill Asset Content
+   :id: SPEC_KAN_SKILLCONTENT
+   :status: approved
+   :links: REQ_KAN_SKILLCONTENT; SPEC_KAN_SCHEMA; SPEC_MOD_SKILL_PROVISION
+
+   **Description:**
+   Content specification for
+   ``packages/kanban/assets/skills/jarvis-kanban.board/SKILL.md``. Delivery into
+   the workspace is ``SPEC_MOD_SKILL_PROVISION``'s concern and unchanged here;
+   this spec governs what the file says.
+
+   **Required sections:**
+
+   ::
+
+      ---
+      description: <task-match trigger, USE FOR / DO NOT USE FOR>
+      ---
+      # Jarvis Kanban Board
+      ## Tools                  -> the four tools, one line each
+      ## Owner Resolution       -> REQ_KAN_SKILLCONTENT AC-4
+      ## Board Anatomy          -> top-level keys; status drives columns
+      ## Field Types            -> single_select vs text; options rule
+      ## Item Properties        -> required / built-in / declared-field values
+      ## Pitfalls               -> the silent-failure list
+      ## Example                -> one complete, schema-valid board
+      ## Workflow               -> create -> edit -> verify -> open
+
+   **Owner Resolution — required content:**
+
+   Stated as the tool behaves (``SPEC_KAN_CREATE`` step 1), not as a
+   precondition on the caller:
+
+   * Omit ``ownerName`` to address the calling actor's own board. The tool
+     resolves the caller via ``jarvis_whoAmI`` itself.
+   * Supply ``ownerName`` only to address a *different* entity's board.
+   * A supplied name that matches no scanned entity returns
+     ``{ error: "actor unknown" }``.
+
+   The skill SHALL NOT instruct the actor to call ``jarvis_whoAmI`` first and
+   pass the result: that is a redundant round trip which converts a resolved
+   call into a name-matching call, and name matching is the only path that can
+   fail with ``actor unknown``.
+
+   **Pitfalls — required content:**
+
+   Each entry names the observable symptom, because every one of these fails
+   *quietly* — an actor that does not know the symptom has no signal to act on:
+
+   1. An item key matching no declared field is schema-valid, is reported by
+      ``jarvis_verifyKanbanSchema`` as a **warning** (not an error), and is
+      **never rendered**. Symptom: the board renders, verification looks clean,
+      and the value is simply absent.
+   2. A field type other than ``single_select`` or ``text`` fails structural
+      validation with an ajv message that does not name the permitted values.
+   3. ``options`` on a ``text`` field, or missing ``options`` on a
+      ``single_select`` field, is a structural error
+      (``SPEC_KAN_SCHEMA`` AC-7).
+   4. ``id`` is immutable and never reused; ``nextId`` must not be decremented.
+   5. ``status`` must be ``single_select`` — its options are the columns.
+
+   **Acceptance Criteria:**
+
+   * AC-1: All sections listed above are present and non-empty.
+   * AC-2: The example board validates against
+     ``schemas/kanban.schema.json`` and exercises both field types.
+   * AC-3: The owner-resolution section describes omission as the default path
+     and contains no instruction to pre-resolve via ``jarvis_whoAmI``.
+   * AC-4: The pitfalls section contains all five entries above, each naming
+     its observable symptom.
+   * AC-5: The item-property list matches the schema's required and optional
+     properties exactly.
+   * AC-6: The frontmatter ``description`` follows the USE FOR / DO NOT USE FOR
+     shape already used by the file, so task matching is unchanged.
+
+
+.. spec:: Kanban Instructions Asset Content
+   :id: SPEC_KAN_INSTRUCTIONS
+   :status: approved
+   :links: REQ_KAN_INSTRUCTIONS; SPEC_KAN_SCHEMA
+
+   **Description:**
+   Content specification for
+   ``packages/kanban/assets/instructions/jarvis-kanban.yaml.instructions.md``.
+   Unlike the skill, which is loaded on task match, this file is applied by
+   VS Code whenever a matching file is edited — so it addresses hand editing,
+   and stays short.
+
+   **Frontmatter:**
+
+   .. code-block:: yaml
+
+      ---
+      applyTo: "**/{kanban.yaml,*.kanban.yaml}"
+      ---
+
+   The previous glob ``**/*.kanban.yaml`` does not match a file named exactly
+   ``kanban.yaml`` — which is the *default* board name (``SPEC_KAN_DISCOVER``).
+   The instructions therefore never applied to the most common board file.
+
+   **Required content:**
+
+   * Board-level required keys are ``title``, ``fields``, ``items``.
+     ``nextId`` is optional; when present it must only ever increase.
+   * An item requires ``id``, ``name``, ``status``. The title-like property is
+     ``name`` — there is no ``title`` property on an item.
+   * ``id`` is immutable and never reused.
+   * A value under a ``single_select`` field must match one of that field's
+     declared options. A value under a ``text`` field is unconstrained.
+   * A key matching no declared field will be accepted and then ignored by the
+     renderer — declare the field first.
+   * Run ``jarvis_verifyKanbanSchema`` after manual edits, and read the
+     ``warnings`` array, not only ``errors``.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``applyTo`` matches both ``kanban.yaml`` and ``*.kanban.yaml``.
+   * AC-2: The file states ``name`` (not ``title``) as the item property, and
+     lists ``nextId`` as optional — correcting both claims in the pilot file.
+   * AC-3: Every required-content bullet above is present.
+   * AC-4: No claim in the file contradicts ``schemas/kanban.schema.json``.
+   * AC-5: The file remains a short invariant list — it does not duplicate the
+     skill's ontology reference, tool workflow, or example board.

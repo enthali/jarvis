@@ -58,6 +58,7 @@ outcome tables** for each feature's acceptance tests.
    spec_uat_injectprompt
    spec_uat_whoami
    spec_uat_kanban
+   spec_uat_kanban_skill
 
 All UAT Specifications
 ----------------------

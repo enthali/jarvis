@@ -19,7 +19,8 @@ This file captures operational details not covered there.
 
 ## Next
 
-- `module-skill-provisioning` PASSED verification (6b047a9). All ACs across SPEC_MOD_SKILL_PROVISION and SPEC_MOD_SKILL_MANIFEST satisfied. Asset bundling, namespace isolation, idempotency, error handling all verified. Validation report committed. Responded to CM; ready for UAT.
+- `kanban-skill-content` PASSED verification (6eec368). Schema AC-6/AC-7/AC-8 satisfied; validator AC-5/AC-6/AC-7 satisfied; renderer AC-3a satisfied; skill content AC-1..AC-6 satisfied; instructions AC-1..AC-5 satisfied. All CD-identified issues (D-L0-1/L0-2/L1-4) resolved. Backward compat verified. Validation report committed. Responded to CM; ready for UAT.
+- `module-skill-provisioning` PASSED verification (6b047a9). Ready to merge in sequence with kanban-skill-content.
 - `touched-files-wsl-existence` PASSED R4 (dd912ce, local — never pushed). AC-27 reconciled, spec `implemented`. **Open:** AC-24's record-key clause is unimplemented under that marker — recommended amending AC-24 as AC-27 was. Manual WSL gate still outstanding (O-1 never answered).
 - Open, for PM to route: `jarvis.newEntity` is contributed in `package.json` but registered nowhere; hidden by `when: false` so no user impact, yet `SPEC_ACT_NEWENTITY` still describes `newEntityCommand` in `extension.ts` as live. Pre-existing, predates `9a4611b`.
 - Suggested to CM: keep the contributed-vs-registered command-id cross-check as a test — it would have caught the `showReleaseNotes` loss the moment `9a4611b` landed.

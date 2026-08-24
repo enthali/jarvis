@@ -11,7 +11,7 @@ interface FieldOption {
 interface FieldDef {
     name: string;
     type: string;
-    options: FieldOption[];
+    options?: FieldOption[];
 }
 
 interface BoardItem {
@@ -69,7 +69,7 @@ function renderBoard(board: BoardData): void {
     currentBoard = board;
 
     const statusField = board.fields.find(f => f.name === 'status');
-    if (!statusField) {
+    if (!statusField || !statusField.options) {
         root.innerHTML = '<p style="padding:16px;color:var(--vscode-errorForeground);">No "status" field defined.</p>';
         return;
     }

@@ -37,6 +37,23 @@
   let the user review in parallel. Mistake made 2026-08-21: dispatched
   module-skill-provisioning to CM before asking; had to send a hold message.
   Not needed in autonomous/unattended mode (no user to wait for).
+- **Stacked feature branches when a CR has no standalone user-visible behavior
+  (2026-08-24)**: if a CR is QM-cleared but the user can't meaningfully
+  validate it alone (e.g. an infra/mechanism CR whose only observable effect
+  needs a dependent CR's content), don't force a merge on QM CLEAR alone —
+  branch the dependent CR directly off the first CR's unmerged feature branch
+  (not off `development`), hold both un-merged, and merge in sequence once the
+  user validates them together. One CD per CR still applies; only the git
+  branch parentage stacks.
+- **Stacked branches WILL conflict on the second squash-merge (2026-08-24)**:
+  squash commits carry no parent info, so merging the second (stacked) branch
+  into `development` re-conflicts on every file the first branch already
+  touched, even though the second branch is a strict superset. Resolve with
+  `git checkout --theirs` (the incoming/second branch) for all such files —
+  it already contains the first branch's content plus its own. Exception: any
+  file PM edited directly on `development` after the first squash-merge (e.g.
+  a CD's `Status: merged` field) needs manual reconciliation, not a blind
+  `--theirs`.
 - **Copy the template literally — never paraphrase its structure (2026-07-28)**:
   the CD is the contract between agents. PM's part is the header fields
   (Status/Branch/Created/Author/Operation Mode) + Summary (root cause, fix
@@ -85,13 +102,17 @@
 
 ## Active CR
 
-- **module-skill-provisioning** (branch `feature/module-skill-provisioning`, CD drafted
-  2026-08-20): general mechanism so any module self-installs its own skills/instructions
-  into `.github/skills`/`.github/instructions` on activation. Dispatched to CM.
-  Backlog item 5 (jarvis-kanban skill content) follows once this lands — depends on it.
+(none — see Recently Shipped)
 
 ## Recently Shipped
 
+- **module-skill-provisioning** + **kanban-skill-content** merged to `development`
+  2026-08-24 (squashed in that order; stacked-branch second squash-merge produced
+  expected conflicts on files both CRs touched — resolved by taking the incoming
+  branch's version everywhere except the first CD's Status field, since the second
+  branch was a strict superset). Delivered: generic module asset self-install
+  mechanism, real jarvis-kanban skill content (ontology, ownerName convention,
+  freeform text field). Closed backlog items 1, 2, 4, 5.
 - **v0.25.0** released 2026-08-05 @ `bcb5c96`. Contains: touched-files-cleanup, gitignore
   automanage followup, wiring restore (gitignore + release-notes), kanban+suite in
   self-update mapping. Issues #58/#59/#60/#63 closed.
