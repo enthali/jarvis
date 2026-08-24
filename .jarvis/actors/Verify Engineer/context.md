@@ -19,6 +19,7 @@ This file captures operational details not covered there.
 
 ## Next
 
+- `module-skill-provisioning` PASSED verification (6b047a9). All ACs across SPEC_MOD_SKILL_PROVISION and SPEC_MOD_SKILL_MANIFEST satisfied. Asset bundling, namespace isolation, idempotency, error handling all verified. Validation report committed. Responded to CM; ready for UAT.
 - `touched-files-wsl-existence` PASSED R4 (dd912ce, local — never pushed). AC-27 reconciled, spec `implemented`. **Open:** AC-24's record-key clause is unimplemented under that marker — recommended amending AC-24 as AC-27 was. Manual WSL gate still outstanding (O-1 never answered).
 - Open, for PM to route: `jarvis.newEntity` is contributed in `package.json` but registered nowhere; hidden by `when: false` so no user impact, yet `SPEC_ACT_NEWENTITY` still describes `newEntityCommand` in `extension.ts` as live. Pre-existing, predates `9a4611b`.
 - Suggested to CM: keep the contributed-vs-registered command-id cross-check as a test — it would have caught the `showReleaseNotes` loss the moment `9a4611b` landed.

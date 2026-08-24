@@ -31,6 +31,12 @@
 - **Branch + CD before dispatch**: CM cannot start a CR without an existing
   branch + template-copied CD — create both before/with the CR message, not
   just mention them.
+- **User reviews the CD before dispatch, in user-guided mode (2026-08-21)**:
+  after filling the CD's header/Summary, show it to the user and wait for
+  their go-ahead BEFORE sending the CR to CM — don't dispatch first and
+  let the user review in parallel. Mistake made 2026-08-21: dispatched
+  module-skill-provisioning to CM before asking; had to send a hold message.
+  Not needed in autonomous/unattended mode (no user to wait for).
 - **Copy the template literally — never paraphrase its structure (2026-07-28)**:
   the CD is the contract between agents. PM's part is the header fields
   (Status/Branch/Created/Author/Operation Mode) + Summary (root cause, fix
@@ -79,9 +85,10 @@
 
 ## Active CR
 
-- None in pipeline. Follow-up CRs in flight (unattended, 2026-08-05):
-  - `jarvis-newentity-cleanup`: remove dead `jarvis.newEntity` contribution (never registered, pre-existing)
-  - `jarvis-manifest-invariant`: add test asserting all contributed command IDs are registered
+- **module-skill-provisioning** (branch `feature/module-skill-provisioning`, CD drafted
+  2026-08-20): general mechanism so any module self-installs its own skills/instructions
+  into `.github/skills`/`.github/instructions` on activation. Dispatched to CM.
+  Backlog item 5 (jarvis-kanban skill content) follows once this lands — depends on it.
 
 ## Recently Shipped
 

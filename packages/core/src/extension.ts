@@ -29,6 +29,7 @@ import { ActivityDecorator } from './engine/hooks/activityDecorator';
 import { TouchStore } from './engine/hooks/touchStore';
 import { TouchTracker } from './engine/hooks/touchTracker';
 import { applyGitignore, setIgnoreManagerLogger } from './engine/core/gitignoreManager';
+import { setAssetProvisioningLogger } from './engine/core/assetProvisioning';
 import { announceIfNewVersion, showReleaseNotes } from './engine/core/releaseNotes';
 
 import { CronExpressionParser } from 'cron-parser';
@@ -109,6 +110,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     setSessionLookupLogger(log);
     setRemindersLogger(log);
     setIgnoreManagerLogger(log);
+    setAssetProvisioningLogger(log);
 
     // Gitignore auto-management (SPEC_CFG_IGNOREMANAGER)
     applyGitignore();

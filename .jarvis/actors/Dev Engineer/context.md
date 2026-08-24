@@ -4,8 +4,8 @@ the development engineer - the actual coder
 
 ## Current
 
-- **Change:** jarvis-kanban (feature/jarvis-kanban)
-- **Status:** Committed `a75aa20` — all SPEC_KAN_* implemented, compile+lint+272 tests clean
+- **Change:** module-skill-provisioning (feature/module-skill-provisioning)
+- **Status:** Implementation complete — SPEC_MOD_SKILL_PROVISION, SPEC_MOD_SKILL_MANIFEST, SPEC_ENG_API AC-9, SPEC_MOD_CORE_PKG AC-6; full monorepo build clean
 
 ## Decisions
 

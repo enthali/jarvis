@@ -33,6 +33,7 @@ capability modules. Install only what you need.
   ```
   jarvis_injectPrompt(actor="Change Manager", text="/compact")
   ```
+- **Module asset provisioning** — `provisionModuleAssets(context, config)` lets any add-on self-install its own bundled Copilot Skills/Instructions into the workspace's `.github/skills/` and `.github/instructions/` on activation; namespaced, idempotent, and orphan-safe, without touching user-authored or other modules' files
 
 ### Jarvis PIM
 

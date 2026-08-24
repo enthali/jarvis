@@ -1,5 +1,5 @@
 title: backlog
-nextId: 6
+nextId: 10
 fields:
   - name: status
     type: single_select
@@ -31,12 +31,34 @@ items:
     notes: "Had to hand-edit YAML to add an item. Found 2026-08-20 dogfooding."
   - id: 4
     name: "General mechanism: modules (core/kanban/pim/...) self-install their own skills + instructions into .github/skills, .github/instructions on activation"
-    status: Backlog
+    status: In Progress
     priority: High
-    notes: "2026-08-20 user request. Must land BEFORE item 5 (kanban skill depends on its convention). Design questions: asset source location inside each package, namespacing/orphan cleanup, don't clobber user edits — see syspilot.installer.agent.md for a similar (but manual, syspilot-specific) precedent."
+    notes: "CD drafted 2026-08-20, branch feature/module-skill-provisioning, dispatched to CM. Must land BEFORE item 5 (kanban skill depends on its convention)."
   - id: 5
     name: "jarvis-kanban skill: ontology (schema) + tool descriptions, self-installed via item 4's mechanism"
     status: Backlog
     priority: High
     notes: "2026-08-20 user request, most useful right now for user's RC-Auto project. Depends on item 4. Contributes to GH #57."
+  - id: 6
+    name: "Remove dead jarvis.newEntity contribution (never registered, pre-existing)"
+    status: Backlog
+    priority: Low
+    notes: "Migrated from PM context.md 2026-08-21 — never actually branched despite being noted as 'in flight' on 2026-08-05."
+  - id: 7
+    name: "Add test asserting all contributed command IDs are registered"
+    status: Backlog
+    priority: Low
+    notes: "Migrated from PM context.md 2026-08-21 — never actually branched despite being noted as 'in flight' on 2026-08-05."
+  - id: 8
+    name: "Bug: error assigning Agent Modes — our undocumented-VS Code-API patch may be breaking"
+    status: Backlog
+    priority: High
+    labels: ["P1", "bug"]
+    notes: "2026-08-21, user-reported and reproduced. Likely fallout from agent-mode-persistence (GH #25, shipped v0.14.0-era 2026-07-14): re-applies mode via VS Code's undocumented workbench.action.chat.open<ModeName> command, working around microsoft/vscode#317276. Repro (2026-08-21): Dev Engineer creates a new session via sendMessage — open/rename/prompt-assign/initial mode-set all succeed — but the mode-set command then fires again and lands in Project Manager (the last-active session) instead. Possible timing issue (focus already switched back before the command runs) or the create-session sequence isn't awaited/ordered correctly. Not yet root-caused."
+  - id: 9
+    name: "Bug: Recently Touched Files only tracks modifications, not newly created files"
+    status: Backlog
+    priority: Medium
+    labels: ["bug"]
+    notes: "2026-08-24, user-reported. A newly created file doesn't show up in Recently Touched Files, only edits to existing ones do. Small fix."
 

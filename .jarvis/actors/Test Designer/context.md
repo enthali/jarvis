@@ -9,3 +9,4 @@ This file captures operational deltas.
 - Module integration (compile/package/CI) is explicitly out of UAT scope — note this in every TST to avoid tester confusion.
 - For tools using active-tab heuristic (whoAmI, kanban tools): include a note reminding tester to confirm active tab before invoking.
 - Scope expansions arrive as additive T-N extensions to existing SPEC_UAT — check System Designer commits for new fixtures before writing scenarios.
+- module-skill-provisioning UAT delivered and executed: US/REQ/SPEC_UAT_SKILL_PROVISION + tst (T-1..T-8 static, all PASS). Static analysis is an accepted execution mode when EDH unavailable; cite code evidence per scenario.

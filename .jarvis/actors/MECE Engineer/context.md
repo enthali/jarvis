@@ -11,3 +11,6 @@ This file captures operational details not covered there.
   - Initial: PASS ✅ — pure additive KAN theme
   - Scope expansion (REQ/SPEC_KAN_UPDATE): PASS ✅ — distinct from Phase 2 full write-back
   - Final batch (REQ/SPEC_KAN_FILEOPEN, AC-7): PASS ✅ — file-open vs tree entry points orthogonal
+- **CR module-skill-provisioning:**
+  - Round 1 (MECE baseline): PASS ✅ — 3 new REQs mutually exclusive & collectively exhaustive; full traceability; 8/8 UAT pass; no orthogonality violations
+  - Round 3 (post-QM-fix): PASS ✅ — No new issues from gitignore/logging fixes; AC-2/AC-5 now held structurally

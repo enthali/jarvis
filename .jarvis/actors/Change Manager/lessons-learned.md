@@ -71,3 +71,7 @@
   moves uncommitted edits from the other onto the wrong branch. Sequence actors on the
   same CR strictly (SD done + committed before Dev starts); do not overlap writes to the
   same working tree.
+- **Engineers are dispatched via `jarvis_sendMessage`, never `runSubagent`** — SEND
+  to a persistent actor session (own identity, memory, isolation) per the CM agent
+  file ("you SEND work to specialized engineers"). `runSubagent` is stateless and
+  breaks Engineer Isolation and auditability; never use it for CR engineering steps.

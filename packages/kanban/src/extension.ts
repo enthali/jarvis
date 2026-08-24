@@ -237,6 +237,16 @@ export function activate(context: vscode.ExtensionContext): void {
     rebuildIndex(api);
     log.info(`[Kanban] activated — ${boardIndex.size} owner(s) with boards`);
 
+    // ── Asset provisioning (SPEC_MOD_SKILL_PROVISION) ──────────────────
+
+    const autoProvision = vscode.workspace.getConfiguration('jarvis.kanban').get<boolean>('autoProvision', true);
+    void api.provisionModuleAssets(context, {
+        namespace: 'jarvis-kanban',
+        skillsSourceDir: context.asAbsolutePath('assets/skills'),
+        instructionsSourceDir: context.asAbsolutePath('assets/instructions'),
+        enabled: autoProvision,
+    });
+
     // ── Discovery decorator ────────────────────────────────────────────
 
     for (const kind of ['session', 'project', 'event']) {

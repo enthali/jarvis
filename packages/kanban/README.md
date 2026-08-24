@@ -29,6 +29,17 @@ A board YAML file has three top-level keys:
 - `fields` — field definitions (exactly one must be named `status`)
 - `items` — board items (cards)
 
+## Configuration
+
+On activation, this extension self-provisions its bundled Copilot Skill and
+Instructions files (namespace `jarvis-kanban`) into the workspace's
+`.github/skills/` and `.github/instructions/`, teaching agents how to read
+and write `kanban.yaml` boards.
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| `jarvis.kanban.autoProvision` | Automatically provision (and keep current) the bundled Copilot Skill/Instructions files. Set to `false` to remove them. | `true` |
+
 ## Requirements
 
 - Requires `enthali.jarvis-core` extension

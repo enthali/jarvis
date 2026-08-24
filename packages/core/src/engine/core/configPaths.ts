@@ -153,6 +153,7 @@ export const WORKSPACE_PATHS: ReadonlyArray<{ rel: string; durability: Durabilit
     { rel: '.jarvis/reminders.yaml',     durability: 'transient' },
     { rel: '.jarvis/syspilot-state.json', durability: 'transient' },
     { rel: 'jarvis-*',                   durability: 'transient' },
+    { rel: '!packages/*/assets/**',      durability: 'transient' },
     { rel: '.jarvis/actors/',            durability: 'durable' },
     { rel: '.jarvis/sessions/',          durability: 'durable' },
 ];

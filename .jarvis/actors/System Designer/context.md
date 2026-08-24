@@ -59,29 +59,5 @@ System Designer for Jarvis — designs specs and resolves open design questions 
 
 ## Finding
 
-- Consumer specs must be rewritten to delegate to new primitives, not just
-  linked — redundancy must be eliminated in the spec text, not just flagged.
-- **A deleting threshold cannot be tuned:** it destroys the evidence needed
-  to judge whether it is set right. Prefer a display filter — same relief,
-  reversible, and the user can see what the setting is hiding. Reshaped
-  touched-files-cleanup end to end (CD F-3).
-- **`.jarvis/state/` is not in git** (`transient` in WORKSPACE_PATHS), so any
-  state keyed to workspace file paths is branch-blind — an absent file is
-  indistinguishable from one that is simply not on this branch. Absence is a
-  state, not an event; never treat it as a deletion trigger.
-- **My own claims need the same verification as anyone's.** I committed a
-  rationale in D-7 that was checkable-sounding and did not follow; nobody
-  caught it because reviewers check the claim, not the unwritten mechanism.
-  Before committing a "because", state it in one sentence and test whether
-  the conclusion survives its negation.
-- Before inventing a settings convention, grep for one — `jarvis.scanInterval`
-  already established `minimum: 0` + "0 = disabled", so
-  `jarvis.touchedFiles.windowDays` cost no new convention.
-- **A tasked fix can be forbidden, not merely redundant.** My conformance-gap
-  check asks "does a requirement already mandate this?" — extend it to "does
-  one already rule it out?". `jarvis-gitignore-automanage-followup` asked for
-  four ignore entries; `REQ_CFG_IGNOREPATTERNS` AC-4 forbids two of them.
-- **Verify the artefact, not the intake report.** Two of that CR's four
-  observations were stale — the files had been renamed by an earlier merged CR.
-  A CR description is evidence about what someone saw once, not about the
-  current tree.
+- Durable design lessons live in [memory/lessons.md](memory/lessons.md) —
+  spec writing, verification habits, and repo constraints worth remembering.

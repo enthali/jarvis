@@ -40,6 +40,16 @@
     "yaml": "^2.7.0"
   },
   "contributes": {
+    "configuration": {
+      "title": "Jarvis Kanban",
+      "properties": {
+        "jarvis.kanban.autoProvision": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically provision bundled Copilot Skill and Instructions files into the workspace on activation."
+        }
+      }
+    },
     "commands": [
       {
         "command": "jarvis.openKanbanBoard",
