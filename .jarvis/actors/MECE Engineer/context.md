@@ -15,3 +15,4 @@ This file captures operational details not covered there.
   - Round 1 (MECE baseline): PASS ✅ — 3 new REQs mutually exclusive & collectively exhaustive; full traceability; 8/8 UAT pass; no orthogonality violations
   - Round 3 (post-QM-fix): PASS ✅ — No new issues from gitignore/logging fixes; AC-2/AC-5 now held structurally
 - **CR kanban-skill-content**: PASS ✅ — All 2 new USs, 3 new REQs, 2 new SPECs properly traced; 3 modified REQs/SPECs consistent; 4 GH #57 gaps covered; 12/12 UAT pass; no contradictions
+- **CR agent-mode-reset-race**: PASS ✅ — 2 independent defect fixes (target verification + re-entrancy guard); 1 new US, 2 new REQs, 3 modified SPECs; defects-to-fixes fully traced; 7/7 UAT pass; no contradictions or redundancies

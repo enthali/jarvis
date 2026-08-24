@@ -68,7 +68,10 @@ Prompt Injection Design Specifications
        - Focus the session at the requested placement target via
          ``openAtMain`` or ``openAtSecondary`` (``SPEC_MSG_EDITORPLACEMENT``).
        - If ``entity.agent`` is set, call ``reapplyAgentMode(entity.agent,
-         entityName)`` (GH #25 agent-mode-persistence).
+         entityName)`` (GH #25 agent-mode-persistence). ``entityName`` is the
+         verified target, not a log label: the helper applies the mode only if
+         that session is the focused chat editor, else skips
+         (``agent-mode-reset-race`` CR, ``REQ_MSG_MODETARGET``).
        - Wait 800 ms for the editor to settle.
 
    3b. **New session (spawn):** If no UUID found:

@@ -265,6 +265,49 @@ Messaging User Stories
      editor layout at the moment of the action.
 
 
+.. story:: Agent Mode Changes Only the Session They Target
+   :id: US_MSG_MODETARGET
+   :status: approved
+   :priority: mandatory
+   :links: US_MSG_STABLESESSION; US_MSG_EDITORPLACEMENT
+
+   **As a** Jarvis user,
+   **I want** an agent-mode assignment to affect only the session it was meant
+   for,
+   **so that** a background delivery never silently changes the mode of the
+   session I am working in.
+
+   **Context:**
+   Reproduced 2026-08-21. Creating a new actor session correctly assigns its
+   mode, but a follow-up mode-set lands on the *previously focused* session —
+   observed as the Project Manager session having its mode changed to the new
+   session's mode. The damage is to the bystander session, not the new one.
+
+   The mode-set mechanism (``workbench.action.chat.open<ModeName>``, our
+   workaround for ``microsoft/vscode#317276``) carries no session identity: it
+   applies to whichever chat editor is focused when it runs. Whether the right
+   editor is focused at that instant is currently left to fixed delays. That
+   makes a wrong target possible in normal operation, not only under load.
+
+   **Acceptance Criteria:**
+
+   * AC-1: An agent-mode assignment intended for one session never changes the
+     mode of any other session.
+   * AC-2: When the intended session cannot be confirmed as the target at the
+     moment the mode would change, the mode is left unchanged rather than
+     applied to whatever happens to be focused.
+   * AC-3: A skipped assignment is visible in the log, naming both the intended
+     session and what was actually focused instead.
+   * AC-4: A log line stating that a mode was applied to a session means it was
+     applied to *that* session — success is never reported for an unverified
+     target.
+   * AC-5: Creating several actor sessions in close succession does not cause
+     one delivery's focus handling to interfere with another's.
+   * AC-6: Sessions whose mode assignment is skipped are left usable — the
+     session opens and receives its message as before; only the mode change is
+     withheld.
+
+
 .. story:: Auto-Delivery Skips Actively-Used Sessions
    :id: US_MSG_AUTODELIVERY_OPTOUT
    :status: deprecated

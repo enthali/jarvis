@@ -16,6 +16,16 @@ Durable lessons that should change how I design. Linked from `context.md`.
   user's identically-named one, so it needs an exception list that must grow
   with every new user-owned convention (`syspilot.*.tailoring.md` is that list).
   A manifest needs no list — the isolation is structural.
+- **A delay cannot establish a precondition** — it only makes violations rarer
+  while hiding that they still happen. When a command acts on ambient state
+  (whatever is focused/selected/current), specify a check of that state
+  immediately before the call, and skip on mismatch. `reapplyAgentMode` fired
+  a focus-targeted mode command guarded only by `setTimeout(400)`.
+- **A log line that asserts an unverified fact is part of the defect.** The same
+  helper logged `re-applied mode "X" to session "Y"` using the *intended* name
+  while the command hit whatever was focused — so the logs asserted the opposite
+  of what happened, and the bug went unroot-caused for days. Success must be
+  claimed only on the branch where the check passed.
 
 ## Verification
 

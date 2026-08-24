@@ -19,6 +19,7 @@ This file captures operational details not covered there.
 
 ## Next
 
+- `agent-mode-reset-race` PASSED verification (ff010fa). Both defects A and B independently verified and correctly fixed. Fix A: identity check (L323) guards mode write; mismatch skips; success log guarded (L329). Fix B: re-entrancy guard (L1502 flag, L1507–1509 check, L1517–1545 try/finally) prevents overlapping deliveries; finally release prevents deadlock; reminder processing unguarded (L1551–1563). No timing assumptions; exception-safe. Both fixes independent, each sufficient. CD note on unestablished causal attribution acknowledged (symptom class addressed). Validation report committed. Responded to CM.
 - `kanban-skill-content` PASSED verification (6eec368). Schema AC-6/AC-7/AC-8 satisfied; validator AC-5/AC-6/AC-7 satisfied; renderer AC-3a satisfied; skill content AC-1..AC-6 satisfied; instructions AC-1..AC-5 satisfied. All CD-identified issues (D-L0-1/L0-2/L1-4) resolved. Backward compat verified. Validation report committed. Responded to CM; ready for UAT.
 - `module-skill-provisioning` PASSED verification (6b047a9). Ready to merge in sequence with kanban-skill-content.
 - `touched-files-wsl-existence` PASSED R4 (dd912ce, local — never pushed). AC-27 reconciled, spec `implemented`. **Open:** AC-24's record-key clause is unimplemented under that marker — recommended amending AC-24 as AC-27 was. Manual WSL gate still outstanding (O-1 never answered).

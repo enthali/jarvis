@@ -106,6 +106,15 @@
 
 ## Recently Shipped
 
+- **agent-mode-reset-race** merged to `development` 2026-08-24 (backlog item 8).
+  Fixed the Agent Mode misassignment bug: added a target-identity check before
+  the mode-set command executes (skip + warn on mismatch instead of blindly
+  firing), moved the success log inside that check, plus an unrelated
+  delivery-loop re-entrancy guard. Took 4 QM rounds — Round 3 caught a
+  self-inflicted AC-7 regression (a "fix the spec" decision got executed
+  backwards, code synced to a buggy spec sample and dropped an error catch);
+  corrected before merge. User-validated live in the EDH. Clean squash-merge,
+  no stacking (independent branch off `development`).
 - **module-skill-provisioning** + **kanban-skill-content** merged to `development`
   2026-08-24 (squashed in that order; stacked-branch second squash-merge produced
   expected conflicts on files both CRs touched — resolved by taking the incoming

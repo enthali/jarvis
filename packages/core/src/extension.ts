@@ -303,26 +303,34 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
      * so we probe the command registry first and no-op (with a warning) if it
      * is not yet available, rather than throwing `command not found`.
      *
-     * @param agent   The agent/mode name (e.g. "Test Manager"), as stored on
-     *                the entity's `agent` field.
-     * @param context Short label for logging (session name).
+     * @param agent       The agent/mode name (e.g. "Test Manager"), as stored
+     *                    on the entity's `agent` field.
+     * @param sessionName The name of the session the mode change targets.
+     *                    Compared against the active tab label to prevent
+     *                    mis-targeted mode commands.
      */
-    async function reapplyAgentMode(agent: string, context: string): Promise<void> {
+    async function reapplyAgentMode(agent: string, sessionName: string): Promise<void> {
         try {
-            // Let the freshly-opened editor tab settle so it is the focused
-            // (active-element) chat widget before the mode-specific command runs.
             await new Promise(resolve => setTimeout(resolve, 400));
             const cmdId = `workbench.action.chat.open${agent}`;
             const available = await vscode.commands.getCommands(true);
             if (!available.includes(cmdId)) {
-                log.warn(`[MSG] reapplyAgentMode: command "${cmdId}" not registered yet — skipping for "${context}"`);
+                log.warn(`[MSG] reapplyAgentMode: command "${cmdId}" not registered yet — skipping for "${sessionName}"`);
+                return;
+            }
+            const activeLabel = vscode.window.tabGroups.activeTabGroup.activeTab?.label;
+            if (activeLabel !== sessionName) {
+                log.warn(
+                    `[MSG] reapplyAgentMode: skipped — intended "${sessionName}" `
+                    + `but focused tab is "${activeLabel ?? '<none>'}"`
+                );
                 return;
             }
             await vscode.commands.executeCommand(cmdId);
             await new Promise(resolve => setTimeout(resolve, 300));
-            log.info(`[MSG] reapplyAgentMode: re-applied agent mode "${agent}" to session "${context}"`);
+            log.info(`[MSG] reapplyAgentMode: re-applied agent mode "${agent}" to session "${sessionName}"`);
         } catch (err) {
-            log.warn(`[MSG] reapplyAgentMode: failed to re-apply agent mode "${agent}" for "${context}": ${err}`);
+            log.warn(`[MSG] reapplyAgentMode: failed to re-apply agent mode "${agent}" for "${sessionName}": ${err}`);
         }
     }
 
@@ -1492,6 +1500,9 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
 
 
 
+    // Re-entrancy guard (agent-mode-reset-race CR, REQ_MSG_DELIVERY_REENTRANCY).
+    let deliveryInFlight = false;
+
     // Auto-delivery poll loop (SPEC_MSG_AUTODELIVER_POLL)
     const pollInterval = setInterval(async () => {
         const messagesPath = resolveMessagesPath();
@@ -1502,9 +1513,15 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
                 const pending = messages.filter(m => m.destination === sessionName && !m.notified);
                 if (pending.length === 0) { continue; }
 
-                // Snapshot focus before the disruptive delivery (SPEC_MSG_FOCUSRESTORE)
-                const focus = await snapshotFocus();
+                if (deliveryInFlight) {
+                    log.debug('[MSG] autoDelivery: tick skipped — delivery still in flight');
+                    break;
+                }
+                deliveryInFlight = true;
                 try {
+                    // Snapshot focus before the disruptive delivery (SPEC_MSG_FOCUSRESTORE)
+                    const focus = await snapshotFocus();
+
                     // Compose notification stub (SPEC_MSG_NOTIFICATION_RESOLVE)
                     const cfg = vscode.workspace.getConfiguration('jarvis');
                     const senders = [...new Set(pending.map(m => m.sender))].join(', ');
@@ -1519,15 +1536,21 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
 
                     // Mark messages as notified
                     const updated = readQueue(messagesPath);
-                    let changed = false;
-                    for (const m of updated) { if (m.destination === sessionName && !m.notified) { m.notified = true; changed = true; } }
-                    if (changed) { writeQueue(messagesPath, updated); messageProvider.reload(); }
+                    for (const m of updated) {
+                        if (m.destination === sessionName && !m.notified) { m.notified = true; }
+                    }
+                    writeQueue(messagesPath, updated);
+                    messageProvider.reload();
 
                     // Restore the user's prior focus immediately, no artificial
                     // delay (SPEC_MSG_FOCUSRESTORE)
                     await restoreFocus(focus);
-                } catch (err) { log.warn(`[MSG] autoDelivery: delivery failed for "${sessionName}": ${err}`); }
-                break; // max 1 delivery per tick
+                } catch (err) {
+                    log.warn(`[MSG] autoDelivery: delivery failed for "${sessionName}": ${err}`);
+                } finally {
+                    deliveryInFlight = false;
+                }
+                break; // max one session per tick
             }
         }
 

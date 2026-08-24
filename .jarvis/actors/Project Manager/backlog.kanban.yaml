@@ -51,10 +51,10 @@ items:
     notes: "Migrated from PM context.md 2026-08-21 — never actually branched despite being noted as 'in flight' on 2026-08-05."
   - id: 8
     name: "Bug: error assigning Agent Modes — our undocumented-VS Code-API patch may be breaking"
-    status: Backlog
+    status: Done
     priority: High
     labels: ["P1", "bug"]
-    notes: "2026-08-21, user-reported and reproduced. Likely fallout from agent-mode-persistence (GH #25, shipped v0.14.0-era 2026-07-14): re-applies mode via VS Code's undocumented workbench.action.chat.open<ModeName> command, working around microsoft/vscode#317276. Repro (2026-08-21): Dev Engineer creates a new session via sendMessage — open/rename/prompt-assign/initial mode-set all succeed — but the mode-set command then fires again and lands in Project Manager (the last-active session) instead. Possible timing issue (focus already switched back before the command runs) or the create-session sequence isn't awaited/ordered correctly. Not yet root-caused."
+    notes: "Fixed via CR 'agent-mode-reset-race', QM CLEARED (Round 4 after 2 re-verify rounds), user-validated in EDH, merged to development 2026-08-24. Root causes: (1) mode-set command lacked a target-identity check before executing, so it could land on the wrong (previously-focused) session; (2) success log asserted unconditionally instead of only when the target matched; (3) unrelated delivery-loop re-entrancy guard added defensively. Round 3 caught a self-inflicted AC-7 regression (dropped error catch while syncing code to a buggy spec sample) before merge."
   - id: 9
     name: "Bug: Recently Touched Files only tracks modifications, not newly created files"
     status: Backlog
