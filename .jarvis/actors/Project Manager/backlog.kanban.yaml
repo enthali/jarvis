@@ -62,9 +62,9 @@ items:
     labels: ["bug"]
     notes: "2026-08-24, user-reported. A newly created file doesn't show up in Recently Touched Files, only edits to existing ones do. Small fix."
   - id: 10
-    name: "Bug: gitignore 'jarvis-*' managed entry is unanchored, matches any file/dir by name anywhere in tree"
-    status: Backlog
+    name: "gitignore 'jarvis-*' managed entry matches any file/dir by name anywhere in tree"
+    status: Done
     priority: Medium
-    labels: ["bug"]
-    notes: "Found 2026-08-24 while committing docs/changes/jarvis-kanban-skill.md — git check-ignore confirmed .gitignore:31 jarvis-* swallowed it. Pattern meant for root-level VSIX build artifacts (e.g. jarvis-core-x.y.z.vsix) but the WORKSPACE_PATHS entry (configPaths.ts) has no leading slash, so it matches at any depth by filename. Fix: anchor to /jarvis-*.vsix or similar."
+    labels: ["not-a-bug"]
+    notes: "Found 2026-08-24 while committing docs/changes/jarvis-kanban-skill.md — git check-ignore confirmed .gitignore:31 jarvis-* swallowed it. Initially logged as a bug (unanchored WORKSPACE_PATHS entry in configPaths.ts). User clarified 2026-08-24: intentional — anything named jarvis-* anywhere is extension-delivered content, never meant to be tracked in git, at any depth. Closed as working-as-intended, no code change. Underlying trigger (a CD file named jarvis-kanban-skill.md) was itself a naming slip fixed by renaming to kanban-skill-content, consistent with the CD naming convention anyway."
 
