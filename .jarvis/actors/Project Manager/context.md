@@ -102,19 +102,24 @@
 
 ## Active CR
 
-_(none — 0.26.0 release in progress, SENT to Release Engineer 2026-08-26,
-awaiting completion confirmation)_
+_(none)_
 
 ## Recently Shipped
 
+- **v0.26.0 released** 2026-08-26 (tag `ae51eb8` on `main`, back-merged to
+  `development` at `0a8f836`). Ships kanban-management-tools,
+  kanban-skill-content, module-skill-provisioning (features) +
+  kanban-update-validation, agent-mode-reset-race (fixes). No GH issues
+  closed (none of the 5 CDs carried a formal GitHub Issue line).
 - **touched-files-created-files** (backlog item 9) — CLOSED 2026-08-26 as
-  **not reproducible**, no code changed. SD reproduced live with the user on
-  Windows + WSL2: `create_file` has been in `TOUCH_RULES` since the feature's
-  original commit, created files are tracked and render correctly, 35/35
-  corpus files since 2026-08-24 tracked. Real finding routed separately:
-  `TOUCH_RULES`'s 4-tool allowlist silently drops writes from any tool not on
-  it (no log at any level) — logged as backlog item 18 (observability, log
-  unmatched tool_names before extending the list).
+  **not reproducible**, no code changed, CD deleted (nothing to archive). SD
+  reproduced live with the user on Windows + WSL2: `create_file` has been in
+  `TOUCH_RULES` since the feature's original commit, created files are
+  tracked and render correctly, 35/35 corpus files since 2026-08-24 tracked.
+  Real finding routed separately: `TOUCH_RULES`'s 4-tool allowlist silently
+  drops writes from any tool not on it (no log at any level) — logged as
+  backlog item 18 (observability, log unmatched tool_names before extending
+  the list).
 - **kanban-update-validation** merged to `development` 2026-08-26 (F-1 follow-up,
   stacked on `feature/kanban-management-tools`). `jarvis_updateKanbanItem` now
   delegates to the shared `validateItemValues` helper instead of its old

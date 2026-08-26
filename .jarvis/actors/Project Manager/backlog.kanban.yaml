@@ -60,7 +60,7 @@ items:
     status: Done
     priority: Medium
     labels: ["bug", "not-reproducible"]
-    notes: "CLOSED 2026-08-26 as not reproducible (CR 'touched-files-created-files', no code change). SD reproduced live with user on Windows + WSL2: create_file has been in TOUCH_RULES since the feature's original commit, created files are tracked and render correctly, 35/35 corpus files since 2026-08-24 tracked, zero misses. Real finding routed to item 18."
+    notes: "CLOSED 2026-08-26 as not reproducible (CR 'touched-files-created-files', no code change, CD deleted 2026-08-26 — nothing to archive). SD reproduced live with user on Windows + WSL2: create_file has been in TOUCH_RULES since the feature's original commit, created files are tracked and render correctly, 35/35 corpus files since 2026-08-24 tracked, zero misses. Real finding routed to item 18."
   - id: 10
     name: "gitignore 'jarvis-*' managed entry matches any file/dir by name anywhere in tree"
     status: Done
