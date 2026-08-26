@@ -102,16 +102,26 @@
 
 ## Active CR
 
-- **actor-kernel-instructions-delivery** (backlog item 19) — dispatched to CM
-  2026-08-26 on `feature/actor-kernel-instructions-delivery`, **autonomous**
-  mode. Ships the three `jarvis-actor-*` instruction files from `jarvis-core`
-  via the existing `provisionModuleAssets` mechanism; source of truth moves to
-  `packages/core/assets/instructions/`. Content baseline consolidated from 5
-  drifted workspace copies. User reversed the prior "private IP, not for
-  public repo" stance — released under the project's MIT license.
+- (none)
 
 ## Recently Shipped
 
+- **actor-kernel-instructions-delivery** (backlog item 19) — merged to
+  `development` 2026-08-26 (`6a96081`). Ships the three `jarvis-actor.*`
+  instruction files (kernel/memory/authoring, dot-separated names — required
+  by the provisioning helper's namespace-prefix gate) from
+  `packages/core/assets/instructions/` via the existing `provisionModuleAssets`
+  mechanism. `jarvis.actor.autoProvision` defaults **false** (optional assets
+  → default false, vs. kanban's required-asset default true — same
+  underlying principle, not a contradiction). Content baseline consolidated
+  from 5 drifted workspace copies (jarvis/syspilot/Automobil/Assistant/sonar):
+  kernel = Automobil's superset, memory = common + "Memory First" rule,
+  authoring = common version. User reversed the prior "private IP" stance —
+  released under the project's MIT license. QM CLEARED twice (Round 1 MECE,
+  Round 2 independent QM review — live diff, byte-compared content, clean
+  `tsc`+`vitest`), one Low process finding (CM's dispatch template should say
+  "PM" not "Change Manager" for findings routing) routed to CM to fix, not
+  blocking. User-confirmed merge 2026-08-26.
 - **v0.26.0 released** 2026-08-26 (tag `ae51eb8` on `main`, back-merged to
   `development` at `0a8f836`). Ships kanban-management-tools,
   kanban-skill-content, module-skill-provisioning (features) +
