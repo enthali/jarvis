@@ -1,5 +1,15 @@
 # Release Notes
 
+## v0.27.0 — Actor Kernel Instructions Delivery
+
+*2026-08-26*
+
+### Features
+
+- **actor-kernel-instructions-delivery**: `jarvis-core` now ships the three Jarvis actor Copilot Instructions files (`jarvis-actor.kernel.instructions.md`, `jarvis-actor.memory.instructions.md`, `jarvis-actor.authoring.instructions.md`) via the existing module asset provisioning mechanism. These files define the behavioral contract every Jarvis actor follows — identity recovery, memory ownership, SEND/RECEIVE/RESPOND messaging, clean-tree commit discipline, escalation, culture, memory-graph structure, and authoring discipline. They are installed into the workspace's `.github/instructions/` on activation (opt-in via `jarvis.actor.autoProvision: true`; setting it back to `false` removes them). The source of truth moves from ad-hoc hand-copies in each workspace (which had diverged across five observed workspaces) to a single tracked baseline in `packages/core/assets/instructions/`. Content baseline is the most-complete observed version for `kernel`, the four-workspace-common version for `authoring`, and that same base plus one reconciled "Memory first" rule for `memory`. Previously gitignored as private IP; released under MIT with this change.
+
+---
+
 ## v0.26.0 — Kanban Management Tools + Module Asset Provisioning
 
 *2026-08-26*
