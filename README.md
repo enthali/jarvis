@@ -34,6 +34,7 @@ capability modules. Install only what you need.
   jarvis_injectPrompt(actor="Change Manager", text="/compact")
   ```
 - **Module asset provisioning** — `provisionModuleAssets(context, config)` lets any add-on self-install its own bundled Copilot Skills/Instructions into the workspace's `.github/skills/` and `.github/instructions/` on activation; namespaced, idempotent, and orphan-safe, without touching user-authored or other modules' files
+- **Actor kernel instructions** — core ships three bundled Copilot Instructions files (`jarvis-actor.kernel`, `jarvis-actor.memory`, `jarvis-actor.authoring`) that teach AI assistants the Jarvis actor behavioral contract; opt-in via `jarvis.actor.autoProvision: true`
 
 ### Jarvis PIM
 
@@ -72,6 +73,7 @@ capability modules. Install only what you need.
 | `jarvis.gitignore.autoManage` | Maintain a marked region in the workspace `.gitignore` listing Jarvis transient runtime paths. Set to `false` to remove the region. | `true` |
 | `jarvis.releaseNotes.showOnUpdate` | Open the release notes in the editor the first time a newly installed Jarvis version runs. | `true` |
 | `jarvis.touchedFiles.windowDays` | Rolling window in days — only files touched within this window are shown in Recently Touched Files (0 = no limit). | `0` |
+| `jarvis.actor.autoProvision` | Provision bundled Actor Kernel Copilot Instructions files into `.github/instructions/`. Set to `true` to install; set back to `false` to remove. | `false` |
 
 ## Installation
 

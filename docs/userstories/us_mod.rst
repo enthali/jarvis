@@ -78,3 +78,43 @@ Modular Delivery User Stories
    * AC-6: Where a module chooses to make provisioning optional, turning it off
      removes the files that module previously installed, and turning it back on
      restores them on the next activation.
+
+
+.. story:: Actor Behavioural Rules Delivered With the Product
+   :id: US_MOD_ACTORRULES
+   :status: approved
+   :priority: required
+   :links: US_MOD_SKILL_PROVISION; US_ACT_ACTORS
+
+   **As a** Jarvis user who runs actors in a workspace,
+   **I want** the actor behavioural rules — kernel, memory discipline, authoring
+   discipline — to arrive and stay current with the Jarvis extension itself,
+   **so that** every actor in every one of my workspaces behaves consistently
+   without me copying instruction files between repositories by hand.
+
+   **Context:**
+   These three files are currently hand-maintained per repository. Four
+   repositories carry near-identical copies that have already drifted, and
+   nothing detects the drift — an actor in one workspace can be operating under
+   a materially different kernel than an actor in another. The files are now
+   MIT-licensed, so shipping them inside ``jarvis-core`` is possible; the
+   provisioning primitive (``US_MOD_SKILL_PROVISION``) already exists and needs
+   no extension.
+
+   The rules govern *actors* specifically, not the whole core module — core is
+   also heartbeat, messaging, and sessions. A workspace that uses Jarvis without
+   actors has no use for them.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The three actor rule files are delivered by the Jarvis extension
+     itself; no manual copying between repositories is required.
+   * AC-2: Updating the extension updates the rules, so all workspaces that opt
+     in converge on one version.
+   * AC-3: **Nothing is written into a workspace unless the user opts in.** A
+     workspace that does not run actors receives none of these files by default
+     — a customer project stays free of them.
+   * AC-4: Opting out again removes the files the extension installed, and
+     leaves anything it did not install untouched.
+   * AC-5: The rules are recognisable as product-managed rather than
+     hand-authored, so nobody edits the workspace copy expecting it to survive.

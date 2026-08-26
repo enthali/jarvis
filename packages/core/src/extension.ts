@@ -29,7 +29,7 @@ import { ActivityDecorator } from './engine/hooks/activityDecorator';
 import { TouchStore } from './engine/hooks/touchStore';
 import { TouchTracker } from './engine/hooks/touchTracker';
 import { applyGitignore, setIgnoreManagerLogger } from './engine/core/gitignoreManager';
-import { setAssetProvisioningLogger } from './engine/core/assetProvisioning';
+import { setAssetProvisioningLogger, provisionModuleAssets } from './engine/core/assetProvisioning';
 import { announceIfNewVersion, showReleaseNotes } from './engine/core/releaseNotes';
 
 import { CronExpressionParser } from 'cron-parser';
@@ -114,6 +114,14 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
 
     // Gitignore auto-management (SPEC_CFG_IGNOREMANAGER)
     applyGitignore();
+
+    // Actor instructions provisioning (SPEC_MOD_ACTORRULES)
+    const actorProvisionEnabled = vscode.workspace.getConfiguration('jarvis.actor').get<boolean>('autoProvision', false);
+    void provisionModuleAssets(context, {
+        namespace: 'jarvis-actor',
+        instructionsSourceDir: context.asAbsolutePath('assets/instructions'),
+        enabled: actorProvisionEnabled,
+    });
 
     // Hook Engine (SPEC_HOOK_LOG, SPEC_HOOK_INTAKE, SPEC_HOOK_CONFIG)
     const hookEngine = new HookEngine(log);

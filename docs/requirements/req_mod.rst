@@ -207,10 +207,128 @@ Modular Delivery Requirements
      manifest, and write nothing.
    * AC-3: When ``enabled`` returns to ``true``, provisioning SHALL resume in full
      on the next activation — no residual disabled state is persisted.
-   * AC-4: A module that exposes a user setting for this SHALL name it
-     ``jarvis.<module>.autoProvision`` (boolean, default ``true``) and pass its
-     value as ``enabled``. A module whose assets are functionally required MAY
-     omit the setting entirely and never pass ``enabled: false``.
+   * AC-4: A module that exposes a user setting for this SHALL derive its name
+     from the **asset namespace**, not the module: ``jarvis.`` + the namespace
+     with its leading ``jarvis-`` removed + ``.autoProvision`` (boolean). So
+     namespace ``jarvis-kanban`` yields ``jarvis.kanban.autoProvision`` and
+     namespace ``jarvis-actor`` yields ``jarvis.actor.autoProvision``. The
+     namespace rather than the module is the unit because one module may
+     provision several namespaces (``actor-kernel-instructions-delivery`` CR:
+     ``packages/core`` ships the ``jarvis-actor`` set and may later ship
+     others), and a per-module name could then govern two unrelated asset sets.
+   * AC-4a: (``actor-kernel-instructions-delivery`` CR) The setting's **default
+     SHALL reflect whether the assets are required for the module to function**,
+     not a fixed value:
+
+     - Required — the module cannot be used correctly without them — default
+       ``true``, and the module MAY omit the setting entirely and never pass
+       ``enabled: false``. Example: without the kanban skill an agent does not
+       know how to read or write ``kanban.yaml``.
+     - Not required — the assets serve a usage mode the workspace may not be in
+       — default ``false``, so a workspace receives nothing it did not ask for.
+       Example: the ``jarvis-actor`` rule set is meaningless in a workspace that
+       runs no actors.
+
+     This supersedes the flat "default ``true``" previously stated in AC-4.
    * AC-5: The core helper SHALL NOT read any configuration setting itself — the
      calling module supplies the value. This keeps ``REQ_MOD_ZEROTRACE`` intact:
      no setting for an uninstalled module exists anywhere.
+
+
+.. req:: Actor Rule Set Delivery
+   :id: REQ_MOD_ACTORRULES
+   :status: approved
+   :priority: required
+   :links: US_MOD_ACTORRULES; REQ_MOD_SKILL_PROVISION; REQ_MOD_SKILL_OPTOUT; REQ_MOD_CORE
+
+   **Description:**
+   ``packages/core`` SHALL bundle the three actor behavioural rule files and
+   provision them through the existing ``provisionModuleAssets`` helper. This
+   requirement adds a *consumer* of that mechanism; it changes nothing about the
+   mechanism itself.
+
+   **Asset set:**
+
+   Source of truth is ``packages/core/assets/instructions/``, tracked in git via
+   the ``!packages/*/assets/**`` negation (``.gitignore``), which exempts it from
+   the repository-wide ``jarvis-*`` ignore.
+
+   .. list-table::
+      :header-rows: 1
+
+      * - File
+        - Content baseline
+      * - ``jarvis-actor.kernel.instructions.md``
+        - The strict superset containing "End your turn with a clean tree" and
+          the scope-escalation paragraph
+      * - ``jarvis-actor.memory.instructions.md``
+        - The common cross-repository version plus the one reconciled added rule
+      * - ``jarvis-actor.authoring.instructions.md``
+        - The common cross-repository version, unchanged
+
+   **Acceptance Criteria:**
+
+   * AC-1: The namespace SHALL be ``jarvis-actor``, and every bundled filename
+     SHALL begin ``jarvis-actor.`` so it satisfies
+     ``REQ_MOD_SKILL_PROVISION`` AC-2 without any change to that rule.
+   * AC-2: The filenames SHALL also begin ``jarvis-`` so the repository-wide
+     ``jarvis-*`` ignore continues to classify the provisioned copies as
+     product-generated rather than user source. Both conventions are satisfied
+     by the single shape ``jarvis-<namespace-tail>.<topic>.instructions.md``.
+   * AC-3: ``packages/core`` SHALL contribute
+     ``jarvis.actor.autoProvision`` (boolean, **default** ``false``) per
+     ``REQ_MOD_SKILL_OPTOUT`` AC-4/AC-4a, and pass it as ``enabled``.
+     Default ``false`` because the rules govern actor operation, which is a
+     usage mode many workspaces are not in (``US_MOD_ACTORRULES`` AC-3).
+   * AC-4: Core's ``activate()`` SHALL call ``provisionModuleAssets`` with
+     ``instructionsSourceDir`` only — this set ships no skills.
+   * AC-5: With the setting ``false``, no file SHALL be written into the
+     workspace, and any previously provisioned file SHALL be removed
+     (``REQ_MOD_SKILL_OPTOUT`` AC-2).
+   * AC-6: The ``jarvis-actor.*`` rule files SHALL NOT duplicate
+     ``jarvis-actor-memory-repository.instructions.md``, which stays
+     syspilot-private and is out of scope.
+   * AC-7: ``.gitignore`` SHALL NOT be changed to un-ignore
+     ``.github/instructions/``. With the source of truth in
+     ``packages/core/assets/instructions/``, the workspace copy is generated
+     output, and generated output stays ignored. Only the stale rationale
+     comment is corrected (``REQ_MOD_ACTORRULES`` AC-8).
+   * AC-8: The ``.gitignore`` comment above ``.github/instructions/`` SHALL be
+     corrected. It currently reads "Actor Kernel instructions — private IP, not
+     for public repo", which is false twice over: the files are MIT-licensed,
+     and the directory is now provisioned output rather than private source.
+
+
+.. req:: Actor Rule Set Migration
+   :id: REQ_MOD_ACTORRULES_MIGRATE
+   :status: approved
+   :priority: required
+   :links: US_MOD_ACTORRULES; REQ_MOD_SKILL_ORPHAN
+
+   **Description:**
+   The three rule files already exist in developer workspaces under their
+   pre-convention hyphenated names (``jarvis-actor-kernel.instructions.md`` and
+   siblings). Those copies are **not** in any provisioning manifest, so
+   ``REQ_MOD_SKILL_ORPHAN`` AC-3 correctly forbids the helper from removing
+   them — they must be retired deliberately.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The pre-convention filenames SHALL be documented as superseded, with
+     the one-time removal recorded as an explicit migration step rather than
+     left for the helper to perform.
+   * AC-2: Until they are removed, both the old and new files apply
+     (``applyTo: "**"`` in each), so a workspace runs two copies of the same
+     rules simultaneously. The migration note SHALL state this consequence, as
+     it is the reason the step is not optional.
+   * AC-3: The removal SHALL NOT be automated by extending the helper to delete
+     files it did not write. That would void the guarantee in
+     ``REQ_MOD_SKILL_ORPHAN`` AC-3, which is the property protecting every
+     user-authored file in ``.github/instructions/``.
+   * AC-4: Workspaces that never opted in are unaffected — with
+     ``jarvis.actor.autoProvision`` defaulting to ``false``, no new file is
+     written and no collision arises.
+   * AC-5: (**Data-loss note**) ``.github/instructions/`` is git-ignored, so the
+     existing files are unversioned. Any local edit to them is unrecoverable
+     once superseded. The migration note SHALL say so, so a user who customised
+     a copy can rescue it before opting in.

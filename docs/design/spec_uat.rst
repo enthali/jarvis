@@ -62,6 +62,7 @@ outcome tables** for each feature's acceptance tests.
    spec_uat_msg_modetarget
    spec_uat_kanban_mgmt
    spec_uat_kanban_update_valid
+   spec_uat_mod_actorrules
 
 All UAT Specifications
 ----------------------

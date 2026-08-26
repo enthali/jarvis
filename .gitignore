@@ -2,7 +2,7 @@
 *.vsix
 *.pyc
 
-# Actor Kernel instructions — private IP, not for public repo
+# Actor instructions — provisioned output, source of truth is packages/core/assets/
 .github/instructions/
 
 #environment files

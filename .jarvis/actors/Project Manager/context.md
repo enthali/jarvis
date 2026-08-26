@@ -102,7 +102,13 @@
 
 ## Active CR
 
-_(none)_
+- **actor-kernel-instructions-delivery** (backlog item 19) — dispatched to CM
+  2026-08-26 on `feature/actor-kernel-instructions-delivery`, **autonomous**
+  mode. Ships the three `jarvis-actor-*` instruction files from `jarvis-core`
+  via the existing `provisionModuleAssets` mechanism; source of truth moves to
+  `packages/core/assets/instructions/`. Content baseline consolidated from 5
+  drifted workspace copies. User reversed the prior "private IP, not for
+  public repo" stance — released under the project's MIT license.
 
 ## Recently Shipped
 

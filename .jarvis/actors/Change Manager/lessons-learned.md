@@ -1,6 +1,7 @@
 # Lessons Learned — Change Manager
 
 - **Change Document belongs on the feature branch** — never commit it to develop directly
+- **QM dispatch wording** — ask QM to "report findings to PM", not "Change Manager"; QM always routes to PM directly regardless of dispatch wording
 - **Merge only after explicit UAT PASS** — never merge implementation before UAT completes
 - **Delegate design to syspilot.design** — CM never writes specs or RST directly
 - **Create Change Document before any engineering** — first artifact, captures intent and decisions
