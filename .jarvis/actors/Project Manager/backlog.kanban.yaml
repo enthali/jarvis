@@ -1,5 +1,5 @@
 title: backlog
-nextId: 18
+nextId: 19
 fields:
   - name: status
     type: single_select
@@ -57,10 +57,10 @@ items:
     notes: "Fixed via CR 'agent-mode-reset-race', QM CLEARED (Round 4 after 2 re-verify rounds), user-validated in EDH, merged to development 2026-08-24. Root causes: (1) mode-set command lacked a target-identity check before executing, so it could land on the wrong (previously-focused) session; (2) success log asserted unconditionally instead of only when the target matched; (3) unrelated delivery-loop re-entrancy guard added defensively. Round 3 caught a self-inflicted AC-7 regression (dropped error catch while syncing code to a buggy spec sample) before merge."
   - id: 9
     name: "Bug: Recently Touched Files only tracks modifications, not newly created files"
-    status: Backlog
+    status: Done
     priority: Medium
-    labels: ["bug"]
-    notes: "2026-08-24, user-reported. A newly created file doesn't show up in Recently Touched Files, only edits to existing ones do. Small fix."
+    labels: ["bug", "not-reproducible"]
+    notes: "CLOSED 2026-08-26 as not reproducible (CR 'touched-files-created-files', no code change). SD reproduced live with user on Windows + WSL2: create_file has been in TOUCH_RULES since the feature's original commit, created files are tracked and render correctly, 35/35 corpus files since 2026-08-24 tracked, zero misses. Real finding routed to item 18."
   - id: 10
     name: "gitignore 'jarvis-*' managed entry matches any file/dir by name anywhere in tree"
     status: Done
@@ -102,4 +102,9 @@ items:
     status: Backlog
     priority: Low
     notes: "QM Round 2 (2026-08-26) on kanban-update-validation, deferred (not blocking, out of that CR's scope — package.json untouched there). package.json's inputSchema types every key under changes as string; labels needs an array. Either loosen the schema to accept an array for labels, or document that labels can't be updated via this tool. Pre-existing, not introduced by kanban-update-validation."
+  - id: 18
+    name: "TOUCH_RULES silently drops writes from any tool not on its 4-tool allowlist — no log at any level"
+    status: Backlog
+    priority: Low
+    notes: "SD finding while investigating item 9 (2026-08-26, CR touched-files-created-files, closed not-reproducible). The allowlist itself is fine (deliberate, per REQ_ENT_TOUCHEDFILES AC-2d — no path-sniffing fallback); the defect is that the system can't report when the list is stale for a given model/VS Code version. Recommended: log unmatched tool_names at debug, deduplicated per session, before extending the allowlist — observability first, then extend from evidence not guesses."
 

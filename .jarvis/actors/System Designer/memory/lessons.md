@@ -44,6 +44,18 @@ Durable lessons that should change how I design. Linked from `context.md`.
   `ownerName` convention that inverted the implemented one — while dropping the
   gap the reporter said cost the most time. A summary is a lossy re-encoding;
   when a CR cites an issue, the issue is the requirement.
+- **Reproduce before designing a bug fix, and reproduce against live state.**
+  `touched-files-created-files` asserted creates were never tracked; `git log -S`
+  showed the rule present since the feature's first commit, the on-disk store
+  showed pure-create entries, and a live `create_file` test tracked correctly.
+  Closed as not reproducible — no spec written. Runtime state on disk is
+  stronger evidence than reading the code path.
+- **A non-reproducible report can still contain a real finding.** That CR's
+  behaviour was fine, but the investigation exposed a silent drop: unmatched
+  `tool_name`s return with no log, so a closed allowlist against a tool surface
+  that varies by model/version cannot report when it is wrong. Fix
+  observability before extending such a list — otherwise the list is extended
+  from guesses and goes stale again.
 - **Traceability holds only if `:links:` says so.** Modifying a SPEC to realise
   a new REQ does not link them — I edited three kanban specs for
   `REQ_KAN_TEXTFIELD` and left it childless until the depth-2 impact query
