@@ -2,7 +2,7 @@
   "name": "jarvis-core",
   "displayName": "Jarvis Core",
   "description": "Jarvis core — sessions, messaging, reminders, heartbeat, engine",
-  "version": "0.26.0",
+  "version": "0.27.0",
   "publisher": "enthali",
   "icon": "resources/jarvis-128.png",
   "keywords": [
@@ -207,7 +207,12 @@
       {
         "title": "Actors",
         "properties": {
-          "jarvis.sessions.enabled": { "type": "boolean", "default": true, "description": "Enable the Actors feature." }
+          "jarvis.sessions.enabled": { "type": "boolean", "default": true, "description": "Enable the Actors feature." },
+          "jarvis.actor.autoProvision": {
+            "type": "boolean",
+            "default": false,
+            "description": "Automatically provision bundled actor instruction files into the workspace on activation. Default false — enable in workspaces that use Jarvis actors."
+          }
         }
       },
       {

@@ -372,7 +372,8 @@ Configuration Requirements
    (``jarvis-hook-file-prefix`` CR, GH #58). It is already applied to
    ``.github/hooks/jarvis-hooks.json`` and repo-wide (``jarvis-core``,
    ``jarvis-flow``, ``jarvis-pim``, ``jarvis-recorder``, ``jarvis-mcp``,
-   ``jarvis-suite``, ``jarvis-128.png``, ``jarvis-actor-kernel.instructions.md``).
+   ``jarvis-suite``, ``jarvis-128.png``,
+   ``jarvis-actor.kernel.instructions.md``).
    Two files generated later into the same directory — ``bridge.mjs`` and
    ``port`` — did not inherit it. This requirement therefore states the rule
    **prospectively**, binding files Jarvis adds in future, rather than

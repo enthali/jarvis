@@ -409,6 +409,105 @@ Modular Delivery Design Specifications
      the assets are present in the packaged VSIX.
 
 
+.. spec:: Actor Rule Set Provisioning
+   :id: SPEC_MOD_ACTORRULES
+   :status: approved
+   :links: REQ_MOD_ACTORRULES; REQ_MOD_ACTORRULES_MIGRATE; SPEC_MOD_SKILL_PROVISION; SPEC_MOD_CORE_PKG
+
+   **Description:**
+   ``packages/core`` becomes the first consumer of its own provisioning helper.
+   No change to ``SPEC_MOD_SKILL_PROVISION`` or ``SPEC_MOD_SKILL_MANIFEST`` is
+   required — this spec is a call site and a bundle layout.
+
+   **Bundle layout:**
+
+   .. code-block:: text
+
+      packages/core/
+        assets/
+          instructions/
+            jarvis-actor.kernel.instructions.md
+            jarvis-actor.memory.instructions.md
+            jarvis-actor.authoring.instructions.md
+
+   No ``skills/`` directory — this set ships instructions only.
+
+   **Call site** (``packages/core/src/extension.ts``, in ``activate()``,
+   mirroring ``packages/kanban/src/extension.ts``):
+
+   .. code-block:: typescript
+
+      const actorRules = vscode.workspace
+          .getConfiguration('jarvis.actor')
+          .get<boolean>('autoProvision', false);   // default false — REQ_MOD_ACTORRULES AC-3
+      void provisionModuleAssets(context, {
+          namespace: 'jarvis-actor',
+          instructionsSourceDir: context.asAbsolutePath('assets/instructions'),
+          enabled: actorRules,
+      });
+
+   Core calls the helper directly rather than through ``JarvisCoreApi`` — it
+   *is* the module that exports it, so the cross-extension hop that add-ons need
+   does not apply.
+
+   **Why the namespace is ``jarvis-actor`` and not ``jarvis-core``:**
+   The namespace names the *asset set*, not the shipping package. ``core`` is
+   also heartbeat, messaging, and sessions; these rules govern actors only, and
+   a workspace using Jarvis without actors has no use for them. Naming the set
+   after the module would also mean a future non-actor core asset set could not
+   be opted out independently, since ``REQ_MOD_SKILL_OPTOUT`` AC-4 derives one
+   setting per namespace.
+
+   **Why the two naming conventions are not in conflict:**
+   Two rules apply at different levels and compose into one filename shape:
+
+   .. list-table::
+      :header-rows: 1
+
+      * - Level
+        - Rule
+        - Purpose
+      * - Product
+        - ``.gitignore`` ``jarvis-*``
+        - Marks a workspace file as Jarvis-generated, not user source
+      * - Module
+        - provisioning ``<namespace>.``
+        - Records which asset set owns the file, for manifest and cleanup
+
+   ``jarvis-<namespace-tail>.<topic>.instructions.md`` satisfies both:
+   ``jarvis-kanban.yaml.instructions.md`` already does, and
+   ``jarvis-actor.kernel.instructions.md`` now does. The pre-convention names
+   (``jarvis-actor-kernel.instructions.md``) satisfy only the product rule —
+   they predate the module rule, which is why they need renaming rather than the
+   rule needing relaxing.
+
+   **Settings contribution** (``packages/core/package.json``):
+
+   .. code-block:: json
+
+      "jarvis.actor.autoProvision": {
+        "type": "boolean",
+        "default": false,
+        "description": "Install the Jarvis actor rule files (kernel, memory, authoring) into .github/instructions/. Off by default — enable in workspaces that run Jarvis actors."
+      }
+
+   **Acceptance Criteria:**
+
+   * AC-1: With ``jarvis.actor.autoProvision`` unset, activation writes nothing
+     into ``.github/instructions/``.
+   * AC-2: With it ``true``, the three files appear with content byte-identical
+     to the bundled sources.
+   * AC-3: Setting it back to ``false`` removes exactly those three files and
+     leaves every other file in the directory untouched — including
+     ``mermaid.instructions.md``, which is owned by the MermaidChart extension
+     and appears in no Jarvis manifest.
+   * AC-4: A second activation with the setting unchanged writes nothing
+     (idempotent, ``SPEC_MOD_SKILL_PROVISION`` AC-4).
+   * AC-5: ``packages/core/.vscodeignore`` does not exclude ``assets/**``.
+   * AC-6: The three bundled filenames each start with ``jarvis-actor.``, so
+     none is skipped by the namespace check.
+
+
 .. spec:: Provisioning Manifest & Orphan Cleanup
    :id: SPEC_MOD_SKILL_MANIFEST
    :status: approved
