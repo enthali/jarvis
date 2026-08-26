@@ -61,6 +61,7 @@ outcome tables** for each feature's acceptance tests.
    spec_uat_kanban_skill
    spec_uat_msg_modetarget
    spec_uat_kanban_mgmt
+   spec_uat_kanban_update_valid
 
 All UAT Specifications
 ----------------------

@@ -537,9 +537,10 @@ Kanban Board UAT Design Specifications
 
       * - T-22
 
-          ID immutability — ``id`` in ``changes`` is ignored
+          ID immutability — ``id`` in ``changes`` returns an error
 
-          *(Tool: update, immutability guard)*
+          *(Tool: update, immutability guard — amended by*
+          *``kanban-update-validation`` CR)*
         - Precondition: ``Change Manager/kanban.yaml`` has item ``id: 1``
           (``First Task``).
 
@@ -550,18 +551,19 @@ Kanban Board UAT Design Specifications
              #updateKanbanItem itemId=1 changes={"id":99,"status":"Done"} ownerName="Change Manager"
 
           Observe the result and the file.
-        - **Update succeeds:** Tool returns
-          ``{ "path": ..., "updated": true, "itemId": 1 }``.
+        - **Error returned:**
+          ``{ "error": "Cannot supply \"id\" — ids are auto-assigned." }``
+          (or equivalent error text from ``validateItemValues``).
 
-          **``status`` changed:** Item ``id: 1`` now has ``status: Done``
-          (the valid change was applied).
+          **File unchanged:** Item ``id: 1`` retains its original status
+          and ``id`` value. No partial write.
 
-          **``id`` NOT changed:** Item ``id`` remains ``1`` in the YAML
-          (the ``id`` key in ``changes`` was silently ignored — NOT
-          changed to ``99``).
-
-          **Teardown:** Restore ``id: 1`` to original status.
-        - REQ_KAN_UPDATE AC-5; SPEC_KAN_UPDATE AC-4
+          **Previous behaviour (now superseded):** Older versions returned
+          ``updated: true`` with ``status`` applied and ``id`` silently
+          dropped. This was documented as a silent skip; it is now an error
+          per ``REQ_KAN_UPDATE`` AC-9 and ``REQ_KAN_WRITEVALID`` AC-4.
+        - REQ_KAN_UPDATE AC-5, AC-9; REQ_KAN_WRITEVALID AC-4;
+          SPEC_KAN_UPDATE AC-9
 
       * - T-23
 

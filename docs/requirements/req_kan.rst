@@ -281,11 +281,28 @@ Kanban Requirements
      and inline) SHALL survive verbatim, and lines the update did not touch
      SHALL NOT be reformatted. An update that changes one field SHALL produce a
      diff confined to that field.
-   * AC-7: Apart from serialization fidelity, behaviour SHALL be unchanged:
-     lookup by ``id``, the immutable ``id`` (AC-5), ``status`` validation
-     against the ``status`` field's options, and every error path
-     (board not found, item not found, invalid status, read/write failure)
-     SHALL behave exactly as before.
+   * AC-7: (**superseded by the** ``kanban-update-validation`` **CR**) This
+     criterion previously froze the tool's validation at "``status`` only,
+     exactly as before", which is what kept ``jarvis_updateKanbanItem`` outside
+     the shared write contract when that contract was introduced
+     (``kanban-management-tools`` finding F-1). It is replaced by AC-8 and AC-9.
+     Everything AC-7 froze other than validation — lookup by ``id``, the
+     immutable ``id`` (AC-5), and the ``board not found`` / ``item not found`` /
+     read / write error paths — remains unchanged.
+   * AC-8: (``kanban-update-validation`` CR) The tool SHALL validate the
+     complete ``changes`` object against ``REQ_KAN_WRITEVALID`` before applying
+     any change, not only its ``status`` key. Values under declared
+     ``single_select`` fields SHALL be option-checked, values under ``text``
+     fields SHALL be accepted unchecked, and a key naming no declared field
+     SHALL be rejected.
+   * AC-9: (``kanban-update-validation`` CR) A ``changes`` object containing
+     ``id`` SHALL be rejected with an error, superseding the previous behaviour
+     of silently ignoring it. Silently dropping a caller's stated intent returns
+     success for an operation that did not happen; ``REQ_KAN_WRITEVALID`` AC-4
+     already required this on every write path, and this tool was the exception.
+   * AC-10: (``kanban-update-validation`` CR) Validation SHALL complete before
+     the document is mutated, so a rejected update leaves the board file
+     byte-identical (``REQ_KAN_WRITEVALID``, ``SPEC_KAN_WRITEVALID`` AC-6).
 
 
 .. req:: Kanban File Open
@@ -350,7 +367,19 @@ Kanban Requirements
    rules that ``jarvis_verifyKanbanSchema`` applies when reading one
    (``REQ_KAN_VERIFY`` AC-3). A write tool that can produce a board its own
    verify tool rejects is not a guard; stating the rule once here keeps the
-   four write tools from drifting apart.
+   write tools from drifting apart.
+
+   **Applicable tools** (``kanban-update-validation`` CR): ``jarvis_addKanbanItem``
+   (``REQ_KAN_ADD``), ``jarvis_updateKanbanItem`` (``REQ_KAN_UPDATE`` AC-8),
+   and the item-value paths of ``jarvis_updateKanbanFields`` (``REQ_KAN_FIELDS``).
+   ``jarvis_deleteKanbanItem`` writes no values and is out of scope.
+
+   When this contract was introduced, ``jarvis_updateKanbanItem`` was excluded
+   because ``REQ_KAN_UPDATE`` AC-7 froze its behaviour — recorded as finding F-1
+   of ``kanban-management-tools``. That exclusion left the description's "every
+   tool that writes" contradicting an approved AC. The ``kanban-update-validation``
+   CR removes the exclusion, so the enumeration above and the description now
+   agree.
 
    **Acceptance Criteria:**
 
@@ -365,9 +394,15 @@ Kanban Requirements
      write a value that the renderer never displays and the verifier reports
      only as a warning — the silent-failure trap of GH #57, which a write tool
      is positioned to prevent at the source.
-   * AC-4: ``id`` SHALL NOT be settable by a caller on any write path.
+   * AC-4: ``id`` SHALL NOT be settable by a caller on any write path. On the
+     update path this means rejection, not silent omission
+     (``REQ_KAN_UPDATE`` AC-9).
    * AC-5: Error results SHALL use the established shape ``{ error: <string> }``
      (``REQ_KAN_UPDATE`` AC-4).
+   * AC-6: (``kanban-update-validation`` CR) Every tool named in "Applicable
+     tools" SHALL reach these rules through the one shared helper
+     (``SPEC_KAN_WRITEVALID``), not through its own copy. A second
+     implementation would be free to diverge without failing any AC of its own.
 
 
 .. req:: jarvis_addKanbanItem Tool

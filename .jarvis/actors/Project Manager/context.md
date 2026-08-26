@@ -102,10 +102,19 @@
 
 ## Active CR
 
-_(none — see kanban-update-validation merge still pending on the stacked branch)_
+## Active CR
+
+_(none)_
 
 ## Recently Shipped
 
+- **kanban-update-validation** merged to `development` 2026-08-26 (F-1 follow-up,
+  stacked on `feature/kanban-management-tools`). `jarvis_updateKanbanItem` now
+  delegates to the shared `validateItemValues` helper instead of its old
+  status-only inline check — closes F-1, all four write tools now share one
+  write-validation contract. QM CLEARED (Round 1), one Low deferred (backlog
+  item 17, `changes.labels` schema type). User-validated together with
+  `kanban-management-tools`.
 - **kanban-management-tools** merged to `development` 2026-08-26 (backlog items
   3, 11, 12, 13). Four new tools: `jarvis_addKanbanItem`, `jarvis_deleteKanbanItem`,
   `jarvis_listKanbanItems` (filtered, compact projection), `jarvis_updateKanbanFields`

@@ -115,6 +115,11 @@ the project to a data-migration shape nobody reviewed.
 **For PM:** decide whether rename is a follow-up CR, or whether it is acceptable
 that `US_KAN_TOOLS` AC-10 has a named exception.
 
+**PM Decision (2026-08-26): Accept as-is for now.** `US_KAN_TOOLS` AC-10 keeps
+its named exception; the manual migrate-then-remove workaround is acceptable
+short-term. Idea captured as PM backlog item 15 (`renameField`/`renameOption` —
+atomic rename with item migration) for a future CR, not blocking this one.
+
 ---
 
 ## Level 0: User Stories

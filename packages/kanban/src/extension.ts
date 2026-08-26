@@ -636,7 +636,7 @@ export function activate(context: vscode.ExtensionContext): void {
             // Read plain data from the document for lookup and validation
             const data = doc.toJSON() as {
                 items: Array<Record<string, unknown>>;
-                fields: Array<{ name: string; options: Array<{ name: string }> }>;
+                fields: Array<{ name: string; type: string; options?: Array<{ name: string }> }>;
             };
 
             // 3. Find item by id
@@ -647,24 +647,18 @@ export function activate(context: vscode.ExtensionContext): void {
                 ]);
             }
 
-            // 5. Validate status change if present (read from same representation)
-            if (input.changes.status) {
-                const statusField = data.fields.find(f => f.name === 'status');
-                const validOptions = statusField ? new Set(statusField.options.map(o => o.name)) : undefined;
-                if (validOptions && !validOptions.has(input.changes.status)) {
-                    return new vscode.LanguageModelToolResult([
-                        new vscode.LanguageModelTextPart(JSON.stringify({
-                            error: `invalid status value "${input.changes.status}". Valid: ${Array.from(validOptions).join(', ')}`,
-                        }))
-                    ]);
-                }
+            // Validate all changes via shared helper (SPEC_KAN_WRITEVALID)
+            const validationErr = validateItemValues(input.changes, data);
+            if (validationErr) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart(JSON.stringify({ error: validationErr }))
+                ]);
             }
 
             // 4. Apply changes to the round-trip representation (Document node)
             const itemsSeq = doc.get('items') as import('yaml').YAMLSeq;
             const itemNode = itemsSeq.get(itemIndex) as import('yaml').YAMLMap;
             for (const [key, value] of Object.entries(input.changes)) {
-                if (key === 'id') { continue; } // immutable
                 itemNode.set(key, value);
             }
 

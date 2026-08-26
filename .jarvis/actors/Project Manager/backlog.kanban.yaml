@@ -1,5 +1,5 @@
 title: backlog
-nextId: 15
+nextId: 18
 fields:
   - name: status
     type: single_select
@@ -87,4 +87,19 @@ items:
     status: Backlog
     priority: Low
     notes: "QM Round 3 (2026-08-25), deferred (not blocking): (1) jarvis_addKanbanItem's builtin-key rejection message implies a top-level id param exists on the tool; it doesn't. (2) tst-kanban-management-tools.md T-6 cites validateItemValues's 'id' in values guard, now dead code on the addKanbanItem path since the builtinProps check intercepts first. Both cosmetic, no functional impact."
+  - id: 15
+    name: "jarvis_updateKanbanFields: add renameField/renameOption (bulk rename) — atomic rename of a field/option definition plus migration of all referencing items in one write"
+    status: Backlog
+    priority: Low
+    notes: "F-2 from kanban-management-tools (2026-08-26). Today removeField/removeOption refuse to remove anything still referenced by an item, so renaming requires hand-editing every referencing item first, then remove+add. User accepted the manual workaround for now; this is the follow-up idea to make rename atomic and safe."
+  - id: 16
+    name: "Kanban skill: document archiving pattern — move Done items to a separate archive board file once a board grows large"
+    status: Backlog
+    priority: Low
+    notes: "Raised 2026-08-26: user has a real customer-project board at ~2k lines (not reachable from this workspace, different machine/OS). Discussed one-file-per-board vs one-file-per-item; decided against splitting storage (breaks atomic multi-item writes needed for reference-guard/rename, and current in-repo boards are all <100 lines — no evidence the perf/diff cost is real here). Better lever: archive Done items out of the active board using the existing add/delete tools, documented as a convention in the jarvis-kanban.board SKILL.md — not a new tool for now."
+  - id: 17
+    name: "jarvis_updateKanbanItem: changes.labels is schema-typed string-only, so a valid array can never be supplied through this tool"
+    status: Backlog
+    priority: Low
+    notes: "QM Round 2 (2026-08-26) on kanban-update-validation, deferred (not blocking, out of that CR's scope — package.json untouched there). package.json's inputSchema types every key under changes as string; labels needs an array. Either loosen the schema to accept an array for labels, or document that labels can't be updated via this tool. Pre-existing, not introduced by kanban-update-validation."
 

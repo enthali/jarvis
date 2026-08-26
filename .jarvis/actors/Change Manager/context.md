@@ -31,4 +31,5 @@ See [lessons-learned.md](lessons-learned.md).
 ## Active CRs
 
 - **agent-mode-reset-race** — `feature/agent-mode-reset-race`, status `qm-recheck` (R3 AC-7 fix applied 9a30f41: catch restored, spec sample corrected), QM re-notified; outcome unknown (session ended before response)
-- **kanban-management-tools** — `feature/kanban-management-tools`, status `qm-recheck` (R2 fixes done: d1f12ed + ceb3f36, 22/22 PASS), QM re-notified for Round 3
+- **kanban-management-tools** — `feature/kanban-management-tools`, status `ready-for-merge`, QM R3 CLEAR (low findings deferred to backlog item 14), PM notified; 2 URR flags disclosed (F-1 closed by kanban-update-validation)
+- **kanban-update-validation** — `feature/kanban-update-validation` (stacked on kanban-management-tools), status `ready-for-merge`, MECE CLEAR (58608c0), QM + PM notified

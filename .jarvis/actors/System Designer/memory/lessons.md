@@ -48,6 +48,16 @@ Durable lessons that should change how I design. Linked from `context.md`.
   a new REQ does not link them — I edited three kanban specs for
   `REQ_KAN_TEXTFIELD` and left it childless until the depth-2 impact query
   showed it. Always re-run the query from each new element after writing L2.
+- **Inserting code moves the landmarks other tests navigate by.** A source-level
+  test sliced `extension.ts` between the update tool and the *next tool comment*;
+  my `kanban-management-tools` CR inserted four tools into that gap, so the slice
+  silently grew from one handler to five and kept passing. When a CR adds code
+  between existing markers, grep the test tree for those markers.
+- **A deliberately-created spec contradiction needs a scheduled closer, not just
+  a flag.** F-1 (`REQ_KAN_WRITEVALID` said "every write tool" while
+  `REQ_KAN_UPDATE` AC-7 froze one out) was the right call under unattended mode,
+  but it left two approved requirements disagreeing. Flagging bought the time;
+  closing it needed its own CR. When flagging a conflict, name the closing CR.
 - **Grep for the existing convention twice: once for what I'd be reinventing,
   once for what I'd be omitting.** `jarvis.scanInterval` already established
   `minimum: 0` + "0 = disabled", so `jarvis.touchedFiles.windowDays` cost no

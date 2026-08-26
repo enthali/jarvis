@@ -545,7 +545,7 @@ Kanban Design Specifications
 .. spec:: jarvis_updateKanbanItem Tool
    :id: SPEC_KAN_UPDATE
    :status: draft
-   :links: REQ_KAN_UPDATE; SPEC_ACT_WHOAMI; SPEC_KAN_SCHEMA
+   :links: REQ_KAN_UPDATE; REQ_KAN_WRITEVALID; SPEC_KAN_WRITEVALID; SPEC_ACT_WHOAMI; SPEC_KAN_SCHEMA
 
    **Description:**
    Register ``jarvis_updateKanbanItem`` via ``engine.registerTool()`` in the
@@ -578,18 +578,49 @@ Kanban Design Specifications
       return ``{ error: "board not found" }``.
    3. Find the item with ``id === itemId``. If not found → return
       ``{ error: "item not found", itemId }``.
-   4. Apply ``changes`` **to the round-trip representation itself**, field by
-      field. The ``id`` field is immutable — if present in ``changes``, it is
-      silently ignored.
-   5. If ``changes.status`` is provided, validate it against the ``status``
-      field's options. The options are read from the same round-trip
-      representation — the file SHALL NOT be parsed a second time, so
-      validation and mutation cannot disagree about the file's content.
-      If invalid → return
-      ``{ error: "invalid status", value, validOptions }``.
+   4. **Validate the whole ``changes`` object** by calling the shared
+      ``validateItemValues(changes, data)`` helper (``SPEC_KAN_WRITEVALID``),
+      where ``data`` is the plain projection already derived in step 2. On a
+      non-``undefined`` return, respond ``{ error: <returned message> }`` and
+      write nothing (``kanban-update-validation`` CR).
+   5. Apply ``changes`` **to the round-trip representation itself**, field by
+      field. No per-key filtering is needed — step 4 has already rejected
+      ``id`` and every invalid value, so each remaining key is safe to set.
    6. Serialize the round-trip representation back to the file. Untouched
       regions SHALL be byte-identical to what was read.
    7. Return ``{ path, updated: true, itemId }``.
+
+   **Validation replaces the inline status check** (``kanban-update-validation``
+   CR, closing ``kanban-management-tools`` finding F-1):
+
+   The previous steps 4–5 validated only ``changes.status`` and skipped ``id``
+   with a ``continue`` inside the mutation loop. Three consequences, all of
+   which the shared helper removes:
+
+   * A value under any other declared ``single_select`` field was written
+     unchecked, so this tool could produce a board ``jarvis_verifyKanbanSchema``
+     reports as an error.
+   * A key naming no declared field was written and then never rendered — the
+     GH #57 trap, reachable through the tool that exists to prevent it.
+   * ``id`` in ``changes`` was silently dropped: the caller received
+     ``updated: true`` for a change that did not happen.
+
+   **Validation moves ahead of mutation.** The old order validated ``status``
+   after the item lookup but interleaved the ``id`` skip with the writes. The
+   helper is pure (``SPEC_KAN_WRITEVALID`` AC-6), so calling it before any
+   ``itemNode.set()`` guarantees a rejected update leaves the file
+   byte-identical (``REQ_KAN_UPDATE`` AC-10) rather than half-applied.
+
+   **Board projection must carry ``type``.** The plain projection in step 2 is
+   a TypeScript cast; it previously omitted ``fields[].type`` because only
+   ``options`` was read. ``validateItemValues`` branches on ``type``, so the
+   cast SHALL be widened to
+   ``fields: Array<{ name: string; type: string; options?: Array<{ name: string }> }>``.
+   This is load-bearing rather than cosmetic: silencing the mismatch with
+   ``as any`` (or leaving ``type`` absent) makes every
+   ``fieldEntry.type === 'single_select'`` comparison false at runtime, which
+   disables option checking on exactly the fields this CR exists to check — and
+   it fails open, so nothing reports an error.
 
    **Round-trip fidelity (kanban-yaml-comment-preservation CR, GH #53):**
 
@@ -646,6 +677,46 @@ Kanban Design Specifications
      after an update to an unrelated field (``REQ_KAN_UPDATE`` AC-6).
    * AC-7: An update to one field produces a diff touching only that field —
      no reformatting of untouched lines.
+   * AC-8: (``kanban-update-validation`` CR) A value under any declared
+     ``single_select`` field is option-checked, not only ``status``; a value
+     under a ``text`` field is accepted unchecked.
+   * AC-9: (``kanban-update-validation`` CR) A key naming no declared field is
+     rejected with an error listing the declared fields.
+   * AC-10: (``kanban-update-validation`` CR) ``changes`` containing ``id`` is
+     rejected with an error, not silently ignored.
+   * AC-11: (``kanban-update-validation`` CR) On any rejection the board file is
+     byte-identical to before the call.
+   * AC-12: (``kanban-update-validation`` CR) Validation is reached through the
+     shared ``validateItemValues`` helper — the tool holds no validation logic
+     of its own (``REQ_KAN_WRITEVALID`` AC-6).
+
+   **Guarding test — ``src/tests/kanban-comment-preservation.test.ts``**
+   (``kanban-update-validation`` CR):
+
+   TC-1 asserts source-level properties of this tool by slicing
+   ``extension.ts`` between ``'jarvis_updateKanbanItem'`` and the next
+   ``// Tool: jarvis_openKanbanBoard`` marker. Two defects follow from this CR
+   and must be fixed with it:
+
+   1. **The slice no longer isolates this tool.** ``kanban-management-tools``
+      inserted ``jarvis_addKanbanItem``, ``…deleteKanbanItem``,
+      ``…listKanbanItems`` and ``…updateKanbanFields`` between
+      ``updateKanbanItem`` and ``openKanbanBoard``, so the window now spans five
+      tool bodies. Every TC-1 assertion is currently satisfiable by code
+      belonging to a different tool — the test passes while testing something
+      other than what it claims. The end marker SHALL be changed to the next
+      tool comment that actually follows this one
+      (``// Tool: jarvis_addKanbanItem``), so the slice is one tool again.
+   2. **One assertion pins behaviour this CR removes.** TC-1's
+      ``skips id field (immutable guard)`` case matches
+      ``/if\s*\(key\s*===\s*'id'\)/`` — the silent-skip that AC-10 replaces with
+      a rejection. It SHALL be rewritten to assert that the handler delegates to
+      ``validateItemValues``, which is what enforces immutability now.
+
+   An end marker chosen as "the next tool in file order" is fragile by
+   construction — it silently widens whenever a tool is inserted. Fixing the
+   marker restores today's correctness; making the slice robust is out of scope
+   here and recorded in the Change Document.
 
 
 .. spec:: Kanban File Open via Custom Editor
@@ -798,7 +869,7 @@ Kanban Design Specifications
 .. spec:: Board Write Validation Helper
    :id: SPEC_KAN_WRITEVALID
    :status: approved
-   :links: REQ_KAN_WRITEVALID; SPEC_KAN_VERIFY; SPEC_KAN_SCHEMA
+   :links: REQ_KAN_WRITEVALID; SPEC_KAN_UPDATE; SPEC_KAN_VERIFY; SPEC_KAN_SCHEMA
 
    **Description:**
    A shared private helper in ``packages/kanban/src/extension.ts`` that every
@@ -834,19 +905,36 @@ Kanban Design Specifications
    5. A value under a ``text`` field is accepted unchecked.
 
    **Why writes are stricter than the current ``jarvis_updateKanbanItem``:**
-   ``updateKanbanItem`` validates only ``status`` today, so it can already write
-   a value that ``jarvis_verifyKanbanSchema`` reports as an error, and an
-   undeclared key that the renderer silently drops. Repeating that in three new
-   tools would triple a known defect. The new tools therefore validate the full
-   value set; bringing ``updateKanbanItem`` up to the same contract is a
-   separate change (see ``USER REVIEW REQUIRED`` F-1 in the
-   ``kanban-management-tools`` CD) because it tightens an approved, shipped
-   behaviour.
+   *(Resolved by the* ``kanban-update-validation`` *CR — retained for history.)*
+   When this helper was introduced, ``jarvis_updateKanbanItem`` validated only
+   ``status``, so it could write a value that ``jarvis_verifyKanbanSchema``
+   reports as an error, and an undeclared key that the renderer silently drops.
+   Repeating that in three new tools would have tripled a known defect, so the
+   new tools validated the full value set while ``updateKanbanItem`` stayed
+   frozen by ``REQ_KAN_UPDATE`` AC-7 — recorded as finding F-1. That AC has
+   since been superseded and ``updateKanbanItem`` now calls this helper too
+   (``SPEC_KAN_UPDATE`` step 4), so a single write contract holds across all
+   write paths.
+
+   **Callers** (``kanban-update-validation`` CR): ``jarvis_addKanbanItem``
+   (``SPEC_KAN_ADD`` step 4) and ``jarvis_updateKanbanItem``
+   (``SPEC_KAN_UPDATE`` step 4). The two pass different shapes and this is
+   deliberate: ``addKanbanItem`` composes ``values`` from its ``fields`` map plus
+   its top-level built-in parameters, whereas ``updateKanbanItem``'s ``changes``
+   is already that flat shape and is passed through unmodified.
+
+   **Note on the ``id`` guard's reachability:** on the ``addKanbanItem`` path the
+   guard is unreachable, because that tool's own built-in-key check rejects
+   ``id`` in ``fields`` first and it has no top-level ``id`` parameter (QM
+   observation, ``kanban-management-tools`` Round 3). ``updateKanbanItem`` is its
+   first reachable caller — ``changes`` is caller-supplied and may contain ``id``
+   — so the guard is live code from this CR onward, and is the mechanism
+   enforcing ``REQ_KAN_UPDATE`` AC-9.
 
    **Acceptance Criteria:**
 
-   * AC-1: The helper is called by ``SPEC_KAN_ADD`` before any document
-     mutation.
+   * AC-1: The helper is called by ``SPEC_KAN_ADD`` and ``SPEC_KAN_UPDATE``
+     before any document mutation.
    * AC-2: A ``single_select`` value outside its options yields an error naming
      the field and its valid options.
    * AC-3: An undeclared key yields an error naming the declared fields.
