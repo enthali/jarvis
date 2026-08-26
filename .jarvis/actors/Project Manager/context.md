@@ -102,10 +102,20 @@
 
 ## Active CR
 
-(none — see Recently Shipped)
+_(none — see kanban-update-validation merge still pending on the stacked branch)_
 
 ## Recently Shipped
 
+- **kanban-management-tools** merged to `development` 2026-08-26 (backlog items
+  3, 11, 12, 13). Four new tools: `jarvis_addKanbanItem`, `jarvis_deleteKanbanItem`,
+  `jarvis_listKanbanItems` (filtered, compact projection), `jarvis_updateKanbanFields`
+  (add/remove field or select option). Dispatched unattended overnight
+  2026-08-24; QM CLEARED (Round 3, 2 Lows deferred to backlog item 14). Two
+  USER REVIEW REQUIRED flags resolved with the user 2026-08-26: F-1 (weaker
+  validation in the pre-existing `jarvis_updateKanbanItem`) spun off as its own
+  CR (`kanban-update-validation`, stacked, pending merge); F-2 (field/option
+  rename not offered) accepted as-is, bulk-rename idea captured as backlog
+  item 15. All 8 kanban tools user-validated live in the EDH before merge.
 - **agent-mode-reset-race** merged to `development` 2026-08-24 (backlog item 8).
   Fixed the Agent Mode misassignment bug: added a target-identity check before
   the mode-set command executes (skip + warn on mismatch instead of blindly

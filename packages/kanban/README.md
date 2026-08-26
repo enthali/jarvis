@@ -19,6 +19,10 @@ Boards are discovered automatically via convention:
 | `jarvis_verifyKanbanSchema` | Validates a board against the JSON Schema and semantic rules |
 | `jarvis_openKanbanBoard` | Opens a board in the interactive webview renderer |
 | `jarvis_updateKanbanItem(itemId, changes, boardName?, ownerName?)` | Updates an existing item by its stable integer ID; live-refreshes any open board webview |
+| `jarvis_addKanbanItem(item, boardName?, ownerName?)` | Adds a new item with validated field values; auto-assigns next stable ID |
+| `jarvis_deleteKanbanItem(itemId, boardName?, ownerName?)` | Removes an item by its stable ID |
+| `jarvis_listKanbanItems(filter?, boardName?, ownerName?)` | Lists items, optionally filtered by field values |
+| `jarvis_updateKanbanFields(fields, boardName?, ownerName?)` | Adds or updates field definitions (add options, rename options, add new fields) |
 
 ## Board Schema
 

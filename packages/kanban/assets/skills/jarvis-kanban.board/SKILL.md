@@ -12,7 +12,10 @@ description: "Jarvis Kanban Board — convention-based kanban boards for actors,
 | `jarvis_openKanbanBoard` | Open a board in the webview renderer |
 | `jarvis_verifyKanbanSchema` | Validate structure and semantics |
 | `jarvis_updateKanbanItem` | Update fields on an existing item by ID |
-
+| `jarvis_addKanbanItem` | Add a new item (auto-assigns id) |
+| `jarvis_deleteKanbanItem` | Delete an item by ID (id is never reused) |
+| `jarvis_listKanbanItems` | List/filter items (compact projection) |
+| `jarvis_updateKanbanFields` | Add/remove field definitions or options |
 ## Owner Resolution
 
 - **Omit `ownerName`** to address the calling actor's own board. The tool resolves the caller via `jarvis_whoAmI` internally.
@@ -97,6 +100,10 @@ items:
 ## Workflow
 
 1. **Create** — `jarvis_createKanbanBoard` (omit `ownerName` for your own board)
-2. **Edit** — modify items via `jarvis_updateKanbanItem` or edit the YAML directly
-3. **Verify** — `jarvis_verifyKanbanSchema` — read both `errors` and `warnings`
-4. **View** — `jarvis_openKanbanBoard` to render in the webview
+2. **Add items** — `jarvis_addKanbanItem` (id is auto-assigned, never supply it)
+3. **Edit items** — `jarvis_updateKanbanItem` to change field values
+4. **Delete items** — `jarvis_deleteKanbanItem` (deleted ids are never reused)
+5. **List/filter** — `jarvis_listKanbanItems` — returns only `id`, `name`, `status`, `labels` (use item id to fetch full details)
+6. **Manage fields** — `jarvis_updateKanbanFields` to add/remove fields or options
+7. **Verify** — `jarvis_verifyKanbanSchema` — read both `errors` and `warnings`
+8. **View** — `jarvis_openKanbanBoard` to render in the webview

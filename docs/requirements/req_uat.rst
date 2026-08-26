@@ -60,6 +60,7 @@ end-to-end verification of each feature.
    req_uat_kanban
    req_uat_kanban_skill
    req_uat_msg_modetarget
+   req_uat_kanban_mgmt
 
 All UAT Requirements
 --------------------

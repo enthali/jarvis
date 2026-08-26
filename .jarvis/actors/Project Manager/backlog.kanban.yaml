@@ -1,5 +1,5 @@
 title: backlog
-nextId: 11
+nextId: 15
 fields:
   - name: status
     type: single_select
@@ -26,9 +26,9 @@ items:
     notes: "Delivered via kanban-skill-content CR, merged to development 2026-08-24."
   - id: 3
     name: "No tool to add a new item to an existing kanban board (only create board / update existing item)"
-    status: Backlog
+    status: Done
     priority: Medium
-    notes: "Had to hand-edit YAML to add an item. Found 2026-08-20 dogfooding."
+    notes: "Delivered via CR 'kanban-management-tools' (jarvis_addKanbanItem), QM CLEARED (Round 3), user-validated, merged to development 2026-08-26."
   - id: 4
     name: "General mechanism: modules (core/kanban/pim/...) self-install their own skills + instructions into .github/skills, .github/instructions on activation"
     status: Done
@@ -67,4 +67,24 @@ items:
     priority: Medium
     labels: ["not-a-bug"]
     notes: "Found 2026-08-24 while committing docs/changes/jarvis-kanban-skill.md — git check-ignore confirmed .gitignore:31 jarvis-* swallowed it. Initially logged as a bug (unanchored WORKSPACE_PATHS entry in configPaths.ts). User clarified 2026-08-24: intentional — anything named jarvis-* anywhere is extension-delivered content, never meant to be tracked in git, at any depth. Closed as working-as-intended, no code change. Underlying trigger (a CD file named jarvis-kanban-skill.md) was itself a naming slip fixed by renaming to kanban-skill-content, consistent with the CD naming convention anyway."
+  - id: 11
+    name: "No tool to delete/remove a kanban board item (only add / update)"
+    status: Done
+    priority: Medium
+    notes: "Delivered via CR 'kanban-management-tools' (jarvis_deleteKanbanItem), QM CLEARED (Round 3), user-validated, merged to development 2026-08-26."
+  - id: 12
+    name: "No tool to list/query kanban items filtered by status or label — full-file read doesn't scale as a board grows (seen 1k+ line boards)"
+    status: Done
+    priority: Medium
+    notes: "Delivered via CR 'kanban-management-tools' (jarvis_listKanbanItems), QM CLEARED (Round 3), user-validated, merged to development 2026-08-26."
+  - id: 13
+    name: "No tool to manage a board's field/schema (add/remove a field, add/remove a single_select option) — only possible by hand-editing YAML"
+    status: Done
+    priority: Medium
+    notes: "Delivered via CR 'kanban-management-tools' (jarvis_updateKanbanFields), QM CLEARED (Round 3), user-validated, merged to development 2026-08-26."
+  - id: 14
+    name: "kanban-management-tools polish: id-rejection error message wording, T-6 evidence points at superseded code"
+    status: Backlog
+    priority: Low
+    notes: "QM Round 3 (2026-08-25), deferred (not blocking): (1) jarvis_addKanbanItem's builtin-key rejection message implies a top-level id param exists on the tool; it doesn't. (2) tst-kanban-management-tools.md T-6 cites validateItemValues's 'id' in values guard, now dead code on the addKanbanItem path since the builtinProps check intercepts first. Both cosmetic, no functional impact."
 

@@ -239,6 +239,16 @@ Kanban Requirements
      or tools SHALL exist (zero-trace, per ``REQ_MOD_ZEROTRACE``).
    * AC-7: A module-level ``README.md`` SHALL describe the package purpose and
      usage.
+   * AC-8 (``kanban-management-tools`` CR): ``contributes.languageModelTools``
+     SHALL declare an entry for every tool registered at runtime, including
+     ``jarvis_addKanbanItem``, ``jarvis_deleteKanbanItem``,
+     ``jarvis_listKanbanItems`` and ``jarvis_updateKanbanFields``, so VS Code
+     surfaces them in the "Configure Tools" picker alongside the existing four.
+   * AC-9 (``kanban-management-tools`` CR): A tool's ``registerTool``
+     description SHALL stay a single line stating what the tool does. Parameter
+     semantics and edge cases SHALL live in the skill asset
+     (``REQ_KAN_SKILLCONTENT`` AC-8) and SHALL NOT be duplicated into the tool
+     description, so the two cannot drift apart.
 
 
 .. req:: jarvis_updateKanbanItem Tool
@@ -329,6 +339,171 @@ Kanban Requirements
      unchanged (``REQ_KAN_SCHEMA`` AC-5).
 
 
+.. req:: Board Write Validation Contract
+   :id: REQ_KAN_WRITEVALID
+   :status: approved
+   :priority: required
+   :links: US_KAN_TOOLS; REQ_KAN_SCHEMA; REQ_KAN_VERIFY
+
+   **Description:**
+   Every tool that writes item values to a board SHALL apply the same value
+   rules that ``jarvis_verifyKanbanSchema`` applies when reading one
+   (``REQ_KAN_VERIFY`` AC-3). A write tool that can produce a board its own
+   verify tool rejects is not a guard; stating the rule once here keeps the
+   four write tools from drifting apart.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A value written under a declared ``single_select`` field SHALL match
+     one of that field's declared options, else the tool SHALL return an error
+     naming the offending field and the valid options.
+   * AC-2: A value written under a declared ``text`` field SHALL be accepted
+     without option checking (``REQ_KAN_TEXTFIELD`` AC-3).
+   * AC-3: A key that matches no declared field and is not a built-in item
+     property (``id``, ``name``, ``status``, ``labels``, ``notes``) SHALL be
+     rejected with an error naming the declared field names. Accepting it would
+     write a value that the renderer never displays and the verifier reports
+     only as a warning — the silent-failure trap of GH #57, which a write tool
+     is positioned to prevent at the source.
+   * AC-4: ``id`` SHALL NOT be settable by a caller on any write path.
+   * AC-5: Error results SHALL use the established shape ``{ error: <string> }``
+     (``REQ_KAN_UPDATE`` AC-4).
+
+
+.. req:: jarvis_addKanbanItem Tool
+   :id: REQ_KAN_ADD
+   :status: approved
+   :priority: required
+   :links: US_KAN_TOOLS; REQ_KAN_SCHEMA; REQ_KAN_WRITEVALID; REQ_ACT_WHOAMI
+
+   **Description:**
+   An LM+MCP tool ``jarvis_addKanbanItem`` SHALL append a new item to a kanban
+   board, assigning its ``id`` automatically.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The tool SHALL accept ``name`` (required string) and optional
+     ``status``, ``labels``, ``notes``, further declared-field values, plus
+     optional ``boardName`` and ``ownerName``.
+   * AC-2: Owner and board resolution SHALL follow the uniform pattern
+     (``REQ_KAN_CREATE`` AC-3/AC-4; board not found → ``{ error: "board not
+     found" }``).
+   * AC-3: The new item's ``id`` SHALL be taken from the board's ``nextId``,
+     and ``nextId`` SHALL be incremented by one in the same write. When
+     ``nextId`` is absent, it SHALL be derived as ``max(existing ids) + 1``
+     (or ``1`` on an empty board) per ``REQ_KAN_SCHEMA`` AC-7, and written.
+   * AC-4: A caller-supplied ``id`` SHALL be rejected
+     (``REQ_KAN_WRITEVALID`` AC-4) — ids are assigned, never chosen.
+   * AC-5: When ``status`` is omitted, it SHALL default to the first declared
+     option of the ``status`` field.
+   * AC-6: All provided values SHALL be validated per ``REQ_KAN_WRITEVALID``.
+   * AC-7: On success the tool SHALL return ``{ path, added: true, itemId }``.
+   * AC-8: The write SHALL preserve unrelated file content per
+     ``REQ_KAN_SCHEMA`` AC-9.
+
+
+.. req:: jarvis_deleteKanbanItem Tool
+   :id: REQ_KAN_DELETE
+   :status: approved
+   :priority: required
+   :links: US_KAN_TOOLS; REQ_KAN_SCHEMA; REQ_ACT_WHOAMI
+
+   **Description:**
+   An LM+MCP tool ``jarvis_deleteKanbanItem`` SHALL remove a single item from a
+   board, identified by its integer ``id``.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The tool SHALL accept ``itemId`` (required integer) plus optional
+     ``boardName`` and ``ownerName``.
+   * AC-2: Owner and board resolution SHALL follow the uniform pattern.
+   * AC-3: When no item carries that ``id``, the tool SHALL return
+     ``{ error: "item not found", itemId }`` and write nothing.
+   * AC-4: ``nextId`` SHALL NOT be decremented, and the freed ``id`` SHALL NOT
+     be reused (``REQ_KAN_SCHEMA`` AC-8). Remaining items SHALL NOT be
+     renumbered.
+   * AC-5: On success the tool SHALL return ``{ path, deleted: true, itemId }``.
+   * AC-6: The write SHALL preserve unrelated file content per
+     ``REQ_KAN_SCHEMA`` AC-9.
+
+
+.. req:: jarvis_listKanbanItems Tool
+   :id: REQ_KAN_LIST
+   :status: approved
+   :priority: required
+   :links: US_KAN_QUERY; REQ_ACT_WHOAMI
+
+   **Description:**
+   An LM+MCP tool ``jarvis_listKanbanItems`` SHALL return a filtered, compact
+   projection of a board's items. It is a read-only tool.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The tool SHALL accept optional ``status`` and ``labels`` filters,
+     plus optional ``boardName`` and ``ownerName``.
+   * AC-2: When both filters are given they SHALL be AND-combined. An item
+     matches the ``labels`` filter when it carries **every** requested label.
+   * AC-3: When no filter is given, all items SHALL be returned — still as the
+     compact projection.
+   * AC-4: Each returned item SHALL carry exactly ``id``, ``name``, ``status``
+     and ``labels`` (``US_KAN_QUERY`` AC-2). Notes and declared-field values
+     SHALL be omitted; a caller needing them reads the item by ``id``.
+   * AC-5: A filter matching no item SHALL return an empty list, not an error
+     (``US_KAN_QUERY`` AC-5).
+   * AC-6: A ``status`` filter value matching no declared option SHALL return
+     an error naming the valid options, rather than an empty list — an empty
+     list is indistinguishable from "no items in that state" and would hide
+     the typo.
+   * AC-7: The tool SHALL NOT modify the board file.
+   * AC-8: On success the tool SHALL return
+     ``{ path, count, items: [...] }``.
+
+
+.. req:: jarvis_updateKanbanFields Tool
+   :id: REQ_KAN_FIELDS
+   :status: approved
+   :priority: required
+   :links: US_KAN_TOOLS; REQ_KAN_SCHEMA; REQ_KAN_TEXTFIELD; REQ_ACT_WHOAMI
+
+   **Description:**
+   An LM+MCP tool ``jarvis_updateKanbanFields`` SHALL evolve a board's field
+   definitions: adding or removing a field, and adding or removing an option on
+   an existing ``single_select`` field.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The tool SHALL accept an operation selector covering exactly four
+     actions — ``addField``, ``removeField``, ``addOption``, ``removeOption`` —
+     plus the operands each needs, and optional ``boardName``/``ownerName``.
+   * AC-2: ``addField`` SHALL accept a field ``name`` and ``type``; for
+     ``single_select`` an initial ``options`` list SHALL be required, and for
+     ``text`` options SHALL be rejected (``REQ_KAN_SCHEMA`` AC-2).
+   * AC-3: ``addField`` SHALL reject a name that already exists, and SHALL
+     reject the name ``status`` (exactly one status field exists and it is
+     created with the board).
+   * AC-4: ``removeField`` SHALL be refused when any item still carries a value
+     under that field, returning an error naming the referencing item ids.
+   * AC-5: ``removeField`` SHALL refuse to remove the ``status`` field outright
+     — a board without it has no columns (``REQ_KAN_SCHEMA`` AC-3).
+   * AC-6: ``addOption`` SHALL be refused when the option name already exists on
+     that field, and when the target field is of type ``text``
+     (``REQ_KAN_TEXTFIELD`` AC-2).
+   * AC-7: ``removeOption`` SHALL be refused when any item still holds that
+     value, returning an error naming the referencing item ids.
+   * AC-8: ``removeOption`` SHALL be refused when it would leave a
+     ``single_select`` field with no options (schema ``minItems: 1``).
+   * AC-9: On success the tool SHALL return
+     ``{ path, updated: true, operation }``.
+   * AC-10: The write SHALL preserve unrelated file content per
+     ``REQ_KAN_SCHEMA`` AC-9.
+   * AC-11: Renaming a field or an option is **not** provided. With AC-4/AC-7 in
+     force, a rename of an in-use field or option cannot be expressed as
+     remove-then-add, so it remains reachable only by hand-editing the YAML.
+     This is a known limitation of this requirement, not an oversight —
+     see the ``USER REVIEW REQUIRED`` entry in the
+     ``kanban-management-tools`` Change Document.
+
+
 .. req:: Kanban Skill Asset Content
    :id: REQ_KAN_SKILLCONTENT
    :status: approved
@@ -363,6 +538,19 @@ Kanban Requirements
      exercising both field types.
    * AC-7: Every factual claim in the skill SHALL agree with
      ``schemas/kanban.schema.json`` as amended by ``REQ_KAN_TEXTFIELD``.
+   * AC-8 (``kanban-management-tools`` CR): The Tools table SHALL list every
+     kanban tool the module registers, and the Workflow section SHALL show
+     where each fits. When a tool is added to the module, this asset is the
+     place its usage detail is written — the ``registerTool`` description stays
+     one line (``REQ_KAN_MODULE`` AC-9).
+   * AC-9 (``kanban-management-tools`` CR): The skill SHALL document that item
+     ``id`` is assigned by ``jarvis_addKanbanItem`` and never supplied by the
+     caller, and that a deleted id is never reused
+     (``REQ_KAN_ADD`` AC-4, ``REQ_KAN_DELETE`` AC-4).
+   * AC-10 (``kanban-management-tools`` CR): The skill SHALL state that
+     ``jarvis_listKanbanItems`` returns a compact projection and that full item
+     contents require reading the item by ``id`` — so an actor does not read the
+     projection as the whole item (``REQ_KAN_LIST`` AC-4).
 
 
 .. req:: Kanban Instructions Asset Content

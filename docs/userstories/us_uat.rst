@@ -60,6 +60,7 @@ for each feature. Each file corresponds to one feature or change.
    us_uat_kanban
    us_uat_kanban_skill
    us_uat_msg_modetarget
+   us_uat_kanban_mgmt
 
 All UAT User Stories
 --------------------

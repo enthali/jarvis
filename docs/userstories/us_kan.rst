@@ -79,6 +79,50 @@ Kanban User Stories
    * AC-6: ``jarvis_updateKanbanItem`` updates an existing item by its stable
      integer ID so that changes can be applied without touching the full
      board YAML manually.
+   * AC-7 (``kanban-management-tools`` CR): ``jarvis_addKanbanItem`` appends a
+     new item, assigning its ``id`` automatically so the caller never picks one.
+   * AC-8 (``kanban-management-tools`` CR): ``jarvis_deleteKanbanItem`` removes
+     an item by ``id``.
+   * AC-9 (``kanban-management-tools`` CR): ``jarvis_updateKanbanFields``
+     evolves the board's own field and option definitions, refusing changes
+     that would strand existing item values.
+   * AC-10 (``kanban-management-tools`` CR): Every board mutation an actor can
+     reasonably need is reachable through a tool, so hand-editing the YAML is
+     never the only route. Where that is not yet true, the gap is recorded
+     rather than left to be discovered — see ``REQ_KAN_FIELDS``.
+
+
+.. story:: Query a Board Without Reading All of It
+   :id: US_KAN_QUERY
+   :status: approved
+   :priority: required
+   :links: US_KAN_TOOLS
+
+   **As an** LLM operating within a Jarvis actor session,
+   **I want** to ask a board for just the items I care about, and get back only
+   the fields I need to identify them,
+   **so that** working with a large board does not consume my context window on
+   items I am not acting on.
+
+   **Context:**
+   Boards have been observed at 1000+ lines (user observation, 2026-08-24). The
+   only way to see a board's contents today is to read the whole YAML file,
+   which grows without bound as the board fills. This is a different problem
+   from the other tools in ``US_KAN_TOOLS``: those exist so edits go through
+   guards, this one exists so reading stays affordable. Acceptance is therefore
+   about result *size*, not correctness.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Items can be narrowed by ``status``, by ``labels``, or by both
+     together.
+   * AC-2: The result carries only enough per item to identify and triage it —
+     not the item's full contents.
+   * AC-3: The result size scales with the number of *matching* items, not with
+     the size of the board.
+   * AC-4: Asking for a narrow slice of a large board does not require reading
+     the board file into context first.
+   * AC-5: A query matching nothing is an ordinary empty result, not an error.
 
 
 .. story:: Kanban Skill and Instructions Content
