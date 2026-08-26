@@ -1,5 +1,25 @@
 # Release Notes
 
+## v0.26.0 — Kanban Management Tools + Module Asset Provisioning
+
+*2026-08-26*
+
+### Features
+
+- **module-skill-provisioning**: Modules (VSIX packages: core, kanban, pim, flow, recorder, syspilot, ...) can now bundle their own Copilot Skills/Instructions assets and self-install them into the current workspace's `.github/skills/` and `.github/instructions/` on activation. Writes are namespaced and idempotent, never touch user-authored files or another module's assets, and orphaned files from a module's own prior asset set are cleaned up on next activation without affecting anything outside that module's namespace.
+
+- **kanban-management-tools**: Four new LM tools round out kanban board management beyond board-creation and single-item update: `jarvis_addKanbanItem` (appends an item, auto-assigns `id`, defaults `status`, validates fields), `jarvis_deleteKanbanItem` (removes by `id`), `jarvis_listKanbanItems` (filtered, compact projection for large boards), and `jarvis_updateKanbanFields` (adds/removes field definitions and `single_select` options, refusing removal of anything still referenced by an item). All four share the same validation path as `jarvis_verifyKanbanSchema`, closing the hand-edit-YAML gap that previously bypassed every existing guard.
+
+- **kanban-skill-content**: The `jarvis-kanban` skill now documents the board schema/ontology directly (no round-trip tool call needed to learn it), the `ownerName` auto-resolution-on-omission convention, and a new `type: text` field kind for freeform notes/description fields on boards (schema, validator, renderer, and skill content). Also closes a silent-acceptance trap (GH #57): an undeclared item key is now rejected instead of being schema-valid-but-never-rendered.
+
+### Fixes
+
+- **kanban-update-validation**: `jarvis_updateKanbanItem` now delegates to the same shared `validateItemValues` helper used by the newer write tools, instead of its narrower inline status-only check — closing the last gap where invalid `single_select` values or undeclared/typo'd keys could be written silently through the original update path.
+
+- **agent-mode-reset-race**: Fixes a race where assigning Agent Mode to a newly created actor session could land on the previously-focused session instead, when a mode-set command fired late against stale target identity. Adds target-identity checking and a delivery re-entrancy guard to `reapplyAgentMode`.
+
+---
+
 ## v0.25.1 — WSL/Remote Recently Touched Files Fix
 
 *2026-08-07*
