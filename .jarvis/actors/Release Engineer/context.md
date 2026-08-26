@@ -5,7 +5,8 @@ This file captures operational details not covered there.
 
 ## Findings
 
-- Latest release: v0.25.1 (2026-08-07, patch) — touched-files-wsl-existence (WSL/Remote fs.stat fix + rootUri propagation). No GH issues closed. Prior: v0.25.0 (minor) touched-files cleanup + gitignore automanage.
+- Latest release: v0.26.0 (2026-08-26, minor) — kanban-management-tools, kanban-skill-content, module-skill-provisioning (features); kanban-update-validation, agent-mode-reset-race (fixes). No GH issues formally closed (no CD carried a `**GitHub Issue(s)**:` line). Prior: v0.25.1 (patch) touched-files-wsl-existence.
+- v0.26.0: excluded `touched-files-created-files.md` from archival (closed non-repro, zero code diff, no val-doc) — left in `docs/changes/` root, flagged to PM rather than blocking the release (consistent with prior zero-diff exclusion practice).
 - Integration branch renamed `develop` → `development` (first confirmed in v0.25.0 release); context.md updated.
 - v0.24.1 NOTE: 3 pre-existing ESLint "rule not found" config errors confirmed unchanged from develop — not a regression, no action taken; watch for recurrence.
 - v0.24.1 was released via runSubagent (process error, PM acknowledged) — this entry is a PM-provided backfill; no actor validation was run by me.
