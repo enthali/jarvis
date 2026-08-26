@@ -105,8 +105,8 @@ items:
   - id: 18
     name: "TOUCH_RULES silently drops writes from any tool not on its 4-tool allowlist — no log at any level"
     status: Backlog
-    priority: Low
-    notes: "SD finding while investigating item 9 (2026-08-26, CR touched-files-created-files, closed not-reproducible). The allowlist itself is fine (deliberate, per REQ_ENT_TOUCHEDFILES AC-2d — no path-sniffing fallback); the defect is that the system can't report when the list is stale for a given model/VS Code version. Recommended: log unmatched tool_names at debug, deduplicated per session, before extending the allowlist — observability first, then extend from evidence not guesses."
+    priority: Medium
+    notes: "SD finding while investigating item 9 (2026-08-26, CR touched-files-created-files, closed not-reproducible). The allowlist itself is fine (deliberate, per REQ_ENT_TOUCHEDFILES AC-2d — no path-sniffing fallback); the defect is that the system can't report when the list is stale for a given model/VS Code version. Recommended: log unmatched tool_names at debug, deduplicated per session, before extending the allowlist — observability first, then extend from evidence not guesses. UPDATE 2026-08-26: user observed live in syspilot's Project Manager session — a doc-creation step showed 'Generating patch ...' in the UI instead of the known create_file/replace_string_in_file/multi_replace_string_in_file flow, suggesting a distinct edit tool (possibly an apply_patch-style tool) is in use that isn't in touchTracker.ts's 4-entry allowlist. Not yet confirmed which tool_name string this corresponds to — needs the observability logging above before a specific tool_name can be added to TOUCH_RULES. Raised Low → Medium: this is no longer theoretical, there's now a live sighting of the exact gap the finding predicted."
   - id: 19
     name: "Ship the three jarvis-actor-* instruction files from jarvis-core instead of hand-copying them per workspace"
     status: Done
