@@ -102,7 +102,8 @@
 
 ## Active CR
 
-_(none)_
+_(none — 0.26.0 release in progress, SENT to Release Engineer 2026-08-26,
+awaiting completion confirmation)_
 
 ## Recently Shipped
 
