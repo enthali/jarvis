@@ -2,40 +2,22 @@
 
 ## Backlog
 
-GitHub Issues is the single source of truth for the backlog. No separate backlog file.
+Internal backlog lives in [backlog.kanban.yaml](../../.jarvis/actors/Project%20Manager/backlog.kanban.yaml)
+(open via `jarvis_openKanbanBoard`, edit items via `jarvis_updateKanbanItem`/
+`jarvis_addKanbanItem` or direct YAML edit) — revised 2026-08-20, dogfooding
+the Jarvis kanban tools for PM's own backlog instead of GitHub Issues.
 
-## GitHub Project Board (Kanban + Reminder Pattern)
+GitHub Issues are reserved for **external reports only** (someone else
+filing an issue on the public repo) — PM no longer files or works its own
+backlog items there, and there is no GitHub Project Board sync for the
+kanban backlog (that automation was tied to the old issue-based backlog and
+is retired along with it). The 23 issues open before the 2026-08-20 switch
+stay in GH as legacy, closed out as done, not migrated.
 
-Work is tracked on **GitHub Project "Jarvis" #2** (board fields: Status,
-Priority). GitHub Issues are PM-owned end-to-end — no other agent opens,
-edits, or closes them (subject to the explicit-approval rule below).
-
-**After PM merges a feature branch into `development` (workflow step 13):**
-- Set the board Status of every tracked issue to **"Merged"**
-  (`gh project item-edit --project-id PVT_kwHOAFDYiM4BdUee --field-id PVTSSF_lAHOAFDYiM4BdUeezhX22FU --single-select-option-id c859fa25 ...`).
-- Leave the GitHub Issue **open** — not done until released.
-
-**At release time:** the CD publish pipeline auto-closes tracked issues
-(see `syspilot.release.tailoring.md` / "Post-Release Distribution" above) —
-closing triggers the board's "Item closed" automation → Status flips to
-**Done** automatically. No manual reminder/CI-poll step needed here (unlike
-syspilot, which lacks that automation and must poll `gh run list` manually).
-
-**Board/field IDs for reference (do not re-query unless the project is rebuilt):**
-- Project node ID: `PVT_kwHOAFDYiM4BdUee`
-- Status field ID: `PVTSSF_lAHOAFDYiM4BdUeezhX22FU`
-- Status options: Backlog=`f75ad846`, Ready=`61e4505c`, In progress=`47fc9ee4`, In review=`df73e18b`, Merged=`c859fa25`, Done=`98236657`
-- Priority field ID: `PVTSSF_lAHOAFDYiM4BdUeezhX22LE`
-- Priority options: P0=`79628723`, P1=`0a877460`, P2=`da944a9c`
-- **WIP limit on "In progress": 1 CR** — already structurally enforced by the
-  single-worktree constraint ("One CR at a Time" above); the board Status is
-  a visibility mirror of that constraint, not an independent limit. Epics
-  are exempt (a container ticket may sit "In progress" alongside 1 active CR).
-- **Ready definition:** an issue is "Ready" when all design decisions are
-  resolved and PM could write the CR Summary immediately without further
-  clarification. PM populates the issue body with the intended scope before
-  setting Ready. This is the pull queue: when "In progress" frees up, PM
-  picks the next "Ready" item.
+When a CD addresses a tracked **external** GitHub issue, the `**GitHub
+Issue(s)**:` line (see "Change Initialization" below) and the release-time
+auto-close still apply — that mechanism is about external reports, not
+PM's internal backlog, so it is unaffected by the switch above.
 
 ## GitHub Issue Creation Requires Explicit Approval
 
@@ -61,9 +43,11 @@ the following **interactively with the user** — this is a deliberate
 experiment (not yet a generic mechanism) feeding the future housekeeping
 capability tracked in GH #23:
 
-1. **GitHub issue comment**: comment on the issue(s) this CR addressed —
-   merged to development, ships in the next release (do not close yet —
-   closure happens at release time, see `syspilot.release.tailoring.md`).
+1. **GitHub issue comment** (only if this CR addressed a tracked **external**
+   issue — most CRs don't, since the internal backlog is kanban-based, see
+   "Backlog" above): comment on the issue(s) — merged to development, ships
+   in the next release (do not close yet — closure happens at release time,
+   see `syspilot.release.tailoring.md`).
 2. **Session file review** — actively re-read `context.md` and
    `lessons-learned.md` from disk right now, rather than relying on what
    was read earlier in this conversation. Unlike agent `.md` files, these
@@ -80,8 +64,9 @@ capability tracked in GH #23:
      bring both sides to the user and reflect together on whether the old
      lesson still holds, or whether the new experience should refine or
      replace it.
-3. **Roadmap reflection**: review Ideas + open GitHub Issues together with
-   the user, pick the next candidate for the queue.
+3. **Roadmap reflection**: review the kanban backlog + Ideas (and any open
+   external GitHub Issues, if relevant) together with the user, pick the
+   next candidate for the queue.
 
 ## One CR at a Time (Single Worktree Constraint)
 
