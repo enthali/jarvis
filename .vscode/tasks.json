@@ -83,6 +83,13 @@
         },
         {
             "type": "shell",
+            "command": "npx tsc -p packages/core && npx tsc -p packages/syspilot && npx tsc -p packages/mcp && npx tsc -p packages/kanban && cd packages/kanban && node build.js && node webview-build.js && cd ../..",
+            "group": "build",
+            "label": "compile core+syspilot+mcp+kanban",
+            "problemMatcher": "$tsc"
+        },
+        {
+            "type": "shell",
             "command": "npx tsc -p packages/core && npx tsc -p packages/pim && npx tsc -p packages/recorder && npx tsc -p packages/mcp && npx tsc -p packages/flow && cd packages/flow && node build.js && node webview-build.js && cd ../.. && npx tsc -p packages/kanban && cd packages/kanban && node build.js && node webview-build.js && cd ../.. && npx tsc -p packages/syspilot",
             "group": "build",
             "label": "compile all",

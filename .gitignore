@@ -29,6 +29,7 @@ docs/_build/
 .jarvis/reminders.yaml
 .jarvis/syspilot-state.json
 jarvis-*
+!packages/*/assets/**
 # END JARVIS MANAGED
 
 # testdata workspace runtime/scratch state (Dev Host manual testing,

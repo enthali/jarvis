@@ -31,6 +31,29 @@
 - **Branch + CD before dispatch**: CM cannot start a CR without an existing
   branch + template-copied CD — create both before/with the CR message, not
   just mention them.
+- **User reviews the CD before dispatch, in user-guided mode (2026-08-21)**:
+  after filling the CD's header/Summary, show it to the user and wait for
+  their go-ahead BEFORE sending the CR to CM — don't dispatch first and
+  let the user review in parallel. Mistake made 2026-08-21: dispatched
+  module-skill-provisioning to CM before asking; had to send a hold message.
+  Not needed in autonomous/unattended mode (no user to wait for).
+- **Stacked feature branches when a CR has no standalone user-visible behavior
+  (2026-08-24)**: if a CR is QM-cleared but the user can't meaningfully
+  validate it alone (e.g. an infra/mechanism CR whose only observable effect
+  needs a dependent CR's content), don't force a merge on QM CLEAR alone —
+  branch the dependent CR directly off the first CR's unmerged feature branch
+  (not off `development`), hold both un-merged, and merge in sequence once the
+  user validates them together. One CD per CR still applies; only the git
+  branch parentage stacks.
+- **Stacked branches WILL conflict on the second squash-merge (2026-08-24)**:
+  squash commits carry no parent info, so merging the second (stacked) branch
+  into `development` re-conflicts on every file the first branch already
+  touched, even though the second branch is a strict superset. Resolve with
+  `git checkout --theirs` (the incoming/second branch) for all such files —
+  it already contains the first branch's content plus its own. Exception: any
+  file PM edited directly on `development` after the first squash-merge (e.g.
+  a CD's `Status: merged` field) needs manual reconciliation, not a blind
+  `--theirs`.
 - **Copy the template literally — never paraphrase its structure (2026-07-28)**:
   the CD is the contract between agents. PM's part is the header fields
   (Status/Branch/Created/Author/Operation Mode) + Summary (root cause, fix
@@ -66,20 +89,65 @@
   keep what's relevant within ~2 weeks; larger topics → separate file with a
   one-line pointer here. Current release/version info lives in
   `docs/changes/` (revision history), not here.
-- **Backlog vs. Ideas**: Backlog = certain, we're doing it — lives ONLY in
-  [GitHub Issues](https://github.com/enthali/jarvis/issues), never duplicated
-  here. Ideas = may or may not happen — one file per idea under
+- **Backlog vs. Ideas (revised 2026-08-20 — dogfooding)**: internal backlog
+  now lives in [backlog.kanban.yaml](backlog.kanban.yaml) (open it via
+  `jarvis_openKanbanBoard`, edit items via `jarvis_updateKanbanItem` or direct
+  YAML edit), never duplicated here. GitHub Issues are reserved for EXTERNAL
+  reports only (someone else filing an issue on the public repo) — PM no
+  longer files or works its own backlog there. The 23 issues open before this
+  switch stay in GH as legacy, closed out as done, not migrated. Ideas = may
+  or may not happen — one file per idea under
   `.jarvis/actors/Project Manager/ideas/`,
   listed below as a link + one-line description only (no content inline).
 
 ## Active CR
 
-- None in pipeline. Follow-up CRs in flight (unattended, 2026-08-05):
-  - `jarvis-newentity-cleanup`: remove dead `jarvis.newEntity` contribution (never registered, pre-existing)
-  - `jarvis-manifest-invariant`: add test asserting all contributed command IDs are registered
+_(none — 0.26.0 release in progress, SENT to Release Engineer 2026-08-26,
+awaiting completion confirmation)_
 
 ## Recently Shipped
 
+- **touched-files-created-files** (backlog item 9) — CLOSED 2026-08-26 as
+  **not reproducible**, no code changed. SD reproduced live with the user on
+  Windows + WSL2: `create_file` has been in `TOUCH_RULES` since the feature's
+  original commit, created files are tracked and render correctly, 35/35
+  corpus files since 2026-08-24 tracked. Real finding routed separately:
+  `TOUCH_RULES`'s 4-tool allowlist silently drops writes from any tool not on
+  it (no log at any level) — logged as backlog item 18 (observability, log
+  unmatched tool_names before extending the list).
+- **kanban-update-validation** merged to `development` 2026-08-26 (F-1 follow-up,
+  stacked on `feature/kanban-management-tools`). `jarvis_updateKanbanItem` now
+  delegates to the shared `validateItemValues` helper instead of its old
+  status-only inline check — closes F-1, all four write tools now share one
+  write-validation contract. QM CLEARED (Round 1), one Low deferred (backlog
+  item 17, `changes.labels` schema type). User-validated together with
+  `kanban-management-tools`.
+- **kanban-management-tools** merged to `development` 2026-08-26 (backlog items
+  3, 11, 12, 13). Four new tools: `jarvis_addKanbanItem`, `jarvis_deleteKanbanItem`,
+  `jarvis_listKanbanItems` (filtered, compact projection), `jarvis_updateKanbanFields`
+  (add/remove field or select option). Dispatched unattended overnight
+  2026-08-24; QM CLEARED (Round 3, 2 Lows deferred to backlog item 14). Two
+  USER REVIEW REQUIRED flags resolved with the user 2026-08-26: F-1 (weaker
+  validation in the pre-existing `jarvis_updateKanbanItem`) spun off as its own
+  CR (`kanban-update-validation`, stacked, pending merge); F-2 (field/option
+  rename not offered) accepted as-is, bulk-rename idea captured as backlog
+  item 15. All 8 kanban tools user-validated live in the EDH before merge.
+- **agent-mode-reset-race** merged to `development` 2026-08-24 (backlog item 8).
+  Fixed the Agent Mode misassignment bug: added a target-identity check before
+  the mode-set command executes (skip + warn on mismatch instead of blindly
+  firing), moved the success log inside that check, plus an unrelated
+  delivery-loop re-entrancy guard. Took 4 QM rounds — Round 3 caught a
+  self-inflicted AC-7 regression (a "fix the spec" decision got executed
+  backwards, code synced to a buggy spec sample and dropped an error catch);
+  corrected before merge. User-validated live in the EDH. Clean squash-merge,
+  no stacking (independent branch off `development`).
+- **module-skill-provisioning** + **kanban-skill-content** merged to `development`
+  2026-08-24 (squashed in that order; stacked-branch second squash-merge produced
+  expected conflicts on files both CRs touched — resolved by taking the incoming
+  branch's version everywhere except the first CD's Status field, since the second
+  branch was a strict superset). Delivered: generic module asset self-install
+  mechanism, real jarvis-kanban skill content (ontology, ownerName convention,
+  freeform text field). Closed backlog items 1, 2, 4, 5.
 - **v0.25.0** released 2026-08-05 @ `bcb5c96`. Contains: touched-files-cleanup, gitignore
   automanage followup, wiring restore (gitignore + release-notes), kanban+suite in
   self-update mapping. Issues #58/#59/#60/#63 closed.
@@ -90,6 +158,11 @@
 
 ## Ideas
 
+- **US/REQ/SPEC — is the SPEC level redundant? (2026-08-20)**: SPEC often ends up
+  just restating the code. Idea: try dropping it for one new feature as an
+  experiment. Not trivial — the 3-level structure is hardwired throughout
+  syspilot (agents, traceability, MECE/Trace engineers); current syspilot
+  version doesn't give the flexibility needed yet. Parked, revisit later.
 - [PIM Modularization](ideas/pim-modularization.md) — drop per-component enable/disable settings, go installable-sub-extensions instead
 - [Session Recording](ideas/recording-design.md) — meeting recording + transcription pipeline
 - Recorder on built-in VS Code dictation (deferred, 2026-08-05) — see Research's

@@ -2,7 +2,7 @@
   "name": "jarvis-flow",
   "displayName": "Jarvis Message Flow",
   "description": "Jarvis Message Flow — interactive D3 chord-diagram visualization of inter-agent message traffic",
-  "version": "0.25.1",
+  "version": "0.26.0",
   "publisher": "enthali",
   "icon": "resources/jarvis-128.png",
   "repository": {

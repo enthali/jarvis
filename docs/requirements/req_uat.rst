@@ -50,6 +50,7 @@ end-to-end verification of each feature.
    req_uat_newentity_picker
    req_uat_heartbeat_dest_valid
    req_uat_modular_install
+   req_uat_skill_provisioning
    req_uat_entity_files_tree
    req_uat_entity_contextmenu
    req_uat_collapseall
@@ -57,6 +58,10 @@ end-to-end verification of each feature.
    req_uat_injectprompt
    req_uat_whoami
    req_uat_kanban
+   req_uat_kanban_skill
+   req_uat_msg_modetarget
+   req_uat_kanban_mgmt
+   req_uat_kanban_update_valid
 
 All UAT Requirements
 --------------------

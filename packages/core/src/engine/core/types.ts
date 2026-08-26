@@ -106,6 +106,20 @@ export interface ToolDescriptor {
 export type { HeartbeatJob, HeartbeatStep } from '../../apps/session/heartbeat';
 
 /**
+ * Configuration for provisionModuleAssets (SPEC_MOD_SKILL_PROVISION).
+ */
+export interface ModuleAssetConfig {
+    /** Required name prefix for every asset this module provisions. Also scopes the workspaceState key. */
+    namespace: string;
+    /** Absolute path to the bundled skills folder. Omit if none. */
+    skillsSourceDir?: string;
+    /** Absolute path to the bundled instructions folder. Omit if none. */
+    instructionsSourceDir?: string;
+    /** Default true. False de-provisions — see SPEC_MOD_SKILL_MANIFEST. */
+    enabled?: boolean;
+}
+
+/**
  * Decoration contributor interface.
  * Add-ons can register a decorator for their own kind's tree items
  * without the engine knowing the decoration logic (SPEC_ENG_API).
@@ -200,4 +214,8 @@ export interface JarvisCoreApi {
      * agent, and contextPath internally — callers need no prompt knowledge.
      */
     openActorSession(entityName: string, options?: { placement?: 'main' | 'secondary' }): Promise<void>;
+
+    // --- Module asset provisioning (SPEC_MOD_SKILL_PROVISION) ---
+
+    provisionModuleAssets(context: vscode.ExtensionContext, config: ModuleAssetConfig): Promise<void>;
 }

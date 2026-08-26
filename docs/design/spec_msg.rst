@@ -1171,7 +1171,7 @@ Message Queue Design Specifications
 .. spec:: Auto-Delivery Poll Loop
    :id: SPEC_MSG_AUTODELIVER_POLL
    :status: draft
-   :links: REQ_MSG_AUTODELIVER_POLL; SPEC_MSG_AUTODELIVER_STORE; SPEC_MSG_AUTODELIVER_TAG; SPEC_MSG_SENDCOMMAND; REQ_MSG_NOTIFICATION_TEMPLATE; SPEC_MSG_NOTIFICATION_RESOLVE; SPEC_MSG_OPENCHAT; REQ_ENT_AGENTPROMPT_TEMPLATE; SPEC_ENT_AGENTSESSION_INITPROMPT; SPEC_MSG_EDITORPLACEMENT; SPEC_MSG_FOCUSRESTORE; SPEC_INJ_INJECT
+   :links: REQ_MSG_AUTODELIVER_POLL; REQ_MSG_DELIVERY_REENTRANCY; SPEC_MSG_AUTODELIVER_STORE; SPEC_MSG_AUTODELIVER_TAG; SPEC_MSG_SENDCOMMAND; REQ_MSG_NOTIFICATION_TEMPLATE; SPEC_MSG_NOTIFICATION_RESOLVE; SPEC_MSG_OPENCHAT; REQ_ENT_AGENTPROMPT_TEMPLATE; SPEC_ENT_AGENTSESSION_INITPROMPT; SPEC_MSG_EDITORPLACEMENT; SPEC_MSG_FOCUSRESTORE; SPEC_INJ_INJECT
 
    **Description:**
 
@@ -1198,52 +1198,104 @@ Message Queue Design Specifications
 
    .. code-block:: typescript
 
+      // Re-entrancy guard (agent-mode-reset-race CR, REQ_MSG_DELIVERY_REENTRANCY).
+      // setInterval does not await an async callback, so a delivery running
+      // longer than the 5s period would otherwise overlap the next one.
+      let deliveryInFlight = false;
+
       const pollInterval = setInterval(async () => {
         const messagesPath = resolveMessagesPath();
         const autoList = readAutoDelivery(messagesPath);
-        if (autoList.length === 0) { return; }
-        const messages = readQueue(messagesPath);
+        if (autoList.length > 0) {
+          const messages = readQueue(messagesPath);
 
-        for (const sessionName of autoList) {
-          const pending = messages.filter(
-            m => m.destination === sessionName && !m.notified
-          );
-          if (pending.length === 0) { continue; }
+          for (const sessionName of autoList) {
+            const pending = messages.filter(
+              m => m.destination === sessionName && !m.notified
+            );
+            if (pending.length === 0) { continue; }
 
-          // Snapshot focus before the disruptive delivery (SPEC_MSG_FOCUSRESTORE)
-          const focus = await snapshotFocus();
-
-          // Compose notification stub (SPEC_MSG_NOTIFICATION_RESOLVE)
-          const cfg = vscode.workspace.getConfiguration('jarvis');
-          const senders = [...new Set(pending.map(m => m.sender))].join(', ');
-          const stub = resolveNotificationText(
-            cfg.get<string>('messages.notificationTemplate', ''),
-            { count: String(pending.length), destination: sessionName, sender: senders },
-            sessionName
-          );  // REQ_MSG_NOTIFICATION_TEMPLATE
-
-          // Delegate to injectPrompt (SPEC_INJ_INJECT)
-          //   - resolves entity, finds/spawns session, places at Secondary, injects stub
-          await injectPrompt(sessionName, stub, { placement: 'secondary' });
-
-          // Mark messages as notified
-          const updated = readQueue(messagesPath);
-          for (const m of updated) {
-            if (m.destination === sessionName && !m.notified) {
-              m.notified = true;
+            if (deliveryInFlight) {
+              log.debug(`[MSG] autoDelivery: tick skipped — delivery still in flight`);
+              break;
             }
-          }
-          writeQueue(messagesPath, updated);
-          messageProvider.reload();
+            deliveryInFlight = true;
+            try {
+              // Snapshot focus before the disruptive delivery (SPEC_MSG_FOCUSRESTORE)
+              const focus = await snapshotFocus();
 
-          // Restore the user's prior focus immediately, no artificial delay
-          // (SPEC_MSG_FOCUSRESTORE)
-          await restoreFocus(focus);
-          break; // max one session per tick
+              // Compose notification stub (SPEC_MSG_NOTIFICATION_RESOLVE)
+              const cfg = vscode.workspace.getConfiguration('jarvis');
+              const senders = [...new Set(pending.map(m => m.sender))].join(', ');
+              const stub = resolveNotificationText(
+                cfg.get<string>('messages.notificationTemplate', ''),
+                { count: String(pending.length), destination: sessionName, sender: senders },
+                sessionName
+              );  // REQ_MSG_NOTIFICATION_TEMPLATE
+
+              // Delegate to injectPrompt (SPEC_INJ_INJECT)
+              await injectPrompt(sessionName, stub, { placement: 'secondary' });
+
+              // Mark messages as notified
+              const updated = readQueue(messagesPath);
+              for (const m of updated) {
+                if (m.destination === sessionName && !m.notified) {
+                  m.notified = true;
+                }
+              }
+              writeQueue(messagesPath, updated);
+              messageProvider.reload();
+
+              // Restore the user's prior focus immediately, no artificial delay
+              // (SPEC_MSG_FOCUSRESTORE)
+              await restoreFocus(focus);
+            } catch (err) {
+              log.warn(`[MSG] autoDelivery: delivery failed for "${sessionName}": ${err}`);
+            } finally {
+              // finally, not after the await: a throwing delivery must not
+              // leave the loop permanently blocked (REQ_MSG_DELIVERY_REENTRANCY AC-3)
+              deliveryInFlight = false;
+            }
+            break; // max one session per tick
+          }
         }
+
+        // Reminder delivery runs outside the guard — no focus/editor interaction
+        // (REQ_MSG_DELIVERY_REENTRANCY AC-5)
       }, 5000);
 
       context.subscriptions.push({ dispose: () => clearInterval(pollInterval) });
+
+   **Re-entrancy guard** (``agent-mode-reset-race`` CR,
+   ``REQ_MSG_DELIVERY_REENTRANCY``):
+
+   ``setInterval`` schedules by wall-clock period and does not await an async
+   callback, so the "one session per tick" bound (``REQ_MSG_AUTODELIVER_POLL``
+   AC-5) does not imply one delivery at a time. A new-session delivery contains
+   ≥1 100 ms of fixed sleeps plus unbounded VS Code command latency for editor
+   creation, ``/rename`` and prompt submission, so exceeding the 5 s period is
+   reachable in normal use.
+
+   Two overlapping deliveries interleave their ``snapshotFocus`` →
+   ``injectPrompt`` → ``restoreFocus`` sequences. One delivery's
+   ``restoreFocus`` can then run while the other is inside
+   ``reapplyAgentMode``'s settle window, moving focus to the previously focused
+   session immediately before the mode command fires — the
+   ``agent-mode-reset-race`` symptom.
+
+   The guard is a module-scoped boolean, released in a ``finally`` block. The
+   ``finally`` is load-bearing: releasing after the ``await`` instead would leak
+   the flag on any throw and convert an intermittent delivery fault into a
+   permanently dead delivery loop, which is worse than the defect being fixed.
+
+   Reminder processing (below the delivery block in the same tick body) is
+   deliberately outside the guard — it touches no focus and no chat editor, so
+   blocking it would delay reminders for no benefit
+   (``REQ_MSG_DELIVERY_REENTRANCY`` AC-5).
+
+   The skip is logged at ``debug``, not ``warn``: under sustained delivery load
+   it is expected behaviour rather than a fault, and a warn-level entry would
+   flood the channel (``REQ_MSG_DELIVERY_REENTRANCY`` AC-4).
 
    **Design notes:**
 
@@ -1871,7 +1923,7 @@ Message Queue Design Specifications
 .. spec:: New Chat Editor Helper
    :id: SPEC_MSG_OPENCHAT
    :status: draft
-   :links: REQ_MSG_OPENCHAT; SPEC_MSG_PINNED
+   :links: REQ_MSG_OPENCHAT; REQ_MSG_MODETARGET; SPEC_MSG_PINNED
 
    **Description:**
    Private async helper ``openNewChatEditor`` in ``extension.ts`` creates a new
@@ -1958,44 +2010,95 @@ Message Queue Design Specifications
    defensively so that a missing command degrades to a no-op (logged warning)
    rather than a hard failure.
 
-   **Helper — ``reapplyAgentMode(agent, context)``:**
+   **Helper — ``reapplyAgentMode(agent, sessionName)``:**
    Private async helper in ``extension.ts``. Given an agent/mode name (from an
-   entity's ``agent`` field) it re-applies that mode to the currently focused
-   chat editor. Semantics:
+   entity's ``agent`` field) and the name of the session the change is intended
+   for, it re-applies that mode **to that session** — or to nothing at all.
+   Semantics:
 
-   * Waits **400 ms** first, so the just-opened/focused editor tab is the active
-     chat widget before the mode-specific command runs.
+   * Waits **400 ms** first, so the just-opened/focused editor tab has a chance
+     to become the active chat widget before the mode-specific command runs.
+     This delay is a *convenience*, not a guarantee — the guarantee is the
+     target check below (``agent-mode-reset-race`` CR).
    * Builds the dynamic command id ``workbench.action.chat.open${agent}``.
    * Probes the command registry via ``vscode.commands.getCommands(true)`` and
      **skips** (logged warning, no throw) if the command is not registered yet —
      this tolerates the race where the mode has not been registered immediately
      after a reload.
-   * Executes the command, then waits **300 ms** to let the switch settle.
+   * **Verifies the target** (``REQ_MSG_MODETARGET`` AC-2): reads
+     ``vscode.window.tabGroups.activeTabGroup.activeTab`` and compares its
+     ``label`` to ``sessionName``. A chat tab's label *is* the session name —
+     the same identity ``snapshotFocus`` relies on (``SPEC_MSG_FOCUSRESTORE``).
+     If there is no active tab, or the label differs, the helper logs a warning
+     naming both the intended session and the actual tab label, and returns
+     **without executing the command**.
+   * Only if the label matches: executes the command, waits **300 ms** to let
+     the switch settle, and logs success.
    * All failures are caught and logged; the helper never throws.
 
    .. code-block:: typescript
 
-      async function reapplyAgentMode(agent: string, context: string): Promise<void> {
+      async function reapplyAgentMode(agent: string, sessionName: string): Promise<void> {
           try {
               await new Promise(resolve => setTimeout(resolve, 400));
               const cmdId = `workbench.action.chat.open${agent}`;
               const available = await vscode.commands.getCommands(true);
               if (!available.includes(cmdId)) {
-                  log.warn(`[MSG] reapplyAgentMode: command "${cmdId}" not registered yet — skipping for "${context}"`);
+                  log.warn(`[MSG] reapplyAgentMode: command "${cmdId}" not registered yet — skipping for "${sessionName}"`);
+                  return;
+              }
+              // The command applies to whatever chat editor is focused; confirm
+              // that is the session we mean before letting it fire.
+              const activeLabel = vscode.window.tabGroups.activeTabGroup.activeTab?.label;
+              if (activeLabel !== sessionName) {
+                  log.warn(
+                      `[MSG] reapplyAgentMode: skipped — intended "${sessionName}" `
+                      + `but focused tab is "${activeLabel ?? '<none>'}"`
+                  );
                   return;
               }
               await vscode.commands.executeCommand(cmdId);
               await new Promise(resolve => setTimeout(resolve, 300));
-              log.info(`[MSG] reapplyAgentMode: re-applied agent mode "${agent}" to session "${context}"`);
+              log.info(`[MSG] reapplyAgentMode: re-applied agent mode "${agent}" to session "${sessionName}"`);
           } catch (err) {
-              log.warn(`[MSG] reapplyAgentMode: failed to re-apply agent mode "${agent}" for "${context}": ${err}`);
+              log.warn(`[MSG] reapplyAgentMode: failed to re-apply agent mode "${agent}" for "${sessionName}": ${err}`);
           }
       }
+
+   **Why a check and not a longer delay** (``agent-mode-reset-race`` CR):
+   The command carries no session identity, so "the right editor is focused" is
+   a precondition, and a delay cannot establish a precondition — it can only
+   make violations rarer while removing the evidence that they occur. The same
+   code path already carries a measured warning against defensive sleeps
+   (``SPEC_MSG_FOCUSRESTORE``: an earlier ``setTimeout(800)`` worsened both
+   latency and keystroke leakage). The label comparison costs nothing, is
+   deterministic, and converts a silent wrong-target write into a logged no-op.
+
+   **Why the success log moved inside the guard:**
+   Previously the success entry was emitted unconditionally after the command
+   and interpolated the *intended* session name. A mis-targeted application
+   therefore logged that it had applied the mode to a session it never touched
+   (``REQ_MSG_MODETARGET`` AC-5). This is why the 2026-08-21 report could not be
+   root-caused from logs — they asserted the opposite of what occurred.
 
    ``reapplyAgentMode()`` is called from the existing-session (UUID) branches of
    the two delivery paths — ``SPEC_MSG_SENDCOMMAND`` (after ``openAtMain``) and
    ``SPEC_MSG_AUTODELIVER_POLL`` (after ``openAtSecondary``) — when the target
-   entity has an ``agent`` set.
+   entity has an ``agent`` set. Both call sites already pass the entity name and
+   need no change beyond the parameter's new meaning.
+
+   **Acceptance Criteria (``agent-mode-reset-race`` CR):**
+
+   * AC-M1: The command is not executed when the active tab's label differs from
+     the intended session name, or when no tab is active.
+   * AC-M2: A skipped application logs a warning naming the intended session and
+     the actual focused tab label.
+   * AC-M3: The success entry is emitted only after a successful comparison and
+     command execution.
+   * AC-M4: A skipped application returns normally — the caller's delivery
+     continues (``REQ_MSG_MODETARGET`` AC-7).
+   * AC-M5: The command-registry probe is retained and runs before the target
+     check.
 
 
 .. spec:: Agent Chat Prompt Helper

@@ -50,6 +50,7 @@ outcome tables** for each feature's acceptance tests.
    spec_uat_newentity_picker
    spec_uat_heartbeat_dest_valid
    spec_uat_modular_install
+   spec_uat_skill_provisioning
    spec_uat_entity_files_tree
    spec_uat_entity_contextmenu
    spec_uat_collapseall
@@ -57,6 +58,10 @@ outcome tables** for each feature's acceptance tests.
    spec_uat_injectprompt
    spec_uat_whoami
    spec_uat_kanban
+   spec_uat_kanban_skill
+   spec_uat_msg_modetarget
+   spec_uat_kanban_mgmt
+   spec_uat_kanban_update_valid
 
 All UAT Specifications
 ----------------------

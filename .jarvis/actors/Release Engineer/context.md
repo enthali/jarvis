@@ -5,7 +5,7 @@ This file captures operational details not covered there.
 
 ## Findings
 
-- Latest release: v0.25.0 (2026-08-05, minor) — touched-files-cleanup, gitignore-automanage (#60), messages-dir-grouping (#59), hook-file-prefix (#58), release-notes-on-update (#63), + 2 follow-up fixes. Prior: v0.24.1 (patch) notification/identity fixes.
+- Latest release: v0.25.1 (2026-08-07, patch) — touched-files-wsl-existence (WSL/Remote fs.stat fix + rootUri propagation). No GH issues closed. Prior: v0.25.0 (minor) touched-files cleanup + gitignore automanage.
 - Integration branch renamed `develop` → `development` (first confirmed in v0.25.0 release); context.md updated.
 - v0.24.1 NOTE: 3 pre-existing ESLint "rule not found" config errors confirmed unchanged from develop — not a regression, no action taken; watch for recurrence.
 - v0.24.1 was released via runSubagent (process error, PM acknowledged) — this entry is a PM-provided backfill; no actor validation was run by me.

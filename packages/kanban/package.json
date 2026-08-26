@@ -2,7 +2,7 @@
   "name": "jarvis-kanban",
   "displayName": "Jarvis Kanban",
   "description": "Jarvis Kanban — convention-based kanban boards for actors, projects, and events",
-  "version": "0.25.1",
+  "version": "0.26.0",
   "publisher": "enthali",
   "icon": "resources/jarvis-128.png",
   "repository": {
@@ -40,6 +40,16 @@
     "yaml": "^2.7.0"
   },
   "contributes": {
+    "configuration": {
+      "title": "Jarvis Kanban",
+      "properties": {
+        "jarvis.kanban.autoProvision": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically provision bundled Copilot Skill and Instructions files into the workspace on activation."
+        }
+      }
+    },
     "commands": [
       {
         "command": "jarvis.openKanbanBoard",
@@ -150,6 +160,83 @@
           "properties": {
             "itemId": { "type": "integer", "description": "The ID of the item to update." },
             "changes": { "type": "object", "description": "Key-value pairs of fields to update. The 'id' field cannot be changed.", "additionalProperties": { "type": "string" } },
+            "boardName": { "type": "string", "description": "Board file name (without .kanban.yaml suffix). Omit for default 'kanban.yaml'." },
+            "ownerName": { "type": "string", "description": "Name of the owning actor/project/event. Omit to auto-resolve via jarvis_whoAmI." }
+          }
+        }
+      },
+      {
+        "name": "jarvis_addKanbanItem",
+        "displayName": "Add Kanban Item",
+        "toolReferenceName": "addKanbanItem",
+        "icon": "$(add)",
+        "canBeReferencedInPrompt": true,
+        "modelDescription": "Adds a new item to a kanban board. Auto-assigns id; validates values before writing. Omit ownerName to address your own board.",
+        "inputSchema": {
+          "type": "object",
+          "required": ["name"],
+          "properties": {
+            "name": { "type": "string", "description": "Item title." },
+            "status": { "type": "string", "description": "Status value. Defaults to first declared status option if omitted." },
+            "labels": { "type": "array", "items": { "type": "string" }, "description": "Labels/tags for the item." },
+            "notes": { "type": "string", "description": "Freeform notes." },
+            "fields": { "type": "object", "description": "Values for declared fields (key = field name, value = string).", "additionalProperties": { "type": "string" } },
+            "boardName": { "type": "string", "description": "Board file name (without .kanban.yaml suffix). Omit for default 'kanban.yaml'." },
+            "ownerName": { "type": "string", "description": "Name of the owning actor/project/event. Omit to auto-resolve via jarvis_whoAmI." }
+          }
+        }
+      },
+      {
+        "name": "jarvis_deleteKanbanItem",
+        "displayName": "Delete Kanban Item",
+        "toolReferenceName": "deleteKanbanItem",
+        "icon": "$(trash)",
+        "canBeReferencedInPrompt": true,
+        "modelDescription": "Deletes a kanban board item by ID. The deleted id is never reused. Omit ownerName to address your own board.",
+        "inputSchema": {
+          "type": "object",
+          "required": ["itemId"],
+          "properties": {
+            "itemId": { "type": "integer", "description": "The ID of the item to delete." },
+            "boardName": { "type": "string", "description": "Board file name (without .kanban.yaml suffix). Omit for default 'kanban.yaml'." },
+            "ownerName": { "type": "string", "description": "Name of the owning actor/project/event. Omit to auto-resolve via jarvis_whoAmI." }
+          }
+        }
+      },
+      {
+        "name": "jarvis_listKanbanItems",
+        "displayName": "List Kanban Items",
+        "toolReferenceName": "listKanbanItems",
+        "icon": "$(list-flat)",
+        "canBeReferencedInPrompt": true,
+        "modelDescription": "Lists kanban board items with optional status and/or labels filter. Returns compact projection (id, name, status, labels). Omit ownerName to address your own board.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "status": { "type": "string", "description": "Filter by status value. Must match a declared option." },
+            "labels": { "type": "array", "items": { "type": "string" }, "description": "Filter by labels — all must be present on the item." },
+            "boardName": { "type": "string", "description": "Board file name (without .kanban.yaml suffix). Omit for default 'kanban.yaml'." },
+            "ownerName": { "type": "string", "description": "Name of the owning actor/project/event. Omit to auto-resolve via jarvis_whoAmI." }
+          }
+        }
+      },
+      {
+        "name": "jarvis_updateKanbanFields",
+        "displayName": "Update Kanban Fields",
+        "toolReferenceName": "updateKanbanFields",
+        "icon": "$(symbol-field)",
+        "canBeReferencedInPrompt": true,
+        "modelDescription": "Adds or removes field definitions or options on a kanban board. Refuses to remove fields/options still referenced by items. Omit ownerName to address your own board.",
+        "inputSchema": {
+          "type": "object",
+          "required": ["operation", "fieldName"],
+          "properties": {
+            "operation": { "type": "string", "enum": ["addField", "removeField", "addOption", "removeOption"], "description": "The operation to perform." },
+            "fieldName": { "type": "string", "description": "Target field name." },
+            "fieldType": { "type": "string", "enum": ["single_select", "text"], "description": "Field type (addField only)." },
+            "options": { "type": "array", "items": { "type": "object", "properties": { "name": { "type": "string" }, "color": { "type": "string" } }, "required": ["name"] }, "description": "Initial options (addField with single_select)." },
+            "optionName": { "type": "string", "description": "Option name (addOption/removeOption)." },
+            "optionColor": { "type": "string", "description": "Option color (addOption)." },
             "boardName": { "type": "string", "description": "Board file name (without .kanban.yaml suffix). Omit for default 'kanban.yaml'." },
             "ownerName": { "type": "string", "description": "Name of the owning actor/project/event. Omit to auto-resolve via jarvis_whoAmI." }
           }

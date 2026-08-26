@@ -4,7 +4,7 @@ Kanban Design Specifications
 .. spec:: Kanban Board YAML Schema
    :id: SPEC_KAN_SCHEMA
    :status: draft
-   :links: REQ_KAN_SCHEMA
+   :links: REQ_KAN_SCHEMA; REQ_KAN_TEXTFIELD
 
    **Description:**
    JSON Schema ``schemas/kanban.schema.json`` defining the structure of a
@@ -39,7 +39,7 @@ Kanban Design Specifications
             "minItems": 1,
             "items": {
               "type": "object",
-              "required": ["name", "type", "options"],
+              "required": ["name", "type"],
               "additionalProperties": false,
               "properties": {
                 "name": {
@@ -48,7 +48,7 @@ Kanban Design Specifications
                 },
                 "type": {
                   "type": "string",
-                  "enum": ["single_select"]
+                  "enum": ["single_select", "text"]
                 },
                 "options": {
                   "type": "array",
@@ -69,7 +69,23 @@ Kanban Design Specifications
                     }
                   }
                 }
-              }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": { "type": { "const": "single_select" } },
+                    "required": ["type"]
+                  },
+                  "then": { "required": ["options"] }
+                },
+                {
+                  "if": {
+                    "properties": { "type": { "const": "text" } },
+                    "required": ["type"]
+                  },
+                  "then": { "not": { "required": ["options"] } }
+                }
+              ]
             }
           },
           "items": {
@@ -102,7 +118,7 @@ Kanban Design Specifications
               },
               "additionalProperties": {
                 "type": "string",
-                "description": "Values for user-defined single_select fields."
+                "description": "Values for user-defined single_select or text fields."
               }
             }
           }
@@ -132,6 +148,17 @@ Kanban Design Specifications
      This keeps the JSON Schema simple and the YAML easy to author.
    * ``color`` is optional on field options; when absent the renderer picks
      a default from the VS Code theme palette.
+   * (``kanban-skill-content`` CR, GH #57) ``options`` is bound to ``type`` by
+     an ``if``/``then`` pair rather than left merely optional: required for
+     ``single_select``, forbidden for ``text``. Leaving it optional would let a
+     ``text`` field carry an option list that nothing reads — accepted, ignored,
+     and invisible, which is the same silent-acceptance failure mode GH #57 was
+     filed about.
+   * (``kanban-skill-content`` CR) The structural schema still cannot express
+     "the ``status`` field must be ``single_select``", because it cannot reach
+     across array elements to the one named ``status``. That stays a semantic
+     check in ``SPEC_KAN_VERIFY``, consistent with how ``status``'s existence is
+     already handled.
 
    **Schema bundling:**
 
@@ -157,12 +184,18 @@ Kanban Design Specifications
    * AC-4: ``packages/kanban/schemas/kanban.schema.json`` exists as a
      package-local copy, kept in sync by ``build.js``.
    * AC-5: ``id`` is validated as integer >= 1.
+   * AC-6: (``kanban-skill-content`` CR) ``fields[].type`` accepts ``text``.
+   * AC-7: (``kanban-skill-content`` CR) A ``single_select`` field without
+     ``options`` is rejected; a ``text`` field with ``options`` is rejected.
+   * AC-8: (``kanban-skill-content`` CR) Every board under ``testdata/kanban/``
+     that validated before this change still validates — the schema change is
+     additive.
 
 
 .. spec:: Kanban Board Renderer
    :id: SPEC_KAN_RENDERER
    :status: draft
-   :links: REQ_KAN_RENDERER; SPEC_KAN_SCHEMA
+   :links: REQ_KAN_RENDERER; REQ_KAN_TEXTFIELD; SPEC_KAN_SCHEMA
 
    **Description:**
    A VS Code Webview Panel that renders a kanban board from a parsed YAML
@@ -184,8 +217,14 @@ Kanban Design Specifications
      the option definition (or a VS Code theme default) as header accent.
    * Cards show: ``#id`` prefix (e.g. ``#4 \u00b7 Item title``), ``name``
      (bold), ``labels`` (as colored badges), other field values (as key:
-     value pairs), ``notes`` (as smaller text below).
-   * Empty columns are shown (with a "No items" placeholder).
+     value pairs), ``notes`` (as smaller text below).   * (``kanban-skill-content`` CR) Values of declared ``text`` fields render as
+     labelled ``name: value`` pairs, in the same place as other declared field
+     values. They are labelled because, unlike ``notes``, they have a name that
+     carries the meaning — an unlabelled ``rationale`` is indistinguishable from
+     an unlabelled ``blocker``. Only keys matching a declared field are rendered;
+     an undeclared key is still skipped, which is the behaviour GH #57 found
+     surprising and which the skill must therefore document
+     (``REQ_KAN_SKILLCONTENT`` AC-3).   * Empty columns are shown (with a "No items" placeholder).
 
    **Filtering:**
 
@@ -402,7 +441,7 @@ Kanban Design Specifications
 .. spec:: jarvis_verifyKanbanSchema Tool
    :id: SPEC_KAN_VERIFY
    :status: draft
-   :links: REQ_KAN_VERIFY; SPEC_ACT_WHOAMI; SPEC_KAN_SCHEMA
+   :links: REQ_KAN_VERIFY; REQ_KAN_TEXTFIELD; SPEC_ACT_WHOAMI; SPEC_KAN_SCHEMA
 
    **Description:**
    Register ``jarvis_verifyKanbanSchema`` via ``engine.registerTool()`` in the
@@ -430,14 +469,30 @@ Kanban Design Specifications
 
       * Exactly one field named ``status`` exists → error if missing or
         duplicated.
+      * The ``status`` field is of type ``single_select`` → error if it is
+        ``text`` (``REQ_KAN_TEXTFIELD`` AC-4). Its options define the board's
+        columns; a non-enumerable status would render a board with none.
       * Every item's ``status`` value matches a defined ``status`` option →
         error for each mismatch.
-      * Item field values (``additionalProperties``) match a defined field
-        name and option → warning for unknown field names, error for values
-        not in the field's options.
+      * Item keys that are not built-in (``id``, ``name``, ``status``,
+        ``labels``, ``notes``) are resolved against the declared field names:
+
+        - no matching field → **warning** "Unknown field ... not defined in
+          fields[]". This stays a warning for backward compatibility, but is
+          the trap GH #57 reports, so ``REQ_KAN_SKILLCONTENT`` AC-3 requires
+          the skill to name it as one.
+        - matching field of type ``single_select`` → value must be one of that
+          field's options, else error.
+        - matching field of type ``text`` → any string accepted, no check.
 
    5. Return ``{ board: "<path>", errors: [...], warnings: [...] }`` where
       each finding is ``{ field: string, message: string, item?: string }``.
+
+   **Field lookup:**
+
+   The existing ``fieldMap`` (field name → option-name set) is widened to
+   field name → ``{ type, options? }``, because an empty option set can no
+   longer be distinguished from "this field does not constrain values".
 
    **Acceptance Criteria:**
 
@@ -445,6 +500,12 @@ Kanban Design Specifications
    * AC-2: Detects item ``status`` values not matching defined options.
    * AC-3: Returns structured findings with field and item context.
    * AC-4: Registers with ``toolReferenceName: "verifyKanbanSchema"``.
+   * AC-5: (``kanban-skill-content`` CR) A value under a declared ``text``
+     field produces neither error nor warning, whatever the string.
+   * AC-6: (``kanban-skill-content`` CR) A ``status`` field declared as
+     ``text`` produces an error.
+   * AC-7: (``kanban-skill-content`` CR) Existing single-select validation and
+     the unknown-field warning are unchanged in wording and severity.
 
 
 .. spec:: jarvis_openKanbanBoard Tool
@@ -484,7 +545,7 @@ Kanban Design Specifications
 .. spec:: jarvis_updateKanbanItem Tool
    :id: SPEC_KAN_UPDATE
    :status: draft
-   :links: REQ_KAN_UPDATE; SPEC_ACT_WHOAMI; SPEC_KAN_SCHEMA
+   :links: REQ_KAN_UPDATE; REQ_KAN_WRITEVALID; SPEC_KAN_WRITEVALID; SPEC_ACT_WHOAMI; SPEC_KAN_SCHEMA
 
    **Description:**
    Register ``jarvis_updateKanbanItem`` via ``engine.registerTool()`` in the
@@ -517,18 +578,49 @@ Kanban Design Specifications
       return ``{ error: "board not found" }``.
    3. Find the item with ``id === itemId``. If not found → return
       ``{ error: "item not found", itemId }``.
-   4. Apply ``changes`` **to the round-trip representation itself**, field by
-      field. The ``id`` field is immutable — if present in ``changes``, it is
-      silently ignored.
-   5. If ``changes.status`` is provided, validate it against the ``status``
-      field's options. The options are read from the same round-trip
-      representation — the file SHALL NOT be parsed a second time, so
-      validation and mutation cannot disagree about the file's content.
-      If invalid → return
-      ``{ error: "invalid status", value, validOptions }``.
+   4. **Validate the whole ``changes`` object** by calling the shared
+      ``validateItemValues(changes, data)`` helper (``SPEC_KAN_WRITEVALID``),
+      where ``data`` is the plain projection already derived in step 2. On a
+      non-``undefined`` return, respond ``{ error: <returned message> }`` and
+      write nothing (``kanban-update-validation`` CR).
+   5. Apply ``changes`` **to the round-trip representation itself**, field by
+      field. No per-key filtering is needed — step 4 has already rejected
+      ``id`` and every invalid value, so each remaining key is safe to set.
    6. Serialize the round-trip representation back to the file. Untouched
       regions SHALL be byte-identical to what was read.
    7. Return ``{ path, updated: true, itemId }``.
+
+   **Validation replaces the inline status check** (``kanban-update-validation``
+   CR, closing ``kanban-management-tools`` finding F-1):
+
+   The previous steps 4–5 validated only ``changes.status`` and skipped ``id``
+   with a ``continue`` inside the mutation loop. Three consequences, all of
+   which the shared helper removes:
+
+   * A value under any other declared ``single_select`` field was written
+     unchecked, so this tool could produce a board ``jarvis_verifyKanbanSchema``
+     reports as an error.
+   * A key naming no declared field was written and then never rendered — the
+     GH #57 trap, reachable through the tool that exists to prevent it.
+   * ``id`` in ``changes`` was silently dropped: the caller received
+     ``updated: true`` for a change that did not happen.
+
+   **Validation moves ahead of mutation.** The old order validated ``status``
+   after the item lookup but interleaved the ``id`` skip with the writes. The
+   helper is pure (``SPEC_KAN_WRITEVALID`` AC-6), so calling it before any
+   ``itemNode.set()`` guarantees a rejected update leaves the file
+   byte-identical (``REQ_KAN_UPDATE`` AC-10) rather than half-applied.
+
+   **Board projection must carry ``type``.** The plain projection in step 2 is
+   a TypeScript cast; it previously omitted ``fields[].type`` because only
+   ``options`` was read. ``validateItemValues`` branches on ``type``, so the
+   cast SHALL be widened to
+   ``fields: Array<{ name: string; type: string; options?: Array<{ name: string }> }>``.
+   This is load-bearing rather than cosmetic: silencing the mismatch with
+   ``as any`` (or leaving ``type`` absent) makes every
+   ``fieldEntry.type === 'single_select'`` comparison false at runtime, which
+   disables option checking on exactly the fields this CR exists to check — and
+   it fails open, so nothing reports an error.
 
    **Round-trip fidelity (kanban-yaml-comment-preservation CR, GH #53):**
 
@@ -585,6 +677,46 @@ Kanban Design Specifications
      after an update to an unrelated field (``REQ_KAN_UPDATE`` AC-6).
    * AC-7: An update to one field produces a diff touching only that field —
      no reformatting of untouched lines.
+   * AC-8: (``kanban-update-validation`` CR) A value under any declared
+     ``single_select`` field is option-checked, not only ``status``; a value
+     under a ``text`` field is accepted unchecked.
+   * AC-9: (``kanban-update-validation`` CR) A key naming no declared field is
+     rejected with an error listing the declared fields.
+   * AC-10: (``kanban-update-validation`` CR) ``changes`` containing ``id`` is
+     rejected with an error, not silently ignored.
+   * AC-11: (``kanban-update-validation`` CR) On any rejection the board file is
+     byte-identical to before the call.
+   * AC-12: (``kanban-update-validation`` CR) Validation is reached through the
+     shared ``validateItemValues`` helper — the tool holds no validation logic
+     of its own (``REQ_KAN_WRITEVALID`` AC-6).
+
+   **Guarding test — ``src/tests/kanban-comment-preservation.test.ts``**
+   (``kanban-update-validation`` CR):
+
+   TC-1 asserts source-level properties of this tool by slicing
+   ``extension.ts`` between ``'jarvis_updateKanbanItem'`` and the next
+   ``// Tool: jarvis_openKanbanBoard`` marker. Two defects follow from this CR
+   and must be fixed with it:
+
+   1. **The slice no longer isolates this tool.** ``kanban-management-tools``
+      inserted ``jarvis_addKanbanItem``, ``…deleteKanbanItem``,
+      ``…listKanbanItems`` and ``…updateKanbanFields`` between
+      ``updateKanbanItem`` and ``openKanbanBoard``, so the window now spans five
+      tool bodies. Every TC-1 assertion is currently satisfiable by code
+      belonging to a different tool — the test passes while testing something
+      other than what it claims. The end marker SHALL be changed to the next
+      tool comment that actually follows this one
+      (``// Tool: jarvis_addKanbanItem``), so the slice is one tool again.
+   2. **One assertion pins behaviour this CR removes.** TC-1's
+      ``skips id field (immutable guard)`` case matches
+      ``/if\s*\(key\s*===\s*'id'\)/`` — the silent-skip that AC-10 replaces with
+      a rejection. It SHALL be rewritten to assert that the handler delegates to
+      ``validateItemValues``, which is what enforces immutability now.
+
+   An end marker chosen as "the next tool in file order" is fragile by
+   construction — it silently widens whenever a tool is inserted. Fixing the
+   marker restores today's correctness; making the slice robust is out of scope
+   here and recorded in the Change Document.
 
 
 .. spec:: Kanban File Open via Custom Editor
@@ -683,7 +815,10 @@ Kanban Design Specifications
       pattern as core's ``session.schema.json``),
       ``languageModelTools`` (four tools: ``jarvis_createKanbanBoard``,
       ``jarvis_verifyKanbanSchema``, ``jarvis_openKanbanBoard``,
-      ``jarvis_updateKanbanItem``),
+      ``jarvis_updateKanbanItem``; extended by the ``kanban-management-tools``
+      CR with ``jarvis_addKanbanItem``, ``jarvis_deleteKanbanItem``,
+      ``jarvis_listKanbanItems`` and ``jarvis_updateKanbanFields`` —
+      ``REQ_KAN_MODULE`` AC-8),
       ``customEditors`` (``jarvis.kanbanEditor`` for
       ``*.kanban.yaml`` / ``kanban.yaml``).
 
@@ -729,3 +864,494 @@ Kanban Design Specifications
    * AC-9: ``loadSchema()`` in the verify tool resolves the schema path via
       ``context.extensionUri`` (extension install path), not the workspace
       root.
+
+
+.. spec:: Board Write Validation Helper
+   :id: SPEC_KAN_WRITEVALID
+   :status: approved
+   :links: REQ_KAN_WRITEVALID; SPEC_KAN_UPDATE; SPEC_KAN_VERIFY; SPEC_KAN_SCHEMA
+
+   **Description:**
+   A shared private helper in ``packages/kanban/src/extension.ts`` that every
+   item-writing tool calls before mutating the YAML document. It reuses the
+   field-map shape ``semanticValidate`` already builds
+   (``SPEC_KAN_VERIFY`` — name → ``{ type, options? }``), so the read-side and
+   write-side rules cannot diverge.
+
+   **Signature:**
+
+   .. code-block:: typescript
+
+      interface BoardFields {
+          fields: Array<{ name: string; type: string; options?: Array<{ name: string }> }>;
+      }
+
+      /** Returns an error string, or undefined when every value is acceptable. */
+      function validateItemValues(
+          values: Record<string, unknown>,
+          board: BoardFields
+      ): string | undefined;
+
+   **Rules** (``REQ_KAN_WRITEVALID``):
+
+   1. ``id`` present in ``values`` → error; ids are assigned, never supplied.
+   2. Built-in keys ``name``, ``status``, ``labels``, ``notes`` are always
+      permitted. ``status`` is additionally checked against the ``status``
+      field's options.
+   3. Any other key must name a declared field, else error listing the declared
+      field names.
+   4. A value under a ``single_select`` field must be one of that field's
+      options, else error listing them.
+   5. A value under a ``text`` field is accepted unchecked.
+
+   **Why writes are stricter than the current ``jarvis_updateKanbanItem``:**
+   *(Resolved by the* ``kanban-update-validation`` *CR — retained for history.)*
+   When this helper was introduced, ``jarvis_updateKanbanItem`` validated only
+   ``status``, so it could write a value that ``jarvis_verifyKanbanSchema``
+   reports as an error, and an undeclared key that the renderer silently drops.
+   Repeating that in three new tools would have tripled a known defect, so the
+   new tools validated the full value set while ``updateKanbanItem`` stayed
+   frozen by ``REQ_KAN_UPDATE`` AC-7 — recorded as finding F-1. That AC has
+   since been superseded and ``updateKanbanItem`` now calls this helper too
+   (``SPEC_KAN_UPDATE`` step 4), so a single write contract holds across all
+   write paths.
+
+   **Callers** (``kanban-update-validation`` CR): ``jarvis_addKanbanItem``
+   (``SPEC_KAN_ADD`` step 4) and ``jarvis_updateKanbanItem``
+   (``SPEC_KAN_UPDATE`` step 4). The two pass different shapes and this is
+   deliberate: ``addKanbanItem`` composes ``values`` from its ``fields`` map plus
+   its top-level built-in parameters, whereas ``updateKanbanItem``'s ``changes``
+   is already that flat shape and is passed through unmodified.
+
+   **Note on the ``id`` guard's reachability:** on the ``addKanbanItem`` path the
+   guard is unreachable, because that tool's own built-in-key check rejects
+   ``id`` in ``fields`` first and it has no top-level ``id`` parameter (QM
+   observation, ``kanban-management-tools`` Round 3). ``updateKanbanItem`` is its
+   first reachable caller — ``changes`` is caller-supplied and may contain ``id``
+   — so the guard is live code from this CR onward, and is the mechanism
+   enforcing ``REQ_KAN_UPDATE`` AC-9.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The helper is called by ``SPEC_KAN_ADD`` and ``SPEC_KAN_UPDATE``
+     before any document mutation.
+   * AC-2: A ``single_select`` value outside its options yields an error naming
+     the field and its valid options.
+   * AC-3: An undeclared key yields an error naming the declared fields.
+   * AC-4: A ``text`` field value is accepted whatever the string.
+   * AC-5: A supplied ``id`` yields an error.
+   * AC-6: The helper performs no I/O and mutates nothing — it inspects and
+     reports only.
+
+
+.. spec:: jarvis_addKanbanItem Tool
+   :id: SPEC_KAN_ADD
+   :status: approved
+   :links: REQ_KAN_ADD; SPEC_KAN_WRITEVALID; SPEC_KAN_UPDATE; SPEC_ACT_WHOAMI
+
+   **Description:**
+   Register ``jarvis_addKanbanItem`` via ``api.registerTool()`` in the kanban
+   package's ``extension.ts``, following the round-trip editing pattern of
+   ``SPEC_KAN_UPDATE`` (``yaml.parseDocument`` → mutate nodes →
+   ``doc.toString()``), which preserves comments and formatting
+   (``REQ_KAN_SCHEMA`` AC-9).
+
+   **Input schema:**
+
+   .. code-block:: typescript
+
+      {
+        name: string;              // required
+        status?: string;
+        labels?: string[];
+        notes?: string;
+        fields?: Record<string, string>;  // values for declared fields
+        boardName?: string;
+        ownerName?: string;
+      }
+
+   **Algorithm:**
+
+   1. Resolve owner and board path (same as ``SPEC_KAN_UPDATE`` steps 1–2);
+      board missing → ``{ error: "board not found" }``.
+   2. Read and ``yaml.parseDocument`` the file; parse failure → error.
+   3. ``doc.toJSON()`` for inspection.
+   4. Validate via ``validateItemValues`` (``SPEC_KAN_WRITEVALID``); on error
+      return it and write nothing.
+   5. Determine the id: ``nextId`` when present, else
+      ``max(existing ids) + 1``, else ``1`` (``REQ_KAN_SCHEMA`` AC-7).
+   6. Default ``status`` to the first option of the ``status`` field when the
+      caller omitted it.
+   7. Build the item map and append it to the ``items`` sequence node.
+   8. Set ``nextId`` to ``id + 1`` on the document — written even when the board
+      previously had no ``nextId``, so the derivation in step 5 happens once
+      rather than on every subsequent add.
+   9. Write ``doc.toString()``; call ``refreshKanbanPanel(boardPath)``.
+   10. Return ``{ path, added: true, itemId }``.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A new item receives ``id === nextId`` and ``nextId`` is incremented
+     in the same write.
+   * AC-2: On a board with no ``nextId``, the id is ``max(ids) + 1`` and
+     ``nextId`` is written for subsequent calls.
+   * AC-3: Omitted ``status`` defaults to the first declared status option.
+   * AC-4: Invalid values are rejected before any write — the file is unchanged
+     on the error path.
+   * AC-5: Comments and formatting elsewhere in the file are preserved.
+   * AC-6: The open panel refreshes after the write.
+   * AC-7: Registers with ``toolReferenceName: "addKanbanItem"``.
+
+
+.. spec:: jarvis_deleteKanbanItem Tool
+   :id: SPEC_KAN_DELETE
+   :status: approved
+   :links: REQ_KAN_DELETE; SPEC_KAN_UPDATE; SPEC_ACT_WHOAMI
+
+   **Description:**
+   Register ``jarvis_deleteKanbanItem`` via ``api.registerTool()``, using the
+   same round-trip pattern as ``SPEC_KAN_UPDATE``.
+
+   **Input schema:**
+
+   .. code-block:: typescript
+
+      { itemId: number; boardName?: string; ownerName?: string }
+
+   **Algorithm:**
+
+   1. Resolve owner and board path; board missing → ``{ error: "board not found" }``.
+   2. Read and ``yaml.parseDocument``.
+   3. Find the index of the item whose ``id`` matches ``itemId`` in
+      ``doc.toJSON()``. Not found → ``{ error: "item not found", itemId }``,
+      write nothing.
+   4. Delete that index from the ``items`` sequence node
+      (``YAMLSeq.delete(index)``), leaving every other node untouched.
+   5. Leave ``nextId`` unchanged (``REQ_KAN_DELETE`` AC-4).
+   6. Write ``doc.toString()``; call ``refreshKanbanPanel(boardPath)``.
+   7. Return ``{ path, deleted: true, itemId }``.
+
+   **Why ``nextId`` is not decremented:**
+   ``REQ_KAN_SCHEMA`` AC-8 makes ids permanently unique. Decrementing would
+   hand the freed id to the next item, so a stale reference to the deleted item
+   — in a message, a commit, another board — would silently resolve to a
+   different one.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The identified item is removed and no other item changes.
+   * AC-2: ``nextId`` is unchanged after a delete.
+   * AC-3: A subsequent add uses the untouched ``nextId``, so the deleted id is
+     never reissued.
+   * AC-4: Deleting an absent id writes nothing and returns the error shape.
+   * AC-5: Comments and formatting elsewhere in the file are preserved.
+   * AC-6: The open panel refreshes after the write.
+   * AC-7: Registers with ``toolReferenceName: "deleteKanbanItem"``.
+
+
+.. spec:: jarvis_listKanbanItems Tool
+   :id: SPEC_KAN_LIST
+   :status: approved
+   :links: REQ_KAN_LIST; SPEC_ACT_WHOAMI
+
+   **Description:**
+   Register ``jarvis_listKanbanItems`` via ``api.registerTool()``. Read-only:
+   it parses the board with ``yaml.parse`` (plain data — no round-trip
+   representation is needed since nothing is written) and returns a projection.
+
+   **Input schema:**
+
+   .. code-block:: typescript
+
+      {
+        status?: string;
+        labels?: string[];
+        boardName?: string;
+        ownerName?: string;
+      }
+
+   **Algorithm:**
+
+   1. Resolve owner and board path; board missing → ``{ error: "board not found" }``.
+   2. Read and ``yaml.parse``.
+   3. If ``status`` was given and matches no declared status option → error
+      naming the valid options (``REQ_KAN_LIST`` AC-6).
+   4. Filter items: ``status`` equality when given; every requested label
+      present in the item's ``labels`` when given; both AND-combined.
+   5. Project each surviving item to ``{ id, name, status, labels }``.
+   6. Return ``{ path, count, items }``.
+
+   **Why an unknown status is an error, not an empty list:**
+   Both would return nothing. An empty list tells the caller "no items are in
+   that state", which is a legitimate and actionable answer — so a typo would be
+   read as a fact about the board and acted on. Naming the valid options makes
+   the two outcomes distinguishable.
+
+   **Why the projection omits notes and declared-field values:**
+   ``US_KAN_QUERY`` AC-3 requires the result to scale with matches, not with
+   board size. ``notes`` is unbounded free text and is the field most likely to
+   dominate a response; declared-field values grow with the board's field count.
+   ``id`` is sufficient to fetch anything omitted.
+
+   **Acceptance Criteria:**
+
+   * AC-1: No filter returns every item, projected.
+   * AC-2: ``status`` alone, ``labels`` alone, and both together each filter as
+     specified; ``labels`` requires all requested labels to be present.
+   * AC-3: Each returned object carries exactly ``id``, ``name``, ``status``,
+     ``labels`` — no ``notes``, no declared-field values.
+   * AC-4: A filter matching nothing returns ``count: 0`` and an empty array.
+   * AC-5: An unknown ``status`` value returns an error listing valid options.
+   * AC-6: The board file is not modified and no panel refresh is triggered.
+   * AC-7: Registers with ``toolReferenceName: "listKanbanItems"``.
+
+
+.. spec:: jarvis_updateKanbanFields Tool
+   :id: SPEC_KAN_FIELDS
+   :status: approved
+   :links: REQ_KAN_FIELDS; SPEC_KAN_SCHEMA; SPEC_KAN_UPDATE; SPEC_ACT_WHOAMI
+
+   **Description:**
+   Register ``jarvis_updateKanbanFields`` via ``api.registerTool()``, using the
+   round-trip pattern of ``SPEC_KAN_UPDATE``. It mutates the ``fields``
+   sequence, never ``items``.
+
+   **Input schema:**
+
+   .. code-block:: typescript
+
+      {
+        operation: 'addField' | 'removeField' | 'addOption' | 'removeOption';
+        fieldName: string;              // target field, all operations
+        fieldType?: 'single_select' | 'text';  // addField
+        options?: Array<{ name: string; color?: string }>;  // addField (single_select)
+        optionName?: string;            // addOption / removeOption
+        optionColor?: string;           // addOption
+        boardName?: string;
+        ownerName?: string;
+      }
+
+   **Reference guard (shared by ``removeField`` and ``removeOption``):**
+
+   Before removing anything, scan ``items`` for values that would be stranded
+   and collect the referencing ids:
+
+   * ``removeField`` → any item carrying a key equal to ``fieldName``.
+   * ``removeOption`` → any item whose value under ``fieldName`` equals
+     ``optionName``.
+
+   A non-empty set aborts the operation with an error naming the ids, so the
+   caller can retarget those items first. The ids are named rather than counted
+   because the caller's next action is to fix exactly those items.
+
+   **Per-operation rules:**
+
+   * ``addField`` — reject a duplicate name; reject the literal ``status``
+     (``REQ_KAN_FIELDS`` AC-3). ``single_select`` requires a non-empty
+     ``options``; ``text`` rejects ``options`` (``SPEC_KAN_SCHEMA`` AC-7).
+     Append the field map to the ``fields`` sequence.
+   * ``removeField`` — reject ``status`` outright (AC-5); apply the reference
+     guard; remove the field node.
+   * ``addOption`` — reject when the field is absent, is ``text``, or already
+     has that option; append the option map.
+   * ``removeOption`` — reject when the field is absent or is ``text``; apply
+     the reference guard; reject when it would empty the options list (AC-8);
+     remove the option node.
+
+   All four end with ``doc.toString()``, ``refreshKanbanPanel(boardPath)`` and
+   ``{ path, updated: true, operation }``.
+
+   **Rename is not offered** (``REQ_KAN_FIELDS`` AC-11): with the reference
+   guard in force, renaming an in-use field or option cannot be composed from
+   remove + add. Providing rename means either rewriting every referencing item
+   value in the same transaction, or relaxing the guard — both larger decisions
+   than this CR carries. Recorded as ``USER REVIEW REQUIRED`` F-2 rather than
+   resolved here.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Each of the four operations performs its documented mutation and
+     leaves the rest of the file untouched.
+   * AC-2: ``removeField`` and ``removeOption`` on a value still referenced by
+     items are refused, name the referencing item ids, and write nothing.
+   * AC-3: ``removeField`` on ``status`` is refused.
+   * AC-4: ``addField`` with a duplicate name is refused; ``addField`` named
+     ``status`` is refused.
+   * AC-5: ``addField`` of type ``text`` carrying ``options`` is refused;
+     of type ``single_select`` without options is refused.
+   * AC-6: ``addOption``/``removeOption`` against a ``text`` field are refused.
+   * AC-7: ``removeOption`` that would leave zero options is refused.
+   * AC-8: After any successful operation the board still validates against
+     ``schemas/kanban.schema.json``.
+   * AC-9: Comments and formatting elsewhere in the file are preserved.
+   * AC-10: The open panel refreshes after a successful write.
+   * AC-11: Registers with ``toolReferenceName: "updateKanbanFields"``.
+
+
+.. spec:: Kanban Skill Asset Content
+   :id: SPEC_KAN_SKILLCONTENT
+   :status: approved
+   :links: REQ_KAN_SKILLCONTENT; SPEC_KAN_SCHEMA; SPEC_MOD_SKILL_PROVISION
+
+   **Description:**
+   Content specification for
+   ``packages/kanban/assets/skills/jarvis-kanban.board/SKILL.md``. Delivery into
+   the workspace is ``SPEC_MOD_SKILL_PROVISION``'s concern and unchanged here;
+   this spec governs what the file says.
+
+   **Required sections:**
+
+   ::
+
+      ---
+      description: <task-match trigger, USE FOR / DO NOT USE FOR>
+      ---
+      # Jarvis Kanban Board
+      ## Tools                  -> every registered tool, one line each
+      ## Owner Resolution       -> REQ_KAN_SKILLCONTENT AC-4
+      ## Board Anatomy          -> top-level keys; status drives columns
+      ## Field Types            -> single_select vs text; options rule
+      ## Item Properties        -> required / built-in / declared-field values
+      ## Pitfalls               -> the silent-failure list
+      ## Example                -> one complete, schema-valid board
+      ## Workflow               -> create -> add/list/update/delete -> verify -> open
+
+   **Tools section — required content** (``kanban-management-tools`` CR):
+
+   The table lists all eight registered tools:
+
+   .. list-table::
+      :header-rows: 1
+
+      * - Tool
+        - Purpose
+      * - ``jarvis_createKanbanBoard``
+        - Create a new board for an entity
+      * - ``jarvis_openKanbanBoard``
+        - Open a board in the webview renderer
+      * - ``jarvis_verifyKanbanSchema``
+        - Validate a board against schema and semantic rules
+      * - ``jarvis_listKanbanItems``
+        - Query items by status/labels; compact projection
+      * - ``jarvis_addKanbanItem``
+        - Append an item; ``id`` assigned automatically
+      * - ``jarvis_updateKanbanItem``
+        - Update fields on an existing item by ``id``
+      * - ``jarvis_deleteKanbanItem``
+        - Remove an item by ``id``
+      * - ``jarvis_updateKanbanFields``
+        - Add/remove a field, or add/remove a single-select option
+
+   The Workflow section shows ``jarvis_listKanbanItems`` as the way to inspect a
+   board, ahead of reading the file, and states that its result is a projection
+   — ``id``, ``name``, ``status``, ``labels`` only — so an actor does not mistake
+   it for the whole item (``REQ_KAN_SKILLCONTENT`` AC-10).
+
+   Two ownership rules belong here because both are invisible from the tool
+   signatures (``REQ_KAN_SKILLCONTENT`` AC-9): ``id`` is assigned by
+   ``jarvis_addKanbanItem`` and rejected if supplied, and a deleted ``id`` is
+   never reissued.
+
+   **Owner Resolution — required content:**
+
+   Stated as the tool behaves (``SPEC_KAN_CREATE`` step 1), not as a
+   precondition on the caller:
+
+   * Omit ``ownerName`` to address the calling actor's own board. The tool
+     resolves the caller via ``jarvis_whoAmI`` itself.
+   * Supply ``ownerName`` only to address a *different* entity's board.
+   * A supplied name that matches no scanned entity returns
+     ``{ error: "actor unknown" }``.
+
+   The skill SHALL NOT instruct the actor to call ``jarvis_whoAmI`` first and
+   pass the result: that is a redundant round trip which converts a resolved
+   call into a name-matching call, and name matching is the only path that can
+   fail with ``actor unknown``.
+
+   **Pitfalls — required content:**
+
+   Each entry names the observable symptom, because every one of these fails
+   *quietly* — an actor that does not know the symptom has no signal to act on:
+
+   1. An item key matching no declared field is schema-valid, is reported by
+      ``jarvis_verifyKanbanSchema`` as a **warning** (not an error), and is
+      **never rendered**. Symptom: the board renders, verification looks clean,
+      and the value is simply absent.
+   2. A field type other than ``single_select`` or ``text`` fails structural
+      validation with an ajv message that does not name the permitted values.
+   3. ``options`` on a ``text`` field, or missing ``options`` on a
+      ``single_select`` field, is a structural error
+      (``SPEC_KAN_SCHEMA`` AC-7).
+   4. ``id`` is immutable and never reused; ``nextId`` must not be decremented.
+   5. ``status`` must be ``single_select`` — its options are the columns.
+
+   **Acceptance Criteria:**
+
+   * AC-1: All sections listed above are present and non-empty.
+   * AC-2: The example board validates against
+     ``schemas/kanban.schema.json`` and exercises both field types.
+   * AC-3: The owner-resolution section describes omission as the default path
+     and contains no instruction to pre-resolve via ``jarvis_whoAmI``.
+   * AC-4: The pitfalls section contains all five entries above, each naming
+     its observable symptom.
+   * AC-5: The item-property list matches the schema's required and optional
+     properties exactly.
+   * AC-6: The frontmatter ``description`` follows the USE FOR / DO NOT USE FOR
+     shape already used by the file, so task matching is unchanged.
+   * AC-7 (``kanban-management-tools`` CR): The Tools table lists all eight
+     registered tools, and every listed name matches a tool actually registered
+     in ``extension.ts``.
+   * AC-8 (``kanban-management-tools`` CR): The Workflow section covers add,
+     list, update and delete, and states that ``jarvis_listKanbanItems`` returns
+     a projection rather than whole items.
+   * AC-9 (``kanban-management-tools`` CR): The skill states that ``id`` is
+     assigned on add and never reused after delete.
+
+
+.. spec:: Kanban Instructions Asset Content
+   :id: SPEC_KAN_INSTRUCTIONS
+   :status: approved
+   :links: REQ_KAN_INSTRUCTIONS; SPEC_KAN_SCHEMA
+
+   **Description:**
+   Content specification for
+   ``packages/kanban/assets/instructions/jarvis-kanban.yaml.instructions.md``.
+   Unlike the skill, which is loaded on task match, this file is applied by
+   VS Code whenever a matching file is edited — so it addresses hand editing,
+   and stays short.
+
+   **Frontmatter:**
+
+   .. code-block:: yaml
+
+      ---
+      applyTo: "**/{kanban.yaml,*.kanban.yaml}"
+      ---
+
+   The previous glob ``**/*.kanban.yaml`` does not match a file named exactly
+   ``kanban.yaml`` — which is the *default* board name (``SPEC_KAN_DISCOVER``).
+   The instructions therefore never applied to the most common board file.
+
+   **Required content:**
+
+   * Board-level required keys are ``title``, ``fields``, ``items``.
+     ``nextId`` is optional; when present it must only ever increase.
+   * An item requires ``id``, ``name``, ``status``. The title-like property is
+     ``name`` — there is no ``title`` property on an item.
+   * ``id`` is immutable and never reused.
+   * A value under a ``single_select`` field must match one of that field's
+     declared options. A value under a ``text`` field is unconstrained.
+   * A key matching no declared field will be accepted and then ignored by the
+     renderer — declare the field first.
+   * Run ``jarvis_verifyKanbanSchema`` after manual edits, and read the
+     ``warnings`` array, not only ``errors``.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``applyTo`` matches both ``kanban.yaml`` and ``*.kanban.yaml``.
+   * AC-2: The file states ``name`` (not ``title``) as the item property, and
+     lists ``nextId`` as optional — correcting both claims in the pilot file.
+   * AC-3: Every required-content bullet above is present.
+   * AC-4: No claim in the file contradicts ``schemas/kanban.schema.json``.
+   * AC-5: The file remains a short invariant list — it does not duplicate the
+     skill's ontology reference, tool workflow, or example board.

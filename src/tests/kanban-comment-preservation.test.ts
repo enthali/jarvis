@@ -15,7 +15,7 @@ const extensionSrc = fs.readFileSync(path.join(kanbanSrcDir, 'extension.ts'), 'u
 
 // Extract the jarvis_updateKanbanItem tool handler section
 const toolStart = extensionSrc.indexOf("'jarvis_updateKanbanItem'");
-const toolEnd = extensionSrc.indexOf("// Tool: jarvis_openKanbanBoard", toolStart);
+const toolEnd = extensionSrc.indexOf("// Tool: jarvis_addKanbanItem", toolStart);
 const toolHandlerSrc = extensionSrc.slice(toolStart, toolEnd);
 
 describe('TC-1: updateKanbanItem uses Document-based round-trip', () => {
@@ -35,8 +35,8 @@ describe('TC-1: updateKanbanItem uses Document-based round-trip', () => {
         expect(toolHandlerSrc).toContain('itemNode.set(');
     });
 
-    it('skips id field (immutable guard)', () => {
-        expect(toolHandlerSrc).toMatch(/if\s*\(key\s*===\s*'id'\)/);
+    it('delegates to validateItemValues for all change validation', () => {
+        expect(toolHandlerSrc).toContain('validateItemValues(input.changes');
     });
 });
 

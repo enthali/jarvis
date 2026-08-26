@@ -1,0 +1,33 @@
+title: Sample Board With Text Field
+nextId: 4
+fields:
+  - name: status
+    type: single_select
+    options:
+      - name: Backlog
+      - name: In Progress
+      - name: Done
+  - name: priority
+    type: single_select
+    options:
+      - name: Low
+      - name: Medium
+      - name: High
+  - name: description
+    type: text
+items:
+  - id: 1
+    name: Implement text field support
+    status: Done
+    priority: High
+    description: Allow boards to define freeform text fields alongside single_select
+  - id: 2
+    name: Update skill documentation
+    status: In Progress
+    priority: Medium
+    description: Document the new type:text field type in the skill SKILL.md
+  - id: 3
+    name: Add more examples
+    status: Backlog
+    priority: Low
+    notes: This item also has a notes field

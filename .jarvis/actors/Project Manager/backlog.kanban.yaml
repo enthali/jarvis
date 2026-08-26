@@ -1,0 +1,110 @@
+title: backlog
+nextId: 19
+fields:
+  - name: status
+    type: single_select
+    options:
+      - name: Backlog
+      - name: In Progress
+      - name: Done
+  - name: priority
+    type: single_select
+    options:
+      - name: Low
+      - name: Medium
+      - name: High
+items:
+  - id: 1
+    name: "Kanban: doc gaps, schema discoverability, missing skill, no freeform text field (GH #57)"
+    status: Done
+    priority: High
+    notes: "Delivered via kanban-skill-content CR, merged to development 2026-08-24."
+  - id: 2
+    name: "Kanban skill: document that ownerName must be resolved via jarvis_whoAmI before create/update calls"
+    status: Done
+    priority: Medium
+    notes: "Delivered via kanban-skill-content CR, merged to development 2026-08-24."
+  - id: 3
+    name: "No tool to add a new item to an existing kanban board (only create board / update existing item)"
+    status: Done
+    priority: Medium
+    notes: "Delivered via CR 'kanban-management-tools' (jarvis_addKanbanItem), QM CLEARED (Round 3), user-validated, merged to development 2026-08-26."
+  - id: 4
+    name: "General mechanism: modules (core/kanban/pim/...) self-install their own skills + instructions into .github/skills, .github/instructions on activation"
+    status: Done
+    priority: High
+    notes: "QM CLEARED (Round 4), user-validated together with item 5, merged to development 2026-08-24."
+  - id: 5
+    name: "jarvis-kanban skill: ontology (schema) + tool descriptions, self-installed via item 4's mechanism"
+    status: Done
+    priority: High
+    notes: "Delivered as CR 'kanban-skill-content' (folded items 1+2+5), QM CLEARED (Round 2), user-validated, merged to development 2026-08-24."
+  - id: 6
+    name: "Remove dead jarvis.newEntity contribution (never registered, pre-existing)"
+    status: Backlog
+    priority: Low
+    notes: "Migrated from PM context.md 2026-08-21 — never actually branched despite being noted as 'in flight' on 2026-08-05."
+  - id: 7
+    name: "Add test asserting all contributed command IDs are registered"
+    status: Backlog
+    priority: Low
+    notes: "Migrated from PM context.md 2026-08-21 — never actually branched despite being noted as 'in flight' on 2026-08-05."
+  - id: 8
+    name: "Bug: error assigning Agent Modes — our undocumented-VS Code-API patch may be breaking"
+    status: Done
+    priority: High
+    labels: ["P1", "bug"]
+    notes: "Fixed via CR 'agent-mode-reset-race', QM CLEARED (Round 4 after 2 re-verify rounds), user-validated in EDH, merged to development 2026-08-24. Root causes: (1) mode-set command lacked a target-identity check before executing, so it could land on the wrong (previously-focused) session; (2) success log asserted unconditionally instead of only when the target matched; (3) unrelated delivery-loop re-entrancy guard added defensively. Round 3 caught a self-inflicted AC-7 regression (dropped error catch while syncing code to a buggy spec sample) before merge."
+  - id: 9
+    name: "Bug: Recently Touched Files only tracks modifications, not newly created files"
+    status: Done
+    priority: Medium
+    labels: ["bug", "not-reproducible"]
+    notes: "CLOSED 2026-08-26 as not reproducible (CR 'touched-files-created-files', no code change). SD reproduced live with user on Windows + WSL2: create_file has been in TOUCH_RULES since the feature's original commit, created files are tracked and render correctly, 35/35 corpus files since 2026-08-24 tracked, zero misses. Real finding routed to item 18."
+  - id: 10
+    name: "gitignore 'jarvis-*' managed entry matches any file/dir by name anywhere in tree"
+    status: Done
+    priority: Medium
+    labels: ["not-a-bug"]
+    notes: "Found 2026-08-24 while committing docs/changes/jarvis-kanban-skill.md — git check-ignore confirmed .gitignore:31 jarvis-* swallowed it. Initially logged as a bug (unanchored WORKSPACE_PATHS entry in configPaths.ts). User clarified 2026-08-24: intentional — anything named jarvis-* anywhere is extension-delivered content, never meant to be tracked in git, at any depth. Closed as working-as-intended, no code change. Underlying trigger (a CD file named jarvis-kanban-skill.md) was itself a naming slip fixed by renaming to kanban-skill-content, consistent with the CD naming convention anyway."
+  - id: 11
+    name: "No tool to delete/remove a kanban board item (only add / update)"
+    status: Done
+    priority: Medium
+    notes: "Delivered via CR 'kanban-management-tools' (jarvis_deleteKanbanItem), QM CLEARED (Round 3), user-validated, merged to development 2026-08-26."
+  - id: 12
+    name: "No tool to list/query kanban items filtered by status or label — full-file read doesn't scale as a board grows (seen 1k+ line boards)"
+    status: Done
+    priority: Medium
+    notes: "Delivered via CR 'kanban-management-tools' (jarvis_listKanbanItems), QM CLEARED (Round 3), user-validated, merged to development 2026-08-26."
+  - id: 13
+    name: "No tool to manage a board's field/schema (add/remove a field, add/remove a single_select option) — only possible by hand-editing YAML"
+    status: Done
+    priority: Medium
+    notes: "Delivered via CR 'kanban-management-tools' (jarvis_updateKanbanFields), QM CLEARED (Round 3), user-validated, merged to development 2026-08-26."
+  - id: 14
+    name: "kanban-management-tools polish: id-rejection error message wording, T-6 evidence points at superseded code"
+    status: Backlog
+    priority: Low
+    notes: "QM Round 3 (2026-08-25), deferred (not blocking): (1) jarvis_addKanbanItem's builtin-key rejection message implies a top-level id param exists on the tool; it doesn't. (2) tst-kanban-management-tools.md T-6 cites validateItemValues's 'id' in values guard, now dead code on the addKanbanItem path since the builtinProps check intercepts first. Both cosmetic, no functional impact."
+  - id: 15
+    name: "jarvis_updateKanbanFields: add renameField/renameOption (bulk rename) — atomic rename of a field/option definition plus migration of all referencing items in one write"
+    status: Backlog
+    priority: Low
+    notes: "F-2 from kanban-management-tools (2026-08-26). Today removeField/removeOption refuse to remove anything still referenced by an item, so renaming requires hand-editing every referencing item first, then remove+add. User accepted the manual workaround for now; this is the follow-up idea to make rename atomic and safe."
+  - id: 16
+    name: "Kanban skill: document archiving pattern — move Done items to a separate archive board file once a board grows large"
+    status: Backlog
+    priority: Low
+    notes: "Raised 2026-08-26: user has a real customer-project board at ~2k lines (not reachable from this workspace, different machine/OS). Discussed one-file-per-board vs one-file-per-item; decided against splitting storage (breaks atomic multi-item writes needed for reference-guard/rename, and current in-repo boards are all <100 lines — no evidence the perf/diff cost is real here). Better lever: archive Done items out of the active board using the existing add/delete tools, documented as a convention in the jarvis-kanban.board SKILL.md — not a new tool for now."
+  - id: 17
+    name: "jarvis_updateKanbanItem: changes.labels is schema-typed string-only, so a valid array can never be supplied through this tool"
+    status: Backlog
+    priority: Low
+    notes: "QM Round 2 (2026-08-26) on kanban-update-validation, deferred (not blocking, out of that CR's scope — package.json untouched there). package.json's inputSchema types every key under changes as string; labels needs an array. Either loosen the schema to accept an array for labels, or document that labels can't be updated via this tool. Pre-existing, not introduced by kanban-update-validation."
+  - id: 18
+    name: "TOUCH_RULES silently drops writes from any tool not on its 4-tool allowlist — no log at any level"
+    status: Backlog
+    priority: Low
+    notes: "SD finding while investigating item 9 (2026-08-26, CR touched-files-created-files, closed not-reproducible). The allowlist itself is fine (deliberate, per REQ_ENT_TOUCHEDFILES AC-2d — no path-sniffing fallback); the defect is that the system can't report when the list is stale for a given model/VS Code version. Recommended: log unmatched tool_names at debug, deduplicated per session, before extending the allowlist — observability first, then extend from evidence not guesses."
+

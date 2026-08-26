@@ -1,5 +1,8 @@
 # PM Lessons Learned
 
+### Logged a broad-match gitignore pattern as a bug without checking intent first (2026-08-24)
+Filed backlog item 10 as a bug — `jarvis-*` in `configPaths.ts` WORKSPACE_PATHS matches at any depth, not just root-level VSIX artifacts — based on the symptom (a CD file got silently ignored) without asking whether the broad match was deliberate. User clarified: intentional, anything named `jarvis-*` anywhere is extension-delivered and should never be tracked, regardless of depth. Closed as working-as-intended. Going forward: an unexpectedly-broad match rule is not automatically a bug — check for stated intent (comments, commit history, or just ask) before logging it as a defect.
+
 ### Operation Mode changed directly with CM mid-CR, PM not notified (2026-07-29)
 During CR #58, the user told CM directly to flip the CD's Operation Mode from `user-guided` to `autonomous` at CM's first checkpoint, without looping PM in — PM only discovered the change later by noticing an unexplained commit (`docs(cd): flip to autonomous mode...`) in the git log. No harm done here (user confirmed the change was intentional), but PM's own record of the CR's mode was silently stale in the meantime. Going forward: Operation Mode is a PM-set header field — settle it with the user *before* dispatching the CR to CM, and if it needs to change mid-flight, that goes through PM (SEND), not directly to CM, so PM's picture of the CR stays accurate.
 

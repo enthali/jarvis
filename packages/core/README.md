@@ -8,7 +8,7 @@ Jarvis is a personal assistant extension for Visual Studio Code that helps you m
 - **Messaging** — Pass messages between Copilot sessions via a simple queue
 - **Reminders** — Set cron-based or one-off reminders with VS Code notifications
 - **Heartbeat** — Periodic background jobs with a live status view in the activity bar
-- **Engine API** — Extension point for add-ons (PIM, Recorder, MCP) to register new entity kinds and tools
+- **Engine API** — Extension point for add-ons (PIM, Recorder, MCP) to register new entity kinds and tools, and to self-provision their bundled Copilot Skills/Instructions into `.github/` via `provisionModuleAssets`
 
 ## Add-ons
 

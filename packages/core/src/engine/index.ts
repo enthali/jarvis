@@ -10,6 +10,7 @@ export type {
     JarvisCoreApi,
     HeartbeatJob,
     HeartbeatStep,
+    ModuleAssetConfig,
 } from './core/types';
 
 export type {

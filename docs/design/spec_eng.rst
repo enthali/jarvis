@@ -4,7 +4,7 @@ Engine Design Specifications
 .. spec:: JarvisCoreApi Contract & Types
    :id: SPEC_ENG_API
    :status: approved
-   :links: REQ_ENG_CONTRACT; REQ_ENG_SCANNER
+   :links: REQ_ENG_CONTRACT; REQ_ENG_SCANNER; REQ_MOD_SKILL_PROVISION
 
    **Description:**
    The core extension exposes a versioned ``JarvisCoreApi`` as the return value
@@ -298,6 +298,22 @@ Engine Design Specifications
               entityName: string,
               options?: { placement?: 'main' | 'secondary' }
           ): Promise<void>;
+
+          // --- Module asset provisioning (SPEC_MOD_SKILL_PROVISION) ---
+
+          /**
+           * Copy the calling module's VSIX-bundled Copilot Skill folders and
+           * Instructions files into the workspace's ``.github/skills/`` and
+           * ``.github/instructions/``. Idempotent; removes the module's own
+           * prior assets that are no longer bundled. The module passes its own
+           * ``ExtensionContext`` — the manifest of written files is persisted
+           * in that context's ``workspaceState``, which scopes cleanup to the
+           * calling module. Fire-and-forget from ``activate()``.
+           */
+          provisionModuleAssets(
+              context: vscode.ExtensionContext,
+              config: ModuleAssetConfig
+          ): Promise<void>;
       }
 
    **Acceptance Criteria:**
@@ -336,6 +352,12 @@ Engine Design Specifications
      (e.g. ``jarvis-syspilot``) that are not themselves registered entities.
      The message is picked up by the auto-delivery poll loop like any other
      queued message (``jarvis-syspilot`` CR, GH #39).
+   * AC-9 (``module-skill-provisioning`` CR): ``provisionModuleAssets(context,
+     config)`` provisions the calling module's bundled Copilot assets into the
+     workspace and returns when the write and cleanup phases are complete. It
+     never throws to the caller — all failures are logged. See
+     ``SPEC_MOD_SKILL_PROVISION`` for the algorithm and ``ModuleAssetConfig``
+     shape.
 
 
 .. spec:: registerEntityKind Semantics

@@ -2,7 +2,7 @@
 // Requirements: REQ_ENG_CONTRACT, REQ_ENG_TOOLNS
 
 import * as vscode from 'vscode';
-import type { EntityKindConfig, JarvisCoreApi, ToolDescriptor, ToolHandler, TreeItemDecorator } from './types';
+import type { EntityKindConfig, JarvisCoreApi, ModuleAssetConfig, ToolDescriptor, ToolHandler, TreeItemDecorator } from './types';
 import type { HeartbeatJob } from './types';
 import type { HeartbeatScheduler } from '../../apps/session/heartbeat';
 import { KindDrivenScanner } from '../sessions/yamlScanner';
@@ -205,6 +205,13 @@ export class JarvisEngine implements JarvisCoreApi {
         }
         const { injectPrompt: inject } = await import('../sessions/injectPrompt');
         return inject(entityName, '', { placement: options?.placement });
+    }
+
+    // --- Module asset provisioning (SPEC_MOD_SKILL_PROVISION) ---
+
+    async provisionModuleAssets(ctx: vscode.ExtensionContext, config: ModuleAssetConfig): Promise<void> {
+        const { provisionModuleAssets: provision } = await import('./assetProvisioning');
+        return provision(ctx, config);
     }
 
     dispose(): void {

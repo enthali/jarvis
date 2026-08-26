@@ -33,6 +33,7 @@ capability modules. Install only what you need.
   ```
   jarvis_injectPrompt(actor="Change Manager", text="/compact")
   ```
+- **Module asset provisioning** — `provisionModuleAssets(context, config)` lets any add-on self-install its own bundled Copilot Skills/Instructions into the workspace's `.github/skills/` and `.github/instructions/` on activation; namespaced, idempotent, and orphan-safe, without touching user-authored or other modules' files
 
 ### Jarvis PIM
 
@@ -56,7 +57,7 @@ capability modules. Install only what you need.
 
 - **Convention-based discovery** — place a `kanban.yaml` (or `<name>.kanban.yaml`) in any actor or entity folder; a board button appears automatically in the explorer tree
 - **Read-only webview renderer** — GitHub-Projects-shaped schema (`fields[]` + `items[]`; `status` field drives columns); open via tree button or Command Palette **Jarvis: Open Kanban Board**
-- **LM tools** — `jarvis_createKanbanBoard(boardName?, ownerName?)` creates the YAML file; `jarvis_verifyKanbanSchema(boardName?, ownerName?)` validates it; `jarvis_openKanbanBoard(boardName?, ownerName?)` opens the webview; `jarvis_updateKanbanItem(itemId, changes, boardName?, ownerName?)` updates an existing item by its stable integer ID
+- **LM tools** — `jarvis_createKanbanBoard(boardName?, ownerName?)` creates the YAML file; `jarvis_verifyKanbanSchema(boardName?, ownerName?)` validates it; `jarvis_openKanbanBoard(boardName?, ownerName?)` opens the webview; `jarvis_updateKanbanItem(itemId, changes, boardName?, ownerName?)` updates an existing item by its stable integer ID; `jarvis_addKanbanItem`, `jarvis_deleteKanbanItem`, `jarvis_listKanbanItems`, and `jarvis_updateKanbanFields` provide full board management (add, delete, query, and update field definitions)
 
 ## Configuration
 

@@ -23,7 +23,7 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["name", "type", "options"],
+        "required": ["name", "type"],
         "additionalProperties": false,
         "properties": {
           "name": {
@@ -32,7 +32,7 @@
           },
           "type": {
             "type": "string",
-            "enum": ["single_select"]
+            "enum": ["single_select", "text"]
           },
           "options": {
             "type": "array",
@@ -53,7 +53,23 @@
               }
             }
           }
-        }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": { "type": { "const": "single_select" } },
+              "required": ["type"]
+            },
+            "then": { "required": ["options"] }
+          },
+          {
+            "if": {
+              "properties": { "type": { "const": "text" } },
+              "required": ["type"]
+            },
+            "then": { "not": { "required": ["options"] } }
+          }
+        ]
       }
     },
     "items": {
@@ -86,7 +102,7 @@
         },
         "additionalProperties": {
           "type": "string",
-          "description": "Values for user-defined single_select fields."
+          "description": "Values for user-defined single_select or text fields."
         }
       }
     }

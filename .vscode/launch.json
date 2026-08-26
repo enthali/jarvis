@@ -82,6 +82,24 @@
             "preLaunchTask": "compile core+syspilot+flow"
         },
         {
+            "name": "Run Core + Syspilot + MCP + Kanban",
+            "type": "extensionHost",
+            "request": "launch",
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/core",
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/syspilot",
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/mcp",
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/kanban"
+            ],
+            "outFiles": [
+                "${workspaceFolder}/packages/core/out/**/*.js",
+                "${workspaceFolder}/packages/syspilot/out/**/*.js",
+                "${workspaceFolder}/packages/mcp/out/**/*.js",
+                "${workspaceFolder}/packages/kanban/out/**/*.js"
+            ],
+            "preLaunchTask": "compile core+syspilot+mcp+kanban"
+        },
+        {
             "name": "Run All (Core + PIM + Recorder + MCP + Flow + Syspilot)",
             "type": "extensionHost",
             "request": "launch",

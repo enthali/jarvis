@@ -65,6 +65,9 @@ Modular Delivery Design Specifications
    * AC-4: ``activate()`` returns ``JarvisCoreApi`` (per ``SPEC_ENG_API``).
    * AC-5: ``packages/core-gh/package.json`` name is ``jarvis`` (id ``enthali.jarvis``);
      its ``out/extension.js`` is a CI copy of ``packages/core/out/extension.js``.
+   * AC-6 (``module-skill-provisioning`` CR): ``JarvisCoreApi`` exposes
+     ``provisionModuleAssets`` so any add-on can self-install its bundled Copilot
+     assets — see ``SPEC_MOD_SKILL_PROVISION``.
 
 
 .. spec:: PIM Package
@@ -289,3 +292,192 @@ Modular Delivery Design Specifications
      currently shipped add-ons (pim, recorder, mcp, flow, syspilot).
    * AC-2: The checklist is referenced from ``REQ_MOD_ADDONS`` via
      ``:links:`` so it is discoverable in the traceability graph.
+
+
+.. spec:: Module Asset Provisioning Helper
+   :id: SPEC_MOD_SKILL_PROVISION
+   :status: approved
+   :links: REQ_MOD_SKILL_PROVISION; REQ_MOD_SKILL_OPTOUT; SPEC_ENG_API
+
+   **Description:**
+   ``packages/core/src/engine/core/assetProvisioning.ts`` implements
+   ``provisionModuleAssets``, exposed on ``JarvisCoreApi`` (``SPEC_ENG_API``
+   AC-9). A module calls it fire-and-forget from ``activate()`` with its own
+   ``ExtensionContext`` and a namespace; the helper copies the module's
+   VSIX-bundled Copilot assets into the workspace, removes the module's own
+   stale assets, and records what it wrote.
+
+   The helper is reached only through ``JarvisCoreApi`` — add-ons ship as
+   separate VSIXs and cannot import core's compiled code directly.
+
+   **Bundling contract:**
+
+   Assets live under ``packages/<name>/assets/`` — **not** under the package's
+   ``.github/``, which every add-on ``.vscodeignore`` excludes:
+
+   .. code-block:: text
+
+      packages/<name>/
+        assets/
+          skills/
+            <namespace>.<slug>/          -> .github/skills/<namespace>.<slug>/
+              SKILL.md
+              scripts/...                 (subfolders copied recursively)
+          instructions/
+            <namespace>.<slug>.instructions.md
+                                          -> .github/instructions/<same name>
+
+   The module's ``.vscodeignore`` SHALL NOT exclude ``assets/**``. The module
+   resolves source paths via ``context.asAbsolutePath('assets/skills')``.
+
+   **Config type:**
+
+   .. code-block:: typescript
+
+      export interface ModuleAssetConfig {
+          /** Required name prefix for every asset this module provisions,
+           *  e.g. 'jarvis-kanban'. Also scopes the workspaceState key. */
+          namespace: string;
+          /** Absolute path to the bundled skills folder. Omit if none. */
+          skillsSourceDir?: string;
+          /** Absolute path to the bundled instructions folder. Omit if none. */
+          instructionsSourceDir?: string;
+          /** Default true. False de-provisions — see SPEC_MOD_SKILL_MANIFEST. */
+          enabled?: boolean;
+      }
+
+   **Call site (module side):**
+
+   .. code-block:: typescript
+
+      // in the module's activate()
+      void api.provisionModuleAssets(context, {
+          namespace: 'jarvis-kanban',
+          skillsSourceDir: context.asAbsolutePath('assets/skills'),
+          instructionsSourceDir: context.asAbsolutePath('assets/instructions'),
+          // enabled omitted -> assets are functionally required, no user opt-out
+      });
+
+   **Algorithm:**
+
+   1. Resolve the workspace root via ``getWorkspaceRoot()``
+      (``REQ_CFG_PATHSINGLESOURCE``). If undefined, log a warning and return.
+   2. If ``enabled === false``, run the de-provision path
+      (``SPEC_MOD_SKILL_MANIFEST``) and return.
+   3. **Enumerate** the bundle: immediate subdirectories of ``skillsSourceDir``
+      and immediate files of ``instructionsSourceDir``. A missing source
+      directory yields an empty list — not an error.
+   4. **Validate** each entry's name starts with ``<namespace>.``. On violation,
+      log a warning naming the offending entry and exclude it — it is never
+      written. This makes the manifest's namespace guarantee structural rather
+      than conventional.
+   5. **Write** each valid entry to its target directory, creating parent
+      directories as needed. A file is written only if it is absent or its
+      bytes differ from the bundled file. Skill folders are copied recursively;
+      each contained file is compared individually.
+   6. **Clean up** orphans and **persist** the manifest
+      (``SPEC_MOD_SKILL_MANIFEST``).
+
+   **Failure handling:**
+   Every filesystem operation is wrapped per-asset. A failure logs a warning
+   naming the asset and processing continues with the next one; the function
+   never throws to the caller and never raises a user-facing notification.
+   A read-only or partially-locked workspace therefore degrades to "some assets
+   missing" rather than a broken activation.
+
+   **Encoding:**
+   Files are copied as raw bytes — no text decoding, no EOL normalisation, no
+   BOM insertion. Content comparison is a byte comparison. Any transformation
+   here would make a file differ from its source on every activation and defeat
+   idempotency.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``provisionModuleAssets`` is reachable on ``JarvisCoreApi`` and is
+     the only published entry point for provisioning.
+   * AC-2: With ``skillsSourceDir`` omitted, no skills are provisioned and no
+     error occurs; likewise for ``instructionsSourceDir``.
+   * AC-3: An entry whose name does not start with ``<namespace>.`` is logged
+     and skipped — never written, never recorded in the manifest.
+   * AC-4: A second invocation with an unchanged bundle performs zero writes
+     and zero removals.
+   * AC-5: With no workspace folder open, the function logs a warning and
+     returns without touching the filesystem.
+   * AC-6: A filesystem failure on one asset does not prevent the remaining
+     assets from being processed, and produces no user-facing notification.
+   * AC-7: The module's ``.vscodeignore`` does not exclude ``assets/**``, so
+     the assets are present in the packaged VSIX.
+
+
+.. spec:: Provisioning Manifest & Orphan Cleanup
+   :id: SPEC_MOD_SKILL_MANIFEST
+   :status: approved
+   :links: REQ_MOD_SKILL_ORPHAN; REQ_MOD_SKILL_OPTOUT
+
+   **Description:**
+   Cleanup is driven by a manifest of what the helper previously wrote — not by
+   matching filenames against the namespace prefix. A prefix match would also
+   match a file the user created by hand or copied from elsewhere, and deleting
+   it would be indistinguishable, to the user, from Jarvis destroying their
+   work. The manifest only ever names files the helper itself wrote, so the
+   "never touch what we did not create" guarantee holds by construction rather
+   than by exclusion rules.
+
+   This is the point of departure from ``.github/agents/syspilot.installer.agent.md``,
+   which uses prefix matching and consequently needs a hand-maintained exception
+   list (``syspilot.*.tailoring.md``) to protect user files. That list has to grow
+   every time a new user-owned file convention appears; a manifest needs no such
+   list.
+
+   **Storage:**
+
+   .. code-block:: typescript
+
+      // key:   `jarvis.provisioned.${namespace}`
+      // scope: the CALLING module's ExtensionContext.workspaceState
+      // value: workspace-relative POSIX paths, e.g.
+      [
+        ".github/skills/jarvis-kanban.board",
+        ".github/instructions/jarvis-kanban.yaml.instructions.md"
+      ]
+
+   ``workspaceState`` is per-extension and per-workspace, so one module can
+   never read or clear another module's manifest, and provisioning state does
+   not leak between workspaces. Skill folders are recorded as the folder path;
+   removal is recursive on that folder.
+
+   **Cleanup phase (``enabled`` true):**
+
+   1. Read the previous manifest (empty array if absent).
+   2. For each entry not present in the current valid bundle set, remove it from
+      the workspace. A missing target is not an error — the user may have
+      deleted it, which is a legitimate outcome to converge on.
+   3. Write the current valid bundle set as the new manifest.
+
+   **De-provision path (``enabled`` false):**
+
+   1. Remove every entry in the manifest from the workspace.
+   2. Clear the manifest (store an empty array).
+   3. Perform no writes.
+
+   No "disabled" flag is persisted: the next invocation with ``enabled`` true
+   sees an empty manifest and a full bundle, and provisions everything. Re-enable
+   therefore needs no separate restore path.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The manifest is stored in the calling module's ``workspaceState``
+     under ``jarvis.provisioned.<namespace>``.
+   * AC-2: An asset present in the manifest but absent from the current bundle
+     is removed from the workspace on the next invocation.
+   * AC-3: A file in ``.github/skills/`` or ``.github/instructions/`` that is
+     absent from the manifest is never removed — including a file whose name
+     matches ``<namespace>.``.
+   * AC-4: After every invocation the manifest equals exactly the set of assets
+     in the current valid bundle (or the empty set when ``enabled`` is false).
+   * AC-5: Removing an asset whose target file no longer exists succeeds
+     silently and does not abort the remaining removals.
+   * AC-6: With ``enabled: false``, all manifest entries are removed, the
+     manifest is emptied, and no file is written.
+   * AC-7: Setting ``enabled`` back to ``true`` restores the full asset set on
+     the next activation, with no manual step.

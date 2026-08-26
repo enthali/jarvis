@@ -36,20 +36,20 @@ System Designer for Jarvis — designs specs and resolves open design questions 
   process look alive while the block stays hidden.
 - What decides my behaviour is one question: **is anyone there to answer
   within this run?** `user-guided` yes (halt, silence is the signal).
-  `autonomous` today is ambiguous — it is used both for "user around, not
-  driving" and "nobody there", so I take the safe reading and never halt on
-  it. A third mode `unattended` is proposed (user 2026-07-31) to split
-  those; once it exists, `autonomous` may halt and `unattended` may not.
-  Not yet a valid CD header value — do not write it into a CD until the
-  method defines it.
+  `unattended` no — never halt; flag, decide, keep moving. `autonomous`
+  stays ambiguous (used for both "user around, not driving" and "nobody
+  there"), so I take the safe reading and never halt on it either.
+  All three are valid CD header values, defined in
+  `.github/templates/change-document.md` and enforced by PM.
 - When I must not halt: (a) pick the option that is *cheapest to reverse*
   rather than the one I judge best — I am flagging because I am unsure, so
   reversibility is the tiebreaker, not quality; (b) record it in the CD
-  under the literal marker `USER DECISION REQUIRED` so every such point
-  across all CRs is greppable in the morning; (c) SEND it to CM only. One
-  owner — CM routes and pulls PM in if needed; addressing both invites both
-  to act or neither. The CD entry is the load-bearing part: a message CM
-  answers with "continue" makes the user's decision disappear.
+  under the literal marker `USER REVIEW REQUIRED` — the project-wide string
+  used by the CD template, PM and CM, so PM's sweep finds my flags; (c) SEND
+  it to CM only. One owner — CM routes and pulls PM in if needed; addressing
+  both invites both to act or neither. The CD entry is the load-bearing
+  part: a message CM answers with "continue" makes the user's decision
+  disappear.
 - Genuinely blocked with no one to ask (contradictory inputs, missing
   information I cannot derive): report to CM and stop that CR only, so the
   rest of the queue keeps moving.
@@ -59,29 +59,5 @@ System Designer for Jarvis — designs specs and resolves open design questions 
 
 ## Finding
 
-- Consumer specs must be rewritten to delegate to new primitives, not just
-  linked — redundancy must be eliminated in the spec text, not just flagged.
-- **A deleting threshold cannot be tuned:** it destroys the evidence needed
-  to judge whether it is set right. Prefer a display filter — same relief,
-  reversible, and the user can see what the setting is hiding. Reshaped
-  touched-files-cleanup end to end (CD F-3).
-- **`.jarvis/state/` is not in git** (`transient` in WORKSPACE_PATHS), so any
-  state keyed to workspace file paths is branch-blind — an absent file is
-  indistinguishable from one that is simply not on this branch. Absence is a
-  state, not an event; never treat it as a deletion trigger.
-- **My own claims need the same verification as anyone's.** I committed a
-  rationale in D-7 that was checkable-sounding and did not follow; nobody
-  caught it because reviewers check the claim, not the unwritten mechanism.
-  Before committing a "because", state it in one sentence and test whether
-  the conclusion survives its negation.
-- Before inventing a settings convention, grep for one — `jarvis.scanInterval`
-  already established `minimum: 0` + "0 = disabled", so
-  `jarvis.touchedFiles.windowDays` cost no new convention.
-- **A tasked fix can be forbidden, not merely redundant.** My conformance-gap
-  check asks "does a requirement already mandate this?" — extend it to "does
-  one already rule it out?". `jarvis-gitignore-automanage-followup` asked for
-  four ignore entries; `REQ_CFG_IGNOREPATTERNS` AC-4 forbids two of them.
-- **Verify the artefact, not the intake report.** Two of that CR's four
-  observations were stale — the files had been renamed by an earlier merged CR.
-  A CR description is evidence about what someone saw once, not about the
-  current tree.
+- Durable design lessons live in [memory/lessons.md](memory/lessons.md) —
+  spec writing, verification habits, and repo constraints worth remembering.

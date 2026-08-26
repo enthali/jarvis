@@ -30,6 +30,6 @@ See [lessons-learned.md](lessons-learned.md).
 
 ## Active CRs
 
-- **CR #43 prompt-injection-tool** — `feature/prompt-injection-tool`, status `ready-for-merge`, QM Round 2 CLEAR, PM notified
-- **CR #44 jarvis-whoami** — `feature/jarvis-whoami`, status `ready-for-merge`, QM CLEAR, PM notified
-- **CR #46 jarvis-kanban** — `feature/jarvis-kanban`, status `ready-for-merge`, QM Round 5 CLEAR; PM review required before merge; 4 tools (create/verify/open/update), item IDs, 23 UAT scenarios
+- **agent-mode-reset-race** — `feature/agent-mode-reset-race`, status `qm-recheck` (R3 AC-7 fix applied 9a30f41: catch restored, spec sample corrected), QM re-notified; outcome unknown (session ended before response)
+- **kanban-management-tools** — `feature/kanban-management-tools`, status `ready-for-merge`, QM R3 CLEAR (low findings deferred to backlog item 14), PM notified; 2 URR flags disclosed (F-1 closed by kanban-update-validation)
+- **kanban-update-validation** — `feature/kanban-update-validation` (stacked on kanban-management-tools), status `ready-for-merge`, QM CLEAR, PM notified

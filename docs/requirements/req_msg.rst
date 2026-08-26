@@ -398,6 +398,11 @@ Message Queue Requirements
      taken once per tick, immediately before AC-3's delivery action; the
      Focus-Restore (``REQ_MSG_FOCUSRESTORE`` AC-3) SHALL run immediately
      after that delivery action's promise resolves, before the tick ends.
+   * AC-10: (``agent-mode-reset-race`` CR) AC-5 and AC-9 bound the work of a
+     single tick; they do not prevent two ticks from overlapping, since the
+     interval period is independent of the asynchronous tick body's duration.
+     Non-overlap SHALL be guaranteed separately by
+     ``REQ_MSG_DELIVERY_REENTRANCY``.
 
 
 .. req:: Notified Flag on Queued Message
@@ -785,6 +790,86 @@ Message Queue Requirements
      output channel with the caught error message and a ``[MSG]`` tag
    * AC-4: ``workbench.action.openChat`` is a VS Code internal command with no
      public stability guarantee — the try/catch fallback is mandatory
+
+
+.. req:: Agent-Mode Target Verification
+   :id: REQ_MSG_MODETARGET
+   :status: approved
+   :priority: mandatory
+   :links: US_MSG_MODETARGET; REQ_MSG_OPENCHAT
+
+   **Description:**
+   The per-mode command ``workbench.action.chat.open<ModeName>`` applies to
+   whichever chat editor is focused when it runs; it carries no session
+   identity (``SPEC_MSG_OPENCHAT``). Every code path that invokes it SHALL
+   therefore confirm that the focused editor is the intended session
+   immediately before invocation, and SHALL abandon the mode change when that
+   confirmation fails.
+
+   The verification SHALL be a check of observed state, not a delay. A timing
+   delay cannot establish that the correct editor is focused; it can only
+   reduce how often the wrong one is, while suppressing the evidence that it
+   still happens.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The mode-application helper SHALL take the intended session name as
+     a parameter that governs behaviour — not solely as a logging label.
+   * AC-2: Immediately before executing the per-mode command, the helper SHALL
+     compare the active chat editor tab's identity against the intended session
+     name.
+   * AC-3: On mismatch, the helper SHALL NOT execute the command, SHALL return
+     without error, and SHALL log a warning naming both the intended session
+     and the tab that was focused instead.
+   * AC-4: On mismatch the target session's mode SHALL remain unchanged, and no
+     other session's mode SHALL be modified.
+   * AC-5: The success log entry SHALL be emitted only on the path where AC-2's
+     comparison succeeded and the command was executed. A mode application that
+     was skipped SHALL NOT produce a success entry.
+   * AC-6: When no chat editor is active at all, the helper SHALL treat this as
+     a mismatch per AC-3 (skip, warn) rather than executing the command.
+   * AC-7: Skipping a mode application SHALL NOT abort the surrounding delivery:
+     the session SHALL still open and receive its message
+     (``US_MSG_MODETARGET`` AC-6).
+   * AC-8: The existing command-registry probe (skip when
+     ``workbench.action.chat.open<ModeName>`` is not registered) SHALL be
+     retained — it guards a different failure (mode not yet registered) and is
+     not superseded by target verification.
+
+
+.. req:: Delivery Poll Loop Re-Entrancy Guard
+   :id: REQ_MSG_DELIVERY_REENTRANCY
+   :status: approved
+   :priority: mandatory
+   :links: US_MSG_MODETARGET; REQ_MSG_AUTODELIVER_POLL
+
+   **Description:**
+   The auto-delivery poll loop SHALL NOT begin a new delivery while a previous
+   delivery is still in progress. ``REQ_MSG_AUTODELIVER_POLL`` AC-5 and AC-9
+   constrain what happens *within* one tick; neither prevents two ticks from
+   overlapping, because the interval period is independent of how long the
+   asynchronous tick body takes.
+
+   Overlapping deliveries interleave their focus snapshot/disrupt/restore
+   sequences, which is one way the target-verification precondition in
+   ``REQ_MSG_MODETARGET`` comes to be violated.
+
+   **Acceptance Criteria:**
+
+   * AC-1: While a delivery started by a previous tick has not completed, a new
+     tick SHALL NOT start another delivery.
+   * AC-2: A tick that is skipped for this reason SHALL be a no-op, not an
+     error, and SHALL NOT consume or mark any message.
+   * AC-3: The guard SHALL be released when the delivery completes, including
+     when it completes by throwing — a failed delivery SHALL NOT leave the loop
+     permanently blocked.
+   * AC-4: Skipped ticks SHALL be observable in the log at a level that does not
+     flood normal operation.
+   * AC-5: Reminder processing in the same tick body SHALL remain unaffected by
+     the delivery guard — reminders do not manipulate focus and SHALL continue
+     to run on every tick.
+   * AC-6: The guard SHALL NOT introduce any new configuration setting or
+     persisted state.
 
 
 .. req:: Agent Chat Prompt Helper
