@@ -57,6 +57,7 @@ end-to-end verification of each feature.
    req_uat_flow
    req_uat_injectprompt
    req_uat_whoami
+   req_uat_act_whoami_multikinds
    req_uat_kanban
    req_uat_kanban_skill
    req_uat_msg_modetarget

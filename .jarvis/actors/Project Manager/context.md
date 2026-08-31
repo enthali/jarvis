@@ -102,10 +102,16 @@
 
 ## Active CR
 
-- (none)
+- None.
 
 ## Recently Shipped
 
+- **whoami-all-entity-kinds merged** 2026-08-31 into `development` (backlog
+  item 20). `jarvis_whoAmI` now resolves Actor, Project, and Event identities
+  through the complete scanner registry; zero/multiple matches return the
+  existing ambiguity error. QM Round 3 CLEAR after stale guarding tests and
+  `SPEC_ACT_WHOAMI` AC-2 were corrected; 406/406 tests passed. Backlog item 22
+  tracks the verification-protocol gap that let those stale tests reach QM.
 - **v0.27.0 released** 2026-08-26 (tag `v0.27.0` on `main` at `3079cec`,
   back-merged to `development` at `ec0455a`). Solo release of
   `actor-kernel-instructions-delivery` — no other change was on `development`

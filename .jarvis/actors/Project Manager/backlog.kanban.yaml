@@ -1,5 +1,5 @@
 title: backlog
-nextId: 20
+nextId: 23
 fields:
   - name: status
     type: single_select
@@ -112,4 +112,22 @@ items:
     status: Done
     priority: High
     notes: "2026-08-26. Measured drift across 5 workspaces (jarvis, syspilot, Automobil, Assistant, sonar): kernel has 4 distinct versions with the superset living only in Automobil; sonar's authoring predates the 'write the reason' section; sonar's memory carries a unique memory-first rule. Both consuming projects already gitignore these as extension-delivered, but nothing delivers them — that gap is the root cause. Shipped as CR 'actor-kernel-instructions-delivery', merged to development 2026-08-26 (6a96081). QM CLEARED twice, one Low process finding routed to CM (dispatch template wording). User reversed the prior 'private IP, not for public repo' decision: released under the project's MIT license."
+  - id: 20
+    name: "Bug: jarvis_whoAmI rejects Project and Event sessions due to hard-coded session kind filter"
+    status: Done
+    priority: High
+    labels: ["bug"]
+    notes: "Confirmed 2026-08-31. Session ID resolved correctly to entity name, but packages/core/src/extension.ts then required e.kind === 'session', rejecting registered Project/Event entities. Fixed by CR whoami-all-entity-kinds: registry lookup is name-only, zero/multiple matches error, Actor/Project/Event coverage added. QM Round 3 CLEAR; merged to development 2026-08-31."
+  - id: 21
+    name: "Entity-name uniqueness across kinds (Actor/Project/Event) is unstated project-wide"
+    status: Backlog
+    priority: Low
+    labels: ["observation"]
+    notes: "SD finding while designing whoami-all-entity-kinds (2026-08-31). Jarvis addresses entities by name everywhere — messaging destinations, lookupSessionUUID, getValidDestinations (unions names into a Set) — but no requirement asserts uniqueness across kinds. jarvis_whoAmI AC-11 (this CR) makes that one tool safe under collision (errors rather than guessing), but every other name-addressed path carries the same exposure and was not examined here. Out of scope for a one-predicate fix; candidate for a dedicated requirement/CR later."
+  - id: 22
+    name: "Verify Engineer protocol: always run full test suite, not just type-check"
+    status: Backlog
+    priority: Medium
+    labels: ["process"]
+    notes: "QM Round 2 finding on whoami-all-entity-kinds (2026-08-31): val-whoami-all-entity-kinds.md ran npx tsc -p packages/core --noEmit (clean) but never npx vitest run. That's the only reason a 2/406 test regression (stale guarding test not caught by the CR's own impact analysis) reached QM instead of being caught at verification. Candidate fix: amend Verify Engineer's protocol/tailoring to require the full automated suite, not just the type-check, before reporting APPROVED FOR MERGE."
 

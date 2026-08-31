@@ -861,18 +861,21 @@ Actor Requirements
 
    **Description:**
    A Language Model and MCP tool ``jarvis_whoAmI`` SHALL resolve the calling
-   chat session to its registered Actor and return the Actor's name and
-   ``context.md`` path.
+   chat session to its registered Jarvis entity and return that entity's name
+   and ``context.md`` path.
 
    **Acceptance Criteria:**
 
    * AC-1: The tool SHALL accept no input parameters. The calling session's
      identity SHALL be resolved automatically by the extension.
-   * AC-2: When the calling session is a registered Actor entity (kind
-     ``session``), the tool SHALL return a JSON object
-     ``{ "name": "<actorName>", "contextPath": "<absolutePath>" }`` where
-     ``contextPath`` is the absolute filesystem path to the Actor's
-     ``context.md``.
+   * AC-2: (**amended by the** ``whoami-all-entity-kinds`` **CR**) When the
+     calling session resolves to a registered entity in the scanner's registry,
+     the tool SHALL return a JSON object
+     ``{ "name": "<entityName>", "contextPath": "<absolutePath>" }`` where
+     ``contextPath`` is the absolute filesystem path to that entity's
+     ``context.md``. The criterion previously restricted this to entities of
+     kind ``session``, which excluded Projects and Events for no stated reason;
+     all registered kinds qualify.
    * AC-3: When the calling session is not a registered Actor, the tool SHALL
      return an error message instructing the session to ask the user to
      resolve its identity (e.g. "You are not a registered actor.
@@ -907,3 +910,18 @@ Actor Requirements
      (``REQ_HOOK_INTAKE``). This is a deliberate, documented dependency: when
      hook intake is unavailable, ``jarvis_whoAmI`` degrades to the AC-3 error
      per AC-7 and SHALL NOT fall back to any focus-based heuristic.
+   * AC-10: (**whoami-all-entity-kinds CR**) The scanner's entity registry
+     SHALL be the sole authority on which entities exist. The tool SHALL NOT
+     carry a hard-coded set of acceptable entity kinds — neither the removed
+     ``kind === 'session'`` test nor any replacement allowlist. A kind
+     registered with the engine is thereby eligible, and a new kind requires no
+     change to this tool.
+   * AC-11: (**whoami-all-entity-kinds CR**) When the resolved name matches
+     **more than one** registered entity, the tool SHALL return the AC-3 error
+     and SHALL NOT select among the candidates — not by kind, not by scan
+     order, not by any other precedence. This is AC-7 applied at the registry
+     lookup: an entity name that does not identify one entity has not
+     determined the caller unambiguously. Entity names are not guaranteed
+     unique across kinds, so this case is reachable rather than theoretical.
+   * AC-12: (**whoami-all-entity-kinds CR**) Behaviour for a name matching
+     exactly zero entities SHALL be unchanged — the AC-3 error, as before.

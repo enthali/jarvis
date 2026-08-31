@@ -206,7 +206,8 @@ Actor User Stories
    :priority: required
    :links: US_ACT_ACTORS
 
-   **As a** Jarvis Actor operating in a chat session,
+   **As a** Jarvis Actor operating in a chat session — whether my entity is an
+   Actor, a Project, or an Event,
    **I want** a tool ``jarvis_whoAmI`` that tells me my own name and the path
    to my ``context.md``,
    **so that** I can reliably recover my identity after ``/compact`` or context
@@ -214,9 +215,11 @@ Actor User Stories
 
    **Acceptance Criteria:**
 
-   * AC-1: Calling ``jarvis_whoAmI`` from a chat session that is a registered
-     Actor SHALL return the Actor's name and the absolute path to its
-     ``context.md``.
+   * AC-1: Calling ``jarvis_whoAmI`` from a chat session bound to **any**
+     registered Jarvis entity SHALL return that entity's name and the absolute
+     path to its ``context.md``. Every entity kind that Jarvis registers
+     qualifies — Actors, Projects, and Events alike
+     (``whoami-all-entity-kinds`` CR).
    * AC-2: Calling ``jarvis_whoAmI`` from a chat session that is NOT a
      registered Actor SHALL return an error instructing the session to ask
      the user to resolve its identity.
@@ -233,3 +236,8 @@ Actor User Stories
      rather than return a guess. A confidently wrong identity is worse than no
      identity — I would adopt another actor's memory and act as the wrong
      actor.
+   * AC-6: (**whoami-all-entity-kinds CR**) If my name matches more than one
+     registered entity, the tool SHALL give me the AC-2 error rather than pick
+     one. Two entities sharing a name is exactly the case where a guess would
+     hand me the wrong ``context.md``, which is the failure AC-5 exists to
+     prevent.
