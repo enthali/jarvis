@@ -1,5 +1,15 @@
 # Release Notes
 
+## v0.27.1 — whoami Identity Resolution Fix
+
+*2026-09-01*
+
+### Fixes
+
+- **whoami-all-entity-kinds**: `jarvis_whoAmI` now resolves identity against the scanner's complete entity registry (Actor, Project, Event) instead of hard-coding `kind === 'session'`. The tool was rejecting valid Project and Event sessions that share the same identity infrastructure. Preserves the existing unknown-session error and adds regression coverage for all three entity kinds. No GitHub Issue — backlog item 20.
+
+---
+
 ## v0.27.0 — Actor Kernel Instructions Delivery
 
 *2026-08-26*
