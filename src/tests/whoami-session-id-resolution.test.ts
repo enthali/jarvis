@@ -42,9 +42,9 @@ describe('TC-2: session-id resolution via getEntityNameForSessionId', () => {
         expect(extensionSrc).toMatch(/import\s*\{[^}]*getEntityNameForSessionId[^}]*\}\s*from\s*'\.\/engine\/sessions\/sessionLookup'/);
     });
 
-    it('resolves entity name and checks kind === session', () => {
-        expect(whoAmISection).toContain("e.kind === 'session'");
-        expect(whoAmISection).toContain('e.name === entityName');
+    it('resolves entity name against scanner registry by name only', () => {
+        expect(whoAmISection).toContain('.filter(e => e.name === entityName)');
+        expect(whoAmISection).not.toContain("e.kind === 'session'");
     });
 });
 
@@ -83,7 +83,7 @@ describe('TC-4: error paths converge on single error string', () => {
         // All error returns use ERROR_MSG, not custom strings
         const errorReturns = whoAmISection.match(/error:\s*ERROR_MSG/g);
         expect(errorReturns).not.toBeNull();
-        expect(errorReturns!.length).toBe(3); // no sessionId, no entityName, no actor
+        expect(errorReturns!.length).toBe(4); // no sessionId, no entityName, zero match, multi match
     });
 
     it('does not contain the old "No active tab" error', () => {

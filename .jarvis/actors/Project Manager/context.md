@@ -102,10 +102,27 @@
 
 ## Active CR
 
-- (none)
+- None.
 
 ## Recently Shipped
 
+- **whoami-all-entity-kinds merged** 2026-08-31 into `development` (backlog
+  item 20). `jarvis_whoAmI` now resolves Actor, Project, and Event identities
+  through the complete scanner registry; zero/multiple matches return the
+  existing ambiguity error. QM Round 3 CLEAR after stale guarding tests and
+  `SPEC_ACT_WHOAMI` AC-2 were corrected; 406/406 tests passed. Backlog item 22
+  tracks the verification-protocol gap that let those stale tests reach QM.
+- **v0.27.0 released** 2026-08-26 (tag `v0.27.0` on `main` at `3079cec`,
+  back-merged to `development` at `ec0455a`). Solo release of
+  `actor-kernel-instructions-delivery` — no other change was on `development`
+  since v0.26.0, and the next work is expected in PIM, not core, so it wasn't
+  worth holding back a day. CD archived to `docs/changes/v0.27.0/`. One
+  transient artifact found post-release: a stray uncommitted `.gitignore`
+  edit dropped the `!packages/*/assets/**` negation — traced to a
+  not-yet-reloaded Extension Development Host running pre-fix code in
+  memory (fix itself, from v0.26.0's module-skill-provisioning QM round, is
+  intact in HEAD/src/compiled `out/`). Discarded the stray change, no repo
+  action needed; recommended reloading this dev window.
 - **actor-kernel-instructions-delivery** (backlog item 19) — merged to
   `development` 2026-08-26 (`6a96081`). Ships the three `jarvis-actor.*`
   instruction files (kernel/memory/authoring, dot-separated names — required

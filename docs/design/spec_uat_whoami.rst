@@ -119,15 +119,15 @@ Actor Identity Recovery (jarvis_whoAmI) UAT Design Specifications
 
       * - T-3
 
-          Non-actor session — error message returned
+          Session not matching any registered entity — error returned
 
-          *(AC-2)*
+          *(AC-2 — amended by ``whoami-all-entity-kinds`` CR)*
         - Precondition: A VS Code chat session is open whose title does NOT
-          match any registered actor. For example, open a plain VS Code Chat
-          (without any Jarvis actor association) named ``Copilot`` or
-          ``(untitled)`` and make it the active tab.
+          match any registered entity (Actor, Project, or Event). For example,
+          open a plain VS Code Chat named ``Copilot`` or ``(untitled)`` and
+          make it the active tab.
 
-          From within the non-actor session, invoke the tool:
+          From within the non-matching session, invoke the tool:
 
           .. code-block:: text
 
@@ -147,7 +147,12 @@ Actor Identity Recovery (jarvis_whoAmI) UAT Design Specifications
 
           **No contextPath:** The result does not contain a ``contextPath``
           or ``name`` field.
-        - REQ_ACT_WHOAMI AC-3; US_ACT_WHOAMI AC-2
+
+          **Note (``whoami-all-entity-kinds`` CR):** This scenario's behavior
+          is unchanged. It now also serves as the zero-match regression check
+          (``REQ_ACT_WHOAMI`` AC-12): the session title matching no Actor, no
+          Project, and no Event still returns the same error.
+        - REQ_ACT_WHOAMI AC-3, AC-12; US_ACT_WHOAMI AC-2
 
       * - T-4
 

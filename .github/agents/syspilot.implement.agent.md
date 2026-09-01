@@ -2,7 +2,7 @@
 name: "Dev Engineer"
 agent: syspilot.implement
 description: "Subagent that implements code changes from approved Change Documents. Reads specs, writes code, writes tests, commits with traceability."
-model: Claude Opus 4.6 (copilot)
+model: GPT-5.6 Sol (copilot)
 user-invocable: true
 agents: []
 ---

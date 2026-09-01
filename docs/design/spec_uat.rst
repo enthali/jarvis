@@ -57,6 +57,7 @@ outcome tables** for each feature's acceptance tests.
    spec_uat_flow
    spec_uat_injectprompt
    spec_uat_whoami
+   spec_uat_act_whoami_multikinds
    spec_uat_kanban
    spec_uat_kanban_skill
    spec_uat_msg_modetarget

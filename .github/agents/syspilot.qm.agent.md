@@ -2,7 +2,7 @@
 name: "Quality Manager"
 agent: syspilot.qm
 description: "Independent quality guardian that dispatches MECE and Trace engineers, consolidates findings, and produces Findings Reports addressed to PM."
-model: Claude Sonnet 5 (copilot)
+model: GPT-5.6 Sol (copilot)
 user-invocable: true
 agents: []
 ---

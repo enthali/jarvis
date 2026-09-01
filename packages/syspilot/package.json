@@ -2,7 +2,7 @@
   "name": "jarvis-syspilot",
   "displayName": "Jarvis Syspilot",
   "description": "Jarvis Syspilot — detects and hands off syspilot install/update lifecycle to the Syspilot Setup Engineer actor",
-  "version": "0.27.0",
+  "version": "0.27.1",
   "publisher": "enthali",
   "icon": "resources/jarvis-128.png",
   "repository": {

@@ -1276,22 +1276,29 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
                     ]);
                 }
 
-                // 3. Find the scanner entity with kind === 'session'
-                const actor = kindDrivenScanner.entities
-                    .find(e => e.kind === 'session' && e.name === entityName);
-                if (!actor) {
-                    log.info(`[whoAmI] entity "${entityName}" is not a registered session actor`);
+                // 3. Resolve name against the scanner's full entity registry (SPEC_ACT_WHOAMI step 3)
+                const matches = kindDrivenScanner.entities
+                    .filter(e => e.name === entityName);
+                if (matches.length === 0) {
+                    log.info(`[whoAmI] entity "${entityName}" not found in scanner registry`);
                     return new vscode.LanguageModelToolResult([
                         new vscode.LanguageModelTextPart(JSON.stringify({ error: ERROR_MSG }))
                     ]);
                 }
+                if (matches.length > 1) {
+                    log.warn(`[whoAmI] entity "${entityName}" matched ${matches.length} entries — ambiguous`);
+                    return new vscode.LanguageModelToolResult([
+                        new vscode.LanguageModelTextPart(JSON.stringify({ error: ERROR_MSG }))
+                    ]);
+                }
+                const entity = matches[0];
 
                 // 4. Return identity
-                const contextPath = path.join(actor.folder, 'context.md');
-                log.info(`[SES] whoAmI: "${actor.name}" → ${contextPath} (via session_id=${sessionId})`);
+                const contextPath = path.join(entity.folder, 'context.md');
+                log.info(`[SES] whoAmI: "${entity.name}" → ${contextPath} (via session_id=${sessionId})`);
                 return new vscode.LanguageModelToolResult([
                     new vscode.LanguageModelTextPart(JSON.stringify({
-                        name: actor.name,
+                        name: entity.name,
                         contextPath
                     }))
                 ]);

@@ -1930,9 +1930,46 @@ Actor Design Specifications
       If undefined (absent, stale, or ambiguous) → return the AC-3 error.
    2. Resolve the ``session_id`` to an entity name via
       ``getEntityNameForSessionId()``. If unresolved → return the AC-3 error.
-   3. Find the scanner entity with ``kind === 'session'`` and that name.
-      If not found → return the AC-3 error.
+   3. Look the name up in the scanner's entity registry, **matching on name
+      alone** (``whoami-all-entity-kinds`` CR). Three outcomes:
+
+      - exactly one match → continue to step 4;
+      - no match → return the AC-3 error (unchanged);
+      - more than one match → return the AC-3 error, selecting none
+        (``REQ_ACT_WHOAMI`` AC-11).
+
    4. Return ``{ name: entity.name, contextPath: path.join(entity.folder, 'context.md') }``.
+
+   **Step 3 — why the kind test is removed and not replaced**
+   (``whoami-all-entity-kinds`` CR):
+
+   The predicate was ``e.kind === 'session' && e.name === entityName``, which
+   silently excluded Projects and Events. It is removed rather than widened to
+   a kind allowlist: the registry is already the authoritative statement of
+   which entities exist (``REQ_ACT_WHOAMI`` AC-10), so a second, hand-maintained
+   list of acceptable kinds could only drift out of step with it — and would
+   fail the same way this defect did, by rejecting a legitimate entity with the
+   generic "not a registered actor" error.
+
+   The kind cannot be carried through from step 2 in any case:
+   ``getEntityNameForSessionId()`` returns the chat tab's title, a bare string.
+   Name is the only key available at this point.
+
+   **Step 3 — why a multi-match is an error rather than a tie-break:**
+
+   This is the same rule already stated for the correlation buffer above
+   ("Ambiguity is an error, not a tie-break"), applied at the second place the
+   handler can be ambiguous. Nothing requires entity names to be unique across
+   kinds, so a Project and an Actor may share one. ``find()`` would then return
+   whichever the scanner happened to list first and hand the caller another
+   entity's ``context.md`` — the wrong-identity failure of GH #51 reproduced
+   through a different route. Matching therefore collects candidates and counts
+   them; it does not take the first.
+
+   Selecting by kind precedence was considered and rejected: preferring
+   ``session`` would preserve today's answer for a colliding pair, but it is
+   still a guess, and ``REQ_ACT_WHOAMI`` AC-7 forbids returning an identity
+   that cannot be attributed unambiguously.
 
    All failure paths converge on one error string —
    ``"You are not a registered actor. Please ask the user which actor you are."``
@@ -1988,8 +2025,11 @@ Actor Design Specifications
 
    * AC-1: The tool is registered via ``engine.registerTool()`` inside the
      ``sessions.enabled`` gate.
-   * AC-2: A calling session resolvable to a registered Actor (kind
-     ``session``) returns ``{ name, contextPath }``.
+   * AC-2: A calling session resolvable to exactly one entity in the scanner
+     registry (any kind) returns ``{ name, contextPath }``.
+   * AC-2a: (``whoami-all-entity-kinds`` CR) Step 3 has three outcomes:
+     exactly one match returns the identity; zero matches returns the AC-3
+     error; more than one match returns the AC-3 error, selecting none.
    * AC-3: An unresolvable calling session, or one with no bound Actor,
      returns the error with instruction to ask the user.
    * AC-4: (GH #51) The handler reads no editor-focus API. The result is

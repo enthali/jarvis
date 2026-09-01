@@ -34,3 +34,4 @@ See [lessons-learned.md](lessons-learned.md).
 - **kanban-management-tools** — `feature/kanban-management-tools`, status `ready-for-merge`, QM R3 CLEAR (low findings deferred to backlog item 14), PM notified; 2 URR flags disclosed (F-1 closed by kanban-update-validation)
 - **kanban-update-validation** — `feature/kanban-update-validation` (stacked on kanban-management-tools), status `ready-for-merge`, QM CLEAR, PM notified
 - **actor-kernel-instructions-delivery** — `feature/actor-kernel-instructions-delivery`, status `qm-cleared`, QM R2 CLEAR, pending user confirmation for merge
+- **whoami-all-entity-kinds** — `feature/whoami-all-entity-kinds`, status `r2-recheck` (fixes 274625f: TC-2/TC-4 + SPEC AC-2/AC-2a, 406/406 pass), VE + MECE re-dispatched → report to PM

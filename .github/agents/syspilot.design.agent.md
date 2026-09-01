@@ -2,7 +2,7 @@
 name: "System Designer"
 agent: syspilot.design
 description: "Subagent that analyzes change requests level-by-level (US → REQ → SPEC) with a persistent Change Document. Writes RST files with full traceability."
-model: Claude Opus 5 (copilot)
+model: GPT-5.6 Sol (copilot)
 user-invocable: true
 agents: []
 ---
