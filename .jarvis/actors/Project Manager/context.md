@@ -106,6 +106,12 @@
 
 ## Recently Shipped
 
+- **v0.27.1 released** 2026-09-01 (tag `v0.27.1` on `main` at `d70ba52`,
+  back-merged to `development` at `356d263`). Patch release of
+  `whoami-all-entity-kinds` — `jarvis_whoAmI` now resolves Actor, Project,
+  and Event identities through the complete scanner registry; zero/multiple
+  matches return the existing ambiguity error. QM Round 3 CLEAR; 406/406
+  tests passed. CD archived to `docs/changes/v0.27.1/`.
 - **whoami-all-entity-kinds merged** 2026-08-31 into `development` (backlog
   item 20). `jarvis_whoAmI` now resolves Actor, Project, and Event identities
   through the complete scanner registry; zero/multiple matches return the
