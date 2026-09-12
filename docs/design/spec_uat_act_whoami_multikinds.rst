@@ -88,10 +88,9 @@ whoAmI Multi-Kind Entity Resolution UAT Design Specifications
           ``Shared Name`` and make it the active tab.
 
           Invoke ``#whoAmI``.
-        - Response: ``{ "error": "You are not a registered actor.
-          Please ask the user which actor you are." }``
-          (or equivalent error text — the exact string is unchanged from
-          the zero-match case).
+        - Response: ``{ "error": "Unable to determine your identity automatically (hooks disabled or unavailable). Please confirm your identity with the user." }``
+          (the AC-3 error — the exact string is shared with the zero-match
+          case, since all failure paths converge on one error string).
 
           **Not the Actor identity:** The tool does NOT return the Actor's
           ``contextPath`` — returning either match would be a best-guess

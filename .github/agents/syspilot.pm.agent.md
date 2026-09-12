@@ -2,7 +2,7 @@
 name: "Project Manager"
 agent: syspilot.pm
 description: "Strategic project manager that discusses features, prioritizes backlogs, conducts research, and delegates Change Requests to the Change Manager."
-model: NVIDIA: Nemotron 3 Ultra (free) (openrouter)
+model: Qwen3.8-27B Aphrodite (customendpoint)
 user-invocable: true
 agents: []
 ---

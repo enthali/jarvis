@@ -78,7 +78,7 @@ describe('TC-3: buffer behavioural properties', () => {
 
 describe('TC-4: error paths converge on single error string', () => {
     it('uses one consistent error message for all failure paths', () => {
-        const errorMsg = 'You are not a registered actor. Please ask the user which actor you are.';
+        const errorMsg = 'Unable to determine your identity automatically (hooks disabled or unavailable). Please confirm your identity with the user.';
         expect(whoAmISection).toContain(`const ERROR_MSG = '${errorMsg}'`);
         // All error returns use ERROR_MSG, not custom strings
         const errorReturns = whoAmISection.match(/error:\s*ERROR_MSG/g);
