@@ -1558,8 +1558,11 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
                     messageProvider.reload();
 
                     // Restore the user's prior focus immediately, no artificial
-                    // delay (SPEC_MSG_FOCUSRESTORE)
-                    await restoreFocus(focus);
+                    // delay (SPEC_MSG_FOCUSRESTORE) — unless user disabled it
+                    const restoreFocusEnabled = vscode.workspace.getConfiguration('jarvis.messaging').get<boolean>('restoreFocusAfterDelivery', true);
+                    if (restoreFocusEnabled) {
+                        await restoreFocus(focus);
+                    }
                 } catch (err) {
                     log.warn(`[MSG] autoDelivery: delivery failed for "${sessionName}": ${err}`);
                 } finally {
