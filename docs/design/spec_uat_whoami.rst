@@ -140,7 +140,7 @@ Actor Identity Recovery (jarvis_whoAmI) UAT Design Specifications
           .. code-block:: json
 
              {
-               "error": "You are not a registered actor. Please ask the user which actor you are."
+               "error": "Unable to determine your identity automatically (hooks disabled or unavailable). Please confirm your identity with the user."
              }
 
           **No crash:** The tool does not throw or cause the extension to error.
@@ -148,10 +148,12 @@ Actor Identity Recovery (jarvis_whoAmI) UAT Design Specifications
           **No contextPath:** The result does not contain a ``contextPath``
           or ``name`` field.
 
-          **Note (``whoami-all-entity-kinds`` CR):** This scenario's behavior
-          is unchanged. It now also serves as the zero-match regression check
-          (``REQ_ACT_WHOAMI`` AC-12): the session title matching no Actor, no
-          Project, and no Event still returns the same error.
+          **Note (``whoami-all-entity-kinds`` CR; ``whoami-hookless-error`` CR):**
+          This scenario's behavior is unchanged. It now also serves as the
+          zero-match regression check (``REQ_ACT_WHOAMI`` AC-12): the session
+          title matching no Actor, no Project, and no Event still returns the
+          AC-3 error (same text as the hooks-unavailable case, since all
+          failure paths converge on one error string).
         - REQ_ACT_WHOAMI AC-3, AC-12; US_ACT_WHOAMI AC-2
 
       * - T-4

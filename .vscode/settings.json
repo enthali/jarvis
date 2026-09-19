@@ -9,7 +9,10 @@
   "jarvis.projects.enabled": false,
   "jarvis.mcp.enabled": true,
   "jarvis.recording.enabled": false,
-  "chat.hookFilesLocations": {
-    ".github/hooks": true
-  }
+  "workbench.colorCustomizations": {
+			"titleBar.activeBackground": "#1e2d5e",
+			"titleBar.activeForeground": "#ffffff",
+			"statusBar.background": "#1e2d5e",
+			"statusBar.foreground": "#ffffff",
+		}
 }

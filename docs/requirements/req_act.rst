@@ -876,10 +876,12 @@ Actor Requirements
      ``context.md``. The criterion previously restricted this to entities of
      kind ``session``, which excluded Projects and Events for no stated reason;
      all registered kinds qualify.
-   * AC-3: When the calling session is not a registered Actor, the tool SHALL
-     return an error message instructing the session to ask the user to
-     resolve its identity (e.g. "You are not a registered actor.
-     Please ask the user which actor you are.").
+   * AC-3: When the calling session is not a registered Actor, or when the
+     hook intake mechanism is unavailable (hooks disabled or otherwise
+     unable to supply the calling session's identity), the tool SHALL return
+     an error message instructing the session to confirm its identity with
+     the user (e.g. "Unable to determine your identity automatically (hooks
+     disabled or unavailable). Please confirm your identity with the user.").
    * AC-4: The tool SHALL be registered only when ``jarvis.sessions.enabled``
      is ``true`` at activation time (same gating as ``REQ_ACT_LISTTOOL``).
    * AC-5: The tool SHALL appear in the VS Code Chat tool picker with

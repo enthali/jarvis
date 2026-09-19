@@ -102,10 +102,25 @@
 
 ## Active CR
 
-- None.
+- **whoami-hookless-error** — in pipeline (branch `feature/whoami-hookless-error`).
+  Fix to make the `jarvis_whoAmI` error message honest when hooks are disabled.
+  QM Round 1 = CHANGES REQUIRED (2 findings, both PM-decided fix-now, commit `ca2536a`):
+  (1) CD wrongly claimed a US_ACT_WHOAMI AC-2 edit that never happened — correct wording;
+  (2) `SPEC_UAT_ACT_WHOAMI` T-3 still expects the retired error literal — update to new AC-3
+  text. CM fixed both + a 2nd retired-literal instance in `SPEC_UAT_ACT_WHOAMI_MULTIKINDS`
+  T-3 (commit `37b8803`, 406/406). Awaiting QM Round 2 (queued 2026-09-06).
+- **focus-restore-toggle** — with CM in autonomous pipeline (branch
+  `feature/focus-restore-toggle`, scaffolded 2026-09-02, commit `4223dbf`).
+  Post-delivery focus-restore setting. No CM report yet; running in background.
 
 ## Recently Shipped
 
+- **v0.27.1 released** 2026-09-01 (tag `v0.27.1` on `main` at `d70ba52`,
+  back-merged to `development` at `356d263`). Patch release of
+  `whoami-all-entity-kinds` — `jarvis_whoAmI` now resolves Actor, Project,
+  and Event identities through the complete scanner registry; zero/multiple
+  matches return the existing ambiguity error. QM Round 3 CLEAR; 406/406
+  tests passed. CD archived to `docs/changes/v0.27.1/`.
 - **whoami-all-entity-kinds merged** 2026-08-31 into `development` (backlog
   item 20). `jarvis_whoAmI` now resolves Actor, Project, and Event identities
   through the complete scanner registry; zero/multiple matches return the

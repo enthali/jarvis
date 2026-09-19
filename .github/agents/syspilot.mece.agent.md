@@ -2,7 +2,7 @@
 name: "MECE Engineer"
 agent: syspilot.mece
 description: "Subagent that analyzes one specification level for MECE properties — finds redundancies, gaps, contradictions, and overlaps."
-model: GPT-5.6 Terra (copilot)
+model: Qwen3.8-27B Aphrodite (customendpoint)
 user-invocable: true
 agents: []
 ---

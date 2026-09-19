@@ -1972,8 +1972,8 @@ Actor Design Specifications
    that cannot be attributed unambiguously.
 
    All failure paths converge on one error string —
-   ``"You are not a registered actor. Please ask the user which actor you are."``
-   — because the actor's remedy is identical in every case: ask the user. The
+   ``"Unable to determine your identity automatically (hooks disabled or unavailable). Please confirm your identity with the user."``
+   — because the actor's remedy is identical in every case: confirm with the user. The
    distinguishing cause is written to the log, not to the tool result, so that
    diagnosis is possible without giving the model branch-specific text to
    reason about.

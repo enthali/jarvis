@@ -5,7 +5,7 @@ This file captures operational details not covered there.
 
 ## Findings
 
-- Latest release: v0.27.0 (2026-08-26, minor) — actor-kernel-instructions-delivery (feature: jarvis-core ships 3 actor instruction files via provisionModuleAssets; opt-in via jarvis.actor.autoProvision). Prior: v0.26.0 (minor) kanban management tools + module asset provisioning.
+- Latest release: v0.27.1 (2026-09-01, patch) — whoami-all-entity-kinds (fix: jarvis_whoAmI resolves Actor/Project/Event identities; QM Round 3 CLEAR, 406/406 tests). Prior: v0.27.0 (minor) actor-kernel-instructions-delivery.
 - Integration branch renamed `develop` → `development` (first confirmed in v0.25.0 release); context.md updated.
 - v0.24.1 NOTE: 3 pre-existing ESLint "rule not found" config errors confirmed unchanged from develop — not a regression, no action taken; watch for recurrence.
 - v0.24.1 was released via runSubagent (process error, PM acknowledged) — this entry is a PM-provided backfill; no actor validation was run by me.

@@ -2,7 +2,7 @@
 name: "Verify Engineer"
 agent: syspilot.verify
 description: "Verify implementation matches Change Document and traceability is complete."
-model: GPT-5.6 Terra (copilot)
+model: Qwen3.8-27B Aphrodite (customendpoint)
 user-invocable: true
 agents: []
 ---

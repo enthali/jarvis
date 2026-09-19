@@ -1255,7 +1255,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         whoAmITool = engine.registerTool('jarvis_whoAmI',
             'Returns the calling actor\'s name and the absolute path to its context.md. Call this after /compact or context loss to recover your identity. No input parameters required.',
             async (_options: vscode.LanguageModelToolInvocationOptions<any>, _token: vscode.CancellationToken) => {
-                const ERROR_MSG = 'You are not a registered actor. Please ask the user which actor you are.';
+                const ERROR_MSG = 'Unable to determine your identity automatically (hooks disabled or unavailable). Please confirm your identity with the user.';
 
                 // 1. Obtain calling session's session_id from correlation buffer
                 const sessionId = takeCallingSessionId();
@@ -1558,8 +1558,11 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
                     messageProvider.reload();
 
                     // Restore the user's prior focus immediately, no artificial
-                    // delay (SPEC_MSG_FOCUSRESTORE)
-                    await restoreFocus(focus);
+                    // delay (SPEC_MSG_FOCUSRESTORE) — unless user disabled it
+                    const restoreFocusEnabled = vscode.workspace.getConfiguration('jarvis.messaging').get<boolean>('restoreFocusAfterDelivery', true);
+                    if (restoreFocusEnabled) {
+                        await restoreFocus(focus);
+                    }
                 } catch (err) {
                     log.warn(`[MSG] autoDelivery: delivery failed for "${sessionName}": ${err}`);
                 } finally {

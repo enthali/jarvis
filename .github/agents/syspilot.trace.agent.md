@@ -2,7 +2,7 @@
 name: "Trace Engineer"
 agent: syspilot.trace
 description: "Subagent that traces one specification element vertically through all levels (US → REQ → SPEC) and checks traceability completeness."
-model: GPT-5.6 Terra (copilot)
+model: Qwen3.8-27B Aphrodite (customendpoint)
 user-invocable: true
 agents: []
 ---
