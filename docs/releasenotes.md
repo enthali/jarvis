@@ -1,5 +1,19 @@
 # Release Notes
 
+## v0.27.2 — whoami Hookless Error + Focus Restore Toggle
+
+*2026-09-19*
+
+### Fixes
+
+- **whoami-hookless-error**: `jarvis_whoAmI` now returns an honest error message when hooks are disabled/unavailable: "Unable to determine your identity automatically (hooks disabled or unavailable). Please confirm your identity with the user." — instead of the misleading "You are not a registered actor..." which confused sessions that *are* registered but cannot prove it automatically. No new settings, no breaking change.
+
+### Features
+
+- **focus-restore-toggle**: New setting `jarvis.messaging.restoreFocusAfterDelivery` (boolean, default `true` for backwards compatibility) controls whether focus returns to the originating session after message delivery via prompt injection. When `false`, Jarvis stays on the target session so the user can observe progress or retry manually — useful when the target session uses a rate-limited model. Pure UX option, no breaking change.
+
+---
+
 ## v0.27.1 — whoami Identity Resolution Fix
 
 *2026-09-01*
