@@ -107,10 +107,13 @@
 ## Recently Shipped
 
 - **v0.27.2 released** 2026-09-19 (tag `v0.27.2` on `main` at `b7bbfa8`,
-  back-merged to `development` at `c1036bd`). Patch release with two
-  fixes: `whoami-hookless-error` (honest error message when hooks disabled)
-  and `focus-restore-toggle` (configurable focus restore after delivery).
-  QM Round 2 CLEAR for both; 406/406 tests. CD + val archived to
+  back-merged to `development` at `c1036bd`). Patch release of two fixes:
+  (1) `whoami-hookless-error` — honest error message when hooks disabled
+  (error text: "Unable to determine your identity automatically (hooks disabled
+  or unavailable). Please confirm your identity with the user."); (2)
+  `focus-restore-toggle` — configurable focus restore after delivery via
+  `jarvis.messaging.restoreFocusAfterDelivery` (bool, default true). Both QM
+  Round 2 CLEAR; 406/406 tests; val-reports created. CDs archived to
   `docs/changes/v0.27.2/`.
 - **v0.27.1 released** 2026-09-01 (tag `v0.27.1` on `main` at `d70ba52`,
   back-merged to `development` at `356d263`). Patch release of
