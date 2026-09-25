@@ -5,7 +5,7 @@ Explorer User Acceptance Tests
    :id: US_UAT_SAMPLEDATA
    :status: implemented
    :priority: mandatory
-   :links: US_EXP_SIDEBAR; US_PRJ_PROJECTFILTER; US_EVT_EVENTFILTER; US_ENT_OPENYAML; US_CFG_PROJECTPATH
+   :links: US_EXP_SIDEBAR; US_ENT_OPENYAML; US_CFG_PROJECTPATH
 
    **As a** Jarvis Test Engineer,
    **I want** a versioned test dataset in the repo and manual acceptance test
@@ -13,9 +13,16 @@ Explorer User Acceptance Tests
    **so that** I can test features reproducibly without relying on live data
    and verify the Explorer end-to-end before release.
 
-   **Scope:** Smoke tests with testdata — sidebar appearance, filters, open-YAML,
+   **Scope:** Smoke tests with testdata — sidebar appearance, open-YAML,
    config changes. Convention-file detection semantics (fallback labels, grouping
    folders, no-descent) are tested in ``US_UAT_SIDEBAR``.
+
+   *Note (one-kind-consolidation CR):* The former project folder filter
+   (T-4), the project filter persistence test (T-5), and the future-event
+   filter (T-6) are removed together with the Project/Event entity kinds.
+   The test dataset (AC-1…AC-3) is retained until Phase 2; at that point the
+   Projects/Events sections of this UAT are deleted. T-4 (renumbered from
+   former T-7) covers the config-change rescan for the Projects tree.
 
    **Acceptance Criteria:**
 
@@ -47,25 +54,7 @@ Explorer User Acceptance Tests
      Action: Hover over the ``active/`` folder node.
      Expected: No ``$(go-to-file)`` button visible.
 
-   **T-4 — Project folder filter**
-     Setup: Projects tree shows ``active/`` subfolder and root-level projects.
-     Action: Click the filter icon in the Projects title bar; deselect ``active/``.
-     Expected: ``active/`` folder and its contents disappear from the tree.
-     Re-opening the filter shows ``active/`` unchecked.
-
-   **T-5 — Project filter persists across restart**
-     Setup: T-4 filter applied (``active/`` hidden).
-     Action: Reload the VS Code window (Developer: Reload Window).
-     Expected: ``active/`` remains hidden after reload.
-
-   **T-6 — Future event filter**
-     Setup: Events tree loaded; ``testdata/events/`` contains events with
-     past and future ``dates.end`` values.
-     Action: Click the filter icon in the Events title bar.
-     Expected: Only events whose ``dates.end`` is today or later are shown.
-     Events without a parseable end date remain visible (fail-open).
-
-   **T-7 — Config change triggers rescan**
+   **T-4 — Config change triggers rescan**
      Setup: Extension active with ``jarvis.projectsFolder`` pointing to
      ``testdata/projects/``.
      Action: Change ``jarvis.projectsFolder`` to an empty directory.

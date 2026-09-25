@@ -401,8 +401,12 @@ Automation Requirements
      changes (e.g. new filtering rules), both ``jarvis_sendToSession`` and heartbeat
      validation automatically inherit the change
    * AC-3: The valid destination set is defined as the union of {named VS Code
-     chat session titles from ``state.vscdb``} ∪ {YAML entity names from the
-     scanner store (sessions, projects, events)}
+     chat session titles from ``state.vscdb``}, {YAML entity names from the
+     legacy scanner store (sessions, projects, events)}, and {new Actor names
+     from kindless direct-child discovery under ``jarvis.actors.folder``
+     (``REQ_ACTOR_ACTIVATION`` AC-3)}. The unified resolver SHALL include
+     this Actor source without registering new Actors as a kind or adding
+     parallel destination enumeration.
 
 
 .. req:: Step Output Variable Capture and Interpolation

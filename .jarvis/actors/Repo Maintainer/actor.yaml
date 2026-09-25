@@ -1,0 +1,9 @@
+name: "Repo Maintainer"
+summary: >-
+  Owns repository hygiene outside the syspilot change pipeline: git tree and
+  branch hygiene, build/lint/test baseline health, dependency and lockfile
+  upkeep, stale artifacts, GitHub issue and label hygiene, CI/CD workflows,
+  and repo configuration. Not bound to a syspilot agent persona.
+externalStatus: 'active'
+internalStatus: 'scope and authority agreed 2026-09-25'
+lastUpdated: '2026-09-25'

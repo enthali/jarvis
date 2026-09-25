@@ -53,10 +53,10 @@ Reminders UAT Design Specifications
       * - T-4 (listReminders fields)
         - Register a new reminder with ``deliverAt`` 5 min in the future.
           Call ``jarvis_listReminders()`` in the agent chat.
-        - Response is a JSON array. The pending reminder entry has all of:
-          ``id``, ``text``, ``session``, ``deliverAt``, and a remaining-
-          time field ``remainingMs``. No previously delivered
-          reminder (from T-2) appears in the list.
+        - Response is a JSON object with a ``reminders`` array. The pending
+          reminder entry in that array has ``id``, ``text``, ``session``,
+          ``deliverAt``, and ``remainingMs``. No previously delivered
+          reminder (from T-2) appears in the array.
       * - T-5 (cancel before delivery)
         - Register a reminder with ``deliverAt`` 3 min in the future; note
           its ``id``. Call

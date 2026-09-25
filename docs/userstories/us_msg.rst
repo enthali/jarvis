@@ -113,10 +113,10 @@ Messaging User Stories
 
 
 .. story:: Auto-Delivery for Message Sessions
-   :id: US_MSG_AUTODELIVERY
-   :status: approved
-   :priority: optional
-   :links: US_MSG_CHATQUEUE
+  :id: US_MSG_AUTODELIVERY
+  :status: approved
+  :priority: optional
+  :links: US_MSG_CHATQUEUE
 
    **As a** Jarvis User,
    **I want** selected chat sessions to receive their queued messages automatically,
@@ -139,6 +139,9 @@ Messaging User Stories
      manual delivery behaviour
    * AC-5: Auto-delivery does not re-deliver already-notified messages — each
      message is notified at most once per delivery cycle
+   * AC-6: Sending a message from a heartbeat job or reminder does not change
+     the target's auto-delivery setting. When auto-delivery is disabled,
+     queued messages remain available for manual delivery.
 
 
 .. story:: MCP Server for External Tool Access
@@ -372,25 +375,27 @@ Messaging User Stories
 
 
 .. story:: Time-Scheduled Reminders
-   :id: US_MSG_REMINDERS
-   :status: draft
-   :priority: optional
-   :links: US_MSG_CHATQUEUE; US_MSG_AUTODELIVERY
+  :id: US_MSG_REMINDERS
+  :status: draft
+  :priority: optional
+  :links: US_MSG_CHATQUEUE; US_MSG_AUTODELIVERY
 
-   **As a** Jarvis User or LM agent,
-   **I want** to register a time-stamped reminder so that a message is
-   automatically delivered to a named chat session at a specified point in time,
-   **so that** I can schedule future notifications without having to monitor the
-   clock myself.
+  **As a** Jarvis User or LM agent,
+  **I want** to register a time-stamped reminder so that a message is
+  queued for a named destination at a specified point in time,
+  **so that** I can schedule future notifications without having to monitor the
+  clock myself.
 
-   **Acceptance Criteria:**
+  **Acceptance Criteria:**
 
    * AC-1: An LM agent (or the user via MCP) can register a reminder by providing
      ``text``, ``session`` (target chat tab label), and ``deliverAt`` (ISO 8601
      timestamp); the system returns a unique ``id``
-   * AC-2: At ``deliverAt`` (within ±5 s) the message is delivered to the target
-     session via the auto-delivery pipeline — no manual action required
-   * AC-3: After delivery, the reminder is removed from persistent storage
+   * AC-2: At ``deliverAt`` (within ±5 s) the message is queued for the target;
+     the existing message-delivery preference alone determines whether its
+     notification is automatic or awaits manual delivery. The reminder does
+     not enable auto-delivery for its target.
+   * AC-3: After queueing, the reminder is removed from persistent storage
    * AC-4: An LM agent can query open reminders to see ``id``, ``text``,
      ``session``, ``deliverAt``, and remaining time
    * AC-5: An LM agent can cancel a reminder by ``id`` before it fires

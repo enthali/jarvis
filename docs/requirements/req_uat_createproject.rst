@@ -1,9 +1,14 @@
 Create Project Tool UAT Requirements
 ======================================
 
+.. note::
+   `:status: deprecated` — one-kind-consolidation CR (Phase 1: parallel
+   world; removed in Phase 2). Tests `jarvis_createProject`, which no
+   longer exists in the new simple-Actor model (REDACTED: `jarvis_createActor`).
+
 .. req:: Create Project LM Tool — Test Data and Verification Requirements
    :id: REQ_UAT_CREATEPROJECT
-   :status: draft
+   :status: deprecated
    :priority: optional
    :links: US_UAT_CREATEPROJECT; REQ_PRJ_CREATEPROJECT
 

@@ -27,17 +27,23 @@ Actor User Stories
    remain unchanged, per ``US_ACT_DUALPATH_STORAGE``'s permanent
    dual-convention design).
 
-.. story:: Actor Entity Type
+.. story:: Actor Entity Type (Legacy — One-Kind-Consolidation Phase 1)
    :id: US_ACT_ACTORS
-   :status: draft
+   :status: deprecated
    :priority: required
    :links: US_EXP_SIDEBAR; US_ENT_ENTITY
+
+   **Note:** This story describes the legacy Actor as part of the unified
+   Entity system (session kind, ``.jarvis/sessions/``). All acceptance
+   criteria below remain valid for the existing system that will be removed
+   in Phase 2 of the one-kind-consolidation CR. The **new** Actor is
+   specified in ``us_actor.rst`` (US_ACTOR_ACTORS).
 
    **As a** Jarvis user,
    **I want** an Actor entity type — a lightweight, agent-bound persistent
    context with just ``name`` and ``summary`` — so that I can give standing
    functions (PM, CM, QM, Research) and short-lived work contexts durable
-   identity without the heavyweight Project schema.
+   identity within the unified Entity system.
 
    **Acceptance Criteria:**
 
@@ -60,15 +66,15 @@ Actor User Stories
      the list of actor entities (``name``, ``summary``, ``folder``). It is
      distinct from ``jarvis_listChatSessions``, which lists VS Code chat tab
      titles.
-   * AC-6: The existing ``jarvis.newEntity`` command supports actor creation
-     as a third option alongside Project and Event. It creates a folder with
-     ``session.yaml`` and an empty ``context.md`` under the fixed path
-     ``<workspaceRoot>/.jarvis/sessions/`` (created on demand).
-   * AC-7: The Actor feature is independent of the Projects and Events
-     features — it can be active when both are disabled.
-   * AC-8: Actor tree nodes expose the same context-menu actions as Project
-     and Event nodes (Open Context, Open Agent Session, Reveal in Explorer,
-     Reveal in OS, Open in Terminal).
+   * AC-6: The ``jarvis.newEntity`` QuickPick that offered "Project" and "Event"
+     options alongside "Session"/"Actor" is available in the legacy tree
+     (see US_ENT_NEWENTITY). Actor creation in the new ACTORS tree is via
+     US_ACTOR_CREATE (us_actor.rst).
+   * AC-7: The Actor feature is standalone — it does not depend on the
+     Projects and Events features.
+   * AC-8: Actor tree nodes expose the same context-menu actions the
+     unified-tree entity nodes expose today (Open Context, Open Agent
+     Session, Reveal in Explorer, Reveal in OS, Open in Terminal).
    * AC-9: Opening a new agent session for any entity kind sends a kind-aware
      identity prompt naming the entity and its ``context.md`` path.
 
@@ -161,7 +167,7 @@ Actor User Stories
      (``US_ACT_DUALPATH_STORAGE`` AC-2 is unaffected).
 
 
-.. story:: Programmatic Actor Creation Tool
+.. story:: Programmatic Actor Creation Tool (Legacy — One-Kind-Consolidation Phase 1)
    :id: US_ACT_CREATETOOL
    :status: implemented
    :priority: required
@@ -200,14 +206,18 @@ Actor User Stories
      with ``jarvis_sendToSession``.
 
 
-.. story:: Actor Identity Recovery Tool
+.. story:: Actor Identity Recovery Tool (Legacy — One-Kind-Consolidation Phase 1)
    :id: US_ACT_WHOAMI
-   :status: draft
+   :status: deprecated
    :priority: required
    :links: US_ACT_ACTORS
 
+   **Note:** This tool serves the legacy unified Entity system (Actors, Projects,
+   Events). A new ``jarvis_whoAmI`` for the new simple Actor is specified in
+   ``us_actor.rst`` (US_ACTOR_WHOAMI). This story will be removed in Phase 2.
+
    **As a** Jarvis Actor operating in a chat session — whether my entity is an
-   Actor, a Project, or an Event,
+   Actor or a Project (Events removed),
    **I want** a tool ``jarvis_whoAmI`` that tells me my own name and the path
    to my ``context.md``,
    **so that** I can reliably recover my identity after ``/compact`` or context

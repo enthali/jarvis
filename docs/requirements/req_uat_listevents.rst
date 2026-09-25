@@ -1,9 +1,14 @@
 List Events Tool UAT Requirements
 ===================================
 
+.. note::
+   `:status: deprecated` — one-kind-consolidation CR (Phase 1: parallel
+   world; removed in Phase 2). Tests `jarvis_listEvents`, which no
+   longer exists in the new simple-Actor model.
+
 .. req:: List Events LM Tool — Test Data and Verification Requirements
    :id: REQ_UAT_LISTEVENTS
-   :status: draft
+   :status: deprecated
    :priority: optional
    :links: US_UAT_LISTEVENTS; REQ_EVT_LISTEVENTS
 

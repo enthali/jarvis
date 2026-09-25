@@ -4,7 +4,7 @@ Jarvis is a personal assistant extension for Visual Studio Code that helps you m
 
 ## Features
 
-- **Actors** — Track your Copilot chat sessions and jump back to context quickly
+- **Actors** — Persistent personas with their own context, session binding, messaging, reminders, and heartbeat activation
 - **Messaging** — Pass messages between Copilot sessions via a simple queue
 - **Reminders** — Set cron-based or one-off reminders with VS Code notifications
 - **Heartbeat** — Periodic background jobs with a live status view in the activity bar
@@ -26,7 +26,8 @@ Jarvis is a personal assistant extension for Visual Studio Code that helps you m
 1. Install **Jarvis** from the VS Code Marketplace
 2. Open the Jarvis view in the activity bar (sidebar icon)
 3. Configure the data folder paths in **Settings → Extensions → Jarvis**:
-   - `jarvis.sessionsFolder` — folder containing Actor entities. New Actors are created as `actor.yaml` (current naming convention); pre-existing `session.yaml` folders are still fully recognized and supported side by side, permanently — no migration required. To convert an old-named actor to the new convention, run **Jarvis: Migrate Session to Actor** from the Command Palette (optional, one actor at a time)
+   - `jarvis.actors.folder` — workspace-relative or absolute root for the dedicated **ACTORS** tree (default `.jarvis/actors`). Only direct child folders containing `actor.yaml` appear; nested folders are not scanned. Move or delete folders using the filesystem; there is no Jarvis archive feature.
+   - The legacy entity tree remains available alongside ACTORS during Phase 1. For new-convention Actors, `jarvis_listActors` and `jarvis_whoAmI` include the absolute `actor.yaml` path as `id`; legacy responses retain their existing fields.
    - `jarvis.heartbeatFolder` — folder for heartbeat job files
 4. Jarvis will scan your folders and populate the tree views automatically
 

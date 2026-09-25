@@ -55,9 +55,11 @@ export interface EntityKindConfig {
      * Project/Event. Used by the session/actor kind
      * (actor-dualpath-scanner CR) to add the `.jarvis/actors/`/
      * `actor.yaml` convention without touching the primary
-     * `.jarvis/sessions/`/`session.yaml` root.
+    * `.jarvis/sessions/`/`session.yaml` root. Set `recursive` to false
+    * for convention roots that recognize direct children only; omitted
+    * values preserve recursive legacy scanning.
      */
-    additionalScanRoots?: { folderSettingKey: string; conventionFile: string }[];
+    additionalScanRoots?: { folderSettingKey: string; conventionFile: string; recursive?: boolean }[];
 
     // --- Optional tree-rendering hooks (S5 generalization) ---
 

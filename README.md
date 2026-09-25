@@ -26,7 +26,7 @@ capability modules. Install only what you need.
 
 ### Jarvis Core
 
-- **Actors & sessions** — persistent entities with their own `context.md` memory, shown in an explorer sidebar and expandable to their core files and recently-touched files
+- **Actors & sessions** — persistent entities with their own `context.md` memory. The Phase-1 ACTORS view shows direct child folders with `actor.yaml`; the legacy entity tree remains alongside it. See [Core getting started](packages/core/README.md#getting-started) for folder and tool-ID behavior.
 - **Heartbeat scheduler** — cron-based jobs running scripts (Python, PowerShell), VS Code commands, or single-shot LLM calls
 - **Messaging, reminders & LM tools** — an inter-actor message queue, reminders, and tools like `#listActors`, `#sendMessage`, `#receiveMessage`, `#createActor`, `#injectPrompt`, `#whoAmI`, `#createKanbanBoard`, `#verifyKanbanSchema`, and `#openKanbanBoard`
 - **Prompt injection** — inject any text or slash-command (e.g. `/compact`) into a named actor's session via the `jarvis_injectPrompt` LM tool or the **Jarvis: Inject Prompt** command; spawns the session automatically if none exists. Useful for bulk operations such as compacting all actors after a CR:

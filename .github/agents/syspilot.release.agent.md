@@ -2,7 +2,6 @@
 name: "Release Engineer"
 agent: syspilot.release
 description: "Subagent that guides the release process: squash merge, version bump, validation, release notes, change doc archival, git tagging."
-model: Qwen3.8-27B Aphrodite (customendpoint)
 user-invocable: true
 agents: []
 ---

@@ -1,9 +1,16 @@
 Event Requirements
 ==================
 
+.. note::
+   All requirements in this file are `:status: deprecated` as of the
+   one-kind-consolidation CR (Phase 1: parallel world, deprecated in place;
+   physical removal in Phase 2). "Events" as a kind no longer exists in the
+   new simple-Actor model (ADR-3). The new Actor requirements live in
+   ``req_actor.rst`` (``REQ_ACTOR_*``).
+
 .. req:: Chronological Event Sorting
    :id: REQ_EVT_DATESORT
-   :status: implemented
+   :status: deprecated
    :priority: optional
    :links: US_EVT_DATESORT
 
@@ -27,7 +34,7 @@ Event Requirements
 
 .. req:: Future Event Filter
    :id: REQ_EVT_EVENTFILTER
-   :status: implemented
+   :status: deprecated
    :priority: optional
    :links: US_EVT_EVENTFILTER; REQ_EXP_TREEVIEW; REQ_EVT_EVENTFILTERPERSIST; REQ_EXP_UNIFIEDTREE
 
@@ -60,7 +67,7 @@ Event Requirements
 
 .. req:: Event Filter Persistence
    :id: REQ_EVT_EVENTFILTERPERSIST
-   :status: implemented
+   :status: deprecated
    :priority: optional
    :links: US_EVT_EVENTFILTER
 
@@ -76,7 +83,7 @@ Event Requirements
 
 .. req:: List Events LM+MCP Tool
    :id: REQ_EVT_LISTEVENTS
-   :status: draft
+   :status: deprecated
    :priority: optional
    :links: US_EVT_LISTEVENTS; REQ_EXP_YAMLDATA
 
@@ -100,7 +107,7 @@ Event Requirements
 
 .. req:: jarvis_createEvent LM+MCP Tool
    :id: REQ_EVT_CREATEEVENT
-   :status: draft
+   :status: deprecated
    :priority: optional
    :links: US_EVT_CREATEEVENT; REQ_EVT_NEWEVENT; REQ_ACT_AGENT_DISCOVERY
 
@@ -129,7 +136,7 @@ Event Requirements
 
 .. req:: Event Summary Required
    :id: REQ_EVT_EVENT_SUMMARY
-   :status: draft
+   :status: deprecated
    :priority: required
    :links: US_ENT_ENTITYPARITY
 
@@ -151,7 +158,7 @@ Event Requirements
 
 .. req:: New Event Command
    :id: REQ_EVT_NEWEVENT
-   :status: draft
+   :status: deprecated
    :priority: optional
    :links: US_ENT_NEWENTITY; REQ_EXP_REACTIVECACHE; REQ_ENT_AGENTSESSION; REQ_EXP_YAMLDATA; REQ_CFG_FOLDERPATHS
 

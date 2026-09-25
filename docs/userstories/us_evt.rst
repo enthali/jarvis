@@ -3,9 +3,11 @@ Event User Stories
 
 .. story:: Event Entity Kind
    :id: US_EVT_EVENT
-   :status: draft
+   :status: deprecated
    :priority: required
    :links: US_EXP_SIDEBAR; US_ENT_ENTITY
+
+   **Note:** Retired in the one-kind-consolidation CR (Phase 1: parallel, deprecated in place; removed in Phase 2).
 
    **As a** Jarvis user,
    **I want** an Event entity kind — time-bound with a start and end date —
@@ -27,9 +29,11 @@ Event User Stories
 
 .. story:: Chronological Event Sorting
    :id: US_EVT_DATESORT
-   :status: approved
+   :status: deprecated
    :priority: optional
    :links: US_EXP_SIDEBAR
+
+   **Note:** Retired in the one-kind-consolidation CR (Phase 1: parallel, deprecated in place; removed in Phase 2).
 
    **As a** Jarvis User,
    **I want** events displayed in chronological order with their start date visible,
@@ -43,9 +47,11 @@ Event User Stories
 
 .. story:: Future Event Filter
    :id: US_EVT_EVENTFILTER
-   :status: implemented
+   :status: deprecated
    :priority: optional
    :links: US_EXP_SIDEBAR
+
+   **Note:** Retired in the one-kind-consolidation CR (Phase 1: parallel, deprecated in place; removed in Phase 2).
 
    **As a** Jarvis User,
    **I want** to toggle a filter in the Events explorer that shows only upcoming events,
@@ -62,11 +68,13 @@ Event User Stories
      (and its sub-folders), that folder node SHALL also be hidden (empty-branch pruning)
 
 
-.. story:: List Events (LM Tool)
+.. story:: List All Events Programmatically
    :id: US_EVT_LISTEVENTS
-   :status: draft
+   :status: deprecated
    :priority: optional
    :links: US_EXP_SIDEBAR; US_MSG_MCPSERVER
+
+   **Note:** Retired in the one-kind-consolidation CR (Phase 1: parallel, deprecated in place; removed in Phase 2).
 
    **As a** LLM agent working in a Jarvis workspace,
    **I want** a tool that lists all events with their name, dates, and folder path,
@@ -85,11 +93,13 @@ Event User Stories
    * AC-4: The tool is also available via the MCP server (dual registration)
 
 
-.. story:: Programmatic Event Creation Tool
+.. story:: Create an Event Programmatically
    :id: US_EVT_CREATEEVENT
-   :status: draft
+   :status: deprecated
    :priority: optional
    :links: US_ENT_NEWENTITY; US_MSG_MCPSERVER
+
+   **Note:** Retired in the one-kind-consolidation CR (Phase 1: parallel, deprecated in place; removed in Phase 2).
 
    **As an** LLM operating within an active Jarvis session,
    **I want** a tool ``jarvis_createEvent`` that programmatically creates a

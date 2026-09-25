@@ -3,9 +3,11 @@ Create Event Tool User Acceptance Tests
 
 .. story:: Create Event LM Tool Acceptance Tests
    :id: US_UAT_CREATEEVENT
-   :status: draft
+   :status: deprecated
    :priority: optional
    :links: US_EVT_CREATEEVENT; REQ_EVT_CREATEEVENT
+
+   **Note:** Retired in the one-kind-consolidation CR (Phase 1: parallel, deprecated in place; removed in Phase 2).
 
    **As a** Jarvis Test Engineer,
    **I want** manual acceptance test scenarios for the ``jarvis_createEvent``

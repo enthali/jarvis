@@ -6,6 +6,7 @@ first.
 
 | Date | Report | Scope | Outcome |
 |---|---|---|---|
+| 2026-09-25 | [qr-2026-09-25-friday-heartbeat.md](qr-2026-09-25-friday-heartbeat.md) | Friday heartbeat — SC-001 through SC-005 + release/CR scan | SC-001 +1, SC-002 +1, SC-003 +6; SC-004 16 unchanged; SC-005 PASS; 2 archived `val-` without `tst-` and matrix/trigger mismatch for PM decision |
 | 2026-08-21 | [qr-2026-08-21-friday-heartbeat.md](qr-2026-08-21-friday-heartbeat.md) | Friday heartbeat — SC-001 through SC-005 full portfolio + release/CR scan | SC-001/002/003/005 unchanged/PASS; SC-004's 3 pending findings resolved (val- reports added), 2 additional historic gaps recorded under existing accept-as-is — no PM decision needed |
 | 2026-07-31 | [qr-2026-07-31-friday-heartbeat.md](qr-2026-07-31-friday-heartbeat.md) | Friday heartbeat — SC-001 through SC-005 full portfolio + release/CR scan | SC-001/002/003/005 unchanged/PASS; SC-004 3 new findings (val- reports missing for jarvis-whoami, prompt-injection-tool, jarvis-kanban) — pending PM decision |
 | 2026-07-17 | [qr-2026-07-17-friday-heartbeat.md](qr-2026-07-17-friday-heartbeat.md) | Friday heartbeat — SC-001 through SC-005 full portfolio + release/CR scan | 17 low + 11 informational findings, all closed same-day by PM decision (defer/accept-as-is/unchanged) — PM's verbatim response appended to report |

@@ -58,6 +58,12 @@ outcome tables** for each feature's acceptance tests.
    spec_uat_injectprompt
    spec_uat_whoami
    spec_uat_act_whoami_multikinds
+   spec_uat_actor_memory
+   spec_uat_actor_activation
+   spec_uat_actor_tree
+   spec_uat_actor_create
+   spec_uat_actor_names
+   spec_uat_actor_identity
    spec_uat_kanban
    spec_uat_kanban_skill
    spec_uat_msg_modetarget

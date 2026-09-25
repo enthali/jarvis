@@ -2398,32 +2398,36 @@ Message Queue Design Specifications
 
 
 .. spec:: Reminder Poll Loop Integration
-   :id: SPEC_MSG_REMINDERSLOOP
-   :status: draft
-   :links: REQ_MSG_REMINDERS_DELIVER; SPEC_MSG_AUTODELIVER_POLL; SPEC_MSG_REMINDERSTORE; SPEC_MSG_AUTODELIVER_STORE; SPEC_MSG_QUEUESTORE
+  :id: SPEC_MSG_REMINDERSLOOP
+  :status: draft
+  :links: REQ_MSG_REMINDERS_DELIVER; SPEC_MSG_AUTODELIVER_POLL; SPEC_MSG_REMINDERSTORE; SPEC_MSG_AUTODELIVER_STORE; SPEC_MSG_QUEUESTORE
 
-   **Description:**
-   Extend the existing 5-second ``setInterval`` poll loop in ``extension.ts``
-   to check for due reminders after the auto-delivery handling block. Due
-   reminders are enqueued as regular messages and their target sessions are
-   automatically added to the auto-delivery list.
+  **Description:**
+  Extend the existing 5-second ``setInterval`` poll loop in ``extension.ts``
+  to check for due reminders after the auto-delivery handling block. Due
+  reminders are enqueued as regular messages without changing their target's
+  auto-delivery preference. Existing message delivery decides whether the
+  queued message is notified automatically or awaits manual notification.
 
-   **Extension to the existing tick body (appended after the auto-delivery
-   ``break`` guard):**
+  **Reminder processing after the auto-delivery block (shown in the tick
+  body; equivalent handling belongs inside an extracted processor):**
 
    .. code-block:: typescript
 
       // --- Reminder delivery ---
       const remindersPath = configPaths.getRemindersPath();
-      const due = popDueReminders(remindersPath, new Date());
+      let due: Reminder[];
+      try {
+        due = popDueReminders(remindersPath, new Date());
+      } catch (err) {
+        log.warn(`[MSG] Reminder polling failed: ${err}`);
+        return;
+      }
       for (const reminder of due) {
         try {
-          // 1. Enqueue the reminder as a regular message
           appendMessage(messagesPath, reminder.session, 'Reminder', reminder.text);
-          // 2. Ensure auto-delivery is enabled for this session
-          addAutoDelivery(configPaths.getAutoDeliveryPath(), reminder.session);
           log.info(
-            `[MSG] Reminder "${reminder.id}" delivered to session "${reminder.session}"`
+            `[MSG] Reminder "${reminder.id}" queued for session "${reminder.session}"`
           );
         } catch (err) {
           log.warn(`[MSG] Reminder delivery failed for "${reminder.id}": ${err}`);
@@ -2437,22 +2441,23 @@ Message Queue Design Specifications
 
    **Design decisions:**
 
-   * **Auto-delivery enablement**: ``addAutoDelivery`` is idempotent — calling
-     it for a session already on the list is a no-op. This ensures the reminder
-     message is picked up on the next tick (within 5 s) even if the session was
-     not previously on the auto-delivery list.
-   * **Append-then-enable order**: The message is appended first, then the
-     session is added to auto-delivery. Both operations are synchronous file
-     writes — no partial-delivery race condition.
+   * **Preserve delivery preference**: The reminder tick only appends to the
+     message queue. The existing auto-delivery poll picks up a target already
+     enabled for auto-delivery on a subsequent tick; otherwise the message
+     remains queued for manual notification. A reminder does not enroll its
+     target in auto-delivery.
    * **No UI interaction in reminder tick**: The reminder poll block does NOT
-     attempt to open the chat session directly; it delegates entirely to the
-     auto-delivery mechanism on the next tick. This keeps reminder delivery
-     simple and avoids race conditions with the auto-delivery block in the same
-     tick.
+     attempt to open the chat session directly; automatic or manual message
+     delivery handles notification according to the existing preference.
    * **popDueReminders atomicity**: The reminder is removed from ``reminders.yaml``
      inside ``popDueReminders`` before ``appendMessage`` is called. If
      ``appendMessage`` fails, the reminder is already gone — this is acceptable
      (guaranteed at-most-once delivery is preferable to a delivery retry loop).
+   * **Pop errors**: If ``popDueReminders`` fails (including a failed write to
+     ``reminders.yaml``), warn and end this reminder tick without stopping the
+     interval. The next tick may try again; no due entries were returned for
+     enqueueing. An extracted ``processDueReminders`` helper returning a
+     reminder list SHALL keep this guard inside the helper and return ``[]``.
    * **Tree refresh**: A single ``remindersProvider.reload()`` plus
      ``messageProvider.reload()`` after all due reminders in a tick is
      sufficient — both views update together.

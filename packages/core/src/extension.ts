@@ -16,7 +16,9 @@ import { GenericTreeFactory } from './engine/core/treeFactory';
 import { UnifiedEntityTreeProvider } from './engine/core/unifiedEntityTreeProvider';
 import type { EntityKindConfig, JarvisCoreApi } from './engine/core/types';
 import { deleteMessage, appendMessage, popMessage, readAutoDelivery, addAutoDelivery, removeAutoDelivery, readQueue, writeQueue } from './engine/sessions/messageQueue';
-import { addReminder, readReminders, removeReminder, popDueReminders, setRemindersLogger } from './apps/session/reminders';
+import { removeReminder, setRemindersLogger } from './apps/session/reminders';
+import { processDueReminders } from './apps/session/reminderDelivery';
+import { createCancelReminderHandler, createListRemindersHandler, createSetReminderHandler, findReminderLine } from './apps/session/reminderRuntime';
 import { lookupSessionUUID, getAllSessions, initSessionLookup, setSessionLookupLogger, filterNamedSessions, getValidDestinations, getEntityNameForSessionId } from './engine/sessions/sessionLookup';
 import { discoverAgentModes } from './engine/sessions/agentDiscovery';
 import { injectPrompt, initInjectPrompt, resolveNotificationText } from './engine/sessions/injectPrompt';
@@ -31,6 +33,11 @@ import { TouchTracker } from './engine/hooks/touchTracker';
 import { applyGitignore, setIgnoreManagerLogger } from './engine/core/gitignoreManager';
 import { setAssetProvisioningLogger, provisionModuleAssets } from './engine/core/assetProvisioning';
 import { announceIfNewVersion, showReleaseNotes } from './engine/core/releaseNotes';
+import { ActorScanner } from './engine/actors/actorScanner';
+import { ActorTreeProvider } from './engine/actors/actorTreeProvider';
+import { createSimpleActorHandler } from './engine/actors/actorCreation';
+import { createActorEntitySource, createListActorsHandler, resolveActorIdentity } from './engine/actors/actorRuntime';
+import { registerJarvisYamlSchemaContributor } from './engine/core/yamlSchemaContributor';
 
 import { CronExpressionParser } from 'cron-parser';
 
@@ -67,7 +74,7 @@ async function pickAgentMode(): Promise<string | undefined> {
     ];
 
     const pick = await vscode.window.showQuickPick(items, {
-        placeHolder: 'Select the agent for this entity (Escape = cancel)',
+        placeHolder: 'Select the agent for this entity',
         matchOnDescription: true,
     });
 
@@ -82,7 +89,7 @@ const WINDOWS_RESERVED = /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i;
 function validateSessionName(name: string): string | null {
     const trimmed = name.trim();
     if (!trimmed) { return 'Name cannot be empty'; }
-    if (trimmed === '.' || trimmed === '..') { return "Name cannot be '.' or '..'"; }
+    if (/^\.+$/.test(trimmed)) { return 'Name cannot contain only dots'; }
     if (INVALID_PATH_CHARS.test(trimmed)) { return 'Name contains invalid characters (/, \\, :, *, ?, ", <, >, |)'; }
     if (CONTROL_CHARS.test(trimmed)) { return 'Name contains control characters (not allowed)'; }
     if (WINDOWS_RESERVED.test(trimmed)) { return `Name '${trimmed}' is a reserved Windows device name`; }
@@ -96,6 +103,16 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     }
 
     const cfg = vscode.workspace.getConfiguration('jarvis');
+
+    function resolveActorsFolder(): string {
+        const workspaceRoot = configPaths.getWorkspaceRoot();
+        if (!workspaceRoot) { return ''; }
+        const configured = vscode.workspace.getConfiguration('jarvis')
+            .get<string>('actors.folder', '.jarvis/actors')
+            .trim();
+        if (!configured) { return ''; }
+        return path.isAbsolute(configured) ? configured : path.resolve(workspaceRoot, configured);
+    }
 
     // Message queue path resolution via fixed .jarvis/ directory (SPEC_CFG_PATHRESOLVER)
     function resolveMessagesPath(): string {
@@ -111,6 +128,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     setRemindersLogger(log);
     setIgnoreManagerLogger(log);
     setAssetProvisioningLogger(log);
+    void registerJarvisYamlSchemaContributor(context.extensionUri, log);
 
     // Gitignore auto-management (SPEC_CFG_IGNOREMANAGER)
     applyGitignore();
@@ -404,7 +422,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
                 return configPaths.getSessionsDir() ?? '';
             }
             if (settingKey === 'jarvis.actors.folder') {
-                return configPaths.getActorsDir() ?? '';
+                return resolveActorsFolder();
             }
             return vscode.workspace.getConfiguration().get<string>(settingKey, '');
         }
@@ -414,17 +432,6 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     const engine = new JarvisEngine(kindDrivenScanner, treeFactory);
     context.subscriptions.push({ dispose: () => engine.dispose() });
     engine.setMessaging(resolveMessagesPath, () => messageProvider.reload());
-
-    // Initialize injectPrompt primitive (SPEC_INJ_INJECT)
-    initInjectPrompt({
-        scanner: kindDrivenScanner,
-        log,
-        openAtMain,
-        openAtSecondary,
-        openNewChatEditor,
-        renameFocusedChatSession,
-        reapplyAgentMode,
-    });
 
     // Activity indicator (SPEC_HOOK_ACTIVITY): hook-driven 2-state tree icon.
     // Constructed after `engine` exists (onChange needs treeFactory.refreshKind
@@ -481,9 +488,6 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             viewId: 'jarvisEntities',
             folderSettingKey: 'jarvis.sessions.folder',
             label: (name: string) => name,
-            additionalScanRoots: [
-                { folderSettingKey: 'jarvis.actors.folder', conventionFile: 'actor.yaml' }
-            ],
         };
         sessionKindDisposable = engine.registerEntityKind(sessionKindConfig);
         context.subscriptions.push(sessionKindDisposable);
@@ -506,12 +510,32 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     }
     context.subscriptions.push(entitiesView, unifiedProvider);
 
+    let actorTreeProvider: ActorTreeProvider | undefined;
+    const actorScanner = new ActorScanner(resolveActorsFolder, () => actorTreeProvider?.refresh());
+    actorTreeProvider = new ActorTreeProvider(actorScanner);
+    const entitySource = createActorEntitySource(kindDrivenScanner, actorScanner);
+    initInjectPrompt({
+        scanner: entitySource,
+        log,
+        openAtMain,
+        openAtSecondary,
+        openNewChatEditor,
+        renameFocusedChatSession,
+        reapplyAgentMode,
+    });
+    const actorsView = vscode.window.createTreeView('jarvisActors', {
+        treeDataProvider: actorTreeProvider,
+        showCollapseAll: true,
+    });
+    context.subscriptions.push(actorsView, actorTreeProvider);
+
     // Trigger initial scan for registered kinds
     kindDrivenScanner.rescan();
+    actorScanner.rescan();
 
     // ------- HEARTBEAT feature block (SPEC_CFG_TOGGLEGUARDS) -------
     if (cfg.get<boolean>('heartbeat.enabled', true)) {
-        scheduler = activateHeartbeat(context, messageProvider, resolveMessagesPath, log, kindDrivenScanner);
+        scheduler = activateHeartbeat(context, messageProvider, resolveMessagesPath, log, entitySource);
         engine.setScheduler(scheduler);
         syncRescanJob();
     } else {
@@ -560,7 +584,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
 
     // Rescan command
     const rescanCommand = vscode.commands.registerCommand('jarvis.rescan', async () => {
-        await kindDrivenScanner.rescan();
+        await Promise.all([kindDrivenScanner.rescan(), actorScanner.rescan()]);
         log.info('[Scanner] manual rescan triggered');
     });
 
@@ -679,7 +703,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     const openAgentSessionCommand = vscode.commands.registerCommand(
         'jarvis.openAgentSession',
         async (element: LeafNode) => {
-            const entity = kindDrivenScanner.getEntity(element.id);
+            const entity = kindDrivenScanner.getEntity(element.id) ?? actorScanner.getActor(element.id);
             if (!entity) { return; }
 
             // Delegate to injectPrompt — init prompt is owned by injectPrompt.ts
@@ -944,7 +968,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         'Queues a text message for delivery to a destination identified by name. senderSession is required and validated.',
         async (options: vscode.LanguageModelToolInvocationOptions<any>, _token: vscode.CancellationToken) => {
             const { session, text, senderSession } = options.input;
-            const validNames = await getValidDestinations(kindDrivenScanner);
+            const validNames = await getValidDestinations(entitySource);
             const sortedNames = () => {
                 const sorted = [...validNames].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
                 return sorted.length > 0 ? sorted.join(', ') : '(none)';
@@ -1009,15 +1033,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     // listActors — returns YAML session entities
     const listActorsTool = engine.registerTool('jarvis_listActors',
         'Returns all Jarvis Actor entities (YAML-based) with name, summary, agent, and folder path.',
-        async (_options: vscode.LanguageModelToolInvocationOptions<any>, _token: vscode.CancellationToken) => {
-            const sessions = kindDrivenScanner.entities
-                .filter(e => e.kind === 'session')
-                .map(e => ({ name: e.name, summary: e.summary ?? '', agent: e.agent ?? '', folder: e.folder }));
-            log.info(`[SES] listActors: ${sessions.length} Actor(s)`);
-            return new vscode.LanguageModelToolResult([
-                new vscode.LanguageModelTextPart(JSON.stringify({ sessions }))
-            ]);
-        }
+        createListActorsHandler(kindDrivenScanner, actorScanner, log)
     );
 
     // listChatSessions — returns VS Code chat tab titles
@@ -1047,7 +1063,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
 
     // Job destination validation helper
     async function validateJobDestinations(steps: HeartbeatStep[]): Promise<void> {
-        const validNames = await getValidDestinations(kindDrivenScanner);
+        const validNames = await getValidDestinations(entitySource);
         for (const step of steps) {
             if (step.type === 'queue' && step.destination) {
                 if (!validNames.includes(step.destination)) {
@@ -1106,41 +1122,29 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         }
     );
 
+    const reminderToolDependencies = {
+        remindersPath: () => configPaths.getRemindersPath() ?? '',
+        reload: () => remindersProvider?.reload(),
+        info: (message: string) => log.info(message),
+        now: () => new Date(),
+    };
+
     // setReminder
     const setReminderTool = engine.registerTool('jarvis_setReminder',
         'Registers a time-scheduled reminder.',
-        async (options: vscode.LanguageModelToolInvocationOptions<any>, _token: vscode.CancellationToken) => {
-            const { text, session, deliverAt } = options.input;
-            if (new Date(deliverAt) <= new Date()) {
-                return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart(JSON.stringify({ error: 'deliverAt must be in the future' }))]);
-            }
-            const reminder = addReminder(configPaths.getRemindersPath() ?? '', text, session, deliverAt);
-            log.info(`[MSG] setReminder: id="${reminder.id}", session="${session}", deliverAt="${deliverAt}"`);
-            remindersProvider?.reload();
-            return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart(JSON.stringify({ id: reminder.id, deliverAt: reminder.deliverAt }))]);
-        }
+        createSetReminderHandler(reminderToolDependencies)
     );
 
     // listReminders
     const listRemindersTool = engine.registerTool('jarvis_listReminders',
         'Returns all pending reminders.',
-        async (_options: vscode.LanguageModelToolInvocationOptions<any>, _token: vscode.CancellationToken) => {
-            const reminders = readReminders(configPaths.getRemindersPath() ?? '');
-            const now = Date.now();
-            return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart(JSON.stringify({ reminders: reminders.map(r => ({ ...r, remainingMs: new Date(r.deliverAt).getTime() - now })) }))]);
-        }
+        createListRemindersHandler(reminderToolDependencies)
     );
 
     // cancelReminder
     const cancelReminderTool = engine.registerTool('jarvis_cancelReminder',
         'Cancels a pending reminder by id.',
-        async (options: vscode.LanguageModelToolInvocationOptions<any>, _token: vscode.CancellationToken) => {
-            const { id } = options.input;
-            const removed = removeReminder(configPaths.getRemindersPath() ?? '', id);
-            log.info(`[MSG] cancelReminder: id="${id}", removed=${removed}`);
-            remindersProvider?.reload();
-            return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart(JSON.stringify({ status: removed ? 'cancelled' : 'not_found' }))]);
-        }
+        createCancelReminderHandler(reminderToolDependencies)
     );
 
     // createActor tool
@@ -1164,11 +1168,13 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
                 }
             }
 
-            const sessionsDir = configPaths.ensureActorsDir();
+            const sessionsDir = resolveActorsFolder();
             if (!sessionsDir) { throw new Error('jarvis_createActor: no workspace open'); }
+            await fs.promises.mkdir(sessionsDir, { recursive: true });
 
             const targetPath = path.join(sessionsDir, name);
-            const relPath = `.jarvis/actors/${name}`;
+            const workspaceRoot = configPaths.getWorkspaceRoot()!;
+            const relPath = path.relative(workspaceRoot, targetPath).replace(/\\/g, '/');
 
             if (fs.existsSync(targetPath)) {
                 log.info(`[SES] createSession: idempotent skip for "${name}"`);
@@ -1194,7 +1200,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
                 messageProvider.reload();
             }
 
-            await kindDrivenScanner.rescan();
+            await Promise.all([kindDrivenScanner.rescan(), actorScanner.rescan()]);
             try {
                 const sessionYamlPath = path.join(targetPath, 'actor.yaml');
                 const leaf: LeafNode = { kind: 'leaf', id: sessionYamlPath };
@@ -1277,30 +1283,25 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
                 }
 
                 // 3. Resolve name against the scanner's full entity registry (SPEC_ACT_WHOAMI step 3)
-                const matches = kindDrivenScanner.entities
-                    .filter(e => e.name === entityName);
-                if (matches.length === 0) {
+                const resolution = resolveActorIdentity(entityName, entitySource, actorScanner);
+                if (resolution.kind === 'not-found') {
                     log.info(`[whoAmI] entity "${entityName}" not found in scanner registry`);
                     return new vscode.LanguageModelToolResult([
                         new vscode.LanguageModelTextPart(JSON.stringify({ error: ERROR_MSG }))
                     ]);
                 }
-                if (matches.length > 1) {
-                    log.warn(`[whoAmI] entity "${entityName}" matched ${matches.length} entries — ambiguous`);
+                if (resolution.kind === 'ambiguous') {
+                    log.warn(`[whoAmI] entity "${entityName}" matched ${resolution.paths.length} entries — ambiguous`);
+                    const collisionError = `Actor identity "${entityName}" is ambiguous between ${resolution.paths.join(', ')}. Rename one of the Actors.`;
                     return new vscode.LanguageModelToolResult([
-                        new vscode.LanguageModelTextPart(JSON.stringify({ error: ERROR_MSG }))
+                        new vscode.LanguageModelTextPart(JSON.stringify({ error: collisionError }))
                     ]);
                 }
-                const entity = matches[0];
 
                 // 4. Return identity
-                const contextPath = path.join(entity.folder, 'context.md');
-                log.info(`[SES] whoAmI: "${entity.name}" → ${contextPath} (via session_id=${sessionId})`);
+                log.info(`[SES] whoAmI: "${resolution.payload.name}" → ${resolution.payload.contextPath} (via session_id=${sessionId})`);
                 return new vscode.LanguageModelToolResult([
-                    new vscode.LanguageModelTextPart(JSON.stringify({
-                        name: entity.name,
-                        contextPath
-                    }))
+                    new vscode.LanguageModelTextPart(JSON.stringify(resolution.payload))
                 ]);
             }
         );
@@ -1331,7 +1332,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     const injectPromptCommand = vscode.commands.registerCommand(
         'jarvis.injectPrompt',
         async () => {
-            const entities = kindDrivenScanner.entities;
+            const entities = entitySource.entities;
             if (entities.length === 0) {
                 vscode.window.showWarningMessage('Jarvis: No entities found.');
                 return;
@@ -1392,6 +1393,29 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             // (SPEC_INJ_INJECT, SPEC_ENT_AGENTSESSION_INITPROMPT)
             await injectPrompt(nameInput, '', { placement: 'main' });
         }
+    );
+
+    const newSimpleActorCommand = vscode.commands.registerCommand(
+        'jarvis.newActorSimple',
+        createSimpleActorHandler({
+            chooseEntry: async () => Boolean(await vscode.window.showQuickPick(
+                [{ label: 'Create Actor' }],
+                { title: 'New Entry', placeHolder: 'Choose an entry type' }
+            )),
+            promptName: () => vscode.window.showInputBox({
+                prompt: 'Actor name',
+                placeHolder: 'My Actor',
+                validateInput: validateSessionName,
+            }),
+            resolveActorsFolder,
+            showNoWorkspace: () => { vscode.window.showWarningMessage('Jarvis: No workspace open.'); },
+            showAlreadyExists: name => { vscode.window.showErrorMessage(`Actor '${name}' already exists in the actors folder.`); },
+            pickAgentMode,
+            rescanLegacyActors: () => kindDrivenScanner.rescan(),
+            rescanActors: () => actorScanner.rescan(),
+            yamlString,
+            logCreated: (name, folder) => log.info(`[Actor] created simple Actor "${name}" at ${folder}`),
+        })
     );
 
     // Helper: flatten tree to leaf nodes (SPEC_ACT_MIGRATIONCOMMAND)
@@ -1504,8 +1528,10 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         let lineIndex = 0;
         try {
             const doc = await vscode.workspace.openTextDocument(uri);
-            const target = `id: ${node.reminder.id}`;
-            for (let i = 0; i < doc.lineCount; i++) { if (doc.lineAt(i).text.includes(target)) { lineIndex = i; break; } }
+            lineIndex = findReminderLine(
+                Array.from({ length: doc.lineCount }, (_, index) => doc.lineAt(index).text),
+                node.reminder.id
+            );
             const range = new vscode.Range(lineIndex, 0, lineIndex, 0);
             const editor = await vscode.window.showTextDocument(doc);
             editor.revealRange(range, vscode.TextEditorRevealType.InCenterIfOutsideViewport);
@@ -1573,16 +1599,15 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         }
 
         // Reminder delivery (SPEC_MSG_REMINDERSLOOP)
-        const remindersPath = configPaths.getRemindersPath() ?? '';
-        const due = popDueReminders(remindersPath, new Date());
-        for (const reminder of due) {
-            try {
-                appendMessage(messagesPath, reminder.session, 'Reminder', reminder.text);
-                addAutoDelivery(messagesPath, reminder.session);
-                log.info(`[MSG] Reminder "${reminder.id}" delivered to session "${reminder.session}"`);
-            } catch (err) { log.warn(`[MSG] Reminder delivery failed for "${reminder.id}": ${err}`); }
-        }
-        if (due.length > 0) { remindersProvider?.reload(); messageProvider.reload(); }
+        processDueReminders({
+            remindersPath: configPaths.getRemindersPath() ?? '',
+            messagesPath,
+            now: new Date(),
+            reloadReminders: () => remindersProvider?.reload(),
+            reloadMessages: () => messageProvider.reload(),
+            info: message => log.info(message),
+            warn: message => log.warn(message),
+        });
     }, 5000);
 
     context.subscriptions.push(
@@ -1609,6 +1634,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         openSessionCommand,
         openAgentSessionCommand,
         newSessionCommand,
+        newSimpleActorCommand,
         { dispose: () => void stopHookIntake() },
         checkForUpdatesCommand,
         showReleaseNotesCommand,
@@ -1633,6 +1659,9 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         { dispose: () => clearInterval(pollInterval) },
         vscode.workspace.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('jarvis.scanInterval')) { syncRescanJob(); }
+            if (e.affectsConfiguration('jarvis.actors.folder')) {
+                void Promise.all([kindDrivenScanner.rescan(), actorScanner.rescan()]);
+            }
         }),
     );
 

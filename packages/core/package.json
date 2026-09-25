@@ -2,7 +2,7 @@
   "name": "jarvis-core",
   "displayName": "Jarvis Core",
   "description": "Jarvis core — sessions, messaging, reminders, heartbeat, engine",
-  "version": "0.27.2",
+  "version": "0.27.1",
   "publisher": "enthali",
   "icon": "resources/jarvis-128.png",
   "keywords": [
@@ -61,6 +61,10 @@
       {
         "fileMatch": "session.yaml",
         "url": "./schemas/session.schema.json"
+      },
+      {
+        "fileMatch": "actor.yaml",
+        "url": "./schemas/actor.schema.json"
       }
     ],
     "viewsContainers": {
@@ -74,6 +78,10 @@
     },
     "views": {
       "jarvis-explorer": [
+        {
+          "id": "jarvisActors",
+          "name": "ACTORS"
+        },
         {
           "id": "jarvisEntities",
           "name": "Jarvis Entities"
@@ -106,6 +114,7 @@
       { "command": "jarvis.injectPrompt", "title": "Jarvis: Inject Prompt" },
       { "command": "jarvis.newEntity", "title": "Jarvis: New Entity", "icon": "$(add)" },
       { "command": "jarvis.newActor", "title": "Jarvis: New Actor", "icon": "$(add)" },
+      { "command": "jarvis.newActorSimple", "title": "Jarvis: New Simple Actor", "icon": "$(add)" },
       { "command": "jarvis.migrateSessionToActor", "title": "Jarvis: Migrate Session to Actor" },
       { "command": "jarvis.searchEntities", "title": "Jarvis: Search Entities", "icon": "$(search)" },
       { "command": "jarvis.checkForUpdates", "title": "Jarvis: Check for Updates" },
@@ -138,6 +147,7 @@
         { "command": "jarvis.openAgentSession", "when": "false" },
         { "command": "jarvis.newEntity", "when": "false" },
         { "command": "jarvis.newActor", "when": "false" },
+        { "command": "jarvis.newActorSimple", "when": "false" },
         { "command": "jarvis.searchEntities", "when": "false" },
         { "command": "jarvis.rescan", "when": "false" },
         { "command": "jarvis.runJob", "when": "false" },
@@ -165,6 +175,7 @@
         { "command": "jarvis.cleanupTouchedFiles", "when": "false" }
       ],
       "view/title": [
+        { "command": "jarvis.newActorSimple", "when": "view == jarvisActors", "group": "navigation@1" },
         { "command": "jarvis.searchEntities", "when": "view == jarvisEntities", "group": "navigation@1" },
         { "command": "jarvis.rescan", "when": "view == jarvisEntities", "group": "navigation@2" },
         { "command": "jarvis.refreshHeartbeat", "when": "view == jarvisHeartbeat", "group": "navigation@1" }
@@ -208,6 +219,11 @@
         "title": "Actors",
         "properties": {
           "jarvis.sessions.enabled": { "type": "boolean", "default": true, "description": "Enable the Actors feature." },
+          "jarvis.actors.folder": {
+            "type": "string",
+            "default": ".jarvis/actors",
+            "description": "Workspace-relative or absolute folder containing new Actor folders."
+          },
           "jarvis.actor.autoProvision": {
             "type": "boolean",
             "default": false,

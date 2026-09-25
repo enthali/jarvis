@@ -14,18 +14,18 @@ check this note before treating a stale `Last Run` date as a process gap.
 
 ## Last Periodic Run
 
-- **Date:** 2026-08-21 (Friday heartbeat cycle)
-- **Report:** [reports/qr-2026-08-21-friday-heartbeat.md](reports/qr-2026-08-21-friday-heartbeat.md) — see [reports/index.md](reports/index.md) for full report history
+- **Date:** 2026-09-25 (Friday heartbeat cycle)
+- **Report:** [reports/qr-2026-09-25-friday-heartbeat.md](reports/qr-2026-09-25-friday-heartbeat.md) — see [reports/index.md](reports/index.md) for full report history
 
 ## Standing Check Status
 
 | ID | Last Run | Last Result |
 |---|---|---|
-| SC-001 | 2026-08-21 | Re-confirmed: same 11 persona findings, unchanged since 2026-07-17. New US_MOD_SKILL_PROVISION (in-progress CR) uses conforming "Jarvis user who..." persona. Still outstanding — tracked GH #33. |
-| SC-002 | 2026-08-21 | Re-confirmed: same 3 findings, unchanged since 2026-07-17. US_MOD_SKILL_PROVISION checked clean (no implementation detail). Deferred — GH #32. |
-| SC-003 | 2026-08-21 | PASS — 2 new SPEC elements this cycle (SPEC_MOD_SKILL_PROVISION, SPEC_MOD_SKILL_MANIFEST), both linked to REQs. 0 findings. |
-| SC-004 | 2026-08-21 | 16 findings (was 17): the 3 pending findings from 2026-07-31 (jarvis-whoami, prompt-injection-tool, jarvis-kanban) RESOLVED — val-*.md added 2026-08-05. Programmatic re-run found 2 additional historic gaps missed from the original 14-baseline (tst-settings-grp.md duplicates in v0.5.1/ and v0.5.3/, no matching val-). All 16 now fall under the 2026-07-17 accept-as-is disposition — no new PM decision needed. |
-| SC-005 | 2026-08-21 | PASS — 1 root-level in-progress CD (module-skill-provisioning.md) has an active feature branch (current checkout). Prior 3 root CDs shipped into v0.25.0. 0 findings. |
+| SC-001 | 2026-09-25 | 12 findings: 11 historic under GH #33; 1 new (`US_ACTOR_WHOAMI` persona). PM decision pending. |
+| SC-002 | 2026-09-25 | 4 findings: 3 historic deferred under GH #32; 1 new (`US_ACTOR_ACTORS` AC-5 mechanism detail). PM decision pending; preserve approved kindless behavior. |
+| SC-003 | 2026-09-25 | 6 new findings: approved Actor UAT SPECs link to US only, no REQ; matrix criterion conflicts with approved UAT linking convention. PM decision pending. |
+| SC-004 | 2026-09-25 | 16 historic missing `val-` pairings out of 84 `tst-` files, unchanged and previously accepted as-is; no new finding within this check. |
+| SC-005 | 2026-09-25 | PASS — only root in-progress CD is `one-kind-consolidation.md` on active `feature/one-kind-consolidation`. |
 
 ## CR Review Log
 
@@ -91,17 +91,21 @@ in git history of this file.*
 | actor-kernel-instructions-delivery | 2026-08-26 | PASS (Round 1 by MECE Engineer, embedded in CD; QM re-verified independently) | PASS (US_MOD_ACTORRULES → REQ_MOD_ACTORRULES/REQ_MOD_ACTORRULES_MIGRATE, amended REQ_MOD_SKILL_OPTOUT AC-4/AC-4a → SPEC_MOD_ACTORRULES, all read in full) | PASS | PASS (6/6 T-1..T-6, static analysis; `.gitignore` comment fix separately confirmed) | Ships the three `jarvis-actor.{kernel,memory,authoring}.instructions.md` files from `packages/core/assets/instructions/` via the existing (unmodified) `provisionModuleAssets`; setting `jarvis.actor.autoProvision` defaults `false` per the new required-vs-optional principle in `REQ_MOD_SKILL_OPTOUT` AC-4a (kanban stays `true`/required, actor rules `false`/optional — no contradiction, forward-extension only). Design-time blocker (namespace-prefix validation rejects hyphenated names) correctly resolved by renaming the three files to dot-separator form rather than relaxing `assetProvisioning.ts`'s prefix rule — verified the helper's `name.startsWith(namespace + '.')` gate line-by-line, confirmed zero diff to that file. Bundled file content independently byte-compared against this workspace's own active (pre-migration) hyphenated instruction files — matches the stated content baseline exactly (kernel = superset w/ clean-tree + escalation; memory = common + "Memory First"; authoring = unchanged). `.gitignore` stale "private IP" comment corrected; stale `req_cfg.rst:375` filename example fixed. Migration checklist (install→enable→verify→delete) ordering is sound given default-`false`. No setting-name collision with `jarvis.actors.folder`. Full `npx tsc -p packages/core` clean, 406/406 tests (this branch, no kanban changes). 1 Low, non-blocking, process finding: CM's dispatch asked QM to report to CM directly, contradicting QM's PM-only reporting mandate — reported to PM as usual, dispatch wording flagged for correction. | QM CLEAR (Round 2) |
 | whoami-all-entity-kinds | 2026-08-31 | PASS (Round 1 by MECE Engineer, embedded in CD; Round 2 re-check by MECE Engineer confirmed fixes; QM re-verified independently both rounds) | PASS (US_ACT_WHOAMI → REQ_ACT_WHOAMI AC-2/AC-10/AC-11/AC-12 → SPEC_ACT_WHOAMI step 3/AC-2/AC-2a, all read in full) | PASS (Round 3) | PASS (CD's own 6/6 T-1..T-5 static analysis, not disputed) | Removes the hard-coded `kind === 'session'` restriction from `jarvis_whoAmI`; resolves by name against the full scanner registry with explicit zero/one/many outcomes (many → error, per AC-11). Round 2 found BLOCKING: `npx vitest run` failed 2/406 — guarding test `src/tests/whoami-session-id-resolution.test.ts` (from prior GH #51 CR) asserted stale literal source-text (removed `kind === 'session'` predicate; error count 3 not 4); plus Low finding that `SPEC_ACT_WHOAMI`'s own AC-2 still stated the kind restriction, contradicting its own algorithm text and the amended requirement. PM decided fix-now on both (bundled), accept-as-is on the VE process gap (logged as backlog item 22). CM fixed in commit `274625f` (TC-2/TC-4 updated; `SPEC_ACT_WHOAMI` AC-2 reworded, new AC-2a added); VE addendum + MECE Round 2 re-check both reported clean. Round 3: independently re-diffed `274625f` (test/spec-only, no production code touched), re-read the still-unchanged `extension.ts` handler (confirmed 4 `error: ERROR_MSG` occurrences matching TC-4), and independently re-ran `npx tsc -p packages/core` (clean), `npx vitest run` (**406/406 passed, 40/40 files**), and `python -m sphinx -b html ... -W --keep-going` (build succeeded, 0 warnings) rather than relying on relayed VE/MECE clearance. All 3 Round 2 findings confirmed resolved; no new issues. | **QM CLEAR (Round 3)** |
 
-## Known Releases (at last scan)
+## Known Releases (at last scan, 2026-09-25)
 
 v0.0.1, v0.1.0, v0.1.1, v0.2.0, v0.3.0, v0.3.1, v0.4.0, v0.5.0, v0.5.1, v0.5.2, v0.5.3, v0.5.4, v0.5.5, v0.5.6, v0.5.7, v0.5.8, v0.5.9, v0.5.10, v0.5.11, v0.6.0, v0.6.1, v0.7.0, v0.8.0, v0.9.0, v0.10.0, v0.11.0, v0.11.1, v0.11.2, v0.12.0, v0.13.0, v0.13.1, v0.13.2, v0.13.3, v0.14.0, v0.15.0, v0.15.1, v0.15.2, v0.16.0, v0.17.0, v0.17.1, v0.17.2, v0.17.3, v0.18.0, v0.19.0, v0.20.0, v0.20.1, v0.20.2, v0.21.0, v0.22.0, v0.23.0, v0.24.0, v0.24.1, v0.25.0, v0.25.1
 
-## Known Root-Level Changes (at last scan — completed CRs reviewed by QM)
+New since 2026-08-21: v0.26.0, v0.27.0, v0.27.1, v0.27.2 (tags and change directories present).
 
-- remove-open-recording-icon.md ✓ reviewed
-- actor-activity-indicator.md / message-log-viewer.md — reviewed live via CM-completion Jarvis notifications during this session (see conversation history: actor-activity-indicator Round 1/Round 2 CLEAR); CR Review Log table below not yet backfilled for these — see Pending.
+## Known Root-Level Changes (at last scan)
+
+- `one-kind-consolidation.md` — in progress on `feature/one-kind-consolidation`; QM Round 2 CHANGES REQUIRED; not a completed CR.
+- Nine changes archived in v0.26.0–v0.27.2; seven have both `tst-` and `val-`, while `focus-restore-toggle` and `whoami-hookless-error` have `val-` but no `tst-` (PM decision pending on artifact completeness).
+- Earlier reviewed changes not yet backfilled in the CR Review Log remain a ledger housekeeping item, not inferred unreviewed quality.
 
 ## Pending
 
+- Friday 2026-09-25: PM decisions requested for new SC-001 persona, SC-002 mechanism wording, SC-003 six US-only UAT SPEC links vs REQ-link criterion, and v0.27.2's two `val-`-without-`tst-` archived changes; heartbeat's `review-matrix.md` Last Run instruction conflicts with the definitions-only matrix and scan-state runtime contract. See [report](reports/qr-2026-09-25-friday-heartbeat.md).
 - **Housekeeping gap (self-identified, non-PM-facing):** 22 releases (v0.8.0–v0.19.0) shipped since the CR Review Log table was last appended to (message-flow-diagram, 2026-07-03). Many CRs in that window (e.g. unified-entity-tree, actor-owned-files-tree, actor-tool-rename, actor-terminology-rename, eslint-flat-config, dynamic-tree-title, message-log-viewer, actor-activity-indicator, and others) were reviewed live via CM-completion Jarvis notifications during the session but never appended as CR Review Log rows here. Ledger is behind reality; each CR's own quality gate (CM-pipeline MECE/Trace + QM sign-off message) was still enforced, so this is a logging/traceability gap in this file, not an unreviewed-quality gap. Root cause update (2026-07-17, per user): part of this gap is explained by the missed-heartbeat-trigger limitation above (this session wasn't always running on Fridays) rather than QM neglect. To be backfilled opportunistically; not escalated to PM as a quality finding.
 - SC-001: 11 persona findings still outstanding — coupled to [GH #33](https://github.com/enthali/jarvis/issues/33) "Streamline persona roles in User Stories" (unchanged since 2026-06-18). Correction (PM, 2026-07-17): the earlier reference to a planned "Jarvis Agent persona CR" was mistaken — no such GH issue ever existed; GH #33 is the actual tracking issue, kept minimal. No escalation needed.
 - SC-002: 3 findings — PM decision 2026-07-17: **Defer**. Backlog issue GH #32 filed ("docs: remove implementation details from User Story acceptance criteria"). Low priority, bundled into future docs-cleanup CR, no active risk.

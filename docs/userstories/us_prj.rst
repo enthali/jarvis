@@ -3,9 +3,11 @@ Project User Stories
 
 .. story:: Project Entity Kind
    :id: US_PRJ_PROJECT
-   :status: draft
+   :status: deprecated
    :priority: required
    :links: US_EXP_SIDEBAR; US_ENT_ENTITY
+
+   **Note:** Retired in the one-kind-consolidation CR (Phase 1: parallel, deprecated in place; removed in Phase 2).
 
    **As a** Jarvis user,
    **I want** a Project entity kind — a work body scoped to a concrete
@@ -26,9 +28,11 @@ Project User Stories
 
 .. story:: Project Folder Filter
    :id: US_PRJ_PROJECTFILTER
-   :status: implemented
+   :status: deprecated
    :priority: optional
    :links: US_EXP_SIDEBAR
+
+   **Note:** Retired in the one-kind-consolidation CR (Phase 1: parallel, deprecated in place; removed in Phase 2).
 
    **As a** Jarvis User,
    **I want** to show/hide individual folders in the Projects explorer,
@@ -42,11 +46,13 @@ Project User Stories
    * AC-4: When a filter is active, the icon visually indicates that filtering is applied
 
 
-.. story:: List Projects (LM Tool)
+.. story:: List All Projects Programmatically
    :id: US_PRJ_LISTPROJECTS
-   :status: implemented
+   :status: deprecated
    :priority: optional
    :links: US_EXP_SIDEBAR; US_MSG_MCPSERVER
+
+   **Note:** Retired in the one-kind-consolidation CR (Phase 1: parallel, deprecated in place; removed in Phase 2).
 
    **As a** LLM agent working in a Jarvis workspace,
    **I want** a tool that lists all projects with their name, summary, agent,
@@ -68,12 +74,14 @@ Project User Stories
      (``{name, summary, agent, folder}``)
 
 
-.. story:: Programmatic Project Creation Tool
+.. story:: Create a Project Programmatically
    :id: US_PRJ_CREATEPROJECT
-   :status: draft
+   :status: deprecated
    :priority: optional
    :links: US_ENT_NEWENTITY; US_MSG_MCPSERVER
 
+   **Note:** Retired in the one-kind-consolidation CR (Phase 1: parallel, deprecated in place; removed in Phase 2).
+   
    **As an** LLM operating within an active Jarvis session,
    **I want** a tool ``jarvis_createProject`` that programmatically creates a
    new project folder with ``project.yaml`` and ``context.md``,

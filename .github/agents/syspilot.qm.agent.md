@@ -2,7 +2,6 @@
 name: "Quality Manager"
 agent: syspilot.qm
 description: "Independent quality guardian that dispatches MECE and Trace engineers, consolidates findings, and produces Findings Reports addressed to PM."
-model: Qwen3.8-27B Aphrodite (customendpoint)
 user-invocable: true
 agents: []
 ---

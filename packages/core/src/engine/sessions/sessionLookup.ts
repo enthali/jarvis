@@ -139,6 +139,13 @@ export async function getValidDestinations(
 ): Promise<string[]> {
     const allSessions = await getAllSessions();
     const chatTitles = filterNamedSessions(allSessions).map(s => s.title);
+    return combineValidDestinations(chatTitles, scanner);
+}
+
+export function combineValidDestinations(
+    chatTitles: string[],
+    scanner?: { entities: { name: string }[] }
+): string[] {
     const entityNames = scanner?.entities?.map(e => e.name) ?? [];
     const union = new Set([...chatTitles, ...entityNames]);
     return [...union];

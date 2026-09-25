@@ -35,6 +35,16 @@ Explorer User Stories
      — superseded by PM decision (categories always on). See
      ``REQ_EXP_UNIFIEDTREE`` for the precise rule.
 
+   *Note (one-kind-consolidation CR):* This story continues to describe the
+   **legacy** unified "Jarvis Entities" tree. Phase 1 of this CR adds a new,
+   separate "ACTORS" tree root (US_ACT_TREE) that runs in parallel; the
+   unified tree keeps serving Actors (via the session kind), Projects, and
+   Events until the parallel build is validated and Phase 2 removes the old
+   stack (old kinds, old tree root, project/event folder settings, and the
+   four LM tools). Until Phase 2, the ACTORS root and the unified tree coexist
+   without conflict — US_ACT_TREE AC-8 governs the visibility of the new
+   root, while this story governs the unified tree.
+
 
 .. story:: Feature-Toggled Sidebar Views
    :id: US_EXP_FEATURETOGGLE

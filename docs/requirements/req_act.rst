@@ -913,11 +913,13 @@ Actor Requirements
      hook intake is unavailable, ``jarvis_whoAmI`` degrades to the AC-3 error
      per AC-7 and SHALL NOT fall back to any focus-based heuristic.
    * AC-10: (**whoami-all-entity-kinds CR**) The scanner's entity registry
-     SHALL be the sole authority on which entities exist. The tool SHALL NOT
-     carry a hard-coded set of acceptable entity kinds — neither the removed
-     ``kind === 'session'`` test nor any replacement allowlist. A kind
-     registered with the engine is thereby eligible, and a new kind requires no
-     change to this tool.
+     SHALL be the sole authority for registered legacy entities. New Actors
+     under ``jarvis.actors.folder`` are resolved through kindless direct-child
+     discovery (``REQ_ACTOR_WHOAMI`` AC-1), not this registry. The tool SHALL
+     NOT carry a hard-coded set of acceptable legacy entity kinds — neither
+     the removed ``kind === 'session'`` test nor any replacement allowlist.
+     A kind registered with the legacy engine is thereby eligible without
+     a change to this tool.
    * AC-11: (**whoami-all-entity-kinds CR**) When the resolved name matches
      **more than one** registered entity, the tool SHALL return the AC-3 error
      and SHALL NOT select among the candidates — not by kind, not by scan

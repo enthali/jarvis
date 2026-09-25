@@ -2,7 +2,6 @@
 name: "System Designer"
 agent: syspilot.design
 description: "Subagent that analyzes change requests level-by-level (US → REQ → SPEC) with a persistent Change Document. Writes RST files with full traceability."
-model: Qwen3.8-27B Aphrodite (customendpoint)
 user-invocable: true
 agents: []
 ---

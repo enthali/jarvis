@@ -102,7 +102,24 @@
 
 ## Active CR
 
-- None.
+- **one-kind-consolidation** — scaffolded 2026-09-20 (branch `feature/one-kind-consolidation`).
+  Consolidate Actor/Event/Project into single `Actor` kind with configurable root path.
+  Operation Mode: user-guided. Phase 1 builds the new simple Actor; Phase 2 removes
+  the old code. After both phases, upgrade to Syspilot 0.10 in this release, then
+  clean up the project ontology under 0.10 because the current ontology is unsatisfactory.
+  AHP is tentatively planned after that cleanup; confirm the sequencing later.
+  Target: breaking change; release version TBD.
+- **WhoAmI follow-up** — defer hook-dependent `jarvis_whoAmI` recovery until AHP;
+  non-core and not a Phase-1 acceptance blocker.
+- **Phase 1 user checkpoint (2026-09-25)** — User considers Phase 1 complete for
+  now and the software acceptable for continued work. Existing UAT scripts are
+  not considered valid PASS evidence; redesign/clean up the Actor UAT in a
+  separate change run tracked by backlog #27, not in the active CR.
+- **Post-change watch: private Actor repo** — after the active CR, remove `.jarvis/actors/`
+  from OSS Git tracking without deleting local files, ignore it in OSS, then initialize
+  a separate private repo in that folder and connect it to a new private GitHub repo.
+  Keep Actors in place until the configurable external path is released; existing
+  public Git history is not erased by this move.
 
 ## Recently Shipped
 

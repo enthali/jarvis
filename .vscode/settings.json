@@ -1,18 +1,5 @@
 {
-  "livePreview.defaultPreviewPath": "/docs/_build/html/index.html",
-  "jarvis.eventsFolder": "",
-  "jarvis.heartbeatConfigFile": "C:\\workspace\\Jarvis\\.jarvis\\heartbeat.yaml",
-  "jarvis.messagesFile": "C:\\workspace\\Jarvis\\.jarvis\\messages.json",
-  "jarvis.projectsFolder": "C:\\workspace\\Jarvis\\projects",
-  "jarvis.pim.showCategories": false,
-  "jarvis.outlook.tasks.enabled": false,
-  "jarvis.projects.enabled": false,
-  "jarvis.mcp.enabled": true,
-  "jarvis.recording.enabled": false,
-  "workbench.colorCustomizations": {
-			"titleBar.activeBackground": "#1e2d5e",
-			"titleBar.activeForeground": "#ffffff",
-			"statusBar.background": "#1e2d5e",
-			"statusBar.foreground": "#ffffff",
-		}
+  "chat.hookFilesLocations": {
+    ".github/hooks": true
+  }
 }

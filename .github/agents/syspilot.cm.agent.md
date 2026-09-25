@@ -2,7 +2,6 @@
 name: "Change Manager"
 agent: syspilot.cm
 description: "Central orchestrator of the change workflow. Receives Change Requests, coordinates engineers in sequence, enforces quality gates, and reports completion with full traceability."
-model: Qwen3.8-27B Aphrodite (customendpoint)
 user-invocable: true
 agents: []
 ---

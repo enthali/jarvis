@@ -1,0 +1,67 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import { ActorScanner } from '../../packages/core/src/engine/actors/actorScanner';
+
+const roots: string[] = [];
+
+afterEach(() => {
+    for (const root of roots.splice(0)) {
+        fs.rmSync(root, { recursive: true, force: true });
+    }
+});
+
+describe('REQ_ACTOR_SCHEMA / REQ_ACTOR_TREE: ActorScanner', () => {
+    it('discovers only direct child actors and uses the absolute actor.yaml path as id', async () => {
+        const root = fs.mkdtempSync(path.join(os.tmpdir(), 'jarvis-actors-'));
+        roots.push(root);
+        writeActor(root, 'Folder Name', 'name: YAML Name\nsummary: Direct\nagent: alpha\n');
+        writeActor(root, 'Second Folder', 'name: YAML Name\nsummary: Duplicate name\nagent: beta\n');
+        writeActor(root, 'archive/Nested Actor', 'name: Nested Actor\nsummary: Hidden\nagent: beta\n');
+        const onDidChange = vi.fn();
+        const scanner = new ActorScanner(() => root, onDidChange);
+
+        await scanner.rescan();
+
+        expect(scanner.actors).toHaveLength(2);
+        expect(scanner.actors).toContainEqual(expect.objectContaining({
+            id: path.join(root, 'Folder Name', 'actor.yaml'),
+            name: 'YAML Name',
+            folder: path.join(root, 'Folder Name'),
+        }));
+        expect(scanner.actors).toContainEqual(expect.objectContaining({
+            id: path.join(root, 'Second Folder', 'actor.yaml'),
+            name: 'YAML Name',
+            folder: path.join(root, 'Second Folder'),
+        }));
+        expect(new Set(scanner.actors.map(actor => actor.id)).size).toBe(2);
+        expect(scanner.actors.every(actor => path.isAbsolute(actor.id))).toBe(true);
+        expect(new Set(scanner.tree.map(node => node.id))).toEqual(new Set([
+            path.join(root, 'Folder Name', 'actor.yaml'),
+            path.join(root, 'Second Folder', 'actor.yaml'),
+        ]));
+        expect(onDidChange).toHaveBeenCalledOnce();
+    });
+
+    it('falls back to the folder name and returns an empty tree for an unresolved root', async () => {
+        const root = fs.mkdtempSync(path.join(os.tmpdir(), 'jarvis-actors-'));
+        roots.push(root);
+        writeActor(root, 'Fallback Actor', 'summary: Missing name\n');
+        const scanner = new ActorScanner(() => root, () => {});
+
+        await scanner.rescan();
+        expect(scanner.actors[0]).toMatchObject({ name: 'Fallback Actor', summary: 'Missing name', agent: '' });
+
+        const unresolved = new ActorScanner(() => '', () => {});
+        await unresolved.rescan();
+        expect(unresolved.tree).toEqual([]);
+        expect(unresolved.actors).toEqual([]);
+    });
+});
+
+function writeActor(root: string, relativeFolder: string, content: string): void {
+    const folder = path.join(root, relativeFolder);
+    fs.mkdirSync(folder, { recursive: true });
+    fs.writeFileSync(path.join(folder, 'actor.yaml'), content);
+}

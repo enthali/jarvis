@@ -106,24 +106,32 @@ describe('TC-5: MCP variant uses same mapping (source verification)', () => {
     });
 });
 
-describe('TC-6: jarvis_listActors output shape unaffected', () => {
-    it('listActors mapping still uses {name, summary, agent, folder}', () => {
+describe('TC-6: jarvis_listActors response compatibility', () => {
+    it('combines legacy Actors with kindless ActorScanner entries', () => {
         const extensionSrc = fs.readFileSync(
             path.resolve(__dirname, '..', '..', 'packages', 'core', 'src', 'extension.ts'),
             'utf-8'
         );
-        const sessionsSection = extensionSrc.slice(
-            extensionSrc.indexOf("'jarvis_listActors'"),
-            extensionSrc.indexOf("'jarvis_listActors'") + 600
+        const actorRuntimeSrc = fs.readFileSync(
+            path.resolve(__dirname, '..', '..', 'packages', 'core', 'src', 'engine', 'actors', 'actorRuntime.ts'),
+            'utf-8'
         );
-        // Must have exactly the four session fields
-        expect(sessionsSection).toContain('name: e.name');
-        expect(sessionsSection).toContain("summary: e.summary ?? ''");
-        expect(sessionsSection).toContain("agent: e.agent ?? ''");
-        expect(sessionsSection).toContain('folder: e.folder');
+        const listActorsStart = extensionSrc.indexOf("'jarvis_listActors'");
+        const sessionsSection = extensionSrc.slice(
+            listActorsStart,
+            extensionSrc.indexOf('// listChatSessions', listActorsStart)
+        );
+        expect(sessionsSection).toContain('createListActorsHandler(kindDrivenScanner, actorScanner, log)');
+        expect(actorRuntimeSrc).toContain('name: entity.name');
+        expect(actorRuntimeSrc).toContain("summary: entity.summary ?? ''");
+        expect(actorRuntimeSrc).toContain("agent: entity.agent ?? ''");
+        expect(actorRuntimeSrc).toContain('folder: entity.folder');
+        expect(actorRuntimeSrc).toContain('const actors = actorScanner.actors.map');
+        expect(actorRuntimeSrc).toContain('id: actor.id');
+        expect(actorRuntimeSrc).toContain('const sessions = [...legacyActors, ...actors]');
         // Must NOT have datesStart/datesEnd (those are event-only)
-        expect(sessionsSection).not.toContain('datesStart');
-        expect(sessionsSection).not.toContain('datesEnd');
+        expect(actorRuntimeSrc).not.toContain('datesStart');
+        expect(actorRuntimeSrc).not.toContain('datesEnd');
     });
 });
 

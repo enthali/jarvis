@@ -3,9 +3,11 @@ List Events Tool User Acceptance Tests
 
 .. story:: List Events LM Tool Acceptance Tests
    :id: US_UAT_LISTEVENTS
-   :status: draft
+   :status: deprecated
    :priority: optional
    :links: US_EVT_LISTEVENTS; REQ_EVT_LISTEVENTS
+
+   **Note:** Retired in the one-kind-consolidation CR (Phase 1: parallel, deprecated in place; removed in Phase 2).
 
    **As a** Jarvis Test Engineer,
    **I want** manual acceptance test scenarios for the ``jarvis_listEvents``

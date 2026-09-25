@@ -1,9 +1,14 @@
 Create Event Tool UAT Requirements
 =====================================
 
+.. note::
+   `:status: deprecated` — one-kind-consolidation CR (Phase 1: parallel
+   world; removed in Phase 2). Tests `jarvis_createEvent`, which no
+   longer exists in the new simple-Actor model.
+
 .. req:: Create Event LM Tool — Test Data and Verification Requirements
    :id: REQ_UAT_CREATEEVENT
-   :status: draft
+   :status: deprecated
    :priority: optional
    :links: US_UAT_CREATEEVENT; REQ_EVT_CREATEEVENT
 

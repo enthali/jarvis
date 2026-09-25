@@ -37,9 +37,10 @@ Reminders UAT Requirements
 
    * AC-1: ``jarvis_setReminder`` SHALL return a JSON object with ``id``
      (UUID string) and ``deliverAt`` (ISO-8601 string) for T-1.
-   * AC-2: ``jarvis_listReminders`` SHALL return an array where each element
-     has ``id``, ``text``, ``session``, ``deliverAt``, and a remaining-time
-     field; delivered reminders SHALL NOT appear (T-4).
+   * AC-2: ``jarvis_listReminders`` SHALL return a JSON object with a
+     ``reminders`` array whose entries have ``id``, ``text``, ``session``,
+     ``deliverAt``, and ``remainingMs``; delivered reminders SHALL NOT
+     appear (T-4).
    * AC-3: ``jarvis_cancelReminder`` SHALL remove the specified reminder and
      return a success indicator without error; calling it on a non-existent id
      SHALL NOT crash the extension (T-5).

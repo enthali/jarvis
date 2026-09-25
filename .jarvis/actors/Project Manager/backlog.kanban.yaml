@@ -1,5 +1,5 @@
 title: backlog
-nextId: 23
+nextId: 31
 fields:
   - name: status
     type: single_select
@@ -15,119 +15,337 @@ fields:
       - name: High
 items:
   - id: 1
-    name: "Kanban: doc gaps, schema discoverability, missing skill, no freeform text field (GH #57)"
+    name: "Kanban: doc gaps, schema discoverability, missing skill, no freeform text
+      field (GH #57)"
     status: Done
     priority: High
     notes: "Delivered via kanban-skill-content CR, merged to development 2026-08-24."
   - id: 2
-    name: "Kanban skill: document that ownerName must be resolved via jarvis_whoAmI before create/update calls"
+    name: "Kanban skill: document that ownerName must be resolved via jarvis_whoAmI
+      before create/update calls"
     status: Done
     priority: Medium
     notes: "Delivered via kanban-skill-content CR, merged to development 2026-08-24."
   - id: 3
-    name: "No tool to add a new item to an existing kanban board (only create board / update existing item)"
+    name: "No tool to add a new item to an existing kanban board (only create board
+      / update existing item)"
     status: Done
     priority: Medium
-    notes: "Delivered via CR 'kanban-management-tools' (jarvis_addKanbanItem), QM CLEARED (Round 3), user-validated, merged to development 2026-08-26."
+    notes: "Delivered via CR 'kanban-management-tools' (jarvis_addKanbanItem), QM
+      CLEARED (Round 3), user-validated, merged to development 2026-08-26."
   - id: 4
-    name: "General mechanism: modules (core/kanban/pim/...) self-install their own skills + instructions into .github/skills, .github/instructions on activation"
+    name: "General mechanism: modules (core/kanban/pim/...) self-install their own
+      skills + instructions into .github/skills, .github/instructions on
+      activation"
     status: Done
     priority: High
-    notes: "QM CLEARED (Round 4), user-validated together with item 5, merged to development 2026-08-24."
+    notes: "QM CLEARED (Round 4), user-validated together with item 5, merged to
+      development 2026-08-24."
   - id: 5
-    name: "jarvis-kanban skill: ontology (schema) + tool descriptions, self-installed via item 4's mechanism"
+    name: "jarvis-kanban skill: ontology (schema) + tool descriptions,
+      self-installed via item 4's mechanism"
     status: Done
     priority: High
-    notes: "Delivered as CR 'kanban-skill-content' (folded items 1+2+5), QM CLEARED (Round 2), user-validated, merged to development 2026-08-24."
+    notes: "Delivered as CR 'kanban-skill-content' (folded items 1+2+5), QM CLEARED
+      (Round 2), user-validated, merged to development 2026-08-24."
   - id: 6
-    name: "Remove dead jarvis.newEntity contribution (never registered, pre-existing)"
+    name: "Remove dead jarvis.newEntity contribution (never registered,
+      pre-existing)"
     status: Backlog
     priority: Low
-    notes: "Migrated from PM context.md 2026-08-21 — never actually branched despite being noted as 'in flight' on 2026-08-05."
+    notes: "Migrated from PM context.md 2026-08-21 — never actually branched despite
+      being noted as 'in flight' on 2026-08-05."
   - id: 7
     name: "Add test asserting all contributed command IDs are registered"
     status: Backlog
     priority: Low
-    notes: "Migrated from PM context.md 2026-08-21 — never actually branched despite being noted as 'in flight' on 2026-08-05."
+    notes: "Migrated from PM context.md 2026-08-21 — never actually branched despite
+      being noted as 'in flight' on 2026-08-05."
   - id: 8
-    name: "Bug: error assigning Agent Modes — our undocumented-VS Code-API patch may be breaking"
+    name: "Bug: error assigning Agent Modes — our undocumented-VS Code-API patch may
+      be breaking"
     status: Done
     priority: High
-    labels: ["P1", "bug"]
-    notes: "Fixed via CR 'agent-mode-reset-race', QM CLEARED (Round 4 after 2 re-verify rounds), user-validated in EDH, merged to development 2026-08-24. Root causes: (1) mode-set command lacked a target-identity check before executing, so it could land on the wrong (previously-focused) session; (2) success log asserted unconditionally instead of only when the target matched; (3) unrelated delivery-loop re-entrancy guard added defensively. Round 3 caught a self-inflicted AC-7 regression (dropped error catch while syncing code to a buggy spec sample) before merge."
+    labels: [ "P1", "bug" ]
+    notes: "Fixed via CR 'agent-mode-reset-race', QM CLEARED (Round 4 after 2
+      re-verify rounds), user-validated in EDH, merged to development
+      2026-08-24. Root causes: (1) mode-set command lacked a target-identity
+      check before executing, so it could land on the wrong (previously-focused)
+      session; (2) success log asserted unconditionally instead of only when the
+      target matched; (3) unrelated delivery-loop re-entrancy guard added
+      defensively. Round 3 caught a self-inflicted AC-7 regression (dropped
+      error catch while syncing code to a buggy spec sample) before merge."
   - id: 9
-    name: "Bug: Recently Touched Files only tracks modifications, not newly created files"
+    name: "Bug: Recently Touched Files only tracks modifications, not newly created
+      files"
     status: Done
     priority: Medium
-    labels: ["bug", "not-reproducible"]
-    notes: "CLOSED 2026-08-26 as not reproducible (CR 'touched-files-created-files', no code change, CD deleted 2026-08-26 — nothing to archive). SD reproduced live with user on Windows + WSL2: create_file has been in TOUCH_RULES since the feature's original commit, created files are tracked and render correctly, 35/35 corpus files since 2026-08-24 tracked, zero misses. Real finding routed to item 18."
+    labels: [ "bug", "not-reproducible" ]
+    notes: "CLOSED 2026-08-26 as not reproducible (CR 'touched-files-created-files',
+      no code change, CD deleted 2026-08-26 — nothing to archive). SD reproduced
+      live with user on Windows + WSL2: create_file has been in TOUCH_RULES
+      since the feature's original commit, created files are tracked and render
+      correctly, 35/35 corpus files since 2026-08-24 tracked, zero misses. Real
+      finding routed to item 18."
   - id: 10
-    name: "gitignore 'jarvis-*' managed entry matches any file/dir by name anywhere in tree"
+    name: "gitignore 'jarvis-*' managed entry matches any file/dir by name anywhere
+      in tree"
     status: Done
     priority: Medium
-    labels: ["not-a-bug"]
-    notes: "Found 2026-08-24 while committing docs/changes/jarvis-kanban-skill.md — git check-ignore confirmed .gitignore:31 jarvis-* swallowed it. Initially logged as a bug (unanchored WORKSPACE_PATHS entry in configPaths.ts). User clarified 2026-08-24: intentional — anything named jarvis-* anywhere is extension-delivered content, never meant to be tracked in git, at any depth. Closed as working-as-intended, no code change. Underlying trigger (a CD file named jarvis-kanban-skill.md) was itself a naming slip fixed by renaming to kanban-skill-content, consistent with the CD naming convention anyway."
+    labels: [ "not-a-bug" ]
+    notes: "Found 2026-08-24 while committing docs/changes/jarvis-kanban-skill.md —
+      git check-ignore confirmed .gitignore:31 jarvis-* swallowed it. Initially
+      logged as a bug (unanchored WORKSPACE_PATHS entry in configPaths.ts). User
+      clarified 2026-08-24: intentional — anything named jarvis-* anywhere is
+      extension-delivered content, never meant to be tracked in git, at any
+      depth. Closed as working-as-intended, no code change. Underlying trigger
+      (a CD file named jarvis-kanban-skill.md) was itself a naming slip fixed by
+      renaming to kanban-skill-content, consistent with the CD naming convention
+      anyway."
   - id: 11
     name: "No tool to delete/remove a kanban board item (only add / update)"
     status: Done
     priority: Medium
-    notes: "Delivered via CR 'kanban-management-tools' (jarvis_deleteKanbanItem), QM CLEARED (Round 3), user-validated, merged to development 2026-08-26."
+    notes: "Delivered via CR 'kanban-management-tools' (jarvis_deleteKanbanItem), QM
+      CLEARED (Round 3), user-validated, merged to development 2026-08-26."
   - id: 12
-    name: "No tool to list/query kanban items filtered by status or label — full-file read doesn't scale as a board grows (seen 1k+ line boards)"
+    name: "No tool to list/query kanban items filtered by status or label —
+      full-file read doesn't scale as a board grows (seen 1k+ line boards)"
     status: Done
     priority: Medium
-    notes: "Delivered via CR 'kanban-management-tools' (jarvis_listKanbanItems), QM CLEARED (Round 3), user-validated, merged to development 2026-08-26."
+    notes: "Delivered via CR 'kanban-management-tools' (jarvis_listKanbanItems), QM
+      CLEARED (Round 3), user-validated, merged to development 2026-08-26."
   - id: 13
-    name: "No tool to manage a board's field/schema (add/remove a field, add/remove a single_select option) — only possible by hand-editing YAML"
+    name: "No tool to manage a board's field/schema (add/remove a field, add/remove
+      a single_select option) — only possible by hand-editing YAML"
     status: Done
     priority: Medium
-    notes: "Delivered via CR 'kanban-management-tools' (jarvis_updateKanbanFields), QM CLEARED (Round 3), user-validated, merged to development 2026-08-26."
+    notes: "Delivered via CR 'kanban-management-tools' (jarvis_updateKanbanFields),
+      QM CLEARED (Round 3), user-validated, merged to development 2026-08-26."
   - id: 14
-    name: "kanban-management-tools polish: id-rejection error message wording, T-6 evidence points at superseded code"
+    name: "kanban-management-tools polish: id-rejection error message wording, T-6
+      evidence points at superseded code"
     status: Backlog
     priority: Low
-    notes: "QM Round 3 (2026-08-25), deferred (not blocking): (1) jarvis_addKanbanItem's builtin-key rejection message implies a top-level id param exists on the tool; it doesn't. (2) tst-kanban-management-tools.md T-6 cites validateItemValues's 'id' in values guard, now dead code on the addKanbanItem path since the builtinProps check intercepts first. Both cosmetic, no functional impact."
+    notes: "QM Round 3 (2026-08-25), deferred (not blocking): (1)
+      jarvis_addKanbanItem's builtin-key rejection message implies a top-level
+      id param exists on the tool; it doesn't. (2)
+      tst-kanban-management-tools.md T-6 cites validateItemValues's 'id' in
+      values guard, now dead code on the addKanbanItem path since the
+      builtinProps check intercepts first. Both cosmetic, no functional impact."
   - id: 15
-    name: "jarvis_updateKanbanFields: add renameField/renameOption (bulk rename) — atomic rename of a field/option definition plus migration of all referencing items in one write"
+    name: "jarvis_updateKanbanFields: add renameField/renameOption (bulk rename) —
+      atomic rename of a field/option definition plus migration of all
+      referencing items in one write"
     status: Backlog
     priority: Low
-    notes: "F-2 from kanban-management-tools (2026-08-26). Today removeField/removeOption refuse to remove anything still referenced by an item, so renaming requires hand-editing every referencing item first, then remove+add. User accepted the manual workaround for now; this is the follow-up idea to make rename atomic and safe."
+    notes: "F-2 from kanban-management-tools (2026-08-26). Today
+      removeField/removeOption refuse to remove anything still referenced by an
+      item, so renaming requires hand-editing every referencing item first, then
+      remove+add. User accepted the manual workaround for now; this is the
+      follow-up idea to make rename atomic and safe."
   - id: 16
-    name: "Kanban skill: document archiving pattern — move Done items to a separate archive board file once a board grows large"
+    name: "Kanban skill: document archiving pattern — move Done items to a separate
+      archive board file once a board grows large"
     status: Backlog
     priority: Low
-    notes: "Raised 2026-08-26: user has a real customer-project board at ~2k lines (not reachable from this workspace, different machine/OS). Discussed one-file-per-board vs one-file-per-item; decided against splitting storage (breaks atomic multi-item writes needed for reference-guard/rename, and current in-repo boards are all <100 lines — no evidence the perf/diff cost is real here). Better lever: archive Done items out of the active board using the existing add/delete tools, documented as a convention in the jarvis-kanban.board SKILL.md — not a new tool for now."
+    notes: "Raised 2026-08-26: user has a real customer-project board at ~2k lines
+      (not reachable from this workspace, different machine/OS). Discussed
+      one-file-per-board vs one-file-per-item; decided against splitting storage
+      (breaks atomic multi-item writes needed for reference-guard/rename, and
+      current in-repo boards are all <100 lines — no evidence the perf/diff cost
+      is real here). Better lever: archive Done items out of the active board
+      using the existing add/delete tools, documented as a convention in the
+      jarvis-kanban.board SKILL.md — not a new tool for now."
   - id: 17
-    name: "jarvis_updateKanbanItem: changes.labels is schema-typed string-only, so a valid array can never be supplied through this tool"
+    name: "jarvis_updateKanbanItem: changes.labels is schema-typed string-only, so a
+      valid array can never be supplied through this tool"
     status: Backlog
     priority: Low
-    notes: "QM Round 2 (2026-08-26) on kanban-update-validation, deferred (not blocking, out of that CR's scope — package.json untouched there). package.json's inputSchema types every key under changes as string; labels needs an array. Either loosen the schema to accept an array for labels, or document that labels can't be updated via this tool. Pre-existing, not introduced by kanban-update-validation."
+    notes: "QM Round 2 (2026-08-26) on kanban-update-validation, deferred (not
+      blocking, out of that CR's scope — package.json untouched there).
+      package.json's inputSchema types every key under changes as string; labels
+      needs an array. Either loosen the schema to accept an array for labels, or
+      document that labels can't be updated via this tool. Pre-existing, not
+      introduced by kanban-update-validation."
   - id: 18
-    name: "TOUCH_RULES silently drops writes from any tool not on its 4-tool allowlist — no log at any level"
+    name: "TOUCH_RULES silently drops writes from any tool not on its 4-tool
+      allowlist — no log at any level"
     status: Backlog
     priority: Medium
-    notes: "SD finding while investigating item 9 (2026-08-26, CR touched-files-created-files, closed not-reproducible). The allowlist itself is fine (deliberate, per REQ_ENT_TOUCHEDFILES AC-2d — no path-sniffing fallback); the defect is that the system can't report when the list is stale for a given model/VS Code version. Recommended: log unmatched tool_names at debug, deduplicated per session, before extending the allowlist — observability first, then extend from evidence not guesses. UPDATE 2026-08-26: user observed live in syspilot's Project Manager session — a doc-creation step showed 'Generating patch ...' in the UI instead of the known create_file/replace_string_in_file/multi_replace_string_in_file flow. CONFIRMED same day: the PM session self-reported it used `apply_patch` to create docs/changes/documentation-truth-review.md directly (bypassing the canonical generate-path/contract-creation function too — a separate process gap). `apply_patch` is now a confirmed, named tool_name missing from touchTracker.ts's TOUCH_RULES allowlist, not just a theoretical gap. Not working this further right now per user (2026-08-26) — captured for when this is picked up."
+    notes: "SD finding while investigating item 9 (2026-08-26, CR
+      touched-files-created-files, closed not-reproducible). The allowlist
+      itself is fine (deliberate, per REQ_ENT_TOUCHEDFILES AC-2d — no
+      path-sniffing fallback); the defect is that the system can't report when
+      the list is stale for a given model/VS Code version. Recommended: log
+      unmatched tool_names at debug, deduplicated per session, before extending
+      the allowlist — observability first, then extend from evidence not
+      guesses. UPDATE 2026-08-26: user observed live in syspilot's Project
+      Manager session — a doc-creation step showed 'Generating patch ...' in the
+      UI instead of the known
+      create_file/replace_string_in_file/multi_replace_string_in_file flow.
+      CONFIRMED same day: the PM session self-reported it used `apply_patch` to
+      create docs/changes/documentation-truth-review.md directly (bypassing the
+      canonical generate-path/contract-creation function too — a separate
+      process gap). `apply_patch` is now a confirmed, named tool_name missing
+      from touchTracker.ts's TOUCH_RULES allowlist, not just a theoretical gap.
+      Not working this further right now per user (2026-08-26) — captured for
+      when this is picked up."
   - id: 19
-    name: "Ship the three jarvis-actor-* instruction files from jarvis-core instead of hand-copying them per workspace"
+    name: "Ship the three jarvis-actor-* instruction files from jarvis-core instead
+      of hand-copying them per workspace"
     status: Done
     priority: High
-    notes: "2026-08-26. Measured drift across 5 workspaces (jarvis, syspilot, Automobil, Assistant, sonar): kernel has 4 distinct versions with the superset living only in Automobil; sonar's authoring predates the 'write the reason' section; sonar's memory carries a unique memory-first rule. Both consuming projects already gitignore these as extension-delivered, but nothing delivers them — that gap is the root cause. Shipped as CR 'actor-kernel-instructions-delivery', merged to development 2026-08-26 (6a96081). QM CLEARED twice, one Low process finding routed to CM (dispatch template wording). User reversed the prior 'private IP, not for public repo' decision: released under the project's MIT license."
+    notes: "2026-08-26. Measured drift across 5 workspaces (jarvis, syspilot,
+      Automobil, Assistant, sonar): kernel has 4 distinct versions with the
+      superset living only in Automobil; sonar's authoring predates the 'write
+      the reason' section; sonar's memory carries a unique memory-first rule.
+      Both consuming projects already gitignore these as extension-delivered,
+      but nothing delivers them — that gap is the root cause. Shipped as CR
+      'actor-kernel-instructions-delivery', merged to development 2026-08-26
+      (6a96081). QM CLEARED twice, one Low process finding routed to CM
+      (dispatch template wording). User reversed the prior 'private IP, not for
+      public repo' decision: released under the project's MIT license."
   - id: 20
-    name: "Bug: jarvis_whoAmI rejects Project and Event sessions due to hard-coded session kind filter"
+    name: "Bug: jarvis_whoAmI rejects Project and Event sessions due to hard-coded
+      session kind filter"
     status: Done
     priority: High
-    labels: ["bug"]
-    notes: "Confirmed 2026-08-31. Session ID resolved correctly to entity name, but packages/core/src/extension.ts then required e.kind === 'session', rejecting registered Project/Event entities. Fixed by CR whoami-all-entity-kinds: registry lookup is name-only, zero/multiple matches error, Actor/Project/Event coverage added. QM Round 3 CLEAR; merged to development 2026-08-31."
+    labels: [ "bug" ]
+    notes: "Confirmed 2026-08-31. Session ID resolved correctly to entity name, but
+      packages/core/src/extension.ts then required e.kind === 'session',
+      rejecting registered Project/Event entities. Fixed by CR
+      whoami-all-entity-kinds: registry lookup is name-only, zero/multiple
+      matches error, Actor/Project/Event coverage added. QM Round 3 CLEAR;
+      merged to development 2026-08-31."
   - id: 21
-    name: "Entity-name uniqueness across kinds (Actor/Project/Event) is unstated project-wide"
+    name: "Entity-name uniqueness across kinds (Actor/Project/Event) is unstated
+      project-wide"
     status: Backlog
     priority: Low
-    labels: ["observation"]
-    notes: "SD finding while designing whoami-all-entity-kinds (2026-08-31). Jarvis addresses entities by name everywhere — messaging destinations, lookupSessionUUID, getValidDestinations (unions names into a Set) — but no requirement asserts uniqueness across kinds. jarvis_whoAmI AC-11 (this CR) makes that one tool safe under collision (errors rather than guessing), but every other name-addressed path carries the same exposure and was not examined here. Out of scope for a one-predicate fix; candidate for a dedicated requirement/CR later."
+    labels: [ "observation" ]
+    notes: "SD finding while designing whoami-all-entity-kinds (2026-08-31). Jarvis
+      addresses entities by name everywhere — messaging destinations,
+      lookupSessionUUID, getValidDestinations (unions names into a Set) — but no
+      requirement asserts uniqueness across kinds. jarvis_whoAmI AC-11 (this CR)
+      makes that one tool safe under collision (errors rather than guessing),
+      but every other name-addressed path carries the same exposure and was not
+      examined here. Out of scope for a one-predicate fix; candidate for a
+      dedicated requirement/CR later."
   - id: 22
     name: "Verify Engineer protocol: always run full test suite, not just type-check"
     status: Backlog
     priority: Medium
-    labels: ["process"]
-    notes: "QM Round 2 finding on whoami-all-entity-kinds (2026-08-31): val-whoami-all-entity-kinds.md ran npx tsc -p packages/core --noEmit (clean) but never npx vitest run. That's the only reason a 2/406 test regression (stale guarding test not caught by the CR's own impact analysis) reached QM instead of being caught at verification. Candidate fix: amend Verify Engineer's protocol/tailoring to require the full automated suite, not just the type-check, before reporting APPROVED FOR MERGE."
-
+    labels: [ "process" ]
+    notes: "QM Round 2 finding on whoami-all-entity-kinds (2026-08-31):
+      val-whoami-all-entity-kinds.md ran npx tsc -p packages/core --noEmit
+      (clean) but never npx vitest run. That's the only reason a 2/406 test
+      regression (stale guarding test not caught by the CR's own impact
+      analysis) reached QM instead of being caught at verification. Candidate
+      fix: amend Verify Engineer's protocol/tailoring to require the full
+      automated suite, not just the type-check, before reporting APPROVED FOR
+      MERGE."
+  - id: 23
+    name: Remove the entire PIM categories feature
+    status: Backlog
+    notes: "User decision 2026-09-25: remove all PIM categories, not only Outlook
+      categories or US_PIM_CATEGORIES. Scope a separate change to retire the
+      category stories, requirements, tools, sidebar, configuration and other
+      active dependencies consistently. Preserve task-to-project assignment
+      without categories; a labeled first line in the task description (e.g.
+      Project: <name>) is a candidate, not a decision. Resolve parsing, missing
+      or renamed projects and existing tasks before choosing the replacement. Do
+      not fold into one-kind-consolidation; Medium because removal is desired
+      but does not block that change."
+    priority: Medium
+  - id: 24
+    name: Fix Sphinx-Needs dark mode in Jarvis docs
+    status: Backlog
+    notes: "User request 2026-09-25: Sphinx-Needs panels are not readable in dark
+      mode; port the relevant solution from
+      C:/workspace/syspilot/docs/_static/needs-dark-mode.css. Syspilot
+      docs/conf.py loads that CSS through html_static_path/html_css_files;
+      Jarvis docs/conf.py uses Furo but has no custom static CSS. Reuse only the
+      theme-variable overrides for .need, .need_head, .need_part/.need_meta and
+      links; do not copy Syspilot-only ac/vc layout rules. Verify rendered HTML
+      in light and dark Furo modes. Inclusion in the current branch was
+      proposed, then User put the theme work on hold 2026-09-25. CM and System
+      Designer are informed; do not resume spec or implementation work without
+      User approval."
+    priority: Medium
+  - id: 25
+    name: Remove Outlook solution stories
+    status: Backlog
+    notes: "User decision 2026-09-25: remove the entire docs/userstories/us_olk.rst,
+      not only US_OLK_COMBRIDGE. Its Outlook COM/category/task provider stories
+      describe technical solutions rather than distinct user goals. Keep the
+      user-visible Outlook task outcome covered by US_PIM_TASKS (check whether
+      its wording needs adjustment) and retain the task COM capability as
+      requirement-level material; no shared implementation is implied. Reconcile
+      all links and traceability to the removed stories. Coordinate
+      category-dependent material with backlog item #23 (remove PIM categories)
+      without dropping the task integration. Medium because this is a model
+      correction tied to category retirement, not part of the active
+      one-kind-consolidation change."
+    priority: Medium
+  - id: 26
+    name: Make reminder persistence writes atomic
+    status: Backlog
+    notes: "User disposition 2026-09-25: defer QM/VE Finding 8 beyond the active
+      one-kind-consolidation change. `writeReminders` currently writes directly
+      to reminders.yaml; a write failure after truncation/partial write could
+      lose due and future reminders, while the existing injected pop failure
+      test does not exercise that real persistence path. Follow-up: use an
+      atomic persistence strategy that preserves the previous valid file on
+      failure, add a regression for failed write/retry behavior, and verify
+      successful pop still removes due reminders before enqueue. Do not expand
+      the current change for this item."
+    priority: Medium
+  - id: 27
+    name: Simplify Phase 1 Actor UAT to three checks
+    status: Backlog
+    notes: "User decision 2026-09-25: redesign Phase-1 Actor UAT in a separate
+      change run; do not change the active one-kind-consolidation change. User
+      considers Phase 1 complete for now and the software acceptable for
+      continued work, but rejects the existing scripted UAT cases as invalid
+      evidence; do not claim them as PASS. Separate change: replace them with
+      three Actor-centric checks: (1) create an Actor, delete its chat session,
+      reopen that Actor and verify a special word from context.md in the new
+      session; (2) create a second Actor; (3) send a message between the two
+      Actors. Exclude generic heartbeat/reminder delivery, the known-broken
+      legacy tree, and hook-dependent jarvis_whoAmI from Phase-1 user
+      acceptance. Reconcile the current U-2 draft status with the CD inventory;
+      do not claim the draft is approved or rely on U-2 in the current core
+      acceptance. Defer whoAmI recovery until AHP."
+    priority: Medium
+  - id: 28
+    name: Reconcile Reminder tool contracts with shared registry
+    status: Backlog
+    notes: "User disposition of QM Finding 8 (2026-09-25): defer beyond the active
+      one-kind-consolidation change. Follow-up: reconcile
+      REQ_MSG_REMINDERS_TOOLS, SPEC_MSG_REMINDERSTOOLS and examples that
+      prescribe registerDualTool() with the existing
+      engine.registerTool/shared-Core-registry architecture. Do not add
+      redundant registration code; preserve the disclosed live-host transport
+      verification gap. Not a Phase-1 new-Actor defect."
+    priority: Medium
+  - id: 29
+    name: Correct README heartbeat notification wording
+    status: Backlog
+    notes: "User disposition of QM Finding 9 (2026-09-25): defer beyond the active
+      one-kind-consolidation change. Follow-up: update Core README feature
+      wording so heartbeat does not imply sender-initiated Actor activation and
+      VS Code notifications are described as conditional on the destination's
+      auto-delivery preference. Not a Phase-1 new-Actor defect."
+    priority: Low
+  - id: 30
+    name: Correct VE report scope for one-kind-consolidation
+    status: Backlog
+    notes: "User disposition of QM Finding 11 (2026-09-25): defer the VE report
+      scope correction. The Change Document now correctly excludes MCP
+      transport, but val-one-kind-consolidation.md still describes live VS
+      Code/MCP host integration as unverified. Follow-up: scope the report to
+      this change's remaining gaps (registered-tool host invocation and
+      timer/reload), retaining PARTIAL status. This is an evidence-scope
+      correction, not a new-Actor code defect; the QM CLEAR remains unchanged."
+    priority: Medium

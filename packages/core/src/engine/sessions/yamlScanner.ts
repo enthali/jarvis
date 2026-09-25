@@ -44,7 +44,7 @@ export interface KindScanConfig {
     kind: string;
     folderSettingKey: string;
     conventionFile: string;
-    additionalScanRoots?: { folderSettingKey: string; conventionFile: string }[];
+    additionalScanRoots?: { folderSettingKey: string; conventionFile: string; recursive?: boolean }[];
 }
 
 /**
@@ -140,7 +140,13 @@ export class KindDrivenScanner {
             // Additional roots (actor-dualpath-scanner CR) — merge in place
             for (const root of scanConfig.additionalScanRoots ?? []) {
                 const altFolder = this._folderResolver(root.folderSettingKey);
-                const altTree = await this._buildTree(altFolder, newEntities, root.conventionFile, kind as 'project' | 'event' | 'session');
+                const altTree = await this._buildTree(
+                    altFolder,
+                    newEntities,
+                    root.conventionFile,
+                    kind as 'project' | 'event' | 'session',
+                    root.recursive ?? true,
+                );
                 newTree = this._mergeSortedTrees(newTree, altTree);
             }
 
@@ -165,7 +171,13 @@ export class KindDrivenScanner {
         }
     }
 
-    private async _buildTree(folder: string, entities: Map<string, EntityEntry>, conventionFile: string, kind: 'project' | 'event' | 'session'): Promise<TreeNode[]> {
+    private async _buildTree(
+        folder: string,
+        entities: Map<string, EntityEntry>,
+        conventionFile: string,
+        kind: 'project' | 'event' | 'session',
+        recursive = true,
+    ): Promise<TreeNode[]> {
         if (!folder) { return []; }
 
         let entries: fs.Dirent[];
@@ -223,7 +235,7 @@ export class KindDrivenScanner {
                         entities.set(conventionPath, { name: entry.name, kind, folder: fullPath });
                     }
                     nodes.push({ kind: 'leaf', id: conventionPath });
-                } else {
+                } else if (recursive) {
                     const children = await this._buildTree(fullPath, entities, conventionFile, kind);
                     if (children.length > 0) {
                         nodes.push({ kind: 'folder', name: entry.name, children });

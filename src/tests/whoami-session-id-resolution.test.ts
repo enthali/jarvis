@@ -42,8 +42,8 @@ describe('TC-2: session-id resolution via getEntityNameForSessionId', () => {
         expect(extensionSrc).toMatch(/import\s*\{[^}]*getEntityNameForSessionId[^}]*\}\s*from\s*'\.\/engine\/sessions\/sessionLookup'/);
     });
 
-    it('resolves entity name against scanner registry by name only', () => {
-        expect(whoAmISection).toContain('.filter(e => e.name === entityName)');
+    it('resolves entity name through the combined Actor identity resolver', () => {
+        expect(whoAmISection).toContain('resolveActorIdentity(entityName, entitySource, actorScanner)');
         expect(whoAmISection).not.toContain("e.kind === 'session'");
     });
 });
@@ -76,18 +76,29 @@ describe('TC-3: buffer behavioural properties', () => {
     });
 });
 
-describe('TC-4: error paths converge on single error string', () => {
-    it('uses one consistent error message for all failure paths', () => {
+describe('TC-4: identity resolution errors', () => {
+    it('uses the existing error message for non-collision failure paths', () => {
         const errorMsg = 'Unable to determine your identity automatically (hooks disabled or unavailable). Please confirm your identity with the user.';
         expect(whoAmISection).toContain(`const ERROR_MSG = '${errorMsg}'`);
-        // All error returns use ERROR_MSG, not custom strings
         const errorReturns = whoAmISection.match(/error:\s*ERROR_MSG/g);
         expect(errorReturns).not.toBeNull();
-        expect(errorReturns!.length).toBe(4); // no sessionId, no entityName, zero match, multi match
+        expect(errorReturns!.length).toBe(3); // no sessionId, no entityName, zero match
+    });
+
+    it('reports all matching paths for an ambiguous Actor name', () => {
+        expect(whoAmISection).toContain('resolution.paths.join');
+        expect(whoAmISection).toContain('Rename one of the Actors.');
     });
 
     it('does not contain the old "No active tab" error', () => {
         expect(whoAmISection).not.toContain('No active tab');
+    });
+});
+
+describe('REQ_ACTOR_WHOAMI: response compatibility', () => {
+    it('resolves new Actors through ActorScanner and adds their actor.yaml id', () => {
+        expect(whoAmISection).toContain('resolveActorIdentity(entityName, entitySource, actorScanner)');
+        expect(whoAmISection).toContain('JSON.stringify(resolution.payload)');
     });
 });
 

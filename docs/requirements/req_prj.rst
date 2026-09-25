@@ -1,9 +1,16 @@
 Project Requirements
 ====================
 
+.. note::
+   All requirements in this file are `:status: deprecated` as of the
+   one-kind-consolidation CR (Phase 1: parallel world, deprecated in place;
+   physical removal in Phase 2). Project/Event as distinct kinds no longer
+   exist in the new simple-Actor model (ADR-3). The new Actor requirements
+   live in ``req_actor.rst`` (``REQ_ACTOR_*``).
+
 .. req:: Project Folder Filter
    :id: REQ_PRJ_PROJECTFILTER
-   :status: implemented
+   :status: deprecated
    :priority: optional
    :links: US_PRJ_PROJECTFILTER; REQ_PRJ_FILTERPERSIST; REQ_EXP_UNIFIEDTREE
 
@@ -38,7 +45,7 @@ Project Requirements
 
 .. req:: Filter Persistence
    :id: REQ_PRJ_FILTERPERSIST
-   :status: implemented
+   :status: deprecated
    :priority: optional
    :links: US_PRJ_PROJECTFILTER
 
@@ -55,7 +62,7 @@ Project Requirements
 
 .. req:: List Projects LM Tool
    :id: REQ_PRJ_LISTPROJECTS
-   :status: implemented
+   :status: deprecated
    :priority: optional
    :links: US_PRJ_LISTPROJECTS; REQ_EXP_YAMLDATA
 
@@ -84,7 +91,7 @@ Project Requirements
 
 .. req:: jarvis_createProject LM+MCP Tool
    :id: REQ_PRJ_CREATEPROJECT
-   :status: draft
+   :status: deprecated
    :priority: optional
    :links: US_PRJ_CREATEPROJECT; REQ_PRJ_NEWPROJECT; REQ_ACT_AGENT_DISCOVERY
 
@@ -117,7 +124,7 @@ Project Requirements
 
 .. req:: New Project Command
    :id: REQ_PRJ_NEWPROJECT
-   :status: draft
+   :status: deprecated
    :priority: optional
    :links: US_ENT_NEWENTITY; REQ_EXP_REACTIVECACHE; REQ_ENT_AGENTSESSION; REQ_EXP_YAMLDATA; REQ_CFG_FOLDERPATHS
 

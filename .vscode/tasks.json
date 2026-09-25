@@ -4,6 +4,19 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "type": "shell",
+            "label": "open documentation",
+            "command": "echo ${input:openDocumentation}",
+            "problemMatcher": [],
+            "runOptions": {
+                "runOn": "folderOpen"
+            },
+            "presentation": {
+                "reveal": "never",
+                "close": true
+            }
+        },
+        {
             "type": "npm",
             "script": "compile",
             "group": "build",
@@ -94,6 +107,14 @@
             "group": "build",
             "label": "compile all",
             "problemMatcher": "$tsc"
+        }
+    ],
+    "inputs": [
+        {
+            "id": "openDocumentation",
+            "type": "command",
+            "command": "simpleBrowser.show",
+            "args": "file:///C:/workspace/jarvis/docs/_build/html/index.html"
         }
     ]
 }

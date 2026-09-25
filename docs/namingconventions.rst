@@ -44,21 +44,25 @@ Theme Abbreviations
      - Configuration / Settings
      - ``US_CFG_FOLDERS``, ``REQ_CFG_PATHS``
    * - ``PRJ``
-     - Project entity kind (single-kind: project-specific US/REQ/SPEC)
-     - ``US_PRJ_PROJECTFILTER``, ``REQ_PRJ_LISTPROJECTS``
+     - Project entity kind (legacy; removed in one-kind-consolidation Phase 2)
+     - ``US_PRJ_PROJECT``, ``REQ_PRJ_CREATEPROJECT``
    * - ``EVT``
-     - Event entity kind (single-kind: event-specific US/REQ/SPEC, date sorting)
-     - ``US_EVT_DATESORT``, ``REQ_EVT_DATESORT``
+     - Event entity kind (legacy; removed in one-kind-consolidation Phase 2)
+     - ``US_EVT_EVENT``, ``REQ_EVT_LISTEVENTS``
    * - ``ACT``
-     - Actor entity kind (single-kind: Hewitt actor model, ex-"Session" — persistent
-       agent-bound context; mailbox=queue, state=context.md,
-       heartbeat=activator+supervisor; "Session" retired as a Jarvis concept,
-       reserved for platform VS Code/Copilot chat sessions)
+     - Legacy Actor (unified Entity system, removed in one-kind-consolidation
+       Phase 2)
      - ``US_ACT_ACTORS``, ``REQ_ACT_SCHEMA``, ``SPEC_ACT_TREE``
+   * - ``ACTOR``
+     - New simple Actor (one-kind-consolidation Phase 1: parallel world,
+       ``us_actor.rst`` — persona with persistent context, self-activation,
+       and loose session binding)
+     - ``US_ACTOR_ACTORS``, ``REQ_ACTOR_TREE``, ``REQ_ACTOR_CREATE``
    * - ``ENT``
-     - Jarvis Entity (generic, user-facing, cross-kind concepts that apply to
-       ≥ 2 of Project/Event/Actor — has a US level, unlike ENG)
-     - ``US_ENT_ENTITY``, ``REQ_ENT_TREECLICK``, ``SPEC_ENT_AGENT_PICKER``
+     - Jarvis Entity (generic, user-facing; cross-kind concepts — retired
+       after one-kind-consolidation; follow-up rename CR will handle
+       remaining US_ENT_* stories)
+     - ``US_ENT_ENTITY``
    * - ``REL``
      - Release & CI/CD
      - ``US_REL_PUBLISH``, ``REQ_REL_VSIX``

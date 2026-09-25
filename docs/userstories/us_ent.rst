@@ -8,9 +8,9 @@ Jarvis Entity kinds (Project / Event / Actor). Kind-agnostic engine plumbing
 
 .. story:: Jarvis Entity Kinds
    :id: US_ENT_ENTITY
-   :status: draft
+   :status: deprecated
    :priority: mandatory
-   :links: US_EXP_SIDEBAR; US_ENT_OPENYAML; US_ENT_NEWENTITY; US_ENT_SCANREFRESH; US_ENT_CONTENTDETECT; US_ENT_NAMESORT; US_ENT_AGENTSESSION; US_ENT_CONTEXTACTIONS; US_ENT_OPENCONTEXT; US_ENT_AGENTSESSION_PROMPT; US_ENT_ENTITYPARITY; US_ENT_ENTITY_FILES_TREE
+   :links:
 
    **As a** Jarvis user,
    **I want** distinct entity kinds that each focus on their real-world
@@ -19,7 +19,7 @@ Jarvis Entity kinds (Project / Event / Actor). Kind-agnostic engine plumbing
    while sharing one consistent interaction model (agent binding, tree-click
    to chat, uniform file access) across all three.
 
-   **Acceptance Criteria:**
+   **Acceptance Criteria:**  *(Retired — see below.)*
 
    * AC-1: All three kinds (Project, Event, Actor) share the same generic
      interaction model: agent binding, tree-click-to-chat, uniform inline
@@ -29,6 +29,19 @@ Jarvis Entity kinds (Project / Event / Actor). Kind-agnostic engine plumbing
      and does not duplicate the generic behavior specified here.
    * AC-3: This US is the parent for all cross-kind (``ENT``-themed) generic
      User Stories in this file; each child US links back to this one.
+
+   **Retirement (one-kind-consolidation CR):**
+
+   This story is **retired** (status: deleted) by the one-kind-consolidation
+   CR. With the Project and Event entity kinds removed, the "three distinct
+   kinds" premise no longer holds and the cross-kind generic behavior is
+   carried by the surviving stories in this file, each directly. The single
+   surviving kind is specified under ``US_ACT_*`` (one-kind-consolidation CR,
+   ADR-3, ADR-8): US_ACT_TREE (dedicated ACTORS tree), US_ACT_CREATE (one
+   step creation), US_ACT_DUALPATH_STORAGE (dual-path scan), US_ACT_ACTORS
+   (core actor behavior and file conventions). The follow-up ENT→ACT rename CR
+   will move these stories out of this file. See
+   ``docs/changes/one-kind-consolidation.md``.
 
 
 .. story:: Open YAML from Tree Item
@@ -51,40 +64,44 @@ Jarvis Entity kinds (Project / Event / Actor). Kind-agnostic engine plumbing
    * AC-5: Folder nodes do not have this button
 
 
-.. story:: Create New Project or Event
+.. story:: Create a New Actor from the ACTORS Tree
    :id: US_ENT_NEWENTITY
    :status: draft
    :priority: optional
-   :links: US_ENT_ENTITY; US_EXP_SIDEBAR; US_ENT_AGENTSESSION; US_CFG_PROJECTPATH
+   :links: US_EXP_SIDEBAR; US_ENT_AGENTSESSION; US_CFG_PROJECTPATH; US_ACTOR_CREATE
 
    **As a** Jarvis User,
-   **I want** to create a new project or event directly from a ``+`` button in the
-   explorer title bar,
-   **so that** I can quickly scaffold a new entity folder, see it immediately in the
-   sidebar, and start working in its agent session.
+   **I want** to create a new actor from a ``+`` button in the ACTORS tree
+   title bar,
+   **so that** I can quickly scaffold a new actor folder — ``actor.yaml`` plus
+   empty ``context.md`` — see it immediately in the ACTORS tree, and start
+   working in its agent session.
 
    **Acceptance Criteria:**
 
-   * AC-1: A ``+`` icon (``$(add)``) in the Projects title bar triggers
-     ``Jarvis: New Project`` — prompts for a project name, creates
-     ``<raw-name>/project.yaml`` in ``jarvis.projectsFolder`` (verbatim folder
-     name, no slug transformation), triggers a scanner refresh, and opens the
-     agent session
-   * AC-2: A ``+`` icon (``$(add)``) in the Events title bar triggers
-     ``Jarvis: New Event`` — prompts for an event name and a start date
-     (``YYYY-MM-DD``), creates ``<yyyy-MM-dd>_<raw-name>/event.yaml`` in
-     ``jarvis.eventsFolder`` (underscore separator, raw name verbatim), triggers
-     a scanner refresh, and opens the agent session
-   * AC-3: The convention YAML file is pre-populated with a minimal template
-     (``name`` field, plus ``dates`` for events with start = end = input date)
-   * AC-4: If the user cancels any input prompt, the command aborts without side effects
-   * AC-5: The scanner refresh is immediate — the new entity appears in the sidebar
-     without waiting for the next scan interval
-   * AC-6: The commands SHALL NOT appear in the Command Palette (they are only
-     reachable via the title bar icons)
-   * AC-7: Invalid entity names (filesystem-illegal characters, dot-only names,
+   * AC-1: A ``+`` icon (``$(add)``) in the **ACTORS** title bar triggers
+     ``Jarvis: New Actor`` — prompts for an actor name (validation rules of
+     US_ACT_CREATE AC-1), creates ``<actorsFolder>/<name>/actor.yaml`` plus an
+     empty ``context.md`` under ``jarvis.actors.folder`` (default
+     ``.jarvis/actors/``), triggers an immediate scanner refresh, and opens the
+     agent session.
+   * AC-2: The created ``actor.yaml`` is pre-populated with a minimal template
+     (``name: <name>`` plus optional ``agent:`` bound in the follow-up
+     QuickPick — US_ACT_CREATE AC-4).
+   * AC-3: If the user cancels any input prompt, the command aborts without side effects.
+   * AC-4: The command SHALL NOT appear in the Command Palette (it is only
+     reachable via the title bar icon).
+   * AC-5: Invalid actor names (filesystem-illegal characters, dot-only names,
      Windows reserved device names) SHALL be rejected via ``validateInput``
-     inline feedback — same rules as actor creation.
+     inline feedback — same rules as session-name validation.
+   * AC-6: The legacy "New Entity" QuickPick that offered "Project" and "Event"
+     options alongside "Session"/"Actor" no longer exists; actor creation is
+     reached only via the ACTORS title bar (US_ACT_CREATE AC-6).
+
+   **Note (one-kind-consolidation CR):** Project and Event creation (formerly
+   AC-1 Project and AC-2 Event of this story) are removed together with the
+   ``us_prj.rst`` and ``us_evt.rst`` stories; the old
+   ``jarvis.newProject`` / ``jarvis.newEvent`` commands are retired in Phase 2.
 
 
 .. story:: Manual Rescan Button

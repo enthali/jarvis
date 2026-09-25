@@ -3,9 +3,11 @@ Create Project Tool User Acceptance Tests
 
 .. story:: Create Project LM Tool Acceptance Tests
    :id: US_UAT_CREATEPROJECT
-   :status: draft
+   :status: deprecated
    :priority: optional
    :links: US_PRJ_CREATEPROJECT; REQ_PRJ_CREATEPROJECT
+
+   **Note:** Retired in the one-kind-consolidation CR (Phase 1: parallel, deprecated in place; removed in Phase 2).
 
    **As a** Jarvis Test Engineer,
    **I want** manual acceptance test scenarios for the ``jarvis_createProject``

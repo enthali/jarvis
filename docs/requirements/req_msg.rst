@@ -314,10 +314,10 @@ Message Queue Requirements
 
 
 .. req:: Auto-Delivery Configuration Store
-   :id: REQ_MSG_AUTODELIVER_CONFIG
-   :status: implemented
-   :priority: optional
-   :links: US_MSG_AUTODELIVERY; REQ_MSG_QUEUE; REQ_CFG_FIXEDPATHS
+  :id: REQ_MSG_AUTODELIVER_CONFIG
+  :status: approved
+  :priority: optional
+  :links: US_MSG_AUTODELIVERY; REQ_MSG_QUEUE; REQ_CFG_FIXEDPATHS
 
    **Description:**
    The extension SHALL maintain a persistent JSON file at
@@ -340,6 +340,9 @@ Message Queue Requirements
      updated file
    * AC-6: If the file is malformed, the extension SHALL fall back to an empty
      list and log a warning
+   * AC-7: Heartbeat jobs and reminders SHALL NOT add or remove destinations
+     from this list when sending messages. A destination absent from the list
+     remains eligible for manual notification of its queued messages.
 
 
 .. req:: Auto-Delivery Poll Loop
@@ -971,16 +974,17 @@ Message Queue Requirements
 
 
 .. req:: Reminder Delivery via Poll Loop
-   :id: REQ_MSG_REMINDERS_DELIVER
-   :status: draft
-   :priority: optional
-   :links: US_MSG_REMINDERS; REQ_MSG_REMINDERS_PERSIST; REQ_MSG_AUTODELIVER_POLL; REQ_MSG_QUEUE; REQ_MSG_AUTODELIVER_CONFIG
+  :id: REQ_MSG_REMINDERS_DELIVER
+  :status: draft
+  :priority: optional
+  :links: US_MSG_REMINDERS; REQ_MSG_REMINDERS_PERSIST; REQ_MSG_AUTODELIVER_POLL; REQ_MSG_QUEUE; REQ_MSG_AUTODELIVER_CONFIG
 
-   **Description:**
-   The existing 5-second poll loop SHALL be extended to check for due reminders
-   and deliver them automatically via the auto-delivery pipeline.
+  **Description:**
+  The existing 5-second poll loop SHALL be extended to check for due reminders
+  and queue their messages. The existing auto/manual message-delivery policy
+  SHALL then govern notification.
 
-   **Acceptance Criteria:**
+  **Acceptance Criteria:**
 
    * AC-1: On each tick, after the existing auto-delivery handling, the loop
      SHALL call ``popDueReminders(remindersPath, now)`` to retrieve all reminders
@@ -988,13 +992,14 @@ Message Queue Requirements
    * AC-2: For each due reminder, the loop SHALL call
      ``appendMessage(messagesPath, session, 'Reminder', text)`` to enqueue the
      message for delivery
-   * AC-3: For each due reminder, the loop SHALL call
-     ``addAutoDelivery(messagesPath, session)`` (idempotent) to ensure the target
-     session is on the auto-delivery list so the message is picked up on the
-     next tick
-   * AC-4: After enqueuing, the reminder SHALL be removed from ``reminders.yaml``
-     (handled by ``popDueReminders``) — it MUST NOT be re-delivered
-   * AC-5: The Messages tree SHALL refresh after reminder delivery
+   * AC-3: Enqueueing a due reminder SHALL NOT change the target's
+     auto-delivery preference. For a target already on the auto-delivery list,
+     the existing poll loop SHALL notify on a subsequent tick; otherwise the
+     message SHALL remain available for manual notification.
+   * AC-4: ``popDueReminders`` SHALL remove each due reminder from
+     ``reminders.yaml`` before the loop attempts to enqueue it. A failed queue
+     append SHALL NOT restore or retry that reminder (at-most-once processing).
+   * AC-5: The Messages tree SHALL refresh after reminder enqueueing
    * AC-6: Errors in reminder processing SHALL be caught, logged as warnings,
      and SHALL NOT stop the poll loop
 

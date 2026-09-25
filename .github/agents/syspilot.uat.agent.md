@@ -2,7 +2,6 @@
 name: "Test Designer"
 agent: syspilot.uat
 description: "Subagent that designs User Acceptance Test artifacts (stories, requirements, design specs) for a Change Document. Designs test scenarios for human execution."
-model: Qwen3.8-27B Aphrodite (customendpoint)
 user-invocable: true
 agents: []
 ---

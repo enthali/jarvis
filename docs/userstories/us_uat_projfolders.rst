@@ -85,9 +85,9 @@ Convention-File Model User Acceptance Tests
 
 .. story:: Empty-Branch Pruning Acceptance Tests
    :id: US_UAT_EVENTFILTER
-   :status: approved
+   :status: deprecated
    :priority: optional
-   :links: US_EVT_EVENTFILTER; REQ_EVT_EVENTFILTER; REQ_EXP_TREEVIEW
+   :links: REQ_EXP_TREEVIEW
 
    **As a** Jarvis Test Engineer,
    **I want** manual acceptance test scenarios for empty-branch pruning in
@@ -132,3 +132,11 @@ Convention-File Model User Acceptance Tests
      Expected: ``invalid-bad-status`` leaf remains visible (fail-open behaviour).
      Its parent grouping folder (if any) is not pruned because it has a visible
      descendant.
+
+   **Removal (one-kind-consolidation CR):**
+
+   This UAT is **retired** (status: deprecated) because it tests the
+   future-event filter (US_EVT_EVENTFILTER) and the resulting empty-branch
+   pruning — both removed together with the Event entity kind. The test
+   scenarios above are retained as historical context only. See
+   ``docs/changes/one-kind-consolidation.md``.

@@ -35,6 +35,7 @@ Three files, strict separation of concerns:
 - Artefakt-Removal-Check (b): re-grep `docs/releasenotes.md` on every removal-CR — commonly missed; hits there classify as (c) historic stranding.
 - Gate routing: ALL QM output (verdict + findings) goes exclusively to PM, never to CM directly — CM is a pipeline orchestrator with no content authority, regardless of who sent the review request.
 - Full-suite build: for any code-touching CR, run the `compile all` task before the verdict — cross-package coupling can break a consumer package the touched package's own build wouldn't catch.
+- Scope claims: never trust CD/VE text about which modules a change touches or leaves unverified — verify with `git diff --stat <baseline>...<branch> -- <path>` directly (see [lessons-learned.md](memory/lessons-learned.md)).
 - Assume spec root cause: a code-level bug traces to either a wrong/incomplete SPEC/REQ or a link-graph gap that hid the impact — route findings to System Designer first, not just Dev Engineer.
 - Spec-vs-code conflicts are escalated to PM/user for a ruling, never resolved by QM+CM alone — a spec may simply not have caught up to an out-of-band product decision yet.
 
