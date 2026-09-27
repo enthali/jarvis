@@ -103,27 +103,46 @@
 
 ## Active CR
 
-- **one-kind-consolidation** — scaffolded 2026-09-20 (branch `feature/one-kind-consolidation`).
-  Consolidate Actor/Event/Project into single `Actor` kind with configurable root path.
-  Operation Mode: user-guided. Phase 1 builds the new simple Actor; Phase 2 removes
-  the old code. After both phases, upgrade to Syspilot 0.10 in this release, then
-  clean up the project ontology under 0.10 because the current ontology is unsatisfactory.
-  AHP is tentatively planned after that cleanup; confirm the sequencing later.
-  Target: breaking change; release version TBD.
+- **No active CR (2026-09-27)** — `one-kind-consolidation` Phase 1 (merged
+  2026-09-25, `8a0e45f`) and Phase 2 `retire-legacy-actor-kinds` (merged
+  2026-09-27, `1a30326`) both shipped to `development`; old kind-based
+  Project/Event/Actor code and specs are gone, single consolidated Actor
+  kind is live.
+- **Open sequencing decision (2026-09-27, user decides next session)**:
+  user needs backlog #42 (Actor identity via agent mode, replaces
+  `jarvis_whoAmI`) and #41 (Recorder redesign) for their own job — both
+  would double as a practical test of migrating to Syspilot 0.10 (already
+  on `development`, not yet adopted here). Open question the user is
+  weighing: clean up the project ontology under 0.10 *before* that
+  migration, or deliberately defer the ontology cleanup since it delivers
+  no functional benefit on its own and #42/#41 are the urgent items. User
+  will decide next session whether to start with the Syspilot 0.10 update
+  or with #42 first — do not assume either order, ask.
 - **WhoAmI follow-up** — defer hook-dependent `jarvis_whoAmI` recovery until AHP;
-  non-core and not a Phase-1 acceptance blocker.
-- **Phase 1 user checkpoint (2026-09-25)** — User considers Phase 1 complete for
-  now and the software acceptable for continued work. Existing UAT scripts are
-  not considered valid PASS evidence; redesign/clean up the Actor UAT in a
-  separate change run tracked by backlog #27, not in the active CR.
-- **Post-change watch: private Actor repo** — after the active CR, remove `.jarvis/actors/`
-  from OSS Git tracking without deleting local files, ignore it in OSS, then initialize
-  a separate private repo in that folder and connect it to a new private GitHub repo.
-  Keep Actors in place until the configurable external path is released; existing
-  public Git history is not erased by this move.
+  superseded by backlog #42's agent-mode identity approach once that lands.
+- **Post-change watch: private Actor repo** — after a future active CR, remove
+  `.jarvis/actors/` from OSS Git tracking without deleting local files, ignore
+  it in OSS, then initialize a separate private repo in that folder and connect
+  it to a new private GitHub repo. Keep Actors in place until the configurable
+  external path is released; existing public Git history is not erased by this
+  move.
 
 ## Recently Shipped
 
+- **retire-legacy-actor-kinds merged** 2026-09-27 into `development` (`1a30326`,
+  pushed). Phase 2 of one-kind-consolidation: old kind-based Project/Event/
+  legacy-Actor specs and code fully removed (not just deprecated); backlog
+  #31/#32 gaps ported into the Actor kind first, per user's port-before-delete
+  decision. QM Round 4 CLEAR (direct); VE PASSED. User validated core
+  behavior manually (Actor creation, messaging, auto-delivery, path change).
+  One user-found regression during that manual test — `packages/flow`'s
+  activation guard wasn't updated for this change's `JarvisCoreApi.version`
+  bump to 2, so Flow silently failed to activate — fixed (`6df1b5e`) and
+  user-confirmed via manual smoke-check. Formal User UAT deliberately NOT RUN,
+  deferred to backlog #40 (UAT ontology redesign). Also fixed as a same-session
+  tooling lesson: an EDH hang some rounds in was NOT a code/profile defect but
+  the local F5 debugger-attach handshake — use Ctrl+F5 ("Run Without
+  Debugging") when validating, not debugging; recorded in Working Principles.
 - **v0.27.2 released** 2026-09-19 (tag `v0.27.2` on `main` at `b7bbfa8`,
   back-merged to `development` at `c1036bd`). Patch release of two fixes:
   (1) `whoami-hookless-error` — honest error message when hooks disabled
