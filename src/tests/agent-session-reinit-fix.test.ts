@@ -3,10 +3,9 @@
  * notification-agent-mode-reset (#54).
  *
  * TC-1: No submission when text is ''
- * TC-2: New session path injects init prompt via sendPromptModeSetting
+ * TC-2: New session path injects init prompt via sendPromptModeSetting (no skip option)
  * TC-3: Init prompt content comes from injectPrompt.ts DEFAULT_INIT_PROMPT, not extension.ts
- * TC-4: extension.ts callers pass empty string, not skipInitPrompt
- * TC-5: coreApi.ts openActorSession passes empty string (no local composition)
+ * TC-4: extension.ts's jarvis.openActorSession passes empty string, no skipInitPrompt
  * TC-6: Mode-preserving submission for existing sessions (#54)
  */
 import { describe, it, expect } from 'vitest';
@@ -17,7 +16,6 @@ const coreSrcDir = path.resolve(__dirname, '..', '..', 'packages', 'core', 'src'
 const injectPromptSrc = fs.readFileSync(
     path.join(coreSrcDir, 'engine', 'sessions', 'injectPrompt.ts'), 'utf-8');
 const extensionSrc = fs.readFileSync(path.join(coreSrcDir, 'extension.ts'), 'utf-8');
-const coreApiSrc = fs.readFileSync(path.join(coreSrcDir, 'engine', 'core', 'coreApi.ts'), 'utf-8');
 
 describe('TC-1: empty text does not trigger submission', () => {
     it('step 4 in injectPrompt.ts guards on non-empty text', () => {
@@ -27,17 +25,13 @@ describe('TC-1: empty text does not trigger submission', () => {
 });
 
 describe('TC-2: new session path injects init prompt via DEFAULT_INIT_PROMPT', () => {
-    it('branch 3b calls sendPromptModeSetting with initPrompt when skipInitPrompt is false', () => {
+    it('branch 3b calls sendPromptModeSetting with initPrompt', () => {
         // In the "new session" branch, the init prompt is built and sent via mode-setting variant
         expect(injectPromptSrc).toContain('await sendPromptModeSetting(initPrompt)');
     });
 
-    it('skipInitPrompt defaults to false', () => {
-        expect(injectPromptSrc).toMatch(/skipInitPrompt\s*=\s*options\?\.skipInitPrompt\s*\?\?\s*false/);
-    });
-
-    it('init prompt is only sent when !skipInitPrompt', () => {
-        expect(injectPromptSrc).toMatch(/if\s*\(!skipInitPrompt\)/);
+    it('the init prompt is always sent for a new session — no skip option exists', () => {
+        expect(injectPromptSrc).not.toContain('skipInitPrompt');
     });
 });
 
@@ -68,43 +62,15 @@ describe('TC-3: init prompt owned by injectPrompt.ts DEFAULT_INIT_PROMPT', () =>
 });
 
 describe('TC-4: extension.ts callers pass empty string and no skipInitPrompt', () => {
-    it('openAgentSession calls injectPrompt with empty text', () => {
+    it('openActorSession calls injectPrompt with empty text', () => {
         // Should contain: injectPrompt(entity.name, '', { placement: 'main' })
         expect(extensionSrc).toMatch(/injectPrompt\(entity\.name,\s*'',\s*\{\s*placement:\s*'main'\s*\}\)/);
     });
 
-    it('newActor calls injectPrompt with empty text', () => {
-        // Should contain: injectPrompt(nameInput, '', { placement: 'main' })
-        expect(extensionSrc).toMatch(/injectPrompt\(nameInput,\s*'',\s*\{\s*placement:\s*'main'\s*\}\)/);
-    });
-
-    it('neither caller passes skipInitPrompt: true', () => {
+    it('newActor does not pass skipInitPrompt', () => {
         // Count occurrences of skipInitPrompt in extension.ts — should be zero
         const matches = extensionSrc.match(/skipInitPrompt/g);
         expect(matches).toBeNull();
-    });
-});
-
-describe('TC-5: coreApi.ts openActorSession passes empty string', () => {
-    it('openActorSession calls injectPrompt with empty text', () => {
-        expect(coreApiSrc).toMatch(/inject\(entityName,\s*'',\s*\{\s*placement:/);
-    });
-
-    it('openActorSession does not compose a local defaultInitPrompt', () => {
-        // The openActorSession method should not contain any init prompt template
-        const methodStart = coreApiSrc.indexOf('async openActorSession');
-        const methodEnd = coreApiSrc.indexOf('}', coreApiSrc.indexOf('return inject', methodStart));
-        const methodBody = coreApiSrc.slice(methodStart, methodEnd);
-        expect(methodBody).not.toContain('defaultInitPrompt');
-        expect(methodBody).not.toContain('initTemplate');
-        expect(methodBody).not.toContain('rawTemplate');
-    });
-
-    it('openActorSession does not pass skipInitPrompt', () => {
-        const methodStart = coreApiSrc.indexOf('async openActorSession');
-        const methodEnd = coreApiSrc.indexOf('}', coreApiSrc.indexOf('return inject', methodStart));
-        const methodBody = coreApiSrc.slice(methodStart, methodEnd);
-        expect(methodBody).not.toContain('skipInitPrompt');
     });
 });
 

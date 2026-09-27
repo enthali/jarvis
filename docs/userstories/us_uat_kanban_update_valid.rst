@@ -13,11 +13,6 @@ Kanban Update Validation Acceptance Tests
    **so that** I can verify that ``jarvis_updateKanbanItem`` now applies the
    shared write-validation contract to all fields, not only ``status``.
 
-   These scenarios are additive to ``US_UAT_KANBAN`` (which covers the
-   pre-existing happy path and error paths). Existing scenario T-22 in
-   ``SPEC_UAT_KANBAN`` has been amended by this CR to reflect the new
-   behaviour (``id`` in ``changes`` now returns an error).
-
    Module integration (compile/package/CI) is out of UAT scope.
 
    **Behaviour changes requiring UAT coverage:**
@@ -28,8 +23,8 @@ Kanban Update Validation Acceptance Tests
      a built-in property now returns an error (previously written and never
      rendered — the GH #57 trap).
    * BC-3: ``id`` in ``changes`` now returns an error instead of silently
-     dropping the key and returning ``updated: true`` (covered by
-     amended T-22 in ``SPEC_UAT_KANBAN``).
+     dropping the key and returning ``updated: true`` (its scenario belonged
+     to the former kanban UAT; coverage is open, PM backlog #40).
 
    **Acceptance Criteria:**
 

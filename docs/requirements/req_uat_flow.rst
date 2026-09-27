@@ -33,8 +33,7 @@ Message Flow Visualization UAT Requirements
      no ``message-log.json`` exists (default logging-disabled state) —
      no fixture file is needed for this case.
    * AC-4: The Extension Development Host launch used for these scenarios
-     includes ``enthali.jarvis-flow`` alongside the core, per
-     ``REQ_UAT_MODULAR_INSTALL``.
+     includes ``enthali.jarvis-flow`` alongside the core.
    * AC-5: No new test-data files are required for the live-tracking and
      identity-anchoring scenarios (rank-shift-after-poll behavior) — these
      are exercised procedurally, by triggering additional heartbeat

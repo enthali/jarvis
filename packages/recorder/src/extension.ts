@@ -4,14 +4,14 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import type { JarvisCoreApi, TreeItemDecorator, TreeNode, LeafNode, HeartbeatJob } from 'jarvis-core';
+import type { JarvisCoreApi, HeartbeatJob } from 'jarvis-core';
 import { RecordingManager } from './recording';
 
 const subscriptions: vscode.Disposable[] = [];
 
 export function activate(context: vscode.ExtensionContext): void {
     const api = vscode.extensions.getExtension<JarvisCoreApi>('enthali.jarvis-core')?.exports;
-    if (!api || api.version !== 1) {
+    if (!api || api.version !== 2) {
         const log = vscode.window.createOutputChannel('Jarvis Recorder', { log: true });
         log.warn('[Recorder] Core API not available or version mismatch — deactivating.');
         return;
@@ -22,27 +22,6 @@ export function activate(context: vscode.ExtensionContext): void {
     // --- Recording Manager ---
     const recordingManager = new RecordingManager();
     recordingManager.setLog(log as unknown as vscode.LogOutputChannel);
-
-    // --- Recording highlight decorator (SPEC_REC_BUTTON via seam inversion) ---
-    // Decorates project/event leaves whose name matches the currently recording project.
-    // Registered on BOTH kinds; harmless no-op if the kind doesn't exist (PIM not installed).
-    const highlightDecorator: TreeItemDecorator = {
-        decorate(item: vscode.TreeItem, node: TreeNode, _kind: string): void {
-            if (node.kind !== 'leaf') { return; }
-            // Derive entity name from the leaf id (path to YAML)
-            const entityName = path.basename(path.dirname((node as LeafNode).id));
-            if (recordingManager.currentProject && entityName === recordingManager.currentProject) {
-                item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('charts.red'));
-            }
-        }
-    };
-
-    // Register decorator on project and event kinds.
-    // If PIM is not installed, these kinds don't exist — registerDecorator returns
-    // a disposable that is effectively a no-op (SPEC_MOD_REC_PKG AC-3).
-    const projectDecoratorDisp = api.registerDecorator('project', highlightDecorator);
-    const eventDecoratorDisp = api.registerDecorator('event', highlightDecorator);
-    subscriptions.push(projectDecoratorDisp, eventDecoratorDisp);
 
     // --- Status bar (SPEC_REC_STATUSBAR) ---
     const recordingStatusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 10);
@@ -70,18 +49,12 @@ export function activate(context: vscode.ExtensionContext): void {
         if (recordingManager.currentProject) {
             updateRecordingStatusBar();
             recordingTimer = setInterval(updateRecordingStatusBar, 1000);
-            // Refresh kinds so highlight decorator shows
-            api.refreshKind('project');
-            api.refreshKind('event');
         } else {
             if (recordingTimer) {
                 clearInterval(recordingTimer);
                 recordingTimer = undefined;
             }
             recordingStatusBar.hide();
-            // Refresh kinds so highlight decorator clears
-            api.refreshKind('project');
-            api.refreshKind('event');
         }
     });
 
@@ -91,8 +64,8 @@ export function activate(context: vscode.ExtensionContext): void {
         async (element?: { id?: string }) => {
             let name: string;
             if (element?.id) {
-                const entity = api.getEntity(element.id);
-                name = entity?.name ?? path.basename(path.dirname(element.id));
+                const actor = api.listActors().find(a => a.id === element.id);
+                name = actor?.name ?? path.basename(path.dirname(element.id));
             } else {
                 const input = await vscode.window.showInputBox({ prompt: 'Recording name' });
                 if (!input) { return; }

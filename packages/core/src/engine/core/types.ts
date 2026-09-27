@@ -1,92 +1,7 @@
-// Implementation: SPEC_ENG_API, SPEC_ENG_REGISTER_KIND, SPEC_ENG_REGISTER_TOOL
-// Requirements: REQ_ENG_CONTRACT, REQ_ENG_TOOLNS
+// Implementation: SPEC_ENG_API, SPEC_ENG_REGISTER_TOOL, SPEC_ENG_TOOLREGISTRY, SPEC_ENG_ACTORLIST
+// Requirements: REQ_ENG_CONTRACT, REQ_ENG_TOOLNS, REQ_ENG_ACTORLIST
 
 import type * as vscode from 'vscode';
-import type { TreeNode } from '../sessions/yamlScanner';
-
-/**
- * A recursive subtree node descriptor returned by a children provider.
- * Each node may itself have children, enabling arbitrary-depth trees
- * below an entity leaf (e.g. entity → taskGroup → taskLeaf).
- */
-export interface SubtreeNode {
-    /** Unique id for this node (e.g. task URI string, group id). */
-    id: string;
-    /** Display label (may include counts, e.g. "Uncategorized (3)"). */
-    label: string;
-    /** Optional tooltip. */
-    tooltip?: string;
-    /** Command to execute on click (default: none). */
-    command?: vscode.Command;
-    /** contextValue for when-clause scoping (default: derived from kind + 'Child'). */
-    contextValue?: string;
-    /**
-     * Collapsible state for this node.
-     * - 'collapsed' → TreeItemCollapsibleState.Collapsed
-     * - 'expanded' → TreeItemCollapsibleState.Expanded
-     * - 'none' (default if omitted) → TreeItemCollapsibleState.None (leaf)
-     */
-    collapsibleState?: 'collapsed' | 'expanded' | 'none';
-    /** Icon for this node (ThemeIcon, Uri, or {light, dark} pair). */
-    iconPath?: vscode.ThemeIcon | vscode.Uri | { light: vscode.Uri; dark: vscode.Uri };
-    /** Child nodes (recursive). Empty or omitted → leaf node. */
-    children?: SubtreeNode[];
-}
-
-/**
- * Configuration for an entity kind registered with the engine.
- */
-export interface EntityKindConfig {
-    /** Stable kind discriminator, e.g. 'session' | 'project' | 'event'. */
-    kind: string;
-    /** View id declared in the OWNING extension's package.json. */
-    viewId: string;
-    /** Settings key holding this kind's scan folder (read by the engine). */
-    folderSettingKey: string;
-    /** Display-label factory for tree items of this kind.
-     *  Receives the entity name and optionally the full entity data for kinds
-     *  that derive labels from entity fields (e.g. event datesStart prefix). */
-    label(name: string, entity?: { data: Record<string, unknown> }): string;
-
-    /**
-     * Additional (folderSettingKey, conventionFile) roots scanned and
-     * merged into this kind's tree/entities, alongside the primary
-     * (folderSettingKey, `${kind}.yaml`) root. Optional; unused by
-     * Project/Event. Used by the session/actor kind
-     * (actor-dualpath-scanner CR) to add the `.jarvis/actors/`/
-     * `actor.yaml` convention without touching the primary
-    * `.jarvis/sessions/`/`session.yaml` root. Set `recursive` to false
-    * for convention roots that recognize direct children only; omitted
-    * values preserve recursive legacy scanning.
-     */
-    additionalScanRoots?: { folderSettingKey: string; conventionFile: string; recursive?: boolean }[];
-
-    // --- Optional tree-rendering hooks (S5 generalization) ---
-
-    /**
-     * Return a subtree of nodes for an entity.
-     * If omitted or returns empty/undefined, the entity renders as a flat
-     * leaf (CollapsibleState.None) — session-compatible default.
-     * If non-empty, the entity renders as CollapsibleState.Collapsed
-     * (the user expands it on demand).
-     * Subtree nodes are recursive — a node with its own children array
-     * renders as a parent at arbitrary depth.
-     */
-    getChildren?(entity: { name: string; filePath: string; data: Record<string, unknown> }): SubtreeNode[] | undefined;
-
-    /**
-     * Command to execute on single-click of an entity leaf node.
-     * Receives the TreeNode representing the entity.
-     * Default (if omitted): { command: 'jarvis.openAgentSession', title: 'Open', arguments: [node] }
-     */
-    leafCommand?(node: TreeNode): vscode.Command;
-
-    /**
-     * Tooltip for an entity leaf node.
-     * Default (if omitted): entity.summary (the YAML summary field).
-     */
-    leafTooltip?(entity: { name: string; summary?: string; data: Record<string, unknown> }): string | vscode.MarkdownString | undefined;
-}
 
 /**
  * Handler signature for tools registered with the engine.
@@ -122,25 +37,14 @@ export interface ModuleAssetConfig {
 }
 
 /**
- * Decoration contributor interface.
- * Add-ons can register a decorator for their own kind's tree items
- * without the engine knowing the decoration logic (SPEC_ENG_API).
+ * An Actor as exposed by the Jarvis core API (SPEC_ENG_ACTORLIST).
  */
-export interface TreeItemDecorator {
-    /** Called after the engine builds a base TreeItem; may mutate it in place. */
-    decorate(item: vscode.TreeItem, node: TreeNode, kind: string): void;
-}
-
-/**
- * A session entity as exposed by the Jarvis core API.
- * All optional fields are normalized to empty string for consistent shape.
- */
-export interface JarvisSession {
+export interface JarvisActor {
     name: string;
     summary: string;
     agent: string;
-    kind: string;
     folder: string;
+    id: string;
 }
 
 /**
@@ -149,36 +53,14 @@ export interface JarvisSession {
  */
 export interface JarvisCoreApi {
     /** Contract version — add-ons MUST check before using newer fields. */
-    readonly version: 1;
-    registerEntityKind(config: EntityKindConfig): vscode.Disposable;
+    readonly version: 2;
+
     registerTool(name: string, description: string, handler: ToolHandler): vscode.Disposable;
-    registerDecorator(kind: string, decorator: TreeItemDecorator): vscode.Disposable;
-    /** Get the TreeDataProvider for a registered kind (for creating tree views). */
-    getTreeDataProvider(kind: string): vscode.TreeDataProvider<unknown> | undefined;
-    /** Trigger a tree-view refresh for a specific kind. */
-    refreshKind(kind: string): void;
-    /** Get the tree nodes for a registered kind. */
-    getTreeForKind(kind: string): import('../sessions/yamlScanner').TreeNode[];
-    /** Get an entity by its id (YAML file path). */
-    getEntity(id: string): import('../sessions/yamlScanner').EntityEntry | undefined;
-    /** Trigger a full rescan of all registered kinds. */
-    rescan(): Promise<void>;
 
-    // --- Filter API (SPEC_PRJ_FILTERCOMMAND, SPEC_EVT_EVENTFILTER_CMD) ---
+    // --- Actor listing API (SPEC_ENG_ACTORLIST) ---
 
-    /** Set hidden folders for project kind filter. */
-    setHiddenFolders(kind: string, folders: Set<string>): void;
-    /** Get hidden folders for project kind filter. */
-    getHiddenFolders(kind: string): Set<string>;
-    /** Set future-only filter for event kind. */
-    setFutureOnly(kind: string, value: boolean): void;
-    /** Get future-only filter state for event kind. */
-    isFutureOnly(kind: string): boolean;
-
-    // --- Session listing API (SPEC_ENG_SESSIONLIST, SPEC_MSG_JARVISSESSIONS) ---
-
-    /** List all Jarvis sessions across all kinds (Sessions, Projects, Events, ...). */
-    listJarvisSessions(): JarvisSession[];
+    /** Pure projection of the Actor scanner cache — no fs access, [] if none. */
+    listActors(): JarvisActor[];
 
     // --- Heartbeat job API (SPEC_ENG_HEARTBEAT_JOBAPI) ---
 
@@ -207,17 +89,8 @@ export interface JarvisCoreApi {
      */
     sendMessage(destination: string, sender: string, text: string): void;
 
-    // --- Actor Session API (SPEC_PIM_OPENACTORSESSION) ---
-
-    /**
-     * Open (or spawn) the chat session for a named entity and send the
-     * init prompt. The entity must already exist in the scanner cache
-     * (call rescan() first if just created). Core resolves folder, kind,
-     * agent, and contextPath internally — callers need no prompt knowledge.
-     */
-    openActorSession(entityName: string, options?: { placement?: 'main' | 'secondary' }): Promise<void>;
-
     // --- Module asset provisioning (SPEC_MOD_SKILL_PROVISION) ---
 
     provisionModuleAssets(context: vscode.ExtensionContext, config: ModuleAssetConfig): Promise<void>;
 }
+

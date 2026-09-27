@@ -1,24 +1,6 @@
 Configuration User Stories
 ==========================
 
-.. story:: Configurable Project and Event Folder Paths
-   :id: US_CFG_PROJECTPATH
-   :status: approved
-   :priority: mandatory
-   :links: US_AUT_HEARTBEAT
-
-   **As a** Jarvis User,
-   **I want** to configure the folder paths where Jarvis looks for project and event YAML files,
-   **so that** I can point the extension to my own storage locations.
-
-   **Acceptance Criteria:**
-
-   * AC-1: A VS Code setting ``jarvis.projectsFolder`` accepts an absolute folder path for projects
-   * AC-2: A VS Code setting ``jarvis.eventsFolder`` accepts an absolute folder path for events
-   * AC-3: A VS Code setting ``jarvis.scanInterval`` controls background refresh interval
-     in minutes (default: 2, value 0 disables automatic scanning)
-   * AC-4: Changing a folder setting immediately triggers a rescan
-
 .. story:: Heartbeat Config File Location
    :id: US_CFG_HEARTBEAT
    :status: implemented
@@ -69,7 +51,7 @@ Configuration User Stories
    :id: US_CFG_SETTINGSGROUPS
    :status: deprecated
    :priority: mandatory
-   :links: US_CFG_PROJECTPATH; US_CFG_HEARTBEAT; US_CFG_MSG
+   :links: US_CFG_HEARTBEAT; US_CFG_MSG
 
    **Superseded by:** ``US_CFG_GROUPS`` (settings-cleanup CR, 2026-05-18).
    The original "presentation-only" guarantee no longer holds: the
@@ -95,7 +77,7 @@ Configuration User Stories
 
 .. story:: Per-Feature Enable Toggles
    :id: US_CFG_FEATURETOGGLES
-   :status: implemented
+   :status: approved
    :priority: required
 
    **As a** Jarvis user,
@@ -104,23 +86,17 @@ Configuration User Stories
 
    **Acceptance Criteria:**
 
-   * AC-1: A boolean setting ``jarvis.projects.enabled`` (default: ``false``) enables
-     or disables the Projects feature. When disabled, no Projects tree view, commands,
-     or tools are registered.
-   * AC-2: A boolean setting ``jarvis.events.enabled`` (default: ``false``) enables
-     or disables the Events feature. When disabled, no Events tree view, commands,
-     or tools are registered.
-   * AC-3: A boolean setting ``jarvis.heartbeat.enabled`` (default: ``true``) enables
+   * AC-1: A boolean setting ``jarvis.heartbeat.enabled`` (default: ``true``) enables
      or disables the Heartbeat feature. When disabled, no Heartbeat tree view,
      scheduler, or tools are registered.
-   * AC-4: A boolean setting ``jarvis.messages.enabled`` (default: ``true``) enables
+   * AC-2: A boolean setting ``jarvis.messages.enabled`` (default: ``true``) enables
      or disables the Messages feature. When disabled, no Messages tree view, commands,
      or tools are registered.
-   * AC-5: A boolean setting ``jarvis.reminders.enabled`` (default: ``true``) enables
+   * AC-3: A boolean setting ``jarvis.reminders.enabled`` (default: ``true``) enables
      or disables the Reminders feature. When disabled, no Reminders tree view or tools
      are registered. Reminders is a sub-feature of Messages (only available when
      Messages is also enabled).
-   * AC-6: A boolean setting ``jarvis.mcp.enabled`` (default: ``false``) enables or
+   * AC-4: A boolean setting ``jarvis.mcp.enabled`` (default: ``false``) enables or
      disables the MCP server. When disabled, the embedded MCP server does not start.
    * When a feature is disabled, none of that feature's tree views, commands, tools,
      or timers are registered during extension activation.
@@ -302,17 +278,16 @@ Configuration User Stories
 
 .. story:: Grouped Settings Organization
    :id: US_CFG_GROUPS
-   :status: implemented
+   :status: approved
    :priority: required
 
    **As a** Jarvis user,
-   **I want** settings organized into clearly named groups (Projects, Events,
-   Sessions, Messages, Heartbeat, Reminders, MCP, PIM, Outlook, Recording,
-   Updates)
+   **I want** settings organized into clearly named groups — Jarvis core
+   groups plus one group per installed add-on
    **so that** settings are discoverable without scrolling through a flat list.
 
    **Acceptance Criteria:**
 
-   * AC-8: The VS Code Settings UI shows exactly those eleven groups in that
-     order, each containing only its own feature's settings. The ``Sessions``
-     group may be empty in this CR (filled by CR ``sessions-feature``).
+   * AC-8: The VS Code Settings UI shows the core groups in a fixed order and
+     one or more groups per installed add-on, each containing only its own
+     feature's settings.

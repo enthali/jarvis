@@ -1,111 +1,6 @@
 Agent Prompt Tuning User Acceptance Tests
 ==========================================
 
-.. story:: Agent Session Init Prompt Acceptance Tests
-   :id: US_UAT_APT_INITPROMPT
-   :status: implemented
-   :priority: required
-   :links: US_ENT_AGENTSESSION_PROMPT
-
-   **As a** Jarvis Test Engineer,
-   **I want** a set of manual acceptance test scenarios for the configurable
-   agent session init prompt,
-   **so that** I can verify the disciplined English default prompt is rendered
-   correctly, placeholders are substituted, user overrides are applied,
-   the empty-string fallback rule holds, unknown placeholders are left as-is,
-   and the prompt works for all entity kinds.
-
-   **Acceptance Criteria:**
-
-   * AC-1: A test verifies that with no setting override the auto-opened agent
-     chat shows the disciplined English default init prompt containing the
-     absolute ``context.md`` path in backticks, the "Use only" sentence, the
-     Decision / Finding / Next structure, and the 2-week gate question (T-1).
-   * AC-2: A test verifies that ``${kind}``, ``${name}``, and ``${contextPath}``
-     are substituted with the entity kind, entered name, and absolute path of
-     ``context.md`` respectively (T-2).
-   * AC-3: A test verifies that setting ``jarvis.agentSession.initPromptTemplate``
-     to a custom one-line template causes the chat to show exactly that line with
-     substitutions applied (T-3).
-   * AC-4: A test verifies that setting ``jarvis.agentSession.initPromptTemplate``
-     to ``""`` (empty string) causes the chat to fall back to the built-in
-     disciplined English default (T-4).
-   * AC-5: A test verifies that an unknown placeholder (e.g. ``${nope}``) is left
-     as-is in the rendered prompt while known placeholders are still substituted
-     (T-5).
-   * AC-6: A test verifies that the prompt is rendered correctly for a
-     ``kind=project`` entity, showing ``You are the project "..."`` in the
-     default template (T-6).
-   * AC-7: A test verifies that the default init prompt contains the
-     extract-overflow bullet instructing the agent to move topics past ~5
-     bullets to a dedicated file beside ``context.md`` with a one-line summary
-     and relative link (T-7).
-
-   **Test Scenarios:**
-
-   **T-1 — Default init prompt (no override)**
-     Setup: Open ``testdata/test.code-workspace`` in the Extension Development
-     Host (F5). Ensure ``jarvis.agentSession.initPromptTemplate`` is not set
-     (deleted / default).
-     Action: Click the ``+`` button in the Sessions view title bar (or run
-     **Jarvis: New Session**). Enter a session name and summary. Observe the
-     auto-opened Copilot agent chat.
-     Expected: The chat shows the built-in disciplined English default prompt.
-     It contains: the absolute path of ``context.md`` in backticks, a sentence
-     beginning "Use only", bullets labelled Decision, Finding, and Next, and a
-     sentence containing "2 weeks".
-
-   **T-2 — Placeholder substitution**
-     Setup: Same as T-1 with default template active.
-     Action: Create a new session named ``my-test-session``. Observe the
-     auto-opened chat.
-     Expected: ``${kind}`` is replaced by ``session``, ``${name}`` by
-     ``my-test-session``, and ``${contextPath}`` by the absolute OS path of
-     the new session's ``context.md``. No ``${...}`` literal remains for these
-     three placeholders.
-
-   **T-3 — Override via setting**
-     Setup: Set ``jarvis.agentSession.initPromptTemplate`` (in Workspace
-     Settings) to:
-     ``"Role: ${kind} ${name}. Memory: ${contextPath}."``
-     Action: Create a new session named ``override-test``. Observe the chat.
-     Expected: The chat shows exactly one line:
-     ``Role: session override-test. Memory: <absolutePath>.``
-     where ``<absolutePath>`` is the absolute path of the new ``context.md``.
-
-   **T-4 — Empty setting → fallback to default**
-     Setup: Set ``jarvis.agentSession.initPromptTemplate`` to ``""`` (empty
-     string) in Workspace Settings.
-     Action: Create a new session. Observe the chat.
-     Expected: The chat shows the built-in disciplined English default (same as
-     T-1), not an empty prompt.
-
-   **T-5 — Unknown placeholder left as-is**
-     Setup: Set ``jarvis.agentSession.initPromptTemplate`` to:
-     ``"Hi ${name}, unknown=${nope}."``
-     Action: Create a new session named ``ph-test``. Observe the chat.
-     Expected: The chat shows ``Hi ph-test, unknown=${nope}.``
-     Known placeholder ``${name}`` is substituted; unknown ``${nope}`` remains
-     literally.
-
-   **T-6 — Project entity (kind=project)**
-     Setup: Default ``jarvis.agentSession.initPromptTemplate`` (no override).
-     Action: Run **Jarvis: New Entity → Project**. Enter a project name and
-     summary. Observe the auto-opened chat.
-     Expected: The chat shows the default prompt with ``kind`` rendered as
-     ``project`` and the project name substituted for ``${name}``.
-
-   **T-7 — Extract-overflow bullet present in default prompt**
-     Setup: Default ``jarvis.agentSession.initPromptTemplate`` (no override).
-     Action: Create a new session (any entity kind). Observe the auto-opened
-     Copilot agent chat.
-     Expected: The default prompt contains a bullet with the text "When a
-     topic grows past ~5 bullets, move it to a dedicated file beside
-     ``context.md`` and leave a one-line summary with a relative link in
-     ``context.md``." appearing as the last item of the "Keep it minimal and
-     action-oriented" list.
-
-
 .. story:: Auto-Delivery Notification Template Acceptance Tests
    :id: US_UAT_APT_NOTIFICATION
    :status: implemented
@@ -156,9 +51,9 @@ Agent Prompt Tuning User Acceptance Tests
    **T-7 — Default notification via manual deliver-now**
      Setup: Open ``testdata/test.code-workspace`` in the Extension Development
      Host (F5). Ensure ``jarvis.messages.notificationTemplate`` is not set
-     (deleted / default). Enqueue 2 messages to a session named ``TestSession``
-     from a single sending session (e.g. ``jarvis_sendToSession`` from a chat
-     session named ``Change Manager``).
+     (deleted / default). Enqueue 2 messages to the Actor ``TestSession``
+     from a single sending Actor (``jarvis_sendMessage`` with
+     ``senderSession: "Change Manager"``).
      Action: In the Messages tree, right-click (or use inline action) the
      ``TestSession`` group node and click **Send Messages**.
      Expected: The auto-opened chat shows all three lines of the built-in
@@ -220,12 +115,12 @@ Agent Prompt Tuning User Acceptance Tests
 
    **T-15 — Multiple distinct senders — comma-joined, de-duplicated**
      Setup: Default notification template. Enqueue 3 messages to ``TestSession``
-     such that 2 are from a session named ``Change Manager`` and 1 is from a
-     session named ``Project Manager`` (e.g. use ``jarvis_sendMessage`` twice
-     from the CM session and once from the PM session).
+     such that 2 are from the Actor ``Change Manager`` and 1 is from the
+     Actor ``Test Manager`` (``jarvis_sendMessage`` twice with
+     ``senderSession: "Change Manager"`` and once with ``"Test Manager"``).
      Action: Trigger manual delivery (**Send Messages** on ``TestSession``).
      Expected: The third line of the notification reads
-     ``Sender(s): Change Manager, Project Manager`` (or ``Project Manager,
+     ``Sender(s): Change Manager, Test Manager`` (or ``Test Manager,
      Change Manager`` depending on sort order) — exactly two distinct names,
      not three (``Change Manager`` is NOT listed twice despite sending 2
      messages). The order may vary; both names must appear exactly once.

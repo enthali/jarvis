@@ -38,8 +38,8 @@ Reminders User Acceptance Tests
    **Test Scenarios:**
 
    **T-1 — setReminder registers reminder and returns id + deliverAt**
-     Setup: Extension running in Extension Development Host; a chat session is
-     open (e.g. "TestTarget").
+     Setup: Extension running in Extension Development Host; the Actor
+     "TestTarget" exists and its chat session is open.
      Action: In an agent chat, call
      ``jarvis_setReminder({ text: "T-1 test reminder", session: "TestTarget", deliverAt: "<now+30s ISO>" })``.
      Expected: Tool returns a JSON object with string fields ``id`` (UUID) and

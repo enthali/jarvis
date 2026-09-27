@@ -73,22 +73,24 @@ Modular Delivery Design Specifications
 .. spec:: PIM Package
    :id: SPEC_MOD_PIM_PKG
    :status: approved
-   :links: REQ_MOD_ADDONS; REQ_MOD_ZEROTRACE; REQ_ENG_TOOLNS; SPEC_REL_PKGCONTRACT
+   :links: REQ_MOD_ADDONS; REQ_MOD_ZEROTRACE; REQ_ENG_TOOLNS; SPEC_REL_PKGCONTRACT; SPEC_ENG_API
 
    **Description:**
    ``packages/pim`` builds ``enthali.jarvis-pim`` with
-   ``extensionDependencies: ["enthali.jarvis-core"]``. On activation it obtains the
-   engine and registers the ``project`` and ``event`` kinds plus PIM tools
-   (``jarvis_pim_*``). All PIM views, settings, commands, and tools live in this
+   ``extensionDependencies: ["enthali.jarvis-core"]``. On activation it checks
+   ``api.version === 2`` and registers the PIM tools (``jarvis_pim_*``), the
+   Categories view and the task editor. It registers no entity kind and no
+   tree decorator. All PIM views, settings, commands, and tools live in this
    manifest only.
 
    **Acceptance Criteria:**
 
    * AC-1: Manifest declares ``extensionDependencies: ["enthali.jarvis-core"]``.
-   * AC-2: PIM registers ``project`` and ``event`` kinds via
-     ``registerEntityKind`` and PIM tools via ``registerTool``.
-   * AC-3: PIM settings use existing ``jarvis.*`` keys (e.g.
-     ``jarvis.projects.folder``).
+   * AC-2: PIM registers its tools via ``registerTool`` and uses no other
+     engine registration.
+   * AC-3: PIM settings use existing ``jarvis.*`` keys (``jarvis.pim.*``,
+     ``jarvis.outlook.*``); ``jarvis.projects.*`` and ``jarvis.events.*`` do
+     not exist.
    * AC-4: When PIM is not installed, none of its contributions exist (per
      ``REQ_MOD_ZEROTRACE``).
 
@@ -102,8 +104,7 @@ Modular Delivery Design Specifications
    ``packages/recorder`` builds ``enthali.jarvis-recorder`` with
    ``extensionDependencies: ["enthali.jarvis-core"]``. It contributes recording
    commands/settings/tools (``jarvis_rec_*``) and the whisper/transcript
-   pipeline. The recorder works with whatever entity kinds are present (it does
-   not require PIM).
+   pipeline. It depends on no other add-on and on no tree node of the core.
 
    **Acceptance Criteria:**
 
@@ -114,27 +115,47 @@ Modular Delivery Design Specifications
 
 
 .. spec:: Flow Package
-   :id: SPEC_MOD_FLOW_PKG
-   :status: draft
-   :links: REQ_FLOW_PACKAGE; REQ_MOD_ADDONS; REQ_MOD_ZEROTRACE; SPEC_REL_PKGCONTRACT
+  :id: SPEC_MOD_FLOW_PKG
+  :status: implemented
+  :links: REQ_FLOW_PACKAGE; REQ_MOD_ADDONS; REQ_MOD_ZEROTRACE; SPEC_REL_PKGCONTRACT; SPEC_ENG_API
 
    **Description:**
    ``packages/flow`` builds ``enthali.jarvis-flow`` with
-   ``extensionDependencies: ["enthali.jarvis-core"]``. On activation it
-   contributes a title-bar button to the core's existing ``jarvisMessages``
-   tree view (via a ``menus`` contribution keyed to that view id, not by
-   modifying the core's manifest) and a Webview Panel command. It reads
-   the message audit log directly from the workspace — it registers no new
-   engine tools and does not require PIM or the recorder.
+   ``extensionDependencies: ["enthali.jarvis-core"]``. Its title-bar button
+   on the core's existing ``jarvisMessages`` tree view and its
+   ``jarvis.openMessageFlow``/``jarvis.openMessageLog`` commands are static
+   ``package.json`` manifest contributions (via a ``menus`` contribution
+   keyed to that view id, not by modifying the core's manifest) — VS Code
+   shows them whenever the extension is installed and its ``when`` clauses
+   are met, independent of whether ``activate()`` ran successfully. On
+   activation, the package checks ``api.version === 2`` and only then
+   registers the two command handlers and the Webview Panel they open; a
+   mismatch is logged and skips only that registration, not the manifest
+   contribution (``SPEC_ENG_API`` AC-2). It reads the message audit log
+   directly from the workspace — it registers no new engine tools and does
+   not require PIM or the recorder.
 
    **Acceptance Criteria:**
 
    * AC-1: Manifest declares ``extensionDependencies: ["enthali.jarvis-core"]``.
    * AC-2: The ``jarvis.openMessageFlow`` command and its title-bar button
-     are contributed entirely from this package's ``package.json``.
+     are contributed entirely from this package's ``package.json``; their
+     presence does not depend on activation succeeding or on the version
+     guard (AC-5).
    * AC-3: Functions with core alone (no PIM/recorder dependency).
    * AC-4: When not installed, none of its contributions exist (per
      ``REQ_MOD_ZEROTRACE`` AC-6).
+   * AC-5: Activation checks ``api.version === 2`` and logs an error instead
+     of registering ``jarvis.openMessageFlow``/``jarvis.openMessageLog`` when
+     it does not match (``SPEC_ENG_API`` AC-2); it does not call any of the
+     removed API members (``listJarvisSessions``, entity-kind registration,
+     tree/decorator access — ``SPEC_ENG_API`` AC-4).
+   * AC-6: A version mismatch therefore still shows the title-bar button
+     (AC-2); invoking it fails with VS Code's own "command not found" error
+     because AC-5 skipped registration. No add-on in this workspace ties a
+     manifest contribution's visibility to a runtime version check (PIM,
+     Kanban, Recorder use only config/context ``when`` clauses); Flow does
+     not introduce that mechanism either.
 
 
 .. spec:: Suite Extension Pack (Deprecated)
@@ -222,9 +243,9 @@ Modular Delivery Design Specifications
    ``extensionDependencies: ["enthali.jarvis-core"]``. On activation it obtains
    the core API, performs a startup version check against the pinned upstream
    syspilot release tag, and registers commands and LM tools for suspend/skip
-   management. It does not register entity kinds — it uses the existing actor
-   framework via ``invokeTool('jarvis_createActor', ...)`` and
-   ``listJarvisSessions()``.
+   management. It uses the Actor framework via
+   ``invokeTool('jarvis_createActor', ...)`` and ``listActors()``
+   (``SPEC_ENG_ACTORLIST``).
 
    See ``SPEC_SPL_PACKAGE`` and related ``SPEC_SPL_*`` specs for the full
    feature design.

@@ -218,7 +218,7 @@ Message Flow Visualization Requirements
      registered command (e.g. ``jarvis.openMessageFlow``) SHALL both open
      (or focus, if already open) the diagram Webview Panel.
    * AC-2: The panel SHALL target the **Content** column (column 2, fixed)
-     — the same fixed target already used for entity docs
+     — the same fixed target already used for Actor files
      (``REQ_MSG_EDITORPLACEMENT`` AC-2, generalized by this CR from "Docs"
      to "Content" to explicitly include the diagram) — coexisting with any
      already-open docs tab as a separate tab within that column, not

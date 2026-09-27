@@ -1,5 +1,5 @@
 /**
- * Unit tests for touched-files-write-race (GH #35, SPEC_ENT_TOUCHEDFILES
+ * Unit tests for touched-files-write-race (GH #35, SPEC_ACTOR_TOUCHEDFILES
  * AC-6a). Mirrors docs/changes/tst-touched-files-write-race.md.
  *
  * TouchStore's _load/_save are synchronous fs calls with no await between
@@ -40,7 +40,7 @@ function byRelPath(entries: Record<string, any>): Record<string, any> {
     return result;
 }
 
-describe('TouchStore concurrency guarantee (SPEC_ENT_TOUCHEDFILES AC-6a, GH #35)', () => {
+describe('TouchStore concurrency guarantee (SPEC_ACTOR_TOUCHEDFILES AC-6a, GH #35)', () => {
     let stateDir: string;
     let store: TouchStore;
 

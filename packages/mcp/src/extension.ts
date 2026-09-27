@@ -87,7 +87,7 @@ export function activate(context: vscode.ExtensionContext): void {
     }
 
     const api = coreExt.exports as JarvisCoreApi | undefined;
-    if (!api || api.version !== 1) {
+    if (!api || api.version !== 2) {
         log.error('[MCP] Jarvis core API version mismatch or unavailable');
         return;
     }

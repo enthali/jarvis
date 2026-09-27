@@ -170,7 +170,7 @@ Message Queue Design Specifications
      handler that resolves ``element.destination`` via
      ``lookupSessionUUID()`` and opens the chat at Main via ``openAtMain``
      (``SPEC_MSG_EDITORPLACEMENT``, same helper already used by
-     ``jarvis.openAgentSession`` and ``jarvis.sendMessages``) — previously
+     ``jarvis.openActorSession`` and ``jarvis.sendMessages``) — previously
      no command was set (label click only expanded/collapsed).
    * ``MessageLeafNode`` → non-collapsible, label = truncated text (max 80 chars),
      contextValue = ``'messageItem'`` (enables trash button)
@@ -268,9 +268,9 @@ Message Queue Design Specifications
    **Rules:**
 
    * The fallback is keyed on ``rawTemplate.trim()``, identical to the
-     init-prompt rule in ``SPEC_ENT_AGENTSESSION_INITPROMPT`` \u2014 one definition
+     init-prompt rule in ``SPEC_ACTOR_INITPROMPT`` — one definition
      of "empty template" for both template paths.
-   * Substitution stays ``applyTemplate`` (``SPEC_ENT_AGENTSESSION_INITPROMPT``);
+   * Substitution stays ``applyTemplate`` (``SPEC_ACTOR_INITPROMPT``);
      unknown placeholders are still passed through unchanged
      (``REQ_MSG_NOTIFICATION_TEMPLATE`` AC-4).
    * The setting is still read per delivery, uncached
@@ -290,7 +290,7 @@ Message Queue Design Specifications
 .. spec:: Send Messages Command
    :id: SPEC_MSG_SENDCOMMAND
    :status: draft
-   :links: REQ_MSG_SEND; REQ_MSG_SESSIONLOOKUP; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_QUEUESTORE; REQ_MSG_AUTODELIVER_TAG; REQ_MSG_NOTIFICATION_TEMPLATE; SPEC_MSG_NOTIFICATION_RESOLVE; REQ_ENT_AGENTPROMPT_TEMPLATE; SPEC_ENT_AGENTSESSION_INITPROMPT; SPEC_MSG_EDITORPLACEMENT; SPEC_MSG_OPENCHAT; SPEC_INJ_INJECT
+   :links: REQ_MSG_SEND; REQ_MSG_SESSIONLOOKUP; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_QUEUESTORE; REQ_MSG_AUTODELIVER_TAG; REQ_MSG_NOTIFICATION_TEMPLATE; SPEC_MSG_NOTIFICATION_RESOLVE; REQ_ACTOR_INITPROMPT; SPEC_ACTOR_INITPROMPT; SPEC_MSG_EDITORPLACEMENT; SPEC_MSG_OPENCHAT; SPEC_INJ_INJECT
 
    **Description:**
    Register ``jarvis.sendMessages`` in ``extension.ts``. Invoked from the session
@@ -350,7 +350,7 @@ Message Queue Design Specifications
           );  // REQ_MSG_NOTIFICATION_TEMPLATE
 
           // 2. Delegate to injectPrompt (SPEC_INJ_INJECT)
-          //    - resolves entity, finds/spawns session, places at Main, injects stub
+          //    - resolves the Actor, finds/spawns session, places at Main, injects stub
           await injectPrompt(node.destination, stub, { placement: 'main' });
 
           // 3. Refresh tree (messages stay in queue)
@@ -761,7 +761,7 @@ Message Queue Design Specifications
       {
         "name": "jarvis_listChatSessions",
         "displayName": "List Chat Sessions",
-        "modelDescription": "Returns the list of named VS Code chat session tab titles in the current workspace. Use this to discover active chat tabs. Distinct from jarvis_listActors which lists YAML session entities.",
+        "modelDescription": "Returns the list of named VS Code chat session tab titles in the current workspace. Use this to discover active chat tabs. Distinct from jarvis_listActors, which lists the Actors.",
         "canBeReferencedInPrompt": true,
         "toolReferenceName": "listChatSessions",
         "icon": "$(list-unordered)",
@@ -778,68 +778,6 @@ Message Queue Design Specifications
      not ``'New Chat'``
    * Returns JSON array of title strings
    * Disposable pushed to ``context.subscriptions``
-
-
-.. spec:: List Jarvis Sessions Tool
-   :id: SPEC_MSG_JARVISSESSIONS
-   :status: draft
-   :links: REQ_MSG_JARVISSESSIONS; REQ_ENG_SESSIONLIST; SPEC_ENG_SESSIONLIST
-
-   **Description:**
-   Register ``jarvis_listJarvisSessions`` via the engine's ``registerTool`` (dual
-   LM + MCP registration) in ``extension.ts``. The handler returns the result of
-   ``JarvisCoreApi.listJarvisSessions()`` — every scanned entity across all
-   registered kinds. It owns no enumeration logic of its own; it is a thin wrapper
-   over the platform API (``SPEC_ENG_SESSIONLIST``).
-
-   **Handler:**
-
-   .. code-block:: typescript
-
-      const listJarvisSessionsTool = engine.registerTool(
-        'jarvis_listJarvisSessions',
-        'Lists all Jarvis sessions (sessions, projects, events) across all kinds.',
-        async (
-          _options: vscode.LanguageModelToolInvocationOptions<Record<string, never>>,
-          _token: vscode.CancellationToken
-        ) => {
-          const sessions = engine.listJarvisSessions();
-          return new vscode.LanguageModelToolResult([
-            new vscode.LanguageModelTextPart(JSON.stringify(sessions))
-          ]);
-        }
-      );
-      context.subscriptions.push(listJarvisSessionsTool);
-
-   **Registration in package.json:**
-
-   .. code-block:: json
-
-      {
-        "name": "jarvis_listJarvisSessions",
-        "displayName": "List Jarvis Sessions",
-        "modelDescription": "Returns all Jarvis sessions across every kind (sessions, projects, events). Each entry has {name, summary, agent, kind, folder}. Use this to enumerate all agent-session-capable entities without coupling to a specific add-on.",
-        "canBeReferencedInPrompt": true,
-        "toolReferenceName": "listJarvisSessions",
-        "icon": "$(list-tree)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {}
-        }
-      }
-
-   **Design notes:**
-
-   * No input parameters — returns every scanned entity across all kinds.
-   * Registered via the engine's ``registerTool`` (not raw ``vscode.lm``), so it
-     is simultaneously an LM Tool and an MCP Tool (dual registration,
-     ``SPEC_MSG_MCPSERVER``).
-   * Output shape ``{name, summary, agent, kind, folder}`` is consistent with
-     ``jarvis_listActors`` / ``jarvis_listProjects`` plus the ``kind``
-     discriminator.
-   * Distinct from ``jarvis_listChatSessions`` (VS Code chat tab titles from
-     ``state.vscdb``) — this lists YAML entities held by the central scanner.
-   * Disposable pushed to ``context.subscriptions``.
 
 
 .. spec:: MCP Server Module
@@ -1171,7 +1109,7 @@ Message Queue Design Specifications
 .. spec:: Auto-Delivery Poll Loop
    :id: SPEC_MSG_AUTODELIVER_POLL
    :status: draft
-   :links: REQ_MSG_AUTODELIVER_POLL; REQ_MSG_DELIVERY_REENTRANCY; SPEC_MSG_AUTODELIVER_STORE; SPEC_MSG_AUTODELIVER_TAG; SPEC_MSG_SENDCOMMAND; REQ_MSG_NOTIFICATION_TEMPLATE; SPEC_MSG_NOTIFICATION_RESOLVE; SPEC_MSG_OPENCHAT; REQ_ENT_AGENTPROMPT_TEMPLATE; SPEC_ENT_AGENTSESSION_INITPROMPT; SPEC_MSG_EDITORPLACEMENT; SPEC_MSG_FOCUSRESTORE; SPEC_INJ_INJECT
+   :links: REQ_MSG_AUTODELIVER_POLL; REQ_MSG_DELIVERY_REENTRANCY; SPEC_MSG_AUTODELIVER_STORE; SPEC_MSG_AUTODELIVER_TAG; SPEC_MSG_SENDCOMMAND; REQ_MSG_NOTIFICATION_TEMPLATE; SPEC_MSG_NOTIFICATION_RESOLVE; SPEC_MSG_OPENCHAT; REQ_ACTOR_INITPROMPT; SPEC_ACTOR_INITPROMPT; SPEC_MSG_EDITORPLACEMENT; SPEC_MSG_FOCUSRESTORE; SPEC_INJ_INJECT
 
    **Description:**
 
@@ -1183,11 +1121,10 @@ Message Queue Design Specifications
    focus is snapshotted before the disruptive open and restored immediately
    after (``SPEC_MSG_FOCUSRESTORE``). (The active-use opt-out check was removed
    by the ``remove-autodelivery-focus-gate`` CR — see
-   ``SPEC_MSG_AUTODELIVERY_OPTOUT`` (retired) for rationale.) If the
-   destination session cannot be found, the poll loop opens a **fresh** chat
-   editor via ``openNewChatEditor()`` (``SPEC_MSG_OPENCHAT``) and first calls
-   ``renameFocusedChatSession(sessionName)`` so future deliveries can resolve
-   the session by name.
+   ``SPEC_MSG_AUTODELIVERY_OPTOUT`` (retired) for rationale.) Opening,
+   and creating a missing session, is done by ``injectPrompt``
+   (``SPEC_INJ_INJECT``); the poll loop never opens, renames or initializes a
+   chat itself.
 
    **Rationale — URI-reuse bug fix:**
    ``openNewChatEditor()`` (``SPEC_MSG_OPENCHAT``) ensures each auto-delivery
@@ -1665,11 +1602,11 @@ Message Queue Design Specifications
 
    .. code-block:: typescript
 
-      async function openAtDocs(uri: vscode.Uri): Promise<void> {
+      async function openAtDocs(uri: vscode.Uri, options?: { preview?: boolean }): Promise<void> {
           const existing = findFileTab(uri.fsPath);
           const viewColumn = existing ? existing.group.viewColumn : DOCS_COLUMN;
           await vscode.commands.executeCommand('vscode.open', uri, {
-              preview: false,
+              preview: options?.preview ?? false,
               viewColumn,
           });
       }
@@ -1700,11 +1637,11 @@ Message Queue Design Specifications
      special-case handling needed; the close/reuse logic works transparently
      across window boundaries.
    * These helpers only ever act on tabs whose label matches a known session
-     name (via ``lookupSessionUUID``) or a known entity file path — any file
+     name (via ``lookupSessionUUID``) or a known Actor file path — any file
      the user opens manually is entirely outside this contract.
    * ``openAtMain``/``openAtDocs``/``openAtSecondary`` replace ad-hoc
      ``vscode.open(uri, { preview: false })`` calls at their respective call
-     sites (``SPEC_ENT_AGENTSESSION``, ``SPEC_ENT_ENTITY_FILE_CHILDREN``,
+     sites (``SPEC_INJ_INJECT``, ``SPEC_ACTOR_FILES``,
      ``SPEC_MSG_AUTODELIVER_POLL``, ``SPEC_MSG_SENDCOMMAND``,
      ``SPEC_MSG_TREEPROVIDER``) — see each spec's updated handler.
 
@@ -1712,7 +1649,7 @@ Message Queue Design Specifications
 
    ``SessionGroupNode``'s ``TreeItem.command`` (previously unset,
    ``SPEC_MSG_TREEPROVIDER``) is bound to a new command that opens the
-   session's chat at Main, mirroring ``jarvis.openAgentSession``'s and
+   session's chat at Main, mirroring ``jarvis.openActorSession``'s and
    ``jarvis.sendMessages``'s existing-session branches:
 
    .. code-block:: typescript
@@ -1730,14 +1667,14 @@ Message Queue Design Specifications
 
    Registered in ``TreeItem.command`` (``SPEC_MSG_TREEPROVIDER``'s
    ``getTreeItem()``), not via a ``view/item/context`` menu entry — same
-   pattern as the entity tree's click-to-chat binding
-   (``REQ_ENT_ENTITY_TREECLICK``), not a right-click action.
+   pattern as the ACTORS tree's click-to-chat binding
+   (``SPEC_ACTOR_TREE``), not a right-click action.
 
    **Design note:** if no session UUID resolves (the destination has no
    live chat session yet — e.g. all messages are still queued and no
    session has ever been opened for that destination), the handler is a
    silent no-op rather than creating a new session. This differs
-   deliberately from ``jarvis.openAgentSession``/``jarvis.sendMessages``,
+   deliberately from ``jarvis.openActorSession``/``jarvis.sendMessages``,
    which both create a fresh session on miss — a label click in the
    Messages tree is a lower-intent, exploratory action (unlike explicitly
    clicking "Play" to send), so silently doing nothing is preferred over
@@ -1905,8 +1842,8 @@ Message Queue Design Specifications
    * ``jarvis.sendMessages`` — opens the existing session tab before submitting
      the notification stub
    * ``jarvis.openSession`` — opens the selected session from the QuickPick
-   * ``jarvis.openAgentSession`` — opens the existing session tab when a UUID
-     is found; also used as the fallback path in ``SPEC_MSG_OPENCHAT``
+   * ``jarvis.openActorSession`` — via ``injectPrompt``, opens the existing
+     session tab when a UUID is found
 
    **Design decisions:**
 
@@ -1948,11 +1885,10 @@ Message Queue Design Specifications
           await new Promise(resolve => setTimeout(resolve, 800));
       }
 
-   **Callers:**
-
-   * ``jarvis.sendMessages`` — when no UUID is found for the target session name
-   * ``jarvis.openAgentSession`` — when no UUID is found for the entity name
-   * Auto-delivery poll loop — when no UUID is found for the auto-delivery session name
+   **Callers:** only the new-session branch of ``injectPrompt``
+   (``SPEC_INJ_INJECT`` step 3b). ``jarvis.sendMessages``,
+   ``jarvis.openActorSession`` and the auto-delivery poll loop reach it
+   indirectly through that primitive when no UUID is found.
 
    **Design decisions:**
 
@@ -1974,16 +1910,18 @@ Message Queue Design Specifications
    .. code-block:: typescript
 
       // Prime mode selector so openNewChatEditor() creates session in bound mode
-      if (entity.agent) {
+      if (actor.agent) {
           await vscode.commands.executeCommand(
-              'workbench.action.chat.open', { mode: entity.agent }
+              'workbench.action.chat.open', { mode: actor.agent }
           );
           await new Promise(resolve => setTimeout(resolve, 300));
       }
       await openNewChatEditor();  // session is born in the primed mode
 
-   This pattern is used by all three new-session callers when ``entity.agent``
-   is set. ``openNewChatEditor()`` itself remains mode-agnostic.
+   This pattern is used by the new-session branch of ``injectPrompt``
+   (``SPEC_INJ_INJECT`` step 3b), the only place that creates Actor sessions,
+   when ``actor.agent`` is set. ``openNewChatEditor()`` itself remains
+   mode-agnostic.
 
    **Amendment — re-applying mode on an EXISTING session (agent-mode-persistence, GH #25):**
 
@@ -2012,7 +1950,7 @@ Message Queue Design Specifications
 
    **Helper — ``reapplyAgentMode(agent, sessionName)``:**
    Private async helper in ``extension.ts``. Given an agent/mode name (from an
-   entity's ``agent`` field) and the name of the session the change is intended
+   Actor's ``agent`` field) and the name of the session the change is intended
    for, it re-applies that mode **to that session** — or to nothing at all.
    Semantics:
 
@@ -2081,11 +2019,13 @@ Message Queue Design Specifications
    (``REQ_MSG_MODETARGET`` AC-5). This is why the 2026-08-21 report could not be
    root-caused from logs — they asserted the opposite of what occurred.
 
-   ``reapplyAgentMode()`` is called from the existing-session (UUID) branches of
-   the two delivery paths — ``SPEC_MSG_SENDCOMMAND`` (after ``openAtMain``) and
-   ``SPEC_MSG_AUTODELIVER_POLL`` (after ``openAtSecondary``) — when the target
-   entity has an ``agent`` set. Both call sites already pass the entity name and
-   need no change beyond the parameter's new meaning.
+   ``reapplyAgentMode()`` is called from the existing-session branch of
+   ``injectPrompt`` (``SPEC_INJ_INJECT`` step 3a), which both delivery paths
+   — ``SPEC_MSG_SENDCOMMAND`` and ``SPEC_MSG_AUTODELIVER_POLL`` — use, when
+   the target Actor has an ``agent`` set. It re-applies the bound agent on
+   every such open or delivery, whether VS Code dropped the mode or the user
+   switched it; it never selects any other mode (``REQ_ACTOR_INITPROMPT``
+   AC-6).
 
    **Acceptance Criteria (``agent-mode-reset-race`` CR):**
 
@@ -2197,8 +2137,8 @@ Message Queue Design Specifications
      the session already existed, i.e. branch 3a was taken)
 
    The user-facing entry points (``SPEC_MSG_SENDCOMMAND``,
-   ``SPEC_MSG_AUTODELIVER_POLL``, ``SPEC_ENT_AGENTSESSION``,
-   ``SPEC_ACT_NEWENTITY``) no longer call this helper directly.
+   ``SPEC_MSG_AUTODELIVER_POLL``, ``SPEC_ACTOR_OPENSESSION``) no longer call
+   this helper directly.
 
    **Design decisions:**
 
@@ -2225,42 +2165,6 @@ Message Queue Design Specifications
    trailing space to a renamed session title, the lookup will miss the session and
    a new session will be created instead. This is an accepted limitation until a
    more robust matching strategy (e.g. ``includes`` or regex) is implemented.
-
-
-.. spec:: Agent Session Init Sequence
-   :id: SPEC_MSG_AGENTSESSION
-   :status: draft
-   :links: REQ_MSG_AGENTSESSION; REQ_ENT_AGENTSESSION; SPEC_MSG_OPENCHAT; SPEC_MSG_SENDPROMPT; SPEC_MSG_PINNED; SPEC_INJ_INJECT
-
-   **Description:**
-   The ``jarvis.openAgentSession`` command orchestrates the full lifecycle of
-   opening or creating an agent chat session for a project or event leaf node.
-   Delegates session resolution, spawning, and prompt injection to
-   ``injectPrompt`` (``SPEC_INJ_INJECT``).
-
-   **Sequence (existing session):**
-
-   1. ``await injectPrompt(entity.name, '', { placement: 'main' })`` — the
-      primitive finds the existing session, focuses it at Main, and restores the
-      custom agent mode if ``entity.agent`` is set. Because ``text`` is empty,
-      no chat message is submitted (agent-session-reinit-fix CR, GH #52) and the
-      restored mode therefore survives (GH #54).
-
-   **Sequence (new session):**
-
-   1. Same call — ``injectPrompt`` handles the new-session path internally
-      (mode-prime, open, rename, init prompt via ``SPEC_INJ_INJECT`` step 3b).
-      The init prompt is composed inside the primitive, not by this command.
-
-   **Design notes:**
-
-   * Both existing and new session paths are unified into a single
-     ``injectPrompt`` call. The command's only responsibility is triggering the
-     primitive — it neither composes the init prompt nor passes
-     ``skipInitPrompt``. Canonical description in ``SPEC_ENT_AGENTSESSION``.
-   * ``contextPath`` derivation now lives inside ``injectPrompt`` step 3b and is
-     taken from ``entity.folder`` (the actual folder of the entity's YAML file)
-     rather than from the display name, avoiding kebab-case derivation errors.
 
 
 .. spec:: Reminder Store Module
@@ -2368,7 +2272,7 @@ Message Queue Design Specifications
 
    **Dependencies:**
 
-   * ``js-yaml`` (already a runtime dependency via ``yamlScanner.ts``) —
+   * ``js-yaml`` (already a runtime dependency via ``actorScanner.ts``) —
      ``import * as yaml from 'js-yaml'``
    * Node.js built-in ``crypto.randomUUID()`` — no new dependency
 
@@ -2838,7 +2742,7 @@ Message Queue Design Specifications
 .. spec:: Send Message LM / MCP Tool (Canonical)
    :id: SPEC_MSG_SENDMESSAGE
    :status: draft
-   :links: REQ_MSG_SENDMESSAGE; REQ_MSG_DEST_ERROR; REQ_MSG_SENDER_ERROR; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_QUEUESTORE
+   :links: REQ_MSG_SENDMESSAGE; REQ_MSG_DEST_ERROR; REQ_MSG_SENDER_ERROR; REQ_ACTOR_SCHEMA; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_QUEUESTORE; SPEC_ACTOR_SCANNER
 
    **Description:**
    Implements the canonical ``jarvis_sendMessage`` tool in
@@ -2866,14 +2770,20 @@ Message Queue Design Specifications
           'Queues a text message for delivery to a destination identified by name. senderSession is required and validated.',
           async (options: vscode.LanguageModelToolInvocationOptions<any>, _token: vscode.CancellationToken) => {
               const { session, text, senderSession } = options.input;
-              const validNames = await getValidDestinations(kindDrivenScanner);
+              const validNames = await getValidDestinations(actorScanner);
               const sortedNames = () => {
                   const sorted = [...validNames].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
                   return sorted.length > 0 ? sorted.join(', ') : '(none)';
               };
 
-              // Destination validation (REQ_MSG_SENDMESSAGE AC-3/4)
-              if (!validNames.includes(session)) {
+              // Destination validation (REQ_MSG_SENDMESSAGE AC-3/4, REQ_ACTOR_SCHEMA AC-7)
+              const dest = actorScanner.resolveName(session);
+              if (dest.status === 'ambiguous') {
+                  const msg = ambiguousActorMessage(session, dest.matches);
+                  void vscode.window.showErrorMessage(`Jarvis: ${msg}`);
+                  throw new Error(msg);
+              }
+              if (dest.status === 'unknown') {
                   throw new Error(`Destination session "${session}" does not exist.\nValid destinations: ${sortedNames()}`);
               }
 
@@ -2883,7 +2793,13 @@ Message Queue Design Specifications
                       'senderSession is required. Callers must explicitly provide their session name — do not rely on the active editor tab.'
                   );
               }
-              if (!validNames.includes(senderSession)) {
+              const sender = actorScanner.resolveName(senderSession);
+              if (sender.status === 'ambiguous') {
+                  const msg = ambiguousActorMessage(senderSession, sender.matches);
+                  void vscode.window.showErrorMessage(`Jarvis: ${msg}`);
+                  throw new Error(msg);
+              }
+              if (sender.status === 'unknown') {
                   throw new Error(`Sender session "${senderSession}" does not exist.\nValid senders: ${sortedNames()}`);
               }
 
@@ -2904,7 +2820,7 @@ Message Queue Design Specifications
       {
         "name": "jarvis_sendMessage",
         "displayName": "Send Message",
-        "modelDescription": "Queues a text message for delivery to a destination identified by name. Valid destinations are VS Code chat session tabs AND YAML entity names (sessions, projects, events). senderSession is required and validated against the same set — callers must pass their own session name explicitly. Fails immediately with an error if the destination or sender does not exist.",
+        "modelDescription": "Queues a text message for delivery to an Actor identified by name. senderSession is required and must also name an Actor — callers must pass their own Actor name explicitly. Fails immediately with an error if the destination or sender is not an Actor.",
         "canBeReferencedInPrompt": true,
         "toolReferenceName": "sendMessage",
         "icon": "$(mail)",
@@ -2913,7 +2829,7 @@ Message Queue Design Specifications
           "properties": {
             "session": {
               "type": "string",
-              "description": "The exact name of the target (VS Code chat session title or YAML entity name)"
+              "description": "The exact name of the target Actor"
             },
             "text": {
               "type": "string",
@@ -2932,10 +2848,19 @@ Message Queue Design Specifications
 
    * Validation order is destination-first, sender-second (REQ_MSG_SENDMESSAGE
      AC-8).
+   * Both names go through ``actorScanner.resolveName`` (``SPEC_ACTOR_SCANNER``),
+     the same unique-name rule every other name-based function uses. A name
+     carried by several Actors is refused with the ambiguity text and never
+     queued (``REQ_ACTOR_SCHEMA`` AC-7). The refusal is also shown to the
+     user as an error notification, because a duplicate name is a manual
+     misconfiguration the calling agent cannot repair; unknown names only
+     throw to the caller. ``getValidDestinations()`` only
+     supplies the list shown in the "does not exist" errors, and it omits
+     ambiguous names.
    * ``getValidDestinations()`` (the shared resolver in ``sessionLookup.ts``,
      previously called by ``jarvis_sendToSession`` before its hard
-     deprecation — see ``SPEC_MSG_SENDTOSESSION``) is reused unmodified — the
-     sender is checked against the exact same set as the destination
+     deprecation — see ``SPEC_MSG_SENDTOSESSION``) supplies the listed names;
+     the sender is checked by the exact same rule as the destination
      (REQ_MSG_SENDER_ERROR AC-3); no new resolver is introduced.
    * Unlike ``jarvis_sendToSession``, there is no ``activeTab?.label``
      fallback — ``senderSession`` is a required ``inputSchema`` field, so a

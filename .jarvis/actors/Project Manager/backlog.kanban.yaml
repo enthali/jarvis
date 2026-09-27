@@ -1,5 +1,5 @@
 title: backlog
-nextId: 31
+nextId: 43
 fields:
   - name: status
     type: single_select
@@ -256,7 +256,12 @@ items:
       Project: <name>) is a candidate, not a decision. Resolve parsing, missing
       or renamed projects and existing tasks before choosing the replacement. Do
       not fold into one-kind-consolidation; Medium because removal is desired
-      but does not block that change."
+      but does not block that change. CONFIRMED 2026-09-25 (System Designer,
+      retire-legacy-actor-kinds L0): full category retirement
+      (US_PIM_CATEGORIES, US_PIM_CATTOOL, US_PIM_CATVIEW, US_OLK_COMBRIDGE and
+      dependents) stays a separate PIM change; user plans several PIM changes.
+      Only US_OLK_AUTOCATEGORY (category auto-creation for new Projects/Events)
+      was removed in retire-legacy-actor-kinds."
     priority: Medium
   - id: 24
     name: Fix Sphinx-Needs dark mode in Jarvis docs
@@ -348,4 +353,195 @@ items:
       this change's remaining gaps (registered-tool host invocation and
       timer/reload), retaining PARTIAL status. This is an evidence-scope
       correction, not a new-Actor code defect; the QM CLEAR remains unchanged."
+    priority: Medium
+  - id: 31
+    name: Actor tree folder label still reads "&lt;workspace&gt; Entities", should
+      be "&lt;workspace&gt; Actors"
+    status: Backlog
+    labels:
+      - gap
+      - one-kind-consolidation
+    notes: "Superseded 2026-09-25: folded INTO retire-legacy-actor-kinds scope. Port
+      to the new Actor kind first, then delete the old label/code — no longer
+      deferred to a later change."
+  - id: 32
+    name: Actor file list, individual files, and Recently Opened Files not shown for
+      the new Actor kind
+    status: Backlog
+    labels:
+      - gap
+      - one-kind-consolidation
+      - blocked
+    notes: "Superseded 2026-09-25: folded INTO retire-legacy-actor-kinds scope. Port
+      to the new Actor kind first, then delete old-kind code — no longer
+      deferred. Still blocked on AHP for testing (same root cause as broken
+      jarvis_whoAmI)."
+  - id: 33
+    name: Give Messages and Heartbeat each their own explorer tree/view user story
+    status: Backlog
+    labels:
+      - spec
+      - post-retire-legacy-actor-kinds
+    notes: "From System Designer during retire-legacy-actor-kinds L0 review,
+      explicitly out of scope for that change. Today only covered by the slimmed
+      container story US_EXP_SIDEBAR (AC-3/AC-4, commit 1b61cab); should get
+      dedicated stories like Actor has. ADDENDUM (user decision): these stories
+      should also cover the \"Collapse All\" title-bar button for Messages,
+      Reminders and Heartbeat. The old six-view UAT US_UAT_COLLAPSEALL was
+      removed in retire-legacy-actor-kinds; the Actor tree's Collapse All is now
+      US_ACTOR_TREE AC-13."
+  - id: 34
+    name: Move view-visibility ACs out of US_EXP_FEATURETOGGLE into each feature's
+      own story
+    status: Backlog
+    labels:
+      - spec
+      - post-retire-legacy-actor-kinds
+    notes: From System Designer during retire-legacy-actor-kinds L0 review,
+      explicitly out of scope for that change. View visibility
+      (Actor/Heartbeat/Messages tree shown or not) should live in each feature's
+      own story, referencing REQ_CFG_TOGGLES / US_CFG_FEATURETOGGLES for the
+      on/off toggle itself, not centrally in US_EXP_FEATURETOGGLE; the Actors
+      tree needs no toggle at all. In retire-legacy-actor-kinds, only the
+      Project/Event visibility ACs were removed from US_EXP_FEATURETOGGLE;
+      Messages/Heartbeat visibility ACs stay there until this cleanup lands.
+  - id: 35
+    name: Remove agent hooks entirely once AHP lands
+    status: Backlog
+    labels:
+      - spec
+      - dependent-on-ahp
+    notes: From System Designer during retire-legacy-actor-kinds L0 review,
+      explicitly out of scope for that change. Today hooks are the only source
+      for jarvis_whoAmI session resolution (REQ_HOOK_INTAKE), Recently Touched
+      Files, and the Actor activity indicator; AHP must supply those signals
+      first. The Actor stories written in retire-legacy-actor-kinds
+      (US_ACTOR_TOUCHEDFILES, new US_ACTOR_ACTIVITY) are mechanism-neutral so
+      the source can be swapped without another L0 change.
+  - id: 36
+    name: Refactor US_EXP_SIDEBAR down to a generic sidebar shell story
+    status: Backlog
+    labels:
+      - spec
+      - post-retire-legacy-actor-kinds
+    notes: "Future-session proposal from the user, relayed via Change Manager,
+      explicitly NOT an expansion of the active retire-legacy-actor-kinds L1
+      work. Rework docs/userstories/us_exp.rst to describe only the generic
+      Jarvis sidebar shell/home (Activity Bar icon, opening the sidebar, generic
+      hosting/navigation), removing specific Actor/Message/Heartbeat tree
+      membership, feature content, and feature-toggle rules. Keep each tree's
+      own behavior in its owning story (Actor in us_actor.rst; Messages in
+      us_msg.rst; Heartbeat in us_aut.rst). Resolve US_EXP_OPENFILE by moving
+      Message-node/Heartbeat-node open-file behavior into the respective feature
+      stories; retain shared navigation mechanics in common REQ/SPEC only where
+      genuinely generic. Audit trace links, requirements/design ownership, and
+      UAT references. Overlaps with backlog #33/#34 — coordinate scoping when
+      picked up."
+  - id: 37
+    name: Consolidate configuration options placement (central vs. per-module vs.
+      per-feature)
+    status: Backlog
+    labels:
+      - architecture
+      - cleanup
+    notes: "User observation 2026-09-25: configuration settings are inconsistently
+      placed today — most live in a central config, but not all; some sit
+      per-module, some per-feature, with no stated rule for which goes where.
+      Decide a consistent placement policy and bring existing settings in line
+      with it."
+  - id: 38
+    name: Represent module structure in the spec (user stories grouped/sorted by
+      module)
+    status: Backlog
+    labels:
+      - architecture
+      - cleanup
+      - docs
+    notes: "User observation 2026-09-25: Jarvis's modules
+      (core/pim/flow/kanban/recorder/mcp/syspilot/...) are not reflected
+      anywhere in the user stories or spec organization. Needed for the docs
+      website too — readers should be able to tell which spec parts belong to
+      which module, grouped/sorted accordingly."
+  - id: 39
+    name: US_INJ_INJECT is not a user story — fold it into message handling
+    status: Backlog
+    labels:
+      - architecture
+      - cleanup
+      - spec
+    notes: "User observation 2026-09-25: docs/userstories/us_inj.rst (US_INJ_INJECT,
+      \"Prompt Injection Primitive\") describes a mechanism required by
+      architecture decisions, not a distinct user goal — it isn't a user story.
+      Even kept as-is, it belongs under message handling (us_msg.rst already
+      links it from US_MSG_CHATQUEUE/US_MSG_AUTODELIVERY), not as its own
+      standalone story file. Fold/reclassify accordingly; reconcile
+      us_uat_injectprompt.rst and trace links."
+  - id: 40
+    name: Redesign user acceptance testing model and ontology
+    status: Backlog
+    labels:
+      - architecture
+      - cleanup
+      - uat
+    notes: User decision relayed by System Designer (2026-09-25,
+      retire-legacy-actor-kinds L0 review), explicitly out of scope for the
+      active change. The user does not consider current US_UAT_* items to be
+      user stories; they are test specifications written in story format. Design
+      an ontology that separates a user test describing the scenario/sequence
+      and its refinement from a user test specification describing the required
+      setup (exact split remains to be designed). Then migrate/reconcile the
+      known stale Project/Event/legacy-session-based UAT material, including
+      US_UAT_SETTINGS_CLEANUP, US_UAT_TASKS, US_UAT_MODULAR_INSTALL,
+      US_UAT_MSG_STABLESESSION, US_UAT_REC_*, US_UAT_LOGGING, US_UAT_SPL, and
+      US_UAT_MSG_REMOTECOMPAT.
+    priority: Medium
+  - id: 41
+    name: Redesign Recorder interaction and recording target
+    status: Backlog
+    labels:
+      - architecture
+      - cleanup
+      - recorder
+    notes: User decision relayed by System Designer (2026-09-25,
+      retire-legacy-actor-kinds L0 review), explicitly out of scope for the
+      active change. Recorder Start/Stop actions (US_REC_CAPTURE AC-1,
+      US_REC_ENABLE AC-3) and transcript dispatch (US_REC_DISPATCH AC-1) were
+      tied to Project/Event tree nodes and are no longer in force; recording
+      therefore cannot currently be started from the tree. Redesign the
+      user-facing recording controls and target selection for the Actor
+      architecture. The user also finds the current container/Whisper solution
+      not user-friendly; address that as part of the redesign.
+    priority: Medium
+  - id: 42
+    name: Actor identity via agent mode - replaces jarvis_whoAmI
+    status: Backlog
+    labels:
+      - architecture
+      - identity
+      - agent-mode
+      - hooks
+    notes: 'Follow-up idea discussed and refined with the user, relayed by System
+      Designer (2026-09-27); explicitly not part of retire-legacy-actor-kinds.
+      Goal: an Actor resolves its identity reliably without hooks, including
+      after /compact. Agreed concept: each Actor has a mandatory binding to its
+      own .github/agents/<actorname>.agent.md. Immediately after YAML front
+      matter, Jarvis maintains a managed section beginning with the exact lines
+      "You act as Actor <name>" and "Your context memory is <workspace-relative
+      path to context.md>"; the rest remains user-owned (e.g. optional tools
+      restriction; absent tools: means default tools). actor.yaml may point to a
+      persona file (e.g. a syspilot agent); as agent files cannot include other
+      files, Jarvis copies persona content into the managed section, ideally
+      before each message send, so upstream persona updates propagate. Remove
+      jarvis_whoAmI, require ownerName on Kanban tools, and remove the obsolete
+      identity section from the Jarvis kernel instructions. This also fits the
+      hook-removal follow-up #35. Accepted limitation: if VS Code drops the mode
+      and no Jarvis action follows (e.g. sparse PIM use), the Actor lacks
+      identity until the next delivery or open. Open design points:
+      managed-section markers that preserve user edits outside it; Git churn
+      from copied persona content; sync on rename/move or jarvis.actors.folder
+      changes; collisions with existing agent files; one entry per Actor in the
+      chat mode picker. ROADMAP ORDER (user intent 2026-09-27): finish the
+      active Phase 2 Actor-session cleanup first; then plan this as another
+      non-AHP release before moving to AHP. This item remains outside Phase 2
+      scope.'
     priority: Medium

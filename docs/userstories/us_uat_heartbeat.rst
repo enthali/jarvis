@@ -184,13 +184,13 @@ Heartbeat User Acceptance Tests
    :id: US_UAT_JOBREG
    :status: approved
    :priority: optional
-   :links: US_AUT_HEARTBEAT; US_CFG_PROJECTPATH
+   :links: US_AUT_HEARTBEAT; US_ACTOR_TREE
 
    **As a** Jarvis Test Engineer,
    **I want** a set of manual acceptance test scripts for the heartbeat job
-   registration API and scanner-heartbeat integration,
+   registration API and the background rescan,
    **so that** I can verify that modules can register and unregister heartbeat jobs
-   and that the scanner uses the heartbeat system for periodic rescans.
+   and that the background rescan runs without a heartbeat job.
 
    **Acceptance Criteria:**
 
@@ -198,49 +198,46 @@ Heartbeat User Acceptance Tests
      ``heartbeat.yaml`` and the tree view refreshes
    * AC-2: Test scripts verify that ``unregisterJob`` removes an entry from
      ``heartbeat.yaml`` and the tree view refreshes
-   * AC-3: Test scripts verify the scanner registers a ``"Jarvis: Rescan"`` heartbeat
-     job when ``scanInterval > 0``
+   * AC-3: Test scripts verify that ``scanInterval > 0`` rescans the Actors in the
+     background without any ``"Jarvis: Rescan"`` heartbeat job
    * AC-4: Test scripts verify that ``scanInterval = 0`` disables automatic scanning
-     (no heartbeat job registered)
-   * AC-5: Test scripts verify that changing ``scanInterval`` at runtime re-registers
-     or unregisters the rescan job
+   * AC-5: Test scripts verify that a leftover ``"Jarvis: Rescan"`` job is removed
+     from ``heartbeat.yaml`` when the heartbeat feature starts
 
    **Test Scenarios:**
 
    **T-14 — registerJob creates entry in heartbeat.yaml**
-     Setup: Extension running; set ``jarvis.heartbeatConfigFile`` to a known path;
-     ``jarvis.scanInterval`` = 2.
-     Action: Reload window.
-     Expected: ``heartbeat.yaml`` contains a ``"Jarvis: Rescan"`` job with schedule
-     ``*/2 * * * *`` and a ``command`` step running ``jarvis.rescan``. The job appears
-     in the Heartbeat tree view.
+     Setup: Extension running.
+     Action: Call ``jarvis_registerJob`` with a job ``"UAT: Probe"``, schedule
+     ``*/5 * * * *``, one ``command`` step.
+     Expected: ``heartbeat.yaml`` contains ``"UAT: Probe"`` with that schedule. The
+     job appears in the Heartbeat tree view.
 
    **T-15 — registerJob upserts existing entry**
-     Setup: ``scanInterval`` = 2; ``"Jarvis: Rescan"`` job already in
-     ``heartbeat.yaml``.
-     Action: Change ``jarvis.scanInterval`` to 5 in VS Code settings.
-     Expected: ``heartbeat.yaml`` now has ``"Jarvis: Rescan"`` with schedule
-     ``*/5 * * * *``. Only one entry with that name exists (no duplicates). Tree
+     Setup: ``"UAT: Probe"`` present with ``*/5 * * * *``.
+     Action: Call ``jarvis_registerJob`` again for ``"UAT: Probe"`` with
+     ``*/10 * * * *``.
+     Expected: Exactly one ``"UAT: Probe"`` entry, schedule ``*/10 * * * *``. Tree
      view reflects the new schedule.
 
    **T-16 — unregisterJob removes entry**
-     Setup: ``scanInterval`` = 2; ``"Jarvis: Rescan"`` job present.
-     Action: Change ``jarvis.scanInterval`` to 0.
-     Expected: ``"Jarvis: Rescan"`` job is removed from ``heartbeat.yaml``. Job
-     disappears from the Heartbeat tree view.
+     Setup: ``"UAT: Probe"`` present.
+     Action: Call ``jarvis_unregisterJob`` for ``"UAT: Probe"``.
+     Expected: The entry is removed from ``heartbeat.yaml`` and disappears from the
+     Heartbeat tree view.
 
-   **T-17 — Rescan fires via heartbeat**
-     Setup: ``scanInterval`` = 1 (every minute); ``heartbeatInterval`` = 10.
-     Action: Modify a project YAML file; wait for the next cron fire.
-     Expected: The sidebar updates with the changed data (rescan fired via heartbeat).
-     Output Channel shows the ``jarvis.rescan`` command step executing.
+   **T-17 — Background rescan without heartbeat job**
+     Setup: ``scanInterval`` = 1; ``jarvis.heartbeat.enabled`` = ``false``.
+     Action: Change the ``summary`` of an Actor's ``actor.yaml``; wait one minute.
+     Expected: The ACTORS tooltip shows the new summary. ``heartbeat.yaml`` contains
+     no ``"Jarvis: Rescan"`` job.
 
-   **T-18 — scanInterval 0 disables automatic scanning**
-     Setup: ``scanInterval`` = 0.
-     Action: Start extension; check ``heartbeat.yaml``.
-     Expected: No ``"Jarvis: Rescan"`` job registered. Scanner performs the initial
-     scan only. No periodic rescans occur (sidebar does not update after modifying
-     a YAML file, until manual rescan).
+   **T-18 — scanInterval 0 and leftover cleanup**
+     Setup: ``scanInterval`` = 0; add a ``"Jarvis: Rescan"`` job to
+     ``heartbeat.yaml`` by hand; ``jarvis.heartbeat.enabled`` = ``true``.
+     Action: Reload the window; change an Actor's ``summary``; wait two minutes.
+     Expected: The ``"Jarvis: Rescan"`` entry is gone from ``heartbeat.yaml``. The
+     tooltip keeps the old summary until ``jarvis.rescan`` is run.
 
    **T-19 — Basic output variable chaining: script → subsequent step**
      Setup: Add a manual heartbeat job with two steps:

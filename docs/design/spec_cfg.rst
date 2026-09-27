@@ -152,7 +152,7 @@ Configuration Design Specifications
 .. spec:: Grouped Settings Configuration in package.json
    :id: SPEC_CFG_SETTINGSGROUPS
    :status: deprecated
-   :links: REQ_CFG_SETTINGSGROUPS; SPEC_EXP_FEATURETOGGLE
+   :links: REQ_CFG_SETTINGSGROUPS
 
    **Superseded by:** ``SPEC_CFG_MANIFEST`` (settings-cleanup CR).
 
@@ -214,133 +214,46 @@ Configuration Design Specifications
      VS Code already shows the extension name as the parent section in the Settings UI
 
 
-.. spec:: Default Path Population at Activation
-   :id: SPEC_CFG_DEFAULTPATHS
-   :status: deprecated
-   :links: REQ_CFG_DEFAULTPATHS; SPEC_CFG_HEARTBEATSETTINGS
-
-   **Superseded by:** SPEC_CFG_PATHRESOLVER
-
-   **Description:**
-   During ``activate()``, before any other initialization, write the resolved
-   default paths into workspace-scoped settings if they are empty. This ensures
-   that ``when``-clauses on optional sidebar views evaluate correctly from the
-   first render.
-
-   **Implementation** (in ``src/extension.ts``, early in ``activate()``):
-
-   .. code-block:: typescript
-
-      function populateDefaultPaths(
-        context: vscode.ExtensionContext
-      ): void {
-        const config = vscode.workspace.getConfiguration('jarvis');
-
-        if (!config.get<string>('heartbeatConfigFile')) {
-          const defaultPath = vscode.Uri.joinPath(
-            context.storageUri!, 'heartbeat.yaml'
-          ).fsPath;
-          config.update(
-            'heartbeatConfigFile', defaultPath,
-            vscode.ConfigurationTarget.Workspace
-          );
-        }
-
-        if (!config.get<string>('messagesFile')) {
-          const defaultPath = vscode.Uri.joinPath(
-            context.storageUri!, 'messages.json'
-          ).fsPath;
-          config.update(
-            'messagesFile', defaultPath,
-            vscode.ConfigurationTarget.Workspace
-          );
-        }
-      }
-
-   **Timing:** Called at the very start of ``activate()`` (before heartbeat
-   and scanner initialization) so that ``when``-clauses evaluate correctly
-   from the first render.
-
-   **Constraints:**
-
-   * ``ConfigurationTarget.Workspace`` scopes the write to the current workspace
-     (``.vscode/settings.json``); global user settings are not modified
-   * The written path is identical to the fallback path the extension already uses
-     internally — no behavioral change for the scheduler or message queue
-   * If a user has already set an explicit non-empty value, the ``if`` guard
-     prevents overwriting it
-   * ``await config.update()`` ensures the setting is written before tree providers
-     register; VS Code re-evaluates ``when``-clauses synchronously after each update
-   * The existing ``resolveConfigPath()`` / ``resolveMessagesPath()`` functions
-     continue to work as before — the setting is now populated, so the
-     ``if (override)`` branch fires. No functional change.
-
-
 .. spec:: settings-cleanup: Full Configuration Manifest (package.json)
    :id: SPEC_CFG_MANIFEST
-   :status: implemented
-   :links: REQ_CFG_TOGGLES; REQ_CFG_GROUPS; REQ_CFG_MCPDEFAULTOFF; REQ_CFG_RENAMES; REQ_ENT_AGENTPROMPT_TEMPLATE; REQ_MSG_NOTIFICATION_TEMPLATE; SPEC_MSG_NOTIFICATION_RESOLVE
+   :status: approved
+   :links: REQ_CFG_TOGGLES; REQ_CFG_GROUPS; REQ_CFG_MCPDEFAULTOFF; REQ_CFG_RENAMES; REQ_CFG_FOLDERPATHS; REQ_CFG_SCANINTERVAL; REQ_ACTOR_INITPROMPT; REQ_ACTOR_CREATE; REQ_MSG_NOTIFICATION_TEMPLATE; SPEC_MSG_NOTIFICATION_RESOLVE
 
    **Description:**
-   The complete ``contributes.configuration`` array in ``package.json`` after
-   this CR. Eleven named groups in the order mandated by REQ_CFG_GROUPS:
-   Projects, Events, Sessions, Messages, Heartbeat, Reminders, MCP, PIM,
-   Outlook, Recording, Updates. CR ``sessions-feature`` populated the
-   Sessions group with ``jarvis.sessions.enabled`` only — paths are fixed
-   under ``.jarvis/sessions/`` (no folder setting; see ``SPEC_ACT_MANIFEST``). The Updates group
-   houses ``jarvis.checkForUpdates``.
+   The complete core ``contributes.configuration`` array in
+   ``packages/core/package.json``. Eight named groups in the order mandated by
+   ``REQ_CFG_GROUPS``: Actors, Messages, Prompt Templates, Heartbeat,
+   Reminders, Gitignore, Updates, Hooks. Add-ons contribute their own groups
+   in their own manifests: PIM ("PIM", "Outlook", ``SPEC_PIM_*``), recorder
+   ("Jarvis Recorder"), MCP ("Jarvis MCP"), kanban ("Jarvis Kanban"),
+   syspilot ("Jarvis Syspilot").
 
    .. code-block:: json
 
       [
         {
-          "title": "Projects",
+          "title": "Actors",
           "properties": {
-            "jarvis.projects.enabled": {
-              "type": "boolean",
-              "default": false,
-              "description": "Enable the Projects feature. When false, no Projects tree view, commands, or tools are registered."
-            },
-            "jarvis.projects.folder": {
+            "jarvis.actors.folder": {
               "type": "string",
-              "default": "",
-              "description": "Absolute path to the folder containing project YAML files."
+              "default": ".jarvis/actors",
+              "description": "Workspace-relative or absolute folder containing the Actor folders."
+            },
+            "jarvis.actors.openSessionOnCreate": {
+              "type": "boolean",
+              "default": true,
+              "description": "Open the new Actor's chat right after creating it. Turn off to keep your current chat in focus, e.g. when creating several Actors in a row."
             },
             "jarvis.scanInterval": {
               "type": "number",
               "default": 2,
               "minimum": 0,
-              "description": "Background rescan interval in minutes (0 = disabled, registers via heartbeat)."
-            }
-          }
-        },
-        {
-          "title": "Events",
-          "properties": {
-            "jarvis.events.enabled": {
+              "description": "Background rescan interval for the Actors in minutes (0 = disabled)."
+            },
+            "jarvis.actor.autoProvision": {
               "type": "boolean",
               "default": false,
-              "description": "Enable the Events feature. When false, no Events tree view, commands, or tools are registered."
-            },
-            "jarvis.events.folder": {
-              "type": "string",
-              "default": "",
-              "description": "Absolute path to the folder containing event YAML files."
-            }
-          }
-        },
-        {
-          "title": "Sessions",
-          "properties": {
-            "jarvis.sessions.enabled": {
-              "type": "boolean",
-              "default": true,
-              "description": "Enable the Sessions feature. When false, no Sessions tree view, commands, or tools are registered."
-            },
-            "jarvis.agentSession.initPromptTemplate": {
-              "type": "string",
-              "default": "",
-              "description": "Template for the agent-session initialization prompt. Placeholders: ${kind}, ${name}, ${contextPath}. If empty, the built-in disciplined-memory default is used. Scope: window."
+              "description": "Automatically provision bundled actor instruction files into the workspace on activation. Default false — enable in workspaces that use Jarvis actors."
             }
           }
         },
@@ -356,10 +269,24 @@ Configuration Design Specifications
               "type": "boolean",
               "default": true,
               "description": "When enabled, every queued message is also appended to the audit log at .jarvis/messages/log.json (append-only)."
+            }
+          }
+        },
+        {
+          "title": "Prompt Templates",
+          "properties": {
+            "jarvis.agentSession.initPromptTemplate": {
+              "type": "string",
+              "default": "",
+              "editPresentation": "multilineText",
+              "scope": "window",
+              "description": "Template for the initialization prompt sent to a new Actor chat session. Placeholders: ${name}, ${contextPath}. If empty, the built-in default is used."
             },
             "jarvis.messages.notificationTemplate": {
               "type": "string",
               "default": "",
+              "editPresentation": "multilineText",
+              "scope": "window",
               "description": "Template for the auto-delivery notification stub. Placeholders: ${count}, ${destination}, ${sender}. If empty, the built-in English default is used. Scope: window."
             }
           }
@@ -391,57 +318,46 @@ Configuration Design Specifications
           }
         },
         {
-          "title": "MCP",
+          "title": "Gitignore",
           "properties": {
-            "jarvis.mcp.enabled": {
+            "jarvis.gitignore.autoManage": {
               "type": "boolean",
-              "default": false,
-              "description": "Enable the embedded MCP server (localhost only). When false, the server does not start."
+              "default": true,
+              "scope": "resource",
+              "description": "When true (default), Jarvis maintains a marked region in the workspace .gitignore listing its transient runtime paths. Set to false to remove the region."
+            }
+          }
+        },
+        {
+          "title": "Updates",
+          "properties": {
+            "jarvis.checkForUpdates": {
+              "type": "boolean",
+              "default": true,
+              "description": "Check for new Jarvis releases on GitHub when the extension activates."
             },
-            "jarvis.mcpPort": {
+            "jarvis.releaseNotes.showOnUpdate": {
+              "type": "boolean",
+              "default": true,
+              "scope": "application",
+              "description": "Open the release notes in the editor the first time a newly installed Jarvis version runs. The command \"Jarvis: Show Release Notes\" works regardless of this setting."
+            }
+          }
+        },
+        {
+          "title": "Hooks",
+          "properties": {
+            "jarvis.hooks.autoInstall": {
+              "type": "boolean",
+              "default": true,
+              "scope": "resource",
+              "description": "When true (default), Jarvis auto-installs hook bridge files in .github/hooks/. Set to false to remove managed files and stop hook management."
+            },
+            "jarvis.touchedFiles.windowDays": {
               "type": "number",
-              "default": 31415,
-              "description": "Port for the embedded MCP server (localhost only)."
-            }
-          }
-        },
-        {
-          "title": "PIM",
-          "properties": {
-            "jarvis.pim.showCategories": {
-              "type": "boolean",
-              "default": true,
-              "description": "Show the Categories view in the Jarvis sidebar."
-            }
-          }
-        },
-        {
-          "title": "Outlook",
-          "properties": {
-            "jarvis.outlook.enabled": {
-              "type": "boolean",
-              "default": false,
-              "description": "Enable Outlook COM integration (Windows + Outlook Classic). When disabled, no Outlook COM calls are made."
-            },
-            "jarvis.outlook.tasks.enabled": {
-              "type": "boolean",
-              "default": true,
-              "description": "Enable the Outlook Tasks integration. Only effective when jarvis.outlook.enabled is true."
-            }
-          }
-        },
-        {
-          "title": "Recording",
-          "properties": {
-            "jarvis.recording.enabled": {
-              "type": "boolean",
-              "default": false,
-              "description": "Enable the Session Recording feature. When true, Start/Stop Recording buttons appear on Project and Event nodes."
-            },
-            "jarvis.recording.whisperPath": {
-              "type": "string",
-              "default": "",
-              "description": "Absolute path to the Whisper project folder containing recorder.py and the input/ subfolder."
+              "default": 0,
+              "minimum": 0,
+              "description": "(0 = no limit) Rolling window in days; only files touched within this window are shown. Changing this takes effect immediately."
             }
           }
         }
@@ -456,7 +372,7 @@ Configuration Design Specifications
       or whitespace-only value falls back to the built-in constant —
       ``DEFAULT_INIT_PROMPT`` respectively ``DEFAULT_NOTIFICATION``, both in
       ``packages/core/src/engine/sessions/injectPrompt.ts`` (see
-      ``SPEC_ENT_AGENTSESSION_INITPROMPT`` and
+      ``SPEC_ACTOR_INITPROMPT`` and
       ``SPEC_MSG_NOTIFICATION_RESOLVE``).
 
       **The declared default governs display, never behaviour**
@@ -472,35 +388,32 @@ Configuration Design Specifications
       claimed a notification-template constant existed in ``extension.ts``;
       it never did, and the notification path had no fallback at all.
 
-   **Updates group:** The ``jarvis.checkForUpdates`` setting lives in the
-   Updates group (the 11th group). This was the CM’s autonomous decision
-   during design: it has no natural home in the other ten groups, and the
-   group title is already user-meaningful.
+   **Updates group:** ``jarvis.checkForUpdates`` has no natural home in the
+   other groups, and the group title is already user-meaningful.
 
    **Removed settings (must be absent from the final manifest):**
 
-   * ``jarvis.projectsFolder`` (replaced by ``jarvis.projects.folder``)
-   * ``jarvis.eventsFolder`` (replaced by ``jarvis.events.folder``)
    * ``jarvis.mcpEnabled`` (replaced by ``jarvis.mcp.enabled``)
    * ``jarvis.outlookEnabled`` (replaced by ``jarvis.outlook.enabled``)
    * ``jarvis.heartbeatConfigFile`` (replaced by fixed path; see SPEC_CFG_PATHRESOLVER)
    * ``jarvis.messagesFile`` (replaced by fixed path; see SPEC_CFG_PATHRESOLVER)
 
    **Supersedes:** SPEC_CFG_SETTINGS, SPEC_CFG_HEARTBEATSETTINGS,
-   SPEC_CFG_UPDATECHECK, SPEC_CFG_SETTINGSGROUPS, SPEC_CFG_DEFAULTPATHS
+   SPEC_CFG_UPDATECHECK, SPEC_CFG_SETTINGSGROUPS
    (those specs document the pre-CR state; they remain in the file as historical
-   record with ``status: implemented``).
+   record with ``status: deprecated``).
 
 
 .. spec:: settings-cleanup: Central Path Resolver Module (configPaths.ts)
    :id: SPEC_CFG_PATHRESOLVER
-   :status: implemented
-   :links: REQ_CFG_FIXEDPATHS; REQ_ACT_DUALPATH_SCANNER; REQ_CFG_MSGDIR; REQ_CFG_PATHSINGLESOURCE; REQ_CFG_IGNOREPATTERNS
+   :status: approved
+   :links: REQ_CFG_FIXEDPATHS; REQ_CFG_FOLDERPATHS; REQ_CFG_MSGDIR; REQ_CFG_PATHSINGLESOURCE; REQ_CFG_IGNOREPATTERNS
 
-   **(actor-dualpath-scanner CR amendment):** adds ``getActorsDir()``/
-   ``ensureActorsDir()`` below, mirroring the existing
-   ``getSessionsDir()``/``ensureSessionsDir()`` pair — see
-   ``SPEC_ACT_DUALPATH_SCANNER`` for how these are wired into the scanner.
+   **(retire-legacy-actor-kinds amendment):** ``getActorsDir()`` resolves the
+   ``jarvis.actors.folder`` setting (``REQ_CFG_FOLDERPATHS``) and replaces the
+   separate ``resolveActorsFolder()`` helper in ``extension.ts``, so the Actor
+   root has one resolver (``REQ_CFG_PATHSINGLESOURCE``).
+   ``getSessionsDir()``/``ensureSessionsDir()`` are removed.
 
    **(jarvis-messages-dir-grouping CR, GH #59 amendment):** the three message
    getters now resolve into ``.jarvis/messages/``, a ``getMessagesDir()``/
@@ -615,32 +528,19 @@ Configuration Design Specifications
         return dir ? path.join(dir, 'autodelivery.json') : undefined;
       }
 
-      /** Returns <workspaceRoot>/.jarvis/sessions, or undefined when no workspace is open. */
-      export function getSessionsDir(): string | undefined {
-        const dir = getJarvisDir();
-        return dir ? path.join(dir, 'sessions') : undefined;
-      }
-
-      /** Ensures <workspaceRoot>/.jarvis/sessions exists (mkdir -p) and returns its path, or undefined. */
-      export function ensureSessionsDir(): string | undefined {
-        const dir = getSessionsDir();
-        if (!dir) { return undefined; }
-        fs.mkdirSync(dir, { recursive: true });
-        return dir;
-      }
-
-      /** (actor-dualpath-scanner CR) Returns <workspaceRoot>/.jarvis/actors,
-       *  or undefined when no workspace is open. Mirrors getSessionsDir() —
-       *  a fixed path, no folder setting, same pattern as the existing
-       *  session convention. */
+      /** Returns the resolved Actor root: jarvis.actors.folder (default
+       *  ".jarvis/actors"), absolute or relative to the workspace root.
+       *  undefined when no workspace is open or the setting is blank. */
       export function getActorsDir(): string | undefined {
-        const dir = getJarvisDir();
-        return dir ? path.join(dir, 'actors') : undefined;
+        const root = getWorkspaceRoot();
+        if (!root) { return undefined; }
+        const configured = vscode.workspace.getConfiguration('jarvis')
+          .get<string>('actors.folder', '.jarvis/actors').trim();
+        if (!configured) { return undefined; }
+        return path.isAbsolute(configured) ? configured : path.resolve(root, configured);
       }
 
-      /** (actor-dualpath-scanner CR) Ensures <workspaceRoot>/.jarvis/actors
-       *  exists (mkdir -p) and returns its path, or undefined. Mirrors
-       *  ensureSessionsDir(). */
+      /** Ensures the Actor root exists (mkdir -p) and returns its path, or undefined. */
       export function ensureActorsDir(): string | undefined {
         const dir = getActorsDir();
         if (!dir) { return undefined; }
@@ -698,7 +598,6 @@ Configuration Design Specifications
         { rel: '.jarvis/syspilot-state.json', durability: 'transient' },
         { rel: '.github/hooks/jarvis-*',     durability: 'transient' },
         { rel: '.jarvis/actors/',            durability: 'durable' },
-        { rel: '.jarvis/sessions/',          durability: 'durable' },
       ];
 
       /** (GH #60) The entries of the managed .gitignore region, in declaration
@@ -756,10 +655,9 @@ Configuration Design Specifications
      transient ones would make a durable path indistinguishable from a path
      nobody classified, and the two need opposite treatment: an unclassified
      path is an omission to fix, a durable path is a decision to keep.
-     ``.jarvis/sessions/`` is the case that makes this concrete — it is the
-     legacy actor root (``SPEC_ACT_DUALPATH_SCANNER``) and holds ``context.md``
-     memory, so it must stay tracked in workspaces that have not migrated to
-     ``.jarvis/actors/``.
+     ``.jarvis/actors/`` is the case that makes this concrete — it is the
+     default Actor root and holds ``context.md`` memory, so it must stay
+     tracked.
    * **(GH #60)** The correspondence between the getters and ``WORKSPACE_PATHS``
      is an invariant, not a convention: every path a getter resolves is covered
      by exactly one entry. It is verifiable — a test can walk the getters and
@@ -788,16 +686,8 @@ Configuration Design Specifications
       export function activate(context: vscode.ExtensionContext): void {
         const cfg = vscode.workspace.getConfiguration('jarvis');
 
-        if (cfg.get<boolean>('projects.enabled', false)) {
-          // register Projects tree view
-          // register jarvis.newProject, jarvis.rescan, jarvis.filterProjectFolders commands
-          // register listProjects LM/MCP tool
-        }
-
-        if (cfg.get<boolean>('events.enabled', false)) {
-          // register Events tree view
-          // register jarvis.newEvent, jarvis.filterFutureEvents commands
-        }
+        // Actors have no toggle (REQ_CFG_TOGGLES): scanner, ACTORS view and
+        // Actor tools are always set up (SPEC_EXP_EXTENSION).
 
         if (cfg.get<boolean>('heartbeat.enabled', true)) {
           // create HeartbeatScheduler, register Heartbeat tree view
@@ -860,10 +750,8 @@ Configuration Design Specifications
 
       * - View id
         - ``when`` clause
-      * - ``jarvisProjects``
-        - ``config.jarvis.projects.enabled == true``
-      * - ``jarvisEvents``
-        - ``config.jarvis.events.enabled == true``
+      * - ``jarvisActors``
+        - *(none — always shown)*
       * - ``jarvisMessages``
         - ``config.jarvis.messages.enabled == true``
       * - ``jarvisReminders``
@@ -879,11 +767,9 @@ Configuration Design Specifications
      change its ``when`` clause to ``config.jarvis.messages.enabled == true``.
    * Any menu item currently gated on ``config.jarvis.heartbeatConfigFile != ''``
      SHALL change its ``when`` clause to ``config.jarvis.heartbeat.enabled == true``.
-   * Any menu item currently gated on ``config.jarvis.eventsFolder != ''`` SHALL
-     change its ``when`` clause to ``config.jarvis.events.enabled == true``.
 
-   **Supersedes:** The ``when``-clause behaviour described in SPEC_EXP_FEATURETOGGLE
-   (that spec used ``config.jarvis.heartbeatConfigFile != ''`` and
+   **Supersedes:** The ``when``-clause behaviour of the former feature-toggle
+   view spec (``config.jarvis.heartbeatConfigFile != ''`` and
    ``config.jarvis.messagesFile != ''``; those conditions no longer apply after
    the configurable paths are removed).
 
@@ -932,9 +818,8 @@ Workspace File Layout & VCS Visibility
    ``.jarvis/`` *as a unit*, reasoning from ownership alone. That is wrong, and
    this repository has contradicted it since actor memory was introduced:
    ``.jarvis/actors/`` holds ``context.md`` files — durable, authored team
-   knowledge, the artefact the actor model exists to accumulate — and
-   ``.jarvis/sessions/`` holds the same content under the legacy actor root.
-   Ignoring ``.jarvis/`` wholesale would withhold both from version control.
+   knowledge, the artefact the actor model exists to accumulate.
+   Ignoring ``.jarvis/`` wholesale would withhold it from version control.
    The classification that decides this is declared once, in
    ``SPEC_CFG_PATHRESOLVER``'s ``WORKSPACE_PATHS``, and drives both this table
    and the maintained region (``SPEC_CFG_IGNOREMANAGER``).
@@ -1015,10 +900,6 @@ Workspace File Layout & VCS Visibility
         - Version control *(GH #60)*
       * - ``.jarvis/actors/``
         - Actor folders and ``context.md`` memory
-        - —
-        - durable — tracked
-      * - ``.jarvis/sessions/``
-        - Session records; legacy actor root, same ``context.md`` content
         - —
         - durable — tracked
       * - ``.jarvis/state/``
@@ -1447,5 +1328,5 @@ Workspace File Layout & VCS Visibility
      or writes the region.
    * AC-11: ``getIgnoreEntries()`` covers every ``transient`` entry of
      ``WORKSPACE_PATHS`` and no ``durable`` one — in particular
-     ``.jarvis/actors/`` and ``.jarvis/sessions/`` are absent from the region.
+     ``.jarvis/actors/`` is absent from the region.
 

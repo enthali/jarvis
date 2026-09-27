@@ -18,11 +18,7 @@ Requirements describe **what** the system must do.
    req_pim
    req_olk
    req_rec
-   req_evt
-   req_prj
-   req_act
    req_actor
-   req_ent
    req_mod
    req_inj
    req_eng

@@ -26,9 +26,6 @@ export function resolveJarvisYamlSchema(resource: string, extensionUri: vscode.U
     if (fileName === 'actor.yaml') {
         return vscode.Uri.joinPath(extensionUri, 'schemas', 'actor.schema.json').toString();
     }
-    if (fileName === 'session.yaml') {
-        return vscode.Uri.joinPath(extensionUri, 'schemas', 'session.schema.json').toString();
-    }
     return undefined;
 }
 

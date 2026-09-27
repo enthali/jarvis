@@ -42,8 +42,8 @@ describe('TC-2: session-id resolution via getEntityNameForSessionId', () => {
         expect(extensionSrc).toMatch(/import\s*\{[^}]*getEntityNameForSessionId[^}]*\}\s*from\s*'\.\/engine\/sessions\/sessionLookup'/);
     });
 
-    it('resolves entity name through the combined Actor identity resolver', () => {
-        expect(whoAmISection).toContain('resolveActorIdentity(entityName, entitySource, actorScanner)');
+    it('resolves entity name through the Actor scanner', () => {
+        expect(whoAmISection).toContain('actorScanner.resolveName(entityName)');
         expect(whoAmISection).not.toContain("e.kind === 'session'");
     });
 });
@@ -85,9 +85,10 @@ describe('TC-4: identity resolution errors', () => {
         expect(errorReturns!.length).toBe(3); // no sessionId, no entityName, zero match
     });
 
-    it('reports all matching paths for an ambiguous Actor name', () => {
-        expect(whoAmISection).toContain('resolution.paths.join');
-        expect(whoAmISection).toContain('Rename one of the Actors.');
+    it('unknown and ambiguous names both converge on the single generic error — no distinct collision message (SPEC_ACTOR_WHOAMI)', () => {
+        expect(whoAmISection).toContain("lookup.status !== 'found'");
+        expect(whoAmISection).not.toContain('resolution.paths.join');
+        expect(whoAmISection).not.toContain('Rename one of the Actors.');
     });
 
     it('does not contain the old "No active tab" error', () => {
@@ -96,9 +97,9 @@ describe('TC-4: identity resolution errors', () => {
 });
 
 describe('REQ_ACTOR_WHOAMI: response compatibility', () => {
-    it('resolves new Actors through ActorScanner and adds their actor.yaml id', () => {
-        expect(whoAmISection).toContain('resolveActorIdentity(entityName, entitySource, actorScanner)');
-        expect(whoAmISection).toContain('JSON.stringify(resolution.payload)');
+    it('resolves Actors through ActorScanner and returns their actor.yaml id', () => {
+        expect(whoAmISection).toContain('actorScanner.resolveName(entityName)');
+        expect(whoAmISection).toContain('JSON.stringify(payload)');
     });
 });
 

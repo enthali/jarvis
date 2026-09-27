@@ -11,7 +11,7 @@ import { readState, writeState } from '../../packages/syspilot/src/state';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 function makeFakeApi(sendMessage = vi.fn()) {
     return {
-        listJarvisSessions: () => [],
+        listActors: () => [],
         invokeTool: vi.fn().mockResolvedValue(undefined),
         sendMessage,
     } as any;

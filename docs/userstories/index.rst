@@ -18,11 +18,7 @@ User Stories or Stakeholder needs describe **why** functionality is needed from 
    us_pim
    us_olk
    us_rec
-   us_act
    us_actor
-   us_ent
-   us_evt
-   us_prj
    us_mod
    us_inj
    us_hook

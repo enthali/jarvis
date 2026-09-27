@@ -52,8 +52,7 @@ Message Flow Visualization UAT Design Specifications
 
    **Test Setup:**
 
-   * Extension Development Host launched with core + ``enthali.jarvis-flow``
-     (per ``REQ_UAT_MODULAR_INSTALL``).
+   * Extension Development Host launched with core + ``enthali.jarvis-flow``.
    * Workspace: ``testdata/test.code-workspace``.
    * ``jarvis.messages.logging`` toggled per-scenario as noted below.
 

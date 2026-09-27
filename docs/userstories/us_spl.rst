@@ -5,7 +5,7 @@ Syspilot Lifecycle User Stories
    :id: US_SPL_LIFECYCLE
    :status: draft
    :priority: optional
-   :links: US_MOD_INSTALL; US_ACT_ACTORS
+   :links: US_MOD_INSTALL; US_ACTOR_ACTORS
 
    **As a** Jarvis user who uses syspilot,
    **I want** Jarvis to detect when a new syspilot version is available and hand

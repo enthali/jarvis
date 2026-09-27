@@ -2,11 +2,9 @@
 name: "Dev Engineer"
 agent: syspilot.implement
 description: "Subagent that implements code changes from approved Change Documents. Reads specs, writes code, writes tests, commits with traceability."
-model: Qwen3.8-27B Aphrodite (customendpoint)
 user-invocable: true
 agents: []
 ---
-
 # syspilot Dev Engineer
 
 ## Soul

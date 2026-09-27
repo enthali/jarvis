@@ -1,7 +1,7 @@
 {
   "name": "jarvis-pim",
   "displayName": "Jarvis PIM",
-  "description": "Jarvis Personal Information Manager — projects, events, categories, tasks",
+  "description": "Jarvis Personal Information Manager — categories, tasks",
   "version": "0.27.2",
   "publisher": "enthali",
   "icon": "resources/jarvis-128.png",
@@ -13,8 +13,7 @@
     "enthali.jarvis-core"
   ],
   "activationEvents": [
-    "onView:jarvisCategories",
-    "onView:jarvisEntities"
+    "onView:jarvisCategories"
   ],
   "scripts": {
     "compile": "tsc -p ./",
@@ -32,16 +31,6 @@
     "jarvis-core": "*"
   },
   "contributes": {
-    "yamlValidation": [
-      {
-        "fileMatch": "project.yaml",
-        "url": "./schemas/project.schema.json"
-      },
-      {
-        "fileMatch": "event.yaml",
-        "url": "./schemas/event.schema.json"
-      }
-    ],
     "customEditors": [
       {
         "viewType": "jarvis.taskEditor",
@@ -64,36 +53,6 @@
       ]
     },
     "commands": [
-      {
-        "command": "jarvis.newProject",
-        "title": "Jarvis: New Project",
-        "icon": "$(add)"
-      },
-      {
-        "command": "jarvis.newEvent",
-        "title": "Jarvis: New Event",
-        "icon": "$(add)"
-      },
-      {
-        "command": "jarvis.filterProjectFolders",
-        "title": "Filter Project Folders",
-        "icon": "$(filter)"
-      },
-      {
-        "command": "jarvis.filterProjectFoldersActive",
-        "title": "Filter Project Folders",
-        "icon": "$(filter-filled)"
-      },
-      {
-        "command": "jarvis.filterFutureEvents",
-        "title": "Show Future Events Only",
-        "icon": "$(filter)"
-      },
-      {
-        "command": "jarvis.filterFutureEventsActive",
-        "title": "Show Future Events Only",
-        "icon": "$(filter-filled)"
-      },
       {
         "command": "jarvis.refreshCategories",
         "title": "Jarvis: Refresh Categories",
@@ -130,37 +89,9 @@
         {
           "command": "jarvis.refreshTasks",
           "when": "false"
-        },
-        {
-          "command": "jarvis.filterProjectFolders"
-        },
-        {
-          "command": "jarvis.filterProjectFoldersActive"
-        },
-        {
-          "command": "jarvis.filterFutureEvents"
-        },
-        {
-          "command": "jarvis.filterFutureEventsActive"
         }
       ],
       "view/item/context": [
-        { "command": "jarvis.filterProjectFolders", "when": "viewItem == jarvisEntityCategory:project && !jarvis.projectFilterActive", "group": "inline@1" },
-        { "command": "jarvis.filterProjectFoldersActive", "when": "viewItem == jarvisEntityCategory:project && jarvis.projectFilterActive", "group": "inline@1" },
-        { "command": "jarvis.newProject", "when": "viewItem == jarvisEntityCategory:project", "group": "inline@2" },
-        { "command": "jarvis.filterFutureEvents", "when": "viewItem == jarvisEntityCategory:event && !jarvis.eventFilterActive", "group": "inline@1" },
-        { "command": "jarvis.filterFutureEventsActive", "when": "viewItem == jarvisEntityCategory:event && jarvis.eventFilterActive", "group": "inline@1" },
-        { "command": "jarvis.newEvent", "when": "viewItem == jarvisEntityCategory:event", "group": "inline@2" },
-        { "command": "jarvis.revealInExplorer", "when": "viewItem =~ /^jarvis(Project|Event)$/", "group": "context-actions" },
-        { "command": "jarvis.revealInOS", "when": "viewItem =~ /^jarvis(Project|Event)$/", "group": "context-actions" },
-        { "command": "jarvis.openInTerminal", "when": "viewItem =~ /^jarvis(Project|Event)$/", "group": "context-actions" },
-        { "command": "jarvis.openAgentSession", "when": "viewItem == jarvisProject", "group": "open" },
-        { "command": "jarvis.copyPath", "when": "viewItem == jarvisProject", "group": "clipboard@1" },
-        { "command": "jarvis.copyFullPath", "when": "viewItem == jarvisProject", "group": "clipboard@2" },
-        { "command": "jarvis.openAgentSession", "when": "viewItem == jarvisEvent", "group": "open" },
-        { "command": "jarvis.copyPath", "when": "viewItem == jarvisEvent", "group": "clipboard@1" },
-        { "command": "jarvis.copyFullPath", "when": "viewItem == jarvisEvent", "group": "clipboard@2" },
-        { "command": "jarvis.copyCategoryName", "when": "viewItem == jarvisFolder", "group": "clipboard@1" },
         {
           "command": "jarvis.renameCategory",
           "when": "viewItem == jarvisCategory",
@@ -173,36 +104,6 @@
       ]
     },
     "configuration": [
-      {
-        "title": "Projects",
-        "properties": {
-          "jarvis.projects.enabled": {
-            "type": "boolean",
-            "default": false,
-            "description": "Enable the Projects feature. When false, no Projects tree view, commands, or tools are registered."
-          },
-          "jarvis.projects.folder": {
-            "type": "string",
-            "default": "",
-            "description": "Absolute path to the folder containing project YAML files."
-          }
-        }
-      },
-      {
-        "title": "Events",
-        "properties": {
-          "jarvis.events.enabled": {
-            "type": "boolean",
-            "default": false,
-            "description": "Enable the Events feature. When false, no Events tree view, commands, or tools are registered."
-          },
-          "jarvis.events.folder": {
-            "type": "string",
-            "default": "",
-            "description": "Absolute path to the folder containing event YAML files."
-          }
-        }
-      },
       {
         "title": "PIM",
         "properties": {
@@ -230,95 +131,6 @@
       }
     ],
     "languageModelTools": [
-      {
-        "name": "jarvis_pim_listProjects",
-        "displayName": "List Projects",
-        "modelDescription": "Returns the list of projects configured in the current Jarvis workspace. Each project has a name, summary, agent, and folder path.",
-        "canBeReferencedInPrompt": true,
-        "toolReferenceName": "listProjects",
-        "icon": "$(project)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {}
-        }
-      },
-      {
-        "name": "jarvis_pim_listEvents",
-        "displayName": "List Events",
-        "modelDescription": "Returns the list of events in the Jarvis workspace with name, summary, dates, agent, and folder path. Use this to discover available events.",
-        "canBeReferencedInPrompt": true,
-        "toolReferenceName": "listEvents",
-        "icon": "$(calendar)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {}
-        }
-      },
-      {
-        "name": "jarvis_pim_createProject",
-        "displayName": "Create Project",
-        "modelDescription": "Creates a new project folder with project.yaml and context.md under the configured projects folder. Idempotent: returns success if project already exists. When agent is specified, it must match a user-invocable agent.",
-        "canBeReferencedInPrompt": true,
-        "toolReferenceName": "createProject",
-        "icon": "$(add)",
-        "inputSchema": {
-          "type": "object",
-          "required": [
-            "name"
-          ],
-          "properties": {
-            "name": {
-              "type": "string",
-              "description": "Project name; used verbatim as the folder name"
-            },
-            "summary": {
-              "type": "string",
-              "description": "Optional short description"
-            },
-            "agent": {
-              "type": "string",
-              "description": "Optional VS Code chat-mode name. Must match a user-invocable agent."
-            }
-          }
-        }
-      },
-      {
-        "name": "jarvis_pim_createEvent",
-        "displayName": "Create Event",
-        "modelDescription": "Creates a new event folder with event.yaml and context.md. Folder name: ${startDate}_${name}. Idempotent. When agent is specified, it must match a user-invocable agent.",
-        "canBeReferencedInPrompt": true,
-        "toolReferenceName": "createEvent",
-        "icon": "$(add)",
-        "inputSchema": {
-          "type": "object",
-          "required": [
-            "name",
-            "startDate"
-          ],
-          "properties": {
-            "name": {
-              "type": "string",
-              "description": "Event name; used verbatim in folder name and YAML"
-            },
-            "startDate": {
-              "type": "string",
-              "description": "Start date in YYYY-MM-DD format"
-            },
-            "endDate": {
-              "type": "string",
-              "description": "End date in YYYY-MM-DD format (defaults to startDate)"
-            },
-            "summary": {
-              "type": "string",
-              "description": "Optional short description"
-            },
-            "agent": {
-              "type": "string",
-              "description": "Optional VS Code chat-mode name"
-            }
-          }
-        }
-      },
       {
         "name": "jarvis_pim_category",
         "displayName": "Manage Categories",

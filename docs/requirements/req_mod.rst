@@ -111,11 +111,11 @@ Modular Delivery Requirements
 
    **Acceptance Criteria:**
 
-   * AC-1: Existing entity files (sessions, projects, events) are read unchanged
-     from their current locations.
+   * AC-1: Existing Actor folders under ``jarvis.actors.folder`` are read
+     unchanged from their current locations.
    * AC-2: Existing message queues and message logs under ``.jarvis/`` are read
      unchanged.
-   * AC-3: Existing settings (``jarvis.projects.folder``, ``jarvis.recording.*``,
+   * AC-3: Existing settings (``jarvis.actors.folder``, ``jarvis.recording.*``,
      …) are honoured unchanged; no setting key is renamed.
    * AC-4: Updating from the monolith to the core requires no reinstall and no
      data move.

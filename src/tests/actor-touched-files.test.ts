@@ -1,5 +1,5 @@
 /**
- * Unit tests for actor-touched-files (GH #18, SPEC_ENT_TOUCHEDFILES).
+ * Unit tests for actor-touched-files (GH #18, SPEC_ACTOR_TOUCHEDFILES).
  *
  * Covers:
  * - Group A: TOUCH_RULES classification via TouchTracker (read/write/ignore,
@@ -49,7 +49,7 @@ function makeEvent(overrides: Partial<HookEvent> & { toolName?: string; toolInpu
 
 // --- TouchStore ------------------------------------------------------------
 
-describe('TouchStore (SPEC_ENT_TOUCHEDFILES AC-4)', () => {
+describe('TouchStore (SPEC_ACTOR_TOUCHEDFILES AC-4)', () => {
     let stateDir: string;
 
     beforeEach(() => {
@@ -110,56 +110,9 @@ describe('TouchStore (SPEC_ENT_TOUCHEDFILES AC-4)', () => {
     });
 });
 
-// --- resolveTouchStorageKind (bugfix, GH #18 — PM F5 finding) --------------
-
-describe('resolveTouchStorageKind (SPEC_ENT_TOUCHEDFILES bugfix)', () => {
-    afterEach(() => {
-        vi.resetModules();
-        vi.doUnmock('../../packages/core/src/engine/core/configPaths');
-    });
-
-    it('remaps "session" to "actor" when the entity folder is under the actors dir', async () => {
-        vi.resetModules();
-        vi.doMock('../../packages/core/src/engine/core/configPaths', () => ({
-            getActorsDir: () => path.join('C:', 'ws', '.jarvis', 'actors'),
-        }));
-        const { resolveTouchStorageKind } = await import('../../packages/core/src/engine/hooks/touchStore');
-        const folder = path.join('C:', 'ws', '.jarvis', 'actors', 'Session 1');
-        expect(resolveTouchStorageKind('session', folder)).toBe('actor');
-    });
-
-    it('leaves "session" unchanged when the folder is a raw session (not under actors dir)', async () => {
-        vi.resetModules();
-        vi.doMock('../../packages/core/src/engine/core/configPaths', () => ({
-            getActorsDir: () => path.join('C:', 'ws', '.jarvis', 'actors'),
-        }));
-        const { resolveTouchStorageKind } = await import('../../packages/core/src/engine/hooks/touchStore');
-        const folder = path.join('C:', 'ws', '.jarvis', 'sessions', 'Session 1');
-        expect(resolveTouchStorageKind('session', folder)).toBe('session');
-    });
-
-    it('leaves "session" unchanged when no actors dir is configured (no workspace)', async () => {
-        vi.resetModules();
-        vi.doMock('../../packages/core/src/engine/core/configPaths', () => ({
-            getActorsDir: () => undefined,
-        }));
-        const { resolveTouchStorageKind } = await import('../../packages/core/src/engine/hooks/touchStore');
-        expect(resolveTouchStorageKind('session', 'C:\\ws\\.jarvis\\sessions\\Alpha')).toBe('session');
-    });
-
-    it('passes non-"session" kinds through unchanged (project/event never disambiguated)', async () => {
-        vi.resetModules();
-        vi.doMock('../../packages/core/src/engine/core/configPaths', () => ({
-            getActorsDir: () => path.join('C:', 'ws', '.jarvis', 'actors'),
-        }));
-        const { resolveTouchStorageKind } = await import('../../packages/core/src/engine/hooks/touchStore');
-        expect(resolveTouchStorageKind('project', 'C:\\ws\\.jarvis\\actors\\X')).toBe('project');
-    });
-});
-
 // --- TouchTracker classification --------------------------------------------
 
-describe('TouchTracker (SPEC_ENT_TOUCHEDFILES AC-1/AC-2/AC-3)', () => {
+describe('TouchTracker (SPEC_ACTOR_TOUCHEDFILES AC-1/AC-2/AC-3)', () => {
     let stateDir: string;
     let store: TouchStore;
 
@@ -194,7 +147,7 @@ describe('TouchTracker (SPEC_ENT_TOUCHEDFILES AC-1/AC-2/AC-3)', () => {
         const { engine, onChange } = makeTracker();
         engine.receive(makeEvent({ toolName: 'read_file', toolInput: { filePath: 'C:\\workspace\\jarvis\\src\\foo.ts' } }));
         await vi.waitFor(() => expect(onChange).toHaveBeenCalled());
-        const entries = byRelPath(await store.getEntries('session', 'Alpha'));
+        const entries = byRelPath(await store.getEntries('actor', 'Alpha'));
         expect(entries['src/foo.ts'].lastRead).toBeTruthy();
         expect(entries['src/foo.ts'].lastEdited).toBeUndefined();
     });
@@ -206,7 +159,7 @@ describe('TouchTracker (SPEC_ENT_TOUCHEDFILES AC-1/AC-2/AC-3)', () => {
         await vi.waitFor(() => expect(onChange).toHaveBeenCalledTimes(1));
         engine.receive(makeEvent({ toolName: 'replace_string_in_file', toolInput: { filePath: 'C:\\workspace\\jarvis\\src\\new.ts' } }));
         await vi.waitFor(() => expect(onChange).toHaveBeenCalledTimes(2));
-        const entries = byRelPath(await store.getEntries('session', 'Alpha'));
+        const entries = byRelPath(await store.getEntries('actor', 'Alpha'));
         expect(entries['src/new.ts'].lastEdited).toBeTruthy();
     });
 
@@ -223,7 +176,7 @@ describe('TouchTracker (SPEC_ENT_TOUCHEDFILES AC-1/AC-2/AC-3)', () => {
             },
         }));
         await vi.waitFor(() => expect(onChange).toHaveBeenCalled());
-        const entries = byRelPath(await store.getEntries('session', 'Alpha'));
+        const entries = byRelPath(await store.getEntries('actor', 'Alpha'));
         expect(entries['src/a.ts'].lastEdited).toBeTruthy();
         expect(entries['src/b.ts'].lastEdited).toBeTruthy();
     });
@@ -234,7 +187,7 @@ describe('TouchTracker (SPEC_ENT_TOUCHEDFILES AC-1/AC-2/AC-3)', () => {
         engine.receive(makeEvent({ toolName: 'grep_search', toolInput: { query: 'x' } }));
         await new Promise(r => setTimeout(r, 10));
         expect(onChange).not.toHaveBeenCalled();
-        const entries = byRelPath(await store.getEntries('session', 'Alpha'));
+        const entries = byRelPath(await store.getEntries('actor', 'Alpha'));
         expect(entries).toEqual({});
     });
 
@@ -277,7 +230,7 @@ describe('TouchTracker (SPEC_ENT_TOUCHEDFILES AC-1/AC-2/AC-3)', () => {
             cwd: 'C:\\workspace\\jarvis',
         }));
         await vi.waitFor(() => expect(onChange).toHaveBeenCalled());
-        const entries = byRelPath(await store.getEntries('session', 'Alpha'));
+        const entries = byRelPath(await store.getEntries('actor', 'Alpha'));
         expect(Object.keys(entries)).toEqual(['packages/core/src/foo.ts']);
     });
 });

@@ -53,8 +53,8 @@ Auto Delivery User Acceptance Tests
      or be empty), distinct from the manual message root.
 
    **T-2 — "Enable Direct Delivery" context menu on manual session node**
-     Setup: At least one queued message exists for a session (e.g. "TestTarget"),
-     so the session node appears under the manual root.
+     Setup: At least one queued message exists for an Actor (e.g. the test
+     fixture "TestTarget"), so the session node appears under the manual root.
      Action: Right-click the "TestTarget" session node.
      Expected: Context menu contains the entry "Enable Direct Delivery".
 

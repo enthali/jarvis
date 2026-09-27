@@ -13,8 +13,9 @@ Message Logging UAT Requirements
 
    **Acceptance Criteria:**
 
-   * AC-1: A configured messages folder exists so that ``jarvis_sendToSession``
-     can queue messages during testing
+   * AC-1: A configured messages folder exists so that ``jarvis_sendMessage``
+     can queue messages between the messaging Actor fixtures
+     (``REQ_UAT_MSG_TESTDATA`` AC-4) during testing
    * AC-2: No permanent ``message-log.json`` file exists in the test data —
      the tester creates and removes it as part of each scenario
    * AC-3: The ``jarvis.messages.logging`` VS Code setting is accessible

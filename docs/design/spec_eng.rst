@@ -4,7 +4,7 @@ Engine Design Specifications
 .. spec:: JarvisCoreApi Contract & Types
    :id: SPEC_ENG_API
    :status: approved
-   :links: REQ_ENG_CONTRACT; REQ_ENG_SCANNER; REQ_MOD_SKILL_PROVISION
+   :links: REQ_ENG_CONTRACT; REQ_ENG_ACTORLIST; REQ_MOD_SKILL_PROVISION; REQ_ACTOR_SCHEMA
 
    **Description:**
    The core extension exposes a versioned ``JarvisCoreApi`` as the return value
@@ -16,131 +16,19 @@ Engine Design Specifications
 
    .. code-block:: typescript
 
-      // --- Scanner types (promoted to public API surface) ---
-
-      /**
-       * A single scanned entity. Returned by ``getEntity()``; the fields
-       * are populated by the YAML scanner from entity files.
-       */
-      export interface EntityEntry {
+      /** One Actor as published to add-ons (SPEC_ENG_ACTORLIST). */
+      export interface JarvisActor {
           name: string;
-          summary?: string;
-          agent?: string;
-          datesStart?: string;
-          datesEnd?: string;
-          kind?: 'project' | 'event' | 'session';
-          folder?: string;
-      }
-
-      /**
-       * A flat, public-API view of a single scanned entity, used by
-       * ``listJarvisSessions()``. Optional source fields are normalised to
-       * empty strings so the shape matches ``jarvis_listActors`` /
-       * ``jarvis_listProjects``.
-       */
-      export interface JarvisSession {
-          name: string;
-          summary: string;
-          agent: string;
-          kind: string;
-          folder: string;
-      }
-
-      export interface FolderNode {
-          kind: 'folder';
-          name: string;
-          children: TreeNode[];
-      }
-
-      export interface LeafNode {
-          kind: 'leaf';
-          id: string;
-      }
-
-      /** A node in the scanned tree. Returned by ``getTreeForKind()``. */
-      export type TreeNode = FolderNode | LeafNode;
-
-      // --- Registration & rendering types ---
-
-      /**
-       * A recursive subtree node descriptor returned by a children provider.
-       * Each node may itself have children, enabling arbitrary-depth trees
-       * below an entity leaf (e.g. entity → taskGroup → taskLeaf).
-       */
-      export interface SubtreeNode {
-          /** Unique id for this node (e.g. task URI string, group id). */
-          id: string;
-          /** Display label (may include counts, e.g. "Uncategorized (3)"). */
-          label: string;
-          /** Optional tooltip. */
-          tooltip?: string;
-          /** Command to execute on click (default: none). */
-          command?: vscode.Command;
-          /** contextValue for when-clause scoping (default: derived from kind + 'Child'). */
-          contextValue?: string;
-          /**
-           * Collapsible state for this node.
-           * - 'collapsed' → TreeItemCollapsibleState.Collapsed
-           * - 'expanded' → TreeItemCollapsibleState.Expanded
-           * - 'none' (default if omitted) → TreeItemCollapsibleState.None (leaf)
-           */
-          collapsibleState?: 'collapsed' | 'expanded' | 'none';
-          /** Icon for this node (ThemeIcon, Uri, or {light, dark} pair). */
-          iconPath?: vscode.ThemeIcon | vscode.Uri | { light: vscode.Uri; dark: vscode.Uri };
-          /** Child nodes (recursive). Empty or omitted → leaf node. */
-          children?: SubtreeNode[];
-      }
-
-      export interface EntityKindConfig {
-          /** Stable kind discriminator, e.g. 'session' | 'project' | 'event'. */
-          kind: string;
-          /** View id declared in the OWNING extension's package.json. */
-          viewId: string;
-          /** Settings key holding this kind's scan folder (read by the engine). */
-          folderSettingKey: string;
-          /** Display-label factory for tree items of this kind. */
-          label(name: string, entity?: { data: Record<string, unknown> }): string;
-
-          // --- Optional tree-rendering hooks (S5 generalization) ---
-
-          /**
-           * Return a subtree of nodes for an entity.
-           * If omitted or returns empty/undefined, the entity renders as a flat
-           * leaf (CollapsibleState.None) — session-compatible default.
-           * If non-empty, the entity renders as CollapsibleState.Collapsed
-           * (the user expands it on demand).
-           * Subtree nodes are recursive — a node with its own children array
-           * renders as a parent at arbitrary depth.
-           */
-          getChildren?(entity: { name: string; filePath: string; data: Record<string, unknown> }): SubtreeNode[] | undefined;
-
-          /**
-           * Command to execute on single-click of an entity leaf node.
-           * Receives the TreeNode representing the entity.
-           * Default (if omitted): { command: 'jarvis.openAgentSession', title: 'Open', arguments: [node] }
-           */
-          leafCommand?(node: TreeNode): vscode.Command;
-
-          /**
-           * Tooltip for an entity leaf node.
-           * Default (if omitted): entity.summary (the YAML summary field).
-           */
-          leafTooltip?(entity: { name: string; summary?: string; data: Record<string, unknown> }): string | vscode.MarkdownString | undefined;
+          summary: string;   // "" when absent
+          agent: string;     // "" when absent
+          folder: string;    // absolute Actor folder
+          id: string;        // absolute path of actor.yaml
       }
 
       export type ToolHandler = (
           options: vscode.LanguageModelToolInvocationOptions<unknown>,
           token: vscode.CancellationToken
       ) => Promise<vscode.LanguageModelToolResult>;
-
-      /**
-       * Decorator for tree items of a registered entity kind.
-       * Called after the engine builds a base TreeItem; may mutate it in place
-       * (e.g. append a task-count badge, change the icon for active recording).
-       */
-      export interface TreeItemDecorator {
-          decorate(item: vscode.TreeItem, node: TreeNode, kind: string): void;
-      }
 
       /** Descriptor for a registered tool (returned by getRegisteredTools). */
       export interface ToolDescriptor {
@@ -179,63 +67,12 @@ Engine Design Specifications
       }
 
       export interface JarvisCoreApi {
-          /** Contract version — add-ons MUST check before using newer fields. */
-          readonly version: 1;
-          registerEntityKind(config: EntityKindConfig): vscode.Disposable;
+          /** Contract version — add-ons MUST check it before using the API. */
+          readonly version: 2;
           registerTool(name: string, description: string, handler: ToolHandler): vscode.Disposable;
-          /**
-           * Register a decorator for tree items of the given kind.
-           * This is THE documented extension point referenced by
-           * SPEC_ENG_TREEFACTORY AC-3. Supports two use cases:
-           * (a) a kind decorating its own items (e.g. PIM task badge);
-           * (b) an add-on decorating another extension's kind
-           *     (e.g. recorder highlighting the actively-recording
-           *     project/event node).
-           * Returns a Disposable that removes the decorator.
-           */
-          registerDecorator(kind: string, decorator: TreeItemDecorator): vscode.Disposable;
 
-          // --- Scanner query surface (SPEC_ENG_SCANNER) ---
-          // Add-ons query the engine's central scanner; they never
-          // run their own scanner (AD-3).
-
-          /**
-           * Return the scanned tree for a registered kind.
-           * The result is the scanner's current in-memory tree — a list of
-           * ``FolderNode`` / ``LeafNode`` entries. Returns ``[]`` if the
-           * kind is not registered or the folder is empty.
-           */
-          getTreeForKind(kind: string): TreeNode[];
-          /**
-           * Look up a single entity by its id (the entity's YAML file path).
-           * Returns ``undefined`` if the id is not in the scanner cache.
-           */
-          getEntity(id: string): EntityEntry | undefined;
-
-          /**
-           * Return every entity currently held by the central scanner, across
-           * all registered kinds, as a flat ``JarvisSession[]``. This publishes
-           * the scanner's existing cross-kind list (no new scan, no per-add-on
-           * coupling). Optional source fields (``summary``, ``agent``) are
-           * normalised to empty strings. See ``SPEC_ENG_SESSIONLIST``.
-           */
-          listJarvisSessions(): JarvisSession[];
-          /**
-           * Trigger a full rescan of all registered kinds. The returned
-           * promise resolves when the scan is complete and tree views have
-           * been refreshed. Add-ons call this after creating or modifying
-           * an entity file so subsequent queries reflect the change.
-           */
-          rescan(): Promise<void>;
-
-          /**
-           * Request a lightweight re-render of a registered kind's tree view
-           * (fires the tree's onDidChangeTreeData event). Does NOT re-scan
-           * the filesystem — use this after an add-on's decoration state
-           * changed (e.g. recording started/stopped) so decorators produce
-           * updated output. No-op if the kind is not registered.
-           */
-          refreshKind(kind: string): void;
+          /** Snapshot of all Actors from the Actor scanner (SPEC_ENG_ACTORLIST). */
+          listActors(): JarvisActor[];
 
           // --- Tool registry exposure (SPEC_ENG_TOOLREGISTRY) ---
 
@@ -270,34 +107,19 @@ Engine Design Specifications
            */
           listJobs(): HeartbeatJob[];
 
-          // --- Messaging (SPEC_ENG_MESSAGING) ---
+          // --- Messaging (SPEC_SPL_NOTIFY) ---
 
           /**
-           * Append a message to the Jarvis message queue, bypassing the
-           * session-validation that the jarvis_sendMessage LM tool enforces.
-           * Intended for internal/module senders that are not themselves
-           * registered actors or chat sessions (e.g. jarvis-syspilot,
-           * heartbeat internals). The message is delivered by the existing
-           * auto-delivery poll loop like any other queued message.
-           * (jarvis-syspilot CR, GH #39)
+           * Append a message to the Jarvis message queue. Only the sender is
+           * not validated: internal/module senders (e.g. jarvis-syspilot,
+           * heartbeat internals) need not be registered Actors. The
+           * destination is resolved with ActorScanner.resolveName: an
+           * ambiguous name shows an error notification and throws, nothing
+           * is queued (REQ_ACTOR_SCHEMA AC-7); an unknown name is queued
+           * unchanged. Delivered by the auto-delivery poll loop like any
+           * other queued message. (jarvis-syspilot CR, GH #39)
            */
           sendMessage(destination: string, sender: string, text: string): void;
-
-          // --- Actor Session Lifecycle (SPEC_ENT_AGENTSESSION) ---
-
-          /**
-           * Open (or create) the chat session for a named entity. Resolves
-           * the entity via the scanner, finds an existing session or spawns
-           * a new one (with mode-prime, rename, init prompt, placement),
-           * and focuses it. Add-ons (e.g. PIM) call this after entity
-           * creation + ``rescan()`` to open the session — they never
-           * compose prompts or touch chat APIs directly.
-           * Internally delegates to ``injectPrompt`` (``SPEC_INJ_INJECT``).
-           */
-          openActorSession(
-              entityName: string,
-              options?: { placement?: 'main' | 'secondary' }
-          ): Promise<void>;
 
           // --- Module asset provisioning (SPEC_MOD_SKILL_PROVISION) ---
 
@@ -320,25 +142,25 @@ Engine Design Specifications
 
    * AC-1: ``activate()`` returns a value structurally implementing
      ``JarvisCoreApi``.
-   * AC-2: ``version`` is the literal ``1``; add-ons that read it can branch on
-     future versions.
+   * AC-2: ``version`` is the literal ``2``. Every add-on activates only when
+     it reads ``version === 2`` and logs an error otherwise (PIM, kanban,
+     syspilot, MCP, recorder, flow). This AC is the sole normative statement
+     of the guard; an add-on's own package spec (``SPEC_MOD_*_PKG``) MAY
+     restate it as its own AC when the guard is otherwise easy to lose track
+     of (e.g. ``SPEC_MOD_FLOW_PKG`` AC-5, added after Flow's guard was found
+     stale) but need not, and its absence from a given package spec is not a
+     gap against this AC.
    * AC-3: The interface is the single published surface; the engine exposes no
      other globals to add-ons.
-   * AC-4: ``getTreeForKind(kind)`` returns the scanner's current tree for
-     that kind (empty array if not registered). ``getEntity(id)`` returns the
-     entity or ``undefined``. Both are read-only views of the central
-     scanner's cache — no per-add-on scanner.
-   * AC-4a: ``listJarvisSessions()`` returns one ``JarvisSession`` per scanned
-     entity across all registered kinds, derived read-only from the scanner's
-     cache (no filesystem scan). Optional fields are normalised to empty strings.
-     See ``SPEC_ENG_SESSIONLIST``.
-   * AC-5: ``rescan()`` triggers a full re-scan of all registered kinds and
-     resolves when done; tree views are refreshed.
-   * AC-5a: ``refreshKind(kind)`` fires the tree's change event for the given
-     kind without re-scanning the filesystem. It is a no-op if the kind is not
-     registered. This is the public way for a decoration contributor to request
-     re-render after its decoration state changes (see ``SPEC_ENG_TREEFACTORY``
-     AC-3 / ``registerDecorator``).
+   * AC-4: ``registerEntityKind``, ``registerDecorator``, ``getTreeForKind``,
+     ``getEntity``, ``listJarvisSessions``, ``rescan``, ``refreshKind``,
+     ``openActorSession``, ``getTreeDataProvider`` and the folder/future
+     filter methods do not exist on the interface or its implementation
+     (``REQ_ENG_CONTRACT`` AC-2). The types ``EntityEntry``, ``JarvisSession``,
+     ``TreeNode``, ``SubtreeNode``, ``EntityKindConfig`` and
+     ``TreeItemDecorator`` are removed with them.
+   * AC-5: ``listActors()`` returns the Actor scanner's current entries as
+     ``JarvisActor[]`` (``SPEC_ENG_ACTORLIST``).
    * AC-6: ``getRegisteredTools()`` and ``invokeTool()`` provide read-only
      access to the tool registry (see ``SPEC_ENG_TOOLREGISTRY``).
    * AC-7: ``registerJob(job)`` persists a heartbeat job (idempotent upsert by
@@ -347,47 +169,20 @@ Engine Design Specifications
      ``heartbeat.yaml`` and survive deactivation/restarts. They do NOT return
      ``Disposable`` (see ``SPEC_ENG_HEARTBEAT_JOBAPI``).
    * AC-8: ``sendMessage(destination, sender, text)`` appends a message to the
-     queue file (same as ``appendMessage`` internally), bypassing
-     actor/session-name validation. Intended for module-internal senders
-     (e.g. ``jarvis-syspilot``) that are not themselves registered entities.
-     The message is picked up by the auto-delivery poll loop like any other
-     queued message (``jarvis-syspilot`` CR, GH #39).
+     queue file (same as ``appendMessage`` internally). It skips sender-name
+     validation only, for module-internal senders (e.g. ``jarvis-syspilot``)
+     that are not registered Actors. The destination is resolved with
+     ``ActorScanner.resolveName``: an ambiguous destination shows an error
+     notification and throws without queuing (``REQ_ACTOR_SCHEMA`` AC-7); an
+     unknown destination is queued unchanged. The message is picked up by
+     the auto-delivery poll loop like any other queued message
+     (``jarvis-syspilot`` CR, GH #39).
    * AC-9 (``module-skill-provisioning`` CR): ``provisionModuleAssets(context,
      config)`` provisions the calling module's bundled Copilot assets into the
      workspace and returns when the write and cleanup phases are complete. It
      never throws to the caller — all failures are logged. See
      ``SPEC_MOD_SKILL_PROVISION`` for the algorithm and ``ModuleAssetConfig``
      shape.
-
-
-.. spec:: registerEntityKind Semantics
-   :id: SPEC_ENG_REGISTER_KIND
-   :status: approved
-   :links: REQ_ENG_CONTRACT; REQ_ENG_SCANNER
-
-   **Description:**
-   ``registerEntityKind(config)`` plugs a kind into the engine: it adds the kind
-   to the generic scanner's scan set (keyed by ``config.folderSettingKey``),
-   registers the kind's tree view against ``config.viewId``, and makes the kind
-   available to the generic tree-provider factory. It returns a ``Disposable``
-   that reverses all of the above.
-
-   **Behaviour:**
-
-   * The engine holds no compile-time knowledge of any concrete kind; the
-     ``session`` kind is registered through this same hook at core activation
-     (reference application — no special-case branch).
-   * Disposing the returned ``Disposable`` removes the kind's scan folder, tree
-     view, and any tools the kind registered, with no residual surface.
-
-   **Acceptance Criteria:**
-
-   * AC-1: After registration, the kind's entities appear in the scanner output
-     and its tree view renders.
-   * AC-2: Disposal removes the tree view and the kind's scan folder at runtime
-     (no reload).
-   * AC-3: The ``session`` kind is registered via this hook; grepping the engine
-     reveals no ``'session'``-specific branch in scanner or tree code.
 
 
 .. spec:: registerTool Validation
@@ -415,148 +210,6 @@ Engine Design Specifications
      surface.
 
 
-.. spec:: Generic Scanner
-   :id: SPEC_ENG_SCANNER
-   :status: approved
-   :links: REQ_ENG_SCANNER
-
-   **Description:**
-   The core owns one scanner that enumerates entities for every registered kind.
-   For each kind it resolves the scan folder from ``config.folderSettingKey``
-   (the ``session`` kind resolves to its fixed ``.jarvis/sessions/`` path through
-   the same lookup), discovers leaf entities, and parses their YAML. There is no
-   per-add-on scanner.
-
-   **Scan algorithm (convention-file model):** for each registered kind's
-   folder, the scanner reads directory entries recursively. For each
-   subdirectory: (1) if the kind's convention file (e.g. ``project.yaml``,
-   ``event.yaml``, ``session.yaml``) exists and parses with a valid ``name``,
-   emit a leaf entity keyed by the convention file's absolute path and do not
-   descend further; (2) if the convention file exists but is unparseable or
-   missing ``name``, still emit a leaf entity with ``name`` falling back to
-   the folder name; (3) if no convention file exists, recurse into the
-   subdirectory as a grouping node (folder nodes with no leaf descendants are
-   omitted). Non-convention YAML files and other file types are ignored.
-
-   **Sort order:** after building each directory level, nodes are sorted
-   alphabetically (case-insensitive, ``localeCompare``) before being returned.
-   Folders and leaves are interleaved in one sorted list per level (not
-   grouped separately). The default leaf sort key is the entity's ``name``
-   field (folder-name fallback if unresolved). A kind MAY override the sort
-   key via ``EntityKindConfig`` (e.g. Event nodes sort by
-   ``(entity.datesStart ?? '') + name`` so dated events sort chronologically
-   and undated events sort last, since ``YYYY-MM-DD`` is lexicographically
-   sortable) — see ``SPEC_EVT_LISTEVENTS`` / ``REQ_EVT_DATESORT`` for the
-   Event-specific sort-key rule.
-
-   **Change detection:** after each scan, the scanner compares the new tree
-   structure AND the new entity data map against the cached versions. The
-   entity-map comparison converts each map to a sorted array of
-   ``[key, JSON.stringify(value)]`` pairs and compares the resulting
-   strings — this ensures a YAML content edit (e.g. renaming an entity or
-   changing a date) triggers a cache update even when the tree's
-   folder/leaf structure is unchanged. The scanner fires its change
-   notification only when a difference is detected in either structure or
-   entity data.
-
-   **Acceptance Criteria:**
-
-   * AC-1: The scanner's kind set is exactly the set of currently registered
-     kinds.
-   * AC-2: Adding/disposing a kind updates the scan set without a reload.
-   * AC-3: Each kind's folder is read from its ``folderSettingKey`` setting; the
-     scanner contains no hard-coded per-kind folder logic.
-   * AC-4: Nodes at each tree level are sorted alphabetically (case-insensitive)
-     by default; folders and leaves are interleaved in one sorted list, not
-     grouped separately. A kind MAY override the leaf sort key.
-   * AC-5: A cache update (change notification) fires when either the tree
-     structure or any entity's data (per the sorted-JSON entity-map
-     comparison) differs from the previous scan — a YAML content edit alone
-     (no structural change) SHALL trigger an update.
-
-
-.. spec:: Generic Tree-Provider Factory
-   :id: SPEC_ENG_TREEFACTORY
-   :status: approved
-   :links: REQ_ENG_TREEFACTORY
-
-   **Description:**
-   The engine provides one generic ``TreeDataProvider`` driven by registered
-   kinds, replacing the three near-identical per-kind providers. Tree items are
-   rendered entirely from each kind's ``EntityKindConfig`` hooks — children
-   structure, click command, tooltip, and label — with no concrete-kind knowledge
-   in the engine. Add-ons may decorate their own kind's items (e.g. PIM task
-   counts, recorder active-recording highlight) without the engine knowing the
-   decoration.
-
-   **Rendering behaviour:**
-
-   * **Entity collapsibility:** If ``config.getChildren`` is provided AND
-     returns a non-empty array for an entity, that entity's leaf renders with
-     ``CollapsibleState.Collapsed`` (user expands on demand). Otherwise the leaf
-     renders with ``CollapsibleState.None`` (flat leaf — session-compatible
-     default). The entity is **never** rendered ``Expanded``.
-   * **Recursive subtree:** Each ``SubtreeNode`` returned by ``getChildren`` is
-     rendered as a tree item. If a ``SubtreeNode`` itself has a non-empty
-     ``children`` array, it renders as a parent node (its ``collapsibleState``
-     property controls the collapse state); otherwise it renders as a leaf
-     (``None``). Nesting is recursive to arbitrary depth.
-   * **Per-node rendering:** Each ``SubtreeNode`` carries its own ``label``,
-     ``tooltip``, ``command``, ``contextValue``, ``iconPath``, and
-     ``collapsibleState``. The engine maps ``collapsibleState`` strings
-     (``'collapsed'`` / ``'expanded'`` / ``'none'``) to VS Code
-     ``TreeItemCollapsibleState`` values. If ``iconPath`` is set, it is applied
-     to the ``TreeItem.iconPath``.
-   * **Label:** The factory calls ``config.label(name, { data })`` passing the
-     entity's parsed data as the optional second argument, so a kind can format
-     the leaf label from entity fields (e.g. an event date prefix).
-   * **Click command:** The entity leaf's ``TreeItem.command`` is set from
-     ``config.leafCommand(node)`` if provided; otherwise it defaults to
-     ``{ command: 'jarvis.openAgentSession', title: 'Open', arguments: [node] }``.
-     Subtree nodes use their own ``command`` property (no default).
-   * **Tooltip:** The entity leaf's tooltip is set from
-     ``config.leafTooltip(entity)`` if provided; otherwise it defaults to
-     ``entity.summary``.
-   * **contextValue:** Derived uniformly from the kind discriminator for entity
-     leaves. Subtree nodes use their ``SubtreeNode.contextValue`` if set,
-     otherwise ``jarvis<Kind>Child``.
-   * **Decorators:** Applied after the above, on entity leaves only, via
-     ``JarvisCoreApi.registerDecorator`` (see ``SPEC_ENG_API``). The PIM
-     extension uses this to apply the task-count badge; the recorder will use
-     it in S6 to highlight the actively-recording project/event node.
-
-   **Acceptance Criteria:**
-
-   * AC-1: All registered kinds render through the one factory; no per-kind
-     provider class remains.
-   * AC-2: ``contextValue`` is derived uniformly from the kind discriminator
-     for entity leaves.
-   * AC-3: An add-on can contribute item decoration via
-     ``JarvisCoreApi.registerDecorator(kind, decorator)`` without modifying
-     engine code. Two patterns are supported: (a) a kind decorating its own
-     items (e.g. PIM task-count badge on project/event nodes), and (b) an
-     add-on decorating another extension's kind (e.g. the recorder
-     highlighting the actively-recording project/event node).
-     After a decorator's underlying state changes, the contributor calls
-     ``JarvisCoreApi.refreshKind(kind)`` (see ``SPEC_ENG_API`` AC-5a) to
-     trigger re-render — this fires the tree's change event without
-     rescanning the filesystem.
-   * AC-4: A kind registered WITHOUT ``getChildren``/``leafCommand``/``leafTooltip``
-     renders identically to the S4a session behaviour (flat leaves, click opens
-     agent session, tooltip = summary, ``CollapsibleState.None``).
-     **Session-compatibility invariant.**
-   * AC-5: A kind registered WITH ``getChildren`` returning a non-empty
-     ``SubtreeNode[]`` renders the entity leaf as ``Collapsed``. The subtree
-     nodes appear as children when expanded, each with their declared
-     ``collapsibleState``, ``iconPath``, ``command``, and ``contextValue``.
-     Recursion works: a subtree node with its own ``children`` renders as a
-     parent whose children are likewise rendered.
-   * AC-6: A kind registered WITH ``leafCommand`` uses that command on entity
-     leaf click instead of the default ``jarvis.openAgentSession``.
-   * AC-7: A subtree node with ``iconPath`` set (e.g. ``ThemeIcon('warning')``)
-     renders with that icon on its ``TreeItem``.
-
-
 .. spec:: Tool Registry Exposure Surface
    :id: SPEC_ENG_TOOLREGISTRY
    :status: approved
@@ -566,8 +219,7 @@ Engine Design Specifications
    The engine exposes a read-only enumeration and invocation surface over the
    aggregate tool registry so that a consumer extension (e.g. the MCP transport)
    can discover and invoke ALL tools registered by any extension — without
-   reaching into engine internals. This is a purely additive extension of
-   ``JarvisCoreApi`` (``version`` stays ``1``).
+   reaching into engine internals.
 
    **API additions to JarvisCoreApi:**
 
@@ -575,7 +227,7 @@ Engine Design Specifications
 
       /** Descriptor returned by getRegisteredTools(). */
       export interface ToolDescriptor {
-          /** Tool name (e.g. 'jarvis_listActors', 'jarvis_pim_listProjects'). */
+          /** Tool name (e.g. 'jarvis_listActors', 'jarvis_pim_task'). */
           name: string;
           /** Human-readable description (as passed to registerTool). */
           description: string;
@@ -597,7 +249,7 @@ Engine Design Specifications
            * registered. The invocation is delegated to the tool's handler
            * with the same semantics as a VS Code language-model invocation.
            *
-           * @param name - Exact tool name (e.g. 'jarvis_pim_listProjects').
+           * @param name - Exact tool name (e.g. 'jarvis_listActors').
            * @param options - Standard LanguageModelToolInvocationOptions.
            * @param token - Cancellation token.
            * @returns The LanguageModelToolResult from the handler.
@@ -625,10 +277,7 @@ Engine Design Specifications
      requiring a round-trip through the VS Code LM plumbing.
    * Both methods are read-only / side-effect-free on the registry itself (they
      never mutate registrations). They require no changes to ``registerTool``,
-     ``registerEntityKind``, handler signatures, or disposal semantics — the
-     existing contract is byte-identical.
-   * ``version`` remains ``1`` because the additions are backward-compatible: an
-     existing add-on that does not call these methods works unchanged.
+     handler signatures, or disposal semantics.
 
    **Acceptance Criteria:**
 
@@ -641,70 +290,48 @@ Engine Design Specifications
    * AC-4: ``invokeTool`` throws a descriptive error if the name is not
      registered.
    * AC-5: Neither method modifies the tool registry — they are pure consumers.
-   * AC-6: The existing ``registerTool`` / ``registerEntityKind`` / disposal
-     semantics are unchanged (no breaking modification to the validated
-     contract).
+   * AC-6: The existing ``registerTool`` / disposal semantics are unchanged.
 
 
-.. spec:: Platform Session List API
-   :id: SPEC_ENG_SESSIONLIST
-   :status: draft
-   :links: REQ_ENG_SESSIONLIST
+.. spec:: Platform Actor List API
+   :id: SPEC_ENG_ACTORLIST
+   :status: approved
+   :links: REQ_ENG_ACTORLIST; SPEC_ACTOR_SCANNER; SPEC_ACTOR_LISTTOOL
 
    **Description:**
-   ``JarvisCoreApi.listJarvisSessions()`` publishes the central scanner's existing
-   cross-kind entity list as a flat ``JarvisSession[]``. The scanner already holds
-   every entity of every registered kind (``yamlScanner.entities``); this method is
-   a thin, read-only projection of that data — **no** new scanner, provider, or
-   registry is introduced.
-
-   **Implementation:**
-
-   The engine's ``coreApi`` delegates to the scanner's existing ``entities``
-   getter and maps each entry to the public ``JarvisSession`` shape, normalising
-   optional fields to empty strings:
+   ``JarvisCoreApi.listActors()`` publishes the Actor scanner's cache as
+   ``JarvisActor[]`` (``REQ_ENG_ACTORLIST`` AC-1). It is a read-only
+   projection; it never scans.
 
    .. code-block:: typescript
 
-      // In coreApi.ts — JarvisCoreApi implementation
-      listJarvisSessions(): JarvisSession[] {
-          return this._scanner.entities.map(e => ({
-              name: e.name,
-              summary: e.summary ?? '',
-              agent: e.agent ?? '',
-              kind: e.kind,
-              folder: e.folder,
+      listActors(): JarvisActor[] {
+          return actorScanner.actors.map(a => ({
+              name: a.name, summary: a.summary, agent: a.agent, folder: a.folder, id: a.id,
           }));
       }
 
-   The ``scanner.entities`` getter (already present in ``yamlScanner.ts``) returns
-   every entity across all registered kinds; ``listJarvisSessions()`` adds only the
-   shape normalisation.
+   The entry shape equals a ``jarvis_listActors`` entry
+   (``SPEC_ACTOR_LISTTOOL``); both call the same projection function.
 
-   **Design rationale:**
+   **Consumers:**
 
-   * **Publishes, does not rebuild** — the scanner is the single source of truth
-     and already enumerates all kinds to build the tree views. This method simply
-     exposes that list; it never triggers a filesystem scan.
-   * **No opt-in marker** — every scanned entity is by construction a Jarvis
-     session: a kind only appears in the scanner if it registered a scan folder
-     and its convention YAML was found. A non-session capability (e.g. a recorder
-     recording) is simply not scanned as an entity and therefore never appears.
-   * **Shape parity** — the ``{name, summary, agent, kind, folder}`` shape matches
-     the existing ``jarvis_listActors`` / ``jarvis_listProjects`` output (plus
-     ``kind`` to distinguish), so consumers see a consistent contract.
-   * **Additive** — ``version`` stays ``1``; no existing API method changes.
+   * ``kanban``: board discovery scans ``listActors().map(a => a.folder)``;
+     owner resolution requires exactly one entry with the given ``name``
+     (``SPEC_KAN_CREATE`` step 1). Duplicates are returned as they are, so
+     the add-on applies the unique-name rule itself.
+   * ``syspilot``: ``versionCheck.ts`` tests whether the syspilot Actor
+     exists via ``listActors().some(a => a.name === ACTOR_NAME)``.
 
    **Acceptance Criteria:**
 
-   * AC-1: ``listJarvisSessions()`` returns one ``JarvisSession`` per entity in
-     ``scanner.entities`` across all registered kinds.
-   * AC-2: Each result carries ``{name, summary, agent, kind, folder}`` with
-     ``summary`` and ``agent`` normalised to ``''`` when absent in the source YAML.
-   * AC-3: The method performs no filesystem scan — it reads the scanner cache only.
-   * AC-4: When the scanner holds no entities, the method returns ``[]``.
-   * AC-5: The addition is purely additive — no existing ``JarvisCoreApi`` method
-     is modified.
+   * AC-1: ``listActors()`` returns one entry per Actor in the scanner cache
+     with exactly ``name``, ``summary``, ``agent``, ``folder``, ``id``.
+   * AC-2: The method performs no file-system access.
+   * AC-3: It returns ``[]`` when no Actor exists or the actors folder is not
+     resolvable.
+   * AC-4: ``listJarvisSessions()`` no longer exists; its two callers use
+     ``listActors()``.
 
 
 .. spec:: Heartbeat Job Registration API Surface
@@ -722,8 +349,8 @@ Engine Design Specifications
 
    **Semantic — persistent, NOT session-scoped:**
 
-   Unlike ``registerEntityKind`` / ``registerTool`` / ``registerDecorator``
-   (runtime, session-scoped, return a ``Disposable`` disposed on deactivation),
+   Unlike ``registerTool`` (runtime, session-scoped, returns a ``Disposable``
+   disposed on deactivation),
    heartbeat jobs are **persistent**: they live in ``heartbeat.yaml`` and survive
    reloads, restarts, and uninstalls. Therefore:
 
@@ -739,7 +366,7 @@ Engine Design Specifications
      (``SPEC_AUT_HEARTBEAT_COMMAND_SOFTSKIP``) — no error popup, just a warning
      in the log.
 
-   **API additions to JarvisCoreApi** (``version`` stays ``1``):
+   **API additions to JarvisCoreApi:**
 
    .. code-block:: typescript
 
@@ -796,14 +423,11 @@ Engine Design Specifications
 
    **Design rationale:**
 
-   * Promotes ``HeartbeatJob`` / ``HeartbeatStep`` to public types (alongside
-     ``TreeNode``, ``EntityEntry``, ``SubtreeNode``) so add-ons can construct
-     job definitions without importing engine internals.
+   * Promotes ``HeartbeatJob`` / ``HeartbeatStep`` to public types so add-ons
+     can construct job definitions without importing engine internals.
    * ``listJobs()`` is included for coherence (mirrors ``getRegisteredTools()``
      — if you can register, you can query). It enables an add-on to check
      whether its job already exists before deciding to sync.
-   * ``version`` remains ``1`` — the additions are backward-compatible; an
-     existing add-on that does not call these methods works unchanged.
 
    **Acceptance Criteria:**
 

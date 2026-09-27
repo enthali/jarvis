@@ -65,7 +65,7 @@ Heartbeat UAT Requirements
 
    **Description:**
    Manual test procedures SHALL exist that verify the heartbeat job registration API
-   and the scanner's integration with the heartbeat system.
+   and the background rescan.
 
    **Acceptance Criteria:**
 
@@ -75,7 +75,8 @@ Heartbeat UAT Requirements
      existing entry with the same name
    * AC-3: A test procedure verifies that ``unregisterJob`` removes an entry and
      the tree view updates
-   * AC-4: A test procedure verifies the ``"Jarvis: Rescan"`` job is registered
-     when ``scanInterval > 0``
-   * AC-5: A test procedure verifies that ``scanInterval = 0`` results in no
-     rescan job being registered
+   * AC-4: A test procedure verifies that ``scanInterval > 0`` rescans in the
+     background with ``jarvis.heartbeat.enabled = false`` and creates no
+     ``"Jarvis: Rescan"`` job
+   * AC-5: A test procedure verifies that ``scanInterval = 0`` stops automatic
+     scanning and that a leftover ``"Jarvis: Rescan"`` job is removed

@@ -85,5 +85,5 @@ Automation User Stories
    * AC-5: Valid-destination queue steps are unaffected — no behavior change for
      correctly configured jobs
    * AC-6: Destination validation uses the same resolver as ``jarvis_sendToSession``
-     (unified valid destination set: chat session titles ∪ YAML entity names from
+     (unified valid destination set: Actor names from
      ``src/sessionLookup.ts``) — no separate implementation

@@ -261,13 +261,13 @@ Developer Tooling Design Specifications
 
    **Module wiring:**
 
-   * ``activateHeartbeat(context, messageProvider, resolveMessagesPath, log, kindDrivenScanner)``
-     — new fourth parameter (log) and fifth parameter (scanner);
+   * ``activateHeartbeat(context, messageProvider, resolveMessagesPath, log, actorScanner)``
+     — new fourth parameter (log) and fifth parameter (Actor scanner);
      ``activateHeartbeat`` no longer creates its own channel.
    * ``checkForUpdates(context, silent, log)``
      — new third parameter.
-   * ``new KindDrivenScanner(folderResolver, onCacheChanged, log)``
-     — scanner instantiation with log parameter.
+   * ``new ActorScanner(resolveRoot, onDidChange)`` — the scanner logs through
+     the shared ``log`` passed to ``extension.ts`` helpers.
    * Inline logging in ``extension.ts`` for ``[MSG]``, ``[Scanner]``, ``[Update]``
      commands uses the same ``log`` reference.
 
@@ -296,14 +296,10 @@ Developer Tooling Design Specifications
    * ``log.error('[Update] …')`` on fetch/download failures
    * ``log.info('[Update] Downloaded and installed vA.B.C')`` on success
 
-   **yamlScanner.ts changes:**
+   **Actor scanner logging:**
 
-   ``KindDrivenScanner`` constructor accepts a ``log: vscode.LogOutputChannel``
-   parameter:
-
-   * ``log.info('[Scanner] Scan started')``
-   * ``log.info('[Scanner] Scan complete — N projects, M events')``
-   * ``log.debug('[Scanner] Entity change detected, refreshing tree')``
+   * ``log.info('[Scanner] manual rescan triggered')`` in ``jarvis.rescan``
+   * ``log.info('[Scanner] N Actor(s)')`` when a scan changed the cache
 
    **extension.ts inline logging:**
 
@@ -316,12 +312,13 @@ Developer Tooling Design Specifications
 
 .. spec:: Activation Events & Boot Sequence
    :id: SPEC_DEV_ACTIVATION
-   :status: implemented
-   :links: REQ_DEV_ACTIVATION; SPEC_EXP_EXTENSION
+   :status: approved
+   :links: REQ_DEV_ACTIVATION; SPEC_EXP_EXTENSION; SPEC_ACTOR_SCANNER
 
    **Description:**
    Documents the declared activation events and the subsystem initialization order
-   in ``activate()``.
+   in ``activate()``. This is the single statement of the boot order;
+   ``SPEC_EXP_EXTENSION`` covers only the manifest.
 
    **Activation events** (``package.json``):
 
@@ -329,9 +326,9 @@ Developer Tooling Design Specifications
 
       "activationEvents": [
         "onStartupFinished",
-        "onView:jarvisProjects",
-        "onView:jarvisEvents",
+        "onView:jarvisActors",
         "onView:jarvisMessages",
+        "onView:jarvisReminders",
         "onView:jarvisHeartbeat"
       ]
 
@@ -341,30 +338,25 @@ Developer Tooling Design Specifications
 
    **Boot sequence** (``src/extension.ts`` ``activate()``):
 
-   1. ``initSessionLookup(context.storageUri)`` — initialize session UUID resolver
-   2. ``new MessageTreeProvider(resolveMessagesPath)`` — create message tree (needs
-      message path resolver)
-   3. ``vscode.window.createOutputChannel('Jarvis', { log: true })`` — create shared
-      LogOutputChannel; pushed to ``context.subscriptions``
-   4. ``activateHeartbeat(context, messageProvider, resolveMessagesPath, log, kindDrivenScanner)`` —
-      start HeartbeatScheduler (needs log channel, message provider, scanner); returns
-      ``HeartbeatScheduler`` instance; pushes its own disposables to
-      ``context.subscriptions``
-   5. ``new KindDrivenScanner(folderResolver, onCacheChanged, log)`` — create scanner
-      (callback refreshes tree providers)
-   6. Register entity kinds via ``kindDrivenScanner.addKind(...)`` —
-      project, event, session/actor
-   7. ``vscode.window.createTreeView(...)`` — register Projects, Events, Messages
-      tree views
-   8. Restore persisted filter state from ``workspaceState``
-   9. ``startScanner()`` — perform first scan with configured folder paths
-   10. ``syncRescanJob()`` — register/unregister the ``"Jarvis: Rescan"`` heartbeat
-       job based on ``jarvis.scanInterval``
-   11. ``checkForUpdates(context, true, log)`` — automatic update check (if enabled)
-   12. Register VS Code commands, LM tools (dual registration), MCP server
-   13. ``startMcpServer(mcpPort, log)`` — start embedded MCP server (if
-       ``jarvis.mcpEnabled``)
-   14. Push all disposables to ``context.subscriptions``
+   1. ``vscode.window.createOutputChannel('Jarvis', { log: true })`` — shared
+      LogOutputChannel; ``initSessionLookup(...)``; path resolver; hook engine;
+      touch store.
+   2. ``new ActorScanner(configPaths.getActorsDir, () => actorTreeProvider.refresh())``,
+      ``new ActorTreeProvider(...)``, ``createTreeView('jarvisActors', …)`` with
+      the dynamic title (``SPEC_ACTOR_TREE``).
+   3. ``initInjectPrompt({ actors: actorScanner, … })`` (``SPEC_INJ_INJECT``).
+   4. ``actorScanner.rescan()`` and ``actorScanner.startTimer(jarvis.scanInterval)``
+      (``SPEC_ACTOR_SCANNER``).
+   5. Heartbeat block (if ``jarvis.heartbeat.enabled``):
+      ``activateHeartbeat(context, messageProvider, resolveMessagesPath, log, actorScanner)``,
+      then ``scheduler.unregisterJob('Jarvis: Rescan')`` for a leftover job.
+   6. Messages and Reminders blocks (each behind its toggle).
+   7. ``checkForUpdates(context, true, log)`` — automatic update check (if enabled).
+   8. Register commands, Actor tools and the remaining LM tools; configuration
+      listeners (``jarvis.actors.folder``, ``jarvis.scanInterval``,
+      ``jarvis.touchedFiles.windowDays``, hooks, gitignore).
+   9. Push all disposables to ``context.subscriptions``; return the
+      ``JarvisCoreApi`` (``SPEC_ENG_API``).
 
 
 .. spec:: Graceful Deactivation
@@ -378,22 +370,21 @@ Developer Tooling Design Specifications
 
    **Disposables in context.subscriptions** (``src/extension.ts``):
 
-   * **Commands** (15): ``rescanCommand``, ``filterCommand``,
-     ``filterCommandActive``, ``eventFilterCommand``, ``eventFilterCommandActive``,
-     ``openYamlCommand``, ``sendMessagesCommand``, ``deleteMessageCommand``,
-     ``openSessionCommand``, ``openAgentSessionCommand``, ``newProjectCommand``,
-     ``newEventCommand``, ``checkForUpdatesCommand`` — plus 2 from heartbeat
-     (``jarvis.runJob``, ``jarvis.refreshHeartbeat``)
-   * **LM Tools** (5): ``sendToSessionTool``, ``readMessageTool``,
-     ``listSessionsTool``, ``registerJobTool``, ``unregisterJobTool``
-   * **Tree Views** (4): ``projectView``, ``eventView``, ``messageView``,
+   * **Commands**: every ``registerCommand`` result in ``activate()``,
+     including the Actor commands (``jarvis.newActor``,
+     ``jarvis.openActorSession``, ``jarvis.openActorFile``, ``jarvis.rescan``,
+     context-menu and touched-files commands) — plus those created in
+     ``activateHeartbeat``
+   * **LM Tools**: every ``engine.registerTool`` result, including
+     ``jarvis_createActor``, ``jarvis_listActors``, ``jarvis_whoAmI``
+   * **Tree Views**: ``actorsView``, ``messageView``, ``remindersView``,
      ``heartbeatView`` (created in ``activateHeartbeat``)
-   * **Status Bar Items** (2): ``mcpStatusBar``, heartbeat status bar item
-     (created in ``activateHeartbeat``)
-   * **Event Listeners** (2): ``projectView.onDidChangeVisibility``,
-     ``workspace.onDidChangeConfiguration``
+   * **Status Bar Items**: heartbeat status bar item (created in
+     ``activateHeartbeat``)
+   * **Event Listeners**: ``workspace.onDidChangeConfiguration`` handlers
    * **LogOutputChannel** (1): ``log``
-   * **Scanner wrapper** (1): ``{ dispose: () => scanner.stop() }``
+   * **Actor scanner** (1): ``actorScanner`` (its ``dispose()`` stops the
+     background timer)
    * **Scheduler wrapper** (1): ``{ dispose: () => scheduler.dispose() }``
      (pushed in ``activateHeartbeat``)
 

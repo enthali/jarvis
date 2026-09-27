@@ -32,7 +32,7 @@ Message Flow Visualization User Stories
    * AC-4: Hovering an edge or node shows a tooltip with the message count,
      time range, and a sample of the message text involved.
    * AC-5: Clicking an actor/session node opens that actor's chat, using the
-     same predictable placement behavior as clicking it in the entity tree
+     same predictable placement behavior as clicking it in the ACTORS tree
      (``US_MSG_EDITORPLACEMENT``).
    * AC-6: The diagram reflects new messages without the user needing to
      manually refresh (a periodic refresh is acceptable — near-real-time,

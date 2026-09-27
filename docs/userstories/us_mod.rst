@@ -84,7 +84,7 @@ Modular Delivery User Stories
    :id: US_MOD_ACTORRULES
    :status: approved
    :priority: required
-   :links: US_MOD_SKILL_PROVISION; US_ACT_ACTORS
+   :links: US_MOD_SKILL_PROVISION; US_ACTOR_ACTORS
 
    **As a** Jarvis user who runs actors in a workspace,
    **I want** the actor behavioural rules — kernel, memory discipline, authoring

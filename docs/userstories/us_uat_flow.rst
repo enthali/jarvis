@@ -16,10 +16,10 @@ Message Flow Visualization User Acceptance Tests
    Development Host.
 
    Install-combination coverage (zero-trace when the add-on is absent,
-   requires-core activation) is verified by ``US_UAT_MODULAR_INSTALL``, not
-   here. Content-column coexistence with entity docs and exclusion from the
-   Secondary-column count is verified by ``US_UAT_CHATEDITORREUSE`` (AC-11),
-   not here — this story covers the diagram's own functional behavior only.
+   requires-core activation) and content-column coexistence are out of scope
+   for this story; their UAT coverage is open and is decided by the UAT
+   redesign (PM backlog #40). This story covers the diagram's own functional
+   behavior only.
 
    **Acceptance Criteria:**
 
@@ -46,7 +46,7 @@ Message Flow Visualization User Acceptance Tests
      the day-based fade slider no longer exists).
    * AC-6: A test verifies that clicking an actor/session node opens that
      session's chat at Main (column 1), using the same close+reopen
-     behavior as an entity-tree Actor click.
+     behavior as an ACTORS-tree click.
    * AC-7: A test verifies that clicking a node whose name does not resolve
      to any known session is a silent no-op — no error, no notification.
    * AC-8: A test verifies the diagram reflects a newly queued/delivered
@@ -81,7 +81,7 @@ Message Flow Visualization User Acceptance Tests
      Action: Click the diagram icon button on the ``jarvisMessages`` view
      title bar.
      Expected: A "Message Flow" editor tab opens in the Content column
-     (column 2), coexisting with any already-open entity-doc tab as a
+     (column 2), coexisting with any already-open Actor-file tab as a
      separate tab in the same group.
 
    **T-2 — Command palette reveals existing panel (no duplicate)**
@@ -131,7 +131,7 @@ Message Flow Visualization User Acceptance Tests
      diagram open with that session as a node.
      Action: Click the node for that session.
      Expected: The tab closes and reopens fresh in column 1 (Main) —
-     identical to an entity-tree Actor click (``REQ_MSG_EDITORPLACEMENT``
+     identical to an ACTORS-tree click (``REQ_MSG_EDITORPLACEMENT``
      AC-1/AC-5).
 
    **T-8 — Actor node click with unresolvable name is a silent no-op**

@@ -4,42 +4,37 @@ Prompt Injection Design Specifications
 .. spec:: Prompt Injection Primitive
    :id: SPEC_INJ_INJECT
    :status: draft
-   :links: REQ_INJ_PRIMITIVE; REQ_MSG_SESSIONLOOKUP; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_OPENCHAT; SPEC_MSG_SENDPROMPT; SPEC_MSG_EDITORPLACEMENT; SPEC_ENT_AGENTSESSION_INITPROMPT; SPEC_MSG_NOTIFICATION_RESOLVE
+   :links: REQ_INJ_PRIMITIVE; REQ_MSG_SESSIONLOOKUP; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_OPENCHAT; SPEC_MSG_SENDPROMPT; SPEC_MSG_EDITORPLACEMENT; SPEC_ACTOR_INITPROMPT; SPEC_ACTOR_SCANNER; SPEC_MSG_NOTIFICATION_RESOLVE
 
    **Description:**
    Async function ``injectPrompt`` in
    ``packages/core/src/engine/sessions/injectPrompt.ts`` that resolves a named
-   entity, finds or spawns its chat session, and injects arbitrary text into the
+   Actor, finds or spawns its chat session, and injects arbitrary text into the
    chat input. This is the single implementation of session-targeted text
-   injection — all existing call sites (message notification, auto-delivery,
-   init prompt on tree-click) delegate to this function.
+   injection and the only place that creates and initializes an Actor session
+   (``REQ_ACTOR_INITPROMPT`` AC-5).
 
-   **Visibility:** ``injectPrompt`` is an internal function — it is NOT exposed
-   on ``JarvisCoreApi``. External consumers (add-ons like PIM) use the
-   higher-level ``openActorSession()`` API (``SPEC_ENG_API``), which delegates
-   to ``injectPrompt`` internally. Direct callers of ``injectPrompt`` are
-   limited to core-internal code: ``SPEC_MSG_SENDCOMMAND``,
-   ``SPEC_MSG_AUTODELIVER_POLL``, ``SPEC_MSG_AGENTSESSION``,
-   ``SPEC_ENT_AGENTSESSION``, ``SPEC_ACT_NEWENTITY``, and the
-   ``openActorSession`` API wrapper itself.
+   **Visibility:** ``injectPrompt`` is internal to core; it is not exposed on
+   ``JarvisCoreApi``. Its callers are ``SPEC_MSG_SENDCOMMAND``,
+   ``SPEC_MSG_AUTODELIVER_POLL``, ``SPEC_ACTOR_OPENSESSION`` (which the create
+   flows use to open a new Actor), ``SPEC_INJ_TOOL`` and ``SPEC_INJ_COMMAND``.
+   ``initInjectPrompt({ actors: actorScanner, … })`` hands it the Actor
+   scanner (``SPEC_ACTOR_SCANNER``).
 
    **Signature:**
 
    .. code-block:: typescript
 
       async function injectPrompt(
-          entityName: string,
+          actorName: string,
           text: string,
-          options?: {
-              placement?: 'main' | 'secondary';
-              skipInitPrompt?: boolean;
-          }
+          options?: { placement?: 'main' | 'secondary' }
       ): Promise<void>
 
    **Parameters:**
 
-   * ``entityName`` — display name of the target entity (actor, project, or
-     event). Matched against ``scanner.entities`` by ``e.name``.
+   * ``actorName`` — the Actor's ``name``, resolved with
+     ``actorScanner.resolveName`` (``SPEC_ACTOR_SCANNER``).
    * ``text`` — the text to inject into the chat input. May be a plain
      instruction, a slash-command (e.g. ``/compact``), or a notification stub.
      **May be the empty string**, which means "open/focus only, submit nothing"
@@ -47,28 +42,25 @@ Prompt Injection Design Specifications
    * ``options.placement`` — editor-group placement target. ``'main'`` (default)
      for user-initiated actions (``SPEC_MSG_EDITORPLACEMENT`` Main target);
      ``'secondary'`` for system-initiated actions (auto-delivery).
-   * ``options.skipInitPrompt`` — **deprecated** (agent-session-reinit-fix CR,
-     GH #52). When ``true``, skip the init prompt on session spawn. The
-     init-prompt gating is fully owned by step 3b's ``if (!skipInitPrompt)``
-     block; callers that only want open/focus now pass an empty ``text``
-     instead. Retained in the signature for backwards compatibility; new
-     callers SHALL NOT pass it.
+
+   The former ``skipInitPrompt`` option had no caller and is removed.
 
    **Algorithm:**
 
-   1. **Entity resolution:** Find entity in ``scanner.entities`` where
-      ``e.name === entityName``. If not found, throw an error with message
-      ``"Jarvis: Entity not found: <entityName>"``.
+   1. **Actor resolution:** ``actorScanner.resolveName(actorName)``.
+      ``unknown`` → throw ``"Jarvis: Actor not found: <actorName>"``.
+      ``ambiguous`` → throw ``"Jarvis: " + ambiguousActorMessage(actorName, matches)``
+      and select none (``REQ_INJ_PRIMITIVE`` AC-2).
 
-   2. **Session lookup:** Call ``lookupSessionUUID(entityName)``
+   2. **Session lookup:** Call ``lookupSessionUUID(actorName)``
       (``SPEC_MSG_SESSIONLOOKUP``).
 
    3a. **Existing session:** If UUID found:
 
        - Focus the session at the requested placement target via
          ``openAtMain`` or ``openAtSecondary`` (``SPEC_MSG_EDITORPLACEMENT``).
-       - If ``entity.agent`` is set, call ``reapplyAgentMode(entity.agent,
-         entityName)`` (GH #25 agent-mode-persistence). ``entityName`` is the
+       - If ``actor.agent`` is set, call ``reapplyAgentMode(actor.agent,
+         actorName)`` (GH #25 agent-mode-persistence). ``actorName`` is the
          verified target, not a log label: the helper applies the mode only if
          that session is the focused chat editor, else skips
          (``agent-mode-reset-race`` CR, ``REQ_MSG_MODETARGET``).
@@ -76,20 +68,20 @@ Prompt Injection Design Specifications
 
    3b. **New session (spawn):** If no UUID found:
 
-       - If ``entity.agent`` is set: prime the VS Code Chat mode selector via
-         ``workbench.action.chat.open { mode: entity.agent }`` + 300 ms settle
+       - If ``actor.agent`` is set: prime the VS Code Chat mode selector via
+         ``workbench.action.chat.open { mode: actor.agent }`` + 300 ms settle
          (``SPEC_MSG_OPENCHAT`` mode-prime pattern).
        - Call ``openNewChatEditor()`` (``SPEC_MSG_OPENCHAT``, includes 800 ms
          settle delay).
-       - Call ``renameFocusedChatSession(entityName)``.
-       - Unless ``skipInitPrompt`` is ``true``: build and inject the init prompt
-         via ``SPEC_ENT_AGENTSESSION_INITPROMPT`` template expansion, then submit
-         via ``sendPromptModeSetting(initPrompt)`` (``SPEC_MSG_SENDPROMPT``).
-         Wait 800 ms for the init prompt to settle.
+       - Call ``renameFocusedChatSession(actorName)``.
+       - Build the init prompt (``SPEC_ACTOR_INITPROMPT``) and submit it via
+         ``sendPromptModeSetting(initPrompt)`` (``SPEC_MSG_SENDPROMPT``).
+         Wait 800 ms for the init prompt to settle. This is the only place
+         the init prompt is sent.
        - **Post-spawn repositioning** (``placement === 'main'`` only): call
-         ``lookupSessionUUID(entityName)``; if a UUID is found, call
-         ``openAtMain(uri, entityName)`` to guarantee the spawned session lands
-         in Main column (``REQ_ENT_AGENTSESSION`` AC-7,
+         ``lookupSessionUUID(actorName)``; if a UUID is found, call
+         ``openAtMain(uri, actorName)`` to guarantee the spawned session lands
+         in Main column (``REQ_ACTOR_OPENSESSION`` AC-3,
          ``REQ_MSG_EDITORPLACEMENT`` AC-12/AC-13). Silent no-op if UUID is
          still unresolved (rare rename-propagation edge case,
          ``REQ_MSG_EDITORPLACEMENT`` AC-13). VS Code exposes no API to force
@@ -112,10 +104,10 @@ Prompt Injection Design Specifications
 
       **A skipped submission is logged** (``REQ_INJ_PRIMITIVE`` AC-9)::
 
-         _log?.info(`[INJ] injectPrompt: empty text for "${entityName}" — session opened/focused, nothing submitted`);
+         _log?.info(`[INJ] injectPrompt: empty text for "${actorName}" — session opened/focused, nothing submitted`);
 
       Level is ``info``, deliberately not ``warn``: open/focus-only is ordinary
-      operation for ``SPEC_ENT_AGENTSESSION`` and ``SPEC_ACT_NEWENTITY``, and a
+      operation for ``SPEC_ACTOR_OPENSESSION``, and a
       warning on a normal path would be noise that readers learn to skip — the
       same blindness that let GH #56 run undetected. The diagnostic value comes
       from the entry existing at all: an unintended empty payload now appears in
@@ -154,7 +146,7 @@ Prompt Injection Design Specifications
    .. note:: **Known related gap (not fixed by this CR).**
       Branch 3b submits the init prompt through the mode-setting variant while
       the session was just created in a *custom* mode via the mode-prime step
-      (``entity.agent`` set). By the command taxonomy in
+      (``actor.agent`` set). By the command taxonomy in
       ``SPEC_MSG_SENDPROMPT``, that submission resets the freshly primed custom
       mode to generic "Agent" — the same coupling as GH #54, on the
       new-session path. It is out of scope here (the CR scopes 3b as
@@ -169,34 +161,29 @@ Prompt Injection Design Specifications
    This keeps the primitive single-purpose.
 
    **Error handling:**
-   Entity-not-found throws. All other errors (session lookup failure, VS Code
-   command failures) propagate to the caller. The primitive does not swallow
-   errors — callers decide how to surface them (tool returns error message,
-   command shows warning, poll loop logs and continues).
+   An unknown or ambiguous Actor name throws. All other errors (session
+   lookup failure, VS Code command failures) propagate to the caller. The
+   primitive does not swallow errors — callers decide how to surface them
+   (tool returns error message, command shows warning, poll loop logs and
+   continues).
 
    **File touchpoint:** ``packages/core/src/engine/sessions/injectPrompt.ts``.
 
-   **Caller migration (this CR):**
+   **Call shapes:**
 
-   * ``SPEC_MSG_SENDCOMMAND`` — replaces inline session-resolve + inject logic
-     (lines 200–270 in current spec) with
+   * ``SPEC_MSG_SENDCOMMAND``:
      ``await injectPrompt(node.destination, stub, { placement: 'main' })``.
-   * ``SPEC_MSG_AUTODELIVER_POLL`` — replaces inline session-resolve + inject
-     logic with
+   * ``SPEC_MSG_AUTODELIVER_POLL``:
      ``await injectPrompt(sessionName, stub, { placement: 'secondary' })``,
      wrapped in focus-snapshot/restore.
-   * ``SPEC_ENT_AGENTSESSION`` (``jarvis.openAgentSession``) — replaces inline
-     new-session sequence with
-     ``await injectPrompt(entity.name, '', { placement: 'main' })``. Passes the
-     empty string as ``text`` — session open/focus only; the init prompt on
-     spawn is handled entirely by step 3b (agent-session-reinit-fix CR).
-   * ``SPEC_ACT_NEWENTITY`` (``jarvis.newSession``) — same shape:
-     ``await injectPrompt(nameInput, '', { placement: 'main' })``. The entity is
-     freshly created, so step 3b always fires and sends exactly one init prompt.
+   * ``SPEC_ACTOR_OPENSESSION``:
+     ``await injectPrompt(actor.name, '', { placement: 'main' })`` — open/focus
+     only; a new session still receives the init prompt from step 3b.
+   * ``SPEC_INJ_TOOL`` / ``SPEC_INJ_COMMAND``: ``await injectPrompt(name, text)``.
 
    **``/rename`` exception:**
    ``renameFocusedChatSession()`` is NOT migrated to ``injectPrompt``. It targets
-   the currently focused editor (no entity resolution, no session spawn) and is
+   the currently focused editor (no Actor resolution, no session spawn) and is
    called *within* the primitive's own spawn sequence (step 3b). It remains an
    inline helper.
 
@@ -216,15 +203,14 @@ Prompt Injection Design Specifications
 
       {
           name: 'jarvis_injectPrompt',
-          description: 'Inject a prompt or slash-command into a named entity\'s '
-              + 'chat session. The entity can be an actor, project, or event. '
-              + 'If no session exists, one is spawned automatically.',
+          description: 'Inject a prompt or slash-command into a named Actor\'s '
+              + 'chat session. If no session exists, one is spawned automatically.',
           parameters: {
               type: 'object',
               properties: {
                   actor: {
                       type: 'string',
-                      description: 'The name of the target entity (actor, project, or event).'
+                      description: 'The name of the target Actor.'
                   },
                   text: {
                       type: 'string',
@@ -269,18 +255,15 @@ Prompt Injection Design Specifications
    .. code-block:: typescript
 
       vscode.commands.registerCommand('jarvis.injectPrompt', async () => {
-          // 1. Pick entity
-          const entities = scanner?.entities ?? [];
-          if (entities.length === 0) {
-              vscode.window.showWarningMessage('Jarvis: No entities found.');
+          // 1. Pick Actor
+          const actors = actorScanner.actors;
+          if (actors.length === 0) {
+              vscode.window.showWarningMessage('Jarvis: No Actors found.');
               return;
           }
-          const items = entities.map(e => ({
-              label: e.name,
-              description: e.kind ?? 'project'
-          }));
+          const items = actors.map(a => ({ label: a.name, description: a.summary }));
           const picked = await vscode.window.showQuickPick(items, {
-              placeHolder: 'Select entity to inject into'
+              placeHolder: 'Select Actor to inject into'
           });
           if (!picked) { return; }
 

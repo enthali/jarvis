@@ -1,6 +1,14 @@
 Recording Design Specifications
 ================================
 
+.. note::
+   The recorder is **not in force** (``req_rec.rst`` note): it was bound to
+   Project and Event tree nodes, which no longer exist, and is redesigned in a
+   separate change. Until then the package only has to build and activate on
+   ``JarvisCoreApi`` version 2: it uses no ``registerDecorator``,
+   ``getEntity`` or ``refreshKind``, and ``jarvis.startRecording`` asks for
+   the recording name. The specs below describe the pre-redesign behaviour.
+
 .. spec:: Recording Settings in package.json
    :id: SPEC_REC_SETTINGS
    :status: implemented
@@ -200,8 +208,7 @@ Recording Design Specifications
    :links: REQ_REC_WATCHERJOB
 
    **Description:**
-   ``syncTranscriptWatcherJob()`` helper in ``extension.ts``, analogous to
-   ``syncRescanJob()``.
+   ``syncTranscriptWatcherJob()`` helper in ``extension.ts``.
 
    **Logic**:
 

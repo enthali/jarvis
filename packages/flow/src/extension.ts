@@ -263,7 +263,7 @@ export function activate(context: vscode.ExtensionContext): void {
     // or version-mismatched.
     const coreExt = vscode.extensions.getExtension('enthali.jarvis-core');
     const rawApi = coreExt?.exports as { version?: number } | undefined;
-    if (!rawApi || rawApi.version !== 1) {
+    if (!rawApi || rawApi.version !== 2) {
         log.error('[Flow] Jarvis core API not available or version mismatch — Flow will not activate.');
         return;
     }

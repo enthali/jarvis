@@ -12,9 +12,10 @@ Kanban Update Validation UAT Design Specifications
    in an Extension Development Host with ``packages/core`` + ``packages/kanban``
    active, workspace ``testdata/test.code-workspace``.
 
-   **Also amended by this CR:** ``SPEC_UAT_KANBAN`` T-22 — ``id`` in
-   ``changes`` now returns an error instead of a silent-skip result.
-   Re-run T-22 from ``SPEC_UAT_KANBAN`` alongside these scenarios.
+   **Behaviour change BC-3** (``id`` in ``changes`` returns an error instead
+   of a silent-skip result) was covered by T-22 of the former kanban UAT,
+   which was removed with the old kinds. Its coverage is open and is decided
+   by the UAT redesign (PM backlog #40).
 
    Module integration (compile/package/CI) is out of UAT scope.
 
@@ -85,15 +86,12 @@ Kanban Update Validation UAT Design Specifications
           Backward compat: status-only change unaffected
 
           *AC: REQ_KAN_UPDATE AC-8 (backward compat)*
-        - See ``SPEC_UAT_KANBAN`` T-19 — ``status``-only change still
-          succeeds. Re-run that scenario on this branch to confirm the
-          existing happy path is unaffected.
-        - Expected result: identical to T-19 in ``SPEC_UAT_KANBAN``
-          (``{ "updated": true, "itemId": 2 }``; ``status`` field updated;
-          file content otherwise preserved). No regression.
+        - Call ``jarvis_updateKanbanItem`` with ``changes: { status: "<valid option>" }``
+          on item 2.
+        - Expected result: ``{ "updated": true, "itemId": 2 }``; ``status``
+          field updated; file content otherwise preserved. No regression.
 
    **Cross-reference — BC-3:**
 
-   ``id`` in ``changes`` is now an error (BC-3). This is covered by the
-   amended ``SPEC_UAT_KANBAN`` T-22. Re-run T-22 alongside these scenarios
-   to complete the three-behaviour-change sweep.
+   ``id`` in ``changes`` is now an error (BC-3). Its scenario (former kanban
+   UAT T-22) is not present; coverage is open (PM backlog #40).

@@ -90,13 +90,18 @@ PIM User Stories
    :id: US_PIM_TASKS
    :status: approved
    :priority: mandatory
-   :links: US_AUT_HEARTBEAT; US_EXP_SIDEBAR; US_PIM_CATEGORIES
+   :links: US_AUT_HEARTBEAT; US_PIM_CATEGORIES
 
    **As a** Jarvis User,
-   **I want** my tasks automatically cached and displayed per project/event via a
-   pluggable provider architecture,
-   **so that** I can manage my work items project-oriented directly in the Jarvis
-   explorer without switching to a dedicated task application.
+   **I want** my tasks automatically cached and editable via a pluggable
+   provider architecture,
+   **so that** I can manage my work items from VS Code without switching to a
+   dedicated task application.
+
+   *Note (retire-legacy-actor-kinds):* the task display under Project/Event
+   nodes is removed with those kinds. Where tasks appear in the Jarvis tree
+   again, and how the user opens the task editor from there, is open and
+   decided in a separate PIM change.
 
    **Acceptance Criteria:**
 
@@ -111,8 +116,8 @@ PIM User Stories
      ``category``, ``status``, and ``dueBefore``
    * AC-5: ``TaskService.setTask``, ``modifyTask``, and ``deleteTask`` delegate to
      the provider and immediately invalidate + refresh the cache
-   * AC-6: A ``TaskEditorProvider`` Custom Editor opens when the user clicks a task
-     node; editable fields are ``subject``, ``body``, ``dueDate``, ``status``,
+   * AC-6: A ``TaskEditorProvider`` Custom Editor edits a single task;
+     editable fields are ``subject``, ``body``, ``dueDate``, ``status``,
      ``priority``, and ``categories`` (multi-select from cached categories);
      ``source`` and ``completedDate`` are read-only
    * AC-7: Save flow calls ``TaskService.modifyTask()`` → provider → cache invalidate

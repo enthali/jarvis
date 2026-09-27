@@ -2,21 +2,12 @@
 // Add-ons do: import type { JarvisCoreApi, ... } from 'jarvis';
 
 export type {
-    SubtreeNode,
-    EntityKindConfig,
     ToolHandler,
     ToolDescriptor,
-    TreeItemDecorator,
     JarvisCoreApi,
+    JarvisActor,
     HeartbeatJob,
     HeartbeatStep,
     ModuleAssetConfig,
 } from './core/types';
 
-export type {
-    TreeNode,
-    LeafNode,
-    FolderNode,
-    EntityEntry,
-    KindDrivenScanner,
-} from './sessions/yamlScanner';

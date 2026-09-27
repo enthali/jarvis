@@ -4,7 +4,7 @@ Auto Delivery UAT Design Specifications
 .. spec:: Auto Delivery Test Scenarios and Expected Outcomes
    :id: SPEC_UAT_MSG_AUTODELIVERY_SCENARIOS
    :status: approved
-   :links: REQ_UAT_MSG_AUTODELIVERY_TESTDATA; REQ_UAT_MSG_AUTODELIVERY_TREE; REQ_UAT_MSG_AUTODELIVERY_POLL
+   :links: REQ_UAT_MSG_AUTODELIVERY_TESTDATA; REQ_UAT_MSG_AUTODELIVERY_TREE; REQ_UAT_MSG_AUTODELIVERY_POLL; SPEC_UAT_MSG_FILES
 
    **Description:**
    Expected outcomes for all fourteen auto-delivery test scenarios, covering
@@ -17,7 +17,9 @@ Auto Delivery UAT Design Specifications
    **Test Setup:**
 
    * Extension loaded in the Extension Development Host
-   * At least one queued message for session "TestTarget" (run the T-8 heartbeat
+   * The ``TestTarget`` Actor fixture exists (``SPEC_UAT_MSG_FILES``); its
+     chat is the "TestTarget" chat named in the scenarios
+   * At least one queued message for "TestTarget" (run the T-8 heartbeat
      job from ``testdata/heartbeat/heartbeat.yaml``, or use any queue step that
      targets "TestTarget")
    * The ``autodelivery.json`` file starts absent or empty (delete from extension
@@ -26,7 +28,9 @@ Auto Delivery UAT Design Specifications
      message.
    * For T-11, an unrelated file open and focused in the editor before
      queuing the message.
-   * For T-12, an integrated terminal open and focused before queuing the\n     message.\n   * For T-14, exactly 1 editor-group column open (Main only, e.g. an
+   * For T-12, an integrated terminal open and focused before queuing the
+     message.
+   * For T-14, exactly 1 editor-group column open (Main only, e.g. an
      Actor chat) before queuing the message — no Docs column yet.
 
    **Expected Outcomes:**

@@ -9,7 +9,7 @@ import { checkSyspilotVersion } from '../../packages/syspilot/src/versionCheck';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 function makeFakeApi(sendMessage = vi.fn()) {
     return {
-        listJarvisSessions: () => [],
+        listActors: () => [],
         invokeTool: vi.fn().mockResolvedValue(undefined),
         sendMessage,
     } as any;

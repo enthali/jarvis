@@ -1,4 +1,4 @@
-// SPEC_ENT_TOUCHEDFILES — cleanup, display filters, tri-state probe, new schema
+// SPEC_ACTOR_TOUCHEDFILES — cleanup, display filters, tri-state probe, new schema
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs';
 import * as os from 'os';
@@ -27,7 +27,7 @@ vi.mock('vscode', () => {
     };
 });
 
-import { withinWindow, probeTouchEntry, probeEntries } from '../../packages/core/src/engine/core/treeFactory';
+import { withinWindow, probeTouchEntry, probeEntries } from '../../packages/core/src/engine/actors/touchedFilesView';
 import * as vscode from 'vscode';
 
 // --- withinWindow ---
@@ -211,7 +211,7 @@ describe('rootUri propagation through folder nodes', () => {
     afterEach(() => { fs.rmSync(stateDir, { recursive: true, force: true }); });
 
     it('buildTouchedFileChildren sets rootUri on folder nodes from the entry', async () => {
-        const { buildTouchedFileChildren } = await import('../../packages/core/src/engine/core/treeFactory');
+        const { buildTouchedFileChildren } = await import('../../packages/core/src/engine/actors/touchedFilesView');
         const entries = {
             'file:///wsA/src/a.ts': { rootUri: 'file:///wsA', relPath: 'src/a.ts', lastEdited: '2026-01-01T00:00:00Z' },
             'file:///wsB/src/b.ts': { rootUri: 'file:///wsB', relPath: 'src/b.ts', lastEdited: '2026-01-01T00:00:00Z' },

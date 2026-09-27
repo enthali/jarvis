@@ -2,82 +2,13 @@
 // Requirements: REQ_MOD_ADDONS
 
 import * as vscode from 'vscode';
-import * as fs from 'fs';
-import * as path from 'path';
-import type { JarvisCoreApi, TreeNode, LeafNode } from 'jarvis-core';
-import { buildProjectKindConfig } from './projectKind';
-import { buildEventKindConfig } from './eventKind';
-import { TaskBadgeDecorator } from './taskBadgeDecorator';
+import type { JarvisCoreApi } from 'jarvis-core';
 import { TaskService } from './TaskService';
 import { CategoryService } from './CategoryService';
 import { CategoryTreeProvider } from './CategoryTreeProvider';
 import { TaskEditorProvider } from './TaskEditorProvider';
 import { OutlookCategoryProvider } from './outlookIntegration/OutlookCategoryProvider';
 import { OutlookTaskProvider } from './outlookIntegration/OutlookTaskProvider';
-
-// --- Helpers (PIM-local copies — these use only VS Code APIs) ---
-
-function yamlString(value: string): string {
-    return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
-}
-
-interface AgentModeEntry { name: string; filePath: string; }
-
-function readFrontmatterString(content: string, key: string): string | undefined {
-    if (!content.startsWith('---')) { return undefined; }
-    const closeIdx = content.indexOf('\n---', 3);
-    if (closeIdx < 0) { return undefined; }
-    const header = content.slice(3, closeIdx);
-    const re = new RegExp(`^${key}:\\s*(?:"([^"]*)"|'([^']*)'|(.+?))\\s*$`, 'm');
-    const m = re.exec(header);
-    if (!m) { return undefined; }
-    return (m[1] ?? m[2] ?? m[3] ?? '').trim() || undefined;
-}
-
-function isExplicitlyExcluded(content: string, key: string): boolean {
-    if (!content.startsWith('---')) { return false; }
-    const closeIdx = content.indexOf('\n---', 3);
-    if (closeIdx < 0) { return false; }
-    const header = content.slice(3, closeIdx);
-    return new RegExp(`^${key}:\\s*false\\s*$`, 'm').test(header);
-}
-
-function getAgentIdentity(content: string, filename: string): string {
-    const name = readFrontmatterString(content, 'name');
-    if (name) { return name; }
-    return filename.endsWith('.agent.md') ? filename.slice(0, -'.agent.md'.length) : filename;
-}
-
-async function discoverAgentModes(): Promise<AgentModeEntry[]> {
-    const agents: AgentModeEntry[] = [];
-    for (const wsFolder of vscode.workspace.workspaceFolders ?? []) {
-        const agentsDir = path.join(wsFolder.uri.fsPath, '.github', 'agents');
-        let entries: fs.Dirent[];
-        try { entries = await fs.promises.readdir(agentsDir, { withFileTypes: true }); } catch { continue; }
-        for (const entry of entries) {
-            if (!entry.isFile() || !entry.name.toLowerCase().endsWith('.agent.md')) { continue; }
-            const agentPath = path.join(agentsDir, entry.name);
-            let content: string;
-            try { content = await fs.promises.readFile(agentPath, 'utf8'); } catch { continue; }
-            if (isExplicitlyExcluded(content, 'user-invocable')) { continue; }
-            agents.push({ name: getAgentIdentity(content, entry.name), filePath: path.relative(wsFolder.uri.fsPath, agentPath) });
-        }
-    }
-    return agents.sort((a, b) => a.name.localeCompare(b.name));
-}
-
-async function pickAgentMode(): Promise<string | undefined> {
-    const agents = await discoverAgentModes();
-    const items: (vscode.QuickPickItem & { mode: string })[] = [
-        { label: 'No agent', detail: 'Opens a default chat — pick mode via the chat dropdown', mode: '' },
-        ...agents.map(a => ({ label: a.name, description: a.filePath, mode: a.name })),
-    ];
-    const pick = await vscode.window.showQuickPick(items, {
-        placeHolder: 'Select the agent for this entity (Escape = cancel)',
-        matchOnDescription: true,
-    });
-    return pick === undefined ? undefined : pick.mode;
-}
 
 // --- Activation -----------------------------------------------------------------
 
@@ -88,7 +19,7 @@ export function activate(context: vscode.ExtensionContext): void {
     // Acquire the core engine API
     const coreExt = vscode.extensions.getExtension('enthali.jarvis-core');
     const rawApi = coreExt?.exports as JarvisCoreApi | undefined;
-    if (!rawApi || rawApi.version !== 1) {
+    if (!rawApi || rawApi.version !== 2) {
         log.error('[PIM] Jarvis core API not available or version mismatch — PIM will not activate.');
         return;
     }
@@ -112,28 +43,6 @@ export function activate(context: vscode.ExtensionContext): void {
         }
     }
 
-    // --- Register entity kinds ---
-    context.subscriptions.push(api.registerEntityKind(buildProjectKindConfig(taskService)));
-    
-    // Gate Event kind registration behind jarvis.events.enabled (REQ_EXP_UNIFIEDTREE AC-8)
-    if (vscode.workspace.getConfiguration('jarvis').get<boolean>('events.enabled', true)) {
-        context.subscriptions.push(api.registerEntityKind(buildEventKindConfig(taskService)));
-    }
-
-    // --- Register task badge decorator on both kinds ---
-    const scanner = { getEntity: (id: string) => {
-        // Delegate entity resolution to the engine's internal scanner via the provider
-        const provider = api.getTreeDataProvider('project') as any;
-        return provider?._scanner?.getEntity?.(id);
-    }};
-    const taskBadge = new TaskBadgeDecorator(taskService, scanner);
-    context.subscriptions.push(api.registerDecorator('project', taskBadge));
-    context.subscriptions.push(api.registerDecorator('event', taskBadge));
-
-    // --- Tree views are now created by core's unified provider (SPEC_EXP_UNIFIEDTREE) ---
-    // pim continues to register entity kinds via api.registerEntityKind() but no longer
-    // creates its own standalone jarvisProjects/jarvisEvents views.
-
     // --- Categories tree view (PIM-owned, NOT engine-driven) ---
     context.subscriptions.push(
         vscode.window.registerTreeDataProvider('jarvisCategories', categoryTreeProvider)
@@ -149,90 +58,6 @@ export function activate(context: vscode.ExtensionContext): void {
     );
 
     // --- PIM commands ---
-
-    // New Project
-    context.subscriptions.push(vscode.commands.registerCommand('jarvis.newProject', async () => {
-        const projectsFolder = vscode.workspace.getConfiguration('jarvis').get<string>('projects.folder', '');
-        if (!projectsFolder) {
-            vscode.window.showWarningMessage('Jarvis: jarvis.projects.folder is not configured');
-            return;
-        }
-        const input = await vscode.window.showInputBox({
-            prompt: 'Project name', placeHolder: 'My Project',
-            validateInput: v => {
-                if (/[<>:"\/\\|?*\x00-\x1f]/.test(v)) { return 'Name contains characters not allowed in folder names'; }
-                if (!v.trim()) { return 'Name must not be empty'; }
-                return undefined;
-            },
-        });
-        if (!input) { return; }
-        const agentInput = await pickAgentMode();
-        if (agentInput === undefined) { return; }
-        const targetPath = path.join(projectsFolder, input);
-        if (fs.existsSync(targetPath)) {
-            vscode.window.showErrorMessage(`Folder '${input}' already exists in projects folder`);
-            return;
-        }
-        await fs.promises.mkdir(targetPath);
-        const yamlLines = [`name: ${yamlString(input)}`, `agent: ${yamlString(agentInput)}`, ''];
-        await fs.promises.writeFile(path.join(targetPath, 'project.yaml'), yamlLines.join('\n'), 'utf-8');
-        try {
-            if (outlookEnabled && categoryService.hasProviders()) {
-                await categoryService.setCategory(input, 0);
-                log.info(`[PIM] Outlook category created: "${input}"`);
-            }
-        } catch (err) { log.warn(`[PIM] Failed to create Outlook category: ${err}`); }
-        await vscode.commands.executeCommand('jarvis.rescan');
-        await api.openActorSession(input);
-    }));
-
-    // New Event
-    context.subscriptions.push(vscode.commands.registerCommand('jarvis.newEvent', async () => {
-        const eventsFolder = vscode.workspace.getConfiguration('jarvis').get<string>('events.folder', '');
-        if (!eventsFolder) {
-            vscode.window.showWarningMessage('Jarvis: jarvis.events.folder is not configured');
-            return;
-        }
-        const nameInput = await vscode.window.showInputBox({
-            prompt: 'Event name', placeHolder: 'My Event',
-            validateInput: v => {
-                if (/[<>:"\/\\|?*\x00-\x1f]/.test(v)) { return 'Name contains characters not allowed in folder names'; }
-                if (!v.trim()) { return 'Name must not be empty'; }
-                return undefined;
-            },
-        });
-        if (!nameInput) { return; }
-        const dateInput = await vscode.window.showInputBox({
-            prompt: 'Start date (YYYY-MM-DD)', placeHolder: '2026-01-15',
-            validateInput: v => {
-                if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) { return 'Date must be in YYYY-MM-DD format'; }
-                const [y, m, d] = v.split('-').map(Number);
-                const date = new Date(y, m - 1, d);
-                if (date.getFullYear() !== y || date.getMonth() !== m - 1 || date.getDate() !== d) { return 'Not a valid calendar date'; }
-                return undefined;
-            },
-        });
-        if (!dateInput) { return; }
-        const agentInput = await pickAgentMode();
-        if (agentInput === undefined) { return; }
-        const folderName = `${dateInput}_${nameInput}`;
-        const targetPath = path.join(eventsFolder, folderName);
-        if (fs.existsSync(targetPath)) {
-            vscode.window.showErrorMessage(`Folder '${folderName}' already exists in events folder`);
-            return;
-        }
-        await fs.promises.mkdir(targetPath);
-        const content = [`name: ${yamlString(nameInput)}`, `agent: ${yamlString(agentInput)}`, `dates:`, `  start: "${dateInput}"`, `  end: "${dateInput}"`, ''].join('\n');
-        await fs.promises.writeFile(path.join(targetPath, 'event.yaml'), content, 'utf-8');
-        try {
-            if (outlookEnabled && categoryService.hasProviders()) {
-                await categoryService.setCategory(nameInput, 0);
-                log.info(`[PIM] Outlook category created: "${nameInput}"`);
-            }
-        } catch (err) { log.warn(`[PIM] Failed to create Outlook category: ${err}`); }
-        await vscode.commands.executeCommand('jarvis.rescan');
-        await api.openActorSession(nameInput);
-    }));
 
     // Refresh Categories
     context.subscriptions.push(vscode.commands.registerCommand('jarvis.refreshCategories', async () => {
@@ -271,293 +96,13 @@ export function activate(context: vscode.ExtensionContext): void {
     context.subscriptions.push(vscode.commands.registerCommand('jarvis.refreshTasks', async () => {
         try {
             await taskService.refresh();
-            api.refreshKind('project');
-            api.refreshKind('event');
             log.info('[PIM] manual task refresh triggered');
         } catch (err) {
             log.warn(`[PIM] refresh failed: ${err}`);
         }
     }));
 
-    // --- Filter commands (SPEC_PRJ_FILTERCOMMAND, SPEC_EVT_EVENTFILTER_CMD) ---
-
-    // Restore persisted filter state on startup
-    const projectHiddenFolders = context.workspaceState.get<string[]>('jarvis.hiddenProjectFolders', []);
-    api.setHiddenFolders('project', new Set(projectHiddenFolders));
-    const eventFutureFilter = context.workspaceState.get<boolean>('jarvis.eventFutureFilter', false);
-    api.setFutureOnly('event', eventFutureFilter);
-    
-    // Update context keys for icon toggling
-    vscode.commands.executeCommand('setContext', 'jarvis.projectFilterActive', projectHiddenFolders.length > 0);
-    vscode.commands.executeCommand('setContext', 'jarvis.eventFilterActive', eventFutureFilter);
-
-    // Project folder filter (both commands share same handler)
-    const projectFilterHandler = async () => {
-        const rootNodes = api.getTreeForKind('project');
-        const folders = rootNodes.filter(n => n.kind === 'folder').map(n => (n as any).name as string);
-        if (folders.length === 0) {
-            vscode.window.showInformationMessage('No project folders to filter');
-            return;
-        }
-
-        const hiddenFolders = api.getHiddenFolders('project');
-        
-        const qp = vscode.window.createQuickPick<vscode.QuickPickItem & { folder: string }>();
-        qp.title = 'Filter Project Folders';
-        qp.placeholder = 'Click folders to toggle visibility';
-        qp.canSelectMany = false;
-
-        const updateItems = () => {
-            qp.items = folders.map(folder => ({
-                label: hiddenFolders.has(folder) ? `$(circle-large-outline) ${folder}` : `$(check) ${folder}`,
-                folder,
-            }));
-        };
-        updateItems();
-
-        qp.onDidAccept(() => {
-            const sel = qp.selectedItems[0];
-            if (sel) {
-                if (hiddenFolders.has(sel.folder)) {
-                    hiddenFolders.delete(sel.folder);
-                } else {
-                    hiddenFolders.add(sel.folder);
-                }
-                api.setHiddenFolders('project', hiddenFolders);
-                context.workspaceState.update('jarvis.hiddenProjectFolders', Array.from(hiddenFolders));
-                vscode.commands.executeCommand('setContext', 'jarvis.projectFilterActive', hiddenFolders.size > 0);
-                updateItems();
-            }
-        });
-
-        qp.onDidHide(() => qp.dispose());
-        qp.show();
-    };
-    context.subscriptions.push(vscode.commands.registerCommand('jarvis.filterProjectFolders', projectFilterHandler));
-    context.subscriptions.push(vscode.commands.registerCommand('jarvis.filterProjectFoldersActive', projectFilterHandler));
-
-    // Event future filter (both commands share same handler)
-    const eventFilterHandler = async () => {
-        const next = !api.isFutureOnly('event');
-        api.setFutureOnly('event', next);
-        context.workspaceState.update('jarvis.eventFutureFilter', next);
-        vscode.commands.executeCommand('setContext', 'jarvis.eventFilterActive', next);
-        log.info(`[PIM] event future filter: ${next ? 'enabled' : 'disabled'}`);
-    };
-    context.subscriptions.push(vscode.commands.registerCommand('jarvis.filterFutureEvents', eventFilterHandler));
-    context.subscriptions.push(vscode.commands.registerCommand('jarvis.filterFutureEventsActive', eventFilterHandler));
-
     // --- PIM LM tools (registered via engine API, renamed with _pim_ infix) ---
-
-    // Helper: collect leaves from a tree
-    // SPEC_PRJ_LISTPROJECTS design note: TreeNode is a 3-variant union
-    // (folder/leaf/file, per SPEC_ENT_ENTITY_FILE_CHILDREN) — exhaustive
-    // handling required. FileNode carries no .children and is not a
-    // descent target for leaf-collection purposes.
-    function collectLeaves(nodes: TreeNode[]): LeafNode[] {
-        const result: LeafNode[] = [];
-        for (const node of nodes) {
-            if (node.kind === 'leaf') { result.push(node); }
-            else if (node.kind === 'folder') { result.push(...collectLeaves(node.children)); }
-            // node.kind === 'file' — no-op, file children are not part of the
-            // project/event tree walked here (they're computed on-demand
-            // elsewhere by the tree provider, not returned by getTreeForKind()).
-        }
-        return result;
-    }
-
-    // Helper: create project entity
-    async function createProjectEntity(args: { name: string; summary?: string; agent?: string }): Promise<{ created: boolean; reason?: string; path?: string }> {
-        const { name, summary, agent } = args;
-        if (!name) { throw new Error('invalid project name: name must not be empty'); }
-        if (/[/\\:*?"<>|]/.test(name)) { throw new Error('invalid project name: contains forbidden character'); }
-        if (/[\x00-\x1F]/.test(name)) { throw new Error('invalid project name: contains control character'); }
-        if (name === '.' || name === '..') { throw new Error('invalid project name: must not be "." or ".."'); }
-        if (/^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i.test(name)) { throw new Error('invalid project name: reserved device name'); }
-
-        if (agent) {
-            const available = await discoverAgentModes();
-            if (!available.map(a => a.name).includes(agent)) {
-                throw new Error(`Agent "${agent}" is not available.\nAvailable agents: ${available.map(a => a.name).sort().join(', ') || '(none)'}`);
-            }
-        }
-
-        const projectsFolder = vscode.workspace.getConfiguration('jarvis').get<string>('projects.folder', '');
-        if (!projectsFolder) { throw new Error('jarvis_pim_createProject: projects.folder not configured'); }
-
-        const targetPath = path.join(projectsFolder, name);
-        if (fs.existsSync(targetPath)) {
-            return { created: false, reason: `project "${name}" already exists` };
-        }
-
-        await fs.promises.mkdir(targetPath, { recursive: true });
-
-        const yamlLines = [`name: ${yamlString(name)}`];
-        if (summary) { yamlLines.push(`summary: ${yamlString(summary)}`); }
-        if (agent) { yamlLines.push(`agent: ${yamlString(agent)}`); }
-        yamlLines.push('');
-        await fs.promises.writeFile(path.join(targetPath, 'project.yaml'), yamlLines.join('\n'), 'utf-8');
-
-        const contextContent = summary ? `# ${name}\n\n${summary}\n` : `# ${name}\n\n`;
-        await fs.promises.writeFile(path.join(targetPath, 'context.md'), contextContent, 'utf-8');
-
-        try {
-            if (outlookEnabled && categoryService.hasProviders()) {
-                await categoryService.setCategory(name, 0);
-            }
-        } catch (err) { log.warn(`[PIM] Failed to create Outlook category: ${err}`); }
-
-        await api.rescan();
-        log.info(`[PIM] createProject: created "${name}" at ${targetPath}`);
-        return { created: true, path: path.relative(projectsFolder, targetPath).replace(/\\/g, '/') };
-    }
-
-    // Helper: create event entity
-    async function createEventEntity(args: { name: string; startDate: string; endDate?: string; summary?: string; agent?: string }): Promise<{ created: boolean; reason?: string; path?: string }> {
-        const { name, startDate, summary, agent } = args;
-        const endDate = args.endDate || startDate;
-
-        if (!name) { throw new Error('invalid event name: name must not be empty'); }
-        if (/[/\\:*?"<>|]/.test(name)) { throw new Error('invalid event name: contains forbidden character'); }
-        if (/[\x00-\x1F]/.test(name)) { throw new Error('invalid event name: contains control character'); }
-        if (name === '.' || name === '..') { throw new Error('invalid event name: must not be "." or ".."'); }
-        if (/^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i.test(name)) { throw new Error('invalid event name: reserved device name'); }
-
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate)) { throw new Error('invalid date: startDate must be YYYY-MM-DD'); }
-        const [sy, sm, sd] = startDate.split('-').map(Number);
-        const sDate = new Date(sy, sm - 1, sd);
-        if (sDate.getFullYear() !== sy || sDate.getMonth() !== sm - 1 || sDate.getDate() !== sd) {
-            throw new Error('invalid date: startDate is not a valid calendar date');
-        }
-        if (endDate && endDate !== startDate) {
-            if (!/^\d{4}-\d{2}-\d{2}$/.test(endDate)) { throw new Error('invalid date: endDate must be YYYY-MM-DD'); }
-            const [ey, em, ed] = endDate.split('-').map(Number);
-            const eDate = new Date(ey, em - 1, ed);
-            if (eDate.getFullYear() !== ey || eDate.getMonth() !== em - 1 || eDate.getDate() !== ed) {
-                throw new Error('invalid date: endDate is not a valid calendar date');
-            }
-        }
-
-        if (agent) {
-            const available = await discoverAgentModes();
-            if (!available.map(a => a.name).includes(agent)) {
-                throw new Error(`Agent "${agent}" is not available.\nAvailable agents: ${available.map(a => a.name).sort().join(', ') || '(none)'}`);
-            }
-        }
-
-        const eventsFolder = vscode.workspace.getConfiguration('jarvis').get<string>('events.folder', '');
-        if (!eventsFolder) { throw new Error('jarvis_pim_createEvent: events.folder not configured'); }
-
-        const folderName = `${startDate}_${name}`;
-        const targetPath = path.join(eventsFolder, folderName);
-        if (fs.existsSync(targetPath)) {
-            return { created: false, reason: `event folder "${folderName}" already exists` };
-        }
-
-        await fs.promises.mkdir(targetPath, { recursive: true });
-
-        const yamlLines = [
-            `name: ${yamlString(name)}`,
-            `summary: ${yamlString(summary ?? '')}`,
-            `dates:`,
-            `  start: "${startDate}"`,
-            `  end: "${endDate}"`,
-        ];
-        if (agent) { yamlLines.push(`agent: ${yamlString(agent)}`); }
-        yamlLines.push('');
-        await fs.promises.writeFile(path.join(targetPath, 'event.yaml'), yamlLines.join('\n'), 'utf-8');
-
-        const contextContent = `# ${name}\n\n`;
-        await fs.promises.writeFile(path.join(targetPath, 'context.md'), contextContent, 'utf-8');
-
-        try {
-            if (outlookEnabled && categoryService.hasProviders()) {
-                await categoryService.setCategory(name, 0);
-            }
-        } catch (err) { log.warn(`[PIM] Failed to create Outlook category: ${err}`); }
-
-        await api.rescan();
-        log.info(`[PIM] createEvent: created "${name}" at ${targetPath}`);
-        return { created: true, path: folderName };
-    }
-
-    // Tool: jarvis_pim_listProjects
-    context.subscriptions.push(api.registerTool(
-        'jarvis_pim_listProjects',
-        'Returns the list of projects configured in the current Jarvis workspace. Each project has a name, summary, agent, and folder path.',
-        async (_options, _token) => {
-            const projectsFolder = vscode.workspace.getConfiguration('jarvis').get<string>('projects.folder', '');
-            const leaves = collectLeaves(api.getTreeForKind('project'));
-            const projects = leaves.map(leaf => {
-                const entity = api.getEntity(leaf.id);
-                const absDir = path.dirname(leaf.id);
-                const rel = projectsFolder ? path.relative(projectsFolder, absDir) : absDir;
-                return {
-                    name: entity?.name ?? path.basename(absDir),
-                    summary: entity?.summary ?? '',
-                    agent: entity?.agent ?? '',
-                    folder: rel.replace(/\\/g, '/'),
-                };
-            });
-            log.info(`[PIM] listProjects: ${projects.length} project(s)`);
-            return new vscode.LanguageModelToolResult([
-                new vscode.LanguageModelTextPart(JSON.stringify(projects))
-            ]);
-        }
-    ));
-
-    // Tool: jarvis_pim_listEvents
-    context.subscriptions.push(api.registerTool(
-        'jarvis_pim_listEvents',
-        'Returns the list of events with name, summary, dates, agent, and folder path.',
-        async (_options, _token) => {
-            const eventsFolder = vscode.workspace.getConfiguration('jarvis').get<string>('events.folder', '');
-            const leaves = collectLeaves(api.getTreeForKind('event'));
-            const events = leaves.map(leaf => {
-                const entity = api.getEntity(leaf.id);
-                const absDir = path.dirname(leaf.id);
-                const rel = eventsFolder ? path.relative(eventsFolder, absDir) : absDir;
-                return {
-                    name: entity?.name ?? path.basename(absDir),
-                    summary: entity?.summary ?? '',
-                    agent: entity?.agent ?? '',
-                    datesStart: entity?.datesStart ?? '',
-                    datesEnd: entity?.datesEnd ?? '',
-                    folder: rel.replace(/\\/g, '/'),
-                };
-            });
-            log.info(`[PIM] listEvents: ${events.length} event(s)`);
-            return new vscode.LanguageModelToolResult([
-                new vscode.LanguageModelTextPart(JSON.stringify(events))
-            ]);
-        }
-    ));
-
-    // Tool: jarvis_pim_createProject
-    context.subscriptions.push(api.registerTool(
-        'jarvis_pim_createProject',
-        'Creates a new project folder with project.yaml and context.md. Idempotent: returns success if project already exists.',
-        async (options, _token) => {
-            const input = options.input as { name: string; summary?: string; agent?: string };
-            const result = await createProjectEntity(input);
-            return new vscode.LanguageModelToolResult([
-                new vscode.LanguageModelTextPart(JSON.stringify(result))
-            ]);
-        }
-    ));
-
-    // Tool: jarvis_pim_createEvent
-    context.subscriptions.push(api.registerTool(
-        'jarvis_pim_createEvent',
-        'Creates a new event folder with event.yaml and context.md. Folder name: ${startDate}_${name}. Idempotent.',
-        async (options, _token) => {
-            const input = options.input as { name: string; startDate: string; endDate?: string; summary?: string; agent?: string };
-            const result = await createEventEntity(input);
-            return new vscode.LanguageModelToolResult([
-                new vscode.LanguageModelTextPart(JSON.stringify(result))
-            ]);
-        }
-    ));
 
     // Tool: jarvis_pim_category
     context.subscriptions.push(api.registerTool(
@@ -605,7 +150,7 @@ export function activate(context: vscode.ExtensionContext): void {
     // Tool: jarvis_pim_task
     context.subscriptions.push(api.registerTool(
         'jarvis_pim_task',
-        'Manage tasks: get, set, modify, or delete. Tasks are linked to projects/events via their categories field.',
+        'Manage tasks: get, set, modify, or delete. Tasks are linked to Actors via their categories field.',
         async (options, _token) => {
             if (!taskService.hasProviders()) {
                 return new vscode.LanguageModelToolResult([
@@ -635,8 +180,6 @@ export function activate(context: vscode.ExtensionContext): void {
                 }
                 case 'set': {
                     const newTask = await taskService.setTask(input as any, input.provider);
-                    api.refreshKind('project');
-                    api.refreshKind('event');
                     result = { task: newTask };
                     break;
                 }
@@ -651,16 +194,12 @@ export function activate(context: vscode.ExtensionContext): void {
                     delete changes.status;
                     delete changes.dueBefore;
                     await taskService.modifyTask(input.id, changes, input.provider);
-                    api.refreshKind('project');
-                    api.refreshKind('event');
                     result = { status: 'ok', id: input.id };
                     break;
                 }
                 case 'delete': {
                     if (!input.id) { throw new Error('id required for delete'); }
                     await taskService.deleteTask(input.id, input.provider);
-                    api.refreshKind('project');
-                    api.refreshKind('event');
                     result = { status: 'ok', id: input.id };
                     break;
                 }
@@ -673,7 +212,7 @@ export function activate(context: vscode.ExtensionContext): void {
         }
     ));
 
-    log.info('[PIM] activated — project + event kinds + 6 tools registered');
+    log.info('[PIM] activated — categories + tasks (2 tools) registered');
 }
 
 export function deactivate(): void {

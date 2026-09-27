@@ -48,10 +48,6 @@ describe('manifest invariant', () => {
         const contributed = contributedCommandIds();
         const registered = registeredCommandIds();
         const dead = contributed.filter(id => !registered.has(id));
-        // jarvis.newEntity: specced in SPEC_ACT_NEWENTITY, contributed + hidden (when:false),
-        // but never registered — pre-existing, tracked separately for user decision.
-        const knownPending = new Set(['jarvis.newEntity']);
-        const unexpected = dead.filter(id => !knownPending.has(id));
-        expect(unexpected, `Contributed but never registered: ${unexpected.join(', ')}`).toEqual([]);
+        expect(dead, `Contributed but never registered: ${dead.join(', ')}`).toEqual([]);
     });
 });

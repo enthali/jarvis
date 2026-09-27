@@ -43,26 +43,10 @@ Theme Abbreviations
    * - ``CFG``
      - Configuration / Settings
      - ``US_CFG_FOLDERS``, ``REQ_CFG_PATHS``
-   * - ``PRJ``
-     - Project entity kind (legacy; removed in one-kind-consolidation Phase 2)
-     - ``US_PRJ_PROJECT``, ``REQ_PRJ_CREATEPROJECT``
-   * - ``EVT``
-     - Event entity kind (legacy; removed in one-kind-consolidation Phase 2)
-     - ``US_EVT_EVENT``, ``REQ_EVT_LISTEVENTS``
-   * - ``ACT``
-     - Legacy Actor (unified Entity system, removed in one-kind-consolidation
-       Phase 2)
-     - ``US_ACT_ACTORS``, ``REQ_ACT_SCHEMA``, ``SPEC_ACT_TREE``
    * - ``ACTOR``
-     - New simple Actor (one-kind-consolidation Phase 1: parallel world,
-       ``us_actor.rst`` — persona with persistent context, self-activation,
-       and loose session binding)
-     - ``US_ACTOR_ACTORS``, ``REQ_ACTOR_TREE``, ``REQ_ACTOR_CREATE``
-   * - ``ENT``
-     - Jarvis Entity (generic, user-facing; cross-kind concepts — retired
-       after one-kind-consolidation; follow-up rename CR will handle
-       remaining US_ENT_* stories)
-     - ``US_ENT_ENTITY``
+     - Actor, the only kind of persistent participant (``context.md``
+       memory, message addressability, loose session binding)
+     - ``US_ACTOR_ACTORS``, ``REQ_ACTOR_TREE``, ``SPEC_ACTOR_SCANNER``
    * - ``REL``
      - Release & CI/CD
      - ``US_REL_PUBLISH``, ``REQ_REL_VSIX``
@@ -76,8 +60,8 @@ Theme Abbreviations
      - Modular delivery (core/add-on split, packaging, install combinations)
      - ``US_MOD_INSTALL``, ``REQ_MOD_ZEROTRACE``, ``SPEC_MOD_MONOREPO``
    * - ``ENG``
-     - Engine contract (kind-agnostic core API: kind registration, tool injection,
-       generic scanner & tree; **plumbing, not user-facing — no US level**)
+     - Engine contract (core API for add-ons: tool injection, tool registry,
+       Actor list; **plumbing, not user-facing — no US level**)
      - ``REQ_ENG_CONTRACT``, ``SPEC_ENG_API``
    * - ``HOOK``
      - Hook Engine (agent lifecycle hook intake, dispatch foundation in jarvis-core)
@@ -143,7 +127,7 @@ Personas
    * - Persona
      - Description
    * - **Jarvis User**
-     - End user of the Jarvis extension — manages projects and events in VS Code
+     - End user of the Jarvis extension — manages Actors in VS Code
    * - **Jarvis Developer**
      - Maintainer of the Jarvis extension — builds, tests, releases, and documents the extension
    * - **Jarvis Test Engineer**

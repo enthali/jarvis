@@ -37,14 +37,10 @@ describe('REQ_ACTOR_SCHEMA / REQ_ACTOR_TREE: ActorScanner', () => {
         }));
         expect(new Set(scanner.actors.map(actor => actor.id)).size).toBe(2);
         expect(scanner.actors.every(actor => path.isAbsolute(actor.id))).toBe(true);
-        expect(new Set(scanner.tree.map(node => node.id))).toEqual(new Set([
-            path.join(root, 'Folder Name', 'actor.yaml'),
-            path.join(root, 'Second Folder', 'actor.yaml'),
-        ]));
         expect(onDidChange).toHaveBeenCalledOnce();
     });
 
-    it('falls back to the folder name and returns an empty tree for an unresolved root', async () => {
+    it('falls back to the folder name and returns an empty list for an unresolved root', async () => {
         const root = fs.mkdtempSync(path.join(os.tmpdir(), 'jarvis-actors-'));
         roots.push(root);
         writeActor(root, 'Fallback Actor', 'summary: Missing name\n');
@@ -55,7 +51,6 @@ describe('REQ_ACTOR_SCHEMA / REQ_ACTOR_TREE: ActorScanner', () => {
 
         const unresolved = new ActorScanner(() => '', () => {});
         await unresolved.rescan();
-        expect(unresolved.tree).toEqual([]);
         expect(unresolved.actors).toEqual([]);
     });
 });

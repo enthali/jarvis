@@ -10,6 +10,11 @@ Recording User Stories
    **I want** to start and stop a meeting recording with a single click on a Project or Event node,
    **so that** the audio file is ready for later transcription.
 
+   *Note (retire-legacy-actor-kinds):* Project and Event nodes are removed
+   with those kinds, so AC-1 is not in force: recording cannot be started
+   from the Jarvis tree until the recorder is redesigned in a separate
+   change.
+
    **Acceptance Criteria:**
 
    * AC-1: A Start Recording button appears on Project and Event nodes when the feature is enabled
@@ -33,6 +38,10 @@ Recording User Stories
    * AC-1: A ``jarvis.recording.enabled`` setting (boolean, default ``false``) controls the feature
    * AC-2: When disabled, no recording buttons appear in the tree views
    * AC-3: When enabled, Start/Stop buttons appear on Project and Event nodes
+
+   *Note (retire-legacy-actor-kinds):* AC-3 is not in force — Project and
+   Event nodes are removed with those kinds. Where the recording buttons
+   appear is decided in the separate recorder redesign.
 
 
 .. story:: Configure Whisper Project Path
@@ -59,6 +68,10 @@ Recording User Stories
    **As a** Jarvis user,
    **I want** finished transcripts to be automatically forwarded to the corresponding project session,
    **so that** meeting minutes appear in the right context without manual steps.
+
+   *Note (retire-legacy-actor-kinds):* the Project session target is removed
+   with the Project kind, so AC-1 is not in force until the separate
+   recorder redesign decides the new target.
 
    **Acceptance Criteria:**
 

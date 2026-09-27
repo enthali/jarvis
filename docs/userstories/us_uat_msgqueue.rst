@@ -25,8 +25,8 @@ Message Queue User Acceptance Tests
    * AC-5: A test scenario verifies that a successful ``jarvis_sendMessage`` call
      records the supplied ``senderSession`` verbatim as the ``sender`` field in
      ``message-log.json``
-   * AC-6: A test scenario verifies that ``jarvis_receiveMessage`` behaves
-     identically to ``jarvis_readMessage`` (pure rename)
+   * AC-6: A test scenario verifies that ``jarvis_receiveMessage`` returns and
+     removes the oldest message with a correct ``remaining`` count
    * AC-7: Test scenarios verify that the deprecated ``jarvis_sendToSession`` and
      ``jarvis_readMessage`` tools remain **registered** (discoverable) but are
      **hard-deprecated** — every invocation fails with the exact "no longer
@@ -46,14 +46,15 @@ Message Queue User Acceptance Tests
      ``TestTarget (1)`` under Messages group.
 
    **T-2 — Notification stub sent to new session (session not in state.vscdb)**
-     Setup: T-1 message in queue; no session named "TestTarget" exists.
+     Setup: T-1 message in queue; the Actor "TestTarget" exists but no chat
+     has been opened for it yet.
      Action: Click ``TestTarget (1)`` in Explorer.
      Expected: New chat tab opens; a single notification stub is sent via
      ``workbench.action.chat.open`` informing the session about 1 pending message;
      messages remain in the queue (not cleared).
 
    **T-3 — Notification stub sent to existing named session**
-     Setup: Tab from T-2 renamed to "TestTarget". Run T-1 job again to enqueue
+     Setup: "TestTarget" chat tab from T-2 still open. Run T-1 job again to enqueue
      another message.
      Action: Click ``TestTarget (1)`` in Explorer.
      Expected: Existing "TestTarget" session focused (via UUID from
@@ -65,14 +66,9 @@ Message Queue User Acceptance Tests
      Expected: Closed session restored via UUID; notification stub sent;
      messages remain in queue.
 
-   **T-6 — Read message via jarvis_readMessage tool**
-     Setup: Two messages queued for "TestTarget" (run T-1 job twice).
-     Action: In the target session, call ``jarvis_readMessage`` with
-     ``destination: "TestTarget"``.
-     Expected: First call returns oldest message with ``remaining: 1``;
-     second call returns next message with ``remaining: 0``; third call
-     returns ``{ message: null, remaining: 0 }``; Messages tree updates
-     after each call.
+   **T-6 — Retired (read via jarvis_readMessage)**
+     ``jarvis_readMessage`` is hard-deprecated; its only expected behaviour is
+     the error of T-12. Reading is verified by T-10.
 
    **T-5 — Delete single message**
      Setup: Two messages in queue for different sessions.
@@ -80,7 +76,7 @@ Message Queue User Acceptance Tests
      Expected: Only that message removed; other remains; Explorer updates.
 
    **T-7 — jarvis_sendMessage with valid senderSession**
-     Setup: A session named "TestSender" and a session named "TestTarget" both
+     Setup: Actors named "TestSender" and "TestTarget" both
      exist in the valid destination set. ``jarvis.messages.logging`` is true.
      Action: Call ``jarvis_sendMessage`` with ``session: "TestTarget"``,
      ``text: "Hello from T-7"``, ``senderSession: "TestSender"``.
@@ -104,13 +100,14 @@ Message Queue User Acceptance Tests
      "NoSuchSender" does not exist. Valid senders: ${sorted comma-separated
      list}``; no message appended to the queue.
 
-   **T-10 — jarvis_receiveMessage identical to jarvis_readMessage**
+   **T-10 — jarvis_receiveMessage returns queued messages**
      Setup: Two messages queued for "TestTarget" (repeat T-1 job twice).
      Action: In the target session, call ``jarvis_receiveMessage`` with
      ``destination: "TestTarget"``.
-     Expected: Same behavior as T-6 (oldest message returned first with
-     ``remaining: 1``, then ``remaining: 0``, then ``{ message: null,
-     remaining: 0 }``); no deprecation warning present in the response.
+     Expected: First call returns the oldest message with ``remaining: 1``;
+     second call returns the next message with ``remaining: 0``; third call
+     returns ``{ message: null, remaining: 0 }``; Messages tree updates after
+     each call; no deprecation warning present in the response.
 
    **T-11 — Deprecated jarvis_sendToSession is hard-deprecated (error only)**
      Setup: "TestTarget" exists in the valid destination set.

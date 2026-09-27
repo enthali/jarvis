@@ -3,14 +3,21 @@ Agent Prompt Tuning UAT Design Specifications
 
 .. spec:: Agent Prompt Tuning Test Scenarios and Expected Outcomes
    :id: SPEC_UAT_AGENT_PROMPT_SCENARIOS
-   :status: implemented
-   :links: REQ_UAT_APT_INITPROMPT; REQ_UAT_APT_NOTIFICATION; REQ_UAT_APT_CFG
+   :status: approved
+   :links: REQ_UAT_APT_NOTIFICATION; REQ_UAT_APT_CFG; SPEC_UAT_MSG_FILES
+
+   .. note::
+      **Retired rows:** T-1 to T-6 and T-14 (init prompt) have no requirement
+      since ``REQ_UAT_APT_INITPROMPT`` was removed with the old kinds. They
+      use Session/Project kinds, ``${kind}`` and "Jarvis: New Entity", which
+      no longer exist, and SHALL NOT be run. Their Actor-based replacement is
+      part of the UAT redesign (PM backlog #40).
 
    **Description:**
-   Step-by-step procedures and expected outcomes for all seventeen acceptance test
-   scenarios covering the configurable agent session init prompt (T-1 to T-6,
-   T-14), the configurable auto-delivery notification template (T-7 to T-11,
-   T-15 to T-17), and Settings UI visibility (T-12, T-13).
+   Step-by-step procedures and expected outcomes for the configurable
+   auto-delivery notification template (T-7 to T-11, T-15 to T-17) and
+   Settings UI visibility (T-12, T-13). Rows marked *retired* are kept only
+   for traceability.
 
    **Test Setup:**
 
@@ -18,12 +25,11 @@ Agent Prompt Tuning UAT Design Specifications
      ``feature/agent-prompt-tuning`` branch (press **F5** in VS Code).
    * Open the workspace ``testdata/test.code-workspace``
      (File → Open Workspace from File…) — workspace root is ``testdata/``.
-   * Existing sessions and projects in ``testdata/`` are sufficient; no additional
-     test-data files are required beyond those already present.
-   * A ``TestSession`` chat session must be addressable by the
-     ``jarvis_sendToSession`` tool for notification scenarios (T-7 to T-11).
-     If not already present, create it via **Jarvis: New Session** before running
-     those scenarios.
+   * The ``TestSession`` Actor fixture (``SPEC_UAT_MSG_FILES``) is the
+     destination for the notification scenarios; the senders
+     ``Change Manager`` and ``Test Manager`` are existing Actors in
+     ``testdata/.jarvis/actors/``. Messages are enqueued with
+     ``jarvis_sendMessage`` only.
    * Reset workspace settings to their defaults between scenarios unless stated
      otherwise.
 
@@ -36,7 +42,7 @@ Agent Prompt Tuning UAT Design Specifications
       * - Scenario
         - Action
         - Expected Result
-      * - T-1 (default init prompt)
+      * - T-1 (retired — default init prompt)
         - Ensure ``jarvis.agentSession.initPromptTemplate`` is not set. Click the
           ``+`` button in the Sessions view title bar. Enter any session name and
           summary. Observe the auto-opened Copilot agent chat.
@@ -45,14 +51,14 @@ Agent Prompt Tuning UAT Design Specifications
           with "Use only"; bullets or labels "Decision", "Finding", and "Next";
           and a sentence containing the phrase "2 weeks". No ``${...}`` literals
           remain.
-      * - T-2 (placeholder substitution)
+      * - T-2 (retired — placeholder substitution)
         - Same setup as T-1. Create a new session named ``my-test-session``.
           Observe the auto-opened chat.
         - ``${kind}`` is replaced by ``session``, ``${name}`` by
           ``my-test-session``, and ``${contextPath}`` by the absolute OS path
           of the newly created ``context.md``. None of the three known
           placeholder literals appear verbatim.
-      * - T-3 (override via setting)
+      * - T-3 (retired — override via setting)
         - Set ``jarvis.agentSession.initPromptTemplate`` (Workspace Settings) to:
           ``Role: ${kind} ${name}. Memory: ${contextPath}.``
           Create a new session named ``override-test``. Observe the chat.
@@ -60,19 +66,19 @@ Agent Prompt Tuning UAT Design Specifications
           ``Role: session override-test. Memory: <absolutePath>.``
           where ``<absolutePath>`` is the absolute path of the new
           ``context.md``. The built-in default prompt is NOT shown.
-      * - T-4 (empty setting → fallback)
+      * - T-4 (retired — empty setting → fallback)
         - Set ``jarvis.agentSession.initPromptTemplate`` to ``""`` (empty string).
           Create a new session. Observe the chat.
         - The chat shows the same built-in disciplined English default as T-1.
           No empty or blank prompt is sent.
-      * - T-5 (unknown placeholder left as-is)
+      * - T-5 (retired — unknown placeholder left as-is)
         - Set ``jarvis.agentSession.initPromptTemplate`` to:
           ``Hi ${name}, unknown=${nope}.``
           Create a new session named ``ph-test``. Observe the chat.
         - The chat shows: ``Hi ph-test, unknown=${nope}.``
           Known placeholder ``${name}`` is substituted; unknown ``${nope}``
           remains literally unchanged.
-      * - T-6 (project entity, kind=project)
+      * - T-6 (retired — project entity, kind=project)
         - Clear any template override. Run **Jarvis: New Entity** → select
           **Project**. Enter a project name and summary. Observe the auto-opened
           chat.
@@ -82,8 +88,8 @@ Agent Prompt Tuning UAT Design Specifications
           (Use only, Decision / Finding / Next, 2 weeks) is identical to T-1.
           Clean up: delete the created project folder after verification.
       * - T-7 (default notification, manual deliver-now)
-        - Clear any notification template override. Use ``jarvis_sendToSession``
-          (or ``jarvis_sendMessage``) from a session named ``Change Manager``
+        - Clear any notification template override. Use ``jarvis_sendMessage``
+          with ``senderSession: "Change Manager"``
           to enqueue 2 messages to ``TestSession``. In the Messages tree,
           click the **Send Messages** inline action on ``TestSession``.
         - The auto-opened agent chat shows all three lines of the built-in
@@ -96,8 +102,7 @@ Agent Prompt Tuning UAT Design Specifications
       * - T-8 (default notification, auto-delivery poll)
         - Right-click the ``TestSession`` group node → **Enable Auto-Delivery**.
           Clear any notification template override. Use ``jarvis_sendMessage``
-          (or ``jarvis_sendToSession``) to enqueue 1 message from a known
-          sender. Wait up to 6 seconds for the next poll tick.
+          to enqueue 1 message from a known sender Actor. Wait up to 6 seconds for the next poll tick.
           Observe the chat and the queue JSON file.
         - The agent chat shows the English default notification with ``count=1``
           and ``destination="TestSession"``; the third line reads
@@ -128,8 +133,8 @@ Agent Prompt Tuning UAT Design Specifications
           ``jarvis prompt template``.
         - The setting ``jarvis.agentSession.initPromptTemplate`` is displayed
           under a group labelled **Prompt Templates**. Its description
-          references the ``${kind}``, ``${name}``, and ``${contextPath}``
-          placeholders. The default / placeholder text shows the disciplined
+          references the ``${name}`` and ``${contextPath}``
+          placeholders (``SPEC_ACTOR_INITPROMPT``). The default / placeholder text shows the disciplined
           English default prompt.
       * - T-13 (Settings UI: notification template)
         - In the Settings UI search box type ``jarvis notification template``.
@@ -139,7 +144,7 @@ Agent Prompt Tuning UAT Design Specifications
           (``msg-notify-sender-id`` CR, GH #40). The default /
           placeholder text shows the English default notification string
           including all three lines.
-      * - T-14 (extract-overflow bullet presence)
+      * - T-14 (retired — extract-overflow bullet presence)
         - Ensure ``jarvis.agentSession.initPromptTemplate`` is not set (default).
           Create a new session via **Jarvis: New Session** or
           **Jarvis: Open Agent Session** on any entity. Observe the auto-opened
@@ -150,10 +155,10 @@ Agent Prompt Tuning UAT Design Specifications
           No other bullet follows it in the list.
       * - T-15 (multiple distinct senders — comma-joined, de-duplicated)
         - Default template. Use ``jarvis_sendMessage`` to enqueue 2 messages
-          from ``Change Manager`` and 1 message from ``Project Manager`` to
+          from ``Change Manager`` and 1 message from ``Test Manager`` to
           ``TestSession``. Trigger manual delivery (**Send Messages**).
         - The third line of the notification reads
-          ``Sender(s): Change Manager, Project Manager`` (order may vary but
+          ``Sender(s): Change Manager, Test Manager`` (order may vary but
           both names appear exactly once — ``Change Manager`` is NOT
           listed twice despite sending 2 messages).
       * - T-16 (non-actor source shows meaningful label)

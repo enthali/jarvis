@@ -51,39 +51,6 @@ Outlook Requirements
    * AC-3: Changing ``jarvis.outlookEnabled`` SHALL require a window reload
 
 
-.. req:: Auto-Create Outlook Category on New Entity
-   :id: REQ_OLK_AUTOCAT_NEWENTITY
-   :status: implemented
-   :priority: optional
-   :links: US_OLK_AUTOCATEGORY; REQ_PRJ_NEWPROJECT; REQ_EVT_NEWEVENT; REQ_OLK_ENABLE; REQ_PIM_SERVICE
-
-   **Description:**
-   When a new project or event is created via ``jarvis.newProject`` or
-   ``jarvis.newEvent``, the command handler SHALL call
-   ``CategoryService.setCategory`` with the conventional category name, guarded
-   by the Outlook enabled setting and provider availability.
-
-   **Acceptance Criteria:**
-
-   * AC-1: After the entity folder and YAML file are written successfully, the
-     handler SHALL invoke ``categoryService.setCategory("Project: <name>", 0)``
-     for projects and ``categoryService.setCategory("Event: <name>", 0)`` for
-     events (where ``<name>`` is the unmodified user input, not the kebab-case
-     folder name)
-   * AC-2: The category call SHALL only be made when
-     ``vscode.workspace.getConfiguration('jarvis').get('outlookEnabled') === true``
-     AND ``categoryService.hasProviders()`` is ``true``; otherwise the call is
-     skipped silently
-   * AC-3: The category call SHALL be wrapped in a ``try / catch`` block; any
-     error SHALL be logged via the shared ``LogOutputChannel`` and SHALL NOT
-     propagate to the caller or abort entity creation
-   * AC-4: The naming convention prefix (``"Project: "`` / ``"Event: "``) SHALL
-     be applied in the command handler, not delegated to ``CategoryService`` or
-     any provider
-   * AC-5: The category creation SHALL occur after the entity files are written
-     and before ``scanner.rescan()`` is triggered
-
-
 .. req:: Outlook Task Provider (COM Bridge)
    :id: REQ_OLK_TASKPROVIDER
    :status: implemented
