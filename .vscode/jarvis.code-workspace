@@ -1,0 +1,33 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		}
+	],
+	"settings": {
+		"jarvis.pim.showCategories": false,
+		"jarvis.outlook.tasks.enabled": false,
+		"jarvis.projects.enabled": false,
+		"jarvis.mcp.enabled": true,
+		"jarvis.recording.enabled": false,
+		"workbench.colorCustomizations": {
+			"titleBar.activeBackground": "#1e2d5e",
+			"titleBar.activeForeground": "#ffffff",
+			"titleBar.inactiveBackground": "default",
+			"statusBar.background": "#1e2d5e",
+			"statusBar.foreground": "#ffffff"
+		},
+		"workbench.experimental.modernUI": true,
+		"workbench.experimental.modernUIUppercaseViewHeaders": true,
+
+		"chat.inlineChat.agentHost.enabled": true,
+		"chat.terminal.agentHost.enabled": true,
+		"chat.editor.preferCopilotHarness": true,
+		"chat.defaultToCopilotHarness": true,
+
+		"chat.experimental.openInAgentsWindow.revealCurrentSession": true,
+		"chat.customizations.userDataMigration.enabled": false,
+		"chat.agentHost.byokModels.enabled": true,
+		"chat.experimental.permissionsSandboxToggle.enabled": false,
+	}
+}

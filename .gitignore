@@ -44,7 +44,7 @@ Thumbs.db
 .DS_Store
 
 # Workspace (machine-specific)
-Jarvis.code-workspace
+#Jarvis.code-workspace
 
 # testdata hook engine bridge files
 testdata/.github/hooks/jarvis-*
