@@ -1,0 +1,15 @@
+{
+  "name": "nemotron-spike",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:a-load": "node test-a-load.mjs",
+    "test:b-batch": "node test-b-batch.mjs",
+    "test:d-stream": "node test-d-stream.mjs",
+    "test:e-auto-lang": "node test-e-auto-lang.mjs"
+  },
+  "dependencies": {
+    "foundry-local-sdk": "latest"
+  }
+}
