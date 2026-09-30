@@ -17,12 +17,40 @@ npm install                        # benoetigt FOUNDRY_LOCAL_SKIP_INSTALL=1 fall
                                     # nicht erreichbar ist (siehe "Netzwerk-Blocker" unten)
 ```
 
-## Netzwerk-Blocker und Loesung
+## Netzwerk: Stand 2026-09-30
 
-`npm install` versucht `Microsoft.ML.OnnxRuntime` von NuGet (`api.nuget.org`) herunterzuladen.
-In unserer Umgebung war das direkt nicht erreichbar (Proxy auf `localhost:3128`, aber Node's
-`https`-Modul und die native C++-Bibliothek nutzen unterschiedliche Netzwerk-Stacks, die
-Umgebungsvariablen wie `HTTPS_PROXY` nicht respektieren).
+Nachgetragen nach dem Extension-Host-Test (`extension-host/`). Die fruehere Aussage, die
+Ursache sei geklaert (WinHTTP ignoriert Env-Variablen), war nicht belegt und ist entfernt.
+
+**Belegt:**
+- Das `npm install`-Skript laedt ONNX Runtime von NuGet mit rohem `node:https` ohne Proxy;
+  im Terminal scheitert das. Umgehung siehe unten.
+- Der native Katalog-Lookup scheitert im Terminal **und** im Extension Host: SDK-Log zeigt
+  `transport failure` fuer alle 7 Regionen nach je ~10 ms, Katalog hat 0 Modelle, `download()`
+  wird nie erreicht. Env-Variablen waren im Host korrekt gesetzt (`http.proxy`, Host-Port geprueft).
+- Im Extension Host funktioniert normales Node-HTTPS: HTTP 200, und eine Nemotron-Repo-Datei
+  (README, 54.239 Bytes) wurde ueber den Proxy geladen. Nur eine kleine Datei, nicht die
+  ~700 MB Modellgewichte.
+- VS Code selbst setzt `HTTPS_PROXY`/`HTTP_PROXY` aus `http.proxy` vor dem SDK-Aufruf
+  (`localTranscriptionService.ts`); diese Bruecke nachzubauen aenderte nichts.
+- Das Modell wurde auf diesem Rechner beim ersten Start des VS-Code-Chats von VS Code
+  selbst geladen (Angabe des Nutzers).
+
+**VS Code Quellcode (gelesen, nicht ausgefuehrt):**
+- Die native Runtime (`foundry_local_napi.node` + Core-DLLs) kommt als Tarball von
+  `product.json` `dictationRuntime.urlTemplate` (`main.vscode-cdn.net/dictation-runtime/foundry-local/1.2.3/{target}.tgz`),
+  geladen per Node-HTTPS mit `https-proxy-agent`. Cache: `%APPDATA%\Code\chatDictationRuntime\1.2.3\`.
+- VS Code pinnt SDK **1.2.3** und patcht dessen Loader per postinstall, damit die Env-Variable
+  `VSCODE_FOUNDRY_LOCAL_NATIVE_DIR` beachtet wird. Dieser Spike nutzt SDK **2.1.0**.
+- Modell-Download laeuft dort ueber `model.download()` (native Schicht); alternativ gibt es
+  einen Import aus lokalem ZIP (`installDictationModelAction.ts`).
+
+**Nicht belegt / offen:**
+- Warum die native Schicht hier trotz korrekter Env-Variablen scheitert (WinHTTP-Hypothese
+  passt zu den Beobachtungen, ist aber nicht bewiesen und widerspricht VS Codes Annahme).
+- Wie der VS-Code-Download auf diesem Rechner erfolgreich war, obwohl der Spike-Katalog-Lookup
+  scheitert (andere SDK-Version 1.2.3 vs 2.1.0, anderes Netz zum Zeitpunkt, oder anderer Pfad).
+- Ob der Spike mit SDK 1.2.3 plus VS-Codes Runtime-Tarball laeuft.
 
 **Was funktioniert hat:**
 1. `FOUNDRY_LOCAL_SKIP_INSTALL=1 npm install` — installiert das SDK ohne den nativen Download
@@ -31,9 +59,8 @@ Umgebungsvariablen wie `HTTPS_PROXY` nicht respektieren).
 3. `foundry_local_node.node`, `foundry_local_preload.node`, `foundry_local.dll` kommen bereits
    **im npm-Paket selbst** (nicht von NuGet) — via `npm pack` extrahiert
 
-**Wichtiger Fund:** Der Model-**Catalog**-Lookup (`manager.catalog.getModel(id)`) braucht
-ebenfalls Netzwerk (Azure-Regionen) und schlaegt ohne System-weiten WinHTTP-Proxy fehl
-(`netsh winhttp show proxy` zeigte `DirectAccess`, Aendern braucht Admin-Rechte).
+**Beobachtung:** Der Model-**Catalog**-Lookup (`manager.catalog.getModel(id)`) braucht
+Netzwerk (Azure-Regionen) und scheitert hier (siehe oben).
 
 **Workaround:** VS Code hat das Nemotron-Modell bereits lokal gecacht unter
 `%APPDATA%\Code\chatDictationModels\Microsoft\nemotron-3.5-asr-streaming-0.6b-generic-cpu-3\v3\`.
@@ -88,12 +115,15 @@ Sprache (siehe Live-Chat-Test in Research-Paper) war Codeswitch klar erkennbar.
 
 ## Offene Punkte fuer Phase 2 (Extension-Integration)
 
-1. **Netzwerk-Workaround produktionsreif machen:** Entweder System-Proxy-Doku fuer
-   Nutzer, oder Modell ueber alternativen Kanal bereitstellen (z.B. manuelles
-   Modell-Package wie `installDictationModelAction.ts` in VS Code es macht).
-2. **Audio-Capture:** Wir haben nur WAV-Dateien getestet, nicht Live-Mikrofon-Streaming.
-3. **VAD:** `silero_vad.onnx` ist im Modell-Package enthalten, aber `use_vad` Option
-   noch nicht getestet (default: false laut VS Code Referenz).
-4. **Modell-Distribution:** Duerfen/sollen wir das VS-Code-Modell-Verzeichnis
-   referenzieren, oder muss Jarvis sein eigenes Modell-Package mitbringen/downloaden?
+Entscheidungen liegen beim Nutzer/PM, nicht hier.
+
+1. **Native Runtime bereitstellen:** Quelle und SDK-Version offen. Zu pruefen: SDK 1.2.3 plus
+   VS-Code-Runtime-Tarball statt SDK 2.1.0 mit manuell kopierten DLLs.
+2. **Modell bereitstellen:** Quelle des Foundry-Pakets (mit `genai_config.json`) unbekannt;
+   das HuggingFace-ONNX-Repo aus dem Paper hat ein anderes Format. Optionen: eigener
+   Node-HTTPS-Download (Gewichte noch nicht getestet), ZIP-Import, oder VS-Code-Cache
+   mitnutzen (Pfad ist VS-Code-intern).
+3. **Audio-Capture:** Nur WAV-Dateien getestet, nicht Live-Mikrofon-Streaming.
+4. **VAD:** `silero_vad.onnx` liegt im Modell-Package, `use_vad` nicht getestet.
+5. **Produktentscheidung:** Streaming (Live-Transkript) oder Transkript erst nach Stopp.
 
