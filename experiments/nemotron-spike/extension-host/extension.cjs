@@ -10,6 +10,11 @@ const modelAssetUrl = 'https://huggingface.co/nvidia/nemotron-3.5-asr-streaming-
 const output = vscode.window.createOutputChannel('Nemotron Download Probe');
 let reportPath;
 
+function hostPort(value) {
+  if (!value) { return 'unset'; }
+  try { const url = new URL(value); return `${url.protocol}//${url.host}`; } catch { return 'unparsable'; }
+}
+
 function log(message) {
   const line = `[${new Date().toISOString()}] ${message}`;
   output.appendLine(line);
@@ -63,7 +68,14 @@ async function run(context) {
   const proxy = settings.get('proxy', '');
   log(`Extension Host: ${process.platform}/${process.arch}, Node ${process.version}`);
   log(`http.proxy configured: ${Boolean(proxy)}; http.proxySupport: ${settings.get('proxySupport')}`);
-  log(`HTTP_PROXY set: ${Boolean(process.env.HTTP_PROXY)}; HTTPS_PROXY set: ${Boolean(process.env.HTTPS_PROXY)}`);
+  log(`inherited env: HTTPS_PROXY=${hostPort(process.env.HTTPS_PROXY)} HTTP_PROXY=${hostPort(process.env.HTTP_PROXY)} NO_PROXY set=${Boolean(process.env.NO_PROXY)}`);
+  log(`http.proxy setting: ${hostPort(proxy)}`);
+  if (proxy) {
+    // VS Code's own dictation does this before the SDK runs; the native layer reads env, not settings.
+    process.env.HTTPS_PROXY = proxy;
+    process.env.HTTP_PROXY = proxy;
+    log(`env bridged from http.proxy: HTTPS_PROXY=${hostPort(process.env.HTTPS_PROXY)}`);
+  }
 
   for (const [label, agent] of [
     ['Node HTTPS direct', undefined],
@@ -90,6 +102,8 @@ async function run(context) {
     manager = FoundryLocalManager.create({
       appName: 'nemotron-extension-host-probe',
       modelCacheDir: path.join(context.globalStorageUri.fsPath, 'model-cache'),
+      logsDir: path.join(context.globalStorageUri.fsPath, 'sdk-logs'),
+      logLevel: 'debug',
     });
     log('SDK online catalog: listing models...');
     const models = await manager.catalog.getModels();
