@@ -36,6 +36,7 @@ See [lessons-learned.md](lessons-learned.md).
 - **actor-kernel-instructions-delivery** — `feature/actor-kernel-instructions-delivery`, status `qm-cleared`, QM R2 CLEAR, pending user confirmation for merge
 - **whoami-all-entity-kinds** — `feature/whoami-all-entity-kinds`, status `r2-recheck` (fixes 274625f: TC-2/TC-4 + SPEC AC-2/AC-2a, 406/406 pass), VE + MECE re-dispatched → report to PM
 - **one-kind-consolidation** — `feature/one-kind-consolidation`, status `in-progress`, user-guided mode, L0/L1/L2 pre-drafted by Architect, awaiting user review before dispatch
+- **remove-newactor-legacy-quickpick** — merged `4723e94` on development (2026-09-30). QM CLEAR R1, VE PASSED, user-validated.
 
 ## Process Rules
 
