@@ -276,29 +276,44 @@ Kein Low-Level-ONNX-Code nötig — genau die Architektur, die wir für den Reco
 | D — Streaming | ✅ 46 Chunks, echte interim Results |
 | E — Mixed-Language `auto` | ✅ Unterschiedliche Ergebnisse je Sprachmodus |
 
-### Netzwerk-Blocker: Ursache vollständig geklärt (2026-09-30, Folge-Test)
+### Netzwerk-Blocker: Ursache vollständig geklärt (2026-09-30, mit Beweis per curl + DLL-Analyse)
 
 `npm install` versucht `Microsoft.ML.OnnxRuntime` von NuGet zu laden — das schlägt fehl,
 weil `install-native.cjs` rohes `node:https` ohne jede Proxy-Unterstützung nutzt (keine
 Env-Var-Auswertung im Skript selbst).
 
 **Der spannendere Fund: die native `foundry_local` C++-Bibliothek ignoriert jede
-Proxy-Konfiguration, die wir ihr geben können — unabhängig vom Proxy-Wert.** Getestet:
+Proxy-Konfiguration, die wir ihr geben können.** Getestet und mit Beweis verifiziert:
+
 1. `HTTPS_PROXY`/`HTTP_PROXY` mit falschem Proxy (`localhost:3128`) → Fehler
 2. Dieselben Env-Vars mit dem **korrekten** VS-Code-Proxy (aus `settings.json`:
    `http.proxy: "http://rb-proxy-de.bosch.com:8080"`) → identischer Fehler
 3. `additionalSettings`-Bag mit Proxy-Schlüsseln in mehreren Schreibweisen → identischer Fehler
+4. Env-Var-Propagation im Prozess per `console.log(process.env.HTTPS_PROXY)` bestätigt korrekt
+5. DNS-Flush + Routing-Tabelle geprüft (zwei Default-Routen: WLAN Metric 0, VPN/Ethernet
+   Metric 1) — nach Flush identisches Ergebnis, also nicht routing-/VPN-bedingt
 
-Alle drei Versuche scheitern am **exakt gleichen Symptom**: `RegionFallback` probiert
-7 Azure-Regionen durch, jede mit "transport failure" — die Bibliothek versucht offenbar
-eine direkte Verbindung (Firewall blockt), unabhängig von jeder Konfiguration die wir setzen.
+**Beweis dass das Netzwerk grundsätzlich funktioniert:** Aus dem DLL-Binary per String-Suche
+die drei tatsächlichen Foundry-Catalog-Hostnamen extrahiert (`ai.azure.com`,
+`api.catalog.azureml.ms`, `foundrypackages-*.azurefd.net`). Mit `curl.exe` und demselben
+Proxy (`rb-proxy-de.bosch.com:8080`) sind **alle drei direkt erreichbar** (200/404/200 —
+valide HTTP-Antworten). Ohne Proxy ist jeglicher Direktzugriff tot (`github.com`/`google.com`
+→ `000`, kein Connect). Das Firmennetz erzwingt den Proxy für alles; der Proxy selbst
+funktioniert einwandfrei für jeden proxy-fähigen Client.
 
-**Warum VS Code selbst funktioniert:** Windows-Registry zeigt
-`AutoConfigURL: http://rbins.bosch.com/si.pac` — ein **PAC-Skript**, kein statischer Proxy.
-VS Code (Electron/Chromium) wertet PAC-Dateien automatisch aus. Die native
-`foundry_local`-Bibliothek hat **keinen PAC-Support** — sie kennt nur (bestenfalls) einen
-System-weiten statischen WinHTTP-Proxy (`netsh winhttp set proxy`, braucht Admin-Rechte,
-hier nicht gesetzt: `DirectAccess`).
+**Root Cause:** String-Suche im DLL-Binary zeigt `WinHttp` (Windows' natives HTTP-API),
+kein `libcurl`. **WinHTTP liest keine `HTTPS_PROXY`/`HTTP_PROXY`-Umgebungsvariablen** — das
+ist reine Unix/curl-Konvention. WinHTTP braucht entweder die System-weite Proxy-Config
+(`netsh winhttp show proxy` → hier `DirectAccess`, leer) oder PAC-Auflösung, die die
+aufrufende App explizit anfordern muss. Versuch, die IE/PAC-Einstellung mit
+`netsh winhttp import proxy source=ie` in den WinHTTP-Store zu importieren →
+ebenfalls `Access Denied` (Admin-Rechte nötig, nicht eskaliert).
+
+**Warum VS Code selbst funktioniert:** Electron/Chromium hat eine eigene, PAC-fähige
+Netzwerk-Schicht, komplett unabhängig von WinHTTP. Dass das Nemotron-Modell bereits im
+lokalen `chatDictationModels`-Cache lag, heißt vermutlich: Entweder war die System-weite
+WinHTTP-Proxy-Config zum Download-Zeitpunkt gesetzt (z.B. durch IT-Policy, seither
+zurückgesetzt), oder der Download lief über ein anderes Netzwerk.
 
 **Konsequenz für Phase 2:** Das ist kein Terminal-spezifisches Problem — es würde
 **auch als echte VS-Code-Extension nicht automatisch funktionieren**. Der Aufruf
@@ -309,7 +324,7 @@ Spiel sind.
 
 **Lösung für den Spike (funktioniert, ist aber ein Workaround):**
 1. `FOUNDRY_LOCAL_SKIP_INSTALL=1 npm install` — SDK ohne nativen Download installieren
-2. ORT/GenAI-DLLs per `Invoke-WebRequest` (PowerShell nutzt PAC/Proxy korrekt) von NuGet holen
+2. ORT/GenAI-DLLs per `Invoke-WebRequest` (PowerShell/curl nutzen Proxy korrekt) von NuGet holen
 3. `foundry_local_node.node` + `foundry_local.dll` kommen **im npm-Paket selbst** (per
    `npm pack` extrahiert, nicht von NuGet)
 4. Modell-Catalog-Lookup umgangen: stattdessen das von VS Code bereits heruntergeladene
