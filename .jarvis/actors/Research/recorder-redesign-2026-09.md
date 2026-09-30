@@ -1,7 +1,7 @@
 # Recorder Redesign — VS Code Speech vs. Eigenbau
 
 **Datum:** 2026-09-30
-**Status:** Research abgeschlossen, Ready für PM/CR
+**Status:** Spike abgeschlossen, Entscheidungen offen (siehe „Spike-Tests“ und „Offene Fragen“); korrigiert 2026-09-30 nach Rückfrage des System Designers
 
 ---
 
@@ -129,27 +129,24 @@ NVIDIA veröffentlicht `NeMo-Speech.cpp` — lightweight C++ Runtime für genau 
 - ✅ GGUF — effizient, CPU-only
 - ✅ Multilingual (40 Locales)
 - ❌ Native Binary (kompilieren oder distributieren, kein npm)
-- Nur als Fallback falls `onnxruntime-node` nicht funktioniert
+- Nur als Fallback, falls `foundry-local-sdk` nicht nutzbar ist
 
-### Option 4: `onnxruntime-node` direkt (★ Entscheidete Option)
+### Option 4: VS-Code-Architektur nachbauen — mit `foundry-local-sdk` (nicht entschieden)
 
-VS Code nutzt `onnxruntime + onnxruntime-genai`. `onnxruntime-node` ist ein npm-Package.
-Wir bauen genau diese Architektur nach.
+> Korrigiert 2026-09-30. Frühere Fassung: „`onnxruntime-node` direkt (★ Entscheidete Option)“,
+> begründet mit „VS Code beweist täglich, dass `onnxruntime` + Nemotron funktioniert“. Das war nicht belegt.
 
-**Entscheidungsgrund:** VS Code beweist täglich auf unserem Rechner dass
-`onnxruntime` + Nemotron funktioniert. Wir müssen nicht raten ob es geht — wir wissen es.
-Auch: Transformers.js (Option 2) ist für CTC-Modelle gebaut (Batch/Strided), nicht für
-RNNT-Streaming. Wir brauchen aber Streaming, und RNNT-Streaming ist genau das was
-`onnxruntime-genai` bietet.
+**Herkunft:** Der Nutzer wollte „Dictation nachbauen“ und sagte: „wir sollten onnx wie VS Code
+bauen, weil es auf meinem Rechner funktioniert“. Den Paketnamen `onnxruntime-node` habe ich (Research)
+hinzugefügt, bevor der Spike zeigte, dass VS Code `foundry-local-sdk` nutzt. Der Nutzer hat nie
+zwischen SDK und rohem `onnxruntime-node` entschieden; sein „ja“ bezog sich auf den Spike-Plan.
 
-- ✅ NPM-Package, kein Docker, kein Python, keine native Binary
-- ✅ **Bewiesen auf unserem Rechner** — VS Code läuft damit jeden Tag
-- ✅ RNNT Cache-Aware Streaming (gleiches Modell wie VS Code)
-- ✅ Volle programmatische Kontrolle über Audio-Pipeline
-- ✅ Audio-Capture via Web Audio API (Webview) oder Node native — beides npm-basiert
-- ⚠️ VAD/Endpointing muss implementiert werden (VS Code nutzt Foundry Local dafür;
-  wir können `onnxruntime-genai`'s eingebautes Streaming nutzen oder eigenes VAD)
-- ⚠️ Mehr Low-Level-Code als Transformers.js, aber VS Code Source als Referenz
+**Was das Argument belegt:** Nemotron läuft auf diesem Rechner über VS Codes Weg
+(`foundry-local-sdk`). Es belegt nichts über rohes `onnxruntime-node`. Das wurde **nie getestet**,
+und ob es RNNT-Streaming für Nemotron bietet, ist **ungeprüft**.
+
+**Tragfähige Lesart:** „wie VS Code“ heißt `foundry-local-sdk`; das ist der einzige getestete Weg
+(siehe Spike-Ergebnis). Die Entscheidung darüber liegt beim Nutzer/PM.
 
 ---
 
@@ -163,9 +160,18 @@ Alle Optionen brauchen Audio-Capture. Drei Wege:
 | **Native Node Module** (`naudiodon`) | PortAudio binding → PCM16 direkt | Niedrig | ✅ |
 | **Bestehendes `recorder.py`** | Schreibt WAV → Extension transkribiert beim Stop | Am niedrigsten | ❌ (Batch) |
 
+Keiner der drei Wege wurde getestet; der Spike nutzte nur fertige WAV-Dateien.
+
 ---
 
 ## Empfohlener Phasen-Plan
+
+> Korrigiert 2026-09-30: Dies ist der ursprüngliche Plan von Research, nicht eine Vorgabe von
+> jemand anderem. Dass `recorder.py` und Batch-beim-Stopp zuerst kommen, war meine Einordnung
+> (geringster Aufwand), keine Nutzer-Anforderung; der Nutzer sagte nur, ein Live-Mitschrieb sei
+> nicht nötig, aber 30 s Latenz seien lang. Streaming vs. Batch ist eine offene Produktentscheidung.
+> Phase 1 wurde mit `foundry-local-sdk` statt `onnxruntime-node` durchgeführt; maßgeblich ist
+> der Abschnitt „Spike-Ergebnis“. Tests und Dateibaum unten beschreiben den alten Plan.
 
 ### Phase 1: Prototyp-Spike auf Research-Branch (≈1–2 Tage)
 
@@ -204,7 +210,7 @@ research/recorder-nemotron-spike/
 
 Wenn Phase 1 erfolgreich: Integration in `packages/recorder`.
 - Audio-Capture replaces `recorder.py` (Webview + getUserMedia oder Node native)
-- `onnxruntime-node` als Dependency
+- `foundry-local-sdk` als Dependency (Version offen: Spike 2.1.0, VS Code pinnt 1.2.3)
 - Streaming-Transcript → `jarvis.internalAppendMessage` wie bisher
 - Config: Model-Path/Cache-Dir statt `whisperPath`
 
@@ -219,7 +225,7 @@ Audio-Worklet im Webview für Echtzeit-PCM16.
 
 | Komponente | Aktuell | Nach Redesign |
 |-----------|--------|---------------|
-| Python `recorder.py` | Audio-Capture | Bleibt (Phase 1) → entfällt (Phase 2/3) |
+| Python `recorder.py` | Audio-Capture | Offen: Capture-Weg nicht entschieden und nicht getestet |
 | Docker + Whisper | Transkription | ❌ Weg |
 | `whisperPath` Config | Pfad zum Whisper-Setup | ❌ Weg |
 | File-Polling-Heartbeat | `jarvis.checkTranscripts` alle 2 Min | ❌ Weg |
@@ -363,29 +369,32 @@ Test-Empfehlung für Phase 2: mit echten Sprachaufnahmen statt TTS validieren.
 3. VAD (`silero_vad.onnx` ist im Modell-Package enthalten, `use_vad` Option nicht getestet)
 4. Modell-Distribution-Strategie für Endnutzer (eigener Download vs. VS-Code-Cache-Reuse)
 
-## Spike-Tests (aktualisiert)
+## Spike-Tests (Stand 2026-09-30)
 
-| Test | Was wir prüfen | Status |
-|------|---------------|--------|
-| A | Modell lädt in Node.js (`@huggingface/transformers` + ONNX) | Offen |
-| B | Batch-Transkription (WAV → Text) | Offen |
-| C | Qualität für Meeting-Transcripts | ✅ Bewiesen (Live-Diktat) |
-| D | Streaming: Chunks einspeisen → interim Results | Offen (Hauptfrage) |
-| E | `language: 'auto'` — Sprachwechsel mid-stream erkennen | Offen (Bonus-Feature) |
+| Test | Was | Status |
+|------|-----|--------|
+| A | Modell laden (`foundry-local-sdk`, lokaler Catalog, VS-Code-Cache) | ✅ |
+| B | Batch: WAV → Text | ✅ TTS-Stimme, 7,3 s |
+| C | Qualität | ✅ nur an VS Codes eigenem Diktat beobachtet, nicht mit unserem Code |
+| D | Streaming: WAV in Chunks → interim Results | ✅ 46 Chunks; nicht aus Mikrofon |
+| E | `language` auto/de/en | ✅ nur TTS-Stimme |
+| F | Extension Host: natives SDK lädt; Node-HTTPS über Proxy | ✅ teilweise: Katalog liefert 0 Modelle, nur 54-KB-Datei geladen |
+| – | rohes `onnxruntime-node` + Nemotron | nie getestet |
+| – | Mikrofon-Capture, VAD, Modell-/Runtime-Beschaffung, SDK 1.2.3 | offen |
 
 ## Offene Fragen
 
-1. **onnxruntime-genai Streaming:** Bietet `onnxruntime-genai` (npm) eine
-   Streaming-Session-API wie VS Code's Foundry Local `LiveAudioTranscriptionSession`?
-   → Test D.
-2. **VAD/Endpointing:** Brauchen wir eigenes Voice Activity Detection, oder
-   übernimmt `onnxruntime-genai` das? VS Code nutzt Foundry Local dafür.
-3. **Modell-Format:** Welches ONNX-Format brauchen wir? VS Code nutzt das
-   Foundry-Local-Modell-Package. Für `onnxruntime-node` brauchen wir das
-   rohe ONNX-Modell (z.B. von HuggingFace).
-4. **CPU-Performance:** Latenz auf CPU beim Streaming? VS Code nutzt Utility
-   Process (separater Thread) — brauchen wir das auch?
-5. **Modell-Download-Größe:** Wie groß ist das ONNX-Modell? (Original ~600M Parameter)
+Entscheider ist der Nutzer/PM, sofern nicht anders vermerkt.
+
+1. **Quelle Modellpaket und Runtime:** Foundry-Paket (mit `genai_config.json`) ohne bekannte URL;
+   Runtime-Tarball-URL steht in VS Codes `product.json`, wurde aber nicht geladen oder getestet.
+2. **SDK-Version:** 2.1.0 (Spike) vs. 1.2.3 (VS Code) plus dessen Runtime ungetestet.
+3. **Mikrofon-Capture:** Webview-`getUserMedia` oder natives Node-Modul, beides ungetestet.
+4. **VAD/Endpointing:** `silero_vad.onnx` liegt im Paket, `use_vad` ungetestet.
+5. **Streaming oder Batch:** Produktentscheidung.
+6. **Ausführungsort:** VS Code nutzt einen Utility-Prozess; Modell laden und Transkribieren im
+   Extension Host wurde nicht getestet, Latenz nur an WAV-Dateien gemessen.
+7. **Rohes `onnxruntime-node`:** nur relevant, falls das SDK ausfällt; nie getestet.
 
 ---
 
