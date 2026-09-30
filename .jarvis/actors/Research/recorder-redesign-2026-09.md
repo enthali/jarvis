@@ -276,7 +276,7 @@ Kein Low-Level-ONNX-Code nötig — genau die Architektur, die wir für den Reco
 | D — Streaming | ✅ 46 Chunks, echte interim Results |
 | E — Mixed-Language `auto` | ✅ Unterschiedliche Ergebnisse je Sprachmodus |
 
-### Netzwerk-Blocker: Ursache vollständig geklärt (2026-09-30, mit Beweis per curl + DLL-Analyse)
+### Netzwerk-Blocker: Befund belegt, Mechanismus offen (2026-09-30, korrigiert nach Extension-Host-Test)
 
 `npm install` versucht `Microsoft.ML.OnnxRuntime` von NuGet zu laden — das schlägt fehl,
 weil `install-native.cjs` rohes `node:https` ohne jede Proxy-Unterstützung nutzt (keine
@@ -301,26 +301,33 @@ valide HTTP-Antworten). Ohne Proxy ist jeglicher Direktzugriff tot (`github.com`
 → `000`, kein Connect). Das Firmennetz erzwingt den Proxy für alles; der Proxy selbst
 funktioniert einwandfrei für jeden proxy-fähigen Client.
 
-**Root Cause:** String-Suche im DLL-Binary zeigt `WinHttp` (Windows' natives HTTP-API),
-kein `libcurl`. **WinHTTP liest keine `HTTPS_PROXY`/`HTTP_PROXY`-Umgebungsvariablen** — das
-ist reine Unix/curl-Konvention. WinHTTP braucht entweder die System-weite Proxy-Config
-(`netsh winhttp show proxy` → hier `DirectAccess`, leer) oder PAC-Auflösung, die die
-aufrufende App explizit anfordern muss. Versuch, die IE/PAC-Einstellung mit
-`netsh winhttp import proxy source=ie` in den WinHTTP-Store zu importieren →
-ebenfalls `Access Denied` (Admin-Rechte nötig, nicht eskaliert).
+**Hypothese zum Mechanismus (nicht bewiesen):** String-Suche im DLL-Binary zeigt `WinHttp`,
+kein `libcurl`; WinHTTP liest keine `HTTPS_PROXY`-Variablen, sondern die System-Proxy-Config
+(`netsh winhttp show proxy` → hier `DirectAccess`; `import proxy source=ie` → `Access Denied`).
+Das passt zu den Beobachtungen, belegt aber nicht, dass WinHTTP die Ursache ist. VS Codes
+eigener Quellcode (`localTranscriptionService.ts`) geht davon aus, dass der native Download
+die Env-Variablen liest, und setzt sie deshalb aus `http.proxy`; das widerspricht der Hypothese.
 
-**Warum VS Code selbst funktioniert:** Electron/Chromium hat eine eigene, PAC-fähige
-Netzwerk-Schicht, komplett unabhängig von WinHTTP. Dass das Nemotron-Modell bereits im
-lokalen `chatDictationModels`-Cache lag, heißt vermutlich: Entweder war die System-weite
-WinHTTP-Proxy-Config zum Download-Zeitpunkt gesetzt (z.B. durch IT-Policy, seither
-zurückgesetzt), oder der Download lief über ein anderes Netzwerk.
+**Extension-Host-Test (belegt):** Mini-Extension, Commit `59458c1` auf dem Research-Branch
+(`experiments/nemotron-spike/extension-host/`). Im echten Extension Host (VS Code 1.139.0) waren
+`http.proxy` gesetzt und `HTTPS_PROXY`/`HTTP_PROXY` korrekt befüllt, zusätzlich nach VS Codes
+Muster aus `http.proxy` gebrückt. Ergebnis:
+- Node-HTTPS (direkt und mit explizitem Proxy-Agent) → HTTP 200; eine Nemotron-Repo-Datei
+  (README, 54.239 Bytes) wurde über den Proxy geladen. VS Code patcht HTTP im Extension Host
+  (`http.proxySupport=override`).
+- Der native Foundry-Katalog lieferte **0 Modelle**. SDK-Log: `transport failure` für alle
+  7 Regionen nach je ~10 ms. `model.download()` wurde nie erreicht.
+- Derselbe Node-HTTPS-Aufruf im Terminal scheitert mit `ENOTFOUND`.
 
-**Konsequenz für Phase 2:** Das ist kein Terminal-spezifisches Problem — es würde
-**auch als echte VS-Code-Extension nicht automatisch funktionieren**. Der Aufruf
-`catalog.getModel()` geht direkt in die native C++-Bibliothek, an VS Codes eigener
-PAC-fähiger Netzwerk-Schicht vorbei. Jarvis kann sich für die Modell-Beschaffung nicht auf
-den SDK-eigenen Catalog-Netzwerkzugriff verlassen, wenn PAC-basierte Firmen-Proxies im
-Spiel sind.
+**Offen:** (1) Warum scheitert der native Layer trotz korrekter Env-Variablen? (2) Wie kam das
+Modell in `chatDictationModels`? Laut VS Code-Quellcode läuft `model.download()` über dieselbe
+native Schicht; `installDictationModelAction.ts` importiert alternativ aus einem lokalen ZIP.
+Die frühere Vermutung (WinHTTP-Config zum Download-Zeitpunkt gesetzt / anderes Netz) ist
+unbelegt. Wer es klären kann: der Nutzer (Herkunft des Modells auf diesem Rechner).
+
+**Konsequenz für Phase 2:** Für die Modell-Beschaffung nicht auf den nativen SDK-Katalog
+verlassen. Auf diesem Rechner belegt: der Katalog funktioniert auch im Extension Host nicht;
+ein Extension-eigener HTTP-Download über VS Codes Proxy funktioniert.
 
 **Lösung für den Spike (funktioniert, ist aber ein Workaround):**
 1. `FOUNDRY_LOCAL_SKIP_INSTALL=1 npm install` — SDK ohne nativen Download installieren
@@ -333,10 +340,10 @@ Spiel sind.
 
 **Für Produktiv-Integration (Phase 2):** Modell-Beschaffung darf nicht über den nativen
 SDK-Catalog laufen. Zwei Optionen:
-- **A)** Jarvis lädt die Modell-Dateien selbst via Node's `https`/`fetch` (PAC/Proxy-fähig
-  mit `https-proxy-agent`, liest VS Codes `http.proxy`-Setting aus) direkt von einer
-  bekannten URL herunter, legt sie lokal ab, registriert sie dann per `CatalogType.Local`
-  — wie wir es im Spike gemacht haben, nur mit eigenem Download statt VS-Code-Cache-Reuse.
+- **A)** Jarvis lädt die Modell-Dateien selbst via Node-HTTPS (im Extension Host von VS Code
+  proxy-gepatcht; nur mit einer kleinen Datei belegt, nicht mit den ~700 MB Gewichten) und
+  registriert sie per `CatalogType.Local`. **Offen:** Quell-URL des Foundry-Pakets (mit
+  `genai_config.json`); das HuggingFace-ONNX-Repo aus dem Paper hat ein anderes Format.
 - **B)** Falls VS Codes Diktat-Feature bereits aktiv war, dessen Cache-Verzeichnis
   wiederverwenden (fragil — Pfad/Struktur ist VS-Code-intern, kann sich ändern).
 → Option A ist robuster und wird für Phase 2 empfohlen.
