@@ -1,0 +1,24 @@
+{
+  "name": "nemotron-download-probe",
+  "publisher": "research",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Extension-host probe for Foundry Local model downloads",
+  "main": "./extension.cjs",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "activationEvents": ["onStartupFinished", "onCommand:nemotronProbe.run"],
+  "contributes": {
+    "commands": [
+      {
+        "command": "nemotronProbe.run",
+        "title": "Nemotron: Test SDK Download"
+      }
+    ]
+  },
+  "dependencies": {
+    "foundry-local-sdk": "2.1.0",
+    "https-proxy-agent": "^7.0.0"
+  }
+}
