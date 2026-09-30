@@ -276,27 +276,55 @@ Kein Low-Level-ONNX-Code nötig — genau die Architektur, die wir für den Reco
 | D — Streaming | ✅ 46 Chunks, echte interim Results |
 | E — Mixed-Language `auto` | ✅ Unterschiedliche Ergebnisse je Sprachmodus |
 
-### Netzwerk-Blocker (gelöst)
+### Netzwerk-Blocker: Ursache vollständig geklärt (2026-09-30, Folge-Test)
 
-`npm install` versucht `Microsoft.ML.OnnxRuntime` von NuGet zu laden — in unserer Proxy-
-Umgebung (`localhost:3128`) schlägt das fehl, weil Node's `https` und die native C++-Lib
-unterschiedliche Netzwerk-Stacks nutzen, die `HTTPS_PROXY` ignorieren. Windows' WinHTTP
-(von der nativen Lib genutzt) braucht eine **System-weite** Proxy-Konfiguration
-(`netsh winhttp set proxy`), die Admin-Rechte braucht — nicht gesetzt.
+`npm install` versucht `Microsoft.ML.OnnxRuntime` von NuGet zu laden — das schlägt fehl,
+weil `install-native.cjs` rohes `node:https` ohne jede Proxy-Unterstützung nutzt (keine
+Env-Var-Auswertung im Skript selbst).
 
-**Lösung:**
+**Der spannendere Fund: die native `foundry_local` C++-Bibliothek ignoriert jede
+Proxy-Konfiguration, die wir ihr geben können — unabhängig vom Proxy-Wert.** Getestet:
+1. `HTTPS_PROXY`/`HTTP_PROXY` mit falschem Proxy (`localhost:3128`) → Fehler
+2. Dieselben Env-Vars mit dem **korrekten** VS-Code-Proxy (aus `settings.json`:
+   `http.proxy: "http://rb-proxy-de.bosch.com:8080"`) → identischer Fehler
+3. `additionalSettings`-Bag mit Proxy-Schlüsseln in mehreren Schreibweisen → identischer Fehler
+
+Alle drei Versuche scheitern am **exakt gleichen Symptom**: `RegionFallback` probiert
+7 Azure-Regionen durch, jede mit "transport failure" — die Bibliothek versucht offenbar
+eine direkte Verbindung (Firewall blockt), unabhängig von jeder Konfiguration die wir setzen.
+
+**Warum VS Code selbst funktioniert:** Windows-Registry zeigt
+`AutoConfigURL: http://rbins.bosch.com/si.pac` — ein **PAC-Skript**, kein statischer Proxy.
+VS Code (Electron/Chromium) wertet PAC-Dateien automatisch aus. Die native
+`foundry_local`-Bibliothek hat **keinen PAC-Support** — sie kennt nur (bestenfalls) einen
+System-weiten statischen WinHTTP-Proxy (`netsh winhttp set proxy`, braucht Admin-Rechte,
+hier nicht gesetzt: `DirectAccess`).
+
+**Konsequenz für Phase 2:** Das ist kein Terminal-spezifisches Problem — es würde
+**auch als echte VS-Code-Extension nicht automatisch funktionieren**. Der Aufruf
+`catalog.getModel()` geht direkt in die native C++-Bibliothek, an VS Codes eigener
+PAC-fähiger Netzwerk-Schicht vorbei. Jarvis kann sich für die Modell-Beschaffung nicht auf
+den SDK-eigenen Catalog-Netzwerkzugriff verlassen, wenn PAC-basierte Firmen-Proxies im
+Spiel sind.
+
+**Lösung für den Spike (funktioniert, ist aber ein Workaround):**
 1. `FOUNDRY_LOCAL_SKIP_INSTALL=1 npm install` — SDK ohne nativen Download installieren
-2. ORT/GenAI-DLLs per `Invoke-WebRequest` (PowerShell nutzt Proxy korrekt) von NuGet holen
+2. ORT/GenAI-DLLs per `Invoke-WebRequest` (PowerShell nutzt PAC/Proxy korrekt) von NuGet holen
 3. `foundry_local_node.node` + `foundry_local.dll` kommen **im npm-Paket selbst** (per
    `npm pack` extrahiert, nicht von NuGet)
-4. Modell-Catalog-Lookup (`manager.catalog.getModel()`) braucht ebenfalls Netzwerk (Azure-
-   Regionen) — stattdessen das von VS Code bereits heruntergeladene Modell per
-   **lokalem Catalog** registriert (`CatalogType.Local`, `catalog.registerModel(path, id, meta)`)
+4. Modell-Catalog-Lookup umgangen: stattdessen das von VS Code bereits heruntergeladene
+   Modell per **lokalem Catalog** registriert (`CatalogType.Local`,
+   `catalog.registerModel(path, id, meta)`) — kein natives Netzwerk nötig
 
-**Für Produktiv-Integration:** Dieser Workaround ist spike-tauglich, aber nicht
-produktionsreif. Phase 2 muss klären wie Jarvis das Modell ohne Abhängigkeit von VS Codes
-Cache-Verzeichnis bereitstellt (eigener Download-Flow, oder Referenz auf VS Codes Cache
-falls vorhanden, mit Fallback).
+**Für Produktiv-Integration (Phase 2):** Modell-Beschaffung darf nicht über den nativen
+SDK-Catalog laufen. Zwei Optionen:
+- **A)** Jarvis lädt die Modell-Dateien selbst via Node's `https`/`fetch` (PAC/Proxy-fähig
+  mit `https-proxy-agent`, liest VS Codes `http.proxy`-Setting aus) direkt von einer
+  bekannten URL herunter, legt sie lokal ab, registriert sie dann per `CatalogType.Local`
+  — wie wir es im Spike gemacht haben, nur mit eigenem Download statt VS-Code-Cache-Reuse.
+- **B)** Falls VS Codes Diktat-Feature bereits aktiv war, dessen Cache-Verzeichnis
+  wiederverwenden (fragil — Pfad/Struktur ist VS-Code-intern, kann sich ändern).
+→ Option A ist robuster und wird für Phase 2 empfohlen.
 
 ### Qualitäts-Detail (Test E, Mixed-Language)
 
