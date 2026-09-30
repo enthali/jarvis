@@ -258,6 +258,61 @@ Beobachtungen:
   ohne Capitalization durch; mit `=true` werden Gross-/Kleinschreibung und Zeichensetzung
   nachgebessert. Für Meeting-Transcripts ist das wichtig.
 
+---
+
+## Spike-Ergebnis (2026-09-30): ✅ Alle Tests bestanden
+
+Branch: `research/recorder-nemotron-spike` (gepusht, Commit `8271514`).
+Code + README + Ergebnisse: `experiments/nemotron-spike/`.
+
+**Kernfund:** VS Code nutzt nicht direkt `onnxruntime-genai`, sondern das npm-Package
+**`foundry-local-sdk`** (High-Level-API mit `model.createAudioClient().transcribeStreaming()`).
+Kein Low-Level-ONNX-Code nötig — genau die Architektur, die wir für den Recorder brauchen.
+
+| Test | Ergebnis |
+|------|----------|
+| A — Modell lädt | ✅ Lokal (VS Codes Cache), kein Netzwerk nötig |
+| B — Batch-Transkription | ✅ 7.3s, korrekte Umlaute, fast perfekt |
+| D — Streaming | ✅ 46 Chunks, echte interim Results |
+| E — Mixed-Language `auto` | ✅ Unterschiedliche Ergebnisse je Sprachmodus |
+
+### Netzwerk-Blocker (gelöst)
+
+`npm install` versucht `Microsoft.ML.OnnxRuntime` von NuGet zu laden — in unserer Proxy-
+Umgebung (`localhost:3128`) schlägt das fehl, weil Node's `https` und die native C++-Lib
+unterschiedliche Netzwerk-Stacks nutzen, die `HTTPS_PROXY` ignorieren. Windows' WinHTTP
+(von der nativen Lib genutzt) braucht eine **System-weite** Proxy-Konfiguration
+(`netsh winhttp set proxy`), die Admin-Rechte braucht — nicht gesetzt.
+
+**Lösung:**
+1. `FOUNDRY_LOCAL_SKIP_INSTALL=1 npm install` — SDK ohne nativen Download installieren
+2. ORT/GenAI-DLLs per `Invoke-WebRequest` (PowerShell nutzt Proxy korrekt) von NuGet holen
+3. `foundry_local_node.node` + `foundry_local.dll` kommen **im npm-Paket selbst** (per
+   `npm pack` extrahiert, nicht von NuGet)
+4. Modell-Catalog-Lookup (`manager.catalog.getModel()`) braucht ebenfalls Netzwerk (Azure-
+   Regionen) — stattdessen das von VS Code bereits heruntergeladene Modell per
+   **lokalem Catalog** registriert (`CatalogType.Local`, `catalog.registerModel(path, id, meta)`)
+
+**Für Produktiv-Integration:** Dieser Workaround ist spike-tauglich, aber nicht
+produktionsreif. Phase 2 muss klären wie Jarvis das Modell ohne Abhängigkeit von VS Codes
+Cache-Verzeichnis bereitstellt (eigener Download-Flow, oder Referenz auf VS Codes Cache
+falls vorhanden, mit Fallback).
+
+### Qualitäts-Detail (Test E, Mixed-Language)
+
+Bei synthetischer TTS-Stimme (Windows SAPI) war der Codeswitch-Teil ("we are switching
+between") schlecht erkannt — vermutlich TTS-Ausspracheartefakt, nicht Nemotron-Schwäche.
+Mit echter menschlicher Sprache (siehe Live-Chat-Test oben) war Codeswitch klar erkennbar.
+Test-Empfehlung für Phase 2: mit echten Sprachaufnahmen statt TTS validieren.
+
+### Offene Punkte für Phase 2
+
+1. Netzwerk-Workaround produktionsreif machen (Modell-Distribution ohne NuGet-Abhängigkeit
+   beim Install, ohne VS-Code-Cache-Abhängigkeit zur Laufzeit)
+2. Live-Mikrofon-Audio-Capture (Spike testete nur WAV-Dateien)
+3. VAD (`silero_vad.onnx` ist im Modell-Package enthalten, `use_vad` Option nicht getestet)
+4. Modell-Distribution-Strategie für Endnutzer (eigener Download vs. VS-Code-Cache-Reuse)
+
 ## Spike-Tests (aktualisiert)
 
 | Test | Was wir prüfen | Status |
