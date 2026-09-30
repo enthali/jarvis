@@ -35,3 +35,8 @@ See [lessons-learned.md](lessons-learned.md).
 - **kanban-update-validation** — `feature/kanban-update-validation` (stacked on kanban-management-tools), status `ready-for-merge`, QM CLEAR, PM notified
 - **actor-kernel-instructions-delivery** — `feature/actor-kernel-instructions-delivery`, status `qm-cleared`, QM R2 CLEAR, pending user confirmation for merge
 - **whoami-all-entity-kinds** — `feature/whoami-all-entity-kinds`, status `r2-recheck` (fixes 274625f: TC-2/TC-4 + SPEC AC-2/AC-2a, 406/406 pass), VE + MECE re-dispatched → report to PM
+- **one-kind-consolidation** — `feature/one-kind-consolidation`, status `in-progress`, user-guided mode, L0/L1/L2 pre-drafted by Architect, awaiting user review before dispatch
+
+## Process Rules
+
+- **Finding assignment, not solving (2026-09-20)**: When QM findings need to be addressed, CM assigns them to the responsible actor — System Designer for spec/design issues, Dev Engineer for code issues. CM does NOT solve findings directly. This applies to the CM's own pipeline work too (e.g., whoami-hookless-error R1: CM wrongly fixed spec UAT issues itself instead of routing to SD).

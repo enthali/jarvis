@@ -14,14 +14,16 @@ Reminders UAT Requirements
    **Acceptance Criteria:**
 
    * AC-1: The Extension Development Host SHALL be running with the Jarvis
-     extension loaded and a chat session named "TestTarget" open.
+     extension loaded, an Actor named "TestTarget" SHALL exist as a test
+     fixture, and its chat session SHALL be open.
    * AC-2: The tester SHALL be able to call LM tools (``jarvis_setReminder``,
      ``jarvis_listReminders``, ``jarvis_cancelReminder``) interactively from an
      agent chat window.
    * AC-3: The tester SHALL be able to inspect ``reminders.yaml`` in the
      extension storage folder to verify persistence state.
-   * AC-4: No additional test-data files beyond the running extension are
-     required; all reminders are created on-the-fly via LM tool calls.
+   * AC-4: No additional test-data files beyond the running extension and the
+     Actor fixture are required; all reminders are created on-the-fly via LM
+     tool calls.
 
 .. req:: Reminders Tool Correctness Requirements
    :id: REQ_UAT_REMINDERS_TOOLS
@@ -37,9 +39,10 @@ Reminders UAT Requirements
 
    * AC-1: ``jarvis_setReminder`` SHALL return a JSON object with ``id``
      (UUID string) and ``deliverAt`` (ISO-8601 string) for T-1.
-   * AC-2: ``jarvis_listReminders`` SHALL return an array where each element
-     has ``id``, ``text``, ``session``, ``deliverAt``, and a remaining-time
-     field; delivered reminders SHALL NOT appear (T-4).
+   * AC-2: ``jarvis_listReminders`` SHALL return a JSON object with a
+     ``reminders`` array whose entries have ``id``, ``text``, ``session``,
+     ``deliverAt``, and ``remainingMs``; delivered reminders SHALL NOT
+     appear (T-4).
    * AC-3: ``jarvis_cancelReminder`` SHALL remove the specified reminder and
      return a success indicator without error; calling it on a non-existent id
      SHALL NOT crash the extension (T-5).

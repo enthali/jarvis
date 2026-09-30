@@ -117,10 +117,10 @@ Developer Tooling Requirements
    **Acceptance Criteria:**
 
    * AC-1: ``package.json`` SHALL declare ``onStartupFinished`` plus ``onView:``
-     events for all four Jarvis views (``jarvisProjects``, ``jarvisEvents``,
-     ``jarvisMessages``, ``jarvisHeartbeat``) in the ``activationEvents`` array
+     events for the Jarvis views (``jarvisActors``, ``jarvisMessages``,
+     ``jarvisHeartbeat``) in the ``activationEvents`` array
    * AC-2: The ``activate()`` function SHALL initialize subsystems in dependency
-     order: LogOutputChannel → HeartbeatScheduler → YamlScanner →
+     order: LogOutputChannel → HeartbeatScheduler → Actor scanner →
      TreeDataProviders → MCP Server
    * AC-3: No subsystem SHALL depend on a component that is initialized later in
      the boot sequence

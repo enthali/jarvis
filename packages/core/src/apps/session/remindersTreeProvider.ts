@@ -15,7 +15,7 @@ export class RemindersTreeProvider implements vscode.TreeDataProvider<ReminderNo
     private _onDidChangeTreeData = new vscode.EventEmitter<ReminderNode | undefined>();
     readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
-    constructor() {}
+    constructor(private readonly resolveRemindersPath: () => string | undefined = getRemindersPath) {}
 
     reload(): void {
         this._onDidChangeTreeData.fire(undefined);
@@ -23,7 +23,7 @@ export class RemindersTreeProvider implements vscode.TreeDataProvider<ReminderNo
 
     getChildren(element?: ReminderNode): ReminderNode[] {
         if (element) { return []; }
-        const reminders = readReminders(getRemindersPath() ?? '');
+        const reminders = readReminders(this.resolveRemindersPath() ?? '');
         return reminders.map(r => ({ kind: 'reminder' as const, reminder: r }));
     }
 

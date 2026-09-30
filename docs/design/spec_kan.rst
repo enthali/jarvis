@@ -270,38 +270,35 @@ Kanban Design Specifications
 .. spec:: Convention-Based Board Discovery
    :id: SPEC_KAN_DISCOVER
    :status: draft
-   :links: REQ_KAN_DISCOVER; REQ_KAN_UX
+   :links: REQ_KAN_DISCOVER; REQ_KAN_UX; SPEC_ENG_ACTORLIST
 
    **Description:**
-   Board discovery scans entity folders for ``kanban.yaml`` and
-   ``*.kanban.yaml`` files. The results drive a tree-item decorator
-   (board button) and the command palette board picker.
+   Board discovery scans the folders of all Actors for ``kanban.yaml`` and
+   ``*.kanban.yaml`` files. The result drives the command palette pickers
+   and owner resolution for the tools.
 
    **Discovery mechanism:**
 
-   The kanban module registers a tree-item decorator via
-   ``api.registerDecorator`` (``SPEC_ENG_API``) for each entity kind
-   (``session``, ``project``, ``event``). The decorator:
+   .. code-block:: typescript
 
-   1. For each entity node, checks if the entity's ``folder`` contains
-      ``kanban.yaml`` or any ``*.kanban.yaml`` file (synchronous
-      ``fs.readdirSync`` with filename filter — entity folders are small).
-   2. If at least one board file exists, adds an inline action button
-      (``$(kanban)`` or ``$(list-unordered)`` icon) to the tree item's
-      ``contextValue``.
+      function discoverBoards(): { owner: string; folder: string; files: string[] }[] {
+          return api.listActors()
+              .map(a => ({ owner: a.name, folder: a.folder, files: scanActorFolder(a.folder) }))
+              .filter(b => b.files.length > 0);
+      }
 
-   **Board index:**
-
-   The module maintains an in-memory index
-   ``Map<string, { owner: string; folder: string; files: string[] }>``
-   populated on activation and refreshed when ``api.rescan()`` completes
-   (via the ``onDidChangeTreeData`` event on registered kinds).
+   ``scanActorFolder`` lists the folder once with ``fs.readdirSync`` and keeps
+   ``kanban.yaml`` and names ending in ``.kanban.yaml`` (Actor folders are
+   small). The index is computed on each query and never cached, so it follows
+   Actor rescans and board file creation or deletion without a subscription
+   (``REQ_KAN_DISCOVER`` AC-4). The kanban module registers no tree decorator
+   and does not mark Actor nodes.
 
    **Acceptance Criteria:**
 
-   * AC-1: Decorator button appears on nodes with board files.
-   * AC-2: Button disappears when all board files are deleted (after rescan).
-   * AC-3: The board index is queryable by the tools and command handler.
+   * AC-1: Only folders returned by ``api.listActors()`` are scanned.
+   * AC-2: A deleted board file disappears from the next query.
+   * AC-3: The index is queryable by the tools and command handlers.
 
 
 .. spec:: Kanban Board UX Entry Points
@@ -310,22 +307,9 @@ Kanban Design Specifications
    :links: REQ_KAN_UX; SPEC_KAN_DISCOVER; SPEC_KAN_RENDERER
 
    **Description:**
-   Two entry points for opening kanban boards: a tree inline button and a
-   command palette command.
-
-   **Tree inline button:**
-
-   Contributed via the kanban package's ``package.json``
-   ``contributes.menus`` keyed to the relevant tree view IDs
-   (``jarvisActors``, ``jarvisProjects``, ``jarvisEvents``).
-   ``when`` clause: ``viewItem =~ /kanban/`` (set by the decorator in
-   ``SPEC_KAN_DISCOVER``).
-
-   Handler (``jarvis.openKanbanBoard`` command):
-
-   * If the clicked node's folder contains exactly one board file → open it
-     in the renderer.
-   * If multiple board files → present a Quick Pick to select one → open.
+   Boards are opened from the Actor's "Files" category (``SPEC_KAN_FILEOPEN``)
+   or from the command palette. There is no inline board button on Actor
+   nodes.
 
    **Command palette — Open:**
 
@@ -340,7 +324,8 @@ Kanban Design Specifications
 
    ``Jarvis: Create Kanban Board`` (``jarvis.createKanbanBoard``):
 
-   1. Present a Quick Pick of all known entities (name + kind).
+   1. Present a Quick Pick of all Actors (``api.listActors()``, label = name,
+      description = summary).
    2. Show an InputBox prompting for a board name (empty → default
       ``kanban.yaml``; ``"sprint"`` → ``sprint.kanban.yaml``). Invalid
       characters (path separators, ``* ? " < > |``) are rejected inline.
@@ -351,24 +336,23 @@ Kanban Design Specifications
 
    **Acceptance Criteria:**
 
-   * AC-1: Tree button opens single board directly.
-   * AC-2: Tree button shows Quick Pick for multiple boards.
    * AC-3: Command palette lists all board owners.
    * AC-4: Command is contributed from the kanban package's ``package.json``.
    * AC-5: Create command prompts for board name; empty input yields ``kanban.yaml``.
    * AC-6: Create command rejects board names containing path separators or
      OS-reserved characters.
-   * AC-7: Right-click context menu on entity root node
-     (``viewItem =~ /^jarvis(Session|Project|Event)/``) shows
-     "Add Kanban Board" entry (``REQ_KAN_UX AC-6``). Handler: same flow as
+   * AC-7: Right-click context menu on Actor nodes
+     (``viewItem == jarvisActor``, group ``kanban@1``) shows
+     "Add Kanban Board" (``REQ_KAN_UX`` AC-6). Handler: same flow as
      Command Palette create (InputBox for board name → write skeleton), but
-     skips the owner Quick Pick — uses the right-clicked entity directly.
+     skips the owner Quick Pick — uses the right-clicked Actor directly; its
+     folder is resolved through ``api.listActors()`` by the node's ``id``.
 
 
 .. spec:: jarvis_createKanbanBoard Tool
    :id: SPEC_KAN_CREATE
    :status: draft
-   :links: REQ_KAN_CREATE; SPEC_ACT_WHOAMI; SPEC_KAN_SCHEMA
+   :links: REQ_KAN_CREATE; SPEC_ACTOR_WHOAMI; SPEC_KAN_SCHEMA; SPEC_ENG_ACTORLIST; SPEC_ACTOR_SCANNER
 
    **Description:**
    Register ``jarvis_createKanbanBoard`` via ``engine.registerTool()`` in the
@@ -385,9 +369,12 @@ Kanban Design Specifications
 
    **Algorithm:**
 
-   1. **Resolve owner:** if ``ownerName`` provided, look up in
-      ``api.listJarvisSessions()`` by name. If not found → return
-      ``{ error: "actor unknown" }``. If omitted, invoke
+   1. **Resolve owner:** if ``ownerName`` provided, filter
+      ``api.listActors()`` by exact ``name``. Unless exactly one Actor
+      matches → return ``{ error: "actor unknown" }``; a name carried by
+      several Actors is unresolved, never the first match
+      (``REQ_ACTOR_SCHEMA`` AC-7, the rule of ``SPEC_ACTOR_SCANNER``
+      ``resolveName``). If omitted, invoke
       ``jarvis_whoAmI`` via ``api.invokeTool('jarvis_whoAmI', ...)`` to
       get the calling actor's name and folder.
    2. **Resolve filename:** Normalize ``boardName`` before constructing the
@@ -441,7 +428,7 @@ Kanban Design Specifications
 .. spec:: jarvis_verifyKanbanSchema Tool
    :id: SPEC_KAN_VERIFY
    :status: draft
-   :links: REQ_KAN_VERIFY; REQ_KAN_TEXTFIELD; SPEC_ACT_WHOAMI; SPEC_KAN_SCHEMA
+   :links: REQ_KAN_VERIFY; REQ_KAN_TEXTFIELD; SPEC_ACTOR_WHOAMI; SPEC_KAN_SCHEMA
 
    **Description:**
    Register ``jarvis_verifyKanbanSchema`` via ``engine.registerTool()`` in the
@@ -511,7 +498,7 @@ Kanban Design Specifications
 .. spec:: jarvis_openKanbanBoard Tool
    :id: SPEC_KAN_OPEN
    :status: draft
-   :links: REQ_KAN_OPEN; SPEC_ACT_WHOAMI; SPEC_KAN_RENDERER
+   :links: REQ_KAN_OPEN; SPEC_ACTOR_WHOAMI; SPEC_KAN_RENDERER
 
    **Description:**
    Register ``jarvis_openKanbanBoard`` via ``engine.registerTool()`` in the
@@ -545,7 +532,7 @@ Kanban Design Specifications
 .. spec:: jarvis_updateKanbanItem Tool
    :id: SPEC_KAN_UPDATE
    :status: draft
-   :links: REQ_KAN_UPDATE; REQ_KAN_WRITEVALID; SPEC_KAN_WRITEVALID; SPEC_ACT_WHOAMI; SPEC_KAN_SCHEMA
+   :links: REQ_KAN_UPDATE; REQ_KAN_WRITEVALID; SPEC_KAN_WRITEVALID; SPEC_ACTOR_WHOAMI; SPEC_KAN_SCHEMA
 
    **Description:**
    Register ``jarvis_updateKanbanItem`` via ``engine.registerTool()`` in the
@@ -750,8 +737,8 @@ Kanban Design Specifications
 
       .. note::
          Files tree context menu "Open as Text" is deferred to a separate CR;
-         it requires a core engine extension to set per-file contextValues
-         on entityFile tree nodes (``treeFactory``).
+         it requires per-file contextValues on ``actorFile`` tree nodes
+         (``SPEC_ACTOR_FILES``).
 
    **Acceptance Criteria:**
 
@@ -808,11 +795,11 @@ Kanban Design Specifications
       (``node build.js && node webview-build.js``), ``package``,
       ``vscode:prepublish``. Contributes: ``commands``
       (``jarvis.openKanbanBoard``, ``jarvis.createKanbanBoard``),
-      ``menus`` (tree inline buttons, ``view/item/context`` for Files node),
+      ``menus`` ("Add Kanban Board" on ``jarvisActor``, ``view/item/context`` for Files node),
       ``yamlValidation``
       (``kanban.yaml`` and ``*.kanban.yaml`` →
       ``./schemas/kanban.schema.json`` — package-relative path, same
-      pattern as core's ``session.schema.json``),
+      pattern as core's ``actor.schema.json``),
       ``languageModelTools`` (four tools: ``jarvis_createKanbanBoard``,
       ``jarvis_verifyKanbanSchema``, ``jarvis_openKanbanBoard``,
       ``jarvis_updateKanbanItem``; extended by the ``kanban-management-tools``
@@ -947,7 +934,7 @@ Kanban Design Specifications
 .. spec:: jarvis_addKanbanItem Tool
    :id: SPEC_KAN_ADD
    :status: approved
-   :links: REQ_KAN_ADD; SPEC_KAN_WRITEVALID; SPEC_KAN_UPDATE; SPEC_ACT_WHOAMI
+   :links: REQ_KAN_ADD; SPEC_KAN_WRITEVALID; SPEC_KAN_UPDATE; SPEC_ACTOR_WHOAMI
 
    **Description:**
    Register ``jarvis_addKanbanItem`` via ``api.registerTool()`` in the kanban
@@ -1006,7 +993,7 @@ Kanban Design Specifications
 .. spec:: jarvis_deleteKanbanItem Tool
    :id: SPEC_KAN_DELETE
    :status: approved
-   :links: REQ_KAN_DELETE; SPEC_KAN_UPDATE; SPEC_ACT_WHOAMI
+   :links: REQ_KAN_DELETE; SPEC_KAN_UPDATE; SPEC_ACTOR_WHOAMI
 
    **Description:**
    Register ``jarvis_deleteKanbanItem`` via ``api.registerTool()``, using the
@@ -1052,7 +1039,7 @@ Kanban Design Specifications
 .. spec:: jarvis_listKanbanItems Tool
    :id: SPEC_KAN_LIST
    :status: approved
-   :links: REQ_KAN_LIST; SPEC_ACT_WHOAMI
+   :links: REQ_KAN_LIST; SPEC_ACTOR_WHOAMI
 
    **Description:**
    Register ``jarvis_listKanbanItems`` via ``api.registerTool()``. Read-only:
@@ -1109,7 +1096,7 @@ Kanban Design Specifications
 .. spec:: jarvis_updateKanbanFields Tool
    :id: SPEC_KAN_FIELDS
    :status: approved
-   :links: REQ_KAN_FIELDS; SPEC_KAN_SCHEMA; SPEC_KAN_UPDATE; SPEC_ACT_WHOAMI
+   :links: REQ_KAN_FIELDS; SPEC_KAN_SCHEMA; SPEC_KAN_UPDATE; SPEC_ACTOR_WHOAMI
 
    **Description:**
    Register ``jarvis_updateKanbanFields`` via ``api.registerTool()``, using the
@@ -1226,7 +1213,7 @@ Kanban Design Specifications
       * - Tool
         - Purpose
       * - ``jarvis_createKanbanBoard``
-        - Create a new board for an entity
+        - Create a new board for an Actor
       * - ``jarvis_openKanbanBoard``
         - Open a board in the webview renderer
       * - ``jarvis_verifyKanbanSchema``
@@ -1259,9 +1246,9 @@ Kanban Design Specifications
 
    * Omit ``ownerName`` to address the calling actor's own board. The tool
      resolves the caller via ``jarvis_whoAmI`` itself.
-   * Supply ``ownerName`` only to address a *different* entity's board.
-   * A supplied name that matches no scanned entity returns
-     ``{ error: "actor unknown" }``.
+   * Supply ``ownerName`` only to address a *different* Actor's board.
+   * A supplied name that matches no discovered Actor, or more than one,
+     returns ``{ error: "actor unknown" }``.
 
    The skill SHALL NOT instruct the actor to call ``jarvis_whoAmI`` first and
    pass the result: that is a redundant round trip which converts a resolved

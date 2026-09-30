@@ -9,42 +9,21 @@ Engine Requirements
 
    **Description:**
    The core SHALL expose a versioned ``JarvisCoreApi`` from its ``activate()``
-   return value, providing an entity-kind registration hook and a tool-injection
-   hook through which add-ons plug into the engine.
+   return value, providing a tool-injection hook through which add-ons plug
+   into the engine. There is no entity-kind registration: the Actor is the
+   only entity kind and is discovered without registration
+   (``REQ_ACTOR_SCHEMA``).
 
    **Acceptance Criteria:**
 
    * AC-1: ``activate()`` returns an object implementing ``JarvisCoreApi`` with
-     ``version``, ``registerEntityKind``, and ``registerTool``.
-   * AC-2: ``registerEntityKind(config)`` accepts an ``EntityKindConfig``
-     (``kind``, ``viewId``, ``folderSettingKey``, ``label``) and returns a
-     ``Disposable`` that removes the kind's tree and tools.
-   * AC-3: The contract carries ``readonly version`` (initially ``1``) so add-ons
-     can guard against future incompatibilities.
-   * AC-4: The session kind is registered through ``registerEntityKind`` as the
-     core's own reference application — the engine has no kind-specific branches.
-
-
-.. req:: Central Scanner Driven by Registered Kinds
-   :id: REQ_ENG_SCANNER
-   :status: approved
-   :priority: required
-   :links: US_MOD_INSTALL
-
-   **Description:**
-   The core SHALL own a single generic scanner that discovers entities for every
-   registered kind. Each kind declares the setting that holds its scan folder
-   via ``EntityKindConfig.folderSettingKey``; the engine reads that setting and
-   scans. No add-on implements its own scanner.
-
-   **Acceptance Criteria:**
-
-   * AC-1: The scanner enumerates entities for all registered kinds using each
-     kind's ``folderSettingKey``.
-   * AC-2: Registering or disposing a kind adds or removes its folder from the
-     scan set at runtime.
-   * AC-3: The session kind scans its fixed ``.jarvis/sessions/`` path via the
-     same mechanism (no special-case code path).
+     ``version``, ``registerTool``, and ``listActors`` (``REQ_ENG_ACTORLIST``).
+   * AC-2: ``registerEntityKind`` and ``EntityKindConfig`` SHALL NOT exist on
+     the API surface.
+   * AC-3: The contract carries ``readonly version``. Removing
+     ``registerEntityKind`` and ``listJarvisSessions`` is a breaking change, so
+     ``version`` SHALL be ``2``; add-ons can guard against incompatibilities
+     with it.
 
 
 .. req:: Tool Namespace Convention
@@ -66,31 +45,8 @@ Engine Requirements
    * AC-2: ``registerTool`` throws for a name already registered (no silent
      overwrite).
    * AC-3: PIM tools use the ``jarvis_pim_`` infix; recorder tools use
-     ``jarvis_rec_``. Existing PIM tool names (e.g. ``jarvis_listProjects``) are
-     renamed accordingly (e.g. ``jarvis_pim_listProjects``).
+     ``jarvis_rec_``.
    * AC-4: Core tool names retain the ``jarvis_<verb>`` form without an infix.
-
-
-.. req:: Generic Tree-Provider Factory
-   :id: REQ_ENG_TREEFACTORY
-   :status: approved
-   :priority: required
-   :links: US_MOD_INSTALL
-
-   **Description:**
-   The core SHALL own a single generic ``TreeDataProvider`` factory driven by
-   registered kinds, replacing per-kind provider classes. Tree items render from
-   each kind's ``EntityKindConfig`` (label factory, contextValue derived from
-   kind). Add-ons may decorate items for their own kinds without modifying
-   engine code.
-
-   **Acceptance Criteria:**
-
-   * AC-1: The engine exposes one ``TreeDataProvider``; no per-kind provider
-     classes exist in the codebase.
-   * AC-2: ``contextValue`` is derived uniformly from the kind discriminator.
-   * AC-3: An add-on can contribute item decoration for its own kind via a
-     documented extension point without modifying engine code.
 
 
 .. req:: Tool Registry Exposure
@@ -111,35 +67,33 @@ Engine Requirements
      and description) via a single API call.
    * AC-2: A consumer extension can invoke any registered tool by name, receiving
      the same result type as a language-model invocation.
-   * AC-3: The surface is purely additive — it introduces no changes to existing
-     ``registerTool``, ``registerEntityKind``, or disposal semantics.
+   * AC-3: The surface is read-only — it introduces no changes to
+     ``registerTool`` or disposal semantics.
    * AC-4: If a tool is not registered, invocation throws a descriptive error.
 
 
-.. req:: Platform Session List API
-   :id: REQ_ENG_SESSIONLIST
-   :status: draft
-   :priority: optional
-   :links: US_MSG_JARVISSESSIONS
+.. req:: Platform Actor List API
+   :id: REQ_ENG_ACTORLIST
+   :status: approved
+   :priority: required
+   :links: US_ACTOR_LISTTOOL; REQ_ACTOR_LISTTOOL; REQ_ACTOR_SCHEMA
 
    **Description:**
-   The core SHALL expose a read-only ``JarvisCoreApi.listJarvisSessions()`` method
-   that returns every entity currently held by the central scanner, across all
-   registered kinds, as a flat ``JarvisSession[]``. This publishes the
-   already-existing cross-kind entity list (``scanner.entities``); it introduces
-   no new scanner, provider, or registry.
+   The core SHALL expose a read-only ``JarvisCoreApi.listActors()`` method so
+   add-on packages (e.g. ``kanban``, ``syspilot``) can enumerate Actors
+   without their own scan. It replaces ``listJarvisSessions()``.
 
    **Acceptance Criteria:**
 
-   * AC-1: A ``JarvisSession`` type is exposed on the public API surface with the
-     shape ``{ name: string; summary: string; agent: string; kind: string;
-     folder: string }``.
-   * AC-2: ``listJarvisSessions()`` returns one ``JarvisSession`` per scanned
-     entity across all registered kinds (``session``, ``project``, ``event``, and
-     any future kind), derived from the central scanner's current cache.
-   * AC-3: The method performs no filesystem scan of its own — it is a read-only
-     view of the scanner's existing state.
-   * AC-4: Missing optional fields (``summary``, ``agent``) are returned as empty
-     strings, matching the shape of ``jarvis_listActors`` /
-     ``jarvis_listProjects``.
-   * AC-5: The addition is purely additive — no existing API method changes.
+   * AC-1: A ``JarvisActor`` type is exposed on the public API surface with the
+     shape ``{ name: string; summary: string; agent: string; folder: string;
+     id: string }`` — the same entry shape as ``jarvis_listActors``
+     (``REQ_ACTOR_LISTTOOL`` AC-2).
+   * AC-2: ``listActors()`` returns one ``JarvisActor`` per Actor discovered per
+     ``REQ_ACTOR_TREE`` AC-2, from the current Actor scan.
+   * AC-3: The method performs no filesystem scan of its own — it is a
+     read-only view of the existing scan state.
+   * AC-4: Missing optional fields (``summary``, ``agent``) are returned as
+     empty strings.
+   * AC-5: ``listJarvisSessions()`` and the ``JarvisSession`` type SHALL be
+     removed; existing add-on callers SHALL use ``listActors()``.

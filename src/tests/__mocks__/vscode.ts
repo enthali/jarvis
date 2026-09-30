@@ -98,9 +98,10 @@ export const workspace = {
 
 export const window = {
     createTreeView: () => ({ dispose: () => {} }),
-    createOutputChannel: () => ({ dispose: () => {}, info: () => {}, warn: () => {} }),
+    createOutputChannel: () => ({ dispose: () => {}, info: () => {}, warn: () => {}, error: () => {} }),
     showInformationMessage: (..._args: unknown[]) => Promise.resolve(undefined),
     showWarningMessage: (..._args: unknown[]) => Promise.resolve(undefined),
+    showErrorMessage: (..._args: unknown[]) => Promise.resolve(undefined),
 };
 
 export class CancellationTokenSource {
@@ -116,6 +117,16 @@ export const commands = {
 
 export const lm = {
     registerTool: (_name: string, _impl: unknown) => ({ dispose: () => {} }),
+};
+
+export const extensions = {
+    getExtension: (_id: string) => undefined as { exports: unknown } | undefined,
+};
+
+export const ViewColumn = {
+    One: 1,
+    Two: 2,
+    Three: 3,
 };
 
 export class LanguageModelToolResult {

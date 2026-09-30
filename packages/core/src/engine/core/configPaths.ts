@@ -93,24 +93,20 @@ export function getLegacyAutoDeliveryPath(): string | undefined {
     return dir ? path.join(dir, 'autodelivery.json') : undefined;
 }
 
-/** Returns <workspaceRoot>/.jarvis/sessions, or undefined when no workspace is open. */
-export function getSessionsDir(): string | undefined {
-    const dir = getJarvisDir();
-    return dir ? path.join(dir, 'sessions') : undefined;
-}
-
-/** Ensures <workspaceRoot>/.jarvis/sessions exists (mkdir -p) and returns its path, or undefined. */
-export function ensureSessionsDir(): string | undefined {
-    const dir = getSessionsDir();
-    if (!dir) { return undefined; }
-    fs.mkdirSync(dir, { recursive: true });
-    return dir;
-}
-
-/** Returns <workspaceRoot>/.jarvis/actors, or undefined when no workspace is open. */
+/**
+ * Returns the configured Actors folder (`jarvis.actors.folder`, default
+ * `.jarvis/actors`), resolved against the workspace root — absolute or
+ * workspace-relative — or undefined when no workspace is open or the
+ * setting is blank (SPEC_CFG_PATHRESOLVER).
+ */
 export function getActorsDir(): string | undefined {
-    const dir = getJarvisDir();
-    return dir ? path.join(dir, 'actors') : undefined;
+    const root = getWorkspaceRoot();
+    if (!root) { return undefined; }
+    const configured = vscode.workspace.getConfiguration('jarvis')
+        .get<string>('actors.folder', '.jarvis/actors')
+        .trim();
+    if (!configured) { return undefined; }
+    return path.isAbsolute(configured) ? configured : path.resolve(root, configured);
 }
 
 /** Ensures <workspaceRoot>/.jarvis/actors exists (mkdir -p) and returns its path, or undefined. */
@@ -155,7 +151,7 @@ export const WORKSPACE_PATHS: ReadonlyArray<{ rel: string; durability: Durabilit
     { rel: 'jarvis-*',                   durability: 'transient' },
     { rel: '!packages/*/assets/**',      durability: 'transient' },
     { rel: '.jarvis/actors/',            durability: 'durable' },
-    { rel: '.jarvis/sessions/',          durability: 'durable' },
+
 ];
 
 /** The entries of the managed .gitignore region, in declaration order.

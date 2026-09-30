@@ -921,12 +921,12 @@ Automation Design Specifications
    the shared ``getValidDestinations(scanner)`` function from
    ``sessionLookup.ts``.
 
-   **(heartbeat-destination-actoryaml CR amendment):** The scanner parameter
-   MUST be the ``KindDrivenScanner`` instance — not ``undefined``.
-   ``activateHeartbeat()`` receives it from ``extension.ts`` at activation time,
-   the same instance used by ``jarvis_sendMessage`` and other destination
-   validators. Passing ``undefined`` silently degrades the valid set to
-   {chat tab titles only}, which breaks autonomous delivery to YAML entities.
+   The scanner parameter MUST be the ``ActorScanner`` instance
+   (``SPEC_ACTOR_SCANNER``) — not ``undefined``. ``activateHeartbeat()``
+   receives it from ``extension.ts`` at activation time, the same instance used
+   by ``jarvis_sendMessage`` and other destination validators. Passing
+   ``undefined`` would leave the valid set empty and reject every
+   destination.
 
    **Validation helper (in ``heartbeat.ts``):**
 
@@ -935,9 +935,9 @@ Automation Design Specifications
       async function validateLoadedJobs(
         jobs: HeartbeatJob[],
         outputChannel: vscode.LogOutputChannel,
-        scanner?: { entities: { name: string }[] }
+        actors?: { actors: { name: string }[] }
       ): Promise<void> {
-        const validNames = await getValidDestinations(scanner);
+        const validNames = await getValidDestinations(actors);
         for (const job of jobs) {
           job.steps.forEach((step, idx) => {
             if (step.type === 'queue' && step.destination) {
@@ -972,33 +972,33 @@ Automation Design Specifications
 
       import { getValidDestinations } from './sessionLookup';
 
-   **``extension.ts`` wiring (heartbeat-destination-actoryaml CR):**
+   **``extension.ts`` wiring:**
 
    .. code-block:: typescript
 
-      // The KindDrivenScanner instance MUST be passed — not undefined:
-      scheduler = activateHeartbeat(context, messageProvider, resolveMessagesPath, log, kindDrivenScanner);
+      // The ActorScanner instance MUST be passed — not undefined:
+      scheduler = activateHeartbeat(context, messageProvider, resolveMessagesPath, log, actorScanner);
 
    **No side effects on job list:** ``validateLoadedJobs`` only emits warnings;
    it does not mutate, filter, or pause any job object.
 
    **Acceptance Criteria:**
 
-   * AC-1: ``activateHeartbeat()`` SHALL receive the ``KindDrivenScanner``
+   * AC-1: ``activateHeartbeat()`` SHALL receive the ``ActorScanner``
      instance from ``extension.ts`` — same instance used by
      ``jarvis_sendMessage`` and other destination validators.
    * AC-2: All heartbeat destination validation paths (load-time, fire-time,
-     ``jarvis_registerJob``) SHALL call ``getValidDestinations(scanner)`` with
-     the ``KindDrivenScanner`` instance — never ``undefined``.
-   * AC-3: The valid destination set resolves actor-model entities
-     (``.jarvis/actors/*/actor.yaml``) via the dual-path scanner
-     (``SPEC_ACT_DUALPATH_SCANNER``) — destinations naming actors are valid
-     even when no matching chat tab is open.
+     ``jarvis_registerJob``) SHALL call ``getValidDestinations(actorScanner)``
+     — never with ``undefined``.
+   * AC-3: The valid destination set contains the name of every Actor in
+     ``actorScanner.actors`` that resolves uniquely — destinations naming
+     Actors are valid even when no matching chat tab is open; a name carried
+     by several Actors is invalid (``REQ_ACTOR_SCHEMA`` AC-7).
 
 
 .. spec:: Queue Step Fire-Time Skip Behavior (D-1)
    :id: SPEC_AUT_HEARTBEAT_INVALID_STEP_BEHAVIOR
-   :status: implemented
+   :status: approved
    :links: REQ_AUT_HEARTBEAT_INVALID_STEP_BEHAVIOR; SPEC_AUT_QUEUEEXEC; SPEC_AUT_HEARTBEAT_RESOLVER_REUSE
 
    **Description:**
@@ -1020,7 +1020,7 @@ Automation Design Specifications
    possible user feedback; the fire-time skip is a defensive safety net
    consistent with the fail-soft character of the existing heartbeat executor.
    This also parallels how ``validate-session-destination`` behaves for the
-   interactive ``jarvis_sendToSession`` tool — validation is surfaced early and
+   interactive ``jarvis_sendMessage`` tool — validation is surfaced early and
    loudly, but the background automation path favours continuity over hard abort.
 
    **Updated ``executeQueueStep`` (replaces current implementation in
@@ -1032,11 +1032,11 @@ Automation Design Specifications
         step: HeartbeatStep,
         outputChannel: vscode.LogOutputChannel,
         queuePath: string,
-        messageTreeProvider: MessageTreeProvider
+        messageTreeProvider: MessageTreeProvider,
+        actors: ActorScanner
       ): Promise<ExecResult> {
         // Fire-time destination re-validation (REQ_AUT_HEARTBEAT_INVALID_STEP_BEHAVIOR)
-        const allSessions = await getAllSessions();
-        const validNames = filterNamedSessions(allSessions).map(s => s.title);
+        const validNames = await getValidDestinations(actors);
         if (step.destination && !validNames.includes(step.destination)) {
           outputChannel.warn(
             `[Heartbeat] queue step skipped — invalid destination: "${step.destination}"`
@@ -1063,7 +1063,7 @@ Automation Design Specifications
 
 .. spec:: ``jarvis_registerJob`` Destination Validation
    :id: SPEC_AUT_REGISTERJOB_VALIDATION
-   :status: implemented
+   :status: approved
    :links: REQ_AUT_REGISTERJOB_VALIDATION; REQ_MSG_DEST_ERROR; SPEC_AUT_JOBREG; SPEC_AUT_HEARTBEAT_RESOLVER_REUSE; SPEC_MSG_SENDTOSESSION
 
    **Description:**
@@ -1079,8 +1079,7 @@ Automation Design Specifications
       async function validateJobDestinations(
         steps: HeartbeatStep[]
       ): Promise<void> {
-        const allSessions = await getAllSessions();
-        const validNames = filterNamedSessions(allSessions).map(s => s.title);
+        const validNames = await getValidDestinations(actorScanner);
         for (const step of steps) {
           if (step.type === 'queue' && step.destination) {
             if (!validNames.includes(step.destination)) {
@@ -1118,9 +1117,8 @@ Automation Design Specifications
    **No persistence on error:** ``scheduler!.registerJob()`` is only reached
    after ``validateJobDestinations`` resolves without throwing.
 
-   **Imports (already present in ``extension.ts`` via SPEC_MSG_SENDTOSESSION):**
-   ``getAllSessions`` and ``filterNamedSessions`` are already imported; no new
-   import line is required.
+   **Imports:** ``getValidDestinations`` from ``./sessionLookup``;
+   ``getAllSessions`` and ``filterNamedSessions`` are no longer used here.
 
 
 .. spec:: Shared Resolver Reuse for Heartbeat Validation
@@ -1146,9 +1144,9 @@ Automation Design Specifications
    ``filterNamedSessions`` usage in the sendToSession handler.
 
    **Valid destination set definition:**
-   The union of {named VS Code chat session titles from ``state.vscdb``} ∪
-   {YAML entity names from the scanner store (sessions, projects, events)},
-   as computed by ``getValidDestinations(scanner)``.
+   The names of ``actorScanner.actors`` that resolve uniquely, as returned
+   by ``getValidDestinations(actorScanner)`` (``SPEC_ACTOR_SCANNER``). The
+   resolver no longer reads chat session titles from ``state.vscdb``.
 
    **Consistency guarantee:** any future change to the resolver propagates
    automatically to all validation sites (``sendToSession``, heartbeat load,

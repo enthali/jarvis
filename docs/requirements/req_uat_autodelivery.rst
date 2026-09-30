@@ -14,7 +14,7 @@ Auto Delivery UAT Requirements
    **Acceptance Criteria:**
 
    * AC-1: A heartbeat job or equivalent mechanism SHALL be available to queue
-     a test message for a known session name (e.g. "TestTarget") on demand,
+     a test message for a known Actor name (e.g. "TestTarget") on demand,
      so that T-7 and T-8 can be executed without manual JSON editing
    * AC-2: Expected outcomes for each test scenario (T-1 through T-9 from
      ``US_UAT_MSG_AUTODELIVERY``) SHALL be documented in the test protocol

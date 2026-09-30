@@ -8,25 +8,30 @@ Prompt Injection Requirements
    :links: US_INJ_INJECT
 
    **Description:**
-   The extension SHALL provide a function ``injectPrompt(entityName, text)``
-   that resolves a named entity, locates or spawns its chat session, and injects
+   The extension SHALL provide a function ``injectPrompt(actorName, text)``
+   that resolves a named Actor, locates or spawns its chat session, and injects
    arbitrary text into the chat input.
 
    **Acceptance Criteria:**
 
-   * AC-1: ``injectPrompt`` SHALL accept an entity name (string) and a text
+   * AC-1: ``injectPrompt`` SHALL accept an Actor name (string) and a text
      payload (string) and return a promise that resolves when injection is
      complete.
-   * AC-2: The function SHALL resolve the entity name against the scanner entity
-     store (actors, projects, events). If no entity matches, it SHALL reject with
-     a user-visible error message.
-   * AC-3: If a live session exists for the entity (UUID found via
+   * AC-2: The function SHALL resolve the name against the discovered Actors
+     (``REQ_ACTOR_SCHEMA`` AC-7). If no Actor matches, it SHALL reject with a
+     user-visible error message. If more than one Actor matches, it SHALL
+     reject with a user-visible error naming the ambiguous name and the
+     matching Actor folders, and SHALL NOT select among them — the same
+     no-guess rule as ``REQ_ACTOR_WHOAMI`` AC-8.
+   * AC-3: If a live session exists for the Actor (UUID found via
      ``REQ_MSG_SESSIONLOOKUP``), the function SHALL focus it using the
      Editor-Group Placement Model (``REQ_MSG_EDITORPLACEMENT``).
    * AC-4: If no live session exists, the function SHALL spawn a new session:
-     prime agent mode if ``entity.agent`` is set (``REQ_ENT_AGENTPROMPT_TEMPLATE``
+     prime agent mode if the Actor's ``agent`` is set (``REQ_ACTOR_INITPROMPT``
      AC-6), open a new chat editor (``REQ_MSG_OPENCHAT``), rename it to the
-     entity name, and send the init prompt (``REQ_ENT_AGENTPROMPT_TEMPLATE``).
+     Actor name, and send the init prompt (``REQ_ACTOR_INITPROMPT``). This
+     branch is the only place that sends the init prompt
+     (``REQ_ACTOR_INITPROMPT`` AC-5).
    * AC-5: After the session is focused or spawned, the function SHALL inject
      ``text`` via ``REQ_MSG_SENDPROMPT`` — subject to AC-7.
    * AC-6: The function SHALL be the single call site for session-targeted text
@@ -46,12 +51,12 @@ Prompt Injection Requirements
      text SHALL NOT change the mode, in particular SHALL NOT undo a custom mode
      restored under AC-3 (``REQ_MSG_SENDPROMPT`` AC-6).
    * AC-9: (**GH #56**) A submission skipped under AC-7 SHALL be recorded in
-     the extension log, naming the target entity, so that a caller which passed
+     the extension log, naming the target Actor, so that a caller which passed
      an empty payload unintentionally is diagnosable from the log alone. The
      primitive SHALL NOT leave a skipped submission indistinguishable from a
      completed one. The log entry SHALL NOT be a warning or an error: the
-     open/focus-only path is ordinary operation (``REQ_ENT_AGENTSESSION``,
-     ``REQ_ACT_NEWENTITY``), and a warning that fires during normal use trains
+     open/focus-only path is ordinary operation (``REQ_ACTOR_OPENSESSION``
+     AC-2, ``REQ_ACTOR_CREATE`` AC-9), and a warning that fires during normal use trains
      readers to ignore it — reproducing the very defect this CR fixes.
 
 
@@ -70,12 +75,12 @@ Prompt Injection Requirements
    * AC-1: A tool named ``jarvis_injectPrompt`` SHALL be registered as a
      ``vscode.lm.registerTool`` call.
    * AC-2: The tool SHALL accept two required parameters: ``actor`` (string —
-     entity name) and ``text`` (string — the text to inject).
+     Actor name) and ``text`` (string — the text to inject).
    * AC-3: The tool SHALL delegate to ``injectPrompt(actor, text)``
      (``REQ_INJ_PRIMITIVE``).
    * AC-4: On success the tool SHALL return a confirmation message including the
-     entity name and a truncated preview of the injected text.
-   * AC-5: On failure (entity not found, injection error) the tool SHALL return
+     Actor name and a truncated preview of the injected text.
+   * AC-5: On failure (Actor not found, injection error) the tool SHALL return
      an error message — not throw.
 
 
@@ -94,10 +99,10 @@ Prompt Injection Requirements
    * AC-1: A command ``jarvis.injectPrompt`` SHALL be registered and visible in
      the Command Palette with label "Jarvis: Inject Prompt".
    * AC-2: When invoked, the command SHALL present a quick-pick list of all
-     registered entities (actors, projects, events) for entity selection.
-   * AC-3: After entity selection, the command SHALL present an input box for the
+     discovered Actors for selection.
+   * AC-3: After Actor selection, the command SHALL present an input box for the
      text to inject.
-   * AC-4: The command SHALL delegate to ``injectPrompt(entityName, text)``
+   * AC-4: The command SHALL delegate to ``injectPrompt(actorName, text)``
      (``REQ_INJ_PRIMITIVE``).
    * AC-5: On failure the command SHALL show a warning notification with the
      error message.

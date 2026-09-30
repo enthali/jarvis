@@ -56,7 +56,7 @@ async function fetchText(url: string, log: vscode.LogOutputChannel): Promise<Fet
 }
 
 async function ensureActor(api: JarvisCoreApi, log: vscode.LogOutputChannel): Promise<void> {
-    const exists = api.listJarvisSessions().some(s => s.name === ACTOR_NAME);
+    const exists = api.listActors().some(a => a.name === ACTOR_NAME);
     if (exists) { return; }
     const options = {
         input: { name: ACTOR_NAME, summary: ACTOR_SUMMARY, agent: 'syspilot.setup' }

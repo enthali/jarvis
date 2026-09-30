@@ -4,7 +4,7 @@ Message Logging UAT Design Specifications
 .. spec:: Message Logging Test Data and Expected Outcomes
    :id: SPEC_UAT_MSG_LOGGING_FILES
    :status: draft
-   :links: REQ_UAT_MSG_LOGGING_TESTDATA; REQ_UAT_MSG_LOGGING_OUTCOMES; SPEC_MSG_AUDITLOG; SPEC_MSG_LOGSETTING
+   :links: REQ_UAT_MSG_LOGGING_TESTDATA; REQ_UAT_MSG_LOGGING_OUTCOMES; SPEC_MSG_AUDITLOG; SPEC_MSG_LOGSETTING; SPEC_UAT_MSG_FILES
 
    **Description:**
    All test scenarios use the Extension Development Host with the existing
@@ -16,8 +16,9 @@ Message Logging UAT Design Specifications
 
    * Uses the configured messages folder (``jarvis.messages.folder`` pointing to
      ``testdata/msg/`` or equivalent)
-   * Uses the ``jarvis_sendToSession`` LM tool via a Copilot chat session to
-     enqueue messages
+   * Uses the ``jarvis_sendMessage`` LM tool via a Copilot chat session to
+     enqueue messages (``session: "TestTarget"``, ``senderSession:
+     "TestSender"``; Actor fixtures, ``SPEC_UAT_MSG_FILES``)
    * ``message-log.json`` is created at runtime by the extension when logging is
      enabled — the tester deletes it between scenarios
 

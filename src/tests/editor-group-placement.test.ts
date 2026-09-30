@@ -52,15 +52,15 @@ describe('SPEC_MSG_EDITORPLACEMENT: placement helpers', () => {
         expect(extensionSrc).toContain('const DOCS_COLUMN = vscode.ViewColumn.Two;');
     });
 
-    it('jarvis.openAgentSession delegates to injectPrompt with placement main', () => {
-        const idx = extensionSrc.indexOf("'jarvis.openAgentSession'");
+    it('jarvis.openActorSession delegates to injectPrompt with placement main', () => {
+        const idx = extensionSrc.indexOf("'jarvis.openActorSession'");
         expect(idx).toBeGreaterThan(-1);
         const handlerSlice = extensionSrc.slice(idx, idx + 2000);
         expect(handlerSlice).toContain("await injectPrompt(entity.name, '', { placement: 'main' }");
     });
 
-    it('jarvis.openEntityFile calls openAtDocs with preview (non-.md branch)', () => {
-        const idx = extensionSrc.indexOf("'jarvis.openEntityFile'");
+    it('jarvis.openActorFile calls openAtDocs with preview (non-.md branch)', () => {
+        const idx = extensionSrc.indexOf("'jarvis.openActorFile'");
         expect(idx).toBeGreaterThan(-1);
         const handlerSlice = extensionSrc.slice(idx, idx + 1700);
         expect(handlerSlice).toContain('await openAtDocs(uri, { preview: true });');

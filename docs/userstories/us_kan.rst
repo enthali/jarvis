@@ -32,33 +32,32 @@ Kanban User Stories
 
 .. story:: Convention-Based Board Discovery
    :id: US_KAN_DISCOVER
-   :status: draft
+   :status: approved
    :priority: required
 
    **As a** Jarvis user,
    **I want** kanban boards to be discovered automatically by placing a YAML
-   file in an actor's or entity's folder,
+   file in an Actor's folder,
    **so that** I do not need to configure paths — the file's location determines
    ownership.
 
    **Acceptance Criteria:**
 
-   * AC-1: A file named ``kanban.yaml`` in an actor's or entity's folder makes
-     that node own a default board.
+   * AC-1: A file named ``kanban.yaml`` in an Actor's folder makes that Actor
+     own a default board.
    * AC-2: A file named ``<name>.kanban.yaml`` in the same folder creates a
      named board.
-   * AC-3: A tree button appears on the owning actor/entity node when at least
-     one board file exists in its folder.
-   * AC-4: Deleting the board file removes the tree button (no stale UI).
-   * AC-5: Clicking a kanban YAML file in the Files tree opens the board
-     webview, not the text editor.
+   * AC-5: Clicking a kanban YAML file in the Actor's Files category
+     (``US_ACTOR_FILES_TREE``) opens the board webview, not the text editor.
+   * AC-6: Right-clicking an Actor node offers "Add Kanban Board", which
+     creates a board in that Actor's folder.
 
 
 .. story:: Kanban Board Tools
    :id: US_KAN_TOOLS
    :status: draft
    :priority: required
-   :links: US_ACT_WHOAMI
+   :links: US_ACTOR_WHOAMI
 
    **As an** LLM operating within a Jarvis actor session,
    **I want** tools to create, validate, and open kanban boards,
@@ -74,7 +73,7 @@ Kanban User Stories
      field/line context) so the actor can fix issues iteratively.
    * AC-3: ``jarvis_openKanbanBoard`` opens the board in the webview renderer.
    * AC-4: All three tools resolve the calling actor via ``jarvis_whoAmI``
-     (``US_ACT_WHOAMI``) when no owner is specified.
+     (``US_ACTOR_WHOAMI``) when no owner is specified.
    * AC-5: An unresolvable owner returns ``{ error: "actor unknown" }``.
    * AC-6: ``jarvis_updateKanbanItem`` updates an existing item by its stable
      integer ID so that changes can be applied without touching the full

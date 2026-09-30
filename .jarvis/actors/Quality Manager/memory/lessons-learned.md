@@ -7,3 +7,5 @@
 - After any fix touching spec+code+UAT text together, re-verify the FULL REQ→SPEC→UAT chain, not just the named symptom — a location/label fix can introduce a new inverted mismatch (CR#46 R7→R8).
 - Illustrative "reference implementation" code samples in specs must be reconciled once dev picks an actual implementation shape — don't leave them mislabeled "unchanged" (CR#54 R1).
 - Spec-vs-code conflict ≠ automatic "code is wrong" — escalate to PM/user for a ruling rather than QM+CM resolving it alone; CM has no content authority (CR#46 R4/R5).
+- Never trust a CD/VE claim about which modules a change touches or leaves unverified — run `git diff --stat <baseline>...<branch> -- <path>` yourself; the User caught VE/CD text bundling an untouched module (MCP transport) into this change's open evidence (one-kind-consolidation R6, Finding 11).
+- Don't imply a PM disposition ("routed to backlog #N") for a finding PM hasn't actually recorded in the Dispositions table — state it as QM's own recommendation and mark the finding PENDING until PM's table says otherwise (one-kind-consolidation R6, Findings 11/12).

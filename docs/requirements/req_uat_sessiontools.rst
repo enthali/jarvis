@@ -39,24 +39,3 @@ Session Tools UAT Requirements
      ``US_UAT_LISTSESSIONS``) SHALL be documented in the test protocol
    * AC-3: Test instructions SHALL specify that the tester verifies tool
      availability via the ``#`` tool picker in the Chat panel
-
-
-.. req:: Open Agent Session Test Data
-   :id: REQ_UAT_AGENTSESSION_TESTDATA
-   :status: approved
-   :priority: optional
-   :links: US_UAT_AGENTSESSION; REQ_ENT_AGENTSESSION
-
-   **Description:**
-   The repo SHALL contain test data and documented expected outcomes for manual
-   verification of the Open Agent Session explorer action.
-
-   **Acceptance Criteria:**
-
-   * AC-1: Uses existing ``testdata/projects/`` and ``testdata/events/`` files
-     (e.g. ``project-alpha.yaml``, ``event-conference.yaml``) — no new test
-     data files required
-   * AC-2: Expected outcomes for each test scenario (T-1 through T-5 from
-     ``US_UAT_AGENTSESSION``) SHALL be documented in the test protocol
-   * AC-3: Test instructions SHALL specify that ``jarvis.projectsFolder`` and
-     ``jarvis.eventsFolder`` are pointed at the ``testdata/`` directories

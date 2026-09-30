@@ -4,7 +4,7 @@ Reminders UAT Design Specifications
 .. spec:: Reminders Test Scenarios and Expected Outcomes
    :id: SPEC_UAT_REMINDERS_SCENARIOS
    :status: approved
-   :links: REQ_UAT_REMINDERS_TESTENV; REQ_UAT_REMINDERS_TOOLS; REQ_UAT_REMINDERS_DELIVER; REQ_UAT_REMINDERS_VIEW; REQ_UAT_REMINDERS_OPENFILE
+   :links: REQ_UAT_REMINDERS_TESTENV; REQ_UAT_REMINDERS_TOOLS; REQ_UAT_REMINDERS_DELIVER; REQ_UAT_REMINDERS_VIEW; REQ_UAT_REMINDERS_OPENFILE; SPEC_UAT_MSG_FILES
 
    **Description:**
    Step-by-step procedures and expected outcomes for all eight Reminders
@@ -15,8 +15,8 @@ Reminders UAT Design Specifications
 
    * Extension Development Host running with Jarvis extension loaded.
    * An agent chat session is open (e.g. "project-manager" or any session).
-   * A chat session named "TestTarget" is open (create via
-     **Jarvis: New Chat Session** if needed).
+   * The ``TestTarget`` Actor fixture exists (``SPEC_UAT_MSG_FILES``) and its
+     chat is open (click the ``TestTarget`` node in the ACTORS view).
    * ``reminders.yaml`` starts absent or empty — delete from the extension
      storage folder before the first full run to ensure a clean state.
    * Note the current UTC time to calculate ``deliverAt`` values.
@@ -53,10 +53,10 @@ Reminders UAT Design Specifications
       * - T-4 (listReminders fields)
         - Register a new reminder with ``deliverAt`` 5 min in the future.
           Call ``jarvis_listReminders()`` in the agent chat.
-        - Response is a JSON array. The pending reminder entry has all of:
-          ``id``, ``text``, ``session``, ``deliverAt``, and a remaining-
-          time field ``remainingMs``. No previously delivered
-          reminder (from T-2) appears in the list.
+        - Response is a JSON object with a ``reminders`` array. The pending
+          reminder entry in that array has ``id``, ``text``, ``session``,
+          ``deliverAt``, and ``remainingMs``. No previously delivered
+          reminder (from T-2) appears in the array.
       * - T-5 (cancel before delivery)
         - Register a reminder with ``deliverAt`` 3 min in the future; note
           its ``id``. Call

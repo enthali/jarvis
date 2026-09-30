@@ -40,13 +40,8 @@ jobs:
     schedule: manual
     steps:
       - type: queue
-        destination: Test Session
+        destination: TestTarget
         text: Hello from heartbeat queue step
-  - name: 'Jarvis: Rescan'
-    schedule: '*/1 * * * *'
-    steps:
-      - type: command
-        run: jarvis.rescan
   - name: 'Jarvis: Category Refresh'
     schedule: '*/1 * * * *'
     steps:

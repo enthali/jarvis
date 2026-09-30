@@ -3,6 +3,7 @@
 ## Working Principles
 
 - **Merge gate = user validation only (2026-08-05)**: PM merges into development ONLY after the user explicitly confirms "OK to merge" following their own manual test. QM CLEAR is a necessary prerequisite but not the trigger — the user validates behavior, QM verifies artefacts. Never merge on QM CLEAR alone.
+- **EDH F5 (debug) can hang on the Node inspector handshake, unrelated to our code (2026-09-27)**: "Extension host did not start in 10 seconds... needs a debugger" plus "no data provider registered" survived a full reboot and profile isolation — ruled out our code (a plain, non-debug launch of `core` alone activated cleanly, tree visible) and ruled out the profile. Root cause: the F5 debug-attach handshake itself. Fix: use **Ctrl+F5 ("Run Without Debugging")** instead of F5 when just running/validating, not debugging. Separately (still worth keeping, but NOT the cause of this hang): the installed Marketplace `enthali.jarvis-core` can collide with the `--extensionDevelopmentPath` dev instance of the same extension ID — most `extensionHost` configs in `.vscode/launch.json` pass `--user-data-dir=${workspaceFolder}/jarvis-edh-profile` (auto-gitignored via `jarvis-*`) as a general hygiene measure; removed from "Run All" during this troubleshooting, re-add if desired.
 - **Public repo — nothing goes out without user approval (2026-07-08)**:
   the jarvis repo is public. Anything posted externally (GitHub issue
   creation, comments, closing issues, PRs, releases) requires explicit
@@ -102,19 +103,56 @@
 
 ## Active CR
 
-- **whoami-hookless-error** — in pipeline (branch `feature/whoami-hookless-error`).
-  Fix to make the `jarvis_whoAmI` error message honest when hooks are disabled.
-  QM Round 1 = CHANGES REQUIRED (2 findings, both PM-decided fix-now, commit `ca2536a`):
-  (1) CD wrongly claimed a US_ACT_WHOAMI AC-2 edit that never happened — correct wording;
-  (2) `SPEC_UAT_ACT_WHOAMI` T-3 still expects the retired error literal — update to new AC-3
-  text. CM fixed both + a 2nd retired-literal instance in `SPEC_UAT_ACT_WHOAMI_MULTIKINDS`
-  T-3 (commit `37b8803`, 406/406). Awaiting QM Round 2 (queued 2026-09-06).
-- **focus-restore-toggle** — with CM in autonomous pipeline (branch
-  `feature/focus-restore-toggle`, scaffolded 2026-09-02, commit `4223dbf`).
-  Post-delivery focus-restore setting. No CM report yet; running in background.
+- **No active CR (2026-09-27)** — `one-kind-consolidation` Phase 1 (merged
+  2026-09-25, `8a0e45f`) and Phase 2 `retire-legacy-actor-kinds` (merged
+  2026-09-27, `1a30326`) both merged to `development`, **not yet released**
+  (no version tag/main merge yet) — old kind-based Project/Event/Actor code
+  and specs are gone from `development`, single consolidated Actor kind is
+  live there pending release.
+- **Open sequencing decision (2026-09-27, user decides next session)**:
+  user needs backlog #42 (Actor identity via agent mode, replaces
+  `jarvis_whoAmI`) and #41 (Recorder redesign) for their own job — both
+  would double as a practical test of migrating to Syspilot 0.10 (already
+  on `development`, not yet adopted here). Open question the user is
+  weighing: clean up the project ontology under 0.10 *before* that
+  migration, or deliberately defer the ontology cleanup since it delivers
+  no functional benefit on its own and #42/#41 are the urgent items. User
+  will decide next session whether to start with the Syspilot 0.10 update
+  or with #42 first — do not assume either order, ask.
+- **WhoAmI follow-up** — defer hook-dependent `jarvis_whoAmI` recovery until AHP;
+  superseded by backlog #42's agent-mode identity approach once that lands.
+- **Post-change watch: private Actor repo** — after a future active CR, remove
+  `.jarvis/actors/` from OSS Git tracking without deleting local files, ignore
+  it in OSS, then initialize a separate private repo in that folder and connect
+  it to a new private GitHub repo. Keep Actors in place until the configurable
+  external path is released; existing public Git history is not erased by this
+  move.
 
 ## Recently Shipped
 
+- **retire-legacy-actor-kinds merged** 2026-09-27 into `development` (`1a30326`,
+  pushed). Phase 2 of one-kind-consolidation: old kind-based Project/Event/
+  legacy-Actor specs and code fully removed (not just deprecated); backlog
+  #31/#32 gaps ported into the Actor kind first, per user's port-before-delete
+  decision. QM Round 4 CLEAR (direct); VE PASSED. User validated core
+  behavior manually (Actor creation, messaging, auto-delivery, path change).
+  One user-found regression during that manual test — `packages/flow`'s
+  activation guard wasn't updated for this change's `JarvisCoreApi.version`
+  bump to 2, so Flow silently failed to activate — fixed (`6df1b5e`) and
+  user-confirmed via manual smoke-check. Formal User UAT deliberately NOT RUN,
+  deferred to backlog #40 (UAT ontology redesign). Also fixed as a same-session
+  tooling lesson: an EDH hang some rounds in was NOT a code/profile defect but
+  the local F5 debugger-attach handshake — use Ctrl+F5 ("Run Without
+  Debugging") when validating, not debugging; recorded in Working Principles.
+- **v0.27.2 released** 2026-09-19 (tag `v0.27.2` on `main` at `b7bbfa8`,
+  back-merged to `development` at `c1036bd`). Patch release of two fixes:
+  (1) `whoami-hookless-error` — honest error message when hooks disabled
+  (error text: "Unable to determine your identity automatically (hooks disabled
+  or unavailable). Please confirm your identity with the user."); (2)
+  `focus-restore-toggle` — configurable focus restore after delivery via
+  `jarvis.messaging.restoreFocusAfterDelivery` (bool, default true). Both QM
+  Round 2 CLEAR; 406/406 tests; val-reports created. CDs archived to
+  `docs/changes/v0.27.2/`.
 - **v0.27.1 released** 2026-09-01 (tag `v0.27.1` on `main` at `d70ba52`,
   back-merged to `development` at `356d263`). Patch release of
   `whoami-all-entity-kinds` — `jarvis_whoAmI` now resolves Actor, Project,

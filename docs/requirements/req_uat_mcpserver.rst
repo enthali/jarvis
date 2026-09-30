@@ -14,8 +14,9 @@ MCP Server Test Data Requirements
    **Acceptance Criteria:**
 
    * AC-1: No new test data files are required — the MCP server operates on the
-     same message queue and session data used by existing LM Tools. Existing
-     ``testdata/msg/`` files and chat sessions suffice for verification.
+     same message queue and Actor data used by existing LM Tools. Existing
+     ``testdata/msg/`` files and the messaging Actor fixtures
+     (``REQ_UAT_MSG_TESTDATA`` AC-4) suffice for verification.
    * AC-2: Expected outcomes for each test scenario (T-1 through T-7 from
      ``US_UAT_MCPSERVER``) SHALL be documented in the test protocol
    * AC-3: Test verification requires ``curl`` or an MCP-compatible client to

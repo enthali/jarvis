@@ -43,22 +43,10 @@ Theme Abbreviations
    * - ``CFG``
      - Configuration / Settings
      - ``US_CFG_FOLDERS``, ``REQ_CFG_PATHS``
-   * - ``PRJ``
-     - Project entity kind (single-kind: project-specific US/REQ/SPEC)
-     - ``US_PRJ_PROJECTFILTER``, ``REQ_PRJ_LISTPROJECTS``
-   * - ``EVT``
-     - Event entity kind (single-kind: event-specific US/REQ/SPEC, date sorting)
-     - ``US_EVT_DATESORT``, ``REQ_EVT_DATESORT``
-   * - ``ACT``
-     - Actor entity kind (single-kind: Hewitt actor model, ex-"Session" — persistent
-       agent-bound context; mailbox=queue, state=context.md,
-       heartbeat=activator+supervisor; "Session" retired as a Jarvis concept,
-       reserved for platform VS Code/Copilot chat sessions)
-     - ``US_ACT_ACTORS``, ``REQ_ACT_SCHEMA``, ``SPEC_ACT_TREE``
-   * - ``ENT``
-     - Jarvis Entity (generic, user-facing, cross-kind concepts that apply to
-       ≥ 2 of Project/Event/Actor — has a US level, unlike ENG)
-     - ``US_ENT_ENTITY``, ``REQ_ENT_TREECLICK``, ``SPEC_ENT_AGENT_PICKER``
+   * - ``ACTOR``
+     - Actor, the only kind of persistent participant (``context.md``
+       memory, message addressability, loose session binding)
+     - ``US_ACTOR_ACTORS``, ``REQ_ACTOR_TREE``, ``SPEC_ACTOR_SCANNER``
    * - ``REL``
      - Release & CI/CD
      - ``US_REL_PUBLISH``, ``REQ_REL_VSIX``
@@ -72,8 +60,8 @@ Theme Abbreviations
      - Modular delivery (core/add-on split, packaging, install combinations)
      - ``US_MOD_INSTALL``, ``REQ_MOD_ZEROTRACE``, ``SPEC_MOD_MONOREPO``
    * - ``ENG``
-     - Engine contract (kind-agnostic core API: kind registration, tool injection,
-       generic scanner & tree; **plumbing, not user-facing — no US level**)
+     - Engine contract (core API for add-ons: tool injection, tool registry,
+       Actor list; **plumbing, not user-facing — no US level**)
      - ``REQ_ENG_CONTRACT``, ``SPEC_ENG_API``
    * - ``HOOK``
      - Hook Engine (agent lifecycle hook intake, dispatch foundation in jarvis-core)
@@ -139,7 +127,7 @@ Personas
    * - Persona
      - Description
    * - **Jarvis User**
-     - End user of the Jarvis extension — manages projects and events in VS Code
+     - End user of the Jarvis extension — manages Actors in VS Code
    * - **Jarvis Developer**
      - Maintainer of the Jarvis extension — builds, tests, releases, and documents the extension
    * - **Jarvis Test Engineer**

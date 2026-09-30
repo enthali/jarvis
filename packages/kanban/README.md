@@ -1,11 +1,11 @@
 # Jarvis Kanban
 
-Convention-based kanban boards for Jarvis actors, projects, and events.
+Convention-based kanban boards for Jarvis Actors.
 
 ## Overview
 
-This package adds kanban board support to Jarvis. Any actor, project, or event
-can have one or more kanban boards defined as YAML files in their entity folder.
+This package adds kanban board support to Jarvis. An Actor can have one or more
+kanban boards defined as YAML files in its folder.
 
 Boards are discovered automatically via convention:
 - `kanban.yaml` — default board

@@ -400,9 +400,13 @@ Automation Requirements
    * AC-2: No new session-enumeration logic SHALL be introduced; if the resolver
      changes (e.g. new filtering rules), both ``jarvis_sendToSession`` and heartbeat
      validation automatically inherit the change
-   * AC-3: The valid destination set is defined as the union of {named VS Code
-     chat session titles from ``state.vscdb``} ∪ {YAML entity names from the
-     scanner store (sessions, projects, events)}
+   * AC-3: The valid destination set is the set of Actor names from kindless
+     direct-child discovery under ``jarvis.actors.folder``
+     (``REQ_ACTOR_ACTIVATION`` AC-3). Chat session titles are not part of it.
+     This set is the canonical destination
+     set for heartbeat validation and for ``jarvis_sendMessage`` destination
+     and sender validation (``REQ_MSG_SENDMESSAGE``, ``REQ_MSG_SENDER_ERROR``).
+     The resolver SHALL add no parallel destination enumeration.
 
 
 .. req:: Step Output Variable Capture and Interpolation

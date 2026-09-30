@@ -73,50 +73,18 @@ Messaging User Stories
    **Acceptance Criteria:**
 
    * AC-1: A Language Model Tool ``jarvis_listChatSessions`` is available in the
-     Chat tool picker (renamed from ``jarvis_listActors`` which now refers to
-     YAML session entities)
+     Chat tool picker (distinct from ``jarvis_listActors``, which lists the
+     Actors)
    * AC-2: The tool returns a list of chat session names (titles) from the current
      workspace's ``state.vscdb``
    * AC-3: Empty or untitled sessions are excluded from the list
 
 
-.. story:: Platform-Wide Session Enumeration
-   :id: US_MSG_JARVISSESSIONS
-   :status: draft
-   :priority: optional
-   :links: US_MSG_LISTSESSIONS; US_ENT_AGENTSESSION
-
-   *Context: Generalises the kind-specific enumeration tools
-   (``jarvis_listActors`` for the ``session`` kind, ``jarvis_listProjects`` for
-   the ``project`` kind) into a single cross-kind tool. The central scanner
-   already holds every entity of every registered kind; this story publishes that
-   already-existing list via the platform API — no new scanner, provider, or
-   registry. Unblocks Issue #3 (``/freshmind`` + ``/housekeeping``).*
-
-   **As an** LLM agent or automation working in a Jarvis workspace,
-   **I want** a single tool that lists **all** Jarvis sessions across every
-   registered kind (sessions, projects, events, and any future kind),
-   **so that** I can build cross-cutting features without coupling to any specific
-   add-on's internals.
-
-   **Acceptance Criteria:**
-
-   * AC-1: A platform API method ``JarvisCoreApi.listJarvisSessions()`` returns
-     all scanned entities across all registered kinds as ``JarvisSession[]``
-     (``{name, summary, agent, kind, folder}``).
-   * AC-2: An LM/MCP tool ``jarvis_listJarvisSessions`` wraps the API and is
-     available in the Chat tool picker (and via the MCP server, dual registration).
-   * AC-3: The result reflects the central scanner's current state — no separate
-     scan and no per-add-on coupling.
-   * AC-4: No new scanner, provider, or registry is introduced — the existing
-     ``scanner.entities`` list is published.
-
-
 .. story:: Auto-Delivery for Message Sessions
-   :id: US_MSG_AUTODELIVERY
-   :status: approved
-   :priority: optional
-   :links: US_MSG_CHATQUEUE
+  :id: US_MSG_AUTODELIVERY
+  :status: approved
+  :priority: optional
+  :links: US_MSG_CHATQUEUE
 
    **As a** Jarvis User,
    **I want** selected chat sessions to receive their queued messages automatically,
@@ -139,6 +107,9 @@ Messaging User Stories
      manual delivery behaviour
    * AC-5: Auto-delivery does not re-deliver already-notified messages — each
      message is notified at most once per delivery cycle
+   * AC-6: Sending a message from a heartbeat job or reminder does not change
+     the target's auto-delivery setting. When auto-delivery is disabled,
+     queued messages remain available for manual delivery.
 
 
 .. story:: MCP Server for External Tool Access
@@ -199,12 +170,11 @@ Messaging User Stories
    :id: US_MSG_STABLESESSION
    :status: approved
    :priority: optional
-   :links: US_MSG_CHATQUEUE; US_ENT_AGENTSESSION
+   :links: US_MSG_CHATQUEUE; US_ACTOR_TREE; US_ACTOR_ACTORS
 
    **As a** Jarvis User,
-   **I want** project and event agent sessions to open without editor-reuse
-   artifacts and to receive a stable, recognizable name immediately after
-   creation,
+   **I want** Actor chat sessions to open without editor-reuse artifacts and
+   to receive a stable, recognizable name immediately after creation,
    **so that** I always land in the right chat tab and can locate the session by
    name in the session list or via the ``jarvis.openSession`` command.
 
@@ -215,12 +185,11 @@ Messaging User Stories
    * AC-2: Creating a new session SHALL use ``workbench.action.openChat``
      (stable VS Code internal command) rather than a raw
      ``vscode-chat-session://local/new`` URI, to prevent editor-reuse bugs
-   * AC-3: Immediately after a new session is created, a ``/rename <entity name>``
+   * AC-3: Immediately after a new session is created, a ``/rename <Actor name>``
      command SHALL be submitted to give the session a stable, recognizable name
-     that matches the entity name in the Projects or Events tree
-   * AC-4: After the rename, a context initialization prompt SHALL be submitted
-     containing the path to the entity's ``context.md`` file, derived from the
-     entity name (lower-case, spaces replaced with hyphens) under ``projects/``
+     that matches the Actor name in the ACTORS tree
+   * AC-4: After the rename, the Actor's initialization prompt
+     (``US_ACTOR_ACTORS`` AC-7) SHALL be submitted
    * AC-5: Submitting a prompt to the active chat SHALL use
      ``workbench.action.chat.openAgent`` (agent mode) as the primary mechanism,
      with ``workbench.action.chat.open`` (mode: ``'agent'``) as a silent fallback
@@ -231,7 +200,7 @@ Messaging User Stories
    :id: US_MSG_EDITORPLACEMENT
    :status: approved
    :priority: mandatory
-   :links: US_MSG_STABLESESSION; US_MSG_AUTODELIVERY; US_ENT_AGENTSESSION; US_ENT_ENTITY_FILES_TREE
+   :links: US_MSG_STABLESESSION; US_MSG_AUTODELIVERY; US_ACTOR_TREE; US_ACTOR_FILES_TREE
 
    **As a** Jarvis User,
    **I want** chat, docs, and delivery tabs to open in predictable, stable
@@ -242,10 +211,10 @@ Messaging User Stories
 
    **Acceptance Criteria:**
 
-   * AC-1: Clicking an Actor node in the entity tree always opens/focuses its
+   * AC-1: Clicking an Actor node in the ACTORS tree always opens/focuses its
      chat in a fixed Main column (column 1), regardless of where else it may
      currently be open.
-   * AC-2: Opening a `context.md`/YAML/agent file from the entity tree always
+   * AC-2: Opening a `context.md`/YAML/agent file from the ACTORS tree always
      opens/focuses it in a fixed Content column (column 2) — shared, since
      the ``message-flow-diagram`` CR, with the message-flow diagram Webview
      Panel (both are non-Main "read/reference" content and coexist as
@@ -352,13 +321,13 @@ Messaging User Stories
 
    **As a** Jarvis User running VS Code with a Remote or Devcontainer workspace,
    **I want** session lookup and session listing to work correctly,
-   **so that** ``openAgentSession`` finds existing sessions and ``listSessions``
+   **so that** ``openActorSession`` finds existing sessions and ``listSessions``
    returns accurate results regardless of whether I am working locally or in a
    remote environment.
 
    **Acceptance Criteria:**
 
-   * AC-1: ``openAgentSession`` finds an existing named session in a devcontainer
+   * AC-1: ``openActorSession`` finds an existing named session in a devcontainer
      workspace — no duplicate sessions are created
    * AC-2: The ``jarvis_listActors`` MCP/LM Tool returns the correct sessions
      when the extension runs inside a devcontainer or Remote SSH window
@@ -372,25 +341,27 @@ Messaging User Stories
 
 
 .. story:: Time-Scheduled Reminders
-   :id: US_MSG_REMINDERS
-   :status: draft
-   :priority: optional
-   :links: US_MSG_CHATQUEUE; US_MSG_AUTODELIVERY
+  :id: US_MSG_REMINDERS
+  :status: draft
+  :priority: optional
+  :links: US_MSG_CHATQUEUE; US_MSG_AUTODELIVERY
 
-   **As a** Jarvis User or LM agent,
-   **I want** to register a time-stamped reminder so that a message is
-   automatically delivered to a named chat session at a specified point in time,
-   **so that** I can schedule future notifications without having to monitor the
-   clock myself.
+  **As a** Jarvis User or LM agent,
+  **I want** to register a time-stamped reminder so that a message is
+  queued for a named destination at a specified point in time,
+  **so that** I can schedule future notifications without having to monitor the
+  clock myself.
 
-   **Acceptance Criteria:**
+  **Acceptance Criteria:**
 
    * AC-1: An LM agent (or the user via MCP) can register a reminder by providing
      ``text``, ``session`` (target chat tab label), and ``deliverAt`` (ISO 8601
      timestamp); the system returns a unique ``id``
-   * AC-2: At ``deliverAt`` (within ±5 s) the message is delivered to the target
-     session via the auto-delivery pipeline — no manual action required
-   * AC-3: After delivery, the reminder is removed from persistent storage
+   * AC-2: At ``deliverAt`` (within ±5 s) the message is queued for the target;
+     the existing message-delivery preference alone determines whether its
+     notification is automatic or awaits manual delivery. The reminder does
+     not enable auto-delivery for its target.
+   * AC-3: After queueing, the reminder is removed from persistent storage
    * AC-4: An LM agent can query open reminders to see ``id``, ``text``,
      ``session``, ``deliverAt``, and remaining time
    * AC-5: An LM agent can cancel a reminder by ``id`` before it fires
@@ -471,10 +442,9 @@ Messaging User Stories
      returns a success response as before
    * AC-5: No regression in adjacent workflows (auto-delivery poll loop,
      heartbeat queue steps, MCP access)
-   * AC-6: The **valid destination set** is the union of {named VS Code chat
-     session titles from ``state.vscdb``} ∪ {YAML entity names from the scanner
-     (sessions, projects, events)}. A destination is valid if it appears in
-     either subset.
+   * AC-6: The **valid destination set** is the set of Actor names. A
+     destination (and a sender) is valid only if it names an Actor; a plain
+     chat session that is not an Actor can neither receive nor send messages.
 
 
 .. story:: Trustworthy Sender Attribution (Sender Validation)
@@ -499,7 +469,7 @@ Messaging User Stories
      causes the tool call to end in an error, not a success response — there is
      no active-tab fallback
    * AC-2: Invoking the canonical send-message tool with a ``senderSession``
-     that does not match any valid destination/session name causes the tool
+     that does not name an Actor causes the tool
      call to end in an error, not a success response
    * AC-3: When ``senderSession`` is missing or invalid, no message is appended
      to the queue (no side effect)

@@ -3,11 +3,15 @@ Heartbeat UAT Design Specifications
 
 .. spec:: Heartbeat Test Data File Set
    :id: SPEC_UAT_HEARTBEAT_FILES
-   :status: implemented
-   :links: REQ_UAT_HEARTBEAT_TESTDATA
+   :status: approved
+   :links: REQ_UAT_HEARTBEAT_TESTDATA; SPEC_UAT_MSG_FILES
 
    **Description:**
    The repo SHALL contain the following test data under ``testdata/heartbeat/``.
+   Every queue step targets the ``TestTarget`` Actor fixture
+   (``SPEC_UAT_MSG_FILES``); the checked-in ``heartbeat.yaml`` still targets
+   ``Test Session`` and is updated as implementation work of
+   ``retire-legacy-actor-kinds``.
 
    **testdata/heartbeat/**
 
@@ -47,7 +51,7 @@ Heartbeat UAT Design Specifications
             run: scripts/print-hello.ps1
             outputVar: MY_VAR
           - type: queue
-            destination: "Test Session"
+            destination: "TestTarget"
             text: "prefix-${MY_VAR}-suffix"
 
       - name: T-21 LAST_STDERR Chain
@@ -58,14 +62,14 @@ Heartbeat UAT Design Specifications
           - type: powershell
             run: scripts/write-stderr-2.ps1   # writes "stderr-2" to stderr
           - type: queue
-            destination: "Test Session"
+            destination: "TestTarget"
             text: "Last error: ${LAST_STDERR}"
 
       - name: T-22 Undefined Var
         schedule: manual
         steps:
           - type: queue
-            destination: "Test Session"
+            destination: "TestTarget"
             text: "val=${UNDEFINED_VAR}"
 
    Additional test scripts required under ``testdata/heartbeat/scripts/``:
@@ -79,7 +83,8 @@ Heartbeat UAT Design Specifications
    environment-specific and intentionally excluded from ``testdata/``.
 
 
-   **Queue step test entry in heartbeat.yaml:**
+   **Queue step test entry in heartbeat.yaml** (destination is the
+   ``TestTarget`` Actor fixture, ``SPEC_UAT_MSG_FILES``):
 
    .. code-block:: yaml
 
@@ -87,7 +92,7 @@ Heartbeat UAT Design Specifications
         schedule: manual
         steps:
           - type: queue
-            session: "Test Session"
+            destination: "TestTarget"
             text: "Hello from heartbeat queue step"
 
 
@@ -144,56 +149,51 @@ Heartbeat UAT Design Specifications
    :links: REQ_UAT_JOBREG_TESTS; SPEC_AUT_JOBREG
 
    **Description:**
-   Manual test procedures for the heartbeat job registration API and scanner
-   integration using VS Code settings as the trigger.
+   Manual test procedures for the heartbeat job registration API and the
+   background Actor rescan.
 
    **T-14 — registerJob creates entry in heartbeat.yaml:**
 
-   1. Set ``jarvis.heartbeatConfigFile`` to ``testdata/heartbeat/heartbeat.yaml``
-   2. Set ``jarvis.scanInterval`` to ``2``
-   3. Reload the VS Code window
-   4. Open ``testdata/heartbeat/heartbeat.yaml`` and verify a ``"Jarvis: Rescan"``
-      job entry exists with schedule ``*/2 * * * *`` and step
-      ``{ type: command, run: jarvis.rescan }``
-   5. Open the Heartbeat tree view and verify the ``"Jarvis: Rescan"`` job appears
+   1. Call ``jarvis_registerJob`` with name ``"UAT: Probe"``, schedule
+      ``*/5 * * * *`` and one step ``{ type: command, run: jarvis.rescan }``
+   2. Open ``.jarvis/heartbeat.yaml`` and verify the ``"UAT: Probe"`` entry
+   3. Open the Heartbeat tree view and verify the job appears
 
    **T-15 — registerJob upserts existing entry:**
 
-   1. With ``scanInterval = 2`` and ``"Jarvis: Rescan"`` already in the YAML
-   2. Change ``jarvis.scanInterval`` to ``5`` in VS Code settings
-   3. Open ``heartbeat.yaml`` and verify the schedule changed to ``*/5 * * * *``
-   4. Verify only one ``"Jarvis: Rescan"`` entry exists (no duplicates)
-   5. Verify the Heartbeat tree view shows the updated schedule
+   1. With ``"UAT: Probe"`` present, call ``jarvis_registerJob`` again for it
+      with schedule ``*/10 * * * *``
+   2. Verify exactly one ``"UAT: Probe"`` entry with ``*/10 * * * *``
+   3. Verify the Heartbeat tree view shows the updated schedule
 
    **T-16 — unregisterJob removes entry:**
 
-   1. With ``scanInterval = 2`` and ``"Jarvis: Rescan"`` in the YAML
-   2. Change ``jarvis.scanInterval`` to ``0``
-   3. Open ``heartbeat.yaml`` and verify the ``"Jarvis: Rescan"`` entry is removed
-   4. Verify the Heartbeat tree view no longer shows the job
+   1. Call ``jarvis_unregisterJob`` for ``"UAT: Probe"``
+   2. Verify the entry is removed from ``heartbeat.yaml`` and the tree view
 
-   **T-17 — Rescan fires via heartbeat:**
+   **T-17 — Background rescan without heartbeat job:**
 
-   1. Set ``scanInterval = 1`` and ``heartbeatInterval = 10``
-   2. Modify a project's ``project.yaml`` name field
-   3. Wait up to 60 s for the next cron fire
-   4. Verify the sidebar reflects the changed name
-   5. Check Output Channel "Jarvis Heartbeat" for the command step execution
+   1. Set ``jarvis.scanInterval = 1`` and ``jarvis.heartbeat.enabled = false``
+   2. Change the ``summary`` of an Actor's ``actor.yaml``
+   3. Wait up to 60 s
+   4. Verify the Actor's tooltip in the ACTORS view shows the new summary
+   5. Verify ``heartbeat.yaml`` contains no ``"Jarvis: Rescan"`` job
 
-   **T-18 — scanInterval 0 disables automatic scanning:**
+   **T-18 — scanInterval 0 and leftover cleanup:**
 
-   1. Set ``jarvis.scanInterval`` to ``0``
+   1. Add a ``"Jarvis: Rescan"`` job to ``heartbeat.yaml`` by hand; set
+      ``jarvis.scanInterval = 0`` and ``jarvis.heartbeat.enabled = true``
    2. Reload the VS Code window
-   3. Verify ``heartbeat.yaml`` does not contain ``"Jarvis: Rescan"``
-   4. Modify a project's ``project.yaml`` name field
-   5. Wait 2 minutes; verify the sidebar does NOT update
-   6. Click the manual ``$(refresh)`` button; verify the sidebar now updates
+   3. Verify ``heartbeat.yaml`` no longer contains ``"Jarvis: Rescan"``
+   4. Change an Actor's ``summary``; wait 2 minutes; verify the tooltip does
+      NOT update
+   5. Click the ACTORS ``$(refresh)`` button; verify the tooltip now updates
 
    **T-19 — Basic output variable chaining (``heartbeat-step-output-vars`` CR):**
 
    1. Add (or use) the ``T-19 Output Var Chain`` job from heartbeat.yaml
    2. Run the job via ``Jarvis: Run Heartbeat Job``
-   3. In the Messages tree, expand ``Test Session`` and inspect the queued message
+   3. In the Messages tree, expand ``TestTarget`` and inspect the queued message
    4. Verify the delivered text is ``"prefix-hello-from-step1-suffix"`` (not
       ``"prefix-${MY_VAR}-suffix"``)
    5. Verify no ``[WARN]`` or ``[ERROR]`` in the Output Channel about variables

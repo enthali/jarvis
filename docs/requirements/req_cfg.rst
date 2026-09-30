@@ -1,40 +1,48 @@
 Configuration Requirements
 ==========================
 
-.. req:: Configurable Folder Paths
+.. req:: Actors Folder Setting
    :id: REQ_CFG_FOLDERPATHS
-   :status: implemented
+   :status: approved
    :priority: mandatory
-   :links: US_CFG_PROJECTPATH
+   :links: US_ACTOR_TREE; US_ACTOR_ACTORS
 
    **Description:**
-   The extension SHALL provide VS Code settings for the project and event folder paths.
+   The extension SHALL provide a VS Code setting for the folder that contains
+   the Actor folders.
 
    **Acceptance Criteria:**
 
-   * AC-1: ``jarvis.projectsFolder`` accepts an absolute folder path for project YAML files
-   * AC-2: ``jarvis.eventsFolder`` accepts an absolute folder path for event YAML files
-   * AC-3: Changing either folder setting immediately triggers a new scan cycle
+   * AC-1: ``jarvis.actors.folder`` (string, Actors settings group) accepts a
+     workspace-relative or absolute folder path; default ``.jarvis/actors``.
+   * AC-2: Changing the setting immediately triggers a rescan of the ACTORS
+     view (``REQ_ACTOR_TREE`` AC-5).
 
 
 .. req:: Configurable Scan Interval
    :id: REQ_CFG_SCANINTERVAL
-   :status: implemented
+   :status: approved
    :priority: mandatory
-   :links: US_CFG_PROJECTPATH; REQ_AUT_JOBREG
+   :links: US_ACTOR_TREE; REQ_EXP_REACTIVECACHE; REQ_AUT_JOBREG
 
    **Description:**
    The extension SHALL provide a VS Code setting to control the background scanner
-   interval, expressed in minutes.
+   interval, expressed in minutes. The periodic scan is internal to Jarvis: it is
+   not a heartbeat job, so it is neither shown in the Heartbeat view nor written
+   to ``heartbeat.yaml``, and it does not depend on the heartbeat feature.
 
    **Acceptance Criteria:**
 
    * AC-1: ``jarvis.scanInterval`` accepts an integer number of minutes; minimum 0,
      default 2; value 0 disables automatic scanning
-   * AC-2: A non-zero value SHALL cause the extension to register a heartbeat job
-     ``"Jarvis: Rescan"`` with schedule ``*/<value> * * * *``
-   * AC-3: A change to the interval SHALL take effect immediately: the rescan heartbeat
-     job is re-registered with the new schedule, or unregistered if the new value is 0
+   * AC-2: A non-zero value SHALL cause the extension to rescan the Actors every
+     ``<value>`` minutes in the background, also when ``jarvis.heartbeat.enabled``
+     is ``false``
+   * AC-3: A change to the interval SHALL take effect immediately: the background
+     rescan restarts with the new interval, or stops if the new value is 0
+   * AC-4: No heartbeat job SHALL be created for the background rescan
+   * AC-5: When the heartbeat feature starts, a job named ``"Jarvis: Rescan"``
+     left in ``heartbeat.yaml`` by an earlier version SHALL be removed
 
 
 .. req:: Heartbeat Config File Resolution
@@ -146,7 +154,7 @@ Configuration Requirements
    :id: REQ_CFG_SETTINGSGROUPS
    :status: deprecated
    :priority: mandatory
-   :links: US_CFG_SETTINGSGROUPS; REQ_EXP_FEATURETOGGLE
+   :links: US_CFG_SETTINGSGROUPS
 
    **Superseded by:** ``REQ_CFG_GROUPS`` (settings-cleanup CR, 2026-05-18).
    The "no setting key, type, or default value SHALL change" guarantee is
@@ -167,43 +175,19 @@ Configuration Requirements
    * AC-4: No setting key, type, or default value SHALL change
 
 
-.. req:: Default Path Population at Activation
-   :id: REQ_CFG_DEFAULTPATHS
-   :status: implemented
-   :priority: mandatory
-   :links: US_EXP_FEATURETOGGLE; REQ_CFG_HEARTBEATPATH; REQ_CFG_MSGPATH
-
-   **Description:**
-   The extension SHALL write the resolved default file paths into the user-visible
-   settings at activation time when those settings are empty. This ensures that
-   ``when``-clauses based on non-empty settings evaluate correctly.
-
-   **Acceptance Criteria:**
-
-   * AC-1: If ``jarvis.heartbeatConfigFile`` is empty at activation, the extension
-     SHALL write the resolved default path (workspace storage) into the setting
-   * AC-2: If ``jarvis.messagesFile`` is empty at activation, the extension SHALL
-     write the resolved default path (workspace storage) into the setting
-   * AC-3: The written value SHALL be the same path that the extension would use
-     as fallback — no behavioral change
-   * AC-4: The write SHALL use ``ConfigurationTarget.Workspace`` so the value is
-     scoped to the current workspace
-
-
 .. req:: Per-Feature Enable Toggles
    :id: REQ_CFG_TOGGLES
-   :status: implemented
+   :status: approved
    :priority: required
    :links: US_CFG_FEATURETOGGLES
 
    **Description:**
    Each Jarvis feature SHALL have a single boolean setting
    ``jarvis.<feature>.enabled`` that gates all activation work for that feature.
+   Actors have no feature toggle.
 
    **Settings, names, and defaults:**
 
-   * ``jarvis.projects.enabled`` — boolean, default: ``false``
-   * ``jarvis.events.enabled`` — boolean, default: ``false``
    * ``jarvis.heartbeat.enabled`` — boolean, default: ``true``
    * ``jarvis.messages.enabled`` — boolean, default: ``true``
    * ``jarvis.reminders.enabled`` — boolean, default: ``true``
@@ -211,18 +195,14 @@ Configuration Requirements
 
    **Acceptance Criteria:**
 
-   * AC-1: When ``jarvis.projects.enabled`` is ``false``, no Projects tree view,
-     no project-related commands, and no ``listProjects`` tool are registered.
-   * AC-2: When ``jarvis.events.enabled`` is ``false``, no Events tree view,
-     no event-related commands, and no event tools are registered.
-   * AC-3: When ``jarvis.heartbeat.enabled`` is ``false``, no Heartbeat tree view,
+   * AC-1: When ``jarvis.heartbeat.enabled`` is ``false``, no Heartbeat tree view,
      no heartbeat scheduler, and no heartbeat tools are registered.
-   * AC-4: When ``jarvis.messages.enabled`` is ``false``, no Messages tree view,
+   * AC-2: When ``jarvis.messages.enabled`` is ``false``, no Messages tree view,
      no message commands, and no ``sendToSession`` / ``readMessage`` /
      ``listSessions`` tools are registered.
-   * AC-5: When ``jarvis.reminders.enabled`` is ``false`` (or ``messages.enabled``
+   * AC-3: When ``jarvis.reminders.enabled`` is ``false`` (or ``messages.enabled``
      is ``false``), no Reminders tree view and no reminder tools are registered.
-   * AC-6: When ``jarvis.mcp.enabled`` is ``false``, the embedded MCP server SHALL
+   * AC-4: When ``jarvis.mcp.enabled`` is ``false``, the embedded MCP server SHALL
      NOT start.
    * When ``enabled=false``, the feature's entire activation block SHALL be
      skipped — no tree views registered, no commands registered, no tools
@@ -273,27 +253,34 @@ Configuration Requirements
 
 .. req:: Settings Group Structure
    :id: REQ_CFG_GROUPS
-   :status: implemented
+   :status: approved
    :priority: required
    :links: US_CFG_GROUPS
 
    **Description:**
-   The ``contributes.configuration`` array in ``package.json`` SHALL contain
-   exactly the following groups in this order:
-   Projects, Events, Sessions, Messages, Heartbeat, Reminders, MCP, PIM,
-   Outlook, Recording, Updates.
+   The core ``contributes.configuration`` array in ``packages/core/package.json``
+   SHALL contain exactly the following groups in this order:
+   Actors, Messages, Prompt Templates, Heartbeat, Reminders, Gitignore,
+   Updates, Hooks. Each add-on SHALL contribute its own settings in its own
+   ``package.json`` groups: PIM ("PIM", "Outlook"), recorder ("Jarvis
+   Recorder"), MCP ("Jarvis MCP"), kanban ("Jarvis Kanban"), syspilot
+   ("Jarvis Syspilot").
 
    **Acceptance Criteria:**
 
    * AC-1: The ``contributes.configuration`` value is a JSON array.
-   * AC-2: Each element has a distinct ``title`` matching one of the eleven
-     group names listed above.
-   * AC-3: The order of groups matches the list above.
+   * AC-2: Each core element has a distinct ``title`` matching one of the
+     eight core group names listed above; add-on groups appear only when the
+     add-on is installed.
+   * AC-3: The order of core groups matches the list above.
    * AC-4: Each setting appears in exactly one group.
-   * AC-5: The Sessions group MAY be empty in this CR (it is reserved for the
-     ``sessions-feature`` CR).
-   * AC-6: The Updates group contains ``jarvis.checkForUpdates`` (self-update
-     flag); it has no natural home in the other ten groups.
+   * AC-5: The Updates group contains ``jarvis.checkForUpdates`` (self-update
+     flag); it has no natural home in the other groups.
+   * AC-6: The Actors group contains ``jarvis.actors.folder``,
+     ``jarvis.actors.openSessionOnCreate``, ``jarvis.scanInterval`` and
+     ``jarvis.actor.autoProvision``. The Prompt Templates group contains
+     ``jarvis.agentSession.initPromptTemplate`` and
+     ``jarvis.messages.notificationTemplate``.
 
 
 .. req:: MCP Default Off
@@ -330,8 +317,6 @@ Configuration Requirements
 
    **Renamed keys:**
 
-   * ``jarvis.projectsFolder`` → ``jarvis.projects.folder``
-   * ``jarvis.eventsFolder`` → ``jarvis.events.folder``
    * ``jarvis.mcpEnabled`` → ``jarvis.mcp.enabled`` (see also REQ_CFG_MCPDEFAULTOFF)
    * ``jarvis.outlookEnabled`` → ``jarvis.outlook.enabled``
 
@@ -672,10 +657,9 @@ Configuration Requirements
    * AC-1: The region SHALL cover every path Jarvis writes that holds transient
      runtime state, including paths added by later Jarvis versions.
    * AC-2: The region SHALL NOT cover any path that holds durable, authored
-     content. ``.jarvis/actors/`` and the legacy actor root
-     ``.jarvis/sessions/`` hold actor memory and are durable — they are the
-     artefact the actor model exists to accumulate, and a consuming project is
-     expected to version them.
+     content. ``.jarvis/actors/`` holds Actor memory and is durable — it is
+     the artefact the actor model exists to accumulate, and a consuming
+     project is expected to version it.
    * AC-3: Every entry SHALL be anchored to a directory Jarvis writes into. No
      entry SHALL be an unanchored recursive glob. An unanchored entry's blast
      radius is the whole repository and is therefore not knowable from the

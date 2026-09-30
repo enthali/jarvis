@@ -1,6 +1,13 @@
 Recording Requirements
 ======================
 
+.. note::
+   (retire-legacy-actor-kinds) The recorder was bound to Project and Event
+   nodes and Project names, which are removed with those kinds. Requirements
+   or ACs marked **not in force** below stay unimplemented until the recorder
+   is redesigned in a separate change (``US_REC_CAPTURE`` / ``US_REC_ENABLE``
+   / ``US_REC_DISPATCH`` notes).
+
 .. req:: Recording Enabled Setting
    :id: REQ_REC_ENABLE
    :status: implemented
@@ -16,7 +23,7 @@ Recording Requirements
    * AC-1: The setting type SHALL be ``boolean`` with default value ``false``
    * AC-2: The setting SHALL belong to a settings group titled "Recording" (not under PIM)
    * AC-3: When ``false``, no Start/Stop Recording buttons SHALL appear in tree views
-   * AC-4: When ``true``, Start/Stop buttons SHALL become visible on Project and Event nodes
+   * AC-4: **Not in force** — When ``true``, Start/Stop buttons SHALL become visible on Project and Event nodes
 
 
 .. req:: Whisper Path Setting
@@ -46,8 +53,9 @@ Recording Requirements
    :links: US_REC_CAPTURE; US_REC_ENABLE
 
    **Description:**
-   The extension SHALL show inline action buttons on Project and Event tree nodes for
-   starting and stopping recordings.
+   **Not in force** (see note above). The extension SHALL show inline action
+   buttons on Project and Event tree nodes for starting and stopping
+   recordings.
 
    **Acceptance Criteria:**
 
@@ -70,8 +78,9 @@ Recording Requirements
    :links: US_REC_CAPTURE
 
    **Description:**
-   The extension SHALL show a StatusBar item during an active recording displaying the
-   project name and elapsed time.
+   **Not in force** (see note above; no recording can be started). The
+   extension SHALL show a StatusBar item during an active recording
+   displaying the project name and elapsed time.
 
    **Acceptance Criteria:**
 
@@ -88,8 +97,9 @@ Recording Requirements
    :links: US_REC_CAPTURE; US_REC_CONFIG
 
    **Description:**
-   The extension SHALL manage the ``recorder.py`` process lifecycle including startup
-   validation, state persistence, and graceful shutdown.
+   **Not in force** (see note above; no recording can be started). The
+   extension SHALL manage the ``recorder.py`` process lifecycle including
+   startup validation, state persistence, and graceful shutdown.
 
    **Acceptance Criteria:**
 
@@ -114,8 +124,10 @@ Recording Requirements
    :links: US_REC_DISPATCH
 
    **Description:**
-   The extension SHALL poll ``whisperPath/output/`` for new ``.txt`` transcript files
-   and dispatch each to the corresponding project session via the Message Queue.
+   **Not in force** (see note above; the Project session target is removed).
+   The extension SHALL poll ``whisperPath/output/`` for new ``.txt``
+   transcript files and dispatch each to the corresponding project session
+   via the Message Queue.
 
    **Acceptance Criteria:**
 
@@ -136,9 +148,10 @@ Recording Requirements
    :links: US_REC_DISPATCH; US_REC_CAPTURE
 
    **Description:**
-   When a recording starts, a sidecar JSON file SHALL be written to
-   ``whisperPath/input/<recordingName>.json`` containing the original project name.
-   Deletion of this file by the watcher serves as the processed handshake.
+   **Not in force** (see note above). When a recording starts, a sidecar JSON
+   file SHALL be written to ``whisperPath/input/<recordingName>.json``
+   containing the original project name. Deletion of this file by the watcher
+   serves as the processed handshake.
 
    **Acceptance Criteria:**
 
@@ -161,8 +174,8 @@ Recording Requirements
    **Acceptance Criteria:**
 
    * AC-1: When ``jarvis.recording.enabled == true`` and ``whisperPath`` is set, a
-     ``"Jarvis: Check Transcripts"`` heartbeat job SHALL be registered with the same
-     cron schedule as the rescan job
+     ``"Jarvis: Check Transcripts"`` heartbeat job SHALL be registered with the
+     schedule ``*/<jarvis.scanInterval> * * * *``
    * AC-2: When ``jarvis.recording.enabled`` is set to false or ``whisperPath`` is
      cleared, the job SHALL be unregistered
    * AC-3: Changes to ``jarvis.recording.enabled`` or ``jarvis.recording.whisperPath``

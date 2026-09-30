@@ -5,8 +5,7 @@ Jarvis is a VS Code extension that turns chat **sessions** and agent
 memory (`context.md`), inter-actor messaging, and scheduling. Jarvis itself is
 the harness, not the assistant: the actors it hosts do the work — the syspilot
 actors handle software engineering, the PIM actors handle email, calendar, and
-tasks. Projects and events are actor variants (an `actor.yaml` with a few extra
-properties), stored as YAML in configurable folders.
+tasks. Actors are stored as `actor.yaml` files in configurable folders.
 
 ## Modules
 
@@ -16,7 +15,7 @@ capability modules. Install only what you need.
 | Module | Role |
 |--------|------|
 | **Jarvis Core** | The harness: actors and sessions, inter-actor messaging, reminders, heartbeat scheduler, and the engine |
-| **Jarvis PIM** | Personal Information Manager: projects, events, categories, and tasks |
+| **Jarvis PIM** | Personal Information Manager: categories and tasks |
 | **Jarvis Recorder** | Session recording with a Whisper transcription pipeline and transcript notifications |
 | **Jarvis MCP** | MCP server exposing Jarvis tools over HTTP transport |
 | **Jarvis Message Flow** | Interactive visualization and history of inter-actor message traffic |
@@ -26,7 +25,7 @@ capability modules. Install only what you need.
 
 ### Jarvis Core
 
-- **Actors & sessions** — persistent entities with their own `context.md` memory, shown in an explorer sidebar and expandable to their core files and recently-touched files
+- **Actors & sessions** — persistent entities with their own `context.md` memory. The ACTORS view shows direct child folders with `actor.yaml`. See [Core getting started](packages/core/README.md#getting-started) for folder and tool-ID behavior.
 - **Heartbeat scheduler** — cron-based jobs running scripts (Python, PowerShell), VS Code commands, or single-shot LLM calls
 - **Messaging, reminders & LM tools** — an inter-actor message queue, reminders, and tools like `#listActors`, `#sendMessage`, `#receiveMessage`, `#createActor`, `#injectPrompt`, `#whoAmI`, `#createKanbanBoard`, `#verifyKanbanSchema`, and `#openKanbanBoard`
 - **Prompt injection** — inject any text or slash-command (e.g. `/compact`) into a named actor's session via the `jarvis_injectPrompt` LM tool or the **Jarvis: Inject Prompt** command; spawns the session automatically if none exists. Useful for bulk operations such as compacting all actors after a CR:
@@ -38,7 +37,6 @@ capability modules. Install only what you need.
 
 ### Jarvis PIM
 
-- **Projects & events** — loaded from YAML files in configurable folders, shown as filterable tree views with quick-open to the file or the agent chat
 - **Categories & tasks** — Outlook-backed category and task integration
 
 ### Jarvis Recorder
@@ -56,7 +54,7 @@ capability modules. Install only what you need.
 
 ### Jarvis Kanban
 
-- **Convention-based discovery** — place a `kanban.yaml` (or `<name>.kanban.yaml`) in any actor or entity folder; a board button appears automatically in the explorer tree
+- **Convention-based discovery** — place a `kanban.yaml` (or `<name>.kanban.yaml`) in an Actor folder; a board button appears automatically in the explorer tree
 - **Read-only webview renderer** — GitHub-Projects-shaped schema (`fields[]` + `items[]`; `status` field drives columns); open via tree button or Command Palette **Jarvis: Open Kanban Board**
 - **LM tools** — `jarvis_createKanbanBoard(boardName?, ownerName?)` creates the YAML file; `jarvis_verifyKanbanSchema(boardName?, ownerName?)` validates it; `jarvis_openKanbanBoard(boardName?, ownerName?)` opens the webview; `jarvis_updateKanbanItem(itemId, changes, boardName?, ownerName?)` updates an existing item by its stable integer ID; `jarvis_addKanbanItem`, `jarvis_deleteKanbanItem`, `jarvis_listKanbanItems`, and `jarvis_updateKanbanFields` provide full board management (add, delete, query, and update field definitions)
 
@@ -64,8 +62,6 @@ capability modules. Install only what you need.
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| `jarvis.projectsFolder` | Absolute path to projects YAML folder | — |
-| `jarvis.eventsFolder` | Absolute path to events YAML folder | — |
 | `jarvis.scanInterval` | Background rescan interval in minutes (0 = disabled) | 2 |
 | `jarvis.heartbeatConfigFile` | Absolute path to `heartbeat.yaml` | workspace storage |
 | `jarvis.heartbeatInterval` | Scheduler tick interval in seconds | 60 |

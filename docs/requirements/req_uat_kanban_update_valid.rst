@@ -25,8 +25,8 @@ Kanban Update Validation UAT Requirements
    * AC-3: For T-3 (valid non-``status`` field value accepted), the tester
      opens ``kanban.yaml`` in a text editor after the call and confirms the
      field value was written correctly.
-   * AC-4: Amended scenario T-22 in ``SPEC_UAT_KANBAN`` (``id`` in
-     ``changes`` now returns an error) is re-run as part of this CR's
-     validation sweep, using the same fixture.
+   * AC-4: The BC-3 scenario (``id`` in ``changes`` returns an error) was
+     part of the former kanban UAT and is not present; its coverage is open
+     and decided by the UAT redesign (PM backlog #40).
    * AC-5: Step-by-step outcomes for T-1..T-4 are documented in the test
      protocol for this CR.

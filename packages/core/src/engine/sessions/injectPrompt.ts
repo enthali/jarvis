@@ -4,10 +4,11 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { lookupSessionUUID } from './sessionLookup';
+import { ActorScanner, ambiguousActorMessage } from '../actors/actorScanner';
 
 // --- Module-level dependencies (injected via init) ---
 
-let _scanner: { entities: { name: string; kind?: string; folder?: string; agent?: string }[] } | undefined;
+let _scanner: ActorScanner | undefined;
 let _log: vscode.LogOutputChannel | undefined;
 let _openAtMain: (uri: vscode.Uri, sessionName: string) => Promise<void>;
 let _openAtSecondary: (uri: vscode.Uri, sessionName: string) => Promise<void>;
@@ -16,7 +17,7 @@ let _renameFocusedChatSession: (name: string) => Promise<void>;
 let _reapplyAgentMode: (agent: string, context: string) => Promise<void>;
 
 export interface InjectPromptDeps {
-    scanner: { entities: { name: string; kind?: string; folder?: string; agent?: string }[] };
+    scanner: ActorScanner;
     log: vscode.LogOutputChannel;
     openAtMain: (uri: vscode.Uri, sessionName: string) => Promise<void>;
     openAtSecondary: (uri: vscode.Uri, sessionName: string) => Promise<void>;
@@ -41,7 +42,7 @@ function applyTemplate(template: string, vars: Record<string, string>): string {
 }
 
 const DEFAULT_INIT_PROMPT =
-    `You are the agent session for the \${kind} "\${name}".\n\n` +
+    `You are the agent session for the Actor "\${name}".\n\n` +
     `Use only \`\${contextPath}\` as your persistent memory. Read it now.\n\n` +
     `Keep it minimal and action-oriented:\n` +
     `- Store only long-lived items under Decision / Finding / Next.\n` +
@@ -129,7 +130,6 @@ async function sendPromptModePreserving(query: string): Promise<void> {
 
 export interface InjectPromptOptions {
     placement?: 'main' | 'secondary';
-    skipInitPrompt?: boolean;
 }
 
 /**
@@ -146,13 +146,16 @@ export async function injectPrompt(
     }
 
     const placement = options?.placement ?? 'main';
-    const skipInitPrompt = options?.skipInitPrompt ?? false;
 
-    // 1. Entity resolution
-    const entity = _scanner.entities.find(e => e.name === entityName);
-    if (!entity) {
-        throw new Error(`Jarvis: Entity not found: ${entityName}`);
+    // 1. Actor resolution (SPEC_ACTOR_SCANNER — ambiguous names are rejected)
+    const lookup = _scanner.resolveName(entityName);
+    if (lookup.status === 'unknown') {
+        throw new Error(`Jarvis: Actor not found: ${entityName}`);
     }
+    if (lookup.status === 'ambiguous') {
+        throw new Error(ambiguousActorMessage(entityName, lookup.matches));
+    }
+    const entity = lookup.actor;
 
     // 2. Session lookup
     const uuid = await lookupSessionUUID(entityName);
@@ -190,21 +193,17 @@ export async function injectPrompt(
         await _openNewChatEditor();
         await _renameFocusedChatSession(entityName);
 
-        if (!skipInitPrompt) {
-            // Build and inject init prompt (SPEC_ENT_AGENTSESSION_INITPROMPT)
-            const kind = entity.kind ?? 'project';
-            const folder = entity.folder ?? '';
-            const contextPath = path.join(folder, 'context.md');
-            const rawInitTemplate = vscode.workspace.getConfiguration('jarvis')
-                .get<string>('agentSession.initPromptTemplate') ?? '';
-            const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : DEFAULT_INIT_PROMPT;
-            const initPrompt = applyTemplate(initTemplate, { kind, name: entity.name, contextPath });
-            await sendPromptModeSetting(initPrompt);
-            await new Promise(resolve => setTimeout(resolve, 800));
-        }
+        // Build and inject init prompt (SPEC_ACTOR_INITPROMPT)
+        const contextPath = path.join(entity.folder, 'context.md');
+        const rawInitTemplate = vscode.workspace.getConfiguration('jarvis')
+            .get<string>('agentSession.initPromptTemplate') ?? '';
+        const initTemplate = rawInitTemplate.trim() ? rawInitTemplate : DEFAULT_INIT_PROMPT;
+        const initPrompt = applyTemplate(initTemplate, { name: entity.name, contextPath });
+        await sendPromptModeSetting(initPrompt);
+        await new Promise(resolve => setTimeout(resolve, 800));
 
         // Post-spawn placement fix: guarantee Main column for user-initiated
-        // actions (REQ_ENT_AGENTSESSION AC-7, REQ_MSG_EDITORPLACEMENT AC-12/AC-13).
+        // actions (REQ_MSG_EDITORPLACEMENT AC-12/AC-13).
         // The rename above has completed, so the session is now resolvable by name.
         if (placement === 'main') {
             const newUuid = await lookupSessionUUID(entityName);

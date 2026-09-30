@@ -28,11 +28,9 @@ describe('SPEC_CFG_PATHRESOLVER: WORKSPACE_PATHS coverage invariant', () => {
         }
     });
 
-    it('.jarvis/actors/ and .jarvis/sessions/ are durable (AC-11)', () => {
+    it('.jarvis/actors/ is durable (AC-11)', () => {
         const actors = WORKSPACE_PATHS.find(p => p.rel === '.jarvis/actors/');
-        const sessions = WORKSPACE_PATHS.find(p => p.rel === '.jarvis/sessions/');
         expect(actors?.durability).toBe('durable');
-        expect(sessions?.durability).toBe('durable');
     });
 
     it('every WORKSPACE_PATHS entry has a valid durability', () => {

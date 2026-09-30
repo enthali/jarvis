@@ -173,22 +173,21 @@ Syspilot Lifecycle Design Specifications
 .. spec:: Actor Provisioning
    :id: SPEC_SPL_ACTOR
    :status: draft
-   :links: REQ_SPL_ACTOR; SPEC_ACT_DUALPATH_SCANNER
+   :links: REQ_SPL_ACTOR; SPEC_ENG_ACTORLIST; SPEC_ACTOR_CREATETOOL
 
    **Description:**
    Before sending a notification, the module ensures the "Syspilot Setup
-   Engineer" actor exists. It uses the core API's ``createActor`` function
-   (or checks the scanner's entity list) to provision the actor if absent.
+   Engineer" actor exists. It checks ``api.listActors()`` and provisions the
+   actor through the ``jarvis_createActor`` tool if absent.
 
    **Pseudocode:**
 
    .. code-block:: typescript
 
       async function ensureActor(api: JarvisCoreApi): Promise<void> {
-        const sessions = api.listJarvisSessions();
-        const exists = sessions.some(s => s.name === 'Syspilot Setup Engineer');
+        const exists = api.listActors().some(a => a.name === 'Syspilot Setup Engineer');
         if (!exists) {
-          // Use the jarvis_createActor LM tool via the engine's invokeTool API
+          // jarvis_createActor rescans itself (SPEC_ACTOR_CREATETOOL)
           await api.invokeTool('jarvis_createActor', {
             input: {
               name: 'Syspilot Setup Engineer',
@@ -198,26 +197,23 @@ Syspilot Lifecycle Design Specifications
             toolInvocationToken: undefined,
             requestedContentTypes: ['text/plain']
           }, new vscode.CancellationTokenSource().token);
-          await api.rescan(); // ensure scanner picks up the new actor
         }
       }
 
    **Design note:** Actor creation uses ``api.invokeTool('jarvis_createActor', ...)``
    rather than a direct ``createActor()`` method, because the core API does not
-   expose entity-write operations as first-class methods — only via registered
-   tools. Actor-existence is checked via ``api.listJarvisSessions()`` which
-   returns all scanned entities across all kinds.
+   expose write operations as first-class methods — only via registered tools.
 
    **Acceptance Criteria:**
 
    * AC-1: The actor is created with ``agent: syspilot.setup`` binding.
-   * AC-2: If the actor already exists (checked via ``listJarvisSessions()``),
-     no modification is made.
-   * AC-3: The actor folder is placed under ``.jarvis/actors/Syspilot Setup
-     Engineer/`` (actor storage path via ``configPaths.ensureActorsDir()``,
-     established since v0.17.0).
-   * AC-4: After creation, ``api.rescan()`` is called so subsequent lookups
-     reflect the new actor.
+   * AC-2: If the actor already exists (checked via ``listActors()``), no
+     modification is made.
+   * AC-3: The actor folder is placed under the configured actors folder
+     (``jarvis.actors.folder``, default ``.jarvis/actors/``), as
+     ``Syspilot Setup Engineer/``.
+   * AC-4: The tool's own rescan makes the new actor visible to subsequent
+     ``listActors()`` calls; the module calls no rescan.
 
 
 .. spec:: Notification Message Construction
@@ -281,7 +277,7 @@ Syspilot Lifecycle Design Specifications
    * AC-4: Before or after queuing, ``addAutoDelivery(resolveAutoDeliveryPath(workspaceRoot),
      'Syspilot Setup Engineer')`` is called (idempotent) to ensure the actor
      is on the auto-delivery list — same pattern as the reminders feature
-     (``SPEC_MSG_REMINDERS_POLL``). No manual registration by the user is
+     (``SPEC_MSG_REMINDERSLOOP``). No manual registration by the user is
      required.
    * AC-5: (GH #59) The auto-delivery path is resolved independently, not
      derived from the queue path, and the read unions the superseded

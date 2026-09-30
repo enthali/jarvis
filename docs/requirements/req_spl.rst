@@ -72,7 +72,7 @@ Syspilot Lifecycle Requirements
    :id: REQ_SPL_ACTOR
    :status: draft
    :priority: optional
-   :links: US_SPL_LIFECYCLE; US_ACT_ACTORS
+   :links: US_SPL_LIFECYCLE; US_ACTOR_ACTORS
 
    **Description:**
    The module SHALL ensure a "Syspilot Setup Engineer" actor exists before

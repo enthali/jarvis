@@ -29,15 +29,15 @@ function scanEntityFolder(folder: string): string[] {
     }
 }
 
-/** Rebuild the board index from all entities across all kinds. */
+/** Rebuild the board index from all Actors. */
 function rebuildIndex(api: JarvisCoreApi): void {
     boardIndex.clear();
-    const sessions = api.listJarvisSessions();
-    for (const session of sessions) {
-        if (!session.folder) { continue; }
-        const files = scanEntityFolder(session.folder);
+    const actors = api.listActors();
+    for (const actor of actors) {
+        if (!actor.folder) { continue; }
+        const files = scanEntityFolder(actor.folder);
         if (files.length > 0) {
-            boardIndex.set(session.name, { owner: session.name, folder: session.folder, files });
+            boardIndex.set(actor.name, { owner: actor.name, folder: actor.folder, files });
         }
     }
 }
@@ -50,12 +50,10 @@ interface ResolvedOwner {
 }
 
 function resolveOwnerByName(name: string, api: JarvisCoreApi): ResolvedOwner | undefined {
-    const sessions = api.listJarvisSessions();
-    const match = sessions.find(s => s.name === name);
-    if (match?.folder) {
-        return { name: match.name, folder: match.folder };
-    }
-    return undefined;
+    const actors = api.listActors();
+    const matches = actors.filter(a => a.name === name);
+    if (matches.length !== 1 || !matches[0].folder) { return undefined; }
+    return { name: matches[0].name, folder: matches[0].folder };
 }
 
 async function resolveOwner(
@@ -289,7 +287,7 @@ export function activate(context: vscode.ExtensionContext): void {
     // Core API guard (same pattern as flow/pim)
     const coreExt = vscode.extensions.getExtension('enthali.jarvis-core');
     const api = coreExt?.exports as JarvisCoreApi | undefined;
-    if (!api || api.version !== 1) {
+    if (!api || api.version !== 2) {
         log.error('[Kanban] Jarvis core API not available or version mismatch — Kanban will not activate.');
         return;
     }
@@ -307,21 +305,6 @@ export function activate(context: vscode.ExtensionContext): void {
         instructionsSourceDir: context.asAbsolutePath('assets/instructions'),
         enabled: autoProvision,
     });
-
-    // ── Discovery decorator ────────────────────────────────────────────
-
-    for (const kind of ['session', 'project', 'event']) {
-        context.subscriptions.push(api.registerDecorator(kind, {
-            decorate(item, node, _kind) {
-                if (node.kind !== 'leaf') { return; }
-                const folder = path.dirname(node.id);
-                const files = scanEntityFolder(folder);
-                if (files.length > 0 && item.contextValue) {
-                    item.contextValue += ',kanban';
-                }
-            },
-        }));
-    }
 
     // ── Commands ───────────────────────────────────────────────────────
 
@@ -387,19 +370,19 @@ export function activate(context: vscode.ExtensionContext): void {
             let ownerFolder: string;
             let ownerLabel: string;
 
-            if (node?.kind === 'leaf' && node.id) {
+            if (node?.kind === 'actor' && node.id) {
                 // Invoked from tree context menu — entity folder from node
                 ownerFolder = path.dirname(node.id);
                 ownerLabel = path.basename(ownerFolder);
             } else {
                 // Command palette — pick owner
-                const sessions = api.listJarvisSessions();
-                if (sessions.length === 0) {
-                    vscode.window.showInformationMessage('No entities found.');
+                const actors = api.listActors();
+                if (actors.length === 0) {
+                    vscode.window.showInformationMessage('No Actors found.');
                     return;
                 }
                 const pick = await vscode.window.showQuickPick(
-                    sessions.map(s => ({ label: s.name, description: s.kind, folder: s.folder })),
+                    actors.map(a => ({ label: a.name, description: a.summary, folder: a.folder })),
                     { placeHolder: 'Select an owner for the new kanban board' }
                 );
                 if (!pick?.folder) { return; }

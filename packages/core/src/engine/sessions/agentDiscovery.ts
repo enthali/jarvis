@@ -1,11 +1,5 @@
-// Implementation: SPEC_SES_AGENT_DISCOVERY
-// Requirements: REQ_SES_AGENT_DISCOVERY
-//
-// Extracted from extension.ts (SPEC_EXP_ENTITY_FILE_CHILDREN amendment): the
-// agent-file resolution needed by getEntityFileChildren() (yamlScanner.ts)
-// must not import from extension.ts (extension.ts -> treeFactory.ts ->
-// yamlScanner.ts would become a cycle). This module has no dependency on
-// extension.ts and can be imported by both.
+// Implementation: SPEC_ACTOR_AGENT_DISCOVERY, SPEC_ACTOR_FILES
+// Requirements: REQ_ACTOR_AGENT_DISCOVERY
 
 import * as fs from 'fs';
 import * as path from 'path';
@@ -83,33 +77,4 @@ export async function discoverAgentModes(): Promise<AgentModeEntry[]> {
     }
 
     return agents.sort((a, b) => a.name.localeCompare(b.name));
-}
-
-// SPEC_EXP_ENTITY_FILE_CHILDREN: module-level cache — agent files are static
-// configuration for the lifetime of the extension host session, so the
-// underlying discoverAgentModes() filesystem scan is not re-run on every
-// tree expansion.
-let _agentModesCache: AgentModeEntry[] | undefined;
-
-export async function getAgentModesCached(): Promise<AgentModeEntry[]> {
-    if (!_agentModesCache) {
-        _agentModesCache = await discoverAgentModes();
-    }
-    return _agentModesCache;
-}
-
-/** Resolves entity.agent (frontmatter identity) to its .agent.md file. */
-export async function resolveAgentFileChild(
-    entityAgent: string | undefined,
-    workspaceRoot: string
-): Promise<{ kind: 'file'; filePath: string; label: string } | undefined> {
-    if (!entityAgent) { return undefined; }
-    const modes = await getAgentModesCached();
-    const match = modes.find(m => m.name === entityAgent);
-    if (!match) { return undefined; } // fail-open: unresolved identity → no agent-file child
-    return {
-        kind: 'file',
-        filePath: path.join(workspaceRoot, match.filePath),
-        label: path.basename(match.filePath),
-    };
 }

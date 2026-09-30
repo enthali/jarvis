@@ -90,23 +90,23 @@ Kanban Requirements
    :id: REQ_KAN_DISCOVER
    :status: draft
    :priority: required
-   :links: US_KAN_DISCOVER
+   :links: US_KAN_DISCOVER; REQ_ENG_ACTORLIST
 
    **Description:**
-   Kanban boards SHALL be discovered by convention: a board file in an actor's
-   or entity's folder makes that node own the board. No explicit path setting
-   is required.
+   Kanban boards SHALL be discovered by convention: a board file in an Actor's
+   folder makes that Actor own the board. No explicit path setting is
+   required.
 
    **Acceptance Criteria:**
 
-   * AC-1: ``kanban.yaml`` in an entity's folder SHALL be recognized as the
-     default board for that entity.
-   * AC-2: ``<name>.kanban.yaml`` in an entity's folder SHALL be recognized as
+   * AC-1: ``kanban.yaml`` in an Actor's folder SHALL be recognized as the
+     default board for that Actor.
+   * AC-2: ``<name>.kanban.yaml`` in an Actor's folder SHALL be recognized as
      a named board.
-   * AC-3: Discovery SHALL scan all entity folders known to the scanner
-     (sessions, projects, events) for matching filenames.
-   * AC-4: Discovery SHALL update when the scanner rescans (e.g. after entity
-     creation) and when board files are created or deleted.
+   * AC-3: Discovery SHALL scan the folders of all Actors
+     (``REQ_ENG_ACTORLIST``) for matching filenames.
+   * AC-4: Discovery SHALL update when the Actors are rescanned (e.g. after
+     Actor creation) and when board files are created or deleted.
 
 
 .. req:: Kanban Board UX Entry Points
@@ -117,31 +117,27 @@ Kanban Requirements
 
    **Description:**
    The extension SHALL provide two entry points for opening a kanban board:
-   a tree button on the owning node and a command palette entry.
+   the board file in the Actor's "Files" category (``REQ_KAN_FILEOPEN``) and a
+   command palette entry. There is no inline board button on Actor nodes.
 
    **Acceptance Criteria:**
 
-   * AC-1: A tree inline button SHALL appear on actor/entity nodes that own
-     at least one board file.
-   * AC-2: Clicking the button when the owner has exactly one board SHALL
-     open it directly in the renderer.
-   * AC-3: Clicking the button when the owner has multiple boards SHALL
-     present a Quick Pick to select which board to open.
    * AC-4: A ``Jarvis: Open Kanban Board`` command SHALL be available in the
      Command Palette.
    * AC-5: The command SHALL present a Quick Pick of known board owners, then
      (if the selected owner has multiple boards) a second Quick Pick of
      boards.
-   * AC-6: A context menu entry "Add Kanban Board" SHALL appear on entity root
-     nodes (Session/Project/Event). Selecting it SHALL create a board for the
-     right-clicked entity directly, skipping the owner Quick Pick.
+   * AC-6: A context menu entry "Add Kanban Board" SHALL appear on Actor
+     nodes (``contextValue`` ``jarvisActor``). Selecting it SHALL create a
+     board in the right-clicked Actor's folder directly, skipping the owner
+     Quick Pick.
 
 
 .. req:: jarvis_createKanbanBoard Tool
    :id: REQ_KAN_CREATE
    :status: draft
    :priority: required
-   :links: US_KAN_TOOLS; REQ_ACT_WHOAMI
+   :links: US_KAN_TOOLS; REQ_ACTOR_WHOAMI
 
    **Description:**
    An LM+MCP tool ``jarvis_createKanbanBoard`` SHALL create a new kanban
@@ -154,9 +150,10 @@ Kanban Requirements
    * AC-2: When ``boardName`` is omitted or empty, the file SHALL be named
      ``kanban.yaml``. When provided, ``<boardName>.kanban.yaml``.
    * AC-3: When ``ownerName`` is omitted, the tool SHALL resolve the calling
-     actor via ``jarvis_whoAmI`` (``REQ_ACT_WHOAMI``).
+     actor via ``jarvis_whoAmI`` (``REQ_ACTOR_WHOAMI``).
    * AC-4: When ``ownerName`` is provided, the tool SHALL resolve it against
-     known actors/entities in the scanner.
+     the discovered Actors; it resolves only when exactly one Actor carries
+     that name (``REQ_ACTOR_SCHEMA`` AC-7).
    * AC-5: If the owner cannot be resolved, the tool SHALL return
      ``{ error: "actor unknown" }``.
    * AC-6: The tool SHALL write a valid skeleton YAML file conforming to
@@ -170,7 +167,7 @@ Kanban Requirements
    :id: REQ_KAN_VERIFY
    :status: draft
    :priority: required
-   :links: US_KAN_TOOLS; REQ_KAN_SCHEMA; REQ_ACT_WHOAMI
+   :links: US_KAN_TOOLS; REQ_KAN_SCHEMA; REQ_ACTOR_WHOAMI
 
    **Description:**
    An LM+MCP tool ``jarvis_verifyKanbanSchema`` SHALL read a board YAML file,
@@ -198,7 +195,7 @@ Kanban Requirements
    :id: REQ_KAN_OPEN
    :status: draft
    :priority: required
-   :links: US_KAN_TOOLS; REQ_KAN_RENDERER; REQ_ACT_WHOAMI
+   :links: US_KAN_TOOLS; REQ_KAN_RENDERER; REQ_ACTOR_WHOAMI
 
    **Description:**
    An LM+MCP tool ``jarvis_openKanbanBoard`` SHALL open a kanban board in
@@ -255,7 +252,7 @@ Kanban Requirements
    :id: REQ_KAN_UPDATE
    :status: draft
    :priority: required
-   :links: US_KAN_TOOLS; REQ_KAN_SCHEMA; REQ_ACT_WHOAMI
+   :links: US_KAN_TOOLS; REQ_KAN_SCHEMA; REQ_ACTOR_WHOAMI
 
    **Description:**
    An LM+MCP tool ``jarvis_updateKanbanItem`` SHALL update a single item on
@@ -322,8 +319,8 @@ Kanban Requirements
    * AC-2: "Open as Text" SHALL be accessible via the editor title bar
      button when the kanban webview is active. Files tree context menu
      access is deferred to a separate CR.
-   * AC-3: Behavior SHALL be uniform with other kanban entry points (tree
-     button, command palette, tools).
+   * AC-3: Behavior SHALL be uniform with other kanban entry points (command
+     palette, tools).
 
 
 .. req:: Freeform Text Field Type
@@ -409,7 +406,7 @@ Kanban Requirements
    :id: REQ_KAN_ADD
    :status: approved
    :priority: required
-   :links: US_KAN_TOOLS; REQ_KAN_SCHEMA; REQ_KAN_WRITEVALID; REQ_ACT_WHOAMI
+   :links: US_KAN_TOOLS; REQ_KAN_SCHEMA; REQ_KAN_WRITEVALID; REQ_ACTOR_WHOAMI
 
    **Description:**
    An LM+MCP tool ``jarvis_addKanbanItem`` SHALL append a new item to a kanban
@@ -441,7 +438,7 @@ Kanban Requirements
    :id: REQ_KAN_DELETE
    :status: approved
    :priority: required
-   :links: US_KAN_TOOLS; REQ_KAN_SCHEMA; REQ_ACT_WHOAMI
+   :links: US_KAN_TOOLS; REQ_KAN_SCHEMA; REQ_ACTOR_WHOAMI
 
    **Description:**
    An LM+MCP tool ``jarvis_deleteKanbanItem`` SHALL remove a single item from a
@@ -466,7 +463,7 @@ Kanban Requirements
    :id: REQ_KAN_LIST
    :status: approved
    :priority: required
-   :links: US_KAN_QUERY; REQ_ACT_WHOAMI
+   :links: US_KAN_QUERY; REQ_ACTOR_WHOAMI
 
    **Description:**
    An LM+MCP tool ``jarvis_listKanbanItems`` SHALL return a filtered, compact
@@ -498,7 +495,7 @@ Kanban Requirements
    :id: REQ_KAN_FIELDS
    :status: approved
    :priority: required
-   :links: US_KAN_TOOLS; REQ_KAN_SCHEMA; REQ_KAN_TEXTFIELD; REQ_ACT_WHOAMI
+   :links: US_KAN_TOOLS; REQ_KAN_SCHEMA; REQ_KAN_TEXTFIELD; REQ_ACTOR_WHOAMI
 
    **Description:**
    An LM+MCP tool ``jarvis_updateKanbanFields`` SHALL evolve a board's field
@@ -565,8 +562,8 @@ Kanban Requirements
      as a silent-failure trap (GH #57).
    * AC-4: The skill SHALL document the owner-resolution convention as
      implemented: ``ownerName`` omitted addresses the calling actor's own board;
-     ``ownerName`` supplied addresses another entity's board and returns
-     ``{ error: "actor unknown" }`` if the name matches no scanned entity.
+     ``ownerName`` supplied addresses another Actor's board and returns
+     ``{ error: "actor unknown" }`` if the name matches no discovered Actor.
    * AC-5: The skill SHALL state that ``status`` is a mandatory single-select
      field whose options define the board's columns.
    * AC-6: The skill SHALL include a complete, schema-valid example board

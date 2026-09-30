@@ -1,0 +1,13 @@
+/* Sphinx-Needs paints need tables using --sn-color-* variables. Scope their
+   backgrounds and borders to Furo's theme colors for both light and dark mode. */
+
+table.need {
+  --sn-color-need-bg: var(--color-background-secondary);
+  --sn-color-need-bg-head: var(--color-background-hover);
+  --sn-color-need-border: var(--color-background-border);
+  color: var(--color-foreground-primary);
+}
+
+table.need a {
+  color: var(--color-link);
+}

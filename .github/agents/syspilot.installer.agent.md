@@ -1,6 +1,5 @@
 ---
 description: "Internal installation engine for syspilot. Invoked by Bootloader only — not user-invocable."
-model: GPT-5.6 Sol (copilot)
 user-invocable: false
 agents: []
 ---

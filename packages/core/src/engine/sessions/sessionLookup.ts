@@ -131,15 +131,22 @@ export async function getEntityNameForSessionId(
     return all.find(s => s.sessionId === sessionId)?.title;
 }
 
-// Implementation: SPEC_AUT_HEARTBEAT_RESOLVER_REUSE
-// Requirements: REQ_AUT_HEARTBEAT_RESOLVER_REUSE
-// Shared destination validator — union of {chat session titles} ∪ {YAML entity names}
-export async function getValidDestinations(
-    scanner?: { entities: { name: string }[] }
-): Promise<string[]> {
-    const allSessions = await getAllSessions();
-    const chatTitles = filterNamedSessions(allSessions).map(s => s.title);
-    const entityNames = scanner?.entities?.map(e => e.name) ?? [];
-    const union = new Set([...chatTitles, ...entityNames]);
-    return [...union];
+// Implementation: SPEC_AUT_HEARTBEAT_RESOLVER_REUSE, SPEC_ACTOR_SCANNER
+// Requirements: REQ_AUT_HEARTBEAT_RESOLVER_REUSE, REQ_ACTOR_SCHEMA
+// Shared destination validator — Actor names only; ambiguous names (shared by
+// more than one Actor) are excluded, matching resolveName()'s rejection.
+export function getValidDestinations(
+    scanner?: { actors: { name: string }[] }
+): string[] {
+    return combineValidDestinations(scanner);
+}
+
+export function combineValidDestinations(
+    scanner?: { actors: { name: string }[] }
+): string[] {
+    const counts = new Map<string, number>();
+    for (const actor of scanner?.actors ?? []) {
+        counts.set(actor.name, (counts.get(actor.name) ?? 0) + 1);
+    }
+    return [...counts.entries()].filter(([, count]) => count === 1).map(([name]) => name);
 }

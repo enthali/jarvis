@@ -32,13 +32,14 @@ Message Logging User Acceptance Tests
    **T-2 — No log file when logging=false**
      Setup: Ensure ``jarvis.messages.logging`` is false (default). Delete any
      existing ``message-log.json`` from the messages folder.
-     Action: Use the ``jarvis_sendToSession`` LM tool to send a message to a session.
+     Action: Use the ``jarvis_sendMessage`` LM tool to send a message from the
+     Actor "TestSender" to the Actor "TestTarget".
      Expected: No ``message-log.json`` file is created in the messages folder.
 
    **T-3 — Log file created when logging=true**
      Setup: Set ``jarvis.messages.logging`` to true. Ensure no ``message-log.json``
      exists.
-     Action: Use ``jarvis_sendToSession`` to send a message.
+     Action: Use ``jarvis_sendMessage`` to send a message (as in T-2).
      Expected: ``message-log.json`` is created in the messages folder and contains
      the sent message.
 
@@ -51,7 +52,7 @@ Message Logging User Acceptance Tests
    **T-5 — Read/delete does not modify log file**
      Setup: ``jarvis.messages.logging`` is true. Send one message, note the contents
      of ``message-log.json``.
-     Action: Use the ``jarvis_readMessage`` LM tool to read the message, then
+     Action: Use the ``jarvis_receiveMessage`` LM tool to read the message, then
      ``deleteMessage`` to delete it.
      Expected: ``message-log.json`` is unchanged — same content as before the
      read/delete.
@@ -59,6 +60,6 @@ Message Logging User Acceptance Tests
    **T-6 — Second message appends to existing log**
      Setup: ``jarvis.messages.logging`` is true. Send a first message so
      ``message-log.json`` exists with one entry.
-     Action: Send a second message via ``jarvis_sendToSession``.
+     Action: Send a second message via ``jarvis_sendMessage``.
      Expected: ``message-log.json`` now contains two entries; the first entry is
      preserved intact.
