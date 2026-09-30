@@ -100,7 +100,7 @@ Nicht unterstützt: Intel Mac, 32-bit/Arm32, musl (Alpine). Fallback: VS Code Sp
 - ❌ Nur eine Session gleichzeitig, 20-Minuten-Limit
 - **Fazit:** Unbrauchbar für programmatischen Use Case.
 
-### Option 2: `@huggingface/transformers` + ONNX Nemotron (★ Phase 1)
+### Option 2: `@huggingface/transformers` + ONNX Nemotron (Verworfen)
 
 ```js
 import { pipeline } from '@huggingface/transformers';
@@ -112,42 +112,44 @@ const transcript = await asr(audioBlob, { language: 'de', task: 'transcribe' });
 - ✅ NPM-Package, kein Docker, kein Python
 - ✅ On-device (ONNX Runtime, CPU)
 - ✅ Volle programmatische Kontrolle (Audio → Transcript als Return-Value)
-- ✅ Selbe Modell-Familie wie VS Code (Nemotron 3.5 ASR)
-- ⚠️ **Streaming-Support unsicher** — Transformers.js ASR ist primär Batch (record→stop→transcribe),
-  nicht Live-Streaming wie Foundry Local
-- ⚠️ `@huggingface/transformers` v5.13.0+ nötig für Nemotron; ältere → `whisper-base` Fallback
-- ⚠️ INT4-Quantisierung ist Community-Upload, nicht offiziell von NVIDIA
+- ❌ **Primär Batch** — CTC-basiertes Strided Chunking, kein RNNT-Streaming
+- ❌ `chunk_length_s` Default 30s → hohe Latenz bis Output
+- ❌ INT4-Quantisierung ist Community-Upload, nicht offiziell von NVIDIA
+- ❌ Kein VAD/Endpointing — müssen wir selbst bauen
+- **Fazit:** Falsche Architektur für unseren Use Case. Transformers.js ist für
+  CTC-Modelle (Whisper/Wav2Vec2) gebaut, nicht für RNNT-Streaming (Nemotron).
 
-### Option 3: NeMo-Speech.cpp (★ Phase 2 — für Streaming)
+### Option 3: NeMo-Speech.cpp (Alternative)
 
 NVIDIA veröffentlicht `NeMo-Speech.cpp` — lightweight C++ Runtime für genau dieses Modell:
 `https://github.com/NVIDIA/NeMo-Speech.cpp`
-
-```bash
-# GGUF-Modell
-hf download nvidia/nemotron-3.5-asr-streaming-0.6b \
-  nemotron-3.5-asr-streaming-0.6b.q8_0.gguf --local-dir models
-# Transcribe
-nemo-speech transcribe audio.wav --model models/...q8_0.gguf --language de-DE
-```
 
 - ✅ Cache-Aware Streaming RNNT (gleiches Modell wie VS Code)
 - ✅ VAD + Endpointing eingebaut
 - ✅ GGUF — effizient, CPU-only
 - ✅ Multilingual (40 Locales)
 - ❌ Native Binary (kompilieren oder distributieren, kein npm)
-- Ähnlich zu `recorder.py`-Ansatz, aber besseres Modell, kein Docker, kein Python
-- CLI-basiert: kann als `child_process.spawn()` aus Extension laufen
+- Nur als Fallback falls `onnxruntime-node` nicht funktioniert
 
-### Option 4: `onnxruntime-node` direkt (★ Phase 3 — voll integriert)
+### Option 4: `onnxruntime-node` direkt (★ Entscheidete Option)
 
 VS Code nutzt `onnxruntime + onnxruntime-genai`. `onnxruntime-node` ist ein npm-Package.
+Wir bauen genau diese Architektur nach.
 
-- ✅ NPM-Package, kein Docker
-- ✅ Selbe Technologie wie VS Code
-- ❌ VAD, Endpointing, RNNT-Decoding selbst implementieren
-- ❌ Sehr viel Low-Level-Code
-- Nur sinnvoll wenn voll integrierte Live-Streaming-Pipeline gewünscht
+**Entscheidungsgrund:** VS Code beweist täglich auf unserem Rechner dass
+`onnxruntime` + Nemotron funktioniert. Wir müssen nicht raten ob es geht — wir wissen es.
+Auch: Transformers.js (Option 2) ist für CTC-Modelle gebaut (Batch/Strided), nicht für
+RNNT-Streaming. Wir brauchen aber Streaming, und RNNT-Streaming ist genau das was
+`onnxruntime-genai` bietet.
+
+- ✅ NPM-Package, kein Docker, kein Python, keine native Binary
+- ✅ **Bewiesen auf unserem Rechner** — VS Code läuft damit jeden Tag
+- ✅ RNNT Cache-Aware Streaming (gleiches Modell wie VS Code)
+- ✅ Volle programmatische Kontrolle über Audio-Pipeline
+- ✅ Audio-Capture via Web Audio API (Webview) oder Node native — beides npm-basiert
+- ⚠️ VAD/Endpointing muss implementiert werden (VS Code nutzt Foundry Local dafür;
+  wir können `onnxruntime-genai`'s eingebautes Streaming nutzen oder eigenes VAD)
+- ⚠️ Mehr Low-Level-Code als Transformers.js, aber VS Code Source als Referenz
 
 ---
 
@@ -165,27 +167,51 @@ Alle Optionen brauchen Audio-Capture. Drei Wege:
 
 ## Empfohlener Phasen-Plan
 
-### Phase 1: Quick-Spike (≈1 Tag)
+### Phase 1: Prototyp-Spike auf Research-Branch (≈1–2 Tage)
 
-`@huggingface/transformers` + `onnx-community/nemotron-3.5-asr-streaming-0.6b-onnx-int4`
-+ bestehendes `recorder.py` für Audio-Capture.
+`onnxruntime-node` + Nemotron ONNX + bestehendes `recorder.py` für Audio-Capture.
 
-- recorder.py läuft wie bisher, schreibt WAV
-- Extension transkribiert beim Stop mit Transformers.js
-- **Beweist:** Nemotron on-device in Node.js funktioniert, Qualität gut genug
-- **Eliminiert:** Docker, Whisper-Setup, File-Polling-Heartbeat, Sidecar-JSON
-- Python bleibt nur für Audio-Capture (kann später auch ersetzt werden)
+**Ziel:** Beweisen dass `onnxruntime-node` + Nemotron in unserer Umgebung läuft,
+mit voller Kontrolle über Audio-Stream und Transcript-Output.
 
-### Phase 2: Streaming (wenn Live-Transcript gewünscht)
+```
+research/recorder-nemotron-spike/
+├── package.json              ← onnxruntime-node, @huggingface/transformers (für Modell-Download)
+├── transcribe.mjs            ← Test A+B: WAV-Datei → onnxruntime → Transcript
+├── stream-test.mjs           ← Test D: WAV in Chunks → onnxruntime-genai Streaming → interim Results
+├── auto-lang-test.mjs        ← Test E: target_lang=auto bei gemischter Sprache
+└── README.md                 ← Ergebnisse notieren
+```
 
-NeMo-Speech.cpp als `child_process.spawn()` statt `recorder.py`.
-Gleiches Interface (file-basiert oder stdin/stdout-pipe), aber mit Streaming
-und Cache-Aware RNNT.
+**Tests:**
+
+| Test | Was wir prüfen | Status |
+|------|---------------|--------|
+| A | `onnxruntime-node` lädt Nemotron ONNX in Node.js | Offen |
+| B | Batch-Transkription (WAV → Text) | Offen |
+| C | Qualität für Meeting-Transcripts | ✅ Bewiesen (Live-Diktat) |
+| D | Streaming: Chunks einspeisen → interim Results via `onnxruntime-genai` | Offen (Hauptfrage) |
+| E | `target_lang=auto` — Sprachwechsel mid-stream erkennen | Offen (Bonus) |
+
+**Was wir nach Phase 1 wissen:**
+- Läuft `onnxruntime-node` + Nemotron ohne VS Code's Foundry Local SDK?
+- Funktioniert Streaming (interim Results) oder nur Batch?
+- Wie viel Code brauchen wir für VAD/Endpointing?
+- Performance/Latenz auf CPU?
+- Modell-Grösse und Ladezeit?
+
+### Phase 2: Extension-Integration (nach Spike, als CR)
+
+Wenn Phase 1 erfolgreich: Integration in `packages/recorder`.
+- Audio-Capture replaces `recorder.py` (Webview + getUserMedia oder Node native)
+- `onnxruntime-node` als Dependency
+- Streaming-Transcript → `jarvis.internalAppendMessage` wie bisher
+- Config: Model-Path/Cache-Dir statt `whisperPath`
 
 ### Phase 3: Voll integriert (optional)
 
-Webview + getUserMedia + `onnxruntime-node` für Live-Streaming direkt in der
-Extension, ohne externen Prozess. Entspricht VS Code's Architektur.
+Live-Streaming-Anzeige im UI (wie VS Code's Diktat-Transcript).
+Audio-Worklet im Webview für Echtzeit-PCM16.
 
 ---
 
@@ -244,14 +270,17 @@ Beobachtungen:
 
 ## Offene Fragen
 
-1. **Transformers.js Streaming:** Unterstützt `@huggingface/transformers` Streaming-ASR mit
-   Nemotron, oder nur Batch? → Test D.
-2. **INT4-Qualität:** Ist die INT4-Quantisierung gut genug vs. FP32? → Test B Vergleich.
-3. **Modell-Download-Größe:** Wie groß ist das ONNX INT4-Modell? (Original ist ~600M Parameter)
-4. **CPU-Performance:** Latenz auf CPU beim Transkribieren? (VS Code nutzt Utility Process)
-5. **NeMo-Speech.cpp Windows-Build:** Gibt es Prebuilt-Binaries für Windows, oder muss kompiliert werden?
-6. **`target_lang=auto` in Transformers.js:** Wird dieser Parameter vom `onnx-community`-Modell
-   unterstützt, oder nur im Original NeMo/Transformers? → Test E.
+1. **onnxruntime-genai Streaming:** Bietet `onnxruntime-genai` (npm) eine
+   Streaming-Session-API wie VS Code's Foundry Local `LiveAudioTranscriptionSession`?
+   → Test D.
+2. **VAD/Endpointing:** Brauchen wir eigenes Voice Activity Detection, oder
+   übernimmt `onnxruntime-genai` das? VS Code nutzt Foundry Local dafür.
+3. **Modell-Format:** Welches ONNX-Format brauchen wir? VS Code nutzt das
+   Foundry-Local-Modell-Package. Für `onnxruntime-node` brauchen wir das
+   rohe ONNX-Modell (z.B. von HuggingFace).
+4. **CPU-Performance:** Latenz auf CPU beim Streaming? VS Code nutzt Utility
+   Process (separater Thread) — brauchen wir das auch?
+5. **Modell-Download-Größe:** Wie groß ist das ONNX-Modell? (Original ~600M Parameter)
 
 ---
 
