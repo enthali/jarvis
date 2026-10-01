@@ -454,6 +454,62 @@ oder zweiter Prozess) sind nicht geprüft. Das Stereo-Schema der heutigen PowerS
 3. Eigener Modell-Download im Extension Host (Quelle und Protokoll klären, 756 MB über den Proxy).
 4. Fehlerfälle der SDK provozieren (falsches Format, Modell entladen), für REQ_REC_FAILURE.
 
+## Nachtrag L2: SDK 2.1.0 (Entscheidung des Nutzers 2026-10-01)
+
+Der Nutzer entschied: SDK 2.1.0 aus dem offiziellen Kanal, Modell aus VS Codes Cache, Engine im Kindprozess, nur Windows. Evidenz wie oben (belegt / gelesen / nicht geprüft).
+**Wichtig:** Alle Messwerte der L2-Antworten (Latenz, Ereignisformen, „eine Session pro Modell“, Event-Loop-Verzögerung) stammen von **SDK 1.2.3**.
+Mit 2.1.0 wurde der Live-Pfad **nicht geprüft**; dort liefen nur Modell laden und `transcribeStreaming(<WAV-Datei>)`.
+2.1.0 hat den deprecated `AudioClient.createLiveTranscriptionSession()` (Entfernung „Ende 2026“, gelesen) und die neue `AudioSession` mit `ItemQueue`
+(`Item.bytes(pcm)` pushen, `markFinished()`; gelesen in `session.d.ts`/`item-queue.d.ts`).
+
+**1. Laufzeitbestandteile win-x64 und Herkunft** (gelesen: `npm pack --dry-run`, `install-native.cjs`, `deps_versions.json`)
+
+| Bestandteil | Quelle | Größe |
+|-------------|--------|--------|
+| `dist/` (reines JS, importiert nur `node:*`), `foundry_local_node.node`, `foundry_local_preload.node`, `foundry_local.dll`, `Microsoft.Windows.AI.MachineLearning.dll` (WinML 2.4.89) | npm-Tarball `foundry-local-sdk@2.1.0` (alle Plattformen) | Tarball 32,7 MB (entpackt 89,1 MB); win-x64-Dateien zusammen ca. 13 MB |
+| `onnxruntime.dll` (ORT 1.30.0) | NuGet `Microsoft.ML.OnnxRuntime` 1.30.0, Pfad `runtimes/win-x64/native/` | nupkg 149,9 MB, DLL 16,5 MB |
+| `onnxruntime-genai.dll` (GenAI 0.17.1) | NuGet `Microsoft.ML.OnnxRuntimeGenAI.Foundry` 0.17.1 | nupkg 33,2 MB, DLL 8,6 MB |
+
+GitHub-Releases enthalten nichts davon (nur CLI/MSIX und Quellen). Auf der Platte ca. 38 MB; laut Skript über das Netz ca. 216 MB (das Skript lädt die ganzen nupkgs;
+Teil-Download per Range-Request: nicht geprüft). Programmatisch: Der Loader erwartet `<Paketwurzel>/prebuilds/win32-x64/foundry_local_node.node` oder die Config
+`libraryPath` (Ordner mit `foundry_local.dll`; ORT wird aus demselben Ordner vorgeladen; gelesen in `native.js`). Das Installationsskript nutzt rohes `https.get` ohne Proxy-Agent
+und `adm-zip`; im Extension Host läuft derselbe Aufruf über VS Codes Netzwerkschicht (analoge Aufrufe im Probe belegt: nuget.org 200, 18,6-MB-Tarball). Unterschied zu meiner
+manuellen Variante: keine bekannt, dieselben Dateien. Nicht geprüft: programmatischer Ende-zu-Ende-Lauf, Hash-Prüfung (im gelesenen Teil des Skripts nicht gefunden).
+Leftover-Hinweis: Ordner `foundry-local-core/` im Spike gehört zu 1.2.3, nicht zu 2.1.0.
+
+**2. Kindprozess:** Das Addon nutzt Node-API (`node-addon-api` in `package.json`, `engines: node >=20`). Geladen und benutzt in Node 26.7.0 (Terminal) und im Extension Host
+(Electron, Node 24.20.0), jeweils belegt. Welche Node-Binary der Kindprozess nutzt: nicht geprüft (system-Node ist nicht vorauszusetzen; Kandidat `process.execPath` = `Code.exe`
+mit `ELECTRON_RUN_AS_NODE=1`). Nicht geprüft: DLL-Suche bei Nicht-ANSI-Pfaden (SDK 1.2.1 hatte dafür einen Fix; `%APPDATA%`-Pfade können Sonderzeichen enthalten).
+
+**3. Modell über lokalen Katalog:** `FoundryLocalManager.create({appName, modelCacheDir, …})` → `manager.getCatalog(CatalogType.Local)` →
+`catalog.registerModel(<Ordner …\v3>, '<id>', MutableModelInfo)` (DisplayName, `ModelType='nemotron_speech'`, `Task='automatic-speech-recognition'`) → `model.load()`. Zuvor `getModelVariant(id)`:
+Die Registrierung bleibt im `modelCacheDir` bestehen, ein zweites `registerModel` wirft „already registered“ (belegt). Der Spike (`common.mjs`, Tests A/B/D/E) nutzte genau das auf 2.1.0 mit
+VS Codes Modellordner (belegt). Debug-Log eines Nachlaufs (belegt): Manager-Erzeugung und Registrierung ohne Katalog-/Regionsabruf, „loading model from <VS-Code-Pfad>“, das Modell wird in place geladen,
+nicht kopiert. Der öffentliche Katalog (`AzureModelCatalog`) wird angelegt, aber nicht abgefragt, solange man `manager.catalog`/`getModels()` nicht benutzt. Die Abschlusszeile „geladen“ wurde im Nachlauf nicht mitgeschrieben (Test A war PASS).
+
+**4. Lizenzen** (gelesen, Rechtsbewertung nicht von mir)
+
+| Komponente | Lizenz | Stand |
+|------------|--------|-------|
+| `foundry-local-sdk` (npm, inkl. `foundry_local.dll`) | MIT (`package.json`; Repo-`LICENSE`: Abschnitt „FOUNDRY LOCAL SDK – MIT“) | gelesen |
+| Foundry Local CLI | Microsoft Software License Terms (enthält Verbote wie Mitbündeln in Anwendungen; gilt nur für die CLI, die nicht benutzt wird) | gelesen |
+| ONNX Runtime, ONNX Runtime GenAI | MIT (Upstream-`LICENSE`); nuspec: Lizenzdatei `LICENSE`, Autor Microsoft; Datei im nupkg nicht gelesen | gelesen / teils nicht geprüft |
+| `Microsoft.Windows.AI.MachineLearning.dll` (im npm-Tarball) | nuspec verweist auf `license.txt`; Inhalt **nicht gelesen** | nicht geprüft |
+| Modell `nemotron-3.5-asr-streaming-0.6b` | Foundry-Katalogeintrag: MIT; NVIDIA-Modellkarte: `openmdw-1.1`. Der Widerspruch ist ungeklärt; relevant nur bei Weitergabe, nicht bei Nutzung aus VS Codes Cache | gelesen, Widerspruch offen |
+
+In den gelesenen Lizenztexten (MIT, Repo-`LICENSE`) steht kein Verbot, die Bestandteile zur Laufzeit herunterzuladen. Die Nutzungsbedingungen von nuget.org/npm: nicht gelesen.
+Die Repo-`LICENSE` verweist auf `ThirdPartyNotices` und sagt, Modelle unterlagen den Lizenzen des jeweiligen Modells.
+
+**5. Telemetrie** (gelesen: `README.md`, `sdk_v2/cpp/docs/Privacy.md`; Beobachtung im Log: belegt)
+Foundry Local sendet standardmäßig Trace-Events über 1DS an Microsoft; laut Doku nicht erfasst: Prompts, Modellausgaben, Audioinhalte, Geräte-Rohkennungen, Secrets.
+Abschalten (Doku): `disableNonessentialTelemetry: true` in der Manager-Config (vor dem Erzeugen) oder Umgebungsvariable `ORT_TELEMETRY_DISABLED=1`; ein minimales `ProcessInfo`-Event kann trotzdem gesendet werden
+(Kommentar in `configuration.d.ts`). Im Log belegt: beim Erzeugen „1DS initialized“, `ProcessInfo` (u. a. AppName, Prozessname, CPU-Anzahl, RAM) und `HardwareInfo`.
+Datenschutzerklärung: https://go.microsoft.com/fwlink/?LinkID=824704. Ob die Events hinter dem Proxy tatsächlich ankommen oder an 407 scheitern: nicht geprüft.
+
+**6. Größe und Zeit:** einmalig ca. 216 MB laut Skript (32,7 + 149,9 + 33,2), auf der Platte ca. 38 MB; das Modell (756 MB) kommt aus VS Codes Cache, kein Download.
+Zeit über den Proxy: nur ein Messwert (18,6 MB in 1,4 s aus dem Extension Host, anderer Host). Die großen NuGet-/npm-Downloads aus dem Extension Host: nicht geprüft;
+unsere frühere manuelle NuGet-Beschaffung mit `Invoke-WebRequest` hat funktioniert (nicht gemessen). curl im Terminal bekommt von nuget.org 407, Node im Extension Host nicht.
+
 ## Spike-Tests (Stand 2026-09-30)
 
 | Test | Was | Status |
