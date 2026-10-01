@@ -1,0 +1,10 @@
+{
+  "name": "fl123-probe",
+  "version": "0.0.1",
+  "private": true,
+  "publisher": "research",
+  "description": "Extension-host probe: SDK 1.2.3 live session, runtime CDN download, webview audio permissions",
+  "main": "./extension.cjs",
+  "engines": { "vscode": "^1.95.0" },
+  "activationEvents": ["onStartupFinished"]
+}
