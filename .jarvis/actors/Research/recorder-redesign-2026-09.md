@@ -313,6 +313,7 @@ kein `libcurl`; WinHTTP liest keine `HTTPS_PROXY`-Variablen, sondern die System-
 Das passt zu den Beobachtungen, belegt aber nicht, dass WinHTTP die Ursache ist. VS Codes
 eigener Quellcode (`localTranscriptionService.ts`) geht davon aus, dass der native Download
 die Env-Variablen liest, und setzt sie deshalb aus `http.proxy`; das widerspricht der Hypothese.
+**Update 2026-10-01:** Für SDK 1.2.3 widerlegt — der Core liest `HTTPS_PROXY` und bekommt vom Proxy HTTP 407 (siehe „L2-Antworten“, Abschnitt 4).
 
 **Extension-Host-Test (belegt):** Mini-Extension, Commit `59458c1` auf dem Research-Branch
 (`experiments/nemotron-spike/extension-host/`). Im echten Extension Host (VS Code 1.139.0) waren
@@ -369,6 +370,90 @@ Test-Empfehlung für Phase 2: mit echten Sprachaufnahmen statt TTS validieren.
 3. VAD (`silero_vad.onnx` ist im Modell-Package enthalten, `use_vad` Option nicht getestet)
 4. Modell-Distribution-Strategie für Endnutzer (eigener Download vs. VS-Code-Cache-Reuse)
 
+## L2-Antworten für den System Designer (2026-10-01)
+
+Evidenz: **belegt** = hier ausgeführt (Windows, VS Code 1.139.0, Extension-Host Node 24.20.0, Firmenproxy, ein Rechner);
+**Quelle gelesen** = Code/Doku gelesen, nicht ausgeführt; **nicht geprüft**. Code: Branch `research/recorder-nemotron-spike`,
+`experiments/nemotron-spike/sdk123/` (Commit `662d0d9`).
+
+### 1. Audio-Capture (Mikrofon + Lautsprecher)
+
+| Weg | Ergebnis | Evidenz |
+|-----|----------|---------|
+| (b) Webview `getUserMedia`/`getDisplayMedia` | `getUserMedia`: NotAllowedError; `getDisplayMedia`: durch Permissions-Policy gesperrt. Ausgeschieden. | belegt |
+| (c) Helferprozess: PowerShell 7 + C# (WASAPI per COM-Interop, `Add-Type` im Speicher) | Mikrofon und Lautsprecher-Loopback gleichzeitig aufgenommen; keine Datei, keine Admin-Rechte, keine Installation (pwsh 7.6.6, FullLanguage). AppLocker-Regeln existieren, blockierten nichts. Andere Rechner, Windows PowerShell 5.1, Constrained Language Mode: nicht geprüft. | belegt |
+| (a) Natives Node-Modul (naudiodon2 2.5.0) | `install: node-gyp rebuild` (Kompilieren mit MSVC + Python), keine Prebuilds laut npm-Metadaten. PortAudio upstream hat `PaWasapi_IsLoopback()`. Ob naudiodon2s PortAudio Loopback liefert und ein Prebuild für VS Codes Node-ABI machbar ist: nicht geprüft. | Quelle gelesen |
+
+Befunde aus (c), belegt: Loopback 48 kHz/2 ch/float32; Mikrofon 48 kHz/**4 ch**/float32 → Mixdown und Resampling auf 16 kHz mono
+PCM16 sind nötig (nicht implementiert). Der Loopback liefert **keine Pakete bei Stille** (erstes Paket 1,6 s nach Start, als die Wiedergabe
+begann) → der Helfer muss Stille einfügen, sonst stimmt die Zeitachse nicht. In der VSIX läge nur ein Skript (Text), kein Binärfile.
+Linux/macOS: nicht geprüft.
+
+Mischung: **Pro geladenem Modell ist nur eine Live-Session gleichzeitig aktiv** (zweite Session: „A streaming session is already active“, belegt).
+Mikrofon und Lautsprecher müssen daher vor der Engine zu einem Mono-Strom gemischt werden; getrennte Sessions pro Quelle (zweites Modell
+oder zweiter Prozess) sind nicht geprüft. Das Stereo-Schema der heutigen PowerShell-Aufnahme (Mikro links, Lautsprecher rechts) geht so nicht 1:1.
+
+### 2. Echo
+
+- Loopback liefert den System-Mix ohne Echo-Unterdrückung; er existiert laut Windows-Doku „primarily to support AEC“, also als Referenzsignal (Quelle gelesen).
+- Windows kann auf dem Mikrofonpfad AEC als Audio-Processing-Object anwenden, abhängig von Treiber und Stream-Kategorie (`Communications`) (Quelle gelesen).
+  Ob das bei meiner Probe aktiv war: nicht geprüft.
+- Messung (belegt, ein Gerät, eine Lautstärke): 8,6 s Wiedergabe über Lautsprecher, Loopback-RMS 0,17–0,27, Mikrofon-RMS höchstens 0,013
+  (≈ 5 % der Amplitude). Rückkopplung hier gering, aber nicht null; auf andere Geräte nicht übertragbar.
+- Folge: Bei offenen Lautsprechern kann die Gegenseite doppelt im Transkript stehen; Headset beseitigt das. Die Engine hat keine AEC;
+  eine eigene müsste den Loopback als Referenz nutzen (nicht geprüft).
+
+### 3. Engine-API (foundry-local-sdk 1.2.3)
+
+- Aufrufe (belegt, im Node-Prozess und im Extension Host): `FoundryLocalManager.createAsync({appName, modelCacheDir})` →
+  `catalog.getModel('nemotron-3.5-asr-streaming-0.6b')` → `model.load()` → `model.createAudioClient().createLiveTranscriptionSession()` →
+  `settings.sampleRate=16000, channels=1, bitsPerSample=16, language` → `await session.start()` → `session.append(Uint8Array)` →
+  `for await (r of session.getStream())` → `await session.stop()` → `dispose()`, `model.unload()`.
+- Format: rohes PCM16 little-endian, mono, 16 kHz; VS Code sendet 4096-Sample-Chunks (8192 Byte). Push-Queue: 100 Chunks (`pushQueueCapacity`).
+- Ereignisse (belegt): Interim = **Textdeltas** (z. B. „ Wir test“, „en Ne“). Stille erzeugt **kein** Ereignis. **Ein** `is_final` erst bei `stop()`,
+  mit dem **gesamten** Text der Session (35-s-Clip: 36 Ereignisse, 1 final). `start_time`/`end_time` waren leer. Endpointing mitten im Strom: nicht beobachtet.
+- Latenz (belegt, 14-Kern-Rechner, Zufuhr in Echtzeit): Interim 0,2–0,9 s hinter dem Audio im Node-Prozess, 0,23–0,42 s im Extension Host;
+  `stop()` 0,40–0,55 s. Die 20-s-Zusagen sind hier mit großem Abstand erfüllt. Schwächere Rechner, Aufnahmen über 35 s: nicht geprüft.
+- Ausführungsort: läuft im Extension Host (belegt), dort aber Event-Loop-Verzögerung bis 335 ms (p99 294 ms) und RSS ca. +290 MB während der
+  Transkription; Modell laden 2–4 s. VS Code nutzt einen Utility-Prozess (Quelle gelesen). Absturz des nativen Codes im Host und Kindprozess-Betrieb: nicht geprüft.
+- Sprache: `language: 'auto'` wird akzeptiert. Mit den Windows-TTS-Samples waren Englisch und Mischsprache auch mit `en` schlecht erkannt (Ursache nicht
+  geklärt); die Samples belegen die Anforderung „Deutsch/Englisch gemischt ohne Sprachwahl“ nicht. Echte Sprache: nur in VS Codes eigenem Diktat beobachtet.
+
+### 4. Modell und Runtime hinter dem Firmenproxy
+
+- Der native Core (SDK 1.2.3, .NET) liest `HTTPS_PROXY` und bekommt vom Proxy **HTTP 407** (Proxy-Authentifizierung) für `ai.azure.com` (SDK-Log, belegt).
+  Node-HTTPS im Extension Host (VS Codes Netzwerkschicht) kommt durch. Downloads der nativen Schicht (Katalog, Modell) scheitern also, Downloads im Extension Host nicht.
+  Die WinHTTP-Hypothese ist für SDK 1.2.3 widerlegt (der Core nutzt .NET `HttpClient`); für SDK 2.1.0 weiterhin unbekannt.
+- VS Code hatte das Modell, weil der Katalog am 2026-09-29 22:08 erfolgreich geladen wurde (`foundry.modelinfo.json`, `detectedRegion=westeurope`). In welchem
+  Netz das war, ist nicht geprüft.
+- Runtime: Tarball `https://main.vscode-cdn.net/dictation-runtime/foundry-local/1.2.3/win32-x64.tgz`, **18,6 MB in 1,4 s** im Extension Host geladen (belegt).
+  Layout: `prebuilds/<target>/foundry_local_napi.node` + `foundry-local-core/<target>/*.dll`. Die URL steht in VS Codes `product.json`; ob Dritte sie nutzen dürfen
+  und wie stabil sie ist: ungeklärt. Entpacken: VS Code nutzt das npm-Paket `tar` (Quelle gelesen), selbst nicht getestet. Alternative Quelle (SDK-Installationsskript): NuGet
+  (nuget.org war im Extension Host erreichbar), nicht getestet.
+- Modell: 756 MB, Katalogquelle `azureml://registries/azureml/models/nemotron-3.5-asr-streaming-0.6b-generic-cpu/versions/3`, Cache-Layout
+  `<cacheDir>\Microsoft\nemotron-3.5-asr-streaming-0.6b-generic-cpu-3\v3\`. VS Code kann offline aus einem „official CPU model package“ (ZIP/OCI-Layout) importieren
+  (Befehl „Chat: Install Dictation Model from Local Package…“, Doku gelesen). Wo dieses Paket herunterladbar ist: nicht geprüft.
+- Mit VS Codes Cache als `modelCacheDir` (aus `context.globalStorageUri` ableitbar: `<VS-Code-Datenordner>\chatDictationModels`) findet SDK 1.2.3 Modell und Katalogdatei
+  (48 Modelle, 85 ms), lädt und transkribiert live, ohne Netzwerk (belegt). Voraussetzung: Diktat wurde einmal genutzt oder das Modell importiert.
+  Risiko: VS-Code-intern; die Runtime-Version (`chatDictationRuntime/1.2.3`) ändert sich mit VS Code.
+- Research-Sicht (Entscheidung beim Nutzer): SDK 1.2.3 + Runtime per Extension-Host-Download + Modell aus VS Codes Cache oder lokalem Paket. Fehlt das Modell, zeigt
+  Jarvis einen Hinweis (VS-Code-Diktat einmal starten oder Paket importieren). Ein eigener Modell-Download in Node ist ungeprüft (Registry-Protokoll unbekannt).
+
+### 5. Wortzählung und Zusammenbruch
+
+- Wörter lassen sich aus den Interim-Deltas zählen (Text kommt an, belegt).
+- Fehler (Quelle `liveAudioSession.js` gelesen, nicht provoziert): fataler Push-Fehler → `append()` lehnt ab und der Stream-Iterator wirft `Push failed (code=…)`;
+  `start()`/`stop()` werfen `Error starting/stopping audio stream session`. Es gibt **kein** Ereignis „keine Erkennung“, und Stille erzeugt keine Ereignisse (belegt).
+  Zusammenbruch erkennt man deshalb über Fehler oder einen eigenen Watchdog (VS Code: 60-s-Timeout um `iterator.next()`, Quelle gelesen), kombiniert mit Pegel > Schwelle ohne Wörter.
+  Prozessende ist nur bei einem Kindprozess beobachtbar; ein Absturz im Extension Host reisst den Host mit (nicht geprüft).
+
+### Spikes, falls gewünscht (vor Start mit dem Nutzer abstimmen)
+
+1. Ende-zu-Ende: Helfer mischt Mikrofon + Loopback zu 16 kHz mono PCM16 (mit Stille-Füllung) und speist die Live-Session; Echo mit offenen Lautsprechern; echte DE/EN-Sprache.
+2. Kindprozess-Betrieb der Engine (Isolation, Exit-Erkennung, Absturzverhalten).
+3. Eigener Modell-Download im Extension Host (Quelle und Protokoll klären, 756 MB über den Proxy).
+4. Fehlerfälle der SDK provozieren (falsches Format, Modell entladen), für REQ_REC_FAILURE.
+
 ## Spike-Tests (Stand 2026-09-30)
 
 | Test | Was | Status |
@@ -380,7 +465,7 @@ Test-Empfehlung für Phase 2: mit echten Sprachaufnahmen statt TTS validieren.
 | E | `language` auto/de/en | ✅ nur TTS-Stimme |
 | F | Extension Host: natives SDK lädt; Node-HTTPS über Proxy | ✅ teilweise: Katalog liefert 0 Modelle, nur 54-KB-Datei geladen |
 | – | rohes `onnxruntime-node` + Nemotron | nie getestet |
-| – | Mikrofon-Capture, VAD, Modell-/Runtime-Beschaffung, SDK 1.2.3 | offen |
+| – | Mikrofon-Capture, VAD, Modell-/Runtime-Beschaffung, SDK 1.2.3 | siehe Abschnitt „L2-Antworten“ (2026-10-01): SDK 1.2.3, Capture per PowerShell/WASAPI und Runtime-Download belegt; VAD, Modell-Download offen |
 
 ## Offene Fragen
 

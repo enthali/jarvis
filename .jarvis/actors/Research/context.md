@@ -25,7 +25,8 @@ Recorder-Redesign (Nemotron statt Docker/Whisper) wird als Change mit System Des
 
 ## Recorder-Redesign (2026-09)
 - Paper: `recorder-redesign-2026-09.md`; Spike + Extension-Host-Probe: Branch `research/recorder-nemotron-spike` (`experiments/nemotron-spike/`, README trennt belegt/offen).
-- Offen, Entscheider User/PM: Quelle Modell+Runtime (SDK 1.2.3 + VS-Code-Runtime-Tarball ungetestet), Mikrofon-Capture, Streaming vs. Batch, VS-Code-Cache mitnutzen.
+- Stand 2026-10-01 (Abschnitt "L2-Antworten" im Paper): SDK 1.2.3 + VS-Code-Runtime laufen live (Node und Ext-Host); native Schicht bekommt Proxy-407, Ext-Host-Node nicht; Capture per pwsh/WASAPI belegt, Webview ausgeschieden; nur 1 Session pro Modell.
+- Offen, Entscheider User/PM: Modell-Download (Quelle/Protokoll), Kindprozess vs. Ext-Host, echte DE/EN-Sprache, Echo, Streaming vs. Batch.
 - Lehre: Terminal-Node ≠ Extension Host; native SDK-Schicht ≠ Node-HTTPS. Erst im Zielprozess testen, Ursachen als Hypothese kennzeichnen.
 - Worktrees `../jarvis-nemotron-spike` (Research-Branch) und `../jarvis-dev-docs` (`development`) nutzen; Haupt-Worktree gehört anderen Aktoren. Entfernen, wenn der Change übernommen hat.
 
