@@ -614,6 +614,30 @@ von Abschnitt 2 ist und wer Bedingungen zustimmen muss: **nicht bewertet, Rechts
 
 Aufgeräumt: alle heruntergeladenen Komponenten (46 MB Extension-Speicher, temporäre Pakete) sind gelöscht.
 
+## Test 2026-10-02 (spätabends): SDK 2.1.0, Live-Audio im Kindprozess
+
+Mini-Extension `experiments/nemotron-spike/sdk210/ext-live/` (Commit `4ed2d7c`). Alles im Extension Host bzw. im von ihm geforkten Kindprozess ausgeführt (**belegt**). SDK 2.1.0 aus den offiziellen Kanälen
+(npm + NuGet `Microsoft.ML.OnnxRuntime` 1.30.0 und `Microsoft.ML.OnnxRuntimeGenAI.Foundry` 0.17.1, zusammen 226,4 MB in ca. 30 s) im Extension-Speicher; `fork` mit `ELECTRON_RUN_AS_NODE=1`, `process.execPath`, `advanced`, `ipc`;
+`disableNonessentialTelemetry: true` und `ORT_TELEMETRY_DISABLED=1`; Modell über den **lokalen Katalog** (`getModelVariant`, sonst `registerModel`) in place aus VS Codes Cache geladen. 35-s-Clip, 4096-Sample-Blöcke, Echtzeit.
+
+| | `AudioSession` + `ItemQueue` (Ziel-API) | `createAudioClient().createLiveTranscriptionSession()` (veraltet) |
+|--|----------------------------------------|----------------------------------------------------|
+| läuft im Kindprozess | ja, Ende mit `exit code=0` | ja, Ende mit `exit code=0` |
+| Bereit (Manager, Registrierung, `model.load`, Session) | 5,2 s (erster Lauf), 10,1 s (zweiter Lauf) | 4,0–4,1 s |
+| Kind-RSS | ca. 770 MB | ca. 770 MB |
+| Ereignisse | 133 `speechSegment`-Items, alle `kind: 'none'`, Textdeltas | 133 Interim-Deltas + 1 `final` bei `stop()` |
+| Verzögerung hinter dem Audio | min 4 / Median 105 / p95 253 / max 263 ms | min 2 / Median 44 / p95 260 / max 315 ms |
+| Ende (`markFinished`/`stop` bis Endergebnis) | 302–375 ms | 301–558 ms |
+| Endergebnis | `await stream.response`: `speechResult`, `finishReason: 'stop'`, `text` = aggregierter Text; `segments` = 133 (jedes Delta ein Segment) | `final`-Ereignis mit dem gesamten Text |
+| Zeitstempel, `utteranceStart` | `startTimeMs`/`endTimeMs` leer, `utteranceStart: false` | `start_time`/`end_time` leer |
+
+- **Unterschied zu 1.2.3 (belegt):** Der Text enthält in 2.1.0 **Sprach-Tags** wie `<de-DE>`, als eigene Delta-Ereignisse nach Pausen (bei 5,9 s, 22,8 s und 31,0 s Audio, 3 von 133 Ereignissen). In den 1.2.3-Läufen
+  kamen sie nicht vor. Die Spec muss sie entfernen (oder bewusst nutzen); der Tag für den englischen und den gemischten Teil lautete ebenfalls `de-DE` (TTS-Samples, keine Aussage über echte Sprache).
+- Kein Katalog-, Regions- oder Netzwerkzugriff in beiden SDK-Logs (keine Zeilen zu `Region`, `ai.azure`, `transport`); `getModelVariant` meldete beim ersten Lauf „not in cache, fetching from catalog source“ und fiel danach auf `registerModel` zurück.
+- **Telemetrie in 2.1.0 (belegt):** `ORT_TELEMETRY_DISABLED` wird erkannt: „[Telemetry] Disabled via ORT_TELEMETRY_DISABLED; non-essential 1DS upload disabled (ProcessInfo still uploads)“.
+- Verglichen mit 1.2.3 im Kindprozess (min 24 / Median 159 / max 228 ms, Ende 670 ms): Latenzen und Ende ähnlich; Modell laden etwa gleich schnell.
+- Aufgeräumt: Extension-Speicher mit den Komponenten (39 MB) gelöscht.
+
 ## Spike-Tests (Stand 2026-09-30)
 
 | Test | Was | Status |
