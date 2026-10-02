@@ -565,6 +565,55 @@ Zwei frische Hosts, jeweils Katalog → `model.download` → `model.load`. Alles
   Die Live-Session von 1.2.3 lief in den früheren Tests; die dateibasierte API nicht.
 - Aufgeräumt: beide Modellkopien (je 793 MB) und die 2.1.0-Komponenten sind gelöscht.
 
+## Test 2026-10-02 (abends): SDK 1.2.3 aus offiziellen Kanälen, Kindprozess, Vergleich mit VS Codes Kopie
+
+Mini-Extension `experiments/nemotron-spike/sdk123/ext-asm/` plus `compare-vscode.mjs`, Commit `1e79ef8`. Nichts aus VS Codes `chatDictationRuntime` genommen; das Modell wurde nur in place aus VS Codes
+Cache gelesen. Evidenz: **belegt** = im Extension Host ausgeführt (Vergleich: lokales Node-Skript), **gelesen**, **nicht geprüft**. Größen dezimal.
+
+**1. Offizielle Assemblierung (belegt):** Hosts nur `registry.npmjs.org` und `api.nuget.org`, keine Weiterleitungen beobachtet. Der Installer des SDK (gelesen: `install-standard.cjs`, `deps_versions.json`) holt diese vier Pakete:
+
+| Paket | Größe | Zeit | gebraucht (win-x64) |
+|-------|--------|------|-------------------|
+| npm `foundry-local-sdk@1.2.3` | 0,234 MB | 3,2 s | `dist/*.js`, `package.json`, `deps_versions.json`, `LICENSE.txt`, `prebuilds/win32-x64/foundry_local_napi.node` (0,15 MB); SHA-512 gleich `dist.integrity` der Registry |
+| NuGet `Microsoft.AI.Foundry.Local.Core` 1.2.3 | 92,2 MB | 8,1 s | `Microsoft.AI.Foundry.Local.Core.dll` 23,6 MB |
+| NuGet `Microsoft.ML.OnnxRuntime.Foundry` 1.26.0 | 29,1 MB | 2,8 s | `onnxruntime.dll` 15,3 MB, `onnxruntime_providers_shared.dll` 22 KB |
+| NuGet `Microsoft.ML.OnnxRuntimeGenAI.Foundry` 0.14.1 | 149,3 MB | 9,8 s | `onnxruntime-genai.dll` 6,2 MB |
+
+Gesamt **270,8 MB** in ca. 29 s, auf der Platte ca. 46 MB. Extraktionsregel des Installers: alle `.dll` unter `runtimes/win-x64/native/` jedes NuGet-Pakets nach `foundry-local-core/win32-x64/`, dazu eine
+kleine `package.json` dort; Layout der Laufzeit: `<Wurzel>/prebuilds/win32-x64/foundry_local_napi.node` und `<Wurzel>/foundry-local-core/win32-x64/*.dll`. Die Typdateien (`*.d.ts`, `*.js.map`) braucht die Laufzeit nicht
+(VS Code liefert sie auch nicht aus). Ob `dist` die `package.json` zur Laufzeit liest, ist für 1.2.3 nicht geprüft (ich habe sie mitextrahiert).
+
+**2. Sonderbau? Nein (belegt, SHA-256 und Zeilenvergleich).** Alle 5 nativen Dateien (`foundry_local_napi.node`, `Microsoft.AI.Foundry.Local.Core.dll`, `onnxruntime.dll`, `onnxruntime-genai.dll`,
+`onnxruntime_providers_shared.dll`) sind **bytegleich** zu VS Codes `chatDictationRuntime\1.2.3`; in dessen Runtime liegt nichts, was nicht im offiziellen Satz wäre. VS Codes SDK-Ordner (in `node_modules.asar`, Version 1.2.3):
+`package.json`, `deps_versions.json` und `LICENSE.txt` gleich; 16 der 19 `.js`-Dateien weichen ab, und zwar **nur** durch (a) eine umgeschriebene letzte Zeile `//# sourceMappingURL=https://main.vscode-cdn.net/sourcemaps/…`
+(15 Dateien) und (b) in `dist/detail/coreInterop.js` zusätzlich zwei mit `VSCODE_PATCH` markierte Blöcke, die `VSCODE_FOUNDRY_LOCAL_NATIVE_DIR` für Addon- und Core-Pfad bevorzugen. `*.d.ts` und `*.js.map` fehlen bei VS Code.
+
+**3. Kindprozess (belegt):** `child_process.fork(worker, [], { execPath: process.execPath, env: { ELECTRON_RUN_AS_NODE: '1' }, serialization: 'advanced', stdio: ['ignore','pipe','pipe','ipc'] })` aus dem Extension Host:
+Kind läuft als `Code.exe` mit Node v24.20.0, lädt das SDK aus dem Extension-Speicher (`import()`), `getModel` und `model.load` (Modell in place aus VS Codes Cache), `createLiveTranscriptionSession`; Bereitschaft nach 5,0 s, Kind-RSS 798 MB.
+35-s-Clip in 4096-Sample-Blöcken in Echtzeit: 35 Interim-Ereignisse + 1 final; **Verzögerung hinter dem Audio min 24 / Median 159 / max 228 ms; `finish` (stop + final) 670 ms**; der Text stimmt mit den früheren Läufen überein.
+Event-Loop des Hosts während des Kindlaufs: max 86 ms, p99 22 ms (im Host selbst waren es bis 335 ms). **Kill:** `child.kill()` (SIGTERM) → `exit`-Ereignis im Parent nach 201 ms (`code=null`, `signal=SIGTERM`); Host danach unverändert
+(gleiche PID, Timer laufen, Extension-API erreichbar). Das normale Ende liefert `exit code=0`.
+
+**4. Telemetrie in 1.2.3 (gelesen und belegt):** `FoundryLocalConfig` von 1.2.3 hat **keine** Telemetrie-Option (nur `appName` „for logs and telemetry“; `additionalSettings` „internal use only“). Der Test setzte `ORT_TELEMETRY_DISABLED=1` und
+`additionalSettings: { DisableNonessentialTelemetry: 'true' }` (der Schlüssel von 2.1.0, für 1.2.3 geraten). Wirkung im Log: **keine sichtbare**. Beide Logs enthalten die `[Telemetry]`-Zeilen (`CoreInitialize`, `ModelList`,
+`ListDownloadedModels`, `ModelLoad` je einmal; `CoreAudioTranscribe` je Audioblock: 139 bei 35 s Audio, 16 beim nach 4 s beendeten Lauf). Das Log erwähnt weder den Schlüssel noch ein Abschalten. Ob die Ereignisse tatsächlich gesendet werden: nicht geprüft.
+
+**5. Lizenzen der nativen Komponenten 1.2.3 (gelesen; keine Rechtsbewertung):**
+
+| Komponente | Lizenz |
+|------------|--------|
+| npm `foundry-local-sdk` 1.2.3 | MIT (`LICENSE.txt`, `package.json`) |
+| `Microsoft.ML.OnnxRuntime.Foundry` 1.26.0, `Microsoft.ML.OnnxRuntimeGenAI.Foundry` 0.14.1 | MIT (`LICENSE` im Paket), mit umfangreichen `ThirdPartyNotices.txt` |
+| **`Microsoft.AI.Foundry.Local.Core` 1.2.3** | **„MICROSOFT SOFTWARE LICENSE TERMS – FOUNDRY LOCAL CORE“, nicht MIT** (`LICENSE.txt`, 12,7 KB) |
+
+Wesentliche Bedingungen der Core-Lizenz (gelesen): Nutzungsrecht: „install and use … to **develop and test** your applications“. Verteilung nur nach Abschnitt 2 („Distributable Code“: die Objektcode-Form der Software, die in der
+„distributables file list in the software“ steht – diese Liste habe ich nicht gesehen –, wenn die Anwendung wesentliche Hauptfunktion hinzufügt, Verteiler und Endnutzer an gleichwertig schützende Bedingungen gebunden werden und Microsoft freigestellt wird);
+Abschnitt 3: kein Teilen, Veröffentlichen, Verteilen oder Verleihen außer nach Abschnitt 2, kein Anbieten als eigenständiges Produkt; „By using the software, you accept these terms“. Abschnitt 4: Datenerfassung, Abmeldung nur von „many, but not all“
+Szenarien „as described in the product documentation“ (eine Abmeldeanleitung für 1.2.3 habe ich nicht gefunden). Abschnitt 7: die Software kann selbst nach Updates suchen und sie installieren. Ob ein Laufzeit-Download durch eine Erweiterung „Verteilung“ im Sinne
+von Abschnitt 2 ist und wer Bedingungen zustimmen muss: **nicht bewertet, Rechtsfrage** (D-28). Zum Vergleich: Bei SDK 2.1.0 steht der Kern (`foundry_local.dll`) im MIT-lizenzierten npm-Paket (nur die WinML-DLL darin ist ungeklärt) und es gibt die Telemetrie-Option.
+
+Aufgeräumt: alle heruntergeladenen Komponenten (46 MB Extension-Speicher, temporäre Pakete) sind gelöscht.
+
 ## Spike-Tests (Stand 2026-09-30)
 
 | Test | Was | Status |
