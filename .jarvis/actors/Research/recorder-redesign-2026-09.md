@@ -535,6 +535,17 @@ assembliert, SDK per `import()` von dort geladen, `FoundryLocalManager.create` m
 - **Aufräumen:** Der Test lud kein Modell; sein Speicher enthielt nur die Komponenten (37 MB). Fünf DLLs im Ordner `%APPDATA%\Code\User\globalStorage\research.fl210-download-probe` sind durch die zwei geöffneten
   Extension-Development-Host-Fenster gesperrt und müssen nach deren Schließen gelöscht werden.
 
+**Nachtrag 2026-10-02 (später am Tag): SDK 1.2.3 über Px — Korrektur der 407-Aussage.**
+Proxy-Variablen sind eine Konvention: Ein Programm muss sie selbst lesen und seine Anfragen an den Proxy schicken; gesetzt allein verändert nichts. Aktuelle Netzlage (belegt, lesend gemessen):
+Px (`127.0.0.1:3128`, lauscht auf allen Adaptern, hängt den Upstream-Proxy mit Authentifizierung vor) ist als `HTTPS_PROXY`/`HTTP_PROXY` auf Benutzerebene eingetragen; Windows nutzt für WinINET ein PAC-Skript,
+für WinHTTP gilt „DirectAccess“. Externe Namen löst der Firmen-DNS nicht auf (`api.nuget.org`: Name nicht vorhanden); das macht der Proxy. curl kommt über Px und über `rb-proxy-de:8080`
+durch (200/400), ohne Proxy nicht. Das lokale Netz `10.1.1.x` ist nicht erreichbar (die Route `10.1.0.0/22` läuft mit Metrik 1 durch das VPN).
+**SDK 1.2.3 (das SDK von VS Code, .NET-Core) mit leerem privatem Cache und `HTTPS_PROXY=http://127.0.0.1:3128`:** Katalog **48 Modelle in 2,3 s**, `getModel` liefert
+`nemotron-3.5-asr-streaming-0.6b-generic-cpu:3` (`isCached=false`) — belegt, im Terminal-Node, nicht im Extension Host. Der 407 vom 2026-10-01 trat auf, als `HTTPS_PROXY` direkt auf `rb-proxy-de:8080` zeigte
+(der Proxy verlangt Authentifizierung, Px liefert sie). Die Aussage in „L2-Antworten“, Abschnitt 4 („nativer Core bekommt 407“), gilt also nur für diese Einstellung. Der Modell-Download (756 MB) mit 1.2.3
+ist nicht getestet. SDK 2.1.0 scheitert dagegen mit Px und mit `rb-proxy-de:8080` gleich (Vermutung: ignoriert die Variablen). VS Code setzt `HTTPS_PROXY` aus `http.proxy` (hier `rb-proxy-de:8080`) und überschreibt damit die
+Px-Variable; ob sein Download damit heute 407 bekäme, ist nicht geprüft.
+
 ## Spike-Tests (Stand 2026-09-30)
 
 | Test | Was | Status |
