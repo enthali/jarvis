@@ -105,9 +105,10 @@
 
 - **No active CR (2026-09-27)** — `one-kind-consolidation` Phase 1 (merged
   2026-09-25, `8a0e45f`) and Phase 2 `retire-legacy-actor-kinds` (merged
-  2026-09-27, `1a30326`) both shipped to `development`; old kind-based
-  Project/Event/Actor code and specs are gone, single consolidated Actor
-  kind is live.
+  2026-09-27, `1a30326`) both merged to `development`, **not yet released**
+  (no version tag/main merge yet) — old kind-based Project/Event/Actor code
+  and specs are gone from `development`, single consolidated Actor kind is
+  live there pending release.
 - **Open sequencing decision (2026-09-27, user decides next session)**:
   user needs backlog #42 (Actor identity via agent mode, replaces
   `jarvis_whoAmI`) and #41 (Recorder redesign) for their own job — both

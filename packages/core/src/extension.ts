@@ -1173,12 +1173,6 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     const newActorCommand = vscode.commands.registerCommand(
         'jarvis.newActor',
         async () => {
-            const chosen = await vscode.window.showQuickPick(
-                [{ label: 'Create Actor' }],
-                { title: 'New Entry', placeHolder: 'Choose an entry type' }
-            );
-            if (!chosen) { return; }
-
             const nameInput = await vscode.window.showInputBox({
                 prompt: 'Actor name',
                 placeHolder: 'My Actor',

@@ -1,5 +1,21 @@
 # Release Notes
 
+## v0.28.0 — One-Kind Consolidation (Actor Unification)
+
+*2026-09-30*
+
+Consolidates the three-entity-kind system (Actor / Event / Project) into a single **Actor** entity, delivered in two phases across this release.
+
+### Features
+
+- **one-kind-consolidation** (Phase 1): Introduces the new single-kind Actor system — a new "ACTORS" tree root, a simple Actor entity with a configurable root path (`jarvis.actors.folder`), and full feature parity with the previous Actor kind (agent binding, messaging, `jarvis_whoAmI`, `context.md`, `jarvis_createActor`). Built strangler-fig style alongside the old Actor/Project/Event stack, which continued to work unchanged in this phase. No auto-migration — existing Projects/Events must be migrated by hand.
+
+### Breaking Changes
+
+- **retire-legacy-actor-kinds** (Phase 2): Removes the old three-entity-kind stack entirely — the legacy Actor/Project/Event tree roots, kind-registration machinery (`registerEntityKind`, `EntityKindConfig`, scanner/tree-factory), settings `jarvis.projectsFolder`/`jarvis.eventsFolder`, and LM tools `jarvis_listProjects`/`jarvis_createProject`/`jarvis_listEvents`/`jarvis_createEvent`. Every function the old kinds provided is now available through the single Actor kind (creation, browsing, `context.md`/`actor.yaml` file access, context-menu actions, touched-files, messaging) with no regression. Went through 3 QM review rounds and 3 Verify Engineer rounds; all findings resolved and independently re-verified. User manually validated core behavior plus a targeted smoke-check of a Flow activation-guard regression found and fixed post-merge. Formal scripted UAT was deliberately deferred to backlog #40 (UAT ontology redesign), consistent with prior releases since v0.27.0.
+
+---
+
 ## v0.27.2 — whoami Hookless Error + Focus Restore Toggle
 
 *2026-09-19*

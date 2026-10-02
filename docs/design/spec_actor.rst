@@ -829,23 +829,21 @@ Actor Design Specifications
 
    **``jarvis.newActor`` flow** (``REQ_ACTOR_CREATE``):
 
-   1. QuickPick "New Entry" with the single item "Create Actor"; cancel →
-      return (AC-1, AC-8).
-   2. InputBox for the name with ``validateInput: actorNameProblem``;
-      cancel → return (AC-2, AC-8).
-   3. Resolve the actors folder; none → show "no workspace" and return.
+   1. InputBox for the name with ``validateInput: actorNameProblem``;
+      cancel → return (AC-1, AC-2, AC-8).
+   2. Resolve the actors folder; none → show "no workspace" and return.
       ``existingActorFolder(actorsFolder, name, actorScanner)`` returns a
       folder → error notification
       ``Jarvis: An Actor named "<name>" already exists: <folder>``, return,
       nothing written (AC-3). The rescan inside the check catches an
       ``actor.yaml`` edited by hand since the last scan.
-   4. Optional InputBox for the summary; Escape → ``""`` (AC-4).
-   5. ``writeActorFiles(folder, { name, summary, agent: "" })`` (AC-5).
-   6. ``pickAgentMode()`` (``SPEC_ACTOR_AGENT_DISCOVERY``); a selection is
+   3. Optional InputBox for the summary; Escape → ``""`` (AC-4).
+   4. ``writeActorFiles(folder, { name, summary, agent: "" })`` (AC-5).
+   5. ``pickAgentMode()`` (``SPEC_ACTOR_AGENT_DISCOVERY``); a selection is
       written with ``writeActorAgent``; "No agent" or Escape keeps ``""``
       (AC-6).
-   7. ``await actorScanner.rescan()`` (AC-7).
-   8. When ``jarvis.actors.openSessionOnCreate`` is ``true``, execute
+   6. ``await actorScanner.rescan()`` (AC-7).
+   7. When ``jarvis.actors.openSessionOnCreate`` is ``true``, execute
       ``jarvis.openActorSession`` with the new Actor's node (AC-9).
 
    **package.json (core):**

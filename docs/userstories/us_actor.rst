@@ -159,8 +159,7 @@ Actor User Stories
 
    **Acceptance Criteria:**
 
-   * AC-1: Clicking the "+" button opens a "New Entry" QuickPick in the
-     ACTORS tree. Its "Create Actor" choice opens a name input that
+   * AC-1: Clicking the "+" button opens a name input directly, that
      rejects empty names, path characters, and Windows reserved names.
    * AC-2: The name is validated against all locations scanned under
      ``jarvis.actors.folder``; if a folder with that name already exists,
