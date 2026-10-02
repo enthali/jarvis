@@ -546,6 +546,25 @@ durch (200/400), ohne Proxy nicht. Das lokale Netz `10.1.1.x` ist nicht erreichb
 ist nicht getestet. SDK 2.1.0 scheitert dagegen mit Px und mit `rb-proxy-de:8080` gleich (Vermutung: ignoriert die Variablen). VS Code setzt `HTTPS_PROXY` aus `http.proxy` (hier `rb-proxy-de:8080`) und überschreibt damit die
 Px-Variable; ob sein Download damit heute 407 bekäme, ist nicht geprüft.
 
+## Test 2026-10-02 (nachmittags): SDK 1.2.3, offizieller Modellpfad im Extension Host
+
+Mini-Extension `experiments/nemotron-spike/sdk123/ext-dl/` (SDK 1.2.3 mit der Runtime aus VS Codes `chatDictationRuntime`, eigener `modelCacheDir` im Extension-Speicher, nicht VS Codes Cache).
+Zwei frische Hosts, jeweils Katalog → `model.download` → `model.load`. Alles belegt (im Extension Host ausgeführt).
+
+| Lauf | `HTTPS_PROXY` im Host | Katalog | Download | `model.load` |
+|------|------------------------|---------|----------|--------------|
+| 1 „inherited“ | `http://127.0.0.1:3128` (Px) | 48 Modelle in 3,8 s | 793 MB in 67,5 s | OK |
+| 2 „bridged“ (aus `http.proxy`, wie VS Code es setzt) | `http://rb-proxy-de.bosch.com:8080` | 48 Modelle in 0,45 s | 793 MB in 53,8 s | OK |
+
+- Das heruntergeladene Modell ist **bitgleich** zu VS Codes Cache: 16 Dateien, 757 MiB, SHA-256 aller 16 Dateien identisch.
+- **Korrektur meiner 407-Erklärung vom Vormittag:** Heute funktionieren beide Proxys, auch `rb-proxy-de:8080` ohne Px (curl: 200). Der 407 vom 2026-09-30/10-01 ist damit keine feste Eigenschaft des
+  Firmenproxys, sondern hängt von etwas ab, das ich nicht kenne (Netzzustand, VPN, Anmeldestatus; nicht geprüft). Die Aussage „407 gilt nur, wenn die Variable direkt auf `rb-proxy-de` zeigt“ ist **nicht haltbar**.
+- **Folgerung (belegt im Vergleich):** Am selben Tag, im selben Host, mit denselben Proxy-Einstellungen scheitert SDK 2.1.0 (Katalog 0 Modelle) und SDK 1.2.3 funktioniert (Katalog, Download, Laden).
+  Der offizielle Modellpfad ist also eine Eigenschaft der SDK-Version, nicht des Netzes. Warum 2.1.0 scheitert, ist weiter unbekannt.
+- **Einschränkung SDK 1.2.3:** `createAudioClient().transcribe(<WAV-Datei>)` scheitert mit diesem Modell („MultiModalProcessor cannot be created. nemotron_speech is not a registered multi-modal model type“).
+  Die Live-Session von 1.2.3 lief in den früheren Tests; die dateibasierte API nicht.
+- Aufgeräumt: beide Modellkopien (je 793 MB) und die 2.1.0-Komponenten sind gelöscht.
+
 ## Spike-Tests (Stand 2026-09-30)
 
 | Test | Was | Status |
