@@ -510,6 +510,31 @@ Datenschutzerklärung: https://go.microsoft.com/fwlink/?LinkID=824704. Ob die Ev
 Zeit über den Proxy: nur ein Messwert (18,6 MB in 1,4 s aus dem Extension Host, anderer Host). Die großen NuGet-/npm-Downloads aus dem Extension Host: nicht geprüft;
 unsere frühere manuelle NuGet-Beschaffung mit `Invoke-WebRequest` hat funktioniert (nicht gemessen). curl im Terminal bekommt von nuget.org 407, Node im Extension Host nicht.
 
+## Test 2026-10-02: offizieller Modellpfad SDK 2.1.0 hinter dem Proxy (Extension Host)
+
+Mini-Extension `experiments/nemotron-spike/sdk210/ext/` (Commit `642e930`), VS Code 1.139.0, Extension-Host Node 24.20.0. Komponenten wie `SPEC_REC_COMPONENTS` in den Extension-Speicher
+assembliert, SDK per `import()` von dort geladen, `FoundryLocalManager.create` mit eigenem `modelCacheDir` und `disableNonessentialTelemetry: true`.
+
+- **Assemblierung (belegt):** funktioniert im Extension Host über den Proxy. npm-Tarball 34,3 MB in ca. 8 s inklusive Entpacken (85 Dateien), `Microsoft.ML.OnnxRuntime` 157,2 MB in 17,7 s,
+  `Microsoft.ML.OnnxRuntimeGenAI.Foundry` 34,8 MB in 5,7 s; zusammen ca. 226 MB in ca. 32 s. Es traten keine Weiterleitungen auf andere Hosts auf (nur `registry.npmjs.org`, `api.nuget.org`).
+  Einheiten: meine früheren Größen (32,7 / 149,9 / 33,2 MB) waren MiB; dezimal sind es 34,3 / 157,2 / 34,8 MB.
+  Der Abgleich mit `dist.integrity` der Registry wurde protokolliert, die Zeile ging beim Aufräumen verloren: nicht belegt.
+- **Laden (belegt):** Addon, `foundry_local.dll`, `onnxruntime.dll`, `onnxruntime-genai.dll` aus `<Speicher>/foundry-local/2.1.0/prebuilds/win32-x64/` ohne `libraryPath`; Manager erzeugt.
+- **Fund (Code gelesen, ohne die Datei nicht getestet):** `dist/foundryLocalManager.js` liest beim Import `../package.json` (Version, wirft sonst). Die Extraktionsliste in `SPEC_REC_COMPONENTS`
+  (`dist/**` und `prebuilds/win32-x64/*`) enthält `package/package.json` nicht; ich habe sie mitextrahiert.
+- **Katalog (belegt):** **0 Modelle** (95 ms und 118 ms). SDK-Log: Regionserkennung „status 0“, alle 7 Regionen „transport failure“ nach je 2–4 ms, **kein HTTP-Statuscode** im Log (SDK 1.2.3 meldete 407);
+  `getModel` → „Model with alias … not found“. `model.download` wurde nicht erreicht, es wurde nichts heruntergeladen, `model.load` auf einem heruntergeladenen Modell: nicht getestet.
+- **Lauf 1 (Umgebung, wie VS Code sie im Host setzt):** `HTTPS_PROXY=HTTP_PROXY=http://127.0.0.1:3128`, `NO_PROXY` gesetzt. Dort lauscht der lokale Proxy **Px** (`C:\Program Files\px\python.exe`, Port 3128);
+  die Benutzer-Umgebungsvariable `HTTPS_PROXY` hat denselben Wert. **Lauf 2 (aus `http.proxy` gebrückt):** `http://rb-proxy-de.bosch.com:8080`. Beide Läufe identisch. In den SDK-1.2.3-Läufen gestern
+  stand im Host noch `rb-proxy-de…:8080`; die Umgebung des Nutzers hat sich seitdem geändert. Mit Px wurde SDK 1.2.3 nicht getestet.
+- **Mechanismus:** unbekannt. Antworten nach 2–4 ms ohne HTTP-Status sehen nach einem Abbruch vor jeder Verbindung aus (Vermutung, nicht belegt).
+- **Einstellung für Proxy/Zugangsdaten (nur gelesen):** `FoundryLocalConfig` kennt `appName, appDataDir, modelCacheDir, logsDir, logLevel, webServiceUrls, serviceEndpoint, disableNonessentialTelemetry, libraryPath,
+  additionalSettings` (freie String-Map, an den Core durchgereicht, Schlüssel nicht dokumentiert). Die MS-Learn-Referenz (Konfigurationstabellen) und das SDK-README nennen keinen Proxy-/Credential-Schlüssel;
+  das README spricht von Zugangsdaten nur für die NuGet-Installation. Im Ordner `sdk_v2/cpp/docs` (nur Dateinamen gelesen) gibt es kein Proxy-Dokument. Ein früherer Versuch mit geratenen Proxy-Schlüsseln in `additionalSettings` blieb wirkungslos.
+- **Telemetrie aus (belegt):** Das Log zeigt `DeviceIdStatus=Disabled`; das `ProcessInfo`-Event wird trotzdem erzeugt (wie in der Doku angekündigt).
+- **Aufräumen:** Der Test lud kein Modell; sein Speicher enthielt nur die Komponenten (37 MB). Fünf DLLs im Ordner `%APPDATA%\Code\User\globalStorage\research.fl210-download-probe` sind durch die zwei geöffneten
+  Extension-Development-Host-Fenster gesperrt und müssen nach deren Schließen gelöscht werden.
+
 ## Spike-Tests (Stand 2026-09-30)
 
 | Test | Was | Status |
