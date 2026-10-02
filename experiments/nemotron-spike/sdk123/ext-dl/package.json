@@ -1,0 +1,10 @@
+{
+  "name": "fl123-dl-probe",
+  "version": "0.0.1",
+  "private": true,
+  "publisher": "research",
+  "description": "Extension-host probe: SDK 1.2.3 official catalog + model download behind the company proxy",
+  "main": "./extension.cjs",
+  "engines": { "vscode": "^1.95.0" },
+  "activationEvents": ["onStartupFinished"]
+}
