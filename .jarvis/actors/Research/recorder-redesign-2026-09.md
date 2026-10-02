@@ -638,7 +638,12 @@ Mini-Extension `experiments/nemotron-spike/sdk210/ext-live/` (Commit `4ed2d7c`).
 - Verglichen mit 1.2.3 im Kindprozess (min 24 / Median 159 / max 228 ms, Ende 670 ms): Latenzen und Ende ähnlich; Modell laden etwa gleich schnell.
 - Aufgeräumt: Extension-Speicher mit den Komponenten (39 MB) gelöscht.
 
-**Nachtrag 2026-10-02 (später): WinHTTP-Systemproxy gesetzt, SDK 2.1.0 unverändert.** Der Nutzer setzte als Administrator `netsh winhttp set proxy proxy-server="127.0.0.1:3128"` (vorher `DirectAccess`).\nKatalogabruf von SDK 2.1.0 im Terminal-Node, ohne Download, in zwei Varianten: mit den Proxy-Umgebungsvariablen (Px) und mit entfernten Variablen (nur der WinHTTP-Proxy konnte wirken). Beide: **0 Modelle** (93 bzw. 52 ms),\nSDK-Log wie zuvor „Region detection probe failed (status 0)“ und „transport failure“ je Region nach 1–2 ms (belegt). Die WinHTTP-Hypothese ist damit **nicht bestätigt**: Der C++-Kern nutzt den WinHTTP-Systemproxy nicht\n(oder scheitert vor jeder Proxy-Verbindung aus einem anderen Grund). Die Ursache bleibt unbekannt. Der Systemproxy muss nach dem Test mit `netsh winhttp reset proxy` zurückgesetzt werden (vom Nutzer, Administrator).\n\n## Spike-Tests (Stand 2026-09-30)
+**Nachtrag 2026-10-02 (später): WinHTTP-Systemproxy gesetzt, SDK 2.1.0 unverändert.** Der Nutzer setzte als Administrator `netsh winhttp set proxy proxy-server="127.0.0.1:3128"` (vorher `DirectAccess`).
+Katalogabruf von SDK 2.1.0 im Terminal-Node, ohne Download, in zwei Varianten: mit den Proxy-Umgebungsvariablen (Px) und mit entfernten Variablen (nur der WinHTTP-Proxy konnte wirken). Beide: **0 Modelle** (93 bzw. 52 ms),
+SDK-Log wie zuvor „Region detection probe failed (status 0)“ und „transport failure“ je Region nach 1–2 ms (belegt). Die WinHTTP-Hypothese ist damit **nicht bestätigt**: Der C++-Kern nutzt den WinHTTP-Systemproxy nicht
+(oder scheitert vor jeder Proxy-Verbindung aus einem anderen Grund). Die Ursache bleibt unbekannt. Der Systemproxy muss nach dem Test mit `netsh winhttp reset proxy` zurückgesetzt werden (vom Nutzer, Administrator).
+
+## Spike-Tests (Stand 2026-09-30)
 
 | Test | Was | Status |
 |------|-----|--------|
