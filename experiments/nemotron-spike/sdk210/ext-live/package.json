@@ -1,0 +1,11 @@
+{
+  "name": "fl210-live-probe",
+  "version": "0.0.1",
+  "private": true,
+  "publisher": "research",
+  "description": "Extension-host probe: SDK 2.1.0 from official channels, engine in a child process, live PCM via AudioSession and the deprecated live session",
+  "main": "./extension.cjs",
+  "engines": { "vscode": "^1.95.0" },
+  "activationEvents": ["onStartupFinished"],
+  "dependencies": { "adm-zip": "0.5.16" }
+}
