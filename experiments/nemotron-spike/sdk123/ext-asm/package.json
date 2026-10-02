@@ -1,0 +1,11 @@
+{
+  "name": "fl123-asm-probe",
+  "version": "0.0.1",
+  "private": true,
+  "publisher": "research",
+  "description": "Extension-host probe: SDK 1.2.3 assembled from official npm + NuGet, engine in a forked child process",
+  "main": "./extension.cjs",
+  "engines": { "vscode": "^1.95.0" },
+  "activationEvents": ["onStartupFinished"],
+  "dependencies": { "adm-zip": "0.5.16" }
+}
