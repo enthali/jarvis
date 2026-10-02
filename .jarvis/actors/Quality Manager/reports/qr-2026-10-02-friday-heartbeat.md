@@ -64,3 +64,47 @@ technical noun in a User Story is invalid. SC-003 counts exact REQ targets
 in `:links:`, not indirect reachability through a User Story. SC-004 uses
 exact filenames per directory, not release-wide basename matching. No
 User-UAT result or final change acceptance is inferred from this cycle.
+
+## Addendum — PM Response (same day, 2026-10-02)
+
+PM resolved the uncommitted working-tree anomaly: root cause confirmed
+(not guessed) as this machine being behind another machine where the
+Release Engineer had already shipped **v0.28.0** and archived
+`retire-legacy-actor-kinds.md` (and `one-kind-consolidation.md`) to
+`docs/changes/v0.28.0/`, with the correct "executed by the user
+2026-09-27, PASS" text intact. PM merged that incoming history (no
+conflicts) and pushed; the stale root-level copy no longer exists, so this
+specific recurrence is structurally closed. The earlier 2026-09-27
+occurrence of the same revert remains unexplained but is now moot — the
+file path it affected is gone. QM independently confirmed post-merge: the
+PASS paragraph is present and correct in
+`docs/changes/v0.28.0/retire-legacy-actor-kinds.md` line 830, both CDs are
+archived (no longer at `docs/changes/` root), their own `**Status**`
+fields still read `in-progress` (unchanged archival convention, not a new
+finding), and `git status` is clean.
+
+This merge also brought in one new completed root-level CR not previously
+tracked by this session: `remove-newactor-legacy-quickpick` (Status:
+complete, `Operation Mode: autonomous`, QM CLEAR Round 1 recorded directly
+in its own CD on 2026-09-30 — backfilled into the CR Review Log the same
+way as `one-kind-consolidation`, not from this session's memory). Its
+feature branch is already deleted post-merge, so SC-005 does not apply
+(Status is `complete`, not `in-progress`). It has a `val-` but no `tst-`
+— a third instance of the existing informal "val- without tst-" pattern
+(joining `focus-restore-toggle`, `whoami-hookless-error`), distinct from
+the formal SC-004 check (which requires every `tst-` to have a `val-`,
+not the reverse) and carried forward as the same standing,
+PM-acknowledged non-finding.
+
+PM also responded directly on two open items: **SC-001** — GH #33
+confirmed as the correct, intentionally low-priority home for all persona
+findings (now including the two widened this cycle); no new PM decision
+needed, continue tracking externally as before. **SC-003** —
+acknowledged resolved by removal; nothing further needed.
+
+`scan-state.md` updated accordingly: new release v0.28.0 recorded, CR
+Review Log gained a backfilled row for `remove-newactor-legacy-quickpick`,
+"Known Root-Level Changes" rewritten to reflect the archival, and the
+Pending section closed out the anomaly and SC-003 items while carrying
+forward the routing-instruction conflict (still unresolved) and the
+now-three-instance val-without-tst observation.
