@@ -1,0 +1,11 @@
+{
+  "name": "fl210-download-probe",
+  "version": "0.0.1",
+  "private": true,
+  "publisher": "research",
+  "description": "Extension-host probe: SDK 2.1.0 assembled from npm+NuGet into extension storage, then official catalog/model download behind the proxy",
+  "main": "./extension.cjs",
+  "engines": { "vscode": "^1.95.0" },
+  "activationEvents": ["onStartupFinished"],
+  "dependencies": { "adm-zip": "0.5.16" }
+}
