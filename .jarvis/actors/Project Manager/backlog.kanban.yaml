@@ -522,46 +522,53 @@ items:
       - hooks
     notes: 'Concept settled with the user 2026-10-03 (replaces the earlier draft
       that copied persona content). GOAL: an Actor knows its identity reliably
-      without hooks, including after /compact. SETTLED: (1) Every Actor has
-      exactly one agent of its own, found by its front matter `name:` (equal to
-      the Actor name), not by file name. Reason: today Syspilot''s files are
-      called syspilot.<role>.agent.md with `name:` equal to the Actor name (e.g.
-      syspilot.pm.agent.md has name "Project Manager"), so a file-name check
-      would miss them and create a second agent with the same name. If no agent
-      with that name exists, Jarvis creates <actor name>.agent.md with `name:
-      <actor name>`. actor.yaml `agent` holds the Actor name. Because Actor
-      names are unique (enforced), two Actors can never share one agent file by
-      construction. (2) Jarvis''s only responsibility: ensure that agent exists
-      and maintain exactly two lines right after the YAML front matter: line 1
-      "You act as Actor <name>", line 2 "Your context memory is
-      <workspace-relative path to context.md>". Everything else in the file is
-      not Jarvis''s. (3) Jarvis copies no persona content. The persona is
-      referenced from the Actor''s context.md and read as text at session start;
-      that is the user''s/Syspilot''s concern. After /compact the Actor re-works
-      its context.md anyway (accepted). (4) Syspilot up to 0.9 ships one agent
-      file per Actor and Jarvis adds the two lines to it. From Syspilot 0.10 no
-      agent files are needed and Jarvis creates an empty one. An Actor whose
-      `agent` names something else (found 2026-10-03: Syspilot Setup Engineer
-      points to syspilot.setup) is re-pointed to its own agent, which the user
-      accepts as consequence. (5) The lines are re-applied on every open and
-      delivery (REQ_ACTOR_INITPROMPT AC-6 already re-applies the agent), so an
-      upstream overwrite by the Syspilot installer heals itself. (6)
-      jarvis_whoAmI is removed, Kanban tools require ownerName, and the identity
-      section of the Jarvis kernel instructions becomes obsolete. Hooks stay for
-      touched files and activity; their removal is #35. (7) Accepted limitation:
-      if VS Code drops the mode and no Jarvis action follows, the Actor lacks
-      its identity until the next delivery or open. (8) Order: after Phase 2;
-      planned as another non-AHP release. AHP review is about 2027-01 (Research,
-      2026-10-03), so this change does not wait for AHP. OPEN (decider in
-      brackets): PM proposes adding to line 2 "read it at session start and
-      after every context compaction" [user]. Spike for Research: is a freshly
-      written agent file recognised when the chat is opened right after; do
-      spaces in the file name work for the Jarvis-created file (the mode id
-      being `name:` is how the Actors run today, observed, not spiked); can an
-      agent hidden with `user-invocable: false` be set as mode programmatically
-      (picker clutter with many Actors) [Research]. Spec decisions for System
-      Designer with the user: are Jarvis-created agent files tracked or
-      git-ignored; how the lines follow an Actor rename/move or a
-      jarvis.actors.folder change; behaviour when a file of that name exists but
-      belongs to someone else.'
+      without hooks, including after /compact. SETTLED: (1) The link is the
+      Actor name. The `agent` field is removed from actor.yaml. Jarvis finds the
+      Actor''s agent by its front matter `name:` equal to the Actor name, not by
+      file name: Syspilot''s files up to 0.9 are called syspilot.<role>.agent.md
+      but already carry name = Actor name, so they are found as they are. If no
+      agent has that name, Jarvis creates <actor name>.agent.md with front
+      matter `name: "<actor name>"`. Actor names are unique (enforced), so two
+      Actors can never share an agent. (2) Jarvis maintains exactly two lines
+      right after the YAML front matter: line 1 "You act as Actor <name>", line
+      2 "Your context memory is <workspace-relative path to context.md>".
+      Everything else in the file is not Jarvis''s. (3) Jarvis copies no persona
+      content. The persona is referenced from the Actor''s context.md and read
+      as text; several Actors may share one persona that way. After /compact the
+      Actor re-works its context.md anyway (accepted). (4) Persona choice leaves
+      the Jarvis UI: no agent picker at "+", no `agent` input on
+      jarvis_createActor. The user accepts this break: Syspilot solves persona
+      selection itself, PIM does for its own, and plain Jarvis Actors learn
+      their persona from context.md. (5) The Jarvis-supplied template agent
+      files become worthless and are retired in this change (user). (6) The
+      lines are re-applied on every open and delivery (REQ_ACTOR_INITPROMPT AC-6
+      already re-applies the agent), so an upstream overwrite by the Syspilot
+      installer heals itself. (7) jarvis_whoAmI is removed, Kanban tools require
+      ownerName, and the identity section of the Jarvis kernel instructions
+      becomes obsolete. Hooks stay for touched files and activity; their removal
+      is #35. (8) Accepted limitation: if VS Code drops the mode and no Jarvis
+      action follows, the Actor lacks its identity until the next delivery or
+      open. (9) Order: after Phase 2; planned as another non-AHP release. AHP
+      review is about 2027-01 (Research, 2026-10-03), so this change does not
+      wait for AHP. FIRST IMPACT VIEW (PM grep 2026-10-03, not an impact
+      analysis): US_ACTOR_ACTORS agent binding, REQ_ACTOR_SCHEMA AC-2,
+      REQ_ACTOR_CREATE AC-6, REQ_ACTOR_CREATETOOL `agent` input,
+      REQ_ACTOR_AGENT_DISCOVERY, REQ_ACTOR_INITPROMPT AC-6/AC-7,
+      actor.schema.json (additionalProperties false, 12 real actor.yaml still
+      carry `agent:`). Syspilot Setup Engineer points to syspilot.setup and
+      would get its own agent. OPEN (decider in brackets): where the
+      Jarvis-supplied template agent files live; none exist in this repo, only
+      the 13 syspilot files [user]. Whether a legacy `agent:` in actor.yaml is
+      ignored or rejected, and whether any caller (e.g. Syspilot setup) still
+      passes `agent` to jarvis_createActor [System Designer with user]. PM
+      proposes adding to line 2 "read it at session start and after every
+      context compaction" [user]. Spike for Research: is a freshly written agent
+      file recognised when the chat is opened right after; do spaces in the file
+      name work for a Jarvis-created file (the mode id being `name:` is how
+      Actors run today, observed, not spiked); can an agent hidden with
+      `user-invocable: false` be set as mode programmatically (picker clutter)
+      [Research]. Spec decisions for System Designer with the user: are
+      Jarvis-created agent files tracked or git-ignored; renaming an Actor means
+      a new agent and the old one stays behind; behaviour when <actor
+      name>.agent.md exists but its `name:` differs.'
     priority: High
