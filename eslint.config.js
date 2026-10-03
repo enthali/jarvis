@@ -7,6 +7,9 @@ const tsPlugin = require('@typescript-eslint/eslint-plugin');
 /** @type {import('eslint').Linter.Config[]} */
 module.exports = [
     {
+        ignores: ['.venv/**'],
+    },
+    {
         files: ['packages/*/src/**/*.ts', 'src/**/*.ts'],
         languageOptions: {
             parser: tsParser,
