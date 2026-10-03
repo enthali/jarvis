@@ -116,8 +116,10 @@
 ## Active CR
 
 - **No active CR (2026-10-03)** — `recorder-redesign` merged into `development`
-  as squash commit `7983df0` (user's explicit "Merge OK"), not pushed, not yet
-  released. The user wants a release after the merge. Feature branch
+  as squash commit `2980be1` (rebased from `7983df0` onto `origin/development`;
+  user's explicit "Merge OK"), NOT pushed (local `development` is 2 commits
+  ahead of origin: the squash and my memory commit), not yet released. The user
+  wants a release after the merge. Feature branch
   `feature/recorder-redesign` retained. Before a release (user decisions open):
   publication gate D-28 (licence of Microsoft.Windows.AI.MachineLearning.dll
   not read, whether SDK telemetry leaves the machine) — the tag push publishes
@@ -131,11 +133,13 @@
   `ideas/recording-design.md` now that the change has landed), #47 (test
   automation), #48 (ontology status vocabulary). U results: U-1, U-2, U-5 passed
   per the user; evidence is his statements and pasted log, no proxy log.
-- **Merge mechanics (2026-10-03)**: `development` is checked out in the worktree
-  `C:\workspace\jarvis-dev-docs`, so `git checkout development` fails in the main
-  tree. I squashed in a temporary worktree on a helper branch, fast-forwarded
-  `development` in `jarvis-dev-docs` (clean) and removed the helper. Later
-  commits of mine on `feature/recorder-redesign` are not on `development`.
+- **Git state after the merge (2026-10-03)**: the extra worktrees
+  `jarvis-dev-docs` and `jarvis-nemotron-spike` are closed on the user's order
+  (their folders deleted; the spike's test transcripts were not needed). Branch
+  `research/recorder-nemotron-spike` stays, in sync with origin. The main tree is
+  on `development` again, clean. Lesson: a branch checked out in another worktree
+  cannot be checked out in the main tree, so a squash needed a temporary worktree.
+  The old feature branch still holds the single-commit history, not needed again.
 - **Shared-tree lesson (2026-10-03)**: an unknown actor left
   `packages/recorder/package.json` modified (identical to `development`),
   which failed 7 tests in the shared tree while the committed branch passed.
