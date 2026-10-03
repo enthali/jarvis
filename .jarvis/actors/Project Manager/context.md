@@ -115,48 +115,27 @@
 
 ## Active CR
 
-- **`recorder-redesign` (2026-10-03, backlog #41)** — branch
-  `feature/recorder-redesign`. All QM rounds dispositioned (R4 accept-as-is, c3628fb);
-  no further QM round. User now validates U-1..U-5 in the EDH ("Run All", Ctrl+F5);
-  T-1..T-17 stay NOT RUN. After validation VE promotes the 12 `approved`
-  elements, then the user decides the merge. Open for the user: publication
-  gate D-28 (DLL licence, SDK telemetry), blocks publication not merge.
-  Backlog follow-ups: #45, #46, #47 (test automation), #48 (ontology status),
-  #49 (settings group title Jarvis Recorder).
-  **User results so far (collect for CM/VE, protocol still NOT RUN):** U-1: first
-  start failed "Client network socket disconnected before secure TLS connection
-  was established", second start ok. User states: on this laptop the download
-  only works through the proxy, so the successful download went through it
-  (user's statement, no proxy log). Retry question for the failed first attempt
-  open. U-2 ok: DE/EN ok, Spanish not recognized (accepted), delay about
-  3-6 s felt, marks about every minute; both sources tested, no echo seen —
-  possibly because of the laptop's own microphone and speakers; if echo ever
-  becomes a problem, revisit (user). Echo coverage is limited to this
-  hardware, a release-note candidate.
-  U-5 reported ok by the user 2026-10-03 (5 min session, word-count log
-  lines every 10 s with no text, only the transcript files in the Actor's
-  transcripts folder; offline state taken from the user's "worked", not
-  verified by PM). U-3 BLOCKED (user's laptop microphone and speakers cannot
-  be disabled or removed); user decision: not a release blocker, only a
-  release-note entry that certain device configurations and states were not
-  tested — pass this to the Release Engineer at release time. U-4 (one hour)
-  NOT RUN by the user's decision 2026-10-03: a 5 min session at about 30-40 %
-  CPU showed no problem, so no hour-long run now; release-note entry
-  "long-term test not conducted" (user will notice problems next week). No
-  memory readings were taken. All U cases are now dispositioned; T-1..T-17
-  stay NOT RUN. Dispatched to CM (user OK): U results to VE, who promotes only
-  the `approved` elements covered by U-1/U-2/U-5; backlog #49 (settings group
-  "Jarvis Recorder", REQ_REC_ENABLE AC-2 / SPEC_REC_SETTINGS) done in this
-  change; then one targeted QM check. User OK 2026-10-03: the command titles
-  also get the "Jarvis:" prefix (SPEC_REC_BUTTON, packages/recorder/package.json),
-  sent to CM as an addendum, same pass as the group title. Merge only
-  after QM's answer and the user's explicit OK. The user may later decide to
-  release a half-tested state consciously with a release-note warning.
-  Update 2026-10-03: D-58/D-59 (group and command titles) done and QM-checked.
-  QM targeted check F-8: user chose (a), REQ_REC_SPEECH back to `approved`
-  (VE, one status line, aec3293); user wants NO further QM/VE rounds and wants
-  to field-test the version as it is. Merge to development still needs his
-  explicit OK (not yet given; a field test of the current version is not that OK).
+- **No active CR (2026-10-03)** — `recorder-redesign` merged into `development`
+  as squash commit `7983df0` (user's explicit "Merge OK"), not pushed, not yet
+  released. The user wants a release after the merge. Feature branch
+  `feature/recorder-redesign` retained. Before a release (user decisions open):
+  publication gate D-28 (licence of Microsoft.Windows.AI.MachineLearning.dll
+  not read, whether SDK telemetry leaves the machine) — the tag push publishes
+  via CI, so D-28 must be decided first; version number (new feature, so a
+  minor bump, my suggestion 0.29.0). Release-note entries to pass to the Release
+  Engineer: U-3 blocked (laptop microphone/speakers cannot be disabled), U-4
+  one-hour test not conducted (5 min at about 30-40 % CPU without problems, no
+  memory readings), echo coverage limited to the user's hardware, T-1..T-17
+  not run, 12 elements stay `approved`. Open: automatic retry after the first
+  start's TLS failure (undecided), backlog #45 (rec tool infix AC), #46 (retire
+  `ideas/recording-design.md` now that the change has landed), #47 (test
+  automation), #48 (ontology status vocabulary). U results: U-1, U-2, U-5 passed
+  per the user; evidence is his statements and pasted log, no proxy log.
+- **Merge mechanics (2026-10-03)**: `development` is checked out in the worktree
+  `C:\workspace\jarvis-dev-docs`, so `git checkout development` fails in the main
+  tree. I squashed in a temporary worktree on a helper branch, fast-forwarded
+  `development` in `jarvis-dev-docs` (clean) and removed the helper. Later
+  commits of mine on `feature/recorder-redesign` are not on `development`.
 - **Shared-tree lesson (2026-10-03)**: an unknown actor left
   `packages/recorder/package.json` modified (identical to `development`),
   which failed 7 tests in the shared tree while the committed branch passed.
