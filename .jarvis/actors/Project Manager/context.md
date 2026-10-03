@@ -298,6 +298,25 @@
 
 ## Ideas
 
+- **Parallel feature teams, retro and actor namespace (user thoughts 2026-10-03,
+  first test: recorder here, #42 on another machine; gather experience first,
+  nothing decided)**: (1) one team per worktree, worktrees only on feature
+  branches, main workspace holds `development`/`main` with PM and Release
+  Engineer, merge by pull request or direct; (2) each team has its own memory
+  and a "retro" before a release (or after a change) where counterparts read
+  each other's memory pairwise by role — fits the kernel (read others' memory
+  as evidence, change only your own, disagreement escalates to the user);
+  (3) biggest worry: actor names must be unique today and messaging addresses
+  by name, so two architects cannot coexist — idea: a namespace, address =
+  role + team + project (short name resolves inside the own team, qualified
+  across teams/projects), better as structured fields than a flat string, with a
+  host layer possible later; (4) cross-workspace and remote (cloud) sessions
+  depend on AHP, which Research recommends deferring 2-3 months (commit
+  `8afdccb`, note not read by me); (5) naming interacts with #42 (agent file
+  and identity sentence use the actor name) — tell the #42 side not to freeze
+  the name form; (6) open: who may message whom across projects. No backlog
+  item yet; the user has not said yes to one. See also my lessons-learned entry
+  on parallel work.
 - **US/REQ/SPEC — is the SPEC level redundant? (2026-08-20)**: SPEC often ends up
   just restating the code. Idea: try dropping it for one new feature as an
   experiment. Not trivial — the 3-level structure is hardwired throughout
