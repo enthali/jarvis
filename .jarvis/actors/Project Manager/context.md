@@ -117,18 +117,24 @@
 
 - **No active CR (2026-10-03)** — `recorder-redesign` merged into `development`
   as squash commit `2980be1` (rebased from `7983df0` onto `origin/development`;
-  user's explicit "Merge OK"), NOT pushed (local `development` is 2 commits
-  ahead of origin: the squash and my memory commit), not yet released. The user
-  wants a release after the merge. Feature branch
-  `feature/recorder-redesign` retained. Before a release (user decisions open):
-  publication gate D-28 (licence of Microsoft.Windows.AI.MachineLearning.dll
-  not read, whether SDK telemetry leaves the machine) — the tag push publishes
-  via CI, so D-28 must be decided first; version number (new feature, so a
-  minor bump, my suggestion 0.29.0). Release-note entries to pass to the Release
-  Engineer: U-3 blocked (laptop microphone/speakers cannot be disabled), U-4
+  user's explicit "Merge OK"), pushed on the user's order: `origin/development`
+  = `8e52828`. Not yet released. The user wants a release after the merge.
+  Feature branch `feature/recorder-redesign` retained.
+  D-28 decided by the user 2026-10-03: licence is no topic any more because SDK
+  2.1.0 is used (its core is MIT; my caveat on record: `Microsoft.Windows.AI.
+  MachineLearning.dll`'s `license.txt` and the npm/NuGet terms were never read,
+  Research note rows "nicht geprüft"); telemetry: record it in the release
+  notes (non-essential telemetry is off by config and ORT_TELEMETRY_DISABLED, a
+  minimal process-info event may still upload, per Research). Still open before
+  the release: version number (new feature, so a minor bump, my suggestion
+  0.29.0, not yet confirmed) and the explicit go to send it to the Release
+  Engineer (the tag push publishes via CI). Release-note entries to pass to the
+  Release Engineer: U-3 blocked (laptop microphone/speakers cannot be
+  disabled), U-4
   one-hour test not conducted (5 min at about 30-40 % CPU without problems, no
   memory readings), echo coverage limited to the user's hardware, T-1..T-17
-  not run, 12 elements stay `approved`. Open: automatic retry after the first
+  not run, 12 elements stay `approved`, the telemetry note. Open: automatic
+  retry after the first
   start's TLS failure (undecided), backlog #45 (rec tool infix AC), #46 (retire
   `ideas/recording-design.md` now that the change has landed), #47 (test
   automation), #48 (ontology status vocabulary). U results: U-1, U-2, U-5 passed
