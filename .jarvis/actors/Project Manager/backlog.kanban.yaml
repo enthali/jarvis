@@ -534,9 +534,8 @@ items:
       2 "Your context memory is <workspace-relative path to context.md>".
       Everything else in the file is not Jarvis''s. (3) Jarvis copies no persona
       content. The persona is referenced from the Actor''s context.md and read
-      as text; several Actors may share one persona that way. After /compact the
-      Actor re-works its context.md anyway (accepted). (4) Persona choice leaves
-      the Jarvis UI: no agent picker at "+", no `agent` input on
+      as text; several Actors may share one persona that way. (4) Persona choice
+      leaves the Jarvis UI: no agent picker at "+", no `agent` input on
       jarvis_createActor. The user accepts this break: Syspilot solves persona
       selection itself, PIM does for its own, and plain Jarvis Actors learn
       their persona from context.md. (5) Generic Jarvis agent files exist only
@@ -557,7 +556,13 @@ items:
       set before the session starts, so an agent file only has to exist by then;
       spaces in the file name work (tried by the user). Whether an agent hidden
       with `user-invocable: false` can be set as mode, to avoid picker clutter
-      with many Actors, is unknown and parked (user). FIRST IMPACT VIEW (PM grep
+      with many Actors, is unknown and parked (user). COMPACT (user,
+      2026-10-03): reloading after /compact works only in part. That is a GitHub
+      Copilot limitation, as a compaction can lose context. The only mitigation
+      is a recurring hint that context.md and the files it links are important.
+      Jarvis does not do this today and it works fairly well anyway. Line 2 is
+      the natural carrier because the agent body reaches every request; whether
+      and how to word it is left to the design. FIRST IMPACT VIEW (PM grep
       2026-10-03, not an impact analysis): US_ACTOR_ACTORS agent binding,
       REQ_ACTOR_SCHEMA AC-2, REQ_ACTOR_CREATE AC-6, REQ_ACTOR_CREATETOOL `agent`
       input, REQ_ACTOR_AGENT_DISCOVERY, REQ_ACTOR_INITPROMPT AC-6/AC-7,
@@ -566,13 +571,12 @@ items:
       would get its own agent. OPEN (decider in brackets): whether a legacy
       `agent:` in actor.yaml is ignored or rejected, and whether any caller
       (e.g. Syspilot setup) still passes `agent` to jarvis_createActor [System
-      Designer with user]. PM proposes adding to line 2 "read it at session
-      start and after every context compaction" [user]. PM suggests creating the
-      missing agent files of all Actors at activation and rescan instead of
-      lazily at open, so even Actors that predate this change have the file long
-      before their first open [System Designer]. Spec decisions for System
-      Designer with the user: are Jarvis-created agent files tracked or
-      git-ignored; renaming an Actor means a new agent and the old one stays
-      behind; behaviour when <actor name>.agent.md exists but its `name:`
-      differs.'
+      Designer with user]. Wording of the compaction hint in line 2, if any
+      [System Designer with user]. PM suggests creating the missing agent files
+      of all Actors at activation and rescan instead of lazily at open, so even
+      Actors that predate this change have the file long before their first open
+      [System Designer]. Spec decisions for System Designer with the user: are
+      Jarvis-created agent files tracked or git-ignored; renaming an Actor means
+      a new agent and the old one stays behind; behaviour when <actor
+      name>.agent.md exists but its `name:` differs.'
     priority: High
