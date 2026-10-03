@@ -23,6 +23,10 @@ Integrationsbranch heisst `development` (seit 2026-07-28, vorher `develop`). Res
 ## Aktueller Auftrag
 Recorder-Redesign (Nemotron statt Docker/Whisper) wird als Change mit System Designer spezifiziert (User führt, ich liefere Fakten auf Nachfrage; Stand 2026-09-30). Sonst ad hoc auf PM-/User-Fragen. Folgende Abschnitte: historische Findings.
 
+## Agent-Host-Protokoll (AHP) — Entscheidung User, 2026-10-03
+- Noch nicht auf den AHP-Zug aufspringen, ca. 2–3 Monate abwarten (Review ca. 2027-01). Grund: VS Code 1.140 bringt experimentelle Remote-Agent-Host-Tools (`create_remote_session`, `send_remote_message`, `vscode://agents/new`), die unser Design berühren könnten.
+- Kein Spike beauftragt; Notes nur gelesen, nichts getestet.
+
 ## Recorder-Redesign (2026-09)
 - Paper: `recorder-redesign-2026-09.md`; Spike + Extension-Host-Probe: Branch `research/recorder-nemotron-spike` (`experiments/nemotron-spike/`, README trennt belegt/offen).
 - Stand 2026-10-01 (Abschnitt "L2-Antworten" im Paper): SDK 1.2.3 + VS-Code-Runtime laufen live (Node und Ext-Host); native Schicht bekommt Proxy-407, Ext-Host-Node nicht; Capture per pwsh/WASAPI belegt, Webview ausgeschieden; nur 1 Session pro Modell.
