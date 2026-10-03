@@ -1,183 +1,130 @@
-// Implementation: SPEC_MOD_REC_PKG — Recorder extension activation
-// Requirements: REQ_MOD_ADDONS
+// Implementation: SPEC_MOD_REC_PKG, SPEC_REC_SETTINGS, SPEC_REC_BUTTON, SPEC_REC_STATUSBAR — Recorder activation
+// Requirements: REQ_MOD_ADDONS, REQ_REC_ENABLE, REQ_REC_BUTTON, REQ_REC_STATUSBAR
 
-import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import type { JarvisCoreApi, HeartbeatJob } from 'jarvis-core';
-import { RecordingManager } from './recording';
+import * as vscode from 'vscode';
+import type { JarvisActor, JarvisCoreApi } from 'jarvis-core';
+import { PowerShellCapture } from './capture';
+import { ComponentManifest, ensureComponents, isComplete } from './components';
+import { WorkerEngine } from './engine';
+import { LiveView } from './liveView';
+import { formatElapsed, RecordingSession, SessionPorts } from './session';
+import { TranscriptFile } from './transcriptFile';
 
-const subscriptions: vscode.Disposable[] = [];
+const LEGACY_JOB = 'Jarvis: Check Transcripts';
+const MODEL_MARKER = path.join('Microsoft', 'nemotron-3.5-asr-streaming-0.6b-generic-cpu-3', 'v3', 'genai_config.json');
+
+let session: RecordingSession | undefined;
+
+/** VS Code's dictation cache: three directories above this extension's global storage (SPEC_REC_COMPONENTS). */
+export function dictationModelDir(globalStoragePath: string): string {
+    return path.resolve(globalStoragePath, '..', '..', '..', 'chatDictationModels');
+}
+
+export const MODEL_MISSING_MESSAGE =
+    "The speech model was not found. Use VS Code's voice dictation once, or import the model with " +
+    "'Chat: Install Dictation Model from Local Package...', then try again. " +
+    'This works only with the local dictation model, not with the cloud model.';
 
 export function activate(context: vscode.ExtensionContext): void {
+    const log = vscode.window.createOutputChannel('Jarvis Recorder', { log: true });
     const api = vscode.extensions.getExtension<JarvisCoreApi>('enthali.jarvis-core')?.exports;
     if (!api || api.version !== 2) {
-        const log = vscode.window.createOutputChannel('Jarvis Recorder', { log: true });
         log.warn('[Recorder] Core API not available or version mismatch — deactivating.');
         return;
     }
 
-    const log = vscode.window.createOutputChannel('Jarvis Recorder', { log: true });
+    // The earlier recorder left a persistent heartbeat job behind (SPEC_REC_SETTINGS).
+    void Promise.resolve(api.unregisterJob(LEGACY_JOB)).catch(err => log.warn(`[Recorder] legacy job cleanup failed: ${err}`));
 
-    // --- Recording Manager ---
-    const recordingManager = new RecordingManager();
-    recordingManager.setLog(log as unknown as vscode.LogOutputChannel);
+    const manifest = JSON.parse(fs.readFileSync(path.join(context.extensionPath, 'resources', 'components.json'), 'utf8')) as ComponentManifest;
+    const storage = context.globalStorageUri.fsPath;
+    const sdkDir = path.join(storage, 'foundry-local', manifest.sdkVersion);
+    const modelDir = dictationModelDir(storage);
+    const scriptPath = path.join(context.extensionPath, 'resources', 'capture.ps1');
+    const workerPath = path.join(__dirname, 'engineWorker.js');
 
-    // --- Status bar (SPEC_REC_STATUSBAR) ---
-    const recordingStatusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 10);
-    recordingStatusBar.command = 'jarvis.stopRecording';
-    recordingStatusBar.hide();
-    subscriptions.push(recordingStatusBar);
+    const ports: SessionPorts = {
+        isEnabled: () => vscode.workspace.getConfiguration('jarvis').get<boolean>('recording.enabled', false),
+        platform: process.platform,
+        ensureComponents: async () => {
+            if (!fs.existsSync(path.join(modelDir, MODEL_MARKER))) { throw new Error(MODEL_MISSING_MESSAGE); }
+            if (isComplete(manifest, sdkDir)) { return; }
+            await vscode.window.withProgress(
+                { location: vscode.ProgressLocation.Notification, title: 'Jarvis Recorder: preparing speech recognition (one-time download, about 230 MB)' },
+                async progress => {
+                    let reported = 0;
+                    fs.mkdirSync(sdkDir, { recursive: true });
+                    await ensureComponents({
+                        manifest,
+                        targetDir: sdkDir,
+                        onProgress: (done, total) => {
+                            const mb = Math.floor(done / 1e6);
+                            if (mb > reported) {
+                                progress.report({ message: `${mb} of ${Math.round(total / 1e6)} MB`, increment: (mb - reported) * 100 / Math.max(1, total / 1e6) });
+                                reported = mb;
+                            }
+                        },
+                    });
+                });
+        },
+        createEngine: () => new WorkerEngine({ workerPath, sdkDir, modelDir }),
+        createCapture: () => new PowerShellCapture(scriptPath),
+        withStartProgress: (title, work) => Promise.resolve(vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title }, work)),
+        createTranscript: (folder, startedAt) => TranscriptFile.create(folder, startedAt),
+        info: m => { void vscode.window.showInformationMessage(m); },
+        warn: m => { void vscode.window.showWarningMessage(m); },
+        error: m => { void vscode.window.showErrorMessage(m); },
+        setRunning: running => { void vscode.commands.executeCommand('setContext', 'jarvis.recordingRunning', running); },
+        markActor: actorId => {
+            if (typeof api.markActor !== 'function') { return () => undefined; }
+            const mark = api.markActor(actorId, new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('charts.red')));
+            return () => mark.dispose();
+        },
+        send: (actorName, text) => api.sendMessage(actorName, 'Recorder', text),
+        log: m => log.info(m),
+        now: () => Date.now(),
+    };
 
-    let recordingTimer: ReturnType<typeof setInterval> | undefined;
+    const rec = new RecordingSession(ports);
+    session = rec;
+    const view = new LiveView(rec);
 
-    function updateRecordingStatusBar(): void {
-        const name = recordingManager.currentProject;
-        const t0 = recordingManager.startTime;
-        if (!name || t0 === undefined) {
-            recordingStatusBar.hide();
-            return;
-        }
-        const elapsed = Math.floor((Date.now() - t0) / 1000);
-        const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
-        const ss = String(elapsed % 60).padStart(2, '0');
-        recordingStatusBar.text = `🔴 ${name} — ${mm}:${ss}`;
-        recordingStatusBar.show();
-    }
+    const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 10);
+    statusBar.command = 'jarvis.showRecording';
+    statusBar.tooltip = 'Show the running recording';
+    const refreshStatusBar = (): void => {
+        if (!rec.isActive || !rec.actor) { statusBar.hide(); return; }
+        const suffix = rec.state === 'finishing' ? ' · finishing' : '';
+        statusBar.text = `🔴 ${rec.actor.name} — ${formatElapsed(rec.elapsedMs())}${suffix}`;
+        statusBar.show();
+    };
+    const changeSub = rec.onDidChange(refreshStatusBar);
 
-    recordingManager.onDidChange(() => {
-        if (recordingManager.currentProject) {
-            updateRecordingStatusBar();
-            recordingTimer = setInterval(updateRecordingStatusBar, 1000);
-        } else {
-            if (recordingTimer) {
-                clearInterval(recordingTimer);
-                recordingTimer = undefined;
-            }
-            recordingStatusBar.hide();
-        }
+    const startCommand = vscode.commands.registerCommand('jarvis.startRecording', async (node?: { kind: 'actor'; id: string }) => {
+        const actors = api.listActors();
+        const actor = node ? actors.find(a => a.id === node.id) : await pickActor(actors);
+        if (!actor) { return; }
+        await rec.start({ id: actor.id, name: actor.name, folder: actor.folder });
     });
+    const showCommand = vscode.commands.registerCommand('jarvis.showRecording', () => view.show());
 
-    // --- Commands ---
-    const startRecordingCommand = vscode.commands.registerCommand(
-        'jarvis.startRecording',
-        async (element?: { id?: string }) => {
-            let name: string;
-            if (element?.id) {
-                const actor = api.listActors().find(a => a.id === element.id);
-                name = actor?.name ?? path.basename(path.dirname(element.id));
-            } else {
-                const input = await vscode.window.showInputBox({ prompt: 'Recording name' });
-                if (!input) { return; }
-                name = input;
-            }
-            await recordingManager.start(name, context);
-        }
+    context.subscriptions.push(
+        log, statusBar, startCommand, showCommand, view,
+        { dispose: () => { changeSub.dispose(); rec.dispose(); } },
     );
-
-    const stopRecordingCommand = vscode.commands.registerCommand(
-        'jarvis.stopRecording',
-        async () => {
-            await recordingManager.stop();
-        }
-    );
-
-    // --- Transcript watcher command (SPEC_REC_WATCHER) ---
-    const checkTranscriptsCommand = vscode.commands.registerCommand(
-        'jarvis.checkTranscripts',
-        async () => {
-            const cfg = vscode.workspace.getConfiguration('jarvis');
-            const enabled = cfg.get<boolean>('recording.enabled', false);
-            const whisperPath = cfg.get<string>('recording.whisperPath', '');
-            if (!enabled || !whisperPath) { return; }
-
-            const outputDir = path.join(whisperPath, 'output');
-            const inputDir = path.join(whisperPath, 'input');
-            if (!fs.existsSync(outputDir)) { return; }
-
-            const files = fs.readdirSync(outputDir).filter(f => f.endsWith('.txt'));
-            for (const file of files) {
-                const stem = file.slice(0, -4);
-                const sidecarPath = path.join(inputDir, `${stem}.json`);
-                if (!fs.existsSync(sidecarPath)) { continue; }
-
-                let project: string;
-                try {
-                    const sidecar = JSON.parse(fs.readFileSync(sidecarPath, 'utf-8')) as { project: string };
-                    project = sidecar.project;
-                } catch {
-                    log.warn(`[Recording] could not parse sidecar: ${sidecarPath}`);
-                    continue;
-                }
-
-                const txtPath = path.join(outputDir, file);
-                const transcript = `Ein neues Meeting Transcript liegt für dich bereit: ${txtPath}`;
-
-                // Dispatch via messaging — use VS Code command since the messaging
-                // API lives in core (sendToSession is a core command/tool)
-                try {
-                    await vscode.commands.executeCommand('jarvis.internalAppendMessage', project, 'Whisper Watcher', transcript);
-                } catch {
-                    log.warn(`[Recording] could not dispatch transcript for "${stem}" — messaging API unavailable`);
-                }
-                log.info(`[Recording] dispatched transcript "${stem}" to session "${project}"`);
-
-                try { fs.unlinkSync(sidecarPath); } catch { /* ignore */ }
-            }
-        }
-    );
-
-    subscriptions.push(startRecordingCommand, stopRecordingCommand, checkTranscriptsCommand);
-
-    // --- Transcript watcher heartbeat job (SPEC_REC_WATCHERJOB) ---
-    function syncTranscriptWatcherJob(): void {
-        const cfg = vscode.workspace.getConfiguration('jarvis');
-        const enabled = cfg.get<boolean>('recording.enabled', false);
-        const whisperPath = cfg.get<string>('recording.whisperPath', '');
-        const jobName = 'Jarvis: Check Transcripts';
-        if (enabled && whisperPath) {
-            const interval = cfg.get<number>('scanInterval', 2);
-            const schedule = interval > 0 ? `*/${interval} * * * *` : '*/2 * * * *';
-            const job: HeartbeatJob = {
-                name: jobName,
-                schedule,
-                steps: [{ type: 'command', run: 'jarvis.checkTranscripts' }]
-            };
-            api!.registerJob(job);
-            log.info(`[Recording] registered transcript watcher job: ${schedule}`);
-        } else {
-            api!.unregisterJob(jobName);
-            log.info('[Recording] unregistered transcript watcher job');
-        }
-    }
-
-    // Sync on activation
-    syncTranscriptWatcherJob();
-
-    // Re-sync on configuration change
-    subscriptions.push(
-        vscode.workspace.onDidChangeConfiguration(e => {
-            if (e.affectsConfiguration('jarvis.recording.enabled') ||
-                e.affectsConfiguration('jarvis.recording.whisperPath')) {
-                syncTranscriptWatcherJob();
-            }
-        })
-    );
-
-    // Push all to context for auto-disposal on extension unload
-    context.subscriptions.push(...subscriptions);
-    context.subscriptions.push({
-        dispose: () => {
-            if (recordingTimer) { clearInterval(recordingTimer); }
-        }
-    });
 }
 
+async function pickActor(actors: JarvisActor[]): Promise<JarvisActor | undefined> {
+    const items = [...actors]
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map(a => ({ label: a.name, description: a.summary, actor: a }));
+    const picked = await vscode.window.showQuickPick(items, { placeHolder: 'Select the Actor to record for' });
+    return picked?.actor;
+}
+
+/** Ends a running recording within the shutdown budget (SPEC_REC_SESSION). */
 export async function deactivate(): Promise<void> {
-    // Dispose runtime registrations (decorators, commands) via context.subscriptions.
-    // Do NOT unregister the heartbeat job — it is persistent.
-    for (const d of subscriptions) {
-        d.dispose();
-    }
-    subscriptions.length = 0;
+    await session?.shutdown();
 }

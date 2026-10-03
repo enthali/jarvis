@@ -1,5 +1,5 @@
-// Implementation: SPEC_ACTOR_TREE, SPEC_ACTOR_FILES, SPEC_ACTOR_TOUCHEDFILES, SPEC_ACTOR_ACTIVITY
-// Requirements: REQ_ACTOR_TREE, REQ_ACTOR_FILES_TREE, REQ_ACTOR_TOUCHEDFILES, REQ_ACTOR_ACTIVITY
+// Implementation: SPEC_ACTOR_TREE, SPEC_ACTOR_FILES, SPEC_ACTOR_TOUCHEDFILES, SPEC_ACTOR_ACTIVITY, SPEC_ENG_ACTORMARK
+// Requirements: REQ_ACTOR_TREE, REQ_ACTOR_FILES_TREE, REQ_ACTOR_TOUCHEDFILES, REQ_ACTOR_ACTIVITY, REQ_ENG_ACTORMARK
 
 import * as vscode from 'vscode';
 import { ActorScanner, ActorEntry } from './actorScanner';
@@ -39,6 +39,8 @@ export class ActorTreeProvider implements vscode.TreeDataProvider<ActorTreeNode>
     private readonly _onDidChangeTreeData = new vscode.EventEmitter<ActorTreeNode | undefined>();
     readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
+    private readonly _marks = new Map<string, { icon: vscode.ThemeIcon }>();
+
     constructor(
         private readonly _scanner: ActorScanner,
         private readonly _touchStore: TouchStore,
@@ -47,6 +49,19 @@ export class ActorTreeProvider implements vscode.TreeDataProvider<ActorTreeNode>
 
     refresh(): void {
         this._onDidChangeTreeData.fire(undefined);
+    }
+
+    /** Icon mark of an add-on on one Actor node; a second mark on the same id replaces the first (SPEC_ENG_ACTORMARK). */
+    mark(actorId: string, icon: vscode.ThemeIcon): vscode.Disposable {
+        const entry = { icon };
+        this._marks.set(actorId, entry);
+        this.refresh();
+        return new vscode.Disposable(() => {
+            if (this._marks.get(actorId) === entry) {
+                this._marks.delete(actorId);
+                this.refresh();
+            }
+        });
     }
 
     dispose(): void {
@@ -119,7 +134,10 @@ export class ActorTreeProvider implements vscode.TreeDataProvider<ActorTreeNode>
             item.tooltip = actor?.summary ?? '';
             item.contextValue = 'jarvisActor';
             item.command = { command: 'jarvis.openActorSession', title: 'Open Actor Session', arguments: [element] };
-            if (actor && this._activity.isActive(actor.name)) {
+            const mark = this._marks.get(element.id);
+            if (mark) {
+                item.iconPath = mark.icon;
+            } else if (actor && this._activity.isActive(actor.name)) {
                 item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('charts.green'));
             }
             return item;

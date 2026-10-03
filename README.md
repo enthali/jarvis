@@ -16,7 +16,7 @@ capability modules. Install only what you need.
 |--------|------|
 | **Jarvis Core** | The harness: actors and sessions, inter-actor messaging, reminders, heartbeat scheduler, and the engine |
 | **Jarvis PIM** | Personal Information Manager: categories and tasks |
-| **Jarvis Recorder** | Session recording with a Whisper transcription pipeline and transcript notifications |
+| **Jarvis Recorder** | Meeting recording with local speech recognition (Windows only): the transcript lands in the Actor's folder and the Actor is told |
 | **Jarvis MCP** | MCP server exposing Jarvis tools over HTTP transport |
 | **Jarvis Message Flow** | Interactive visualization and history of inter-actor message traffic |
 | **Jarvis Kanban** | Read-only kanban board renderer — convention-based YAML discovery, schema validation, and webview rendering |
@@ -41,7 +41,7 @@ capability modules. Install only what you need.
 
 ### Jarvis Recorder
 
-- Session recording with a Whisper transcription pipeline and transcript notifications
+- Meeting recording from microphone and speaker output with local speech recognition (Windows only); live transcript view, transcript file in the Actor's folder, and a message to the Actor when it is complete
 
 ### Jarvis MCP
 

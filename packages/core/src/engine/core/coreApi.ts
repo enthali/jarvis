@@ -1,5 +1,5 @@
-// Implementation: SPEC_ENG_API, SPEC_ENG_REGISTER_TOOL, SPEC_ENG_ACTORLIST
-// Requirements: REQ_ENG_CONTRACT, REQ_ENG_TOOLNS, REQ_ENG_ACTORLIST
+// Implementation: SPEC_ENG_API, SPEC_ENG_REGISTER_TOOL, SPEC_ENG_ACTORLIST, SPEC_ENG_ACTORMARK
+// Requirements: REQ_ENG_CONTRACT, REQ_ENG_TOOLNS, REQ_ENG_ACTORLIST, REQ_ENG_ACTORMARK
 
 import * as vscode from 'vscode';
 import type { JarvisActor, JarvisCoreApi, ModuleAssetConfig, ToolDescriptor, ToolHandler } from './types';
@@ -21,6 +21,7 @@ export class JarvisEngine implements JarvisCoreApi {
     private _scheduler: HeartbeatScheduler | undefined;
     private _resolveMessagesPath: (() => string) | undefined;
     private _onMessageQueued: (() => void) | undefined;
+    private _marker: ((actorId: string, icon: vscode.ThemeIcon) => vscode.Disposable) | undefined;
 
     constructor(private readonly _actorScanner: ActorScanner) {}
 
@@ -63,6 +64,20 @@ export class JarvisEngine implements JarvisCoreApi {
         return this._actorScanner.actors.map(a => ({
             name: a.name, summary: a.summary, agent: a.agent, folder: a.folder, id: a.id,
         }));
+    }
+
+    // --- Actor node mark API (SPEC_ENG_ACTORMARK) ---
+
+    /** Wire the tree provider's mark function (called from activation). */
+    setMarker(marker: (actorId: string, icon: vscode.ThemeIcon) => vscode.Disposable): void {
+        this._marker = marker;
+    }
+
+    markActor(actorId: string, icon: vscode.ThemeIcon): vscode.Disposable {
+        if (!this._marker) {
+            throw new Error('Actor tree is not available');
+        }
+        return this._marker(actorId, icon);
     }
 
     // --- Heartbeat job API (SPEC_ENG_HEARTBEAT_JOBAPI) ---

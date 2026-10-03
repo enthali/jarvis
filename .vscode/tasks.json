@@ -54,14 +54,14 @@
         },
         {
             "type": "shell",
-            "command": "npx tsc -p packages/core && npx tsc -p packages/pim && npx tsc -p packages/recorder",
+            "command": "npx tsc -p packages/core && npx tsc -p packages/pim && node packages/recorder/clean.js && npx tsc -p packages/recorder",
             "group": "build",
             "label": "compile core+pim+recorder",
             "problemMatcher": "$tsc"
         },
         {
             "type": "shell",
-            "command": "npx tsc -p packages/core && npx tsc -p packages/pim && npx tsc -p packages/recorder && npx tsc -p packages/flow && cd packages/flow && node build.js && node webview-build.js && cd ../..",
+            "command": "npx tsc -p packages/core && npx tsc -p packages/pim && node packages/recorder/clean.js && npx tsc -p packages/recorder && npx tsc -p packages/flow && cd packages/flow && node build.js && node webview-build.js && cd ../..",
             "group": "build",
             "label": "compile core+pim+recorder+flow",
             "problemMatcher": "$tsc"
@@ -103,7 +103,7 @@
         },
         {
             "type": "shell",
-            "command": "npx tsc -p packages/core && npx tsc -p packages/pim && npx tsc -p packages/recorder && npx tsc -p packages/mcp && npx tsc -p packages/flow && cd packages/flow && node build.js && node webview-build.js && cd ../.. && npx tsc -p packages/kanban && cd packages/kanban && node build.js && node webview-build.js && cd ../.. && npx tsc -p packages/syspilot",
+            "command": "npx tsc -p packages/core && npx tsc -p packages/pim && node packages/recorder/clean.js && npx tsc -p packages/recorder && npx tsc -p packages/mcp && npx tsc -p packages/flow && cd packages/flow && node build.js && node webview-build.js && cd ../.. && npx tsc -p packages/kanban && cd packages/kanban && node build.js && node webview-build.js && cd ../.. && npx tsc -p packages/syspilot",
             "group": "build",
             "label": "compile all",
             "problemMatcher": "$tsc"

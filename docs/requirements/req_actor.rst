@@ -180,8 +180,8 @@ Actor Requirements
 
    * AC-1: A ``$(add)`` icon in the ACTORS view title bar SHALL trigger
      the command ``jarvis.newActor``. The command SHALL NOT appear in
-     the Command Palette. It SHALL open a "New Entry" QuickPick with a
-     "Create Actor" choice; selecting it SHALL proceed to AC-2.
+     the Command Palette. It SHALL open the name InputBox directly
+     (AC-2).
    * AC-2: The command SHALL show an InputBox for the Actor name. Invalid
      names SHALL be rejected with inline ``validateInput`` feedback using
      the name rules of ``REQ_ACTOR_CREATETOOL`` AC-5.
@@ -205,9 +205,8 @@ Actor Requirements
    * AC-7: After the agent is written, an immediate rescan SHALL be
      triggered so the new Actor appears in the ACTORS view without a manual
      refresh.
-   * AC-8: If the user cancels the "New Entry" QuickPick or the name
-     InputBox, the command SHALL exit without side effects (no folder, no
-     file written).
+   * AC-8: If the user cancels the name InputBox, the command SHALL exit
+     without side effects (no folder, no file written).
    * AC-9: After creation, when ``jarvis.actors.openSessionOnCreate`` is
      ``true``, the command SHALL open the new Actor's chat session via
      ``REQ_ACTOR_OPENSESSION``.

@@ -213,7 +213,7 @@ Actor Design Specifications
 .. spec:: ACTORS Tree Provider
    :id: SPEC_ACTOR_TREE
    :status: approved
-   :links: REQ_ACTOR_TREE; REQ_EXP_TREEVIEW; SPEC_ACTOR_SCANNER; SPEC_ACTOR_FILES; SPEC_ACTOR_TOUCHEDFILES; SPEC_ACTOR_ACTIVITY; SPEC_ACTOR_OPENSESSION
+   :links: REQ_ACTOR_TREE; REQ_EXP_TREEVIEW; SPEC_ACTOR_SCANNER; SPEC_ACTOR_FILES; SPEC_ACTOR_TOUCHEDFILES; SPEC_ACTOR_ACTIVITY; SPEC_ACTOR_OPENSESSION; SPEC_ENG_ACTORMARK
 
    **Description:**
    ``ActorTreeProvider`` (``engine/actors/actorTreeProvider.ts``) is the
@@ -221,7 +221,8 @@ Actor Design Specifications
    from ``ActorScanner`` and delegates their children to the file-children
    and touched-files logic (``SPEC_ACTOR_FILES``,
    ``SPEC_ACTOR_TOUCHEDFILES``). It sets the activity icon itself
-   (``SPEC_ACTOR_ACTIVITY``).
+   (``SPEC_ACTOR_ACTIVITY``) and holds the icon marks of add-ons
+   (``SPEC_ENG_ACTORMARK``), which take precedence.
 
    **Node union** (provider-local; the variants below are defined in
    ``SPEC_ACTOR_FILES`` and ``SPEC_ACTOR_TOUCHEDFILES``):
@@ -244,7 +245,10 @@ Actor Design Specifications
       item.tooltip = actor?.summary ?? '';
       item.contextValue = 'jarvisActor';
       item.command = { command: 'jarvis.openActorSession', title: 'Open', arguments: [node] };
-      if (actor && activity.isActive(actor.name)) {
+      const mark = marks.get(node.id);                 // SPEC_ENG_ACTORMARK
+      if (mark) {
+          item.iconPath = mark.icon;
+      } else if (actor && activity.isActive(actor.name)) {
           item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('charts.green'));
       }
 
@@ -700,8 +704,9 @@ Actor Design Specifications
      ``scanner.resolveName(actorName)`` is not ``found``, regardless of
      what the event-driven set holds.
    * AC-3: A refresh is triggered only on a state flip.
-   * AC-4: The indicator is set by ``ActorTreeProvider`` alone; no decorator
-     API exists.
+   * AC-4: The activity indicator is set by ``ActorTreeProvider`` alone; no decorator
+     API exists. The only other influence on the icon is the mark of
+     ``SPEC_ENG_ACTORMARK``, also held by the provider, which takes precedence while it is set.
 
 
 .. spec:: Actor Context Menus
@@ -829,23 +834,21 @@ Actor Design Specifications
 
    **``jarvis.newActor`` flow** (``REQ_ACTOR_CREATE``):
 
-   1. QuickPick "New Entry" with the single item "Create Actor"; cancel →
-      return (AC-1, AC-8).
-   2. InputBox for the name with ``validateInput: actorNameProblem``;
-      cancel → return (AC-2, AC-8).
-   3. Resolve the actors folder; none → show "no workspace" and return.
+   1. InputBox for the name with ``validateInput: actorNameProblem``;
+      cancel → return (AC-1, AC-2, AC-8).
+   2. Resolve the actors folder; none → show "no workspace" and return.
       ``existingActorFolder(actorsFolder, name, actorScanner)`` returns a
       folder → error notification
       ``Jarvis: An Actor named "<name>" already exists: <folder>``, return,
       nothing written (AC-3). The rescan inside the check catches an
       ``actor.yaml`` edited by hand since the last scan.
-   4. Optional InputBox for the summary; Escape → ``""`` (AC-4).
-   5. ``writeActorFiles(folder, { name, summary, agent: "" })`` (AC-5).
-   6. ``pickAgentMode()`` (``SPEC_ACTOR_AGENT_DISCOVERY``); a selection is
+   3. Optional InputBox for the summary; Escape → ``""`` (AC-4).
+   4. ``writeActorFiles(folder, { name, summary, agent: "" })`` (AC-5).
+   5. ``pickAgentMode()`` (``SPEC_ACTOR_AGENT_DISCOVERY``); a selection is
       written with ``writeActorAgent``; "No agent" or Escape keeps ``""``
       (AC-6).
-   7. ``await actorScanner.rescan()`` (AC-7).
-   8. When ``jarvis.actors.openSessionOnCreate`` is ``true``, execute
+   6. ``await actorScanner.rescan()`` (AC-7).
+   7. When ``jarvis.actors.openSessionOnCreate`` is ``true``, execute
       ``jarvis.openActorSession`` with the new Actor's node (AC-9).
 
    **package.json (core):**

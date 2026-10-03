@@ -10,7 +10,7 @@ Extension pack that installs all Jarvis extensions in one click.
 |-----------|-------------|
 | **Jarvis** (`enthali.jarvis`) | Core — actors, messaging, reminders, heartbeat, engine |
 | **Jarvis PIM** (`enthali.jarvis-pim`) | Personal Information Manager — categories and tasks |
-| **Jarvis Recorder** (`enthali.jarvis-recorder`) | Session recording, whisper pipeline, and transcript notifications |
+| **Jarvis Recorder** (`enthali.jarvis-recorder`) | Meeting recording with local speech recognition (Windows only) and transcript hand-off to an Actor |
 | **Jarvis MCP** (`enthali.jarvis-mcp`) | MCP Server — exposes all registered Jarvis tools over MCP HTTP transport |
 | **Jarvis Message Flow** (`enthali.jarvis-flow`) | Interactive D3 chord-diagram visualization of inter-agent message traffic |
 

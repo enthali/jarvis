@@ -32,12 +32,24 @@
 - **Branch + CD before dispatch**: CM cannot start a CR without an existing
   branch + template-copied CD — create both before/with the CR message, not
   just mention them.
-- **User reviews the CD before dispatch, in user-guided mode (2026-08-21)**:
-  after filling the CD's header/Summary, show it to the user and wait for
-  their go-ahead BEFORE sending the CR to CM — don't dispatch first and
-  let the user review in parallel. Mistake made 2026-08-21: dispatched
-  module-skill-provisioning to CM before asking; had to send a hold message.
-  Not needed in autonomous/unattended mode (no user to wait for).
+- **NEVER send a change to CM without the user's explicit OK (2026-09-30,
+  user's words: "never ever again", supersedes 2026-08-21)**: after filling
+  the CD's header/Summary, show it to the user and wait for an explicit
+  go-ahead BEFORE sending the CR to CM — regardless of operation mode
+  (autonomous, user-guided, unattended — doesn't matter). Silence, "create
+  the change", or "prepare it" is not an OK to send.
+  Mistake made 2026-09-30: dispatched recorder-redesign to CM in autonomous
+  mode without showing the CD; user had no chance to review. The CD's
+  Summary was also over-prescriptive — PM wrote a full solution (Nemotron,
+  ONNX, phase plan) when the user only stated intent ("update recorder
+  using similar methodology than vscode voice input"). The Summary is
+  intent + motivation only — NOT a solution design.
+  Previous mistake 2026-08-21: same pattern in user-guided mode.
+- **A change never contains solution details (2026-09-30)**: no technologies,
+  models, libraries, phase plans, or component lists in the CD — not in the
+  Summary, not in the tables. Research papers may be referenced as input, but
+  must not pre-empt the solution; the design is System Designer's and the
+  user's work. Don't word acceptance criteria that imply a solution either.
 - **Stacked feature branches when a CR has no standalone user-visible behavior
   (2026-08-24)**: if a CR is QM-cleared but the user can't meaningfully
   validate it alone (e.g. an infra/mechanism CR whose only observable effect
@@ -103,12 +115,48 @@
 
 ## Active CR
 
-- **No active CR (2026-09-27)** — `one-kind-consolidation` Phase 1 (merged
-  2026-09-25, `8a0e45f`) and Phase 2 `retire-legacy-actor-kinds` (merged
-  2026-09-27, `1a30326`) both merged to `development`, **not yet released**
-  (no version tag/main merge yet) — old kind-based Project/Event/Actor code
-  and specs are gone from `development`, single consolidated Actor kind is
-  live there pending release.
+- **No active CR (2026-10-03)** — `recorder-redesign` merged into `development`
+  as squash commit `2980be1` (rebased from `7983df0` onto `origin/development`;
+  user's explicit "Merge OK"), pushed on the user's order: `origin/development`
+  = `8e52828`. Not yet released. The user wants a release after the merge.
+  Feature branch `feature/recorder-redesign` retained.
+  D-28 decided by the user 2026-10-03: licence is no topic any more because SDK
+  2.1.0 is used (its core is MIT; my caveat on record: `Microsoft.Windows.AI.
+  MachineLearning.dll`'s `license.txt` and the npm/NuGet terms were never read,
+  Research note rows "nicht geprüft"); telemetry: record it in the release
+  notes (non-essential telemetry is off by config and ORT_TELEMETRY_DISABLED, a
+  minimal process-info event may still upload, per Research). RELEASE v0.29.0
+  SENT to the Release Engineer 2026-10-03 on the user's explicit go (version
+  0.29.0 confirmed by him; the tag push publishes via CI). Scope: the two
+  changes remove-newactor-legacy-quickpick and recorder-redesign. Waiting for
+  his report (tag pushed, GitHub Release published), then the post-release
+  step. Release-note entries were passed with that message: U-3 blocked (laptop microphone/speakers cannot be
+  disabled), U-4
+  one-hour test not conducted (5 min at about 30-40 % CPU without problems, no
+  memory readings), echo coverage limited to the user's hardware, T-1..T-17
+  not run, 12 elements stay `approved`, the telemetry note. Open: automatic
+  retry after the first
+  start's TLS failure (undecided), backlog #45 (rec tool infix AC), #46 (retire
+  `ideas/recording-design.md` now that the change has landed), #47 (test
+  automation), #48 (ontology status vocabulary). U results: U-1, U-2, U-5 passed
+  per the user; evidence is his statements and pasted log, no proxy log.
+- **Git state after the merge (2026-10-03)**: the extra worktrees
+  `jarvis-dev-docs` and `jarvis-nemotron-spike` are closed on the user's order
+  (their folders deleted; the spike's test transcripts were not needed). Branch
+  `research/recorder-nemotron-spike` stays, in sync with origin. The main tree is
+  on `development` again, clean. Lesson: a branch checked out in another worktree
+  cannot be checked out in the main tree, so a squash needed a temporary worktree.
+  The old feature branch still holds the single-commit history, not needed again.
+- **Shared-tree lesson (2026-10-03)**: an unknown actor left
+  `packages/recorder/package.json` modified (identical to `development`),
+  which failed 7 tests in the shared tree while the committed branch passed.
+  Restored with the user's OK. When tests differ between the shared tree and a
+  clean checkout, check `git status` for foreign uncommitted files first.
+- **QM may propose simplifications (2026-10-03)**: the user told QM it may
+  propose a simpler solution over strict spec adherence, with the spec
+  changed openly, when user value is not materially hurt. Evaluate such
+  proposals as UX/requirement decisions with benefits and losses stated; the
+  user decides, SD revises, nothing is relaxed silently.
 - **Open sequencing decision (2026-09-27, user decides next session)**:
   user needs backlog #42 (Actor identity via agent mode, replaces
   `jarvis_whoAmI`) and #41 (Recorder redesign) for their own job — both

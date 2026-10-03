@@ -1,5 +1,5 @@
 title: backlog
-nextId: 43
+nextId: 50
 fields:
   - name: status
     type: single_select
@@ -545,3 +545,105 @@ items:
       non-AHP release before moving to AHP. This item remains outside Phase 2
       scope.'
     priority: Medium
+  - id: 43
+    name: Remove deprecated jarvis_readMessage and jarvis_sendToSession tools
+    status: Backlog
+    notes: "Both hard-deprecated this spring (SPEC_MSG_READMESSAGE,
+      SPEC_MSG_SENDTOSESSION) in favor of
+      jarvis_receiveMessage/jarvis_sendMessage — still registered, just
+      throw/warn. Plan: remove the tool registrations, handlers, and their spec
+      sections (SPEC_MSG_READMESSAGE, SPEC_MSG_SENDTOSESSION) plus
+      REQ_MSG_READ/REQ_MSG_SENDTOSESSION ACs describing the deprecation shim, in
+      one of the next changes. Needs an Artefakt-Removal-Check sweep (docs, tool
+      descriptions, UAT specs referencing T-11/T-12 deprecation test cases in
+      spec_uat_msgqueue.rst)."
+    priority: Medium
+  - id: 44
+    name: Editor placement convention has no cross-feature user story
+    status: Backlog
+    notes: "Relayed by System Designer 2026-10-01 (found during recorder-redesign,
+      out of scope there). User's convention: user-initiated opens go to the
+      left (Main), system-initiated/automatic opens go to the right (Secondary).
+      Today it exists only as US_MSG_EDITORPLACEMENT (us_msg.rst, scoped to
+      chat, docs and delivery tabs) plus REQ_/SPEC_MSG_EDITORPLACEMENT; Flow and
+      Kanban (DOCS_COLUMN) already apply it in code, and the recorder's planned
+      live view will too. User suggested a cross-feature story, not in
+      us_rec.rst. Open for PM and user to decide: whether to lift the convention
+      out of the msg domain into its own story, and who owns it. Term mismatch
+      to settle: the user says Primary/Secondary, the repo says
+      Main/Docs/Secondary (three targets, Docs = fixed column 2). SD touched
+      nothing."
+    priority: Low
+  - id: 45
+    name: SPEC_MOD_REC_PKG AC-2 claims jarvis_rec_ tool infix, recorder registers no
+      tools
+    status: Backlog
+    notes: "Relayed by System Designer 2026-10-01 (found during recorder-redesign,
+      out of scope there). SPEC_MOD_REC_PKG AC-2 says recorder tools use the
+      jarvis_rec_ infix (REQ_ENG_TOOLNS AC-3), but the recorder registers no
+      tools, now or before. SD left AC-2 untouched. Either the AC or the claim
+      in REQ_ENG_TOOLNS AC-3 is stale. Open for PM to decide: cleanup or a real
+      requirement."
+    priority: Low
+  - id: 46
+    name: Retire or rewrite PM idea note recording-design.md after recorder-redesign
+      lands
+    status: Backlog
+    notes: Relayed by System Designer 2026-10-01. .jarvis/actors/Project
+      Manager/ideas/recording-design.md describes the old Whisper/recorder.py
+      pipeline (about 20 hits for whisper/recorder.py/sidecar) and becomes
+      obsolete when recorder-redesign lands. PM's own file, SD did not touch it.
+      Do after the change is merged, and update the Ideas link in context.md in
+      the same step.
+    priority: Low
+  - id: 47
+    name: "Test automation: Dev Engineer and QM can test in an Extension Development
+      Host themselves"
+    status: Backlog
+    notes: "Raised by the user 2026-10-03 during recorder-redesign. Goal: the Dev
+      Engineer and QM can run Extension Development Host checks themselves,
+      instead of leaving them NOT RUN or to the user. Evidence today: no host
+      automation in the repo (no test-electron, Playwright or similar in any
+      package.json); QM reported T-1..T-17 NOT RUN in Rounds 1-3 because its
+      tools provide no controllable Windows host; the Dev Engineer lists EDH
+      checks as open. The user believes Research already ran a host: the
+      Research spike worktree (jarvis-nemotron-spike,
+      experiments/nemotron-spike/extension-host/extension.cjs, commits
+      mentioning extension host and dev host) points that way, but how it was
+      started and operated is not established. Open for PM and user: ask
+      Research how it did it, and whether real audio devices and model download
+      can be covered or stay user-owned."
+    priority: Medium
+  - id: 48
+    name: "Ontology: status vocabulary implemented / verified / validated"
+    status: Backlog
+    notes: "Raised by the user 2026-10-03 during recorder-redesign QM Round 4. Today
+      docs/conf.py allows draft, open, approved, implemented, verified,
+      deprecated; VE sets implemented only after verification (its rule: status
+      reflects verification, not code existence), and no spec uses open or
+      verified. Gap: no state for code is there and automated tests pass, host
+      acceptance pending, so partially evidenced elements stay approved, which
+      reads as nothing implemented. User view: verified must be automatable, so
+      the change also has to settle how that test runs (see backlog 47, test
+      automation). Open for PM and user: the vocabulary (implemented / verified
+      / validated, or verified only), the meaning of each, who sets it, and the
+      sweep of all specs. Per the ontology skill adding a status is additive,
+      renaming or removing is breaking and needs a migration change. Fits the
+      open ontology cleanup under Syspilot 0.10."
+    priority: Medium
+  - id: 49
+    name: Recorder settings group should be titled Jarvis Recorder, not Recording
+    status: Backlog
+    notes: "First user feedback from the manual validation of recorder-redesign,
+      2026-10-03. In the Settings UI of the Extension Development Host the
+      recorder's setting jarvis.recording.enabled appears under the group
+      Recording. The user expects Jarvis Recorder, in line with the other Jarvis
+      extensions, which use a Jarvis group title (packages/kanban: Jarvis
+      Kanban, packages/mcp: Jarvis MCP, packages/syspilot: Jarvis Syspilot;
+      packages/recorder: Recording). To check, PM observation and not user
+      feedback: the recorder's command titles (Start Recording, Show Running
+      Recording) carry no Jarvis: prefix, unlike the commands of other packages.
+      Handling is open: fix inside recorder-redesign if it is still open when
+      the user finishes testing, otherwise as a follow-up. User asked only to
+      remember it; testing continues."
+    priority: Low

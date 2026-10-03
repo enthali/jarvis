@@ -6,7 +6,6 @@
  * indirection.
  *
  * Focus areas:
- * - Recording chain (start/stop lifecycle shape via static analysis)
  * - MCP tool registration shape
  *
  * NOTE: Modules that import `vscode` cannot be directly imported in vitest.
@@ -15,22 +14,6 @@
 import { describe, it, expect } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
-
-// ---------------------------------------------------------------------------
-// Recording chain shape (static analysis — vscode not available in vitest)
-// ---------------------------------------------------------------------------
-
-describe('Characterization: RecordingManager lifecycle shape', () => {
-    it('recording.ts exports RecordingManager class with start/stop methods', () => {
-        const srcDir = path.resolve(__dirname, '..', '..', 'packages', 'recorder', 'src');
-        const src = fs.readFileSync(path.join(srcDir, 'recording.ts'), 'utf-8');
-        expect(src).toContain('export class RecordingManager');
-        expect(src).toMatch(/async start\(/);
-        expect(src).toMatch(/async stop\(/);
-        expect(src).toContain('currentProject');
-        expect(src).toContain('onDidChange');
-    });
-});
 
 // ---------------------------------------------------------------------------
 // MCP server shape (static analysis — moved to packages/mcp)

@@ -4,7 +4,7 @@ Engine Design Specifications
 .. spec:: JarvisCoreApi Contract & Types
    :id: SPEC_ENG_API
    :status: approved
-   :links: REQ_ENG_CONTRACT; REQ_ENG_ACTORLIST; REQ_MOD_SKILL_PROVISION; REQ_ACTOR_SCHEMA
+   :links: REQ_ENG_CONTRACT; REQ_ENG_ACTORLIST; REQ_ENG_ACTORMARK; REQ_MOD_SKILL_PROVISION; REQ_ACTOR_SCHEMA
 
    **Description:**
    The core extension exposes a versioned ``JarvisCoreApi`` as the return value
@@ -73,6 +73,13 @@ Engine Design Specifications
 
           /** Snapshot of all Actors from the Actor scanner (SPEC_ENG_ACTORLIST). */
           listActors(): JarvisActor[];
+
+          /**
+           * Replace the icon of one Actor node until the returned Disposable is
+           * disposed (SPEC_ENG_ACTORMARK). Additive: add-ons check that the
+           * member exists before calling it.
+           */
+          markActor(actorId: string, icon: vscode.ThemeIcon): vscode.Disposable;
 
           // --- Tool registry exposure (SPEC_ENG_TOOLREGISTRY) ---
 
@@ -183,6 +190,9 @@ Engine Design Specifications
      never throws to the caller — all failures are logged. See
      ``SPEC_MOD_SKILL_PROVISION`` for the algorithm and ``ModuleAssetConfig``
      shape.
+   * AC-10: ``markActor(actorId, icon)`` sets an icon mark on one Actor node and
+     returns a ``Disposable`` that removes it (``SPEC_ENG_ACTORMARK``). It is not a
+     decorator API: AC-4 stays true.
 
 
 .. spec:: registerTool Validation
@@ -332,6 +342,52 @@ Engine Design Specifications
      resolvable.
    * AC-4: ``listJarvisSessions()`` no longer exists; its two callers use
      ``listActors()``.
+
+
+.. spec:: Actor Node Mark API
+   :id: SPEC_ENG_ACTORMARK
+   :status: approved
+   :links: REQ_ENG_ACTORMARK; SPEC_ACTOR_TREE; SPEC_ACTOR_ACTIVITY
+
+   **Description:**
+   ``JarvisCoreApi.markActor(actorId, icon)`` lets an add-on replace the icon of one
+   Actor node. ``ActorTreeProvider`` holds the marks and draws the node; no callback
+   into the add-on is made.
+
+   .. code-block:: typescript
+
+      // ActorTreeProvider
+      private marks = new Map<string, { icon: vscode.ThemeIcon }>();   // key = ActorEntry.id
+
+      mark(actorId: string, icon: vscode.ThemeIcon): vscode.Disposable {
+          const entry = { icon };
+          this.marks.set(actorId, entry);
+          this.refresh();
+          return new vscode.Disposable(() => {
+              if (this.marks.get(actorId) === entry) {
+                  this.marks.delete(actorId);
+                  this.refresh();
+              }
+          });
+      }
+
+   ``extension.ts`` wires ``markActor`` to ``actorTreeProvider.mark`` when it builds the API
+   object, like ``listActors``. The node rendering reads the mark first
+   (``SPEC_ACTOR_TREE``). A mark for an id with no node stays in the map and applies when the
+   node appears.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``markActor`` returns a ``Disposable``; disposing it removes the mark and
+     refreshes the tree.
+   * AC-2: A second mark on the same id replaces the first; disposing the first
+     ``Disposable`` afterwards does not remove the second mark.
+   * AC-3: While a mark exists the node's ``iconPath`` is the mark's icon, ahead of the
+     activity indicator; nothing else on the node changes.
+   * AC-4: The mark does not touch the activity state (``SPEC_ACTOR_ACTIVITY``): once the
+     mark is gone the activity indicator shows again if the Actor is Active.
+   * AC-5: ``markActor`` is additive: ``version`` stays ``2``, and an add-on checks that the
+     member exists before calling it (``REQ_ENG_ACTORMARK`` AC-5).
 
 
 .. spec:: Heartbeat Job Registration API Surface
