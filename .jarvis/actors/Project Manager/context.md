@@ -115,31 +115,15 @@
 
 ## Active CR
 
-- **No active CR (2026-10-03)** — `recorder-redesign` merged into `development`
-  as squash commit `2980be1` (rebased from `7983df0` onto `origin/development`;
-  user's explicit "Merge OK"), pushed on the user's order: `origin/development`
-  = `8e52828`. Not yet released. The user wants a release after the merge.
-  Feature branch `feature/recorder-redesign` retained.
-  D-28 decided by the user 2026-10-03: licence is no topic any more because SDK
-  2.1.0 is used (its core is MIT; my caveat on record: `Microsoft.Windows.AI.
-  MachineLearning.dll`'s `license.txt` and the npm/NuGet terms were never read,
-  Research note rows "nicht geprüft"); telemetry: record it in the release
-  notes (non-essential telemetry is off by config and ORT_TELEMETRY_DISABLED, a
-  minimal process-info event may still upload, per Research). RELEASE v0.29.0
-  SENT to the Release Engineer 2026-10-03 on the user's explicit go (version
-  0.29.0 confirmed by him; the tag push publishes via CI). Scope: the two
-  changes remove-newactor-legacy-quickpick and recorder-redesign. Waiting for
-  his report (tag pushed, GitHub Release published), then the post-release
-  step. Release-note entries were passed with that message: U-3 blocked (laptop microphone/speakers cannot be
-  disabled), U-4
-  one-hour test not conducted (5 min at about 30-40 % CPU without problems, no
-  memory readings), echo coverage limited to the user's hardware, T-1..T-17
-  not run, 12 elements stay `approved`, the telemetry note. Open: automatic
-  retry after the first
-  start's TLS failure (undecided), backlog #45 (rec tool infix AC), #46 (retire
-  `ideas/recording-design.md` now that the change has landed), #47 (test
-  automation), #48 (ontology status vocabulary). U results: U-1, U-2, U-5 passed
-  per the user; evidence is his statements and pasted log, no proxy log.
+- **No active CR (2026-10-03)** — v0.29.0 is released (see Recently Shipped).
+  Open items after it: automatic retry after the first-start TLS failure
+  (undecided, user's call); backlog #45 (SPEC_MOD_REC_PKG AC-2 tool infix),
+  #46 (retire `ideas/recording-design.md`, now possible), #47 (test automation
+  for Dev Engineer and QM), #48 (ontology status vocabulary
+  implemented/verified/validated), #49 done in the release. Not yet read:
+  licence file of `Microsoft.Windows.AI.MachineLearning.dll` and the npm/NuGet
+  terms (user decided D-28 is no topic with SDK 2.1.0; my caveat stays on
+  record). The user will notice recorder problems in field use next week.
 - **Git state after the merge (2026-10-03)**: the extra worktrees
   `jarvis-dev-docs` and `jarvis-nemotron-spike` are closed on the user's order
   (their folders deleted; the spike's test transcripts were not needed). Branch
@@ -178,6 +162,21 @@
 
 ## Recently Shipped
 
+- **v0.29.0 released** 2026-10-03 (tag `v0.29.0` on `main` at `6ba6cf9`, back-merged
+  into `development`, `origin/development` = `cb44218`; GitHub Release with 9
+  VSIX assets, publishing Action green). Ships `recorder-redesign` (on-device
+  live transcription replaces Docker/Whisper, Actor mark API in core, group
+  "Jarvis Recorder", "Jarvis:"-prefixed command titles) and
+  `remove-newactor-legacy-quickpick`. Both CDs archived to `docs/changes/v0.29.0/`.
+  Validation: 457/457 tests, sphinx clean, lint 0 errors. Released on the user's
+  explicit go, with release-note warnings: U-3 and U-4 not tested (device-loss
+  cases, one-hour run), echo only on one laptop, T-1..T-17 not run, 12 spec
+  elements stay `approved`, telemetry note (non-essential off, a minimal
+  process-info event may still upload). Post-release distribution is automatic
+  via CD, back-merge already done by the Release Engineer. The Release Engineer
+  also added an `.venv` ignore to `eslint.config.js` (`0be05a4`, lint scanned the
+  gitignored virtual environment). Feature branch `feature/recorder-redesign`
+  retained.
 - **retire-legacy-actor-kinds merged** 2026-09-27 into `development` (`1a30326`,
   pushed). Phase 2 of one-kind-consolidation: old kind-based Project/Event/
   legacy-Actor specs and code fully removed (not just deprecated); backlog
