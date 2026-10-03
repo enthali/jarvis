@@ -29,6 +29,17 @@ Durable lessons that should change how I design. Linked from `context.md`.
 
 ## Verification
 
+- **Ask which version a research number was measured on, before pinning another.**
+  Every latency and behaviour figure for `recorder-redesign` came from SDK 1.2.3
+  while the user chose 2.1.0; the reply said so only in its first line. A spec that
+  cites such numbers inherits the version gap, so put it first on the verify-first list.
+- **Before specifying UI on a core node, check what the add-on API can touch.** The red
+  recording circle needed `markActor` because API v2 has no decorator hook, and a menu
+  `when` clause can tell Actor rows apart only by the core's `contextValue`. Reading
+  `JarvisCoreApi` first would have turned both into a design input, not a late finding.
+- **When removing a feature, look for what it registered persistently.** The old recorder
+  left a heartbeat job in `heartbeat.yaml` that survives uninstall; without an explicit
+  unregister the upgraded installation would call a removed command every scan interval.
 - **My own claims need the same verification as anyone's.** I committed a
   rationale in D-7 that was checkable-sounding and did not follow; nobody
   caught it because reviewers check the claim, not the unwritten mechanism.

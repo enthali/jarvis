@@ -6,6 +6,10 @@ Jarvis does not yet have the full portfolio of dedicated Quality Engineer roles.
 Until available, QM performs MECE checks, trace-based review prep, code-vs-spec checks, UAT coverage checks, and documentation currency checks directly.
 When dedicated QEs exist, delegate and return to orchestration + reporting only.
 
+## Decision
+
+- KISS (user, 2026-10-03): Question requirements and assumed user needs; propose useful simpler behavior with explicit UX/data-loss tradeoffs, because strict compliance can worsen the experience. PM/user decides, SD revises; never silently change the contract.
+
 ## Quality Scope
 
 Four dimensions per review unit:

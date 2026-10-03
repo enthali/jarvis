@@ -61,3 +61,11 @@ System Designer for Jarvis — designs specs and resolves open design questions 
 
 - Durable design lessons live in [memory/lessons.md](memory/lessons.md) —
   spec writing, verification habits, and repo constraints worth remembering.
+
+## Next
+
+- **recorder-redesign** (`feature/recorder-redesign`): L0/L1/L2 approved by the user and
+  handed to CM; QM R1 (F-1..F-4) and R2 (F-5 -> D-56, "close means exit": no wait at
+  shutdown, notification only attempted) specified and reported. If the Dev Engineer's
+  "verify first" list (CD, L2) fails, the design comes back here. Open: WinML DLL licence,
+  live path with real mic and speaker source over an hour.

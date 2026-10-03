@@ -393,6 +393,8 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     }, log);
 
     actorTreeProvider = new ActorTreeProvider(actorScanner, touchStore, activityTracker);
+    const treeProvider = actorTreeProvider;
+    engine.setMarker((id, icon) => treeProvider.mark(id, icon));
     initInjectPrompt({
         scanner: actorScanner,
         log,

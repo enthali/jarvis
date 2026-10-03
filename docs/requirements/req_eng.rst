@@ -97,3 +97,33 @@ Engine Requirements
      empty strings.
    * AC-5: ``listJarvisSessions()`` and the ``JarvisSession`` type SHALL be
      removed; existing add-on callers SHALL use ``listActors()``.
+
+
+.. req:: Actor Node Mark API
+   :id: REQ_ENG_ACTORMARK
+   :status: implemented
+   :priority: required
+   :links: US_REC_CAPTURE; REQ_ACTOR_TREE; REQ_ACTOR_ACTIVITY; REQ_ENG_CONTRACT
+
+   **Description:**
+   The core SHALL expose a method on ``JarvisCoreApi`` with which an add-on marks one
+   Actor node in the ACTORS view with an icon and removes the mark again. The recorder
+   uses it to show which Actor is being recorded. It is not a decorator mechanism: the
+   core stays in control of how the node is drawn.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``markActor(actorId, icon)`` SHALL be on the API surface and return a
+     ``vscode.Disposable``; ``actorId`` is ``JarvisActor.id`` and ``icon`` a
+     ``vscode.ThemeIcon``
+   * AC-2: While a mark is set, the Actor's node SHALL show the icon in place of its normal
+     icon, taking precedence over the activity indicator (``REQ_ACTOR_ACTIVITY`` AC-7);
+     when the mark is removed, the node SHALL show the normal icon or the activity
+     indicator that applies
+   * AC-3: Disposing the returned ``Disposable`` SHALL remove that mark. A new mark on the
+     same Actor SHALL replace the earlier one, and disposing the replaced ``Disposable``
+     SHALL NOT remove the newer mark.
+   * AC-4: A mark SHALL change nothing else on the node (label, context value, click
+     command, menus, children)
+   * AC-5: The member is additive: ``version`` stays ``2`` (``REQ_ENG_CONTRACT`` AC-3), and an
+     add-on SHALL check that the member exists before calling it

@@ -1,7 +1,7 @@
 {
   "name": "jarvis-recorder",
   "displayName": "Jarvis Recorder",
-  "description": "Jarvis Recorder — session recording, whisper pipeline, and transcript notifications",
+  "description": "Jarvis Recorder — records a meeting from microphone and speaker output, transcribes it locally and hands the transcript to an Actor (Windows only)",
   "version": "0.28.0",
   "publisher": "enthali",
   "icon": "resources/jarvis-128.png",
@@ -16,7 +16,7 @@
     "onStartupFinished"
   ],
   "scripts": {
-    "compile": "tsc -p ./",
+    "compile": "node clean.js && tsc -p ./",
     "bundle": "node build.js",
     "package": "vsce package --no-dependencies",
     "vscode:prepublish": "npm run compile && npm run bundle"
@@ -34,29 +34,35 @@
     "commands": [
       {
         "command": "jarvis.startRecording",
-        "title": "Start Recording",
+        "title": "Jarvis: Start Recording",
         "icon": "$(circle-outline)"
       },
       {
-        "command": "jarvis.stopRecording",
-        "title": "Stop Recording",
+        "command": "jarvis.showRecording",
+        "title": "Jarvis: Show Running Recording",
         "icon": "$(circle-filled)"
       }
     ],
     "menus": {
       "commandPalette": [
-        { "command": "jarvis.startRecording", "when": "false" },
-        { "command": "jarvis.stopRecording", "when": "false" }
+        {
+          "command": "jarvis.startRecording",
+          "when": "config.jarvis.recording.enabled == true"
+        },
+        {
+          "command": "jarvis.showRecording",
+          "when": "false"
+        }
       ],
       "view/item/context": [
         {
           "command": "jarvis.startRecording",
-          "when": "viewItem =~ /^jarvis(Project|Event)/ && config.jarvis.recording.enabled == true && jarvis.recordingActive != true",
+          "when": "view == jarvisActors && viewItem == jarvisActor && config.jarvis.recording.enabled == true && jarvis.recordingRunning != true",
           "group": "inline"
         },
         {
-          "command": "jarvis.stopRecording",
-          "when": "viewItem =~ /^jarvis(Project|Event)/ && config.jarvis.recording.enabled == true && jarvis.recordingActive == true",
+          "command": "jarvis.showRecording",
+          "when": "view == jarvisActors && viewItem == jarvisActor && jarvis.recordingRunning == true",
           "group": "inline"
         }
       ]
@@ -68,16 +74,10 @@
           "jarvis.recording.enabled": {
             "type": "boolean",
             "default": false,
-            "description": "Enable the Session Recording feature. When true, Start/Stop Recording buttons appear on Project and Event nodes."
-          },
-          "jarvis.recording.whisperPath": {
-            "type": "string",
-            "default": "",
-            "description": "Absolute path to the Whisper project folder containing recorder.py and the input/ subfolder."
+            "description": "Enable the meeting recording feature (Windows only). Offers a start action on the Actors in the ACTORS view."
           }
         }
       }
     ]
   }
 }
-

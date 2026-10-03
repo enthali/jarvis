@@ -32,12 +32,24 @@
 - **Branch + CD before dispatch**: CM cannot start a CR without an existing
   branch + template-copied CD — create both before/with the CR message, not
   just mention them.
-- **User reviews the CD before dispatch, in user-guided mode (2026-08-21)**:
-  after filling the CD's header/Summary, show it to the user and wait for
-  their go-ahead BEFORE sending the CR to CM — don't dispatch first and
-  let the user review in parallel. Mistake made 2026-08-21: dispatched
-  module-skill-provisioning to CM before asking; had to send a hold message.
-  Not needed in autonomous/unattended mode (no user to wait for).
+- **NEVER send a change to CM without the user's explicit OK (2026-09-30,
+  user's words: "never ever again", supersedes 2026-08-21)**: after filling
+  the CD's header/Summary, show it to the user and wait for an explicit
+  go-ahead BEFORE sending the CR to CM — regardless of operation mode
+  (autonomous, user-guided, unattended — doesn't matter). Silence, "create
+  the change", or "prepare it" is not an OK to send.
+  Mistake made 2026-09-30: dispatched recorder-redesign to CM in autonomous
+  mode without showing the CD; user had no chance to review. The CD's
+  Summary was also over-prescriptive — PM wrote a full solution (Nemotron,
+  ONNX, phase plan) when the user only stated intent ("update recorder
+  using similar methodology than vscode voice input"). The Summary is
+  intent + motivation only — NOT a solution design.
+  Previous mistake 2026-08-21: same pattern in user-guided mode.
+- **A change never contains solution details (2026-09-30)**: no technologies,
+  models, libraries, phase plans, or component lists in the CD — not in the
+  Summary, not in the tables. Research papers may be referenced as input, but
+  must not pre-empt the solution; the design is System Designer's and the
+  user's work. Don't word acceptance criteria that imply a solution either.
 - **Stacked feature branches when a CR has no standalone user-visible behavior
   (2026-08-24)**: if a CR is QM-cleared but the user can't meaningfully
   validate it alone (e.g. an infra/mechanism CR whose only observable effect
@@ -103,12 +115,58 @@
 
 ## Active CR
 
-- **No active CR (2026-09-27)** — `one-kind-consolidation` Phase 1 (merged
-  2026-09-25, `8a0e45f`) and Phase 2 `retire-legacy-actor-kinds` (merged
-  2026-09-27, `1a30326`) both merged to `development`, **not yet released**
-  (no version tag/main merge yet) — old kind-based Project/Event/Actor code
-  and specs are gone from `development`, single consolidated Actor kind is
-  live there pending release.
+- **`recorder-redesign` (2026-10-03, backlog #41)** — branch
+  `feature/recorder-redesign`. All QM rounds dispositioned (R4 accept-as-is, c3628fb);
+  no further QM round. User now validates U-1..U-5 in the EDH ("Run All", Ctrl+F5);
+  T-1..T-17 stay NOT RUN. After validation VE promotes the 12 `approved`
+  elements, then the user decides the merge. Open for the user: publication
+  gate D-28 (DLL licence, SDK telemetry), blocks publication not merge.
+  Backlog follow-ups: #45, #46, #47 (test automation), #48 (ontology status),
+  #49 (settings group title Jarvis Recorder).
+  **User results so far (collect for CM/VE, protocol still NOT RUN):** U-1: first
+  start failed "Client network socket disconnected before secure TLS connection
+  was established", second start ok. User states: on this laptop the download
+  only works through the proxy, so the successful download went through it
+  (user's statement, no proxy log). Retry question for the failed first attempt
+  open. U-2 ok: DE/EN ok, Spanish not recognized (accepted), delay about
+  3-6 s felt, marks about every minute; both sources tested, no echo seen —
+  possibly because of the laptop's own microphone and speakers; if echo ever
+  becomes a problem, revisit (user). Echo coverage is limited to this
+  hardware, a release-note candidate.
+  U-5 reported ok by the user 2026-10-03 (5 min session, word-count log
+  lines every 10 s with no text, only the transcript files in the Actor's
+  transcripts folder; offline state taken from the user's "worked", not
+  verified by PM). U-3 BLOCKED (user's laptop microphone and speakers cannot
+  be disabled or removed); user decision: not a release blocker, only a
+  release-note entry that certain device configurations and states were not
+  tested — pass this to the Release Engineer at release time. U-4 (one hour)
+  NOT RUN by the user's decision 2026-10-03: a 5 min session at about 30-40 %
+  CPU showed no problem, so no hour-long run now; release-note entry
+  "long-term test not conducted" (user will notice problems next week). No
+  memory readings were taken. All U cases are now dispositioned; T-1..T-17
+  stay NOT RUN. Dispatched to CM (user OK): U results to VE, who promotes only
+  the `approved` elements covered by U-1/U-2/U-5; backlog #49 (settings group
+  "Jarvis Recorder", REQ_REC_ENABLE AC-2 / SPEC_REC_SETTINGS) done in this
+  change; then one targeted QM check. User OK 2026-10-03: the command titles
+  also get the "Jarvis:" prefix (SPEC_REC_BUTTON, packages/recorder/package.json),
+  sent to CM as an addendum, same pass as the group title. Merge only
+  after QM's answer and the user's explicit OK. The user may later decide to
+  release a half-tested state consciously with a release-note warning.
+  Update 2026-10-03: D-58/D-59 (group and command titles) done and QM-checked.
+  QM targeted check F-8: user chose (a), REQ_REC_SPEECH back to `approved`
+  (VE, one status line, aec3293); user wants NO further QM/VE rounds and wants
+  to field-test the version as it is. Merge to development still needs his
+  explicit OK (not yet given; a field test of the current version is not that OK).
+- **Shared-tree lesson (2026-10-03)**: an unknown actor left
+  `packages/recorder/package.json` modified (identical to `development`),
+  which failed 7 tests in the shared tree while the committed branch passed.
+  Restored with the user's OK. When tests differ between the shared tree and a
+  clean checkout, check `git status` for foreign uncommitted files first.
+- **QM may propose simplifications (2026-10-03)**: the user told QM it may
+  propose a simpler solution over strict spec adherence, with the spec
+  changed openly, when user value is not materially hurt. Evaluate such
+  proposals as UX/requirement decisions with benefits and losses stated; the
+  user decides, SD revises, nothing is relaxed silently.
 - **Open sequencing decision (2026-09-27, user decides next session)**:
   user needs backlog #42 (Actor identity via agent mode, replaces
   `jarvis_whoAmI`) and #41 (Recorder redesign) for their own job — both

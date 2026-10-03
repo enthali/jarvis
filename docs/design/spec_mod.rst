@@ -97,14 +97,15 @@ Modular Delivery Design Specifications
 
 .. spec:: Recorder Package
    :id: SPEC_MOD_REC_PKG
-   :status: approved
+   :status: implemented
    :links: REQ_MOD_ADDONS; REQ_MOD_ZEROTRACE; REQ_ENG_TOOLNS; SPEC_REL_PKGCONTRACT
 
    **Description:**
    ``packages/recorder`` builds ``enthali.jarvis-recorder`` with
-   ``extensionDependencies: ["enthali.jarvis-core"]``. It contributes recording
-   commands/settings/tools (``jarvis_rec_*``) and the whisper/transcript
-   pipeline. It depends on no other add-on and on no tree node of the core.
+   ``extensionDependencies: ["enthali.jarvis-core"]``. It contributes the recording
+   commands and the setting and the on-device speech recognition pipeline
+   (``SPEC_REC_*``). It depends on no other add-on; it uses the core only through
+   ``JarvisCoreApi`` and the ``jarvisActor`` context value of the ACTORS tree.
 
    **Acceptance Criteria:**
 
@@ -112,6 +113,13 @@ Modular Delivery Design Specifications
    * AC-2: Recorder tools use the ``jarvis_rec_`` infix.
    * AC-3: Recording functions with core alone (no PIM dependency).
    * AC-4: When the recorder is not installed, none of its contributions exist.
+   * AC-5: What the speech recognition needs is not part of the VSIX; it is fetched at the
+     first start (``SPEC_REC_COMPONENTS``).
+   * AC-6: The package holds only what the recorder needs now: the entry point, the engine
+     worker, the capture helper, the components manifest, the manifest and readme files and
+     the icon. Output of removed sources does not ship: the output folder is cleaned before a
+     build, and the file list given by the packaging tool is checked against this AC before a
+     release. Inclusion in the package does not depend on whether Git tracks a file.
 
 
 .. spec:: Flow Package
