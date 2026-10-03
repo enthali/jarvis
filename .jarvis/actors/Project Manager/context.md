@@ -125,11 +125,12 @@
   MachineLearning.dll`'s `license.txt` and the npm/NuGet terms were never read,
   Research note rows "nicht geprüft"); telemetry: record it in the release
   notes (non-essential telemetry is off by config and ORT_TELEMETRY_DISABLED, a
-  minimal process-info event may still upload, per Research). Still open before
-  the release: version number (new feature, so a minor bump, my suggestion
-  0.29.0, not yet confirmed) and the explicit go to send it to the Release
-  Engineer (the tag push publishes via CI). Release-note entries to pass to the
-  Release Engineer: U-3 blocked (laptop microphone/speakers cannot be
+  minimal process-info event may still upload, per Research). RELEASE v0.29.0
+  SENT to the Release Engineer 2026-10-03 on the user's explicit go (version
+  0.29.0 confirmed by him; the tag push publishes via CI). Scope: the two
+  changes remove-newactor-legacy-quickpick and recorder-redesign. Waiting for
+  his report (tag pushed, GitHub Release published), then the post-release
+  step. Release-note entries were passed with that message: U-3 blocked (laptop microphone/speakers cannot be
   disabled), U-4
   one-hour test not conducted (5 min at about 30-40 % CPU without problems, no
   memory readings), echo coverage limited to the user's hardware, T-1..T-17
