@@ -514,7 +514,7 @@ items:
     priority: Medium
   - id: 42
     name: Actor identity via agent mode - replaces jarvis_whoAmI
-    status: Backlog
+    status: In Progress
     labels:
       - architecture
       - identity

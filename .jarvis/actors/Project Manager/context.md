@@ -141,16 +141,18 @@
   changed openly, when user value is not materially hurt. Evaluate such
   proposals as UX/requirement decisions with benefits and losses stated; the
   user decides, SD revises, nothing is relaxed silently.
-- **Open sequencing decision (2026-09-27, user decides next session)**:
-  user needs backlog #42 (Actor identity via agent mode, replaces
-  `jarvis_whoAmI`) and #41 (Recorder redesign) for their own job — both
-  would double as a practical test of migrating to Syspilot 0.10 (already
-  on `development`, not yet adopted here). Open question the user is
-  weighing: clean up the project ontology under 0.10 *before* that
-  migration, or deliberately defer the ontology cleanup since it delivers
-  no functional benefit on its own and #42/#41 are the urgent items. User
-  will decide next session whether to start with the Syspilot 0.10 update
-  or with #42 first — do not assume either order, ask.
+- **Backlog #42 (Actor identity via agent mode) runs on ANOTHER MACHINE (user,
+  2026-10-03)**: do not start or dispatch #42 here. Status set to In Progress
+  (status line only, notes untouched). That change has to finish and be merged
+  into `development` there; we were ahead (v0.29.0 recorder release is already on
+  `development`/`main`), so their branch will meet our newer `development`. How
+  to merge is still to be worked out with the user; expect conflicts in actor
+  memory files, `backlog.kanban.yaml` and spec/requirement files, and keep my own
+  edits to backlog and shared files minimal until then. The user sees little
+  problem because it is largely independent of the recorder. Once it is done
+  there, we take it over here again. #41 (recorder) is shipped in v0.29.0.
+  Still open with the user: the Syspilot 0.10 migration and the ontology
+  cleanup order (backlog #48), do not assume, ask.
 - **WhoAmI follow-up** — defer hook-dependent `jarvis_whoAmI` recovery until AHP;
   superseded by backlog #42's agent-mode identity approach once that lands.
 - **Post-change watch: private Actor repo** — after a future active CR, remove
