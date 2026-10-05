@@ -1,5 +1,5 @@
 title: backlog
-nextId: 50
+nextId: 51
 fields:
   - name: status
     type: single_select
@@ -646,4 +646,24 @@ items:
       Handling is open: fix inside recorder-redesign if it is still open when
       the user finishes testing, otherwise as a follow-up. User asked only to
       remember it; testing continues."
+    priority: Low
+  - id: 50
+    name: Recorder records nothing with a Jabra speaker as audio device (office
+      setup)
+    status: Backlog
+    labels:
+      - recorder
+      - investigate
+    notes: "User observation 2026-10-05, v0.29.0. In the user's office setup with a
+      Jabra speaker (speakerphone), the recorder records nothing; on the
+      laptop's own microphone and speakers it works (49 min meeting, 8311
+      words). To investigate later, not now, no change wanted; the user only
+      asked to remember it. Not established: the exact Jabra model, whether it
+      is selected as default input and/or output in Windows, whether the
+      recorder showed a warning or an error, whether the session started and
+      stayed empty or did not start, and what the Jarvis Recorder output channel
+      logged. Related specification points to check then: starting with one
+      working audio source is allowed with a warning, losing both sources ends
+      the session (U-3, the lost-device cases, was never tested because the
+      laptop's devices could not be removed). No cause is assumed here."
     priority: Low
