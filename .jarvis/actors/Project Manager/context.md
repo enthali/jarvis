@@ -124,6 +124,14 @@
   licence file of `Microsoft.Windows.AI.MachineLearning.dll` and the npm/NuGet
   terms (user decided D-28 is no topic with SDK 2.1.0; my caveat stays on
   record). The user will notice recorder problems in field use next week.
+  Field evidence 2026-10-05 (user's report, for U-4): a real meeting recorded for
+  49:18 min, 8311 words (about 170 words/min), user calls the one-hour test
+  successful; no memory readings, no phrase timing, and whether it ended
+  normally or with warnings was not reported. v0.29.0's release notes still say
+  the long-term test was not conducted: correct that in the next release notes;
+  editing the published GitHub Release needs the user's sign-off on the exact
+  text first (public repo). The meeting report from that transcript is still
+  being generated (not mine).
 - **Git state after the merge (2026-10-03)**: the extra worktrees
   `jarvis-dev-docs` and `jarvis-nemotron-spike` are closed on the user's order
   (their folders deleted; the spike's test transcripts were not needed). Branch
