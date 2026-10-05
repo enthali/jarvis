@@ -655,15 +655,23 @@ items:
       - recorder
       - investigate
     notes: "User observation 2026-10-05, v0.29.0. In the user's office setup with a
-      Jabra speaker (speakerphone), the recorder records nothing; on the
-      laptop's own microphone and speakers it works (49 min meeting, 8311
-      words). To investigate later, not now, no change wanted; the user only
-      asked to remember it. Not established: the exact Jabra model, whether it
-      is selected as default input and/or output in Windows, whether the
-      recorder showed a warning or an error, whether the session started and
-      stayed empty or did not start, and what the Jarvis Recorder output channel
-      logged. Related specification points to check then: starting with one
-      working audio source is allowed with a warning, losing both sources ends
-      the session (U-3, the lost-device cases, was never tested because the
-      laptop's devices could not be removed). No cause is assumed here."
+      Jabra Speak 510 (Bluetooth speakerphone with microphone, for meetings; the
+      user wrote \"Jabra 510\"), the recorder records nothing; with the laptop's
+      own microphone and speakers it works (a 49:18 min meeting, 8311 words,
+      earlier the same day). To investigate later, not now, no change wanted;
+      the user only asked to remember it. Facts from the user: the Jabra is the
+      Windows default input and output, also in Teams; no warning was shown; the
+      recording starts and stays empty. Jarvis Recorder log of the same Teams
+      meeting: at 12:23:32 a recording started, the log showed words=0 every 10
+      s until the user ended it at 12:24:20 (about 48 s). After the user
+      switched Teams to the laptop speakers, a new recording started at 12:25:01
+      and the word count rose from 33 within 10 s, so that meeting was
+      transcribed. Not established: whether the empty session recorded the
+      microphone, the speaker output or neither, how the recorder picks its
+      devices, and whether the Jabra's Bluetooth profile (hands-free versus
+      stereo) plays a role; no cause is assumed. Related specification points to
+      check then: starting with one working audio source is allowed with a
+      warning (none appeared here), losing both sources ends the session, and
+      the lost-device cases (U-3) were never tested because the laptop's devices
+      could not be removed."
     priority: Low
