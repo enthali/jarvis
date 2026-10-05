@@ -1,5 +1,5 @@
 title: backlog
-nextId: 51
+nextId: 52
 fields:
   - name: status
     type: single_select
@@ -675,3 +675,28 @@ items:
       the lost-device cases (U-3) were never tested because the laptop's devices
       could not be removed."
     priority: Low
+  - id: 51
+    name: "Review the actor.yaml schema: mandatory, obsolete and missing fields"
+    status: Backlog
+    labels:
+      - actor
+      - schema
+      - review
+    notes: "Raised by the user 2026-10-05: look at the actor.yaml schema and decide
+      which fields are mandatory, which are obsolete and which are missing.
+      Current state, read 2026-10-05: schemas/actor.schema.json requires only
+      name, allows summary and agent, and sets additionalProperties to false.
+      The actor.yaml files in .jarvis/actors still carry the old fields
+      externalStatus, internalStatus (nine of them) and lastUpdated (nine
+      files), left over from the retired kind-based Actor, so by the schema
+      those files are not valid; whether the scanner ignores or rejects them was
+      not checked. Missing fields suggested by current work, not decided: the
+      namespace parts role, team and project (see the Ideas entry on parallel
+      teams), and the identity binding for backlog 42, whose agent file is meant
+      to be derived from the actor. Input for the review: REQ_ACTOR_SCHEMA and
+      the actor creation specifications (verbatim name, unique name, agent
+      binding), the SPEC_ACTOR_* scanner, and backlog 42 on the other machine,
+      which is working on the same area, so coordinate before changing anything.
+      Open for PM and user: scope, whether obsolete fields are removed from
+      existing files, and the order relative to backlog 42."
+    priority: Medium
