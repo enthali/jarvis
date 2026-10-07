@@ -108,6 +108,57 @@ Facts checked 2026-10-07:
   acceptable development and use policy"; I have NOT read that policy, and it would
   apply to a published PIM using this.
 
+## Third direction, 2026-10-07: embeddings for the project assignment
+
+Read in Pantheon (`.github/skills/jarvis-email`, `classify-mail.ps1`): triage makes
+up to two LLM calls per mail. Call 1 assigns a project (JSON schema enum of the
+project names plus `KEINE`, rules mostly literal: stakeholder address, project name
+or alias, full person name; "wrong is worse than none"; exception files). Call 2,
+only when no project matched, gives the Eisenhower quadrant from the user's view
+(mass mail is Q4). The server enforces the JSON schema (`response_format`), which
+`vscode.lm` cannot. SKILL.md documents the project matching as repeatedly unreliable.
+
+The user's view: literal rules are not enough, a meaning vector per project is likely
+better; training material is `actor.yaml`, `context.md` and other documents in the
+project folder (meeting minutes). A wrong assignment is not bad, the actor can fix it,
+and it is fine if the system learns from it. Learning from the folders (a mail moved
+to the right folder teaches the system) is what he likes most.
+
+Points agreed in the discussion (nothing decided as a product):
+- Hybrid, PM's lean: a literal evidence as a booster not a gate, embedding
+  nearest-neighbour for the meaning, the LLM only for what is left (Eisenhower, the
+  unclear zone). Eisenhower might also be learned from the user's folder placements,
+  to be tested with the LLM as baseline.
+- Project = many vectors (document sections, later confirmed mails), not one mean.
+- "No project": a threshold on the best score is not nonsense but fragile alone;
+  add the gap to the second best, a per-project threshold calibrated on its own
+  mails, and a "no project" class from the Q-folder mails. Calibrate on the data.
+- Learning without detecting moves: recompute the vectors hourly from the folders,
+  embedding only what is new (key: `MessageId`) and documents that changed; use
+  read/older mails as examples so the pipeline's own wrong filings do not reinforce
+  themselves. Vectors in RAM plus a local cache file, not in the OneDrive project
+  folder (derived data, sync, content); the cache names the model and version.
+- Mail text for embedding: subject plus new text without quotes and signature; the
+  pipeline's 300 character preview is too thin. Exchange (X.500) addresses must be
+  resolved to SMTP.
+- Backend: local Ollama first (installed, temporary), in-process ONNX later like the
+  recorder; no hosted embedding model at Bosch. `vscode.lm` has no embeddings API
+  that I know of (not verified).
+- Outlook access: PIM has a PowerShell COM bridge for categories and tasks
+  (`SPEC_OLK_COMBRIDGE`, `jarvis.outlook.enabled`), none for mails yet. The Outlook
+  access is probably the limiting factor.
+- Slicing for the real changes, user-validated each: first "Projekt-Index" (embed the
+  documents, plus a diagnostic command showing the nearest projects for a mail,
+  nothing moved), then "Zuweisung" (decision with threshold, gap and "none", wired
+  into the triage with the LLM fallback). Not three horizontal slices: an
+  embedding-only change has nothing the user can validate.
+- First step is a spike by Research (see my context.md, branch
+  `research/email-triage-embeddings-poc`): standalone script, project documents in
+  RAM, the 20 newest inbox mails read only through the Pantheon scripts, console
+  output top 10 with scores.
+- The Stakeholder fields in the projects' `actor.yaml` are unknown to the actor
+  schema (backlog 51).
+
 ## Open
 
 - Whether to proceed at all (licence answer first), and OpenAI-style endpoint vs MCP tool.

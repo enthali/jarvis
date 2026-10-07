@@ -115,6 +115,21 @@
 
 ## Active CR
 
+- **Spike email-triage-embeddings-poc (2026-10-07, Research)** — handed to the
+  Research actor on the user's explicit go. Branch
+  `research/email-triage-embeddings-poc` from `development`, local, not pushed;
+  work under `experiments/email-triage-embeddings/`. Question: can the project
+  of an incoming mail be found by embeddings of the project documents
+  (`context.md`, `actor.yaml` from the OneDrive Projekte folder, 27 folders, RAM
+  only) against the 20 newest inbox mails, read only, via the Pantheon scripts,
+  with local Ollama and two multilingual models; console output top 10 with
+  scores and gap. No extension, no assignment, no cache. Done when the user has
+  seen the output and judged it, and Research's findings are written down.
+  Idea context and the user's thoughts (hybrid LLM plus embeddings, learning
+  from folders by hourly recompute, vectors in RAM plus local cache not
+  OneDrive, later changes: "Projekt-Index" with diagnostic command, then
+  "Zuweisung") are in `ideas/llm-gateway.md`, which now also holds the
+  embedding direction (third section).
 - **No active CR (2026-10-03)** — v0.29.0 is released (see Recently Shipped).
   Open items after it: automatic retry after the first-start TLS failure
   (undecided, user's call); backlog #45 (SPEC_MOD_REC_PKG AC-2 tool infix),
