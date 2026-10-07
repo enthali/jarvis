@@ -330,6 +330,7 @@
   experiment. Not trivial — the 3-level structure is hardwired throughout
   syspilot (agents, traceability, MECE/Trace engineers); current syspilot
   version doesn't give the flexibility needed yet. Parked, revisit later.
+- [LLM access for scripts](ideas/llm-gateway.md) — expose `vscode.lm` to local scripts (OpenAI-style endpoint vs MCP); blocked on GitHub licence/Bosch clarification and auth design (2026-10-07)
 - [PIM Modularization](ideas/pim-modularization.md) — drop per-component enable/disable settings, go installable-sub-extensions instead
 - [Session Recording](ideas/recording-design.md) — meeting recording + transcription pipeline
 - Recorder on built-in VS Code dictation (deferred, 2026-08-05) — see Research's
