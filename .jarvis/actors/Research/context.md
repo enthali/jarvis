@@ -34,6 +34,10 @@ Recorder-Redesign (Nemotron statt Docker/Whisper) wird als Change mit System Des
 - Lehre: Terminal-Node ≠ Extension Host; native SDK-Schicht ≠ Node-HTTPS. Erst im Zielprozess testen, Ursachen als Hypothese kennzeichnen.
 - Worktrees `../jarvis-nemotron-spike` (Research-Branch) und `../jarvis-dev-docs` (`development`) nutzen; Haupt-Worktree gehört anderen Aktoren. Entfernen, wenn der Change übernommen hat.
 
+## Spike Mail-Triage per Embeddings (2026-10-07, PM)
+- Findings: `email-triage-embeddings-poc-2026-10.md`. Code: Branch `research/email-triage-embeddings-poc` (lokal, **nicht pushen, bevor PM es sagt**), Worktree `../jarvis-email-poc` nach Abschluss entfernt.
+- Ergebnis bge-m3 (nur dieses Modell, kein Download): top1 ~45 %, top3 ~60 %, top5 ~65–70 % auf 81 abgelegten Mails; als Kandidatenliste brauchbar, nicht als Auto-Zuordnung. Zweites Modell offen (Verbindung).
+
 ## Weitere Research-Artefakte (in diesem Ordner)
 - `architecture-review-2026-05.md` — 11 Findings (F1–F11) zur Tech-Debt-Welle, priorisiert. Spawn-Quelle fuer kommende CRs an PM.
 - `future-ideas.md` — strategische Ideen, die noch keine CRs sind (Trigger / Idee / offene Fragen / Status). Neue Eintraege oben anfuegen.
