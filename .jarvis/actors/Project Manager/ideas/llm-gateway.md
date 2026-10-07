@@ -1,6 +1,7 @@
 # Idea: Local LLM access for scripts via the Copilot models in VS Code
 
-**Status:** Idea, discussed with the user 2026-10-07. Nothing decided, no backlog item, no CD.
+**Status:** Idea, discussed with the user 2026-10-07 (second round the same day:
+inbox triage inside Jarvis PIM). Nothing decided, no backlog item, no CD.
 
 ## Intent
 
@@ -55,7 +56,67 @@ also choose a different model through the VS Code model picker.
   agreement treats this differently needs Bosch IT/Legal; the user decides whether
   to ask. Without that answer, do not ship it as a product feature.
 
+## Second direction, 2026-10-07: inbox triage inside Jarvis PIM (the user's idea)
+
+The user's triage today runs in Pantheon as a raw local LLM call. Idea: offer the
+triage in Jarvis PIM, calling `vscode.lm` from inside the extension, so the model
+comes from the VS Code picker (Copilot models, or BYOK models, which include a
+local Ollama). How the triage itself works is clarified later in Pantheon; this
+round only discusses doing it in PIM.
+
+Why this is smaller than the gateway above (PM's view): no local endpoint, no
+token, no door for other local processes to spend the user's quota, no script
+triggering a call outside the extension. `heartbeat.ts` already calls
+`vscode.lm`, and the VS Code guide names a command or task of an extension as a
+normal use. The gateway would only still be needed for scripts outside Jarvis.
+
+Answers from the user:
+- Ollama runs locally with its own vendor ID; he tried it at home. Bosch has BYOK
+  active and hosts its own models through exactly this channel. A Copilot
+  Business/Enterprise administrator can switch the BYOK policy off (VS Code docs);
+  at Bosch it is on.
+- Consent: already given today through the heartbeat step.
+- No system prompt wanted. The current triage is a raw call whose only constraint
+  is a JSON output format.
+- Quota: one mail is not many tokens, and the user would probably use BYOK models
+  anyway, at home certainly. Model choice UI idea: the setting lists the currently
+  available vendors, then that vendor's models, as a picker; when a call fails the
+  user picks another model in the settings.
+- Mail content reaching the model is not the topic (official Outlook MCP servers
+  exist).
+- Volume and fair use: one call per mail, say 200 mails a day, and an agent runs
+  them in a few minutes. To be clarified; it could be a problem for Copilot-hosted
+  models.
+
+Facts checked 2026-10-07:
+- `selectChatModels` filters by `vendor`, `id`, `family`, `version`. The provider
+  guide shows extensions registering models under their own `vendor` ID. That
+  `selectChatModels` also returns such BYOK/Ollama models is likely but not stated
+  in the docs; a short test listing all models would settle it.
+- JSON output: the API has no portable JSON mode. `LanguageModelChatRequestOptions`
+  carries `justification`, `modelOptions` (free-form, specific to the model, to be
+  looked up per provider), `tools` and `toolMode`. So a JSON format request is
+  either part of the prompt with the reply parsed and validated (what the current
+  triage does, simplest), or a private tool with a schema called with
+  `toolMode: Required` (only for models with tool calling; some accept only one
+  tool in that mode), or a provider-specific `modelOptions` entry (not portable,
+  support unknown for Ollama).
+- No system role in the API: fold the instruction into the first user message.
+- The guide advises no hard Copilot dependency in the manifest when the extension
+  has other functions, and a clear handling when no model matches.
+- Publishing to the Marketplace means adhering to the "GitHub Copilot extensibility
+  acceptable development and use policy"; I have NOT read that policy, and it would
+  apply to a published PIM using this.
+
 ## Open
 
 - Whether to proceed at all (licence answer first), and OpenAI-style endpoint vs MCP tool.
-- Whether the inbox triage runs on Jarvis' own PIM tools or stays an external script.
+- Whether the inbox triage runs on Jarvis' own PIM tools or stays an external script:
+  the user leans towards PIM with `vscode.lm`; if so the gateway is not needed for
+  this case. Not decided.
+- Read the Copilot extensibility policy and clarify fair use for Copilot-hosted
+  models (volume), or say that triage runs on BYOK models.
+- Test whether BYOK/Ollama models appear in `selectChatModels`, and how to request
+  JSON from them.
+- Model picker in the PIM settings (vendor list, then model list) and the error
+  workflow: the user's UI idea, to be designed.
