@@ -70,6 +70,24 @@ Labels: 15 Inbox-Mails mit Ziel (Grenzfaelle Org NE-TE / GenAI beide akzeptiert)
 - 111 Ordner-Mails: Einlesen 20 s, Einbetten 62 s. 179 Ordner-Mails: Einlesen 21-25 s, Einbetten 96-169 s (Lauf-Streuung durch parallele CPU-Last moeglich).
 - Gesamtlauf Schritt 3 (Index + 179 Mails + 21 Inbox-Mails): 211-325 s, ohne Cache.
 
+## Schritt 4: alle Inbox-Unterordner als Klassen, nur Ordner-Mails (`compare3.mjs`)
+Aufbau: 32 Unterordner der Inbox, 27 mit Mails, 25 Klassen nach Alias-Zusammenlegung (`Project AIDV` -> `Project XC AIDV`, `Project-CRAFT` -> `Project CRAFT`), 268 Mails (neueste 30 je Ordner), **keine Projektdokumente**; die Klassen schliessen "1 Sofort", "2 Wichtig", "3 Pruefen", "4 Unwichtig" ein (49/24/3/203 Mails im Ordner, davon 30/23/3/30 im Index). Gleiche Vektoren werden einmal mit und einmal ohne die vier Eisenhower-Klassen gerankt (gepaart im selben Lauf). Einbetten der Ordner-Mails 239 s (ca. 0,9 s je Mail), Lauf gesamt 293 s.
+
+Labels: 14 Mails mit Projektziel, **1** "kein Projekt", 1 "schwer", 2 Auto-Replies ausgelassen, 3 ohne Label. Das Inbox-Fenster (21 neueste Mails) hat sich seit Schritt 3 verschoben: drei neue Mails kamen dazu, zwei der "kein Projekt"-Mails fielen heraus bzw. sind Auto-Replies. Die Frage "landen Mails ohne Projekt in den Eisenhower-Ordnern?" ist damit mit **n=1** **nicht beantwortbar**.
+
+| Verfahren | Projekt-Mails Platz 1 | Top 3 | davon Platz 1 an Eisenhower-Ordner verloren | alle Mails mit Platz 1 in Eisenhower-Ordner |
+|---|---|---|---|---|
+| `mails3`, mit Eisenhower-Klassen | 7/14 | 12/14 | 5/14 | 6/19 |
+| `mails`, mit Eisenhower-Klassen | 6/14 | 12/14 | 5/14 | 5/19 |
+| `mails3`, ohne Eisenhower-Klassen | 10/14 | 12/14 | 0/14 | 0/19 |
+| `mails`, ohne Eisenhower-Klassen | 9/14 | 12/14 | 0/14 | 0/19 |
+
+- Mit Eisenhower-Klassen verliert `mails3` 3 Treffer auf Platz 1 (7/14 statt 10/14); die Top 3 bleiben gleich (12/14). Die Eisenhower-Klassen nehmen Platz 1 oft mit hohen Scores (bis 0,78 bei Benachrichtigungs-Mails, 0,993 bei einer Mail).
+- Die eine "kein Projekt"-Mail stand auf Platz 1 bei einem Projekt (0,57 bzw. 0,66); Eisenhower-Ordner lagen auf Platz 2 und 3.
+- Eine Mail hat eine nahezu identische Mail (Score 0,993) in "4 Unwichtig", obwohl der User sie einem Projekt zuordnet und eine Mail derselben Reihe im Projektordner liegt (0,69): Ablage ist nicht konsistent (User: "teilweise liegt zu viel in 4").
+- Hypothese (nicht geprueft): Eisenhower-Ordner sammeln Mails aller Themen und sind deshalb nahe an vielen neuen Mails; Prioritaet und Projekt sind zwei Achsen, eine Mail liegt in Outlook aber nur in einem Ordner. Als Konsequenz waere ein getrenntes Ranking (Projekt ohne Eisenhower-Klassen, Prioritaet getrennt) naheliegend.
+- Naechste Messung (nicht gemacht): Mails jenseits der neuesten 30 in grossen Ordnern (z. B. 173 ungenutzte Mails in "4 Unwichtig") als Testsatz gegen den Index aus den neuesten 30; kein Leave-one-out noetig, mehr Labels als die Inbox liefert. Threads ausschliessen.
+
 ## Was nicht ging / nicht gemacht
 - Zweites Modell (`qwen3-embedding:0.6b` oder `embeddinggemma` als Kandidaten): Download wegen langsamer Verbindung nicht gemacht.
 - Kein GPU-Test; kein Feintuning von Abschnittsgroesse/Praefix; kein Reranking per Chat-Modell; keine Absender-/Thread-Signale; keine Leave-one-out-/Zeit-Split-Auswertung ueber alle abgelegten Mails; kein Pseudo-Projekt "Unwichtig" gemessen; keine Mail-Suche getestet.

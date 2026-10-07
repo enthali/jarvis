@@ -11,6 +11,7 @@ const PER_FOLDER = Number(arg('per-folder', 30));
 const TOP = Number(arg('top', 3));
 const OUT_DIR = arg('out', 'C:\\workspace\\jarvis-email-poc-out');
 const LABELS = arg('labels', path.join(OUT_DIR, 'labels.json'));
+const EXTRA = arg('extra', '').split(',').map(s => s.trim()).filter(Boolean);
 const ALIASES = { 'Project XC AIDV': ['Project AIDV'], 'Project CRAFT': ['Project-CRAFT'] };
 const MODES = ['docs', 'mails', 'mails3', 'fuse', 'rrf'];
 const AUTO = /^\s*((re|aw|wg|fw|fwd)\s*:\s*)*(automatic reply|automatische antwort|auto-?reply|out of office|abwesenheits)/i;
@@ -22,22 +23,23 @@ const z = a => { const m = mean(a), sd = Math.sqrt(mean(a.map(x => (x - m) ** 2)
 
 function rankAll(projects, qv) {
   const rows = projects.map(p => {
-    const d = Math.max(...p.items.filter(s => s.kind === 'doc').map(s => dot(s.vec, qv)));
+    const docs = p.items.filter(s => s.kind === 'doc');
     const ms_ = p.items.filter(s => s.kind === 'mail').map(s => ({ s, sim: dot(s.vec, qv) })).sort((a, b) => b.sim - a.sim);
-    return { name: p.name, d, m: ms_[0]?.sim ?? null, m3: ms_.length ? mean(ms_.slice(0, 3).map(x => x.sim)) : null, via: ms_[0]?.s };
+    return { name: p.name, d: docs.length ? Math.max(...docs.map(s => dot(s.vec, qv))) : null, m: ms_[0]?.sim ?? null, m3: ms_.length ? mean(ms_.slice(0, 3).map(x => x.sim)) : null, via: ms_[0]?.s };
   });
   const withMail = rows.filter(r => r.m !== null);
-  const zd = z(rows.map(r => r.d)); const zm = z(withMail.map(r => r.m));
-  rows.forEach((r, i) => { r.zd = zd[i]; r.zm = r.m === null ? 0 : zm[withMail.indexOf(r)]; });
+  const withDocs = rows.filter(r => r.d !== null); const both = withDocs.filter(r => r.m !== null);
+  const zd = z(withDocs.map(r => r.d)); const zm = z(both.map(r => r.m));
+  rows.forEach(r => { r.zd = r.d === null ? 0 : zd[withDocs.indexOf(r)]; r.zm = both.includes(r) ? zm[both.indexOf(r)] : 0; });
   const rankOf = (arr, key) => { const o = [...arr].sort((a, b) => b[key] - a[key]); return new Map(o.map((r, i) => [r.name, i + 1])); };
-  const rd = rankOf(rows, 'd'), rm = rankOf(withMail, 'm');
-  const sorted = (key, list = rows) => list.map(r => ({ name: r.name, score: key(r) })).sort((a, b) => b.score - a.score);
+  const rd = rankOf(withDocs, 'd'), rm = rankOf(both, 'm');
+  const sorted = (key, list) => list.map(r => ({ name: r.name, score: key(r) })).sort((a, b) => b.score - a.score);
   return {
-    docs: sorted(r => r.d),
+    docs: sorted(r => r.d, withDocs),
     mails: withMail.map(r => ({ name: r.name, score: r.m, via: r.via })).sort((a, b) => b.score - a.score),
     mails3: sorted(r => r.m3, withMail),
-    fuse: sorted(r => r.zd + r.zm),
-    rrf: sorted(r => 1 / (RRF_K + rd.get(r.name)) + (rm.has(r.name) ? 1 / (RRF_K + rm.get(r.name)) : 0)),
+    fuse: sorted(r => r.zd + r.zm, withDocs),
+    rrf: sorted(r => 1 / (RRF_K + rd.get(r.name)) + (rm.has(r.name) ? 1 / (RRF_K + rm.get(r.name)) : 0), withDocs),
   };
 }
 
@@ -45,6 +47,7 @@ const t0 = now();
 const idx = await buildIndex();
 console.log(`Model ${MODEL}; docs index: ${idx.projects.length} projects, ${idx.sectionCount} sections, ${ms(idx.total)}`);
 for (const p of idx.projects) p.items = p.sections.map(s => ({ kind: 'doc', vec: s.vec }));
+for (const n of EXTRA) idx.projects.push({ name: n, sections: [], items: [] });
 
 let tm = now(); const added = {}; const toEmbed = []; let skippedAuto = 0;
 for (const p of idx.projects) {
@@ -67,6 +70,7 @@ const lines = [`# Mail triage PoC step 3 (${MODEL}) - ${new Date().toISOString()
   'Mails per project: ' + Object.entries(added).map(([k, v]) => `${k} (${v})`).join(', '), ''];
 const stats = Object.fromEntries(MODES.map(m => [m, { n: 0, top1: 0, top3: 0 }])); const noneStats = Object.fromEntries(MODES.map(m => [m, []]));
 let unlabeled = 0, hard = 0, autoMails = 0;
+const ex = Object.fromEntries(MODES.map(m => [m, { all: 0, ranked: 0, noneIn: 0, noneN: 0, projLost: 0 }]));
 for (const [k, m] of list.entries()) {
   const key = `${m.ReceivedTime.slice(5, 16).replace('T', ' ')}|${m.Subject ?? ''}`;
   const head = `#${k + 1}  ${m.ReceivedTime.slice(5, 16).replace('T', ' ')}  ${(m.Subject ?? '').slice(0, 90)}`;
@@ -85,12 +89,18 @@ for (const [k, m] of list.entries()) {
   console.log(`\n${head}   label: ${hasLabel ? (lab === null ? 'hard' : lab.join(' / ')) : '-'}`);
   for (const mode of MODES) console.log(`   ${mode.padEnd(6)} ${r[mode].slice(0, TOP).map((x, i) => `${x.name} ${x.score.toFixed(3)}${mark(mode, i)}`).join('  |  ')}`);
   for (const mode of MODES) {
+    const inEx = EXTRA.includes(r[mode][0].name); ex[mode].ranked++; if (inEx) ex[mode].all++;
+    if (isNone) { ex[mode].noneN++; if (inEx) ex[mode].noneIn++; } else if (target && inEx) ex[mode].projLost++;
     if (isNone) noneStats[mode].push(r[mode][0].score);
     else if (target) { stats[mode].n++; if (target.includes(r[mode][0].name)) stats[mode].top1++; if (r[mode].slice(0, 3).some(x => target.includes(x.name))) stats[mode].top3++; }
   }
 }
 lines.push('## Summary against labels', '', `Labeled mails with a target: ${stats.docs.n}; "none" mails: ${noneStats.docs.length}; hard: ${hard}; auto-replies skipped: ${autoMails}; unlabeled: ${unlabeled}.`, '', '| mode | top1 | top3 | top1 score of "none" mails (min-max) |', '|---|---|---|---|');
 for (const mode of MODES) { const s = stats[mode]; const n = noneStats[mode]; lines.push(`| ${mode} | ${s.top1}/${s.n} | ${s.top3}/${s.n} | ${n.length ? `${Math.min(...n).toFixed(2)}-${Math.max(...n).toFixed(2)}` : ''} |`); }
+if (EXTRA.length) {
+  lines.push('', `Extra folders as mail-only classes: ${EXTRA.join(', ')}.`, '', '| mode | all ranked mails with an extra folder at Platz 1 | "none" mails at Platz 1 in an extra folder | project-labeled mails lost to an extra folder |', '|---|---|---|---|');
+  for (const mode of ['mails', 'mails3']) { const e = ex[mode]; lines.push(`| ${mode} | ${e.all}/${e.ranked} | ${e.noneIn}/${e.noneN} | ${e.projLost}/${stats[mode].n} |`); }
+}
 console.log('\n' + lines.slice(lines.indexOf('## Summary against labels')).join('\n'));
 fs.mkdirSync(OUT_DIR, { recursive: true });
 const file = path.join(OUT_DIR, `compare2-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.md`);
