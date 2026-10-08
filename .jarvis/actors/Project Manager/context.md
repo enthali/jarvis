@@ -116,7 +116,8 @@
 ## Active CR
 
 - **`heartbeat-agent-model-selection` (backlog #52) — MERGED into `development`
-  2026-10-08, `452c769`, not pushed, not released.** Agent steps name `vendor`
+  2026-10-08, `452c769`, pushed (`development` at `b3cd61c`), release ON HOLD
+  by the user.** Agent steps name `vendor`
   and `model` (the model id from the list); no default, no fallback, a step
   without them fails (breaking, user decision with SD). `jarvis.listModels`
   command and `jarvis_listModels` tool; the list shows only vendor and model
@@ -129,7 +130,7 @@
   Changes, no version invented, carries "BYOK/local use unproven"). Side debts:
   backlog #53 (registerJob schema and SPEC_ENG_API lack outputVar), #54 (removed
   `jarvis.heartbeatConfigFile` still documented). Open: backlog #52 to Done,
-  push on the user's word, release on the user's go. Idea parked: a heartbeat
+  release only on the user's go (on hold). Idea parked: a heartbeat
   step per list element (see `ideas/llm-gateway.md`, field data).
 - **Spike email-triage-embeddings-poc (2026-10-07, Research), findings in** —
   Research measured with `bge-m3` via Ollama (findings under
