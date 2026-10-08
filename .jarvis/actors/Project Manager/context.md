@@ -115,23 +115,8 @@
 
 ## Active CR
 
-- **`heartbeat-agent-model-selection` (backlog #52) — MERGED into `development`
-  2026-10-08, `452c769`, pushed (`development` at `b3cd61c`), release ON HOLD
-  by the user.** Agent steps name `vendor`
-  and `model` (the model id from the list); no default, no fallback, a step
-  without them fails (breaking, user decision with SD). `jarvis.listModels`
-  command and `jarvis_listModels` tool; the list shows only vendor and model
-  (user's live feedback, D-12). Live acceptance: Copilot verified by the user
-  (`copilot/gpt-6-luna` ran; BYOK/local vendors seen in the list); T-2, T-4..T-9,
-  T-7 and a BYOK/local job run NOT RUN, risk accepted by the user, results stay
-  `NOT RUN`; statuses of the four new elements and SPEC_AUT_AGENTEXEC /
-  REQ_AUT_JOBEXEC stay `approved`. For the Release Engineer: the migration text
-  is in the CD section "Release Note (for the Release Engineer)" (Breaking
-  Changes, no version invented, carries "BYOK/local use unproven"). Side debts:
-  backlog #53 (registerJob schema and SPEC_ENG_API lack outputVar), #54 (removed
-  `jarvis.heartbeatConfigFile` still documented). Open: backlog #52 to Done,
-  release only on the user's go (on hold). Idea parked: a heartbeat
-  step per list element (see `ideas/llm-gateway.md`, field data).
+- **No active CR (2026-10-08).** `heartbeat-agent-model-selection` is merged and
+  pushed, release on hold (see Recently Shipped).
 - **Spike email-triage-embeddings-poc (2026-10-07, Research), findings in** —
   Research measured with `bge-m3` via Ollama (findings under
   `.jarvis/actors/Research/email-triage/findings-2026-10.md`): project documents
@@ -151,7 +136,7 @@
   context (hybrid LLM plus embeddings, learning from folders, vectors in RAM plus
   a local cache, later changes "Projekt-Index" then "Zuweisung") is in
   `ideas/llm-gateway.md`, third section.
-- **No active CR (2026-10-03)** — v0.29.0 is released (see Recently Shipped).
+- **Open items since v0.29.0 (2026-10-03)** — v0.29.0 is released (see Recently Shipped).
   Open items after it: automatic retry after the first-start TLS failure
   (undecided, user's call); backlog #45 (SPEC_MOD_REC_PKG AC-2 tool infix),
   #46 (retire `ideas/recording-design.md`, now possible), #47 (test automation
@@ -208,6 +193,15 @@
 
 ## Recently Shipped
 
+- **heartbeat-agent-model-selection merged** 2026-10-08 into `development`
+  (`452c769`, pushed), NOT released, release on hold by the user. Agent steps
+  name `vendor` and `model` (model id from the list); no default or fallback, a
+  step without them fails (breaking). Command `jarvis.listModels` and tool
+  `jarvis_listModels`, the list shows only vendor and model. Live acceptance:
+  Copilot verified by the user; the rest NOT RUN, risk accepted by the user, the
+  new elements stay `approved`. Migration text for the Release Engineer is in the
+  CD section "Release Note (for the Release Engineer)". Side debts: backlog #53,
+  #54. Parked: a heartbeat step per list element (`ideas/llm-gateway.md`).
 - **v0.29.0 released** 2026-10-03 (tag `v0.29.0` on `main` at `6ba6cf9`, back-merged
   into `development`, `origin/development` = `cb44218`; GitHub Release with 9
   VSIX assets, publishing Action green). Ships `recorder-redesign` (on-device
