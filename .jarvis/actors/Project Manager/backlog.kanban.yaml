@@ -702,7 +702,7 @@ items:
     priority: Medium
   - id: 52
     name: "Heartbeat agent step: choose vendor and model of the language model"
-    status: In Progress
+    status: Done
     labels:
       - heartbeat
       - llm

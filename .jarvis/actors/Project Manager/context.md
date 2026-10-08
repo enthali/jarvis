@@ -115,37 +115,22 @@
 
 ## Active CR
 
-- **`heartbeat-agent-model-selection` (2026-10-08, backlog #52, autonomous
-  except SD)** — branch `feature/heartbeat-agent-model-selection`, CD created
-  and committed, SENT to CM on the user's "go" (2026-10-08). CM reported:
-  specs done and Dev dispatched (not yet ready for verification). Decided by
-  the user with SD: NO default model and NO fallback; agent steps without
-  `vendor`/`model` fail after the change (breaking, release notes need a
-  migration line, CM routes it to the documentation step). I corrected the CD
-  Summary to match. 2026-10-08 evening: CM reports ready for verification
-  (Dev, VE PARTIAL, docs done, QM Round 1 dispatched). Decided: release-notes
-  migration line is written by the Release Engineer at release time, CM puts
-  the exact text into the CD; VE's statuses accepted. OPEN, needs the USER:
-  verify-first in an Extension Development Host ("Jarvis: List Language
-  Models", copy an entry into an agent step, run the job; are BYOK and local
-  vendors listed?). Dev hint: without a Copilot token source the Copilot models
-  are not offered. Merge only after QM, verify-first and the user's "Merge OK".
-  Backlog #53 holds SD's side findings (registerJob schema and SPEC_ENG_API
-  lack outputVar); #54 the removed `jarvis.heartbeatConfigFile` setting still
-  documented. Live test 2026-10-08: list works, copilot/gpt-6-luna ran, BYOK
-  and local vendors appear in the list (user); open: no-default case T-7, a
-  job with a BYOK/local id. The user added a change request into this change:
-  the list shows only vendor and model (SD agreed it with him, D-12, Dev
-  dispatched), so QM Round 1 is partly repeated. Merge only after QM and the
-  user's "Merge OK". Mode confirmed by the user: autonomous, except the System
-  Designer agrees US and
-  REQ with the user (so CM must hand US/REQ to the user via SD). Intent: the
-  heartbeat agent step (`executeAgentStep()`, fixed to Copilot gpt-4o, also in
-  `SPEC_AUT_AGENTEXEC`) lets the user choose vendor and model; no choice keeps
-  today's behavior; a clear error when the model is missing; a way to find
-  out the available vendors and models. Scope per user (2026-10-08): only
-  model selection, no references to email triage or to what is excluded in
-  the CD (triage is just one possible customer, not a reason).
+- **`heartbeat-agent-model-selection` (backlog #52) — MERGED into `development`
+  2026-10-08, `452c769`, not pushed, not released.** Agent steps name `vendor`
+  and `model` (the model id from the list); no default, no fallback, a step
+  without them fails (breaking, user decision with SD). `jarvis.listModels`
+  command and `jarvis_listModels` tool; the list shows only vendor and model
+  (user's live feedback, D-12). Live acceptance: Copilot verified by the user
+  (`copilot/gpt-6-luna` ran; BYOK/local vendors seen in the list); T-2, T-4..T-9,
+  T-7 and a BYOK/local job run NOT RUN, risk accepted by the user, results stay
+  `NOT RUN`; statuses of the four new elements and SPEC_AUT_AGENTEXEC /
+  REQ_AUT_JOBEXEC stay `approved`. For the Release Engineer: the migration text
+  is in the CD section "Release Note (for the Release Engineer)" (Breaking
+  Changes, no version invented, carries "BYOK/local use unproven"). Side debts:
+  backlog #53 (registerJob schema and SPEC_ENG_API lack outputVar), #54 (removed
+  `jarvis.heartbeatConfigFile` still documented). Open: backlog #52 to Done,
+  push on the user's word, release on the user's go. Idea parked: a heartbeat
+  step per list element (see `ideas/llm-gateway.md`, field data).
 - **Spike email-triage-embeddings-poc (2026-10-07, Research), findings in** —
   Research measured with `bge-m3` via Ollama (findings under
   `.jarvis/actors/Research/email-triage/findings-2026-10.md`): project documents
