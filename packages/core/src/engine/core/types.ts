@@ -62,6 +62,12 @@ export interface JarvisCoreApi {
     /** Pure projection of the Actor scanner cache — no fs access, [] if none. */
     listActors(): JarvisActor[];
 
+    /**
+     * Replace the icon of one Actor node until the returned Disposable is disposed
+     * (SPEC_ENG_ACTORMARK). Additive: add-ons check that the member exists before calling it.
+     */
+    markActor(actorId: string, icon: vscode.ThemeIcon): vscode.Disposable;
+
     // --- Heartbeat job API (SPEC_ENG_HEARTBEAT_JOBAPI) ---
 
     /** Idempotent upsert of a heartbeat job (PERSISTENT — survives restart/uninstall). */

@@ -1,5 +1,5 @@
 title: backlog
-nextId: 43
+nextId: 55
 fields:
   - name: status
     type: single_select
@@ -514,7 +514,7 @@ items:
     priority: Medium
   - id: 42
     name: Actor identity via agent mode - replaces jarvis_whoAmI
-    status: Backlog
+    status: In Progress
     labels:
       - architecture
       - identity
@@ -580,3 +580,209 @@ items:
       a new agent and the old one stays behind; behaviour when <actor
       name>.agent.md exists but its `name:` differs.'
     priority: High
+  - id: 43
+    name: Remove deprecated jarvis_readMessage and jarvis_sendToSession tools
+    status: Backlog
+    notes: "Both hard-deprecated this spring (SPEC_MSG_READMESSAGE,
+      SPEC_MSG_SENDTOSESSION) in favor of
+      jarvis_receiveMessage/jarvis_sendMessage — still registered, just
+      throw/warn. Plan: remove the tool registrations, handlers, and their spec
+      sections (SPEC_MSG_READMESSAGE, SPEC_MSG_SENDTOSESSION) plus
+      REQ_MSG_READ/REQ_MSG_SENDTOSESSION ACs describing the deprecation shim, in
+      one of the next changes. Needs an Artefakt-Removal-Check sweep (docs, tool
+      descriptions, UAT specs referencing T-11/T-12 deprecation test cases in
+      spec_uat_msgqueue.rst)."
+    priority: Medium
+  - id: 44
+    name: Editor placement convention has no cross-feature user story
+    status: Backlog
+    notes: "Relayed by System Designer 2026-10-01 (found during recorder-redesign,
+      out of scope there). User's convention: user-initiated opens go to the
+      left (Main), system-initiated/automatic opens go to the right (Secondary).
+      Today it exists only as US_MSG_EDITORPLACEMENT (us_msg.rst, scoped to
+      chat, docs and delivery tabs) plus REQ_/SPEC_MSG_EDITORPLACEMENT; Flow and
+      Kanban (DOCS_COLUMN) already apply it in code, and the recorder's planned
+      live view will too. User suggested a cross-feature story, not in
+      us_rec.rst. Open for PM and user to decide: whether to lift the convention
+      out of the msg domain into its own story, and who owns it. Term mismatch
+      to settle: the user says Primary/Secondary, the repo says
+      Main/Docs/Secondary (three targets, Docs = fixed column 2). SD touched
+      nothing."
+    priority: Low
+  - id: 45
+    name: SPEC_MOD_REC_PKG AC-2 claims jarvis_rec_ tool infix, recorder registers no
+      tools
+    status: Backlog
+    notes: "Relayed by System Designer 2026-10-01 (found during recorder-redesign,
+      out of scope there). SPEC_MOD_REC_PKG AC-2 says recorder tools use the
+      jarvis_rec_ infix (REQ_ENG_TOOLNS AC-3), but the recorder registers no
+      tools, now or before. SD left AC-2 untouched. Either the AC or the claim
+      in REQ_ENG_TOOLNS AC-3 is stale. Open for PM to decide: cleanup or a real
+      requirement."
+    priority: Low
+  - id: 46
+    name: Retire or rewrite PM idea note recording-design.md after recorder-redesign
+      lands
+    status: Backlog
+    notes: Relayed by System Designer 2026-10-01. .jarvis/actors/Project
+      Manager/ideas/recording-design.md describes the old Whisper/recorder.py
+      pipeline (about 20 hits for whisper/recorder.py/sidecar) and becomes
+      obsolete when recorder-redesign lands. PM's own file, SD did not touch it.
+      Do after the change is merged, and update the Ideas link in context.md in
+      the same step.
+    priority: Low
+  - id: 47
+    name: "Test automation: Dev Engineer and QM can test in an Extension Development
+      Host themselves"
+    status: Backlog
+    notes: "Raised by the user 2026-10-03 during recorder-redesign. Goal: the Dev
+      Engineer and QM can run Extension Development Host checks themselves,
+      instead of leaving them NOT RUN or to the user. Evidence today: no host
+      automation in the repo (no test-electron, Playwright or similar in any
+      package.json); QM reported T-1..T-17 NOT RUN in Rounds 1-3 because its
+      tools provide no controllable Windows host; the Dev Engineer lists EDH
+      checks as open. The user believes Research already ran a host: the
+      Research spike worktree (jarvis-nemotron-spike,
+      experiments/nemotron-spike/extension-host/extension.cjs, commits
+      mentioning extension host and dev host) points that way, but how it was
+      started and operated is not established. Open for PM and user: ask
+      Research how it did it, and whether real audio devices and model download
+      can be covered or stay user-owned."
+    priority: Medium
+  - id: 48
+    name: "Ontology: status vocabulary implemented / verified / validated"
+    status: Backlog
+    notes: "Raised by the user 2026-10-03 during recorder-redesign QM Round 4. Today
+      docs/conf.py allows draft, open, approved, implemented, verified,
+      deprecated; VE sets implemented only after verification (its rule: status
+      reflects verification, not code existence), and no spec uses open or
+      verified. Gap: no state for code is there and automated tests pass, host
+      acceptance pending, so partially evidenced elements stay approved, which
+      reads as nothing implemented. User view: verified must be automatable, so
+      the change also has to settle how that test runs (see backlog 47, test
+      automation). Open for PM and user: the vocabulary (implemented / verified
+      / validated, or verified only), the meaning of each, who sets it, and the
+      sweep of all specs. Per the ontology skill adding a status is additive,
+      renaming or removing is breaking and needs a migration change. Fits the
+      open ontology cleanup under Syspilot 0.10."
+    priority: Medium
+  - id: 49
+    name: Recorder settings group should be titled Jarvis Recorder, not Recording
+    status: Backlog
+    notes: "First user feedback from the manual validation of recorder-redesign,
+      2026-10-03. In the Settings UI of the Extension Development Host the
+      recorder's setting jarvis.recording.enabled appears under the group
+      Recording. The user expects Jarvis Recorder, in line with the other Jarvis
+      extensions, which use a Jarvis group title (packages/kanban: Jarvis
+      Kanban, packages/mcp: Jarvis MCP, packages/syspilot: Jarvis Syspilot;
+      packages/recorder: Recording). To check, PM observation and not user
+      feedback: the recorder's command titles (Start Recording, Show Running
+      Recording) carry no Jarvis: prefix, unlike the commands of other packages.
+      Handling is open: fix inside recorder-redesign if it is still open when
+      the user finishes testing, otherwise as a follow-up. User asked only to
+      remember it; testing continues."
+    priority: Low
+  - id: 50
+    name: Recorder records nothing with a Jabra speaker as audio device (office
+      setup)
+    status: Backlog
+    labels:
+      - recorder
+      - investigate
+    notes: "User observation 2026-10-05, v0.29.0. In the user's office setup with a
+      Jabra Speak 510 (Bluetooth speakerphone with microphone, for meetings; the
+      user wrote \"Jabra 510\"), the recorder records nothing; with the laptop's
+      own microphone and speakers it works (a 49:18 min meeting, 8311 words,
+      earlier the same day). To investigate later, not now, no change wanted;
+      the user only asked to remember it. Facts from the user: the Jabra is the
+      Windows default input and output, also in Teams; no warning was shown; the
+      recording starts and stays empty. Jarvis Recorder log of the same Teams
+      meeting: at 12:23:32 a recording started, the log showed words=0 every 10
+      s until the user ended it at 12:24:20 (about 48 s). After the user
+      switched Teams to the laptop speakers, a new recording started at 12:25:01
+      and the word count rose from 33 within 10 s, so that meeting was
+      transcribed. Not established: whether the empty session recorded the
+      microphone, the speaker output or neither, how the recorder picks its
+      devices, and whether the Jabra's Bluetooth profile (hands-free versus
+      stereo) plays a role; no cause is assumed. Related specification points to
+      check then: starting with one working audio source is allowed with a
+      warning (none appeared here), losing both sources ends the session, and
+      the lost-device cases (U-3) were never tested because the laptop's devices
+      could not be removed."
+    priority: Low
+  - id: 51
+    name: "Review the actor.yaml schema: mandatory, obsolete and missing fields"
+    status: Backlog
+    labels:
+      - actor
+      - schema
+      - review
+    notes: "Raised by the user 2026-10-05: look at the actor.yaml schema and decide
+      which fields are mandatory, which are obsolete and which are missing.
+      Current state, read 2026-10-05: schemas/actor.schema.json requires only
+      name, allows summary and agent, and sets additionalProperties to false.
+      The actor.yaml files in .jarvis/actors still carry the old fields
+      externalStatus, internalStatus (nine of them) and lastUpdated (nine
+      files), left over from the retired kind-based Actor, so by the schema
+      those files are not valid; whether the scanner ignores or rejects them was
+      not checked. Missing fields suggested by current work, not decided: the
+      namespace parts role, team and project (see the Ideas entry on parallel
+      teams), and the identity binding for backlog 42, whose agent file is meant
+      to be derived from the actor. Input for the review: REQ_ACTOR_SCHEMA and
+      the actor creation specifications (verbatim name, unique name, agent
+      binding), the SPEC_ACTOR_* scanner, and backlog 42 on the other machine,
+      which is working on the same area, so coordinate before changing anything.
+      Open for PM and user: scope, whether obsolete fields are removed from
+      existing files, and the order relative to backlog 42."
+    priority: Medium
+  - id: 52
+    name: "Heartbeat agent step: choose vendor and model of the language model"
+    status: Done
+    labels:
+      - heartbeat
+      - llm
+    notes: "User decision 2026-10-08: the heartbeat agent step shall let the user
+      choose vendor and model of the language model, nothing more. Today
+      executeAgentStep() in packages/core/src/apps/session/heartbeat.ts calls
+      selectChatModels with the fixed vendor copilot and family gpt-4o (also
+      stated in SPEC_AUT_AGENTEXEC). Change document
+      docs/changes/heartbeat-agent-model-selection.md on branch
+      feature/heartbeat-agent-model-selection, created 2026-10-08, not yet sent
+      to CM (the user reviews the CD first)."
+    priority: High
+  - id: 53
+    name: jarvis_registerJob schema and SPEC_ENG_API HeartbeatStep lack outputVar
+    status: Backlog
+    labels:
+      - heartbeat
+      - tools
+    notes: "Findings from the System Designer and CM during
+      heartbeat-agent-model-selection (2026-10-08), out of scope there: (1) the
+      input schema of the tool jarvis_registerJob does not list the step field
+      outputVar, so an actor registering a job cannot know that field exists;
+      (2) the HeartbeatStep copy in SPEC_ENG_API lacks outputVar (older gap;
+      vendor and model were added there by the change). After the change is
+      merged check whether the registerJob schema lists vendor and model."
+  - id: 54
+    name: Removed setting jarvis.heartbeatConfigFile still named as live in README
+      and specs
+    status: Backlog
+    labels:
+      - docs
+      - settings
+    notes: "Found 2026-10-08 during the live test of
+      heartbeat-agent-model-selection: the setting jarvis.heartbeatConfigFile
+      was removed in v0.5.11 (fixed path .jarvis/heartbeat.yaml in the workspace
+      root) but is still named as live in many places. Classification by the
+      System Designer (CD heartbeat-agent-model-selection, I-6). Spec-level
+      contradictions with the code: US_CFG_HEARTBEAT AC-1/AC-2 (us_cfg.rst);
+      REQ_CFG_HEARTBEATPATH AC-1, AC-2, AC-4 and AC-3 (it says no
+      .jarvis/heartbeat.yaml fallback, the opposite of the code) (req_cfg.rst);
+      spec_cfg.rst line about 183; root README.md settings table line about 70,
+      which contradicts package.json. Stale UAT setup text only:
+      spec_uat_heartbeat_pause.rst line 26, spec_uat_listjobs.rst line 36,
+      us_uat_tree_node_open_file.rst T-1 (line 28) and T-3 (line 45, its premise
+      needs a redesign, not new wording). Intentional, no action: the deprecated
+      SPEC_CFG_HEARTBEATSETTINGS and its replacement text. The UAT setup of
+      us_uat_heartbeat and spec_uat_heartbeat was fixed inside
+      heartbeat-agent-model-selection (9208b32)."

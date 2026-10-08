@@ -8,7 +8,7 @@ import * as path from 'path';
 import * as configPaths from './engine/core/configPaths';
 import { MessageTreeProvider, SessionGroupNode, MessageLeafNode } from './apps/session/messageTreeProvider';
 import { RemindersTreeProvider, ReminderNode } from './apps/session/remindersTreeProvider';
-import { activateHeartbeat, HeartbeatScheduler, HeartbeatJob, HeartbeatStep } from './apps/session/heartbeat';
+import { activateHeartbeat, HeartbeatScheduler, HeartbeatJob, HeartbeatStep, listAvailableModels, formatModelEntry } from './apps/session/heartbeat';
 import { JobNode } from './apps/session/heartbeatTreeProvider';
 import { JarvisEngine } from './engine/core/coreApi';
 import type { JarvisCoreApi } from './engine/core/types';
@@ -393,6 +393,8 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     }, log);
 
     actorTreeProvider = new ActorTreeProvider(actorScanner, touchStore, activityTracker);
+    const treeProvider = actorTreeProvider;
+    engine.setMarker((id, icon) => treeProvider.mark(id, icon));
     initInjectPrompt({
         scanner: actorScanner,
         log,
@@ -985,6 +987,29 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         }
     );
 
+    // listModels (SPEC_AUT_LISTMODELS): one list for the user (command) and for Actors (tool)
+    const listModelsTool = engine.registerTool('jarvis_listModels',
+        'Returns the language models an agent step of a heartbeat job can name, as { vendor, model }.',
+        async (_options: vscode.LanguageModelToolInvocationOptions<any>, _token: vscode.CancellationToken) => {
+            const models = await listAvailableModels();
+            log.info(`[Models] listModels: ${models.length} model(s)`);
+            return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart(JSON.stringify(models))]);
+        }
+    );
+
+    const listModelsCommand = vscode.commands.registerCommand('jarvis.listModels', async () => {
+        const models = await listAvailableModels();
+        if (models.length === 0) {
+            log.info('[Models] no language model available');
+        } else {
+            log.info(`[Models] ${models.length} language model(s) available; an agent step names vendor and model:`);
+            for (const m of models) {
+                log.info(`[Models] ${formatModelEntry(m)}`);
+            }
+        }
+        log.show(true);
+    });
+
     const reminderToolDependencies = {
         remindersPath: () => configPaths.getRemindersPath() ?? '',
         reload: () => remindersProvider?.reload(),
@@ -1349,6 +1374,8 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         registerJobTool,
         unregisterJobTool,
         listJobsTool,
+        listModelsTool,
+        listModelsCommand,
         setReminderTool,
         listRemindersTool,
         cancelReminderTool,

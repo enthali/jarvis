@@ -37,6 +37,8 @@ See [lessons-learned.md](lessons-learned.md).
 - **whoami-all-entity-kinds** — `feature/whoami-all-entity-kinds`, status `r2-recheck` (fixes 274625f: TC-2/TC-4 + SPEC AC-2/AC-2a, 406/406 pass), VE + MECE re-dispatched → report to PM
 - **one-kind-consolidation** — `feature/one-kind-consolidation`, status `in-progress`, user-guided mode, L0/L1/L2 pre-drafted by Architect, awaiting user review before dispatch
 - **remove-newactor-legacy-quickpick** — merged `4723e94` on development (2026-09-30). QM CLEAR R1, VE PASSED, user-validated.
+- **heartbeat-agent-model-selection** — merged `452c769` on development (2026-10-08, squash, not pushed, PM). User decisions: no default model, existing agent steps without `vendor`+`model` fail (breaking, D-2); the model list shows only vendor+model, tool and failure message same notation (D-12). Open, recorded, NOT passed: live cases T-2/T-4..T-9 and a BYOK/local job run (user accepted the risk); 4 new elements + SPEC_AUT_AGENTEXEC + REQ_AUT_JOBEXEC stay `approved` until a live pass. Release Engineer hand-over MUST take the CD section "Release Note (for the Release Engineer)". Debts with PM: backlog #53 (outputVar), #54 (removed heartbeatConfigFile still documented). Lesson: stale editor buffers reverted committed files (QM entry, CD, specs): `git status`/diff before CD edits, commit at once.
+- **recorder-redesign** — released in `v0.29.0` (tag, release commit 6ba6cf9 "on-device recorder", 2026-10-03). Open, never passed: T-1..T-17 NOT RUN, U-3 BLOCKED, U-4 NOT RUN; 12 elements `approved`; D-28 licence/telemetry blocks publication. Release-note candidates: U-3/U-4 untested, echo coverage limited to this hardware, first-start TLS retry undecided.
 
 ## Process Rules
 

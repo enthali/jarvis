@@ -32,12 +32,24 @@
 - **Branch + CD before dispatch**: CM cannot start a CR without an existing
   branch + template-copied CD — create both before/with the CR message, not
   just mention them.
-- **User reviews the CD before dispatch, in user-guided mode (2026-08-21)**:
-  after filling the CD's header/Summary, show it to the user and wait for
-  their go-ahead BEFORE sending the CR to CM — don't dispatch first and
-  let the user review in parallel. Mistake made 2026-08-21: dispatched
-  module-skill-provisioning to CM before asking; had to send a hold message.
-  Not needed in autonomous/unattended mode (no user to wait for).
+- **NEVER send a change to CM without the user's explicit OK (2026-09-30,
+  user's words: "never ever again", supersedes 2026-08-21)**: after filling
+  the CD's header/Summary, show it to the user and wait for an explicit
+  go-ahead BEFORE sending the CR to CM — regardless of operation mode
+  (autonomous, user-guided, unattended — doesn't matter). Silence, "create
+  the change", or "prepare it" is not an OK to send.
+  Mistake made 2026-09-30: dispatched recorder-redesign to CM in autonomous
+  mode without showing the CD; user had no chance to review. The CD's
+  Summary was also over-prescriptive — PM wrote a full solution (Nemotron,
+  ONNX, phase plan) when the user only stated intent ("update recorder
+  using similar methodology than vscode voice input"). The Summary is
+  intent + motivation only — NOT a solution design.
+  Previous mistake 2026-08-21: same pattern in user-guided mode.
+- **A change never contains solution details (2026-09-30)**: no technologies,
+  models, libraries, phase plans, or component lists in the CD — not in the
+  Summary, not in the tables. Research papers may be referenced as input, but
+  must not pre-empt the solution; the design is System Designer's and the
+  user's work. Don't word acceptance criteria that imply a solution either.
 - **Stacked feature branches when a CR has no standalone user-visible behavior
   (2026-08-24)**: if a CR is QM-cleared but the user can't meaningfully
   validate it alone (e.g. an infra/mechanism CR whose only observable effect
@@ -103,22 +115,73 @@
 
 ## Active CR
 
-- **No active CR (2026-09-27)** — `one-kind-consolidation` Phase 1 (merged
-  2026-09-25, `8a0e45f`) and Phase 2 `retire-legacy-actor-kinds` (merged
-  2026-09-27, `1a30326`) both merged to `development`, **not yet released**
-  (no version tag/main merge yet) — old kind-based Project/Event/Actor code
-  and specs are gone from `development`, single consolidated Actor kind is
-  live there pending release.
-- **Open sequencing decision (2026-09-27, user decides next session)**:
-  user needs backlog #42 (Actor identity via agent mode, replaces
-  `jarvis_whoAmI`) and #41 (Recorder redesign) for their own job — both
-  would double as a practical test of migrating to Syspilot 0.10 (already
-  on `development`, not yet adopted here). Open question the user is
-  weighing: clean up the project ontology under 0.10 *before* that
-  migration, or deliberately defer the ontology cleanup since it delivers
-  no functional benefit on its own and #42/#41 are the urgent items. User
-  will decide next session whether to start with the Syspilot 0.10 update
-  or with #42 first — do not assume either order, ask.
+- **No active CR (2026-10-08).** `heartbeat-agent-model-selection` is merged and
+  pushed, release on hold (see Recently Shipped).
+- **Spike email-triage-embeddings-poc (2026-10-07, Research), findings in** —
+  Research measured with `bge-m3` via Ollama (findings under
+  `.jarvis/actors/Research/email-triage/findings-2026-10.md`): project documents
+  alone top-1 about 4 of 15, with folder mails 10-11 of 15 (top-3 13 of 15),
+  score and gap do not separate "no project" (small samples, one model, the
+  second model was not downloaded). User conclusion 2026-10-08: embeddings are
+  not enough, "no project" needs a language model call; embeddings stay a
+  possible shortlist stage later (parked). Open: Research's worktree
+  `C:\workspace\jarvis-email-poc` still exists with the local, unpushed branch
+  `research/email-triage-embeddings-poc`; ask Research to close it. Research's
+  `git push` from the shared tree also published my local memory commits to
+  `origin/development` (the user had pushed before as well; nothing sensitive
+  seen). Original brief: branch from `development`, work under
+  `experiments/email-triage-embeddings/`, project data (`context.md`,
+  `actor.yaml` from the OneDrive Projekte folder), the 20 newest inbox mails read
+  only via the Pantheon scripts, local Ollama, console output top 10. Idea
+  context (hybrid LLM plus embeddings, learning from folders, vectors in RAM plus
+  a local cache, later changes "Projekt-Index" then "Zuweisung") is in
+  `ideas/llm-gateway.md`, third section.
+- **Open items since v0.29.0 (2026-10-03)** — v0.29.0 is released (see Recently Shipped).
+  Open items after it: automatic retry after the first-start TLS failure
+  (undecided, user's call); backlog #45 (SPEC_MOD_REC_PKG AC-2 tool infix),
+  #46 (retire `ideas/recording-design.md`, now possible), #47 (test automation
+  for Dev Engineer and QM), #48 (ontology status vocabulary
+  implemented/verified/validated), #49 done in the release. Not yet read:
+  licence file of `Microsoft.Windows.AI.MachineLearning.dll` and the npm/NuGet
+  terms (user decided D-28 is no topic with SDK 2.1.0; my caveat stays on
+  record). The user will notice recorder problems in field use next week.
+  Field evidence 2026-10-05 (user's report, for U-4): a real meeting recorded for
+  49:18 min, 8311 words (about 170 words/min), user calls the one-hour test
+  successful; no memory readings, no phrase timing, and whether it ended
+  normally or with warnings was not reported. v0.29.0's release notes still say
+  the long-term test was not conducted: correct that in the next release notes;
+  editing the published GitHub Release needs the user's sign-off on the exact
+  text first (public repo). The meeting report from that transcript is still
+  being generated (not mine).
+- **Git state after the merge (2026-10-03)**: the extra worktrees
+  `jarvis-dev-docs` and `jarvis-nemotron-spike` are closed on the user's order
+  (their folders deleted; the spike's test transcripts were not needed). Branch
+  `research/recorder-nemotron-spike` stays, in sync with origin. The main tree is
+  on `development` again, clean. Lesson: a branch checked out in another worktree
+  cannot be checked out in the main tree, so a squash needed a temporary worktree.
+  The old feature branch still holds the single-commit history, not needed again.
+- **Shared-tree lesson (2026-10-03)**: an unknown actor left
+  `packages/recorder/package.json` modified (identical to `development`),
+  which failed 7 tests in the shared tree while the committed branch passed.
+  Restored with the user's OK. When tests differ between the shared tree and a
+  clean checkout, check `git status` for foreign uncommitted files first.
+- **QM may propose simplifications (2026-10-03)**: the user told QM it may
+  propose a simpler solution over strict spec adherence, with the spec
+  changed openly, when user value is not materially hurt. Evaluate such
+  proposals as UX/requirement decisions with benefits and losses stated; the
+  user decides, SD revises, nothing is relaxed silently.
+- **Backlog #42 (Actor identity via agent mode) runs on ANOTHER MACHINE (user,
+  2026-10-03)**: do not start or dispatch #42 here. Status set to In Progress
+  (status line only, notes untouched). That change has to finish and be merged
+  into `development` there; we were ahead (v0.29.0 recorder release is already on
+  `development`/`main`), so their branch will meet our newer `development`. How
+  to merge is still to be worked out with the user; expect conflicts in actor
+  memory files, `backlog.kanban.yaml` and spec/requirement files, and keep my own
+  edits to backlog and shared files minimal until then. The user sees little
+  problem because it is largely independent of the recorder. Once it is done
+  there, we take it over here again. #41 (recorder) is shipped in v0.29.0.
+  Still open with the user: the Syspilot 0.10 migration and the ontology
+  cleanup order (backlog #48), do not assume, ask.
 - **WhoAmI follow-up** — defer hook-dependent `jarvis_whoAmI` recovery until AHP;
   superseded by backlog #42's agent-mode identity approach once that lands.
 - **Post-change watch: private Actor repo** — after a future active CR, remove
@@ -130,6 +193,30 @@
 
 ## Recently Shipped
 
+- **heartbeat-agent-model-selection merged** 2026-10-08 into `development`
+  (`452c769`, pushed), NOT released, release on hold by the user. Agent steps
+  name `vendor` and `model` (model id from the list); no default or fallback, a
+  step without them fails (breaking). Command `jarvis.listModels` and tool
+  `jarvis_listModels`, the list shows only vendor and model. Live acceptance:
+  Copilot verified by the user; the rest NOT RUN, risk accepted by the user, the
+  new elements stay `approved`. Migration text for the Release Engineer is in the
+  CD section "Release Note (for the Release Engineer)". Side debts: backlog #53,
+  #54. Parked: a heartbeat step per list element (`ideas/llm-gateway.md`).
+- **v0.29.0 released** 2026-10-03 (tag `v0.29.0` on `main` at `6ba6cf9`, back-merged
+  into `development`, `origin/development` = `cb44218`; GitHub Release with 9
+  VSIX assets, publishing Action green). Ships `recorder-redesign` (on-device
+  live transcription replaces Docker/Whisper, Actor mark API in core, group
+  "Jarvis Recorder", "Jarvis:"-prefixed command titles) and
+  `remove-newactor-legacy-quickpick`. Both CDs archived to `docs/changes/v0.29.0/`.
+  Validation: 457/457 tests, sphinx clean, lint 0 errors. Released on the user's
+  explicit go, with release-note warnings: U-3 and U-4 not tested (device-loss
+  cases, one-hour run), echo only on one laptop, T-1..T-17 not run, 12 spec
+  elements stay `approved`, telemetry note (non-essential off, a minimal
+  process-info event may still upload). Post-release distribution is automatic
+  via CD, back-merge already done by the Release Engineer. The Release Engineer
+  also added an `.venv` ignore to `eslint.config.js` (`0be05a4`, lint scanned the
+  gitignored virtual environment). Feature branch `feature/recorder-redesign`
+  retained.
 - **retire-legacy-actor-kinds merged** 2026-09-27 into `development` (`1a30326`,
   pushed). Phase 2 of one-kind-consolidation: old kind-based Project/Event/
   legacy-Actor specs and code fully removed (not just deprecated); backlog
@@ -249,11 +336,31 @@
 
 ## Ideas
 
+- **Parallel feature teams, retro and actor namespace (user thoughts 2026-10-03,
+  first test: recorder here, #42 on another machine; gather experience first,
+  nothing decided)**: (1) one team per worktree, worktrees only on feature
+  branches, main workspace holds `development`/`main` with PM and Release
+  Engineer, merge by pull request or direct; (2) each team has its own memory
+  and a "retro" before a release (or after a change) where counterparts read
+  each other's memory pairwise by role — fits the kernel (read others' memory
+  as evidence, change only your own, disagreement escalates to the user);
+  (3) biggest worry: actor names must be unique today and messaging addresses
+  by name, so two architects cannot coexist — idea: a namespace, address =
+  role + team + project (short name resolves inside the own team, qualified
+  across teams/projects), better as structured fields than a flat string, with a
+  host layer possible later; (4) cross-workspace and remote (cloud) sessions
+  depend on AHP, which Research recommends deferring 2-3 months (commit
+  `8afdccb`, note not read by me); (5) naming interacts with #42 (agent file
+  and identity sentence use the actor name) — tell the #42 side not to freeze
+  the name form; (6) open: who may message whom across projects. No backlog
+  item yet; the user has not said yes to one. See also my lessons-learned entry
+  on parallel work.
 - **US/REQ/SPEC — is the SPEC level redundant? (2026-08-20)**: SPEC often ends up
   just restating the code. Idea: try dropping it for one new feature as an
   experiment. Not trivial — the 3-level structure is hardwired throughout
   syspilot (agents, traceability, MECE/Trace engineers); current syspilot
   version doesn't give the flexibility needed yet. Parked, revisit later.
+- [LLM access for scripts](ideas/llm-gateway.md) — expose `vscode.lm` to local scripts (OpenAI-style endpoint vs MCP); blocked on GitHub licence/Bosch clarification and auth design (2026-10-07)
 - [PIM Modularization](ideas/pim-modularization.md) — drop per-component enable/disable settings, go installable-sub-extensions instead
 - [Session Recording](ideas/recording-design.md) — meeting recording + transcription pipeline
 - Recorder on built-in VS Code dictation (deferred, 2026-08-05) — see Research's

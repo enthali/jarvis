@@ -1,0 +1,52 @@
+{
+  "sdkVersion": "2.1.0",
+  "downloads": [
+    {
+      "id": "foundry-local-sdk",
+      "version": "2.1.0",
+      "url": "https://registry.npmjs.org/foundry-local-sdk/-/foundry-local-sdk-2.1.0.tgz",
+      "sha512": "sUgF+O7uHGVj3bInufe9nmj2SDry06dKGfVLpg9Y1TPPk/hxZEDAk2QPtU13eGZ0k7SIP3OOZFTkmvbtT+TPrw==",
+      "bytes": 34300000,
+      "extract": [
+        {
+          "from": "package/dist/**",
+          "to": "dist/"
+        },
+        {
+          "from": "package/package.json",
+          "to": "package.json"
+        },
+        {
+          "from": "package/prebuilds/win32-x64/*",
+          "to": "prebuilds/win32-x64/"
+        }
+      ]
+    },
+    {
+      "id": "Microsoft.ML.OnnxRuntime",
+      "version": "1.30.0",
+      "url": "https://api.nuget.org/v3-flatcontainer/microsoft.ml.onnxruntime/1.30.0/microsoft.ml.onnxruntime.1.30.0.nupkg",
+      "sha512": "xTgo+P2WWI1BrKQb91+G8YR1s/SFH07xZuc42kdgS2I6GLGOAKnMVhFqCk7nmce6L6ajho8wAcqixYAiwfE79g==",
+      "bytes": 157230753,
+      "extract": [
+        {
+          "from": "runtimes/win-x64/native/onnxruntime.dll",
+          "to": "prebuilds/win32-x64/onnxruntime.dll"
+        }
+      ]
+    },
+    {
+      "id": "Microsoft.ML.OnnxRuntimeGenAI.Foundry",
+      "version": "0.17.1",
+      "url": "https://api.nuget.org/v3-flatcontainer/microsoft.ml.onnxruntimegenai.foundry/0.17.1/microsoft.ml.onnxruntimegenai.foundry.0.17.1.nupkg",
+      "sha512": "4TFabGCgl7w5AovIlkQMi5Ht+q4Ug3THBhCMWORzFNQtJ9q5vOEu2yOz4KG4c9GNPRA9Q7/xknd1XJt6KE7boQ==",
+      "bytes": 34813522,
+      "extract": [
+        {
+          "from": "runtimes/win-x64/native/onnxruntime-genai.dll",
+          "to": "prebuilds/win32-x64/onnxruntime-genai.dll"
+        }
+      ]
+    }
+  ]
+}

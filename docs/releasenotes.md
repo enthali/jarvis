@@ -1,5 +1,21 @@
 # Release Notes
 
+## v0.29.0 — On-Device Recorder + New Actor Quick Fix
+
+*2026-10-03*
+
+### Features
+
+- **recorder-redesign**: The Recorder now transcribes meetings on-device instead of through the old Docker/Whisper pipeline — no external setup needed. Windows only. The first start downloads the recognition components through the VS Code proxy; if that first start fails with a network error, just start again. Settings are grouped under "Jarvis Recorder", and the commands are renamed to "Jarvis: Start Recording" and "Jarvis: Show Running Recording". Audio and recognized text never leave the machine; the speech SDK's non-essential telemetry is switched off by configuration and by the `ORT_TELEMETRY_DISABLED` variable (a minimal process-info event may still be sent, per Research). If VS Code is closed or reloaded while recording, the recording stops immediately — text already received is saved on a best-effort basis, but the last few words and the final handoff to the Actor can be lost.
+
+  Not tested in this release, by explicit user decision: a one-hour long-term session (only a 5-minute session was run); missing or lost audio device handling (the test laptop's mic/speakers couldn't be disabled to simulate this); echo cancellation checked on one laptop only; manual protocol cases T-1..T-17 (QM cannot drive a Development Host). Twelve specification elements remain at status `approved`, with their open cases listed in the verification report.
+
+### Fixes
+
+- **remove-newactor-legacy-quickpick**: The "New Actor" command no longer shows a useless one-choice "New Entry" picker before asking for a name — the name box now comes first.
+
+---
+
 ## v0.28.0 — One-Kind Consolidation (Actor Unification)
 
 *2026-09-30*

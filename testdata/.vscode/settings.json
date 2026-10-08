@@ -1,7 +1,4 @@
 {
-  "chat.hookFilesLocations": {
-    ".github/hooks": true
-  },
   "jarvis.outlook.tasks.enabled": false,
   "jarvis.outlook.enabled": false,
   "jarvis.pim.showCategories": false,

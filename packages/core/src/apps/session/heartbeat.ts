@@ -2,12 +2,14 @@
 //                 SPEC_AUT_MANUALCOMMAND, SPEC_AUT_STATUSBARITEM, SPEC_AUT_OUTPUTCHANNEL,
 //                 SPEC_AUT_AGENTEXEC, SPEC_AUT_QUEUEEXEC, SPEC_CFG_PATHRESOLVER,
 //                 SPEC_AUT_JOBREG, SPEC_AUT_HEARTBEAT_LOAD_VALIDATION,
-//                 SPEC_AUT_HEARTBEAT_INVALID_STEP_BEHAVIOR, SPEC_AUT_HEARTBEAT_RESOLVER_REUSE
+//                 SPEC_AUT_HEARTBEAT_INVALID_STEP_BEHAVIOR, SPEC_AUT_HEARTBEAT_RESOLVER_REUSE,
+//                 SPEC_AUT_LISTMODELS, SPEC_AUT_STEP_OUTPUT_VARS
 // Requirements:   REQ_AUT_JOBCONFIG, REQ_AUT_SCHEDULER, REQ_AUT_JOBEXEC,
 //                 REQ_AUT_MANUALRUN, REQ_AUT_STATUSBAR, REQ_AUT_OUTPUT,
 //                 REQ_CFG_FIXEDPATHS, REQ_CFG_HEARTBEATINTERVAL, REQ_MSG_QUEUE,
 //                 REQ_AUT_JOBREG, REQ_AUT_HEARTBEAT_LOAD_VALIDATION,
-//                 REQ_AUT_HEARTBEAT_INVALID_STEP_BEHAVIOR, REQ_AUT_HEARTBEAT_RESOLVER_REUSE
+//                 REQ_AUT_HEARTBEAT_INVALID_STEP_BEHAVIOR, REQ_AUT_HEARTBEAT_RESOLVER_REUSE,
+//                 REQ_AUT_AGENTMODEL, REQ_AUT_LISTMODELS, REQ_AUT_STEP_OUTPUT_VARS
 
 import * as vscode from 'vscode';
 import * as fs from 'fs';
@@ -30,6 +32,8 @@ export interface HeartbeatStep {
     prompt?: string;      // agent: path to prompt file
     outputFile?: string;  // agent: path to write LLM response
     append?: boolean;     // agent: append to outputFile instead of overwrite
+    vendor?: string;      // agent: vendor of the language model (required at execution)
+    model?: string;       // agent: model id as listed by jarvis.listModels (required at execution)
     destination?: string; // queue: target chat tab label
     sender?: string;      // queue: originating session or component
     text?: string;        // queue: message content
@@ -230,6 +234,46 @@ function resolvePythonInterpreter(): string {
 }
 
 // ---------------------------------------------------------------------------
+// Language model choice (SPEC_AUT_AGENTEXEC, SPEC_AUT_LISTMODELS)
+// ---------------------------------------------------------------------------
+
+export interface ModelEntry { vendor: string; model: string }
+
+/** Entries exactly as a step names them (vendor, model = id), sorted by vendor then model. */
+export function toModelEntries(models: readonly vscode.LanguageModelChat[]): ModelEntry[] {
+    return models
+        .map(m => ({ vendor: m.vendor, model: m.id }))
+        .sort((a, b) =>
+            a.vendor.localeCompare(b.vendor, undefined, { sensitivity: 'base' }) ||
+            a.model.localeCompare(b.model, undefined, { sensitivity: 'base' }));
+}
+
+export async function listAvailableModels(): Promise<ModelEntry[]> {
+    return toModelEntries(await vscode.lm.selectChatModels());
+}
+
+// The one notation of an entry shown to the user: the command and the failure message.
+export function formatModelEntry(e: ModelEntry): string {
+    return `vendor="${e.vendor}" model="${e.model}"`;
+}
+
+// A value that is not a non-empty string counts as missing.
+function nonEmpty(v: unknown): string | undefined {
+    return typeof v === 'string' && v !== '' ? v : undefined;
+}
+
+function modelUnavailableMessage(
+    vendor: string | undefined, model: string | undefined, available: ModelEntry[]
+): string {
+    const q = (v: string | undefined) => v === undefined ? '(missing)' : `"${v}"`;
+    const list = available.length > 0
+        ? '\n' + available.map(formatModelEntry).join('\n')
+        : ' (none)';
+    return `language model not available: vendor=${q(vendor)}, model=${q(model)}\n` +
+           `Available:${list}`;
+}
+
+// ---------------------------------------------------------------------------
 // Agent step executor (SPEC_AUT_AGENTEXEC)
 // ---------------------------------------------------------------------------
 
@@ -242,12 +286,19 @@ async function executeAgentStep(
     outputChannel.info(`[Heartbeat] agent: prompt=${promptPath}`);
     try {
         const promptText = fs.readFileSync(promptPath, 'utf8');
-        const models = await vscode.lm.selectChatModels({ vendor: 'copilot', family: 'gpt-4o' });
-        if (models.length === 0) {
-            return { success: false, stepType: 'agent', error: 'no LM model available' };
+        const all = await vscode.lm.selectChatModels();
+        const vendor = nonEmpty(step.vendor);
+        const modelId = nonEmpty(step.model);
+        const model = vendor && modelId
+            ? all.find(m => m.vendor === vendor && m.id === modelId)
+            : undefined;
+        if (!model) {
+            return {
+                success: false, stepType: 'agent',
+                error: modelUnavailableMessage(vendor, modelId, toModelEntries(all)),
+            };
         }
-        const model = models[0];
-        outputChannel.debug(`[Heartbeat] agent: model=${model.id}`);
+        outputChannel.info(`[Heartbeat] agent: model=${model.vendor}/${model.id}`);
         const messages = [vscode.LanguageModelChatMessage.User(promptText)];
         const response = await model.sendRequest(messages, {});
         let text = '';
@@ -300,7 +351,7 @@ async function validateLoadedJobs(
 function interpolateStep(step: HeartbeatStep, vars: Record<string, string>): HeartbeatStep {
     if (Object.keys(vars).length === 0) { return step; }
     const clone = { ...step };
-    const fields: (keyof HeartbeatStep)[] = ['run', 'prompt', 'outputFile', 'destination', 'sender', 'text'];
+    const fields: (keyof HeartbeatStep)[] = ['run', 'prompt', 'outputFile', 'destination', 'sender', 'text', 'vendor', 'model'];
     for (const f of fields) {
         const value = clone[f];
         if (typeof value === 'string') {

@@ -22,7 +22,8 @@ Heartbeat User Acceptance Tests
      error toast and Output Channel log
    * AC-4: At least one test verifies that changing ``jarvis.heartbeatInterval`` at
      runtime causes the scheduler to restart with the new interval
-   * AC-5: At least one test covers the ``agent`` step type — sends a prompt to
+   * AC-5: At least one test covers the ``agent`` step type — sends a prompt to the
+     language model named by the step's ``vendor`` and ``model`` through
      ``vscode.lm`` and verifies the response is written to an output file
    * AC-6: At least one test verifies the 3-tier ``python`` interpreter resolution
      order (``python.defaultInterpreterPath`` → auto-detected ``.venv``/``venv`` →
@@ -110,11 +111,12 @@ Heartbeat User Acceptance Tests
        Expected: Bare ``python`` on ``PATH`` is used (tier 3 fallback); printed
        ``sys.executable`` resolves to the system interpreter, not a workspace venv.
 
-   **T-5 — Config file override via setting**
-     Setup: Place ``heartbeat.yaml`` at an arbitrary absolute path; set
-     ``jarvis.heartbeatConfigFile`` to that path.
+   **T-5 — Config file at the fixed path**
+     Setup: Place ``heartbeat.yaml`` together with its ``prompts/`` and ``scripts/`` in
+     ``<workspace root>/.jarvis/`` (the fixed location; no setting selects it).
      Action: Reload window / wait for next tick.
-     Expected: Jobs from the override path are loaded and scheduled.
+     Expected: Jobs from that file are loaded and scheduled; prompt and script paths of the
+     steps resolve relative to the ``.jarvis`` folder.
 
    **T-6 — Interval change restarts scheduler**
      Setup: Running scheduler with ``jarvis.heartbeatInterval = 60``.
@@ -123,10 +125,12 @@ Heartbeat User Acceptance Tests
 
    **T-7 — Agent step sends prompt and writes response**
      Setup: ``heartbeat.yaml`` with a manual job, step type ``agent``,
-     ``prompt: prompts/hello.md``, ``outputFile: agent-response.txt``.
+     ``prompt: prompts/hello.md``, ``outputFile: agent-response.txt``, and ``vendor`` and
+     ``model`` of a model listed by ``Jarvis: List Language Models``.
      Action: Run ``Jarvis: Run Heartbeat Job`` → select job.
      Expected: Output Channel logs prompt path, model ID, and response length;
-     ``testdata/heartbeat/agent-response.txt`` is created with the LLM response.
+     ``agent-response.txt`` is created in the ``.jarvis`` folder (where ``heartbeat.yaml`` is)
+     with the LLM response.
 
 
 .. story:: Heartbeat Tree View Acceptance Tests
@@ -252,7 +256,8 @@ Heartbeat User Acceptance Tests
 
    **T-20 — Agent step outputVar capture**
      Setup: Add a manual job with two steps:
-     step 1 — ``agent``, ``outputVar: AGENT_REPLY``, ``prompt`` asking for a
+     step 1 — ``agent``, ``outputVar: AGENT_REPLY``, ``vendor`` and ``model`` of a listed
+     model, ``prompt`` asking for a
      deterministic one-word answer (e.g. ``"Reply with only the word: hello"``);
      step 2 — ``queue`` step, ``text: "Agent said: ${AGENT_REPLY}"``.
      Action: Run the job.

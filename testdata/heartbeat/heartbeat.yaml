@@ -35,6 +35,8 @@ jobs:
     steps:
       - type: agent
         prompt: prompts/hello.md
+        vendor: copilot
+        model: gpt-4o
         outputFile: agent-response.txt
   - name: t8-queue-message
     schedule: manual
@@ -52,8 +54,3 @@ jobs:
     steps:
       - type: command
         run: jarvis.refreshTasks
-  - name: 'Jarvis: Check Transcripts'
-    schedule: '*/1 * * * *'
-    steps:
-      - type: command
-        run: jarvis.checkTranscripts

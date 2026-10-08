@@ -5,7 +5,7 @@
                                                     "type":  "http"
                                                 },
                        "jarvis-vse-llm-tools":  {
-                                                    "url":  "http://localhost:31414",
+                                                    "url":  "http://localhost:31420",
                                                     "type":  "http"
                                                 },
                        "jarvis-syspilot-llm-tools":  {
@@ -13,7 +13,7 @@
                                                          "type":  "http"
                                                      },
                        "jarvis-devhost-llm-tools":  {
-                                                        "url":  "http://localhost:31420",
+                                                        "url":  "http://localhost:31421",
                                                         "type":  "http"
                                                     }
                    }

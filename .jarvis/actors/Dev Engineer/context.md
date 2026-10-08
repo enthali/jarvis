@@ -4,10 +4,14 @@ the development engineer - the actual coder
 
 ## Current
 
-- **Change:** module-skill-provisioning (feature/module-skill-provisioning)
-- **Status:** Implementation complete — SPEC_MOD_SKILL_PROVISION, SPEC_MOD_SKILL_MANIFEST, SPEC_ENG_API AC-9, SPEC_MOD_CORE_PKG AC-6; full monorepo build clean
+- **Change:** recorder-redesign (feature/recorder-redesign)
+- **Status:** D-56 (close means exit) implemented, QM R2; earlier QM R1 fixes 9484f9d. Shared-tree warning: packages/recorder/package.json had foreign uncommitted pre-redesign content (not mine) - never stage it. Open: EDH checks, 1 h run, D-28 licence
+- **Prior:** remove-newactor-legacy-quickpick (93426c0) done
 
 ## Decisions
+
+- Audio tests (speakers/mic/loopback) are audible and capture whatever plays: ask the user first — a Teams call was running during the recorder spikes. Delete captured audio/text afterwards.
+- foundry-local-sdk 2.1.0 is ESM-only: the worker loads it with dynamic `import()`, not `require` (SPEC_REC_ENGINE text says require — told CM).
 
 - Multi-session concurrency hazard: this workspace has multiple Jarvis chat sessions (CM/PM/QM/Designer/Dev) editing the SAME working directory. Always re-read a file immediately before editing if it was read >1 tool-call ago.
 - Use `jarvis_sendMessage`/`jarvis_receiveMessage` tools exclusively for cross-session messaging — never edit `.jarvis/messages.json` directly (past mistake, corrected 2026-07-01).
