@@ -40,6 +40,7 @@ Kanban Skill Content User Acceptance Tests
    * AC-10: A test verifies that the skill contains all required sections
      (T-10).
    * AC-11: A test verifies that the skill's Owner Resolution section says
-     to omit ``ownerName`` — not to call ``jarvis_whoAmI`` first (T-11).
+     that ``ownerName`` is always supplied with the Actor's own name, known
+     from its identity — not obtained by calling ``jarvis_whoAmI`` (T-11).
    * AC-12: A test verifies that the skill's Pitfalls section names the
      undeclared-key silent-failure trap with its observable symptom (T-12).

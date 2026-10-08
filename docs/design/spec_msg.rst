@@ -1910,9 +1910,9 @@ Message Queue Design Specifications
    .. code-block:: typescript
 
       // Prime mode selector so openNewChatEditor() creates session in bound mode
-      if (actor.agent) {
+      if (agent.status === 'ready') {   // ensureActorAgent result, SPEC_INJ_INJECT step 1b
           await vscode.commands.executeCommand(
-              'workbench.action.chat.open', { mode: actor.agent }
+              'workbench.action.chat.open', { mode: agent.mode }   // mode = Actor name
           );
           await new Promise(resolve => setTimeout(resolve, 300));
       }
@@ -1920,7 +1920,7 @@ Message Queue Design Specifications
 
    This pattern is used by the new-session branch of ``injectPrompt``
    (``SPEC_INJ_INJECT`` step 3b), the only place that creates Actor sessions,
-   when ``actor.agent`` is set. ``openNewChatEditor()`` itself remains
+   when the Actor's agent check returned ``ready``. ``openNewChatEditor()`` itself remains
    mode-agnostic.
 
    **Amendment — re-applying mode on an EXISTING session (agent-mode-persistence, GH #25):**
@@ -1949,8 +1949,8 @@ Message Queue Design Specifications
    rather than a hard failure.
 
    **Helper — ``reapplyAgentMode(agent, sessionName)``:**
-   Private async helper in ``extension.ts``. Given an agent/mode name (from an
-   Actor's ``agent`` field) and the name of the session the change is intended
+   Private async helper in ``extension.ts``. Given an agent/mode name (the
+   Actor's own agent, equal to the Actor name, ``SPEC_ACTOR_WHOAMI``) and the name of the session the change is intended
    for, it re-applies that mode **to that session** — or to nothing at all.
    Semantics:
 
@@ -2022,7 +2022,8 @@ Message Queue Design Specifications
    ``reapplyAgentMode()`` is called from the existing-session branch of
    ``injectPrompt`` (``SPEC_INJ_INJECT`` step 3a), which both delivery paths
    — ``SPEC_MSG_SENDCOMMAND`` and ``SPEC_MSG_AUTODELIVER_POLL`` — use, when
-   the target Actor has an ``agent`` set. It re-applies the bound agent on
+   the Actor's agent check (``SPEC_INJ_INJECT`` step 1b) returned ``ready``.
+   It re-applies the Actor's own agent on
    every such open or delivery, whether VS Code dropped the mode or the user
    switched it; it never selects any other mode (``REQ_ACTOR_INITPROMPT``
    AC-6).

@@ -4,7 +4,7 @@ Prompt Injection Design Specifications
 .. spec:: Prompt Injection Primitive
    :id: SPEC_INJ_INJECT
    :status: draft
-   :links: REQ_INJ_PRIMITIVE; REQ_MSG_SESSIONLOOKUP; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_OPENCHAT; SPEC_MSG_SENDPROMPT; SPEC_MSG_EDITORPLACEMENT; SPEC_ACTOR_INITPROMPT; SPEC_ACTOR_SCANNER; SPEC_MSG_NOTIFICATION_RESOLVE
+   :links: REQ_INJ_PRIMITIVE; REQ_MSG_SESSIONLOOKUP; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_OPENCHAT; SPEC_MSG_SENDPROMPT; SPEC_MSG_EDITORPLACEMENT; SPEC_ACTOR_INITPROMPT; SPEC_ACTOR_SCANNER; SPEC_ACTOR_WHOAMI; SPEC_MSG_NOTIFICATION_RESOLVE
 
    **Description:**
    Async function ``injectPrompt`` in
@@ -52,6 +52,14 @@ Prompt Injection Design Specifications
       ``ambiguous`` → throw ``"Jarvis: " + ambiguousActorMessage(actorName, matches)``
       and select none (``REQ_INJ_PRIMITIVE`` AC-2).
 
+   1b. **Agent check:** ``ensureActorAgent(actor)`` with the Actor's ``name``
+       and ``folder`` (``SPEC_ACTOR_WHOAMI``, ``REQ_ACTOR_WHOAMI`` AC-4).
+       It runs before the session is focused or spawned, so the Actor's agent
+       file is right before any mode is set. A ``skipped`` result is not an
+       error: steps 3a and 3b then set no mode. This one call covers every
+       open of an Actor session and every delivery, because all of them reach
+       the Actor through this function.
+
    2. **Session lookup:** Call ``lookupSessionUUID(actorName)``
       (``SPEC_MSG_SESSIONLOOKUP``).
 
@@ -59,7 +67,7 @@ Prompt Injection Design Specifications
 
        - Focus the session at the requested placement target via
          ``openAtMain`` or ``openAtSecondary`` (``SPEC_MSG_EDITORPLACEMENT``).
-       - If ``actor.agent`` is set, call ``reapplyAgentMode(actor.agent,
+       - If step 1b returned ``ready``, call ``reapplyAgentMode(mode,
          actorName)`` (GH #25 agent-mode-persistence). ``actorName`` is the
          verified target, not a log label: the helper applies the mode only if
          that session is the focused chat editor, else skips
@@ -68,8 +76,8 @@ Prompt Injection Design Specifications
 
    3b. **New session (spawn):** If no UUID found:
 
-       - If ``actor.agent`` is set: prime the VS Code Chat mode selector via
-         ``workbench.action.chat.open { mode: actor.agent }`` + 300 ms settle
+       - If step 1b returned ``ready``: prime the VS Code Chat mode selector via
+         ``workbench.action.chat.open { mode: <Actor name> }`` + 300 ms settle
          (``SPEC_MSG_OPENCHAT`` mode-prime pattern).
        - Call ``openNewChatEditor()`` (``SPEC_MSG_OPENCHAT``, includes 800 ms
          settle delay).
@@ -146,7 +154,7 @@ Prompt Injection Design Specifications
    .. note:: **Known related gap (not fixed by this CR).**
       Branch 3b submits the init prompt through the mode-setting variant while
       the session was just created in a *custom* mode via the mode-prime step
-      (``actor.agent`` set). By the command taxonomy in
+      (step 1b returned ``ready``). By the command taxonomy in
       ``SPEC_MSG_SENDPROMPT``, that submission resets the freshly primed custom
       mode to generic "Agent" — the same coupling as GH #54, on the
       new-session path. It is out of scope here (the CR scopes 3b as

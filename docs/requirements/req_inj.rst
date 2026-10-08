@@ -22,12 +22,12 @@ Prompt Injection Requirements
      user-visible error message. If more than one Actor matches, it SHALL
      reject with a user-visible error naming the ambiguous name and the
      matching Actor folders, and SHALL NOT select among them — the same
-     no-guess rule as ``REQ_ACTOR_WHOAMI`` AC-8.
+     no-guess rule as ``REQ_ACTOR_SCHEMA`` AC-7.
    * AC-3: If a live session exists for the Actor (UUID found via
      ``REQ_MSG_SESSIONLOOKUP``), the function SHALL focus it using the
      Editor-Group Placement Model (``REQ_MSG_EDITORPLACEMENT``).
    * AC-4: If no live session exists, the function SHALL spawn a new session:
-     prime agent mode if the Actor's ``agent`` is set (``REQ_ACTOR_INITPROMPT``
+     ensure the Actor's agent and prime its agent mode (``REQ_ACTOR_INITPROMPT``
      AC-6), open a new chat editor (``REQ_MSG_OPENCHAT``), rename it to the
      Actor name, and send the init prompt (``REQ_ACTOR_INITPROMPT``). This
      branch is the only place that sends the init prompt

@@ -57,6 +57,37 @@ Automation User Stories
      fields, enabling data flow between steps without external intermediate files
 
 
+.. story:: Choose the Language Model of an Agent Step
+   :id: US_AUT_AGENTMODEL
+   :status: approved
+   :priority: optional
+   :links: US_AUT_HEARTBEAT
+
+   **As a** Jarvis User,
+   **I want** to choose the vendor and the model that an agent step of a heartbeat job
+   calls, and to look up which ones are available,
+   **so that** I use the model that suits the job, from any provider, and know exactly
+   what to change when a model is no longer offered.
+
+   **Acceptance Criteria:**
+
+   * AC-1: An agent step names the vendor and the model it calls; no vendor or model is
+     built in
+   * AC-2: When the named model is available, the agent step sends its prompt to it; the
+     rest of the step (response file, variable capture) works as before
+   * AC-3: When an agent step names no vendor or no model, or the named one is not
+     available, the step fails; the message names what the step asked for and lists the
+     vendors and models that are available. Existing agent steps without a choice fail
+     this way until a vendor and a model are added
+   * AC-4: I can look up the available vendors and models myself, and so can an Actor
+     that writes heartbeat jobs
+   * AC-5: An Actor that registers a heartbeat job can give each of its agent steps a
+     vendor and a model
+   * AC-6: What the list of available models shows is exactly what I write into an agent
+     step as vendor and model, and nothing else, so that nothing in it can be mistaken
+     for a value of the step
+
+
 .. story:: Queue Step Destination Validation
    :id: US_AUT_HEARTBEAT_VALIDATION
    :status: draft

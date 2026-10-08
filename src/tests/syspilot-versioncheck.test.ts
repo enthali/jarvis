@@ -158,6 +158,7 @@ describe('SPEC_SPL_STARTUP AC-4: checkSyspilotVersion first-run always notifies 
 describe('SPEC_SPL_NOTIFY AC-3: UPDATE_NOTIFICATION_TEXT (unified message, no initial/update distinction)', () => {
     it('matches the exact unified message template', () => {
         expect(UPDATE_NOTIFICATION_TEXT).toBe(
+            'Your persona is .github/agents/syspilot.setup.agent.md; read it first if you have not done so. ' +
             'Please ask the user whether they want to install this update now, skip this version by ' +
             'calling jarvis_SyspilotSkipThisVersion(), or delay it for N days by calling jarvis_delaySyspilotUpdate(N).'
         );

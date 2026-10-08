@@ -145,15 +145,18 @@ Kanban Requirements
 
    **Acceptance Criteria:**
 
-   * AC-1: The tool SHALL accept optional ``boardName`` and ``ownerName``
-     parameters.
+   * AC-1: The tool SHALL accept optional ``boardName`` and required
+     ``ownerName`` parameters.
    * AC-2: When ``boardName`` is omitted or empty, the file SHALL be named
      ``kanban.yaml``. When provided, ``<boardName>.kanban.yaml``.
-   * AC-3: When ``ownerName`` is omitted, the tool SHALL resolve the calling
-     actor via ``jarvis_whoAmI`` (``REQ_ACTOR_WHOAMI``).
-   * AC-4: When ``ownerName`` is provided, the tool SHALL resolve it against
-     the discovered Actors; it resolves only when exactly one Actor carries
-     that name (``REQ_ACTOR_SCHEMA`` AC-7).
+   * AC-3: ``ownerName`` SHALL be marked required in the tool's input
+     schema. The calling Actor passes its own name, which it knows from its
+     agent (``REQ_ACTOR_WHOAMI`` AC-3); another Actor's name addresses that
+     Actor's board. A call without ``ownerName``, or with an empty one, SHALL
+     return ``{ error: "ownerName required" }``.
+   * AC-4: The tool SHALL resolve ``ownerName`` against the discovered
+     Actors; it resolves only when exactly one Actor carries that name
+     (``REQ_ACTOR_SCHEMA`` AC-7).
    * AC-5: If the owner cannot be resolved, the tool SHALL return
      ``{ error: "actor unknown" }``.
    * AC-6: The tool SHALL write a valid skeleton YAML file conforming to
@@ -175,8 +178,8 @@ Kanban Requirements
 
    **Acceptance Criteria:**
 
-   * AC-1: The tool SHALL accept optional ``boardName`` and ``ownerName``
-     parameters (same resolution as ``REQ_KAN_CREATE``).
+   * AC-1: The tool SHALL accept optional ``boardName`` and required
+     ``ownerName`` parameters (same resolution as ``REQ_KAN_CREATE``).
    * AC-2: The tool SHALL validate the YAML against
      ``schemas/kanban.schema.json`` (structural validation).
    * AC-3: The tool SHALL additionally validate semantic constraints:
@@ -203,8 +206,8 @@ Kanban Requirements
 
    **Acceptance Criteria:**
 
-   * AC-1: The tool SHALL accept optional ``boardName`` and ``ownerName``
-     parameters (same resolution as ``REQ_KAN_CREATE``).
+   * AC-1: The tool SHALL accept optional ``boardName`` and required
+     ``ownerName`` parameters (same resolution as ``REQ_KAN_CREATE``).
    * AC-2: The tool SHALL open the resolved board file in the kanban
      renderer webview.
    * AC-3: When the board file does not exist, the tool SHALL return
@@ -262,11 +265,11 @@ Kanban Requirements
 
    * AC-1: The tool SHALL accept ``itemId`` (required integer) and ``changes``
      (partial item object — any field except ``id``), plus optional
-     ``boardName`` and ``ownerName``.
+     ``boardName`` and required ``ownerName``.
    * AC-2: The tool SHALL find the item by ``id`` and merge ``changes`` into
      it.
-   * AC-3: Owner resolution SHALL follow the uniform pattern (``ownerName``
-     given → scanner lookup; omitted → ``jarvis_whoAmI``).
+   * AC-3: Owner resolution SHALL follow the uniform pattern
+     (``REQ_KAN_CREATE`` AC-3/AC-4).
    * AC-4: On success, the tool SHALL return ``{ path, updated: true, itemId }``.
      On item-not-found → ``{ error: "item not found", itemId }``.
      On unknown owner → ``{ error: "actor unknown" }``.
@@ -404,7 +407,7 @@ Kanban Requirements
 
 .. req:: jarvis_addKanbanItem Tool
    :id: REQ_KAN_ADD
-   :status: approved
+   :status: implemented
    :priority: required
    :links: US_KAN_TOOLS; REQ_KAN_SCHEMA; REQ_KAN_WRITEVALID; REQ_ACTOR_WHOAMI
 
@@ -416,7 +419,7 @@ Kanban Requirements
 
    * AC-1: The tool SHALL accept ``name`` (required string) and optional
      ``status``, ``labels``, ``notes``, further declared-field values, plus
-     optional ``boardName`` and ``ownerName``.
+     optional ``boardName`` and required ``ownerName``.
    * AC-2: Owner and board resolution SHALL follow the uniform pattern
      (``REQ_KAN_CREATE`` AC-3/AC-4; board not found → ``{ error: "board not
      found" }``).
@@ -436,7 +439,7 @@ Kanban Requirements
 
 .. req:: jarvis_deleteKanbanItem Tool
    :id: REQ_KAN_DELETE
-   :status: approved
+   :status: implemented
    :priority: required
    :links: US_KAN_TOOLS; REQ_KAN_SCHEMA; REQ_ACTOR_WHOAMI
 
@@ -447,7 +450,7 @@ Kanban Requirements
    **Acceptance Criteria:**
 
    * AC-1: The tool SHALL accept ``itemId`` (required integer) plus optional
-     ``boardName`` and ``ownerName``.
+     ``boardName`` and required ``ownerName``.
    * AC-2: Owner and board resolution SHALL follow the uniform pattern.
    * AC-3: When no item carries that ``id``, the tool SHALL return
      ``{ error: "item not found", itemId }`` and write nothing.
@@ -461,7 +464,7 @@ Kanban Requirements
 
 .. req:: jarvis_listKanbanItems Tool
    :id: REQ_KAN_LIST
-   :status: approved
+   :status: implemented
    :priority: required
    :links: US_KAN_QUERY; REQ_ACTOR_WHOAMI
 
@@ -472,7 +475,7 @@ Kanban Requirements
    **Acceptance Criteria:**
 
    * AC-1: The tool SHALL accept optional ``status`` and ``labels`` filters,
-     plus optional ``boardName`` and ``ownerName``.
+     plus optional ``boardName`` and required ``ownerName``.
    * AC-2: When both filters are given they SHALL be AND-combined. An item
      matches the ``labels`` filter when it carries **every** requested label.
    * AC-3: When no filter is given, all items SHALL be returned — still as the
@@ -493,7 +496,7 @@ Kanban Requirements
 
 .. req:: jarvis_updateKanbanFields Tool
    :id: REQ_KAN_FIELDS
-   :status: approved
+   :status: implemented
    :priority: required
    :links: US_KAN_TOOLS; REQ_KAN_SCHEMA; REQ_KAN_TEXTFIELD; REQ_ACTOR_WHOAMI
 
@@ -506,7 +509,8 @@ Kanban Requirements
 
    * AC-1: The tool SHALL accept an operation selector covering exactly four
      actions — ``addField``, ``removeField``, ``addOption``, ``removeOption`` —
-     plus the operands each needs, and optional ``boardName``/``ownerName``.
+     plus the operands each needs, and optional ``boardName`` and required
+     ``ownerName``.
    * AC-2: ``addField`` SHALL accept a field ``name`` and ``type``; for
      ``single_select`` an initial ``options`` list SHALL be required, and for
      ``text`` options SHALL be rejected (``REQ_KAN_SCHEMA`` AC-2).
@@ -538,7 +542,7 @@ Kanban Requirements
 
 .. req:: Kanban Skill Asset Content
    :id: REQ_KAN_SKILLCONTENT
-   :status: approved
+   :status: implemented
    :priority: required
    :links: US_KAN_SKILL; REQ_KAN_SCHEMA; REQ_MOD_SKILL_PROVISION
 
@@ -561,9 +565,10 @@ Kanban Requirements
      ``jarvis_verifyKanbanSchema``, and never rendered — naming this explicitly
      as a silent-failure trap (GH #57).
    * AC-4: The skill SHALL document the owner-resolution convention as
-     implemented: ``ownerName`` omitted addresses the calling actor's own board;
-     ``ownerName`` supplied addresses another Actor's board and returns
-     ``{ error: "actor unknown" }`` if the name matches no discovered Actor.
+     implemented: ``ownerName`` is always supplied; the calling Actor passes
+     its own name to address its own board, and another Actor's name to
+     address that Actor's board. A name matching no discovered Actor returns
+     ``{ error: "actor unknown" }``.
    * AC-5: The skill SHALL state that ``status`` is a mandatory single-select
      field whose options define the board's columns.
    * AC-6: The skill SHALL include a complete, schema-valid example board

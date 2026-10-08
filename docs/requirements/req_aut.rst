@@ -19,9 +19,11 @@ Automation Requirements
      omitted for ``agent`` and ``queue`` steps)
    * AC-3: The extension SHALL validate the YAML structure on load and log a parse error
      to the Output Channel if the file is malformed or missing
-   * AC-4: Steps of type ``agent`` SHALL have a ``prompt`` field (path to prompt file)
-     and an optional ``outputFile`` field (path to write the LLM response) and an
-     optional ``append`` field (boolean, default ``false``, append vs. overwrite)
+   * AC-4: Steps of type ``agent`` SHALL have a ``prompt`` field (path to prompt file),
+     a ``vendor`` field and a ``model`` field (strings naming the language model,
+     ``REQ_AUT_AGENTMODEL``), and an optional ``outputFile`` field (path to write the LLM
+     response) and an optional ``append`` field (boolean, default ``false``, append vs.
+     overwrite)
    * AC-5: Steps of type ``queue`` SHALL have a ``destination`` field (target chat tab label)
      and a ``text`` field (message content)
    * AC-6: Any step MAY have an optional ``outputVar`` field (string) naming a
@@ -55,7 +57,7 @@ Automation Requirements
 
 .. req:: Job Step Execution
    :id: REQ_AUT_JOBEXEC
-   :status: implemented
+   :status: approved
    :priority: optional
    :links: US_AUT_HEARTBEAT; REQ_AUT_OUTPUT; REQ_MSG_QUEUE; REQ_AUT_JOBCONFIG
 
@@ -79,13 +81,15 @@ Automation Requirements
    * AC-4: If a step exits with a non-zero exit code or throws an unhandled exception,
      the job SHALL be marked as failed and remaining steps SHALL be skipped
    * AC-5: Steps of type ``agent`` SHALL send the contents of the ``prompt`` file to
-     ``vscode.lm`` using the default Copilot model, write the response to ``outputFile``
+     ``vscode.lm`` using the language model named by the step's ``vendor`` and ``model``
+     (``REQ_AUT_AGENTMODEL``), write the response to ``outputFile``
      (if specified), and log the prompt path, model used, response length, and any
      errors to the Output Channel
    * AC-6: Steps of type ``queue`` SHALL append a message entry (``session`` + ``text``)
      to the persistent message queue file and log the action to the Output Channel
    * AC-7: ``executeJob`` SHALL maintain a ``vars: Record<string, string>`` map per
-     job run; before executing each step, all string fields on the step SHALL be
+     job run; before executing each step, the step fields listed in
+     ``REQ_AUT_STEP_OUTPUT_VARS`` AC-2 SHALL be
      interpolated against ``vars`` using ``${VAR_NAME}`` syntax; after execution, if
      the step has ``outputVar`` set and produced output, the output SHALL be stored
      in ``vars[step.outputVar]``
@@ -400,7 +404,7 @@ Automation Requirements
    * AC-2: No new session-enumeration logic SHALL be introduced; if the resolver
      changes (e.g. new filtering rules), both ``jarvis_sendToSession`` and heartbeat
      validation automatically inherit the change
-   * AC-3: The valid destination set is the set of Actor names from kindless
+   * AC-3: The valid destination set is the set of Actor names from
      direct-child discovery under ``jarvis.actors.folder``
      (``REQ_ACTOR_ACTIVATION`` AC-3). Chat session titles are not part of it.
      This set is the canonical destination
@@ -424,8 +428,9 @@ Automation Requirements
    * AC-1: ``outputVar`` is supported as a capture source on ``python``,
      ``powershell``, and ``agent`` step types; ``queue`` and ``command`` steps
      do not produce capturable output
-   * AC-2: Interpolation targets: ``text``, ``run``, ``prompt``, ``outputFile``,
-     ``destination``, ``sender`` — any string field on ``HeartbeatStep``
+   * AC-2: Interpolation targets are exactly the step fields ``run``, ``prompt``,
+     ``outputFile``, ``destination``, ``sender``, ``text``, ``vendor`` and ``model``;
+     ``type``, ``append`` and ``outputVar`` are not interpolated
    * AC-3: Variable scope is a single job run — variables do not persist across
      runs or across jobs
    * AC-4: Undefined variable references (``${UNKNOWN}``) are left as-is (no
@@ -438,3 +443,56 @@ Automation Requirements
      reading from OS environment variables as fallback, no injection into OS
      environment of child processes; scripts may use real env vars independently
      but that is outside this feature's scope
+
+
+.. req:: Agent Step Language Model Choice
+   :id: REQ_AUT_AGENTMODEL
+   :status: approved
+   :priority: optional
+   :links: US_AUT_AGENTMODEL; REQ_AUT_JOBEXEC; REQ_AUT_JOBCONFIG; REQ_AUT_JOBREG
+
+   **Description:**
+   An agent step SHALL name the language model it calls by vendor and model. No vendor
+   or model is built into the extension.
+
+   **Acceptance Criteria:**
+
+   * AC-1: An agent step SHALL carry a ``vendor`` and a ``model`` (strings); the extension
+     SHALL NOT supply a vendor or a model when a step has none
+   * AC-2: The step SHALL send its prompt to the language model that VS Code offers under
+     that vendor and that model, named exactly as ``REQ_AUT_LISTMODELS`` shows them; what the
+     step does with the response is unchanged (``REQ_AUT_JOBEXEC``)
+   * AC-3: When a step has no ``vendor`` or no ``model``, or no model is offered under the
+     named pair, the step SHALL fail without sending a prompt, and the job is aborted
+     (``REQ_AUT_JOBEXEC`` AC-4)
+   * AC-4: The failure message SHALL state the vendor and the model the step named (a missing
+     value marked as missing) and SHALL list every vendor and model that is offered, written
+     as an entry of ``REQ_AUT_LISTMODELS`` AC-5; when none is offered, it SHALL say so
+   * AC-5: The ``jarvis_registerJob`` tool SHALL accept ``vendor`` and ``model`` on agent steps
+     and persist them with the job (``REQ_AUT_JOBREG``)
+
+
+.. req:: List Available Language Models
+   :id: REQ_AUT_LISTMODELS
+   :status: approved
+   :priority: optional
+   :links: US_AUT_AGENTMODEL; REQ_AUT_AGENTMODEL
+
+   **Description:**
+   The extension SHALL let the user and Actors look up the vendors and models that an
+   agent step can name.
+
+   **Acceptance Criteria:**
+
+   * AC-1: A VS Code command SHALL show the user the available vendors and models
+   * AC-2: A ``jarvis_listModels`` tool (Language Model Tool API and embedded MCP server) SHALL
+     return the same list to an Actor, with the same two values per entry (AC-3); it takes no
+     input
+   * AC-3: Each entry SHALL give the ``vendor`` and the ``model`` exactly as an agent step must
+     name them (``REQ_AUT_AGENTMODEL`` AC-2), one entry per available model, and SHALL carry
+     nothing else: no further field, such as a display name, that could be mistaken for a value
+     of the step
+   * AC-4: The list SHALL reflect what VS Code offers at the moment of the call
+   * AC-5: Wherever an entry is written for the user (the command and the failure message of
+     ``REQ_AUT_AGENTMODEL`` AC-4), it SHALL use one notation that names both fields, so that
+     vendor and model can be told apart and copied into a step as written

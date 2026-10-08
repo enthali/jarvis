@@ -10,7 +10,6 @@ export interface ActorEntry {
     id: string;      // absolute path of actor.yaml
     name: string;    // actor.yaml name; fallback: folder name
     summary: string; // "" when absent
-    agent: string;   // "" when absent
     folder: string;  // absolute Actor folder
 }
 
@@ -134,16 +133,15 @@ async function readActor(actorFile: string, folder: string, fallbackName: string
         const document = yaml.load(await fs.promises.readFile(actorFile, 'utf8')) as Record<string, unknown> | undefined;
         const name = document?.['name'];
         const summary = document?.['summary'];
-        const agent = document?.['agent'];
+        // A legacy `agent` key, if present, is not read (REQ_ACTOR_SCHEMA AC-2).
         return {
             id: actorFile,
             name: typeof name === 'string' && name ? name : fallbackName,
             summary: typeof summary === 'string' ? summary : '',
-            agent: typeof agent === 'string' ? agent : '',
             folder,
         };
     } catch {
-        return { id: actorFile, name: fallbackName, summary: '', agent: '', folder };
+        return { id: actorFile, name: fallbackName, summary: '', folder };
     }
 }
 
@@ -151,7 +149,7 @@ function actorsEqual(a: ActorEntry[], b: ActorEntry[]): boolean {
     if (a.length !== b.length) { return false; }
     for (let i = 0; i < a.length; i++) {
         const x = a[i], y = b[i];
-        if (x.id !== y.id || x.name !== y.name || x.summary !== y.summary || x.agent !== y.agent || x.folder !== y.folder) {
+        if (x.id !== y.id || x.name !== y.name || x.summary !== y.summary || x.folder !== y.folder) {
             return false;
         }
     }

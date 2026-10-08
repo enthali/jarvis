@@ -13,6 +13,15 @@ Heartbeat UAT Design Specifications
    ``Test Session`` and is updated as implementation work of
    ``retire-legacy-actor-kinds``.
 
+   **Placement for a test run:** the heartbeat reads ``<workspace root>/.jarvis/heartbeat.yaml``
+   (fixed path, ``SPEC_CFG_PATHRESOLVER``; no setting selects it) and resolves the ``prompt``,
+   ``run`` and ``outputFile`` paths of its steps relative to that ``.jarvis`` folder. For a test
+   run the tester therefore copies ``heartbeat.yaml``, ``prompts/`` and ``scripts/`` from
+   ``testdata/heartbeat/`` into the ``.jarvis`` folder of the workspace under test (``testdata/.jarvis/``
+   when the workspace is ``testdata/``) and reloads the window. A missing ``scripts/`` or
+   ``prompts/`` folder in the copy makes the jobs that use it fail. Values the tester has to adapt,
+   such as the ``vendor`` and ``model`` of the agent step, are changed in the copy.
+
    **testdata/heartbeat/**
 
    .. list-table::
@@ -23,7 +32,10 @@ Heartbeat UAT Design Specifications
         - Purpose
       * - ``heartbeat.yaml``
         - Job definitions for T-1..T-4, T-7, T-8, and T-8-queue-message (cron,
-          manual command, python, fail, agent, queue)
+          manual command, python, fail, agent, queue). The agent step names vendor
+          ``copilot`` and model ``gpt-4o``; where the test machine does not offer
+          that model, the tester replaces both by a pair listed by
+          ``Jarvis: List Language Models``
       * - ``scripts/write-sentinel.ps1``
         - T-1: PowerShell step; writes sentinel.txt to verify cron dispatch
       * - ``scripts/venv-check.py``
@@ -107,7 +119,9 @@ Heartbeat UAT Design Specifications
 
    **T-9 — Heartbeat view shows all jobs:**
 
-   1. Set ``jarvis.heartbeatConfigFile`` to ``testdata/heartbeat/heartbeat.yaml``
+   1. Place the test data in the workspace's ``.jarvis`` folder as described under
+      ``SPEC_UAT_HEARTBEAT_FILES`` (``heartbeat.yaml``, ``prompts/``, ``scripts/``) and reload
+      the window
    2. Open the Jarvis sidebar
    3. Verify the "Heartbeat" section appears as the 4th view
    4. Verify all 6 jobs from the test YAML appear as nodes
@@ -130,7 +144,8 @@ Heartbeat UAT Design Specifications
 
    **T-12 — Refresh reloads configuration:**
 
-   1. Add a new job entry to ``testdata/heartbeat/heartbeat.yaml``
+   1. Add a new job entry to the ``heartbeat.yaml`` in the workspace's ``.jarvis`` folder
+      (the copy placed as described under ``SPEC_UAT_HEARTBEAT_FILES``)
    2. Click the ``$(refresh)`` icon in the Heartbeat view title bar
    3. Verify the new job appears in the tree
 
@@ -200,7 +215,8 @@ Heartbeat UAT Design Specifications
 
    **T-20 — Agent step outputVar capture (``heartbeat-step-output-vars`` CR):**
 
-   1. Add a manual job: step 1 = ``agent`` with ``prompt: prompts/hello.md``
+   1. Add a manual job: step 1 = ``agent`` with ``prompt: prompts/hello.md``,
+      ``vendor`` and ``model`` of a model listed by ``Jarvis: List Language Models``,
       and ``outputVar: AGENT_REPLY``; step 2 = ``queue`` step with
       ``text: "Agent said: ${AGENT_REPLY}"``
    2. Run the job

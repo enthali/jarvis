@@ -80,7 +80,7 @@ export class ActorTreeProvider implements vscode.TreeDataProvider<ActorTreeNode>
         if (element.kind === 'actorFileCategory') {
             if (element.category === 'agent') {
                 const actor = this._scanner.getActor(element.actorId);
-                const agentFile = actor ? await resolveAgentFile(actor.agent) : undefined;
+                const agentFile = actor ? await resolveAgentFile(actor.name) : undefined;
                 if (!agentFile) { return []; }
                 const label = agentFile.split(/[\\/]/).pop() ?? agentFile;
                 return [{ kind: 'actorFile', filePath: agentFile, label }];
@@ -104,7 +104,7 @@ export class ActorTreeProvider implements vscode.TreeDataProvider<ActorTreeNode>
 
     private async _actorChildren(actor: ActorEntry): Promise<ActorFileCategoryNode[]> {
         const categories: ActorFileCategoryNode[] = [];
-        const agentFile = await resolveAgentFile(actor.agent);
+        const agentFile = await resolveAgentFile(actor.name);
         if (agentFile) {
             categories.push({ kind: 'actorFileCategory', category: 'agent', actorId: actor.id, actorName: actor.name, actorFolder: actor.folder });
         }

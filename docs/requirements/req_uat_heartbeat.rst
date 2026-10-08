@@ -19,7 +19,8 @@ Heartbeat UAT Requirements
      ``testdata/heartbeat/scripts/``
    * AC-3: The failing step exits with a non-zero exit code to enable toast testing
    * AC-4: A manual job with an ``agent`` step exists, referencing a prompt file
-     under ``testdata/heartbeat/prompts/``
+     under ``testdata/heartbeat/prompts/`` and naming an available language model
+     (``vendor`` and ``model``, ``REQ_AUT_AGENTMODEL``)
    * AC-5: A manual job with a ``queue`` step exists, specifying ``session`` and
      ``text`` fields for message queue testing
    * AC-6: A Python step and script exist for tier-1/tier-2/tier-3 interpreter

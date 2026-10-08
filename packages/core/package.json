@@ -2,7 +2,7 @@
   "name": "jarvis-core",
   "displayName": "Jarvis Core",
   "description": "Jarvis core — sessions, messaging, reminders, heartbeat, engine",
-  "version": "0.29.0",
+  "version": "0.30.0",
   "publisher": "enthali",
   "icon": "resources/jarvis-128.png",
   "keywords": [
@@ -109,6 +109,7 @@
       { "command": "jarvis.showReleaseNotes", "title": "Jarvis: Show Release Notes" },
       { "command": "jarvis.rescan", "title": "Jarvis: Rescan", "icon": "$(refresh)" },
       { "command": "jarvis.runJob", "title": "Jarvis: Run Job", "icon": "$(play)" },
+      { "command": "jarvis.listModels", "title": "Jarvis: List Language Models" },
       { "command": "jarvis.pauseHeartbeatJob", "title": "Jarvis: Pause Heartbeat Job", "icon": "$(debug-pause)" },
       { "command": "jarvis.resumeHeartbeatJob", "title": "Jarvis: Resume Heartbeat Job", "icon": "$(debug-continue)" },
       { "command": "jarvis.refreshHeartbeat", "title": "Jarvis: Refresh Heartbeat", "icon": "$(refresh)" },
@@ -227,7 +228,7 @@
         "properties": {
           "jarvis.agentSession.initPromptTemplate": {
             "type": "string",
-            "default": "You are the agent session for the ${kind} \"${name}\".\n\nUse only `${contextPath}` as your persistent memory. Read it now.\n\nKeep it minimal and action-oriented:\n- Store only long-lived items under Decision / Finding / Next.\n- One concise line per bullet. Prune aggressively.\n- Replace outdated bullets — never append logs.\n- Never store retries, raw tool output, or transient chatter.\n- Before writing, ask: \"Will this still matter in 2 weeks?\" If no, skip.\n- When a topic grows past ~5 bullets, move it to a dedicated file beside `context.md` and leave a one-line summary with a relative link in `context.md`.",
+            "default": "You are the Actor \"${name}\".\n\nUse only `${contextPath}` as your persistent memory. Read it now.\n\nKeep it minimal and action-oriented:\n- Store only long-lived items under Decision / Finding / Next.\n- One concise line per bullet. Prune aggressively.\n- Replace outdated bullets — never append logs.\n- Never store retries, raw tool output, or transient chatter.\n- Before writing, ask: \"Will this still matter in 2 weeks?\" If no, skip.\n- When a topic grows past ~5 bullets, move it to a dedicated file beside `context.md` and leave a one-line summary with a relative link in `context.md`.",
             "editPresentation": "multilineText",
             "scope": "window",
             "description": "Template for the initialization prompt sent to a new agent chat session. Leave empty to use the built-in default."
@@ -293,21 +294,11 @@
     ],
     "languageModelTools": [
       {
-        "name": "jarvis_whoAmI",
-        "displayName": "Who Am I",
-        "toolReferenceName": "whoAmI",
-        "icon": "$(account)",
-        "canBeReferencedInPrompt": true,
-        "userDescription": "Returns your actor name and context.md path for identity recovery after /compact.",
-        "modelDescription": "Returns the calling actor's name and the absolute path to its context.md. Call this after /compact or context loss to recover your identity. No input parameters required.",
-        "inputSchema": { "type": "object", "properties": {} }
-      },
-      {
         "name": "jarvis_createActor",
         "displayName": "Create Actor",
         "modelDescription": "Creates a new Jarvis Actor folder with actor.yaml and context.md under <workspace>/.jarvis/actors/<name>/. Idempotent.",
         "canBeReferencedInPrompt": true, "toolReferenceName": "createActor", "icon": "$(add)", "tags": ["jarvis"],
-        "inputSchema": { "type": "object", "required": ["name"], "properties": { "name": { "type": "string" }, "summary": { "type": "string" }, "agent": { "type": "string" }, "initialMessage": { "type": "string" } } }
+        "inputSchema": { "type": "object", "required": ["name"], "properties": { "name": { "type": "string" }, "summary": { "type": "string" }, "initialMessage": { "type": "string" } } }
       },
       {
         "name": "jarvis_sendToSession",
@@ -356,7 +347,7 @@
         "displayName": "Register Heartbeat Job",
         "modelDescription": "Registers (or updates) a heartbeat job.",
         "canBeReferencedInPrompt": true, "toolReferenceName": "registerJob", "icon": "$(add)",
-        "inputSchema": { "type": "object", "required": ["name", "schedule", "steps"], "properties": { "name": { "type": "string" }, "schedule": { "type": "string" }, "steps": { "type": "array", "items": { "type": "object", "required": ["type"], "properties": { "type": { "type": "string" }, "run": { "type": "string" }, "prompt": { "type": "string" }, "outputFile": { "type": "string" }, "append": { "type": "boolean" }, "destination": { "type": "string" }, "sender": { "type": "string" }, "text": { "type": "string" } } } } } }
+        "inputSchema": { "type": "object", "required": ["name", "schedule", "steps"], "properties": { "name": { "type": "string" }, "schedule": { "type": "string" }, "steps": { "type": "array", "items": { "type": "object", "required": ["type"], "properties": { "type": { "type": "string" }, "run": { "type": "string" }, "prompt": { "type": "string" }, "outputFile": { "type": "string" }, "append": { "type": "boolean" }, "vendor": { "type": "string", "description": "Agent step: vendor of the language model, exactly as returned by jarvis_listModels." }, "model": { "type": "string", "description": "Agent step: model id, exactly as returned by jarvis_listModels." }, "destination": { "type": "string" }, "sender": { "type": "string" }, "text": { "type": "string" } } } } } }
       },
       {
         "name": "jarvis_unregisterJob",
@@ -370,6 +361,13 @@
         "displayName": "List Heartbeat Jobs",
         "modelDescription": "Returns all registered heartbeat jobs.",
         "canBeReferencedInPrompt": true, "toolReferenceName": "listJobs", "icon": "$(list-unordered)",
+        "inputSchema": { "type": "object", "properties": {} }
+      },
+      {
+        "name": "jarvis_listModels",
+        "displayName": "List Language Models",
+        "modelDescription": "Returns the language models an agent step of a heartbeat job can name, as an array of { vendor, model }. Use vendor and model exactly as returned.",
+        "canBeReferencedInPrompt": true, "toolReferenceName": "listModels", "icon": "$(list-unordered)",
         "inputSchema": { "type": "object", "properties": {} }
       },
       {

@@ -1,0 +1,24 @@
+title: Board
+nextId: 2
+fields:
+  - name: status
+    type: single_select
+    options:
+      - name: Backlog
+      - name: In Progress
+      - name: Done
+  - name: priority
+    type: single_select
+    options:
+      - name: Low
+      - name: Medium
+      - name: High
+items:
+  [
+    {
+        id: 1,
+        name: Test Issue,
+        status: Backlog,
+        notes: Erstellt über die API zum Testen des Kanban-Boards.
+      }
+  ]

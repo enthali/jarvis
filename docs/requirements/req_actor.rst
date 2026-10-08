@@ -11,7 +11,7 @@ Actor Requirements
 
 .. req:: Actor Storage Convention
    :id: REQ_ACTOR_SCHEMA
-   :status: approved
+   :status: implemented
    :priority: mandatory
    :links: US_ACTOR_ACTORS
 
@@ -25,10 +25,11 @@ Actor Requirements
 
    * AC-1: The ``actor.yaml`` schema SHALL require exactly one field:
      ``name`` (string, minLength 1).
-   * AC-2: The schema SHALL allow two optional fields: ``summary`` (string)
-     and ``agent`` (string). ``agent`` holds the VS Code chat-mode or agent
-     persona name, if the user chooses to bind one; "No agent" is
-     represented by the empty string ``""``, not by omitting the field.
+   * AC-2: The schema SHALL allow one optional field: ``summary`` (string).
+     A legacy ``agent`` property SHALL remain accepted by the schema,
+     described as deprecated and ignored; Jarvis ignores its value and
+     never writes it. An Actor's agent is identified by the Actor name
+     (``REQ_ACTOR_WHOAMI`` AC-1).
    * AC-3: ``additionalProperties`` SHALL be set to ``false``. No
      legacy-kind fields (``dates``, ``kind``, etc.) SHALL be permitted.
    * AC-4: A JSON Schema file ``schemas/actor.schema.json`` (draft-07)
@@ -42,21 +43,21 @@ Actor Requirements
      convention does not invalidate manually placed ``actor.yaml`` files
      whose folder and YAML names differ.
    * AC-7: The internal scanner key of an Actor and the ``id`` field in its
-     ``jarvis_listActors`` entry and successful ``jarvis_whoAmI`` response
-     SHALL be the absolute path to that Actor's ``actor.yaml`` file, not its
+     ``jarvis_listActors`` entry SHALL be the absolute path to that Actor's
+     ``actor.yaml`` file, not its
      folder or ``context.md``. This path is derived from the file location;
      ``actor.yaml`` SHALL NOT contain an ``id`` field. Actors SHALL come
-     from kindless direct-child discovery, not from kind registration.
+     from direct-child discovery.
      Actor names SHALL be unique: two Actors with the same YAML ``name`` are
      a misconfiguration, not a supported case. Jarvis's own creation paths
      SHALL NOT produce one (``REQ_ACTOR_CREATE`` AC-3,
      ``REQ_ACTOR_CREATETOOL`` AC-7); a duplicate can only come from a
      manual ``actor.yaml`` edit. The ACTORS view still shows
      both folders, but every name-based function (message destination and
-     sender validation, heartbeat destinations, ``jarvis_whoAmI``, prompt
-     injection, touched files, activity indicator, Kanban owner resolution)
-     SHALL refuse to act on the ambiguous name rather than pick one
-     (``REQ_ACTOR_WHOAMI`` AC-8, ``REQ_INJ_PRIMITIVE`` AC-2). When a message
+     sender validation, heartbeat destinations, agent file maintenance,
+     prompt injection, touched files, activity indicator, Kanban owner
+     resolution) SHALL refuse to act on the ambiguous name rather than pick
+     one (``REQ_ACTOR_WHOAMI`` AC-5, ``REQ_INJ_PRIMITIVE`` AC-2). When a message
      send is refused because its destination or sender name is ambiguous,
      the user SHALL see an error notification naming the name and the
      folders that carry it; the other functions refuse without a
@@ -86,8 +87,7 @@ Actor Requirements
      workflow opens the Actor's session, its own ``context.md`` SHALL be
      available for resumption.
    * AC-3: Heartbeat and reminder destinations SHALL resolve Actors
-     through kindless direct-child Actor discovery, without a kind
-     registration. The existing unified destination resolver
+     through direct-child Actor discovery. The existing unified destination resolver
      (``REQ_AUT_HEARTBEAT_RESOLVER_REUSE`` AC-1..AC-3) SHALL include this
      Actor source, with no parallel enumeration. Delivery SHALL reuse the
      existing heartbeat scheduler, reminder store, and message delivery
@@ -96,7 +96,7 @@ Actor Requirements
 
 .. req:: Actor Session Binding
    :id: REQ_ACTOR_BINDING
-   :status: approved
+   :status: implemented
    :priority: mandatory
    :links: US_ACTOR_ACTORS; REQ_ACTOR_SCHEMA; REQ_ACTOR_WHOAMI
 
@@ -110,9 +110,9 @@ Actor Requirements
      change the Actor's ``actor.yaml`` or ``context.md``.
    * AC-2: A replacement session SHALL be able to bind to the same Actor
      without changing its on-disk identity or memory.
-   * AC-3: Once bound, the replacement session SHALL resolve to that
-     Actor through ``jarvis_whoAmI``; the former session SHALL NOT be
-     treated as the Actor's permanent identity.
+   * AC-3: Once bound, the replacement session SHALL know that Actor
+     through the Actor's own agent (``REQ_ACTOR_WHOAMI`` AC-3); the former
+     session SHALL NOT be treated as the Actor's permanent identity.
 
 .. req:: ACTORS Tree View
    :id: REQ_ACTOR_TREE
@@ -166,9 +166,9 @@ Actor Requirements
 
 .. req:: Create Actor Command
    :id: REQ_ACTOR_CREATE
-   :status: approved
+   :status: implemented
    :priority: mandatory
-   :links: US_ACTOR_CREATE; REQ_ACTOR_SCHEMA; REQ_ACTOR_TREE; REQ_ACTOR_CREATETOOL; REQ_ACTOR_AGENT_DISCOVERY; REQ_ACTOR_OPENSESSION
+   :links: US_ACTOR_CREATE; REQ_ACTOR_SCHEMA; REQ_ACTOR_TREE; REQ_ACTOR_CREATETOOL; REQ_ACTOR_WHOAMI; REQ_ACTOR_OPENSESSION
 
    **Description:**
    A ``+`` (``$(add)``) icon in the ACTORS view title bar SHALL create a new
@@ -196,13 +196,11 @@ Actor Requirements
      summary. Escape SHALL skip it (empty summary), not abort.
    * AC-5: The command SHALL create the Actor via the shared creation
      routine (``REQ_ACTOR_CREATETOOL`` AC-2) with the entered name and
-     summary and ``agent: ""``.
-   * AC-6: After file creation (before the rescan), the command SHALL show
-     the agent picker: a "No agent" entry first, followed by the agents of
-     ``REQ_ACTOR_AGENT_DISCOVERY`` in alphabetical order. The selected agent
-     identity (or ``""`` for "No agent" or Escape) SHALL be written to the
-     ``agent`` field of ``actor.yaml``. Escape SHALL NOT abort the creation.
-   * AC-7: After the agent is written, an immediate rescan SHALL be
+     summary.
+   * AC-6: The command SHALL NOT show an agent picker. After file creation
+     (before the rescan) it SHALL ensure the Actor's agent
+     (``REQ_ACTOR_WHOAMI`` AC-4).
+   * AC-7: After the agent is ensured, an immediate rescan SHALL be
      triggered so the new Actor appears in the ACTORS view without a manual
      refresh.
    * AC-8: If the user cancels the name InputBox, the command SHALL exit
@@ -217,60 +215,69 @@ Actor Requirements
      e.g. when creating several Actors in a row. The setting governs both
      this command and ``REQ_ACTOR_CREATETOOL`` AC-9.
 
-.. req:: Actor Identity Recovery Tool
+.. req:: Actor Identity via Own Agent
    :id: REQ_ACTOR_WHOAMI
-   :status: approved
+   :status: implemented
    :priority: required
-   :links: US_ACTOR_WHOAMI; REQ_ACTOR_SCHEMA; REQ_HOOK_INTAKE
+   :links: US_ACTOR_WHOAMI; REQ_ACTOR_SCHEMA; REQ_ACTOR_AGENT_DISCOVERY
 
    **Description:**
-   A Language Model and MCP tool ``jarvis_whoAmI`` SHALL resolve the calling
-   chat session to its Actor and return that Actor's name and ``context.md``
-   path.
+   Every Actor SHALL have exactly one chat agent of its own, identified by
+   the Actor name. Jarvis SHALL keep the Actor's name and the location of its
+   ``context.md`` in that agent, so that the Actor knows both in every
+   session without a tool call and without agent hooks. The requirement ID
+   is kept for traceability from the former ``jarvis_whoAmI`` tool.
 
    **Acceptance Criteria:**
 
-   * AC-1: The tool SHALL be registered whenever ``jarvis.actors.folder`` is
-     resolvable at activation time, SHALL accept no input parameters, and
-     SHALL appear in the Chat tool picker with ``toolReferenceName``
-     ``whoAmI``.
-   * AC-2: When the calling session resolves to an Actor, the tool SHALL
-     return ``{ "name": "<name>", "contextPath": "<absolute path to
-     context.md>", "id": "<absolute path to actor.yaml>" }``.
-   * AC-3: When the calling session is not bound to an Actor, or the
-     identity source (AC-7) cannot supply the calling session's identity,
-     the tool SHALL return an error instructing the session to confirm its
-     identity with the user (e.g. "Unable to determine your identity
-     automatically. Please confirm your identity with the user.").
-   * AC-4: Identity SHALL be derived from the identity of the calling chat
-     session and from nothing else. Editor focus — including
-     ``vscode.window.tabGroups.activeTabGroup.activeTab`` — SHALL NOT be used
-     as an identity source, neither as primary mechanism nor as fallback.
-     The result SHALL be invariant under changes of editor focus, open
-     files, or active tab group, and repeated calls from one unchanged
-     session SHALL return the same Actor.
-   * AC-5: The tool SHALL NOT return an identity it cannot attribute to the
-     calling session. When the calling session cannot be determined, or not
-     unambiguously, the tool SHALL return the AC-3 error rather than a
-     best-guess Actor: a wrong identity would make the Actor load another
-     Actor's memory without any signal to it or the user.
-   * AC-6: The AC-3 error SHALL be returned only when the calling session
-     genuinely has no Actor or is undeterminable per AC-5. It SHALL NOT be
-     reachable as a side effect of the user's editor focus.
-   * AC-7: The calling session's identity is supplied today by the hook
-     intake path (``REQ_HOOK_INTAKE``). When it is unavailable, the tool
-     SHALL return the AC-3 error and SHALL NOT fall back to any focus-based
-     heuristic.
-   * AC-8: Actors SHALL be resolved through kindless direct-child discovery
-     (``REQ_ACTOR_SCHEMA`` AC-7). When the resolved name matches more than
-     one Actor, or none, the tool SHALL return the AC-3 error and SHALL NOT
-     select among candidates.
+   * AC-1: The Actor's agent SHALL be the agent whose front matter ``name``
+     equals the Actor name (agent identity per
+     ``REQ_ACTOR_AGENT_DISCOVERY`` AC-3), whatever its file name is.
+   * AC-2: When no agent carries the Actor name, Jarvis SHALL create
+     ``.github/agents/<Actor name>.agent.md`` whose front matter holds
+     ``name: "<Actor name>"``.
+   * AC-3: Jarvis SHALL maintain exactly two lines directly after the front
+     matter of the Actor's agent file. Line 1 SHALL read
+     ``You act as Actor <name>``. Line 2 SHALL read ``Your context memory is
+     <workspace-relative path of context.md>. Read it and the files it links
+     if you did not do that already or after a compaction.`` Jarvis SHALL NOT
+     change anything else in the file.
+   * AC-4: Before Jarvis creates an Actor (``REQ_ACTOR_CREATE`` AC-6,
+     ``REQ_ACTOR_CREATETOOL`` AC-6), opens an Actor's session, or delivers a
+     message into it (``REQ_ACTOR_INITPROMPT`` AC-6), it SHALL ensure that
+     AC-2 and AC-3 hold: create the agent when it is missing, restore the
+     two lines when they are absent or different. Only then SHALL it set the
+     Actor's agent mode. The check runs at these points and not at
+     extension startup, so activation is not slowed. All three points SHALL
+     call one and the same routine; none implements its own variant.
+   * AC-5: When the Actor name is carried by more than one Actor
+     (``REQ_ACTOR_SCHEMA`` AC-7), Jarvis SHALL NOT create or change an agent
+     for it.
+   * AC-6: When ``<Actor name>.agent.md`` exists but its front matter
+     ``name`` differs from the Actor name, Jarvis SHALL NOT change that file
+     and SHALL NOT treat it as the Actor's agent. It SHALL show a warning
+     notification naming the file.
+   * AC-7: Jarvis SHALL NOT delete agent files. When an Actor is renamed, the
+     agent of the new name is created at the next check (AC-4) and the agent
+     file of the former name stays.
+   * AC-8: Jarvis SHALL NOT copy persona content into the agent file. The
+     Actor's persona is referenced from its ``context.md`` and read as text,
+     so several Actors may share one persona.
+   * AC-9: Whether a project tracks or ignores the agent files in version
+     control is the project's concern: Jarvis restores the two lines of AC-3
+     whenever the check of AC-4 runs.
+   * AC-10: The tool ``jarvis_whoAmI`` SHALL NOT be registered as Language
+     Model or MCP tool, and ``whoAmI`` SHALL NOT appear in the Chat tool
+     picker.
+   * AC-11: The Actor kernel instructions delivered by Jarvis
+     (``REQ_MOD_ACTORRULES``) SHALL NOT tell an Actor to call
+     ``jarvis_whoAmI``.
 
 .. req:: Programmatic Actor Creation Tool
    :id: REQ_ACTOR_CREATETOOL
-   :status: approved
+   :status: implemented
    :priority: required
-   :links: US_ACTOR_CREATETOOL; REQ_ACTOR_SCHEMA; REQ_ACTOR_AGENT_DISCOVERY; REQ_ACTOR_OPENSESSION; REQ_ACTOR_TREE
+   :links: US_ACTOR_CREATETOOL; REQ_ACTOR_SCHEMA; REQ_ACTOR_WHOAMI; REQ_ACTOR_OPENSESSION; REQ_ACTOR_TREE
 
    **Description:**
    A Language Model and MCP tool ``jarvis_createActor`` SHALL create an
@@ -282,13 +289,13 @@ Actor Requirements
    * AC-1: The tool SHALL be registered whenever ``jarvis.actors.folder`` is
      resolvable at activation time and SHALL appear in the Chat tool picker
      with ``toolReferenceName`` ``createActor``. Inputs: ``name``
-     (required), ``summary``, ``agent``, ``initialMessage`` (optional).
+     (required), ``summary``, ``initialMessage`` (optional). A caller that
+     still passes ``agent`` SHALL NOT be rejected; the value has no effect.
    * AC-2: On a successful create, the shared creation routine SHALL:
 
      a. create ``<actorsFolder>/<name>/`` with the verbatim ``name`` as
         folder name;
-     b. write ``actor.yaml`` with ``name``, ``summary`` and ``agent``
-        (``""`` when not given);
+     b. write ``actor.yaml`` with ``name`` and ``summary``;
      c. write ``context.md`` containing ``# <name>`` followed by a blank
         line and, when a non-blank summary is given, the summary.
 
@@ -305,16 +312,9 @@ Actor Requirements
      ``PRN``, ``AUX``, ``NUL``, ``COM1``–``COM9``, ``LPT1``–``LPT9``,
      case-insensitive) SHALL raise an error ``"invalid actor name:
      <reason>"``.
-   * AC-6: A non-blank ``agent`` SHALL be validated against the agent
-     identities of ``REQ_ACTOR_AGENT_DISCOVERY`` before any filesystem
-     operation. An unknown value SHALL raise an ``Error`` with the message::
-
-        Agent "${agent}" is not available.
-        Available agents: ${names}
-
-     where ``${names}`` is the alphabetically sorted list joined with
-     ``", "``, or ``"(none)"`` when no agent is available. The LM and MCP
-     paths SHALL surface the message unchanged.
+   * AC-6: After the files are written, the shared creation routine SHALL
+     ensure the Actor's agent (``REQ_ACTOR_WHOAMI`` AC-4). The tool takes no
+     ``agent`` input to validate.
    * AC-7: The tool SHALL rescan the actors folder before this check. When
      ``<actorsFolder>/<name>/`` already exists, or an Actor with that
      ``name`` already exists in any folder (``REQ_ACTOR_SCHEMA`` AC-7), the
@@ -333,7 +333,7 @@ Actor Requirements
 
 .. req:: List Actors Tool
    :id: REQ_ACTOR_LISTTOOL
-   :status: approved
+   :status: implemented
    :priority: required
    :links: US_ACTOR_LISTTOOL; REQ_ACTOR_SCHEMA; REQ_ACTOR_TREE
 
@@ -349,7 +349,8 @@ Actor Requirements
      ``listActors``.
    * AC-2: The tool SHALL return ``{ "actors": [...] }`` with one entry per
      Actor discovered per ``REQ_ACTOR_TREE`` AC-2. Each entry SHALL have
-     ``name``, ``summary`` and ``agent`` (``""`` when absent), ``folder``
+     ``name``, ``summary``, ``agent`` (the Actor's own agent, identified by
+     the Actor name, so equal to ``name``), ``folder``
      (absolute path of the Actor folder), and ``id`` (absolute path of its
      ``actor.yaml``, ``REQ_ACTOR_SCHEMA`` AC-7).
    * AC-3: The tool SHALL be distinct from ``jarvis_listChatSessions``,
@@ -357,13 +358,14 @@ Actor Requirements
 
 .. req:: Agent Discovery
    :id: REQ_ACTOR_AGENT_DISCOVERY
-   :status: approved
+   :status: implemented
    :priority: required
-   :links: US_ACTOR_CREATE; US_ACTOR_CREATETOOL; US_ACTOR_FILES_TREE
+   :links: US_ACTOR_ACTORS; US_ACTOR_FILES_TREE
 
    **Description:**
-   The set of agents an Actor can be bound to SHALL be determined at runtime
-   by scanning ``.github/agents/`` in the current workspace.
+   The agents of the workspace SHALL be determined at runtime by scanning
+   ``.github/agents/`` in the current workspace, so that an Actor's agent can
+   be found by name (``REQ_ACTOR_WHOAMI`` AC-1).
 
    **Acceptance Criteria:**
 
@@ -375,13 +377,13 @@ Actor Requirements
    * AC-3: The agent identity SHALL be the frontmatter ``name`` value
      trimmed of surrounding whitespace when it is a non-empty string;
      otherwise the file basename without the ``.agent.md`` suffix (e.g.
-     ``syspilot.cm.agent.md`` → ``syspilot.cm``). This identity is used for
-     picker labels, the ``actor.yaml`` ``agent`` value, and the chat
+     ``syspilot.cm.agent.md`` → ``syspilot.cm``). This identity is matched
+     against the Actor name (``REQ_ACTOR_WHOAMI`` AC-1) and used as the chat
      ``mode`` parameter.
    * AC-4: If ``.github/agents/`` does not exist or is unreadable, discovery
      SHALL return an empty list without error.
    * AC-5: The returned list SHALL be sorted alphabetically by identity.
-   * AC-6: Discovery SHALL run on demand (picker open, validation); no
+   * AC-6: Discovery SHALL run on demand (session open, message delivery); no
      persistent cache is kept.
 
 .. req:: Open Actor Session
@@ -415,14 +417,14 @@ Actor Requirements
 
 .. req:: Actor Session Initialization Prompt
    :id: REQ_ACTOR_INITPROMPT
-   :status: approved
+   :status: implemented
    :priority: required
-   :links: US_ACTOR_ACTORS; US_MSG_STABLESESSION; REQ_INJ_PRIMITIVE; REQ_ACTOR_AGENT_DISCOVERY
+   :links: US_ACTOR_ACTORS; US_MSG_STABLESESSION; REQ_INJ_PRIMITIVE; REQ_ACTOR_AGENT_DISCOVERY; REQ_ACTOR_WHOAMI
 
    **Description:**
    Every new chat session opened for an Actor SHALL receive an
    initialization prompt that names the Actor and its ``context.md`` and
-   establishes the memory discipline, and SHALL open in the Actor's bound
+   establishes the memory discipline, and SHALL open in the Actor's own
    agent mode.
 
    **Acceptance Criteria:**
@@ -453,14 +455,17 @@ Actor Requirements
      tool and command (``REQ_INJ_TOOL``, ``REQ_INJ_COMMAND``) — SHALL reach
      it through that primitive and SHALL NOT send the prompt itself. It SHALL
      NOT be re-sent to an existing session.
-   * AC-6: When the Actor's ``agent`` is non-empty, the session SHALL be
-     created mode-primed: ``workbench.action.chat.open { mode: <agent> }``
-     and a 300 ms settle **before** ``openNewChatEditor()``, so the new
-     session inherits the mode. Whenever Jarvis opens or delivers into an
-     existing Actor session, it SHALL re-apply the Actor's bound agent
-     (workaround for VS Code dropping the mode). It SHALL NOT select any
-     other mode. With ``agent: ""`` no mode is passed and the session's mode
-     is left untouched.
+   * AC-6: Before Jarvis creates an Actor session, or opens or delivers into
+     an existing one, it SHALL ensure the Actor's agent
+     (``REQ_ACTOR_WHOAMI`` AC-4) and then use that agent as the session's
+     mode. A new session SHALL be created mode-primed:
+     ``workbench.action.chat.open { mode: <Actor name> }`` and a 300 ms
+     settle **before** ``openNewChatEditor()``, so the new session inherits
+     the mode. For an existing session Jarvis SHALL re-apply the Actor's
+     agent (workaround for VS Code dropping the mode). It SHALL NOT select
+     any other mode. When the agent could not be ensured
+     (``REQ_ACTOR_WHOAMI`` AC-5, AC-6), no mode is passed and the session's
+     mode is left untouched.
    * AC-7: If VS Code does not recognize the mode (e.g. the agent file was
      removed), VS Code's default chat mode applies; Jarvis surfaces no
      error.
@@ -489,9 +494,9 @@ Actor Requirements
 
 .. req:: Actor File Children
    :id: REQ_ACTOR_FILES_TREE
-   :status: approved
+   :status: implemented
    :priority: mandatory
-   :links: US_ACTOR_FILES_TREE; REQ_ACTOR_TREE; REQ_ACTOR_AGENT_DISCOVERY; REQ_MSG_EDITORPLACEMENT
+   :links: US_ACTOR_FILES_TREE; REQ_ACTOR_TREE; REQ_ACTOR_AGENT_DISCOVERY; REQ_ACTOR_WHOAMI; REQ_MSG_EDITORPLACEMENT
 
    **Description:**
    Actor nodes SHALL be expandable into an "Agent" category (conditional)
@@ -509,8 +514,9 @@ Actor Requirements
      interleaved), including hidden (dot-prefixed) entries. Subfolders SHALL
      be expandable and recurse by the same rule.
    * AC-4: The "Agent" category SHALL be shown if and only if the Actor's
-     ``agent`` is non-empty and resolves (``REQ_ACTOR_AGENT_DISCOVERY``
-     AC-3) to an existing agent file. It SHALL contain exactly one child
+     own agent is found by the Actor name
+     (``REQ_ACTOR_WHOAMI`` AC-1), that is, an agent file whose identity
+     equals the Actor name exists. It SHALL contain exactly one child
      ``Agent File: <filename>`` pointing at that file. Otherwise the
      category is omitted (fail-open, no error).
    * AC-5: File and folder children SHALL show their full absolute path

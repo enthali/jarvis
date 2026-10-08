@@ -1,5 +1,5 @@
 title: backlog
-nextId: 50
+nextId: 60
 fields:
   - name: status
     type: single_select
@@ -514,37 +514,72 @@ items:
     priority: Medium
   - id: 42
     name: Actor identity via agent mode - replaces jarvis_whoAmI
-    status: Backlog
+    status: Done
     labels:
       - architecture
       - identity
       - agent-mode
       - hooks
-    notes: 'Follow-up idea discussed and refined with the user, relayed by System
-      Designer (2026-09-27); explicitly not part of retire-legacy-actor-kinds.
-      Goal: an Actor resolves its identity reliably without hooks, including
-      after /compact. Agreed concept: each Actor has a mandatory binding to its
-      own .github/agents/<actorname>.agent.md. Immediately after YAML front
-      matter, Jarvis maintains a managed section beginning with the exact lines
-      "You act as Actor <name>" and "Your context memory is <workspace-relative
-      path to context.md>"; the rest remains user-owned (e.g. optional tools
-      restriction; absent tools: means default tools). actor.yaml may point to a
-      persona file (e.g. a syspilot agent); as agent files cannot include other
-      files, Jarvis copies persona content into the managed section, ideally
-      before each message send, so upstream persona updates propagate. Remove
-      jarvis_whoAmI, require ownerName on Kanban tools, and remove the obsolete
-      identity section from the Jarvis kernel instructions. This also fits the
-      hook-removal follow-up #35. Accepted limitation: if VS Code drops the mode
-      and no Jarvis action follows (e.g. sparse PIM use), the Actor lacks
-      identity until the next delivery or open. Open design points:
-      managed-section markers that preserve user edits outside it; Git churn
-      from copied persona content; sync on rename/move or jarvis.actors.folder
-      changes; collisions with existing agent files; one entry per Actor in the
-      chat mode picker. ROADMAP ORDER (user intent 2026-09-27): finish the
-      active Phase 2 Actor-session cleanup first; then plan this as another
-      non-AHP release before moving to AHP. This item remains outside Phase 2
-      scope.'
-    priority: Medium
+    notes: 'Concept settled with the user 2026-10-03 (replaces the earlier draft
+      that copied persona content). GOAL: an Actor knows its identity reliably
+      without hooks, including after /compact. SETTLED: (1) The link is the
+      Actor name. The `agent` field is removed from actor.yaml. Jarvis finds the
+      Actor''s agent by its front matter `name:` equal to the Actor name, not by
+      file name: Syspilot''s files up to 0.9 are called syspilot.<role>.agent.md
+      but already carry name = Actor name, so they are found as they are. If no
+      agent has that name, Jarvis creates <actor name>.agent.md with front
+      matter `name: "<actor name>"`. Actor names are unique (enforced), so two
+      Actors can never share an agent. (2) Jarvis maintains exactly two lines
+      right after the YAML front matter: line 1 "You act as Actor <name>", line
+      2 "Your context memory is <workspace-relative path to context.md>".
+      Everything else in the file is not Jarvis''s. (3) Jarvis copies no persona
+      content. The persona is referenced from the Actor''s context.md and read
+      as text; several Actors may share one persona that way. (4) Persona choice
+      leaves the Jarvis UI: no agent picker at "+", no `agent` input on
+      jarvis_createActor. The user accepts this break: Syspilot solves persona
+      selection itself, PIM does for its own, and plain Jarvis Actors learn
+      their persona from context.md. (5) Generic Jarvis agent files exist only
+      as experiments in the Assistant project (user, 2026-10-03). They are meant
+      as generic Jarvis personas linked via context.md. They are no artefact of
+      this repo, so nothing is retired here and they pose no problem for this
+      change. (6) The lines are re-applied on every open and delivery
+      (REQ_ACTOR_INITPROMPT AC-6 already re-applies the agent), so an upstream
+      overwrite by the Syspilot installer heals itself. (7) jarvis_whoAmI is
+      removed, Kanban tools require ownerName, and the identity section of the
+      Jarvis kernel instructions becomes obsolete. Hooks stay for touched files
+      and activity; their removal is #35. (8) Accepted limitation: if VS Code
+      drops the mode and no Jarvis action follows, the Actor lacks its identity
+      until the next delivery or open. (9) Order: after Phase 2; planned as
+      another non-AHP release. AHP review is about 2027-01 (Research,
+      2026-10-03), so this change does not wait for AHP. SPIKE QUESTIONS
+      ANSWERED BY THE USER (2026-10-03), no Research spike needed: the mode is
+      set before the session starts, so an agent file only has to exist by then;
+      spaces in the file name work (tried by the user). Whether an agent hidden
+      with `user-invocable: false` can be set as mode, to avoid picker clutter
+      with many Actors, is unknown and parked (user). COMPACT (user,
+      2026-10-03): reloading after /compact works only in part. That is a GitHub
+      Copilot limitation, as a compaction can lose context. The only mitigation
+      is a recurring hint that context.md and the files it links are important.
+      Jarvis does not do this today and it works fairly well anyway. Line 2 is
+      the natural carrier because the agent body reaches every request; whether
+      and how to word it is left to the design. FIRST IMPACT VIEW (PM grep
+      2026-10-03, not an impact analysis): US_ACTOR_ACTORS agent binding,
+      REQ_ACTOR_SCHEMA AC-2, REQ_ACTOR_CREATE AC-6, REQ_ACTOR_CREATETOOL `agent`
+      input, REQ_ACTOR_AGENT_DISCOVERY, REQ_ACTOR_INITPROMPT AC-6/AC-7,
+      actor.schema.json (additionalProperties false, 12 real actor.yaml still
+      carry `agent:`). Syspilot Setup Engineer points to syspilot.setup and
+      would get its own agent. OPEN (decider in brackets): whether a legacy
+      `agent:` in actor.yaml is ignored or rejected, and whether any caller
+      (e.g. Syspilot setup) still passes `agent` to jarvis_createActor [System
+      Designer with user]. Wording of the compaction hint in line 2, if any
+      [System Designer with user]. PM suggests creating the missing agent files
+      of all Actors at activation and rescan instead of lazily at open, so even
+      Actors that predate this change have the file long before their first open
+      [System Designer]. Spec decisions for System Designer with the user: are
+      Jarvis-created agent files tracked or git-ignored; renaming an Actor means
+      a new agent and the old one stays behind; behaviour when <actor
+      name>.agent.md exists but its `name:` differs.'
+    priority: High
   - id: 43
     name: Remove deprecated jarvis_readMessage and jarvis_sendToSession tools
     status: Backlog
@@ -646,4 +681,217 @@ items:
       Handling is open: fix inside recorder-redesign if it is still open when
       the user finishes testing, otherwise as a follow-up. User asked only to
       remember it; testing continues."
+    priority: Low
+  - id: 50
+    name: Recorder records nothing with a Jabra speaker as audio device (office
+      setup)
+    status: Backlog
+    labels:
+      - recorder
+      - investigate
+    notes: "User observation 2026-10-05, v0.29.0. In the user's office setup with a
+      Jabra Speak 510 (Bluetooth speakerphone with microphone, for meetings; the
+      user wrote \"Jabra 510\"), the recorder records nothing; with the laptop's
+      own microphone and speakers it works (a 49:18 min meeting, 8311 words,
+      earlier the same day). To investigate later, not now, no change wanted;
+      the user only asked to remember it. Facts from the user: the Jabra is the
+      Windows default input and output, also in Teams; no warning was shown; the
+      recording starts and stays empty. Jarvis Recorder log of the same Teams
+      meeting: at 12:23:32 a recording started, the log showed words=0 every 10
+      s until the user ended it at 12:24:20 (about 48 s). After the user
+      switched Teams to the laptop speakers, a new recording started at 12:25:01
+      and the word count rose from 33 within 10 s, so that meeting was
+      transcribed. Not established: whether the empty session recorded the
+      microphone, the speaker output or neither, how the recorder picks its
+      devices, and whether the Jabra's Bluetooth profile (hands-free versus
+      stereo) plays a role; no cause is assumed. Related specification points to
+      check then: starting with one working audio source is allowed with a
+      warning (none appeared here), losing both sources ends the session, and
+      the lost-device cases (U-3) were never tested because the laptop's devices
+      could not be removed."
+    priority: Low
+  - id: 51
+    name: "Review the actor.yaml schema: mandatory, obsolete and missing fields"
+    status: Backlog
+    labels:
+      - actor
+      - schema
+      - review
+    notes: "Raised by the user 2026-10-05: look at the actor.yaml schema and decide
+      which fields are mandatory, which are obsolete and which are missing.
+      Current state, read 2026-10-05: schemas/actor.schema.json requires only
+      name, allows summary and agent, and sets additionalProperties to false.
+      The actor.yaml files in .jarvis/actors still carry the old fields
+      externalStatus, internalStatus (nine of them) and lastUpdated (nine
+      files), left over from the retired kind-based Actor, so by the schema
+      those files are not valid; whether the scanner ignores or rejects them was
+      not checked. Missing fields suggested by current work, not decided: the
+      namespace parts role, team and project (see the Ideas entry on parallel
+      teams), and the identity binding for backlog 42, whose agent file is meant
+      to be derived from the actor. Input for the review: REQ_ACTOR_SCHEMA and
+      the actor creation specifications (verbatim name, unique name, agent
+      binding), the SPEC_ACTOR_* scanner, and backlog 42 on the other machine,
+      which is working on the same area, so coordinate before changing anything.
+      Open for PM and user: scope, whether obsolete fields are removed from
+      existing files, and the order relative to backlog 42."
+    priority: Medium
+  - id: 52
+    name: "Heartbeat agent step: choose vendor and model of the language model"
+    status: Done
+    labels:
+      - heartbeat
+      - llm
+    notes: "User decision 2026-10-08: the heartbeat agent step shall let the user
+      choose vendor and model of the language model, nothing more. Today
+      executeAgentStep() in packages/core/src/apps/session/heartbeat.ts calls
+      selectChatModels with the fixed vendor copilot and family gpt-4o (also
+      stated in SPEC_AUT_AGENTEXEC). Change document
+      docs/changes/heartbeat-agent-model-selection.md on branch
+      feature/heartbeat-agent-model-selection, created 2026-10-08, not yet sent
+      to CM (the user reviews the CD first)."
+    priority: High
+  - id: 53
+    name: jarvis_registerJob schema and SPEC_ENG_API HeartbeatStep lack outputVar
+    status: Backlog
+    labels:
+      - heartbeat
+      - tools
+    notes: "Findings from the System Designer and CM during
+      heartbeat-agent-model-selection (2026-10-08), out of scope there: (1) the
+      input schema of the tool jarvis_registerJob does not list the step field
+      outputVar, so an actor registering a job cannot know that field exists;
+      (2) the HeartbeatStep copy in SPEC_ENG_API lacks outputVar (older gap;
+      vendor and model were added there by the change). After the change is
+      merged check whether the registerJob schema lists vendor and model."
+  - id: 54
+    name: Removed setting jarvis.heartbeatConfigFile still named as live in README
+      and specs
+    status: Backlog
+    labels:
+      - docs
+      - settings
+    notes: "Found 2026-10-08 during the live test of
+      heartbeat-agent-model-selection: the setting jarvis.heartbeatConfigFile
+      was removed in v0.5.11 (fixed path .jarvis/heartbeat.yaml in the workspace
+      root) but is still named as live in many places. Classification by the
+      System Designer (CD heartbeat-agent-model-selection, I-6). Spec-level
+      contradictions with the code: US_CFG_HEARTBEAT AC-1/AC-2 (us_cfg.rst);
+      REQ_CFG_HEARTBEATPATH AC-1, AC-2, AC-4 and AC-3 (it says no
+      .jarvis/heartbeat.yaml fallback, the opposite of the code) (req_cfg.rst);
+      spec_cfg.rst line about 183; root README.md settings table line about 70,
+      which contradicts package.json. Stale UAT setup text only:
+      spec_uat_heartbeat_pause.rst line 26, spec_uat_listjobs.rst line 36,
+      us_uat_tree_node_open_file.rst T-1 (line 28) and T-3 (line 45, its premise
+      needs a redesign, not new wording). Intentional, no action: the deprecated
+      SPEC_CFG_HEARTBEATSETTINGS and its replacement text. The UAT setup of
+      us_uat_heartbeat and spec_uat_heartbeat was fixed inside
+      heartbeat-agent-model-selection (9208b32)."
+  - id: 55
+    name: Settle the status of spec elements stuck in draft
+    status: Backlog
+    labels:
+      - spec
+      - cleanup
+    notes: "Found 2026-10-04 (CM, actor-identity-via-agent-file): 18 elements
+      amended by that change stay draft because they were draft before it
+      (US_KAN_TOOLS, REQ_KAN_CREATE/VERIFY/OPEN/UPDATE, REQ_HOOK_INTAKE,
+      REQ_INJ_PRIMITIVE, REQ_SPL_ACTOR, REQ_SPL_NOTIFY,
+      REQ_AUT_HEARTBEAT_RESOLVER_REUSE, SPEC_INJ_INJECT, SPEC_MSG_OPENCHAT,
+      SPEC_KAN_CREATE/VERIFY/OPEN/UPDATE, SPEC_SPL_ACTOR, SPEC_SPL_NOTIFY). The
+      first count was 17; QM Round 2 found the 18th
+      (REQ_AUT_HEARTBEAT_RESOLVER_REUSE, reworded late in that change) and PM
+      confirmed it on 2026-10-08. The same happened in
+      retire-legacy-actor-kinds, and QM earlier noted elements that are
+      implemented but still draft. Current rule, followed so far: an element not
+      reviewed in a change keeps its status, and its approval belongs to the
+      change that opened it. Open: who approves such elements and when (the user
+      decides), then bring the statuses in line. No status was changed by PM."
+    priority: Low
+  - id: 56
+    name: 'Actor file tree label "Agent File: <basename>" in the spec, bare basename
+      in the code'
+    status: Backlog
+    labels:
+      - spec
+      - observation
+    notes: "Reported by Change Manager from Verify during
+      actor-identity-via-agent-file (2026-10-08), not verified by PM.
+      SPEC_ACTOR_FILES says the agent file child is labelled 'Agent File:
+      <basename>', but the code shows the bare basename. It predates that change
+      and is outside it. To decide: change the spec or the code."
+    priority: Low
+  - id: 57
+    name: "Multi-root workspaces: agent discovery per folder, ensureActorAgent uses
+      the first folder"
+    status: Backlog
+    labels:
+      - spec
+      - observation
+    notes: "Reported by Change Manager from Verify during
+      actor-identity-via-agent-file (2026-10-08), confirmed independently by QM
+      Round 1 (finding 3), derived from reading and not executed; not verified
+      by PM. Agent discovery scans .github/agents/ of every workspace folder and
+      returns the file path relative to the folder where it found it, but
+      ensureActorAgent resolves that path against the first folder
+      (getWorkspaceRoot) and computes the context.md path against it too. If the
+      only agent carrying the Actor's name sits in a second workspace folder,
+      the restore fails (skipped / writeFailed), the Actor opens without its
+      mode and it is only logged. The spec names the first folder as the
+      creation target and is silent about candidates in other folders; no test
+      uses more than one folder. PM decision 2026-10-08: deferred out of
+      actor-identity-via-agent-file, the multi-root case is undefined in the
+      spec. To decide (user): whether multi-root is supported at all; if so,
+      either search only the first folder or resolve the path against the folder
+      it came from, and which folder owns the Actor's agent file."
+    priority: Low
+  - id: 58
+    name: Remove the Identity section from the Jarvis actor kernel instructions
+    status: Done
+    labels:
+      - spec
+      - kernel
+    notes: 'DECIDED by the user 2026-10-08: option A, remove the whole section 0
+      (Identity) from
+      packages/core/assets/instructions/jarvis-actor.kernel.instructions.md,
+      folded into the active change actor-identity-via-agent-file (not a
+      separate change). User''s reason: from now on the Actor''s agent (mode)
+      file carries the identity, so the kernel section is redundant. PM had
+      recommended leaving it as it fails safe; the user decided otherwise and PM
+      follows. Consequences: the kernel no longer says what to do when the two
+      identity lines are missing; sections 1 to 4 keep their numbers;
+      REQ_ACTOR_WHOAMI AC-11 (only forbids naming jarvis_whoAmI) stays
+      satisfied; src/tests/actorAgent.test.ts asserts that the kernel asset
+      contains "your own agent file" and must change; System Designer checks
+      whether any spec describes the section. The asset is provisioned into
+      workspaces (gitignored copy), refreshed when jarvis.actor.autoProvision is
+      on. Background kept for the record: the section had three parts, (1) do
+      not infer identity or memory location from conversation text or folder
+      names, session titles can drift; (2) name and context.md path are the two
+      lines after the front matter of your own agent file; (3) if those two
+      lines are missing, stop actor-owned writes and escalate to the user. User
+      view: redundant, the name is also in the session-start prompt and in every
+      delivered message, and a name was never lost after a compaction. Set to
+      Done when the change is merged.'
+    priority: Medium
+  - id: 59
+    name: Anchor "kernel has no identity section" at L1 and narrow its test to the
+      heading
+    status: Backlog
+    labels:
+      - spec
+      - kernel
+    notes: "QM Round 4 finding R4-1 (low) of actor-identity-via-agent-file, PM
+      decision 2026-10-08: deferred. SPEC_ACTOR_WHOAMI AC-10 records the user
+      decision \"the kernel instructions have no identity section\", but no
+      requirement carries it (REQ_ACTOR_WHOAMI AC-11 only forbids naming
+      jarvis_whoAmI), so a differently worded identity section would pass the
+      requirement and fail design and test. Also, the test in
+      src/tests/actorAgent.test.ts asserts not.toContain('Identity'), which
+      rejects the word anywhere in the asset, not only a section; it fails
+      loudly, never silently. Reason for deferring: no behaviour is wrong today,
+      the cost is one more change run (System Designer, Dev, Verify, QM) before
+      the user's validation. To decide with the System Designer (design is
+      user-guided): either one L1 sentence (REQ_ACTOR_WHOAMI AC-11, kernel SHALL
+      NOT contain an identity section) or state that AC-10 is a pure design pin;
+      then narrow the test to the heading."
     priority: Low

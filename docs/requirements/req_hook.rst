@@ -44,25 +44,13 @@ Hook Engine Requirements
      engine's introduction. Confirmed via trace-level log inspection: the raw
      payload always carries ``session_id``, but it was never read.~~ Fixed by
      this CR.
-   * AC-9: (**whoami-session-id-resolution CR, GH #51**) Dispatch SHALL
-     happen-before the HTTP response. The intake listener SHALL deliver a
-     received event to its subscribers *before* it responds to the bridge, and
-     the bridge SHALL emit its ``{"continue": true}`` result only after that
-     response has been received. Because VS Code waits for a hook to complete
-     before it proceeds, this makes the following ordering an observable
-     guarantee rather than a race: **for any tool invocation, that
-     invocation's own ``PreToolUse`` event has already been dispatched to
-     subscribers by the time the tool handler runs.**
-
-     This ordering is a **contract, not an incidental property of the current
-     implementation**. It is what allows a synchronous, in-process tool handler
-     to consume information carried by an out-of-process hook event
-     (``REQ_ACTOR_WHOAMI`` AC-7). Responding to the bridge before dispatching —
-     an otherwise natural latency optimisation — SHALL NOT be introduced,
-     because it would silently break every consumer relying on this ordering
-     while leaving all existing tests passing. AC-6 (non-blocking) is
-     unaffected: the bridge still always continues and never influences the
-     agent; only the *order* of dispatch and response is constrained.
+   * AC-9: (retired by the ``actor-identity-via-agent-file`` CR) The former
+     happen-before ordering of dispatch and HTTP response
+     (``whoami-session-id-resolution`` CR, GH #51) existed only so that the
+     ``jarvis_whoAmI`` tool handler could consume its own ``PreToolUse``
+     event. That tool is removed (``REQ_ACTOR_WHOAMI`` AC-10) and no consumer
+     depends on the ordering any more, so it is no longer a contract. AC-6
+     (non-blocking) is unaffected.
 
 
 .. req:: Hook Event Logging

@@ -4,7 +4,7 @@ Automation Design Specifications
 .. spec:: YAML Job Schema and TypeScript Interfaces
    :id: SPEC_AUT_JOBSCHEMA
    :status: implemented
-   :links: REQ_AUT_JOBCONFIG; REQ_AUT_STEP_OUTPUT_VARS
+   :links: REQ_AUT_JOBCONFIG; REQ_AUT_STEP_OUTPUT_VARS; REQ_AUT_AGENTMODEL
 
    **Description:**
    Define TypeScript interfaces for the heartbeat YAML structure and implement the
@@ -20,6 +20,8 @@ Automation Design Specifications
         prompt?: string;    // agent: path to prompt file
         outputFile?: string; // agent: path to write LLM response
         append?: boolean;   // agent: append to outputFile instead of overwrite
+        vendor?: string;    // agent: vendor of the language model (required at execution)
+        model?: string;     // agent: model id as listed by SPEC_AUT_LISTMODELS (required at execution)
         destination?: string; // queue: target chat tab label
         sender?: string;    // queue: originating session or component
         text?: string;      // queue: message content
@@ -32,6 +34,13 @@ Automation Design Specifications
         steps: HeartbeatStep[];
         enabled?: boolean;  // default true; false = paused (scheduler skips this job)
       }
+
+   **Agent step fields:** ``vendor`` and ``model`` are optional in the type only because
+   YAML can omit them; the contract (``REQ_AUT_AGENTMODEL``) requires both on an agent step,
+   and the executor fails a step that lacks them (``SPEC_AUT_AGENTEXEC``). ``loadJobs`` does
+   not validate them: whether a model is available is known only when the step runs. Both are
+   additive fields of the exported ``HeartbeatStep``, so ``JarvisCoreApi`` stays at its
+   version.
 
    **Job loader**:
 
@@ -382,11 +391,12 @@ Automation Design Specifications
 
 .. spec:: Agent Step Executor
    :id: SPEC_AUT_AGENTEXEC
-   :status: implemented
-   :links: REQ_AUT_JOBEXEC; REQ_AUT_OUTPUT; REQ_AUT_STEP_OUTPUT_VARS; SPEC_AUT_EXECUTOR; SPEC_DEV_LOGCHANNEL
+   :status: approved
+   :links: REQ_AUT_JOBEXEC; REQ_AUT_OUTPUT; REQ_AUT_STEP_OUTPUT_VARS; REQ_AUT_AGENTMODEL; SPEC_AUT_EXECUTOR; SPEC_DEV_LOGCHANNEL
 
    **Description:**
-   ``executeAgentStep`` sends a prompt file to the VS Code LM API and optionally
+   ``executeAgentStep`` sends a prompt file to the VS Code LM API, to the model that the step
+   names by ``vendor`` and ``model``, and optionally
    writes the response to a file. Returns the response text in ``ExecResult.output``
    for variable capture. Implemented in ``src/heartbeat.ts``.
 
@@ -401,14 +411,19 @@ Automation Design Specifications
         outputChannel.info(`[Heartbeat] agent: prompt=${promptPath}`);
         try {
           const promptText = fs.readFileSync(promptPath, 'utf8');
-          const models = await vscode.lm.selectChatModels(
-            { vendor: 'copilot', family: 'gpt-4o' }
-          );
-          if (models.length === 0) {
-            return { success: false, stepType: 'agent', error: 'no LM model available' };
+          const all = await vscode.lm.selectChatModels();
+          const vendor = nonEmpty(step.vendor);
+          const modelId = nonEmpty(step.model);
+          const model = vendor && modelId
+            ? all.find(m => m.vendor === vendor && m.id === modelId)
+            : undefined;
+          if (!model) {
+            return {
+              success: false, stepType: 'agent',
+              error: modelUnavailableMessage(vendor, modelId, toModelEntries(all))
+            };
           }
-          const model = models[0];
-          outputChannel.info(`[Heartbeat] agent: model=${model.id}`);
+          outputChannel.info(`[Heartbeat] agent: model=${model.vendor}/${model.id}`);
           const messages = [vscode.LanguageModelChatMessage.User(promptText)];
           const response = await model.sendRequest(messages, {});
           let text = '';
@@ -431,6 +446,64 @@ Automation Design Specifications
         }
       }
 
+   **Model choice** (``REQ_AUT_AGENTMODEL``). The step picks its model from the list that
+   ``vscode.lm.selectChatModels()`` returns without a selector, by exact (case-sensitive)
+   equality of ``vendor`` and ``id``. The same list feeds ``SPEC_AUT_LISTMODELS`` and the
+   failure message, so a choice copied from the list always matches, and the executor depends
+   on no selector semantics. Nothing is built in: the former fixed selector (Copilot, family
+   ``gpt-4o``) and the message "no LM model available" are gone. ``model`` is the ``id`` of the
+   ``LanguageModelChat``. A list entry carries only ``vendor`` and ``model``: the display name
+   of the model is not part of it, because it is not what a step needs and was mistaken for the
+   value (``REQ_AUT_LISTMODELS`` AC-3, D-12).
+
+   .. code-block:: typescript
+
+      interface ModelEntry { vendor: string; model: string; }
+
+      // exported from heartbeat.ts; used by the executor, the command and the tool
+      export function toModelEntries(models: readonly vscode.LanguageModelChat[]): ModelEntry[] {
+        return models
+          .map(m => ({ vendor: m.vendor, model: m.id }))
+          .sort((a, b) =>
+            a.vendor.localeCompare(b.vendor, undefined, { sensitivity: 'base' }) ||
+            a.model.localeCompare(b.model, undefined, { sensitivity: 'base' }));
+      }
+      export async function listAvailableModels(): Promise<ModelEntry[]> {
+        return toModelEntries(await vscode.lm.selectChatModels());
+      }
+
+      // the one notation for an entry shown to the user (command and failure message)
+      export function formatModelEntry(e: ModelEntry): string {
+        return `vendor="${e.vendor}" model="${e.model}"`;
+      }
+
+      // a value that is not a non-empty string counts as missing
+      function nonEmpty(v: unknown): string | undefined {
+        return typeof v === 'string' && v !== '' ? v : undefined;
+      }
+
+      function modelUnavailableMessage(
+        vendor: string | undefined, model: string | undefined, available: ModelEntry[]
+      ): string {
+        const q = (v: string | undefined) => v === undefined ? '(missing)' : `"${v}"`;
+        const list = available.length > 0
+          ? '\n' + available.map(formatModelEntry).join('\n')
+          : ' (none)';
+        return `language model not available: vendor=${q(vendor)}, model=${q(model)}\n` +
+               `Available:${list}`;
+      }
+
+   The failure result goes through the existing path: the job is aborted
+   (``REQ_AUT_JOBEXEC`` AC-4) and ``notifyFailure`` shows the message in the error toast and
+   logs it (``SPEC_AUT_OUTPUTCHANNEL``). The format follows the destination error of
+   ``SPEC_AUT_REGISTERJOB_VALIDATION`` (the choice named, then the sorted list or ``(none)``),
+   with one entry per line in the notation of ``formatModelEntry``, the same as the command
+   shows (``REQ_AUT_LISTMODELS`` AC-5). Values are written as they are, without escaping.
+
+   ``interpolateStep`` also resolves ``${VAR}`` in ``vendor`` and ``model``, like in the other
+   interpolated fields (``REQ_AUT_STEP_OUTPUT_VARS`` AC-2, ``SPEC_AUT_STEP_OUTPUT_VARS`` AC-6); an
+   unresolved reference stays as written and shows in the failure message.
+
    Called from ``runStep`` as a new branch:
 
    .. code-block:: typescript
@@ -438,6 +511,30 @@ Automation Design Specifications
       if (step.type === 'agent') {
         return executeAgentStep(step, outputChannel, configDir);
       }
+
+   **Acceptance Criteria:**
+
+   * AC-1: The executor looks the model up in the result of ``vscode.lm.selectChatModels()``
+     by exact equality of ``vendor`` and ``id`` with the step's ``vendor`` and ``model``; no
+     vendor, model or family is built in (``REQ_AUT_AGENTMODEL`` AC-1, AC-2).
+   * AC-2: A ``vendor`` or ``model`` that is not a non-empty string counts as missing.
+   * AC-3: When a value is missing or no model matches, the step returns ``success: false``
+     with ``stepType: 'agent'`` and the message of ``modelUnavailableMessage``, and sends no
+     prompt and writes no output file (``REQ_AUT_AGENTMODEL`` AC-3).
+   * AC-4: The message names ``vendor`` and ``model`` as the step gave them, in quotes, or
+     ``(missing)``, and lists every available model, one entry per line in the notation of
+     ``formatModelEntry``, sorted, or ``(none)``
+     (``REQ_AUT_AGENTMODEL`` AC-4).
+   * AC-5: The prompt file is read before the model is looked up; an unreadable prompt file
+     fails as before.
+   * AC-6: When a model matches, the step behaves as before: response text in
+     ``ExecResult.output``, ``outputFile`` and ``append``, variable capture, log lines; the
+     model log line shows ``vendor/id``.
+
+   **Verify first:** that ``vscode.lm.selectChatModels()`` without a selector returns the models
+   of every vendor the user can use in chat, including bring-your-own-key and local ones, and that
+   the ``id`` it shows is a value the user can write into a step. If a vendor's models are not
+   returned, or an ``id`` is not usable, the design comes back to the System Designer.
 
 
 .. spec:: Queue Step Executor
@@ -751,7 +848,7 @@ Automation Design Specifications
 .. spec:: Job Registration and Unregistration
    :id: SPEC_AUT_JOBREG
    :status: implemented
-   :links: REQ_AUT_JOBREG; SPEC_AUT_SCHEDULERLOOP; SPEC_AUT_JOBSCHEMA
+   :links: REQ_AUT_JOBREG; REQ_AUT_AGENTMODEL; SPEC_AUT_SCHEDULERLOOP; SPEC_AUT_JOBSCHEMA
 
    **Description:**
    Two public methods on ``HeartbeatScheduler`` in ``src/heartbeat.ts``.
@@ -808,6 +905,18 @@ Automation Design Specifications
 
    **No-op semantics**: ``unregisterJob`` returns silently if the name is not
    found or the file cannot be read (safe to call unconditionally).
+
+   **Tool input schema** (``REQ_AUT_AGENTMODEL`` AC-5): the ``steps`` items of the
+   ``jarvis_registerJob`` ``inputSchema`` in ``packages/core/package.json`` gain two optional
+   string properties, ``vendor`` and ``model``, described as the vendor and the model id of an
+   agent step as listed by ``jarvis_listModels``. The handlers pass ``steps`` on unchanged, so
+   nothing else changes; the schema is what lets an Actor know the fields exist.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The ``inputSchema`` of ``jarvis_registerJob`` lists ``vendor`` and ``model`` for
+     the step items, and a job registered with them is persisted with both fields
+     (``REQ_AUT_AGENTMODEL`` AC-5).
 
 
 .. spec:: List Jobs LM+MCP Tool
@@ -908,6 +1017,68 @@ Automation Design Specifications
      an error to the caller
    * Uses the same ``cron-parser`` import already present in
      ``heartbeatTreeProvider.ts`` — no new dependency required
+
+
+.. spec:: List Available Language Models Command and Tool
+   :id: SPEC_AUT_LISTMODELS
+   :status: approved
+   :links: REQ_AUT_LISTMODELS; SPEC_AUT_AGENTEXEC; SPEC_ENG_REGISTER_TOOL
+
+   **Description:**
+   One list, two ways to read it: a command for the user and a tool for Actors. Both call
+   ``listAvailableModels()`` of ``SPEC_AUT_AGENTEXEC``, so the list is the one an agent step
+   matches against and the one its failure message prints. Nothing is cached. Both are
+   registered in ``extension.ts`` next to the heartbeat tools.
+
+   **Command:** ``jarvis.listModels``, title "Jarvis: List Language Models", available in the
+   Command Palette. It writes to the shared ``Jarvis`` log channel and brings the channel to
+   the front without taking focus:
+
+   .. code-block:: text
+
+      [Models] 3 language model(s) available; an agent step names vendor and model:
+      [Models] vendor="copilot" model="gpt-4o"
+      ...
+      [Models] no language model available          <- when the list is empty
+
+   One line per entry, in the order of ``toModelEntries``, written with ``formatModelEntry`` (the
+   notation of the failure message of ``SPEC_AUT_AGENTEXEC``); the values are in quotes so that
+   they can be copied into the YAML as written. Nothing but ``vendor`` and ``model`` is shown:
+   no display name (``REQ_AUT_LISTMODELS`` AC-3).
+
+   **Tool:** ``jarvis_listModels``, registered with ``engine.registerTool`` like
+   ``jarvis_listJobs`` (``SPEC_ENG_REGISTER_TOOL``), so it is offered over the LM API and the
+   embedded MCP server alike. No input. It returns the JSON array of ``ModelEntry``
+   (``{ vendor, model }``, no other field), an empty array when nothing is available. The
+   ``package.json`` entry:
+
+   .. code-block:: json
+
+      {
+        "name": "jarvis_listModels",
+        "displayName": "List Language Models",
+        "modelDescription": "Returns the language models an agent step of a heartbeat job can name, as an array of { vendor, model }. Use vendor and model exactly as returned.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "listModels",
+        "icon": "$(list-unordered)",
+        "inputSchema": { "type": "object", "properties": {} }
+      }
+
+   The tool handle is added to the disposables of ``activate()`` with the other tools.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``jarvis.listModels`` is contributed with the title "Jarvis: List Language Models" and
+     shows every entry of ``listAvailableModels()``, or a line saying that none is available
+     (``REQ_AUT_LISTMODELS`` AC-1).
+   * AC-2: ``jarvis_listModels`` is registered through ``engine.registerTool``, takes no input
+     and returns the same entries as the command (``REQ_AUT_LISTMODELS`` AC-2).
+   * AC-3: Each entry carries ``vendor`` and ``model`` with exactly the values that make an
+     agent step match (``SPEC_AUT_AGENTEXEC`` AC-1) and no other field, in particular no display
+     name (``REQ_AUT_LISTMODELS`` AC-3); the command writes it with ``formatModelEntry``
+     (``REQ_AUT_LISTMODELS`` AC-5).
+   * AC-4: Every call asks ``vscode.lm.selectChatModels()`` anew; no list is kept
+     (``REQ_AUT_LISTMODELS`` AC-4).
 
 
 .. spec:: Heartbeat Load-Time Destination Validation
@@ -1337,6 +1508,8 @@ Automation Design Specifications
               outputVar: METRICS
             - type: agent
               prompt: prompts/summarize.md
+              vendor: copilot        # a vendor and model as listed by jarvis.listModels
+              model: gpt-4o
               outputVar: SUMMARY
             - type: queue
               destination: Project Manager
@@ -1354,9 +1527,10 @@ Automation Design Specifications
      ``info`` level
    * AC-5: ``executeJob`` overwrites ``vars['LAST_STDERR']`` after each script step
      (most recent value only, not accumulated)
-   * AC-6: ``interpolateStep`` replaces ``${VAR_NAME}`` tokens in all string fields
-     (``run``, ``prompt``, ``outputFile``, ``destination``, ``sender``, ``text``)
-     before step execution
+   * AC-6: ``interpolateStep`` replaces ``${VAR_NAME}`` tokens in exactly these fields
+     (``run``, ``prompt``, ``outputFile``, ``destination``, ``sender``, ``text``,
+     ``vendor``, ``model``) before step execution; ``type``, ``append`` and ``outputVar`` are
+     left as they are (``REQ_AUT_STEP_OUTPUT_VARS`` AC-2)
    * AC-7: Undefined variable references are left as-is (no crash)
    * AC-8: ``loadJobs`` validates ``outputVar`` names against ``/^[A-Za-z_]\w*$/``
      and strips invalid names with a warning log

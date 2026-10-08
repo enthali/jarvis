@@ -12,6 +12,19 @@ afterEach(() => {
     }
 });
 
+describe('REQ_ACTOR_SCHEMA AC-9: ActorEntry carries no agent field', () => {
+    it('a legacy agent key in actor.yaml has no effect on the entry', async () => {
+        const root = fs.mkdtempSync(path.join(os.tmpdir(), 'jarvis-actors-'));
+        roots.push(root);
+        writeActor(root, 'Legacy Folder', 'name: Legacy Actor\nsummary: Has a legacy key\nagent: syspilot.cm\n');
+        const scanner = new ActorScanner(() => root, () => {});
+
+        await scanner.rescan();
+        expect(scanner.actors[0]).not.toHaveProperty('agent');
+        expect(scanner.actors[0]).toMatchObject({ name: 'Legacy Actor', summary: 'Has a legacy key' });
+    });
+});
+
 describe('REQ_ACTOR_SCHEMA / REQ_ACTOR_TREE: ActorScanner', () => {
     it('discovers only direct child actors and uses the absolute actor.yaml path as id', async () => {
         const root = fs.mkdtempSync(path.join(os.tmpdir(), 'jarvis-actors-'));
@@ -47,7 +60,7 @@ describe('REQ_ACTOR_SCHEMA / REQ_ACTOR_TREE: ActorScanner', () => {
         const scanner = new ActorScanner(() => root, () => {});
 
         await scanner.rescan();
-        expect(scanner.actors[0]).toMatchObject({ name: 'Fallback Actor', summary: 'Missing name', agent: '' });
+        expect(scanner.actors[0]).toMatchObject({ name: 'Fallback Actor', summary: 'Missing name' });
 
         const unresolved = new ActorScanner(() => '', () => {});
         await unresolved.rescan();

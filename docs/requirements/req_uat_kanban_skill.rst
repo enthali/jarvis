@@ -32,8 +32,7 @@ Kanban Skill Content UAT Requirements
      ``.github/skills/jarvis-kanban.board/SKILL.md`` and
      ``.github/instructions/jarvis-kanban.yaml.instructions.md`` — via the
      module-skill-provisioning activation (T-8 through T-12).
-   * AC-5: The tester confirms the active tab is the board file (or the EDH
-     is the workspace window) before invoking tools, to satisfy the active-tab
-     heuristic used by ``jarvis_whoAmI`` and kanban tools.
+   * AC-5: The tester passes the Actor's own name as ``ownerName`` in every
+     kanban tool call (``REQ_KAN_SKILLCONTENT`` AC-4).
    * AC-6: Step-by-step outcomes for T-1..T-12 are documented in the test
      protocol for this CR.

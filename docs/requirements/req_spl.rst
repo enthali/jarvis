@@ -83,8 +83,11 @@ Syspilot Lifecycle Requirements
    * AC-1: On first run (or if the actor folder is missing), the module SHALL
      create the actor via the Jarvis core API (``createActor`` or equivalent)
      with name ``"Syspilot Setup Engineer"`` and an appropriate summary.
-   * AC-2: The actor's ``actor.yaml`` SHALL bind to the
-     ``syspilot.setup.agent.md`` agent (``agent: syspilot.setup``).
+   * AC-2: The actor's persona is the syspilot setup agent. The module SHALL
+     pass a ``summary`` when creating the actor that names
+     ``.github/agents/syspilot.setup.agent.md`` as its persona, so that the
+     pre-filled ``context.md`` references it. The module SHALL NOT pass an
+     ``agent`` input (``REQ_ACTOR_CREATETOOL`` AC-1).
    * AC-3: If the actor already exists, no modification is made.
 
 
@@ -117,6 +120,10 @@ Syspilot Lifecycle Requirements
      auto-delivery poll loop (``REQ_MSG_AUTODELIVER_POLL``) without
      requiring the user to manually register the actor. This follows
      the same pattern established by the reminders feature.
+   * AC-5: The message SHALL name ``.github/agents/syspilot.setup.agent.md``
+     as the persona the actor adopts, so that an actor created before the
+     ``actor-identity-via-agent-file`` CR, whose ``context.md`` carries no
+     persona reference, still learns it (``REQ_SPL_ACTOR`` AC-3).
 
 
 .. req:: Suspend Tool
