@@ -1,5 +1,5 @@
 title: backlog
-nextId: 55
+nextId: 60
 fields:
   - name: status
     type: single_select
@@ -786,3 +786,112 @@ items:
       SPEC_CFG_HEARTBEATSETTINGS and its replacement text. The UAT setup of
       us_uat_heartbeat and spec_uat_heartbeat was fixed inside
       heartbeat-agent-model-selection (9208b32)."
+  - id: 55
+    name: Settle the status of spec elements stuck in draft
+    status: Backlog
+    labels:
+      - spec
+      - cleanup
+    notes: "Found 2026-10-04 (CM, actor-identity-via-agent-file): 18 elements
+      amended by that change stay draft because they were draft before it
+      (US_KAN_TOOLS, REQ_KAN_CREATE/VERIFY/OPEN/UPDATE, REQ_HOOK_INTAKE,
+      REQ_INJ_PRIMITIVE, REQ_SPL_ACTOR, REQ_SPL_NOTIFY,
+      REQ_AUT_HEARTBEAT_RESOLVER_REUSE, SPEC_INJ_INJECT, SPEC_MSG_OPENCHAT,
+      SPEC_KAN_CREATE/VERIFY/OPEN/UPDATE, SPEC_SPL_ACTOR, SPEC_SPL_NOTIFY). The
+      first count was 17; QM Round 2 found the 18th
+      (REQ_AUT_HEARTBEAT_RESOLVER_REUSE, reworded late in that change) and PM
+      confirmed it on 2026-10-08. The same happened in
+      retire-legacy-actor-kinds, and QM earlier noted elements that are
+      implemented but still draft. Current rule, followed so far: an element not
+      reviewed in a change keeps its status, and its approval belongs to the
+      change that opened it. Open: who approves such elements and when (the user
+      decides), then bring the statuses in line. No status was changed by PM."
+    priority: Low
+  - id: 56
+    name: 'Actor file tree label "Agent File: <basename>" in the spec, bare basename
+      in the code'
+    status: Backlog
+    labels:
+      - spec
+      - observation
+    notes: "Reported by Change Manager from Verify during
+      actor-identity-via-agent-file (2026-10-08), not verified by PM.
+      SPEC_ACTOR_FILES says the agent file child is labelled 'Agent File:
+      <basename>', but the code shows the bare basename. It predates that change
+      and is outside it. To decide: change the spec or the code."
+    priority: Low
+  - id: 57
+    name: "Multi-root workspaces: agent discovery per folder, ensureActorAgent uses
+      the first folder"
+    status: Backlog
+    labels:
+      - spec
+      - observation
+    notes: "Reported by Change Manager from Verify during
+      actor-identity-via-agent-file (2026-10-08), confirmed independently by QM
+      Round 1 (finding 3), derived from reading and not executed; not verified
+      by PM. Agent discovery scans .github/agents/ of every workspace folder and
+      returns the file path relative to the folder where it found it, but
+      ensureActorAgent resolves that path against the first folder
+      (getWorkspaceRoot) and computes the context.md path against it too. If the
+      only agent carrying the Actor's name sits in a second workspace folder,
+      the restore fails (skipped / writeFailed), the Actor opens without its
+      mode and it is only logged. The spec names the first folder as the
+      creation target and is silent about candidates in other folders; no test
+      uses more than one folder. PM decision 2026-10-08: deferred out of
+      actor-identity-via-agent-file, the multi-root case is undefined in the
+      spec. To decide (user): whether multi-root is supported at all; if so,
+      either search only the first folder or resolve the path against the folder
+      it came from, and which folder owns the Actor's agent file."
+    priority: Low
+  - id: 58
+    name: Remove the Identity section from the Jarvis actor kernel instructions
+    status: In Progress
+    labels:
+      - spec
+      - kernel
+    notes: 'DECIDED by the user 2026-10-08: option A, remove the whole section 0
+      (Identity) from
+      packages/core/assets/instructions/jarvis-actor.kernel.instructions.md,
+      folded into the active change actor-identity-via-agent-file (not a
+      separate change). User''s reason: from now on the Actor''s agent (mode)
+      file carries the identity, so the kernel section is redundant. PM had
+      recommended leaving it as it fails safe; the user decided otherwise and PM
+      follows. Consequences: the kernel no longer says what to do when the two
+      identity lines are missing; sections 1 to 4 keep their numbers;
+      REQ_ACTOR_WHOAMI AC-11 (only forbids naming jarvis_whoAmI) stays
+      satisfied; src/tests/actorAgent.test.ts asserts that the kernel asset
+      contains "your own agent file" and must change; System Designer checks
+      whether any spec describes the section. The asset is provisioned into
+      workspaces (gitignored copy), refreshed when jarvis.actor.autoProvision is
+      on. Background kept for the record: the section had three parts, (1) do
+      not infer identity or memory location from conversation text or folder
+      names, session titles can drift; (2) name and context.md path are the two
+      lines after the front matter of your own agent file; (3) if those two
+      lines are missing, stop actor-owned writes and escalate to the user. User
+      view: redundant, the name is also in the session-start prompt and in every
+      delivered message, and a name was never lost after a compaction. Set to
+      Done when the change is merged.'
+    priority: Medium
+  - id: 59
+    name: Anchor "kernel has no identity section" at L1 and narrow its test to the
+      heading
+    status: Backlog
+    labels:
+      - spec
+      - kernel
+    notes: "QM Round 4 finding R4-1 (low) of actor-identity-via-agent-file, PM
+      decision 2026-10-08: deferred. SPEC_ACTOR_WHOAMI AC-10 records the user
+      decision \"the kernel instructions have no identity section\", but no
+      requirement carries it (REQ_ACTOR_WHOAMI AC-11 only forbids naming
+      jarvis_whoAmI), so a differently worded identity section would pass the
+      requirement and fail design and test. Also, the test in
+      src/tests/actorAgent.test.ts asserts not.toContain('Identity'), which
+      rejects the word anywhere in the asset, not only a section; it fails
+      loudly, never silently. Reason for deferring: no behaviour is wrong today,
+      the cost is one more change run (System Designer, Dev, Verify, QM) before
+      the user's validation. To decide with the System Designer (design is
+      user-guided): either one L1 sentence (REQ_ACTOR_WHOAMI AC-11, kernel SHALL
+      NOT contain an identity section) or state that AC-10 is a pure design pin;
+      then narrow the test to the heading."
+    priority: Low

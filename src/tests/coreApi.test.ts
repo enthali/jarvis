@@ -15,7 +15,7 @@ import * as vscode from 'vscode';
 import { JarvisEngine } from '../../packages/core/src/engine/core/coreApi';
 import { ActorScanner } from '../../packages/core/src/engine/actors/actorScanner';
 
-function makeEngine(actors: { name: string; summary: string; agent: string; folder: string; id: string }[] = []) {
+function makeEngine(actors: { name: string; summary: string; folder: string; id: string }[] = []) {
     const scanner = new ActorScanner(() => '', () => {});
     // @ts-expect-error — poke the private cache directly; no filesystem needed for these tests
     scanner['_actors'] = actors;
@@ -46,10 +46,10 @@ describe('SPEC_ENG_API: JarvisEngine.registerTool', () => {
 });
 
 describe('SPEC_ENG_ACTORLIST: JarvisEngine.listActors', () => {
-    it('projects the Actor scanner cache to the public shape', () => {
-        const actor = { name: 'A', summary: 'S', agent: 'Ag', folder: '/f', id: '/f/actor.yaml' };
+    it('projects the Actor scanner cache to the public shape, agent equal to name', () => {
+        const actor = { name: 'A', summary: 'S', folder: '/f', id: '/f/actor.yaml' };
         const { engine } = makeEngine([actor]);
-        expect(engine.listActors()).toEqual([actor]);
+        expect(engine.listActors()).toEqual([{ ...actor, agent: 'A' }]);
     });
 });
 
@@ -105,8 +105,8 @@ describe('SPEC_SPL_NOTIFY / SPEC_ENG_API AC-8: JarvisEngine.sendMessage', () => 
     });
 
     it('refuses an ambiguous destination with an error notification, without queuing (finding 5)', () => {
-        const actor = { name: 'S', summary: '', agent: '', folder: '/f', id: '/f/actor.yaml' };
-        const dup = { name: 'S', summary: '', agent: '', folder: '/g', id: '/g/actor.yaml' };
+        const actor = { name: 'S', summary: '', folder: '/f', id: '/f/actor.yaml' };
+        const dup = { name: 'S', summary: '', folder: '/g', id: '/g/actor.yaml' };
         const { engine } = makeEngine([actor, dup]);
         const queuePath = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'jarvis-sendmsg-')), 'messages.json');
         engine.setMessaging(() => queuePath, () => {});
@@ -128,7 +128,7 @@ describe('SPEC_SPL_NOTIFY / SPEC_ENG_API AC-8: JarvisEngine.sendMessage', () => 
     });
 
     it('does not validate the sender name (skipped for module-internal senders)', () => {
-        const actor = { name: 'S', summary: '', agent: '', folder: '/f', id: '/f/actor.yaml' };
+        const actor = { name: 'S', summary: '', folder: '/f', id: '/f/actor.yaml' };
         const { engine } = makeEngine([actor]);
         const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'jarvis-sendmsg-'));
         const queuePath = path.join(dir, 'messages.json');

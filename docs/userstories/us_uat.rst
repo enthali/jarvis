@@ -30,6 +30,7 @@ for each feature. Each file corresponds to one feature or change.
    us_uat_kanban_mgmt
    us_uat_kanban_update_valid
    us_uat_mod_actorrules
+   us_uat_actor_identity
 
 All UAT User Stories
 --------------------

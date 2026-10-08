@@ -191,8 +191,7 @@ Syspilot Lifecycle Design Specifications
           await api.invokeTool('jarvis_createActor', {
             input: {
               name: 'Syspilot Setup Engineer',
-              summary: 'Manages syspilot agent installation and updates',
-              agent: 'syspilot.setup'
+              summary: 'Manages syspilot agent installation and updates. Your persona is .github/agents/syspilot.setup.agent.md; read it and follow it.'
             },
             toolInvocationToken: undefined,
             requestedContentTypes: ['text/plain']
@@ -206,7 +205,9 @@ Syspilot Lifecycle Design Specifications
 
    **Acceptance Criteria:**
 
-   * AC-1: The actor is created with ``agent: syspilot.setup`` binding.
+   * AC-1: The actor is created with a ``summary`` that names
+     ``.github/agents/syspilot.setup.agent.md`` as its persona, and without
+     an ``agent`` input (``REQ_SPL_ACTOR`` AC-2).
    * AC-2: If the actor already exists (checked via ``listActors()``), no
      modification is made.
    * AC-3: The actor folder is placed under the configured actors folder
@@ -230,6 +231,8 @@ Syspilot Lifecycle Design Specifications
 
    .. code-block:: text
 
+      Your persona is .github/agents/syspilot.setup.agent.md; read it first if
+      you have not done so.
       Please ask the user whether they want to install this update now,
       skip this version by calling jarvis_SyspilotSkipThisVersion(),
       or delay it for N days by calling jarvis_delaySyspilotUpdate(N).
@@ -241,6 +244,7 @@ Syspilot Lifecycle Design Specifications
       async function notifyActor(api: JarvisCoreApi, workspaceRoot: string, log: vscode.LogOutputChannel): Promise<void> {
         await ensureActor(api);
         const text =
+          `Your persona is .github/agents/syspilot.setup.agent.md; read it first if you have not done so. ` +
           `Please ask the user whether they want to install this update now, ` +
           `skip this version by calling jarvis_SyspilotSkipThisVersion(), ` +
           `or delay it for N days by calling jarvis_delaySyspilotUpdate(N).`;
@@ -270,7 +274,9 @@ Syspilot Lifecycle Design Specifications
    * AC-1: The message is queued via ``api.sendMessage()`` (core API method).
    * AC-2: The sender field is ``"jarvis-syspilot"``.
    * AC-3: The message text does NOT embed a version number — the actor reads
-     its own frontmatter. Three user choices are offered: install now,
+     its own frontmatter. It names ``.github/agents/syspilot.setup.agent.md``
+     as the actor's persona (``REQ_SPL_NOTIFY`` AC-5). Three user choices are
+     offered: install now,
      skip this version, or delay for N days. Tool names use underscore
      notation (``jarvis_SyspilotSkipThisVersion``,
      ``jarvis_delaySyspilotUpdate``) so the actor can invoke them directly.

@@ -36,28 +36,21 @@ function yamlString(value: string): string {
 export interface WriteActorFilesArgs {
     name: string;
     summary?: string;
-    agent?: string;
 }
 
-/** Writes actor.yaml (all 3 fields, always) and context.md into a new Actor folder. */
+/** Writes actor.yaml (name, summary) and context.md into a new Actor folder. */
 export async function writeActorFiles(actorsFolder: string, args: WriteActorFilesArgs): Promise<string> {
     const targetFolder = path.join(actorsFolder, args.name);
     await fs.promises.mkdir(targetFolder, { recursive: true });
-    await writeActorAgent(targetFolder, args);
-    const contextContent = args.summary ? `# ${args.name}\n\n${args.summary}\n` : `# ${args.name}\n\n`;
-    await fs.promises.writeFile(path.join(targetFolder, 'context.md'), contextContent, 'utf8');
-    return targetFolder;
-}
-
-/** Writes actor.yaml with all 3 fields (double-quoted/escaped), always. */
-export async function writeActorAgent(actorFolder: string, args: WriteActorFilesArgs): Promise<void> {
     const yamlLines = [
         `name: ${yamlString(args.name)}`,
         `summary: ${yamlString(args.summary ?? '')}`,
-        `agent: ${yamlString(args.agent ?? '')}`,
         '',
     ];
-    await fs.promises.writeFile(path.join(actorFolder, 'actor.yaml'), yamlLines.join('\n'), 'utf8');
+    await fs.promises.writeFile(path.join(targetFolder, 'actor.yaml'), yamlLines.join('\n'), 'utf8');
+    const contextContent = args.summary ? `# ${args.name}\n\n${args.summary}\n` : `# ${args.name}\n\n`;
+    await fs.promises.writeFile(path.join(targetFolder, 'context.md'), contextContent, 'utf8');
+    return targetFolder;
 }
 
 /**

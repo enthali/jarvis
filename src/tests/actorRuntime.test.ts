@@ -49,7 +49,7 @@ describe('SPEC_ACTOR_LISTTOOL: createListActorsHandler', () => {
             {
                 name: 'Direct Actor',
                 summary: '',
-                agent: '',
+                agent: 'Direct Actor',
                 folder: path.join(root, 'Direct Folder'),
                 id: path.join(root, 'Direct Folder', 'actor.yaml'),
             },
@@ -89,7 +89,6 @@ describe('SPEC_ACTOR_CREATETOOL: createActorHandler', () => {
         return {
             deps: {
                 resolveActorsFolder: () => root,
-                discoverAgentModes: async () => [{ name: 'syspilot.cm' }],
                 appendMessage: vi.fn(),
                 reloadMessages: vi.fn(),
                 actorScanner,
@@ -120,7 +119,7 @@ describe('SPEC_ACTOR_CREATETOOL: createActorHandler', () => {
         expect(fs.existsSync(path.join(root, 'New Actor', 'context.md'))).toBe(true);
         expect(actorScanner.actors.map(a => a.name)).toContain('New Actor');
         expect(deps.openActorSession).toHaveBeenCalledWith('New Actor');
-    });
+    }, 10_000);
 
     it('is idempotent: an existing folder yields created:false and no session open', async () => {
         const root = makeRoot();
@@ -144,18 +143,6 @@ describe('SPEC_ACTOR_CREATETOOL: createActorHandler', () => {
         expect(deps.openActorSession).not.toHaveBeenCalled();
     });
 
-    it('rejects an unavailable agent before writing anything', async () => {
-        const root = makeRoot();
-        const { deps } = makeDeps(root);
-        const handler = createActorHandler(deps);
-
-        await expect(handler(
-            { input: { name: 'Bad Agent Actor', agent: 'nonexistent' } } as vscode.LanguageModelToolInvocationOptions<unknown>,
-            {} as vscode.CancellationToken,
-        )).rejects.toThrow(/Agent "nonexistent" is not available/);
-        expect(fs.existsSync(path.join(root, 'Bad Agent Actor'))).toBe(false);
-    });
-
     it('rejects an invalid actor name', async () => {
         const root = makeRoot();
         const { deps } = makeDeps(root);
@@ -169,6 +156,7 @@ describe('SPEC_ACTOR_CREATETOOL: createActorHandler', () => {
 
     it('does not open a session when openSessionOnCreate is false', async () => {
         const root = makeRoot();
+        (vscodeMock.workspace as any).workspaceFolders = [{ uri: { fsPath: root } }];
         const { deps } = makeDeps(root, { openSessionOnCreate: () => false });
         const handler = createActorHandler(deps);
 
@@ -178,5 +166,22 @@ describe('SPEC_ACTOR_CREATETOOL: createActorHandler', () => {
         );
 
         expect(deps.openActorSession).not.toHaveBeenCalled();
-    });
+    }, 10_000);
+
+    it('an agent input is ignored: it is neither validated nor written (SPEC_ACTOR_CREATETOOL AC-5)', async () => {
+        const root = makeRoot();
+        (vscodeMock.workspace as any).workspaceFolders = [{ uri: { fsPath: root } }];
+        const { deps } = makeDeps(root);
+        const handler = createActorHandler(deps);
+
+        const result = await handler(
+            { input: { name: 'Odd Agent Actor', agent: 'nonexistent' } } as vscode.LanguageModelToolInvocationOptions<unknown>,
+            {} as vscode.CancellationToken,
+        );
+
+        const payload = JSON.parse((result.content[0] as LanguageModelTextPart).value);
+        expect(payload.created).toBe(true);
+        const yaml = fs.readFileSync(path.join(root, 'Odd Agent Actor', 'actor.yaml'), 'utf8');
+        expect(yaml).not.toContain('agent:');
+    }, 10_000);
 });

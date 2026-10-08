@@ -42,6 +42,7 @@ export interface ModuleAssetConfig {
 export interface JarvisActor {
     name: string;
     summary: string;
+    /** The Actor's own agent, equal to name (SPEC_ACTOR_WHOAMI). */
     agent: string;
     folder: string;
     id: string;

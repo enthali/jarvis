@@ -5,6 +5,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { lookupSessionUUID } from './sessionLookup';
 import { ActorScanner, ambiguousActorMessage } from '../actors/actorScanner';
+import { ensureActorAgent } from '../actors/actorAgent';
 
 // --- Module-level dependencies (injected via init) ---
 
@@ -41,8 +42,8 @@ function applyTemplate(template: string, vars: Record<string, string>): string {
     return template.replace(/\$\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m));
 }
 
-const DEFAULT_INIT_PROMPT =
-    `You are the agent session for the Actor "\${name}".\n\n` +
+export const DEFAULT_INIT_PROMPT =
+    `You are the Actor "\${name}".\n\n` +
     `Use only \`\${contextPath}\` as your persistent memory. Read it now.\n\n` +
     `Keep it minimal and action-oriented:\n` +
     `- Store only long-lived items under Decision / Finding / Next.\n` +
@@ -157,6 +158,10 @@ export async function injectPrompt(
     }
     const entity = lookup.actor;
 
+    // 1b. Ensure the Actor's agent file exists and carries its identity lines
+    // (SPEC_ACTOR_WHOAMI). A `skipped` result is not an error; it simply sets no mode.
+    const agentResult = await ensureActorAgent({ name: entity.name, folder: entity.folder });
+
     // 2. Session lookup
     const uuid = await lookupSessionUUID(entityName);
     let isExistingSession = false;
@@ -173,20 +178,20 @@ export async function injectPrompt(
             await _openAtSecondary(uri, entityName);
         }
 
-        if (entity.agent) {
-            await _reapplyAgentMode(entity.agent, entityName);
+        if (agentResult.status === 'ready') {
+            await _reapplyAgentMode(agentResult.mode, entityName);
         }
 
         await new Promise(resolve => setTimeout(resolve, 800));
     } else {
         // 3b. New session (spawn)
-        if (entity.agent) {
+        if (agentResult.status === 'ready') {
             try {
                 await vscode.commands.executeCommand(
-                    'workbench.action.chat.open', { mode: entity.agent });
+                    'workbench.action.chat.open', { mode: agentResult.mode });
                 await new Promise(resolve => setTimeout(resolve, 300));
             } catch (err) {
-                _log?.warn(`[INJ] injectPrompt: failed to prime agent mode "${entity.agent}": ${err}`);
+                _log?.warn(`[INJ] injectPrompt: failed to prime agent mode "${agentResult.mode}": ${err}`);
             }
         }
 

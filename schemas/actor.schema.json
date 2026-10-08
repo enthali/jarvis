@@ -13,7 +13,8 @@
       "type": "string"
     },
     "agent": {
-      "type": "string"
+      "type": "string",
+      "description": "Deprecated and ignored. An Actor's agent is identified by the Actor name (SPEC_ACTOR_WHOAMI)."
     }
   }
 }

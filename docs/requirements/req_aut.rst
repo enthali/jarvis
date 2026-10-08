@@ -404,7 +404,7 @@ Automation Requirements
    * AC-2: No new session-enumeration logic SHALL be introduced; if the resolver
      changes (e.g. new filtering rules), both ``jarvis_sendToSession`` and heartbeat
      validation automatically inherit the change
-   * AC-3: The valid destination set is the set of Actor names from kindless
+   * AC-3: The valid destination set is the set of Actor names from
      direct-child discovery under ``jarvis.actors.folder``
      (``REQ_ACTOR_ACTIVATION`` AC-3). Chat session titles are not part of it.
      This set is the canonical destination

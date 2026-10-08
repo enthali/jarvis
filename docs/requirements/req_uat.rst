@@ -30,6 +30,7 @@ end-to-end verification of each feature.
    req_uat_kanban_mgmt
    req_uat_kanban_update_valid
    req_uat_mod_actorrules
+   req_uat_actor_identity
 
 All UAT Requirements
 --------------------

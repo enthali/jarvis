@@ -53,21 +53,21 @@ describe('REQ_ACTOR_CREATE: actorNameProblem (InputBox validator)', () => {
 });
 
 describe('REQ_ACTOR_CREATE: writeActorFiles', () => {
-    it('writes actor.yaml with all 3 fields and context.md with the summary', async () => {
+    it('writes actor.yaml with name/summary and context.md with the summary', async () => {
         const actorsFolder = fs.mkdtempSync(path.join(os.tmpdir(), 'jarvis-actor-create-'));
         roots.push(actorsFolder);
 
-        const target = await writeActorFiles(actorsFolder, { name: 'New Actor', summary: 'A summary', agent: 'syspilot.cm' });
+        const target = await writeActorFiles(actorsFolder, { name: 'New Actor', summary: 'A summary' });
 
         expect(target).toBe(path.join(actorsFolder, 'New Actor'));
         const yaml = fs.readFileSync(path.join(target, 'actor.yaml'), 'utf8');
         expect(yaml).toContain('name: "New Actor"');
         expect(yaml).toContain('summary: "A summary"');
-        expect(yaml).toContain('agent: "syspilot.cm"');
+        expect(yaml).not.toContain('agent:');
         expect(fs.readFileSync(path.join(target, 'context.md'), 'utf8')).toBe('# New Actor\n\nA summary\n');
     });
 
-    it('writes an empty agent/summary when omitted', async () => {
+    it('writes an empty summary when omitted', async () => {
         const actorsFolder = fs.mkdtempSync(path.join(os.tmpdir(), 'jarvis-actor-create-'));
         roots.push(actorsFolder);
 
@@ -75,7 +75,6 @@ describe('REQ_ACTOR_CREATE: writeActorFiles', () => {
 
         const yaml = fs.readFileSync(path.join(target, 'actor.yaml'), 'utf8');
         expect(yaml).toContain('summary: ""');
-        expect(yaml).toContain('agent: ""');
         expect(fs.readFileSync(path.join(target, 'context.md'), 'utf8')).toBe('# Quiet Actor\n\n');
     });
 });
@@ -102,7 +101,7 @@ describe('REQ_ACTOR_CREATE AC-3 / REQ_ACTOR_CREATETOOL AC-7: existingActorFolder
         const actorsFolder = fs.mkdtempSync(path.join(os.tmpdir(), 'jarvis-actor-create-'));
         roots.push(actorsFolder);
         // Hand-edited actor.yaml under a differently-named folder, added after scanner construction.
-        await writeActorFiles(actorsFolder, { name: 'Existing Name', summary: '', agent: '' });
+        await writeActorFiles(actorsFolder, { name: 'Existing Name', summary: '' });
         const scanner = new ActorScanner(() => actorsFolder, () => {});
 
         const blocking = await existingActorFolder(actorsFolder, 'Existing Name', scanner);

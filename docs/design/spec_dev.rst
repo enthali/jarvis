@@ -376,7 +376,7 @@ Developer Tooling Design Specifications
      context-menu and touched-files commands) — plus those created in
      ``activateHeartbeat``
    * **LM Tools**: every ``engine.registerTool`` result, including
-     ``jarvis_createActor``, ``jarvis_listActors``, ``jarvis_whoAmI``
+     ``jarvis_createActor``, ``jarvis_listActors``
    * **Tree Views**: ``actorsView``, ``messageView``, ``remindersView``,
      ``heartbeatView`` (created in ``activateHeartbeat``)
    * **Status Bar Items**: heartbeat status bar item (created in

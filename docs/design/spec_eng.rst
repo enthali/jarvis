@@ -20,7 +20,7 @@ Engine Design Specifications
       export interface JarvisActor {
           name: string;
           summary: string;   // "" when absent
-          agent: string;     // "" when absent
+          agent: string;     // the Actor's own agent, equal to name
           folder: string;    // absolute Actor folder
           id: string;        // absolute path of actor.yaml
       }
@@ -307,7 +307,7 @@ Engine Design Specifications
 
 .. spec:: Platform Actor List API
    :id: SPEC_ENG_ACTORLIST
-   :status: approved
+   :status: implemented
    :links: REQ_ENG_ACTORLIST; SPEC_ACTOR_SCANNER; SPEC_ACTOR_LISTTOOL
 
    **Description:**
@@ -319,7 +319,7 @@ Engine Design Specifications
 
       listActors(): JarvisActor[] {
           return actorScanner.actors.map(a => ({
-              name: a.name, summary: a.summary, agent: a.agent, folder: a.folder, id: a.id,
+              name: a.name, summary: a.summary, agent: a.name, folder: a.folder, id: a.id,
           }));
       }
 

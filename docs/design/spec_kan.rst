@@ -364,19 +364,20 @@ Kanban Design Specifications
 
       {
         boardName?: string;   // omit or empty → "kanban.yaml"
-        ownerName?: string;   // omit → resolve via jarvis_whoAmI
+        ownerName: string;    // required; the calling Actor passes its own name
       }
 
    **Algorithm:**
 
-   1. **Resolve owner:** if ``ownerName`` provided, filter
-      ``api.listActors()`` by exact ``name``. Unless exactly one Actor
-      matches → return ``{ error: "actor unknown" }``; a name carried by
-      several Actors is unresolved, never the first match
+   1. **Resolve owner:** ``ownerName`` missing or empty → return
+      ``{ error: "ownerName required" }`` (``REQ_KAN_CREATE`` AC-3).
+      Otherwise filter ``api.listActors()`` by exact ``name``. Unless exactly
+      one Actor matches → return ``{ error: "actor unknown" }``; a name
+      carried by several Actors is unresolved, never the first match
       (``REQ_ACTOR_SCHEMA`` AC-7, the rule of ``SPEC_ACTOR_SCANNER``
-      ``resolveName``). If omitted, invoke
-      ``jarvis_whoAmI`` via ``api.invokeTool('jarvis_whoAmI', ...)`` to
-      get the calling actor's name and folder.
+      ``resolveName``). The calling Actor passes its own name, which it knows
+      from its agent (``SPEC_ACTOR_WHOAMI``); the tool does not look the
+      caller up.
    2. **Resolve filename:** Normalize ``boardName`` before constructing the
       path:
 
@@ -421,6 +422,9 @@ Kanban Design Specifications
 
    * AC-1: Creates a valid skeleton board YAML.
    * AC-2: Returns error for unknown owner.
+   * AC-5: A missing or empty ``ownerName`` returns
+     ``{ error: "ownerName required" }``; the tool's input schema lists
+     ``ownerName`` as required.
    * AC-3: Returns error if file exists (no overwrite).
    * AC-4: Registers with ``toolReferenceName: "createKanbanBoard"``.
 
@@ -440,7 +444,7 @@ Kanban Design Specifications
 
       {
         boardName?: string;   // same resolution as SPEC_KAN_CREATE
-        ownerName?: string;
+        ownerName: string;    // required, as in SPEC_KAN_CREATE
       }
 
    **Algorithm:**
@@ -510,7 +514,7 @@ Kanban Design Specifications
 
       {
         boardName?: string;   // same resolution as SPEC_KAN_CREATE
-        ownerName?: string;
+        ownerName: string;    // required, as in SPEC_KAN_CREATE
       }
 
    **Algorithm:**
@@ -553,7 +557,7 @@ Kanban Design Specifications
           [fieldName: string]: string | string[] | undefined;
         };
         boardName?: string;   // same resolution as SPEC_KAN_CREATE
-        ownerName?: string;
+        ownerName: string;    // required, as in SPEC_KAN_CREATE
       }
 
    **Algorithm:**
@@ -933,7 +937,7 @@ Kanban Design Specifications
 
 .. spec:: jarvis_addKanbanItem Tool
    :id: SPEC_KAN_ADD
-   :status: approved
+   :status: implemented
    :links: REQ_KAN_ADD; SPEC_KAN_WRITEVALID; SPEC_KAN_UPDATE; SPEC_ACTOR_WHOAMI
 
    **Description:**
@@ -954,7 +958,7 @@ Kanban Design Specifications
         notes?: string;
         fields?: Record<string, string>;  // values for declared fields
         boardName?: string;
-        ownerName?: string;
+        ownerName: string;                // required, as in SPEC_KAN_CREATE
       }
 
    **Algorithm:**
@@ -992,7 +996,7 @@ Kanban Design Specifications
 
 .. spec:: jarvis_deleteKanbanItem Tool
    :id: SPEC_KAN_DELETE
-   :status: approved
+   :status: implemented
    :links: REQ_KAN_DELETE; SPEC_KAN_UPDATE; SPEC_ACTOR_WHOAMI
 
    **Description:**
@@ -1003,7 +1007,7 @@ Kanban Design Specifications
 
    .. code-block:: typescript
 
-      { itemId: number; boardName?: string; ownerName?: string }
+      { itemId: number; boardName?: string; ownerName: string }
 
    **Algorithm:**
 
@@ -1038,7 +1042,7 @@ Kanban Design Specifications
 
 .. spec:: jarvis_listKanbanItems Tool
    :id: SPEC_KAN_LIST
-   :status: approved
+   :status: implemented
    :links: REQ_KAN_LIST; SPEC_ACTOR_WHOAMI
 
    **Description:**
@@ -1054,7 +1058,7 @@ Kanban Design Specifications
         status?: string;
         labels?: string[];
         boardName?: string;
-        ownerName?: string;
+        ownerName: string;    // required, as in SPEC_KAN_CREATE
       }
 
    **Algorithm:**
@@ -1095,7 +1099,7 @@ Kanban Design Specifications
 
 .. spec:: jarvis_updateKanbanFields Tool
    :id: SPEC_KAN_FIELDS
-   :status: approved
+   :status: implemented
    :links: REQ_KAN_FIELDS; SPEC_KAN_SCHEMA; SPEC_KAN_UPDATE; SPEC_ACTOR_WHOAMI
 
    **Description:**
@@ -1115,7 +1119,7 @@ Kanban Design Specifications
         optionName?: string;            // addOption / removeOption
         optionColor?: string;           // addOption
         boardName?: string;
-        ownerName?: string;
+        ownerName: string;              // required, as in SPEC_KAN_CREATE
       }
 
    **Reference guard (shared by ``removeField`` and ``removeOption``):**
@@ -1177,7 +1181,7 @@ Kanban Design Specifications
 
 .. spec:: Kanban Skill Asset Content
    :id: SPEC_KAN_SKILLCONTENT
-   :status: approved
+   :status: implemented
    :links: REQ_KAN_SKILLCONTENT; SPEC_KAN_SCHEMA; SPEC_MOD_SKILL_PROVISION
 
    **Description:**
@@ -1244,16 +1248,16 @@ Kanban Design Specifications
    Stated as the tool behaves (``SPEC_KAN_CREATE`` step 1), not as a
    precondition on the caller:
 
-   * Omit ``ownerName`` to address the calling actor's own board. The tool
-     resolves the caller via ``jarvis_whoAmI`` itself.
-   * Supply ``ownerName`` only to address a *different* Actor's board.
+   * ``ownerName`` is always supplied. The calling actor passes its own
+     name, which it knows from its agent (``SPEC_ACTOR_WHOAMI``), to address
+     its own board, and another Actor's name to address that Actor's board.
    * A supplied name that matches no discovered Actor, or more than one,
-     returns ``{ error: "actor unknown" }``.
+     returns ``{ error: "actor unknown" }``; a call without ``ownerName``
+     returns ``{ error: "ownerName required" }``.
 
-   The skill SHALL NOT instruct the actor to call ``jarvis_whoAmI`` first and
-   pass the result: that is a redundant round trip which converts a resolved
-   call into a name-matching call, and name matching is the only path that can
-   fail with ``actor unknown``.
+   The skill SHALL NOT mention ``jarvis_whoAmI``: the tool no longer exists,
+   and an actor that looks for it would lose a round trip to an unknown
+   tool.
 
    **Pitfalls — required content:**
 
@@ -1277,8 +1281,9 @@ Kanban Design Specifications
    * AC-1: All sections listed above are present and non-empty.
    * AC-2: The example board validates against
      ``schemas/kanban.schema.json`` and exercises both field types.
-   * AC-3: The owner-resolution section describes omission as the default path
-     and contains no instruction to pre-resolve via ``jarvis_whoAmI``.
+   * AC-3: The owner-resolution section states that ``ownerName`` is always
+     supplied with the calling actor's own name and contains no mention of
+     ``jarvis_whoAmI``.
    * AC-4: The pitfalls section contains all five entries above, each naming
      its observable symptom.
    * AC-5: The item-property list matches the schema's required and optional

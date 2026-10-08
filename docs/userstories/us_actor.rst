@@ -62,8 +62,8 @@ Actor User Stories
      ``actor.yaml`` edit; it is a misconfiguration, Jarvis does not act on
      that name, and sending a message to it fails with an error the user
      sees. The ``actor.yaml`` file contains
-     ``name`` (required) and ``summary`` (optional), and optionally
-     ``agent:`` to bind the Actor to a specific agent persona.
+     ``name`` (required) and ``summary`` (optional). A legacy ``agent:``
+     field is ignored (AC-6).
    * AC-2: The Actor's ``context.md`` is its persistent memory. It is
      read and written by the Actor itself (via the agent running in its
      session) and is never mutated by any other mechanism. The file is
@@ -79,20 +79,22 @@ Actor User Stories
      Closing, restarting, or swapping the session does not destroy the
      Actor; its identity (name, folder, ``context.md``) is fully
      recoverable from the file system alone.
-   * AC-5: The Actor does not require any kind registration, kind-driven
-     scanner, or multi-tree-root infrastructure. It is discovered only
-     as a direct child folder of ``jarvis.actors.folder`` (US_ACTOR_TREE
-     AC-2); deeper subfolders are not scanned for Actors. Listing,
-     identity recovery, and heartbeat/reminder destination resolution
-     also use this kindless discovery.
-   * AC-6: An Actor can be bound to an agent persona via the optional
-     ``agent:`` field in ``actor.yaml``. The binding is optional and can
-     be set or changed at any time; it does not affect the Actor's
-     identity or memory.
+   * AC-5: An Actor is discovered only as a direct child folder of
+     ``jarvis.actors.folder`` (US_ACTOR_TREE AC-2); deeper subfolders are
+     not scanned for Actors. Listing, the Actor's identity
+     (``US_ACTOR_WHOAMI``), and heartbeat/reminder destination resolution
+     all use this discovery.
+   * AC-6: Every Actor has exactly one chat agent of its own, named like
+     the Actor (``US_ACTOR_WHOAMI``). Jarvis creates it when it is missing,
+     for every Actor including those that existed before, without any
+     action by the user. The Actor's persona is not chosen in Jarvis: it is
+     referenced from the Actor's ``context.md``, and several Actors may
+     share one persona that way. A legacy ``agent:`` field in
+     ``actor.yaml`` is ignored.
    * AC-7: When a new chat session is opened for an Actor, it receives an
      initialization prompt naming the Actor and its ``context.md`` and asking
      it to keep that memory lean and action-oriented; the session opens in
-     the Actor's bound agent mode. The user can replace the prompt via
+     the Actor's own agent. The user can replace the prompt via
      ``jarvis.agentSession.initPromptTemplate``.
 
 
@@ -155,7 +157,7 @@ Actor User Stories
    **As a** Jarvis user,
    **I want** a single "+" button in the ACTORS tree title bar,
    **so that** I can create a new Actor — folder, ``actor.yaml``,
-   ``context.md``, and optional agent binding — in one step.
+   ``context.md``, and its own agent — in one step.
 
    **Acceptance Criteria:**
 
@@ -168,11 +170,10 @@ Actor User Stories
    * AC-3: A valid name is followed by an optional summary input (Escape
      skips). The Actor is then created as ``<actorsFolder>/<name>/``
      containing an ``actor.yaml`` (``name: <name>`` plus optional
-     ``summary:`` and ``agent:``) and a ``context.md`` pre-filled with the
+     ``summary:``) and a ``context.md`` pre-filled with the
      Actor name as heading, followed by the summary if one was given.
-   * AC-4: After creation, an agent binding QuickPick opens (Escape skips);
-     the chosen agent name is written into the ``agent:`` field of
-     ``actor.yaml``.
+   * AC-4: No agent is picked. The new Actor has its own agent
+     (``US_ACTOR_ACTORS`` AC-6).
    * AC-5: The ACTORS tree refreshes to show the new Actor immediately,
      without a manual rescan.
    * AC-6: After a new Actor is created, its chat session opens when the
@@ -183,40 +184,31 @@ Actor User Stories
      Actors in a row.
 
 
-.. story:: Actor Identity Recovery
+.. story:: Actor Identity
    :id: US_ACTOR_WHOAMI
    :status: approved
    :priority: required
    :links: US_ACTOR_ACTORS
 
-   **As an** Actor operating in a chat session,
-   **I want** a tool ``jarvis_whoAmI`` that tells me my own name and the
-   absolute path to my ``context.md``,
-   **so that** I can reliably recover my identity after ``/compact`` or
-   context loss and resume my role by reading my persistent memory.
+   **As a** Jarvis Actor operating in a chat session,
+   **I want** to know my own name and where my ``context.md`` lives in every
+   session,
+   **so that** I can resume my role from my persistent memory without asking
+   the user and without calling a tool.
 
    **Acceptance Criteria:**
 
-   * AC-1: Calling ``jarvis_whoAmI`` from a chat session bound to an Actor
-     (i.e. a session whose Actor folder exists under
-     ``jarvis.actors.folder``) SHALL return the Actor's name and the
-     absolute path to its ``context.md``.
-   * AC-2: If the calling session is not bound to a discoverable Actor
-     (no folder under ``jarvis.actors.folder``), the tool SHALL return an
-     error instructing the session to ask the user to resolve its
-     identity.
-   * AC-3: The tool SHALL require no input parameters; the extension
-     resolves the calling session's identity automatically.
-   * AC-4: If the name matches more than one Actor, the tool SHALL return
-     an error rather than guess — a confused identity is worse than no
-     identity.
-   * AC-5: The answer SHALL depend only on which session asked, not on which
-     editor tab, file, or panel is focused. Repeated calls from one unchanged
-     session SHALL return the same Actor, so I can trust the answer without
-     checking where the user's cursor is.
-   * AC-6: If the extension cannot determine which session asked, it SHALL
-     say so and ask the user rather than return a guess — a confidently
-     wrong identity would make me adopt another Actor's memory.
+   * AC-1: A session of an Actor knows the Actor's name and the
+     workspace-relative path of its ``context.md`` from the first request
+     on, without a tool call and without agent hooks.
+   * AC-2: This also holds after the conversation was compacted. Whether the
+     content of ``context.md`` is remembered afterwards is not part of this
+     story; it remains subject to Copilot's compaction behaviour.
+   * AC-3: Every Actor has this identity without any action by the user,
+     including Actors that existed before this feature.
+   * AC-4: The identity depends only on the Actor, never on which editor
+     tab, file, or panel is focused, so I can trust it without checking
+     where the user's cursor is.
 
 
 .. story:: Programmatic Actor Creation
@@ -237,9 +229,10 @@ Actor User Stories
      US_ACTOR_TREE AC-8); no other setting gates it.
    * AC-2: A successful call creates ``<actorsFolder>/<name>/`` with the
      same files as US_ACTOR_CREATE AC-3: ``actor.yaml`` (``name``, optional
-     ``summary``, optional ``agent``) and the pre-filled ``context.md``.
-   * AC-3: An unknown ``agent`` is rejected with an error listing the
-     available agents.
+     ``summary``) and the pre-filled ``context.md``; the new Actor has its
+     own agent as in US_ACTOR_CREATE AC-4.
+   * AC-3: The tool has no ``agent`` input. A caller that still passes one
+     is not rejected; the value has no effect.
    * AC-4: Invalid names are rejected with the same rules as
      US_ACTOR_CREATE AC-1.
    * AC-5: If the Actor already exists (a folder with that name, or an
@@ -269,9 +262,9 @@ Actor User Stories
      ``jarvis.actors.folder`` is resolvable (same condition as
      US_ACTOR_TREE AC-8).
    * AC-2: The tool returns every Actor shown in the ACTORS tree
-     (US_ACTOR_TREE AC-2), each with ``name``, ``summary`` and ``agent``
-     (empty string if absent), ``folder``, and ``id`` (absolute path of its
-     ``actor.yaml``).
+     (US_ACTOR_TREE AC-2), each with ``name``, ``summary``, ``agent``
+     (the Actor's own agent, named like the Actor), ``folder``, and ``id``
+     (absolute path of its ``actor.yaml``).
    * AC-3: The tool requires no input parameters.
    * AC-4: It is distinct from ``jarvis_listChatSessions``, which lists VS Code
      chat tab titles.
@@ -338,7 +331,7 @@ Actor User Stories
 
    **As a** Jarvis User,
    **I want** each Actor node in the ACTORS tree to expand into an "Agent"
-   category (when an agent is bound) and a "Files" category showing every
+   category (when the Actor's own agent is found by the Actor name) and a "Files" category showing every
    file actually present in the Actor's own folder, recursively,
    **so that** I can browse and open any file that belongs to that Actor
    directly from the tree, without leaving it, and without the list being
@@ -349,9 +342,10 @@ Actor User Stories
    * AC-1: Every Actor node is expandable and shows up to two category child
      nodes, each independently collapsible:
 
-     a. **"Agent"** — shown only when the Actor's ``agent`` field is set AND
-        it resolves to an existing agent file. Contains exactly one synthetic
-        child, labelled ``Agent File: <filename>``, pointing at the resolved
+     a. **"Agent"** — shown only when the Actor's own agent is found by
+        the Actor name
+        (``US_ACTOR_ACTORS`` AC-6). Contains exactly one synthetic
+        child, labelled ``Agent File: <filename>``, pointing at that
         ``.github/agents/<file>.agent.md``.
      b. **"Files"** — always shown (every Actor has at least its own
         ``actor.yaml``). Contains a live, recursive listing of every file and

@@ -8,7 +8,7 @@ description: "Jarvis Kanban Board — convention-based kanban boards for actors,
 
 | Tool | Purpose |
 |------|---------|
-| `jarvis_createKanbanBoard` | Create a new board for an entity |
+| `jarvis_createKanbanBoard` | Create a new board for an Actor |
 | `jarvis_openKanbanBoard` | Open a board in the webview renderer |
 | `jarvis_verifyKanbanSchema` | Validate structure and semantics |
 | `jarvis_updateKanbanItem` | Update fields on an existing item by ID |
@@ -18,9 +18,8 @@ description: "Jarvis Kanban Board — convention-based kanban boards for actors,
 | `jarvis_updateKanbanFields` | Add/remove field definitions or options |
 ## Owner Resolution
 
-- **Omit `ownerName`** to address the calling actor's own board. The tool resolves the caller via `jarvis_whoAmI` internally.
-- Supply `ownerName` only to address a *different* entity's board.
-- A supplied name that matches no scanned entity returns `{ error: "actor unknown" }`.
+- `ownerName` is always supplied. The calling Actor passes its own name, which it knows from its own agent, to address its own board, and another Actor's name to address that Actor's board.
+- A supplied name that matches no discovered Actor, or more than one, returns `{ error: "actor unknown" }`; a call without `ownerName` returns `{ error: "ownerName required" }`.
 
 ## Board Anatomy
 

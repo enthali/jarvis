@@ -4,6 +4,7 @@
 
 - **Merge gate = user validation only (2026-08-05)**: PM merges into development ONLY after the user explicitly confirms "OK to merge" following their own manual test. QM CLEAR is a necessary prerequisite but not the trigger — the user validates behavior, QM verifies artefacts. Never merge on QM CLEAR alone.
 - **EDH F5 (debug) can hang on the Node inspector handshake, unrelated to our code (2026-09-27)**: "Extension host did not start in 10 seconds... needs a debugger" plus "no data provider registered" survived a full reboot and profile isolation — ruled out our code (a plain, non-debug launch of `core` alone activated cleanly, tree visible) and ruled out the profile. Root cause: the F5 debug-attach handshake itself. Fix: use **Ctrl+F5 ("Run Without Debugging")** instead of F5 when just running/validating, not debugging. Separately (still worth keeping, but NOT the cause of this hang): the installed Marketplace `enthali.jarvis-core` can collide with the `--extensionDevelopmentPath` dev instance of the same extension ID — most `extensionHost` configs in `.vscode/launch.json` pass `--user-data-dir=${workspaceFolder}/jarvis-edh-profile` (auto-gitignored via `jarvis-*`) as a general hygiene measure; removed from "Run All" during this troubleshooting, re-add if desired.
+- **Stale files reappear in the worktree (10 cases: 2026-09-27, 2026-10-02, 2026-10-03, 2026-10-04, 2026-10-08 six times)**: tracked files suddenly show an uncommitted diff that is the exact inverse of already-committed work, with no Git operation behind it. **Case 7 (10-08 local 21:48:01, CD)**: write came 37 s after my commit `a160299e` (21:47:24) and 9 s after CM's delivery receipt (21:47:52); blob = CD at `c25b385e`; SD found and restored it. Case 8 (21:55:08, `spec_actor.rst`, blob = version before SD commit `b64a39c2`, 77 s after Dev commit `4a7a527d`) restored by PM under the standing rule. Case 9 (21:58:38, CD, QM restored): 3 s after a CM message to QM, the third delivery-then-rewrite in a row on 10-08. Case 10 (22:22:00, `spec_uat_kanban_mgmt.rst`, blob `e7bf050a` = kanban-management-tools commit `244ace6d` of 2026-08-26, same stale blob as 10-04; PM restored 22:26): a persistent source, written back repeatedly, not a one-off. **RDP event log checked 10-08 (Get-WinEvent, TerminalServices-LocalSessionManager)**: reconnect 20:25:11 fits case 6 (20:25-26); cases 7-10 (21:48, 21:55, 21:58, 22:22) fall in connected phases (reconnect 21:50:11, disconnect 22:02, reconnect 22:07:59, nothing after), so RDP explains at most case 6, deliveries fit 7-9; Open Editors showed only chat sessions, no file tab, so a stale text editor buffer is unlikely. I misread the `M` at 21:48:09 as SD's edit in progress: when an actor has not announced an edit of a file, a diff on it right after a delivery is stale until blob-checked. Case 4 gave proof: both stale files (`spec_msg.rst`, `spec_uat_kanban_mgmt.rst`) are byte-identical (same blob hash) to their version just before SD's L2 commit `e876b885`, i.e. the exact pre-edit baseline of one session's edit set, written 37 s and 4 min after SD's next commit. So it is an older committed state, not random content, and it hits the files one session edited. Cause not proven; user's working hypothesis: the chat sessions' Keep/Undo buttons restoring a session baseline when two sessions edited the same file (fits better than my first guess, a stale editor buffer with `files.autoSave: afterDelay`). Handling: run `git status` before any merge/dispatch; compare the working blob hash with the parent of the commit it inverts (`git hash-object` vs `git rev-parse <commit>^:<path>`); tell CM so actors read `git show HEAD:<path>`; ask the user; restore from HEAD only after consent (case 4 restored 2026-10-08). **Standing rule (user, 2026-10-08)**: PM restores a file from HEAD WITHOUT asking when it differs from HEAD and is byte-identical to an earlier committed version of the same file (nothing can be lost); every other case is asked first. **Lead (PM, 2026-10-08)**: for the 5 write times with a known timestamp (10-02 CD, 10-03, 10-04 twice, 10-08 16:36; NOT 09-27, no timestamp was recorded) the stale write came 3-23 s after a Jarvis message delivery in `.jarvis/messages/log.json` (UTC; 10-02 Heartbeat to QM, 10-03 PM to CM were the only messages within minutes); chance ≈ 0.2 % per case. **Case 6 (10-08 local 20:25-26, SD's 11 files) does NOT fit**: no message in the log between 20:10 and 20:29, so the delivery link holds for 5 of 6 only. Case 6 also shows a persistent source: `spec_msg.rst` (27ef974e) and `spec_uat_kanban_mgmt.rst` (e7bf050a) came back with exactly the stale blobs of case 4, although both had been restored from HEAD in between, and the other 9 files were in the state of SD's approval commit 69e2329b (so Verify's later `implemented` statuses would have been lost). An old copy is stored somewhere and written again. SD restored them himself after saving a patch; all 11 stale blobs are earlier committed versions (checked from the index lines of his patch), so the standing rule was met. The user did not touch files on 10-08, so it is not (only) a manual Keep/Undo. Guess, unproven: VS Code restores a chat session's stored baseline of its edit set (SD's own session is the prime suspect for cases 4 and 6). **RDP lead (user's idea 2026-10-08: VS Code runs on machine KRAKEN, controlled via RDP; data from the Windows event log `Microsoft-Windows-TerminalServices-LocalSessionManager/Operational`, IDs 24 disconnect / 25 reconnect, readable without admin)**: case 6 came 18 s after a reconnect (20:25:12), case 3 70 s after one, case 5 4.5 min after one; cases 2 and 4 happened while the session had been disconnected for days / hours. A message delivery preceded 5 of the 6 write times (3-25 s), a reconnect 2 of 6 (0-120 s), together all 6. Chance per hit about 0.4 % (message window) and 0.6 % (reconnect window), but the windows were chosen after seeing the data, so it is a lead, not proof. Common idea: a window/session wake-up (a delivery opening a chat, an RDP reconnect) triggers the restore. Test (user): with a clean tree, reconnect RDP / deliver a message into a session with pending edits and watch `git status`; the event log gives the reconnect times, no notes needed. Protection: QM/Verify build from `git archive HEAD`, `git status` at start and end. Planned test (user, 2026-10-08): the user stops clicking Keep for now; once everything is in Git and no change is in the pipeline, test both ways: click Keep in an old session with pending edits, and let Jarvis deliver a message into that session, each time watching `git status`; compare blob hashes of changed files (PM can do it).
 - **Public repo — nothing goes out without user approval (2026-07-08)**:
   the jarvis repo is public. Anything posted externally (GitHub issue
   creation, comments, closing issues, PRs, releases) requires explicit
@@ -115,8 +116,23 @@
 
 ## Active CR
 
-- **No active CR (2026-10-08).** `heartbeat-agent-model-selection` is merged and
-  pushed, release on hold (see Recently Shipped).
+- **actor-identity-via-agent-file** — scaffolded 2026-10-03 (branch
+  `feature/actor-identity-via-agent-file`, CD `docs/changes/actor-identity-via-agent-file.md`),
+  dispatched to CM 2026-10-03. Replaces `jarvis_whoAmI` (backlog #42): the
+  Actor name is the link to its own agent (found by front matter `name:`),
+  Jarvis creates it and keeps two identity lines in it, `agent` leaves
+  `actor.yaml`. Operation Mode: autonomous, except Level 0/1/2 with System
+  Designer user-guided (user's proven pattern). Concept and open spec
+  questions are in backlog #42. The Recorder change from the other machine is
+  released (v0.29.0); both lines were merged on 2026-10-08, conflicts were in actor
+  memory, backlog, SPEC_ENG_API and README. Do not push the feature branch.
+- **Syspilot 0.10 test (2026-10-03)**: user tests the port in a separate
+  throw-away repo; if it works, the current Jarvis version could be released
+  with the new agents kept in a separate folder. Not started here; user decides
+  next steps, ask before assuming. Project-ontology cleanup stays deferred (no
+  functional gain); #42 then #41 are the urgent items for the user's job.
+- **WhoAmI follow-up** — hook-dependent `jarvis_whoAmI` recovery is replaced by
+  the active change above, not by AHP.
 - **Spike email-triage-embeddings-poc (2026-10-07, Research), findings in** —
   Research measured with `bge-m3` via Ollama (findings under
   `.jarvis/actors/Research/email-triage/findings-2026-10.md`): project documents
@@ -170,20 +186,6 @@
   changed openly, when user value is not materially hurt. Evaluate such
   proposals as UX/requirement decisions with benefits and losses stated; the
   user decides, SD revises, nothing is relaxed silently.
-- **Backlog #42 (Actor identity via agent mode) runs on ANOTHER MACHINE (user,
-  2026-10-03)**: do not start or dispatch #42 here. Status set to In Progress
-  (status line only, notes untouched). That change has to finish and be merged
-  into `development` there; we were ahead (v0.29.0 recorder release is already on
-  `development`/`main`), so their branch will meet our newer `development`. How
-  to merge is still to be worked out with the user; expect conflicts in actor
-  memory files, `backlog.kanban.yaml` and spec/requirement files, and keep my own
-  edits to backlog and shared files minimal until then. The user sees little
-  problem because it is largely independent of the recorder. Once it is done
-  there, we take it over here again. #41 (recorder) is shipped in v0.29.0.
-  Still open with the user: the Syspilot 0.10 migration and the ontology
-  cleanup order (backlog #48), do not assume, ask.
-- **WhoAmI follow-up** — defer hook-dependent `jarvis_whoAmI` recovery until AHP;
-  superseded by backlog #42's agent-mode identity approach once that lands.
 - **Post-change watch: private Actor repo** — after a future active CR, remove
   `.jarvis/actors/` from OSS Git tracking without deleting local files, ignore
   it in OSS, then initialize a separate private repo in that folder and connect
@@ -217,6 +219,12 @@
   also added an `.venv` ignore to `eslint.config.js` (`0be05a4`, lint scanned the
   gitignored virtual environment). Feature branch `feature/recorder-redesign`
   retained.
+- **v0.28.0 released** 2026-09-30 (tag `v0.28.0` on `main` at `7605e766`,
+  back-merged to `development`; done on the user's other machine). Contains
+  one-kind-consolidation Phase 1 and Phase 2 `retire-legacy-actor-kinds`
+  (merged 2026-09-27, `1a30326`) plus `remove-newactor-legacy-quickpick`. Old
+  kind-based Project/Event/legacy-Actor code and specs are gone; the single
+  Actor kind is live. CDs archived to `docs/changes/v0.28.0/`.
 - **retire-legacy-actor-kinds merged** 2026-09-27 into `development` (`1a30326`,
   pushed). Phase 2 of one-kind-consolidation: old kind-based Project/Event/
   legacy-Actor specs and code fully removed (not just deprecated); backlog

@@ -16,8 +16,7 @@ import { deleteMessage, appendMessage, popMessage, readAutoDelivery, addAutoDeli
 import { removeReminder, setRemindersLogger } from './apps/session/reminders';
 import { processDueReminders } from './apps/session/reminderDelivery';
 import { createCancelReminderHandler, createListRemindersHandler, createSetReminderHandler, findReminderLine } from './apps/session/reminderRuntime';
-import { lookupSessionUUID, getAllSessions, initSessionLookup, setSessionLookupLogger, filterNamedSessions, getValidDestinations, getEntityNameForSessionId } from './engine/sessions/sessionLookup';
-import { discoverAgentModes } from './engine/sessions/agentDiscovery';
+import { lookupSessionUUID, getAllSessions, initSessionLookup, setSessionLookupLogger, filterNamedSessions, getValidDestinations } from './engine/sessions/sessionLookup';
 import { injectPrompt, initInjectPrompt, resolveNotificationText } from './engine/sessions/injectPrompt';
 import { checkForUpdates } from './engine/core/updateCheck';
 import { HookEngine } from './engine/hooks/hookEngine';
@@ -31,7 +30,8 @@ import { setAssetProvisioningLogger, provisionModuleAssets } from './engine/core
 import { announceIfNewVersion, showReleaseNotes } from './engine/core/releaseNotes';
 import { ActorScanner, ambiguousActorMessage } from './engine/actors/actorScanner';
 import { ActorTreeProvider, ActorNode } from './engine/actors/actorTreeProvider';
-import { actorNameProblem, existingActorFolder, writeActorAgent, writeActorFiles } from './engine/actors/actorCreation';
+import { actorNameProblem, existingActorFolder, writeActorFiles } from './engine/actors/actorCreation';
+import { ensureActorAgent, setActorAgentLogger } from './engine/actors/actorAgent';
 import { createListActorsHandler, createActorHandler } from './engine/actors/actorRuntime';
 import { registerJarvisYamlSchemaContributor } from './engine/core/yamlSchemaContributor';
 
@@ -40,31 +40,6 @@ import { CronExpressionParser } from 'cron-parser';
 // Shared substitution helper (SPEC_EXP_AGENTSESSION_INITPROMPT, SPEC_MSG_SENDCOMMAND)
 function applyTemplate(template: string, vars: Record<string, string>): string {
     return template.replace(/\$\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m));
-}
-
-// Implementation: SPEC_SES_AGENT_DISCOVERY
-async function pickAgentMode(): Promise<string | undefined> {
-    const agents = await discoverAgentModes();
-
-    const items: (vscode.QuickPickItem & { mode: string })[] = [
-        {
-            label:       'No agent',
-            detail:      'Opens a default chat \u2014 pick mode via the chat dropdown',
-            mode:        '',
-        },
-        ...agents.map(a => ({
-            label:       a.name,
-            description: a.filePath,
-            mode:        a.name,
-        })),
-    ];
-
-    const pick = await vscode.window.showQuickPick(items, {
-        placeHolder: 'Select the agent for this entity',
-        matchOnDescription: true,
-    });
-
-    return pick === undefined ? undefined : pick.mode;
 }
 
 export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
@@ -89,6 +64,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     setRemindersLogger(log);
     setIgnoreManagerLogger(log);
     setAssetProvisioningLogger(log);
+    setActorAgentLogger(log);
     void registerJarvisYamlSchemaContributor(context.extensionUri, log);
 
     // Gitignore auto-management (SPEC_CFG_IGNOREMANAGER)
@@ -283,15 +259,18 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
      * `workbench.action.chat.open<ModeName>` for every discovered agent mode;
      * unlike the generic `workbench.action.chat.open`, these carry `this.mode`
      * and therefore target the *focused* chat editor widget instead of the
-     * sidebar view. We rebuild that command id from the entity's agent name
-     * and invoke it after the session tab has been opened+focused.
+     * sidebar view. We rebuild that command id from the Actor's name — the
+     * mode name equals the Actor name found by agent-file identity
+     * (SPEC_ACTOR_WHOAMI), not a stored field — and invoke it after the
+     * session tab has been opened+focused.
      *
      * Defensive: the command only exists once VS Code has registered the mode,
      * so we probe the command registry first and no-op (with a warning) if it
      * is not yet available, rather than throwing `command not found`.
      *
-     * @param agent       The agent/mode name (e.g. "Test Manager"), as stored
-     *                    on the entity's `agent` field.
+     * @param agent       The agent/mode name (e.g. "Test Manager"), equal to
+     *                    the Actor's name (SPEC_ACTOR_WHOAMI; `ActorEntry` has
+     *                    no `agent` field).
      * @param sessionName The name of the session the mode change targets.
      *                    Compared against the active tab label to prevent
      *                    mis-targeted mode commands.
@@ -1035,16 +1014,14 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         createCancelReminderHandler(reminderToolDependencies)
     );
 
-    // createActor / whoAmI tools (SPEC_ACTOR_CREATETOOL, SPEC_ACTOR_WHOAMI) —
+    // createActor tool (SPEC_ACTOR_CREATETOOL) —
     // registered whenever the actors folder is resolvable; no feature gate.
     let createActorTool: vscode.Disposable | undefined;
-    let whoAmITool: vscode.Disposable | undefined;
     if (configPaths.getActorsDir() !== undefined) {
         createActorTool = engine.registerTool('jarvis_createActor',
             'Creates a Jarvis Actor (actor.yaml and context.md) under the configured actors folder. Returns created: false without changes when the Actor folder already exists.',
             createActorHandler({
                 resolveActorsFolder: () => configPaths.getActorsDir(),
-                discoverAgentModes,
                 appendMessage: (actorName, sender, text) => appendMessage(resolveMessagesPath(), actorName, sender, text),
                 reloadMessages: () => messageProvider.reload(),
                 actorScanner,
@@ -1055,89 +1032,6 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
                 openSessionOnCreate: () => vscode.workspace.getConfiguration('jarvis').get<boolean>('actors.openSessionOnCreate', true),
                 log,
             })
-        );
-
-        // whoAmI correlation buffer (SPEC_ACTOR_WHOAMI, whoami-session-id-resolution CR #51)
-        // Captures PreToolUse events for jarvis_whoAmI and provides the calling
-        // session's session_id to the tool handler. See spec for 5 behavioural
-        // properties: filter at capture, consume on read, expire on age,
-        // ambiguity is an error, absence is an error.
-        const WHOAMI_FRESHNESS_MS = 10_000; // 10 seconds — exceeds hook round-trip with margin
-        const whoAmIBuffer: Array<{ sessionId: string; timestamp: number }> = [];
-
-        hookEngine.on('PreToolUse', (event) => {
-            const toolName = event.payload?.tool_name as string | undefined;
-            // Decision 6: trace-log actual payload.tool_name for live verification
-            log.trace(`[whoAmI] PreToolUse payload.tool_name = ${JSON.stringify(toolName)}`);
-            // Filter: only retain events for jarvis_whoAmI (may appear bare or with transport prefix)
-            if (!toolName || !toolName.endsWith('jarvis_whoAmI')) { return; }
-            if (!event.sessionId) { return; }
-            whoAmIBuffer.push({ sessionId: event.sessionId, timestamp: Date.now() });
-        });
-
-        /** Consume the buffer and return the unambiguous session_id, or undefined. */
-        function takeCallingSessionId(): string | undefined {
-            const now = Date.now();
-            // Drain and filter: take all entries, discard stale ones
-            const entries = whoAmIBuffer.splice(0);
-            const fresh = entries.filter(e => (now - e.timestamp) < WHOAMI_FRESHNESS_MS);
-            if (fresh.length === 0) {
-                log.debug('[whoAmI] no fresh buffer entries (absence)');
-                return undefined;
-            }
-            const uniqueIds = new Set(fresh.map(e => e.sessionId));
-            if (uniqueIds.size > 1) {
-                log.warn(`[whoAmI] ambiguous buffer: ${uniqueIds.size} distinct session_ids — returning error`);
-                return undefined;
-            }
-            return fresh[0].sessionId;
-        }
-
-        // whoAmI tool (SPEC_ACTOR_WHOAMI)
-        whoAmITool = engine.registerTool('jarvis_whoAmI',
-            'Returns the calling actor\'s name and the absolute path to its context.md. Call this after /compact or context loss to recover your identity. No input parameters required.',
-            async (_options: vscode.LanguageModelToolInvocationOptions<any>, _token: vscode.CancellationToken) => {
-                const ERROR_MSG = 'Unable to determine your identity automatically (hooks disabled or unavailable). Please confirm your identity with the user.';
-
-                // 1. Obtain calling session's session_id from correlation buffer
-                const sessionId = takeCallingSessionId();
-                if (!sessionId) {
-                    // Accepted limitation: if hooks are disabled, buffer is always empty.
-                    log.info('[whoAmI] no session_id from buffer (hooks disabled, absent, stale, or ambiguous)');
-                    return new vscode.LanguageModelToolResult([
-                        new vscode.LanguageModelTextPart(JSON.stringify({ error: ERROR_MSG }))
-                    ]);
-                }
-
-                // 2. Resolve session_id to entity name
-                const entityName = await getEntityNameForSessionId(sessionId);
-                if (!entityName) {
-                    log.info(`[whoAmI] session_id=${sessionId} could not be resolved to an entity`);
-                    return new vscode.LanguageModelToolResult([
-                        new vscode.LanguageModelTextPart(JSON.stringify({ error: ERROR_MSG }))
-                    ]);
-                }
-
-                // 3. Resolve name against the Actor scanner (SPEC_ACTOR_WHOAMI step 3)
-                const lookup = actorScanner.resolveName(entityName);
-                if (lookup.status !== 'found') {
-                    log.info(`[whoAmI] entity "${entityName}" resolved to status="${lookup.status}"`);
-                    return new vscode.LanguageModelToolResult([
-                        new vscode.LanguageModelTextPart(JSON.stringify({ error: ERROR_MSG }))
-                    ]);
-                }
-
-                // 4. Return identity
-                const payload = {
-                    name: lookup.actor.name,
-                    contextPath: path.join(lookup.actor.folder, 'context.md'),
-                    id: lookup.actor.id,
-                };
-                log.info(`[ACTOR] whoAmI: "${payload.name}" → ${payload.contextPath} (via session_id=${sessionId})`);
-                return new vscode.LanguageModelToolResult([
-                    new vscode.LanguageModelTextPart(JSON.stringify(payload))
-                ]);
-            }
         );
     }
 
@@ -1217,12 +1111,8 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             }
 
             const summaryInput = await vscode.window.showInputBox({ prompt: 'Summary (optional)', placeHolder: 'Short description' });
-            const targetPath = await writeActorFiles(actorsFolder, { name, summary: summaryInput ?? '', agent: '' });
-
-            const agentInput = await pickAgentMode();
-            if (agentInput) {
-                await writeActorAgent(targetPath, { name, summary: summaryInput ?? '', agent: agentInput });
-            }
+            const targetPath = await writeActorFiles(actorsFolder, { name, summary: summaryInput ?? '' });
+            await ensureActorAgent({ name, folder: targetPath });
 
             await actorScanner.rescan();
             log.info(`[ACTOR] newActor: created "${name}" at ${targetPath}`);
@@ -1368,7 +1258,6 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         readMessageTool,
         listActorsTool,
         ...(createActorTool ? [createActorTool] : []),
-        ...(whoAmITool ? [whoAmITool] : []),
         injectPromptTool,
         injectPromptCommand,
         registerJobTool,

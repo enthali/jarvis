@@ -9,7 +9,7 @@ import type { JarvisCoreApi } from 'jarvis-core';
 import { readState, writeState } from './state';
 
 const ACTOR_NAME = 'Syspilot Setup Engineer';
-const ACTOR_SUMMARY = 'Manages syspilot agent installation and updates';
+const ACTOR_SUMMARY = 'Manages syspilot agent installation and updates. Your persona is .github/agents/syspilot.setup.agent.md; read it and follow it.';
 const AGENT_FILE_NAME = 'syspilot.setup.agent.md';
 const PM_MARKER_FILE_NAME = 'syspilot.pm.agent.md';
 
@@ -59,7 +59,7 @@ async function ensureActor(api: JarvisCoreApi, log: vscode.LogOutputChannel): Pr
     const exists = api.listActors().some(a => a.name === ACTOR_NAME);
     if (exists) { return; }
     const options = {
-        input: { name: ACTOR_NAME, summary: ACTOR_SUMMARY, agent: 'syspilot.setup' }
+        input: { name: ACTOR_NAME, summary: ACTOR_SUMMARY }
     } as vscode.LanguageModelToolInvocationOptions<unknown>;
     const tokenSource = new vscode.CancellationTokenSource();
     try {
@@ -76,6 +76,7 @@ async function ensureActor(api: JarvisCoreApi, log: vscode.LogOutputChannel): Pr
 // version, or delay for N days. Uses the actual LM tool names (underscore
 // notation) so the actor can invoke them directly.
 export const UPDATE_NOTIFICATION_TEXT =
+    'Your persona is .github/agents/syspilot.setup.agent.md; read it first if you have not done so. ' +
     'Please ask the user whether they want to install this update now, skip this version by ' +
     'calling jarvis_SyspilotSkipThisVersion(), or delay it for N days by calling jarvis_delaySyspilotUpdate(N).';
 

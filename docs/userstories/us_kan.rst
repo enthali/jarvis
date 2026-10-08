@@ -72,8 +72,9 @@ Kanban User Stories
      schema and returns structured findings (errors and warnings with
      field/line context) so the actor can fix issues iteratively.
    * AC-3: ``jarvis_openKanbanBoard`` opens the board in the webview renderer.
-   * AC-4: All three tools resolve the calling actor via ``jarvis_whoAmI``
-     (``US_ACTOR_WHOAMI``) when no owner is specified.
+   * AC-4: All three tools take the Actor's name explicitly as
+     ``ownerName``; the calling Actor knows it from its own identity
+     (``US_ACTOR_WHOAMI``).
    * AC-5: An unresolvable owner returns ``{ error: "actor unknown" }``.
    * AC-6: ``jarvis_updateKanbanItem`` updates an existing item by its stable
      integer ID so that changes can be applied without touching the full
@@ -128,7 +129,7 @@ Kanban User Stories
    :id: US_KAN_SKILL
    :status: approved
    :priority: required
-   :links: US_KAN_TOOLS; US_MOD_SKILL_PROVISION
+   :links: US_KAN_TOOLS; US_MOD_SKILL_PROVISION; US_ACTOR_WHOAMI
 
    **As an** LLM operating within a Jarvis actor session,
    **I want** the kanban skill and instructions to describe the board ontology,
@@ -157,9 +158,10 @@ Kanban User Stories
      and what each one accepts.
    * AC-3: The skill documents that an undeclared item key is accepted, warned
      about rather than rejected, and never rendered — the trap named in GH #57.
-   * AC-4: The skill documents that ``ownerName`` is omitted to address the
-     calling actor's own board, and supplied only to address a different
-     entity's board.
+   * AC-4: The skill documents that ``ownerName`` is always supplied: the
+     calling Actor's own name, which it knows from its identity
+     (``US_ACTOR_WHOAMI``), addresses its own board; another entity's name
+     addresses that entity's board.
    * AC-5: The instructions file agrees with the schema on every claim it makes
      about required keys and property names.
 

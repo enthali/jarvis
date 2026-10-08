@@ -12,7 +12,7 @@ Actor Design Specifications
 
 .. spec:: Actor Scanner
    :id: SPEC_ACTOR_SCANNER
-   :status: approved
+   :status: implemented
    :links: REQ_ACTOR_SCHEMA; REQ_ACTOR_ACTIVATION; REQ_ACTOR_TREE; REQ_EXP_REACTIVECACHE; REQ_CFG_SCANINTERVAL; SPEC_CFG_PATHRESOLVER; SPEC_AUT_HEARTBEAT_RESOLVER_REUSE; SPEC_AUT_JOBREG
 
    **Description:**
@@ -30,7 +30,6 @@ Actor Design Specifications
           id: string;      // absolute path of actor.yaml (REQ_ACTOR_SCHEMA AC-7)
           name: string;    // actor.yaml name; fallback: folder name
           summary: string; // "" when absent
-          agent: string;   // "" when absent
           folder: string;  // absolute path of the Actor folder
       }
 
@@ -61,8 +60,8 @@ Actor Design Specifications
       (``REQ_ACTOR_TREE`` AC-2, AC-11).
    3. Parse each ``actor.yaml`` with ``js-yaml``. ``name`` falls back to the
       folder name when the file is unparseable or ``name`` is missing or
-      empty; ``summary`` and ``agent`` fall back to ``""``
-      (``REQ_ACTOR_TREE`` AC-3).
+      empty; ``summary`` falls back to ``""``. A legacy ``agent`` key is not
+      read (``REQ_ACTOR_TREE`` AC-3, ``REQ_ACTOR_SCHEMA`` AC-2).
    4. Key each entry by the absolute ``actor.yaml`` path. Two folders whose
       YAML names collide stay two entries (``REQ_ACTOR_SCHEMA`` AC-7).
    5. Sort by ``name`` with ``localeCompare(…, { sensitivity: 'base' })``
@@ -117,7 +116,7 @@ Actor Design Specifications
    it never picks one of several. The duplicate entries stay in ``actors``
    so the view shows both folders, but no name-based function acts on them.
    Every core consumer resolves names through it: ``injectPrompt``
-   (``SPEC_INJ_INJECT``), ``jarvis_whoAmI`` (``SPEC_ACTOR_WHOAMI``), the
+   (``SPEC_INJ_INJECT``), the
    touched-files tracker and display (``SPEC_ACTOR_TOUCHEDFILES``), the
    activity tracker (``SPEC_ACTOR_ACTIVITY``), ``jarvis_sendMessage``
    (``SPEC_MSG_SENDMESSAGE``), ``JarvisCoreApi.sendMessage``
@@ -125,9 +124,12 @@ Actor Design Specifications
    result other than ``unknown`` blocks creation) and
    ``getValidDestinations()``. Among the ambiguous-name refusals, only a
    refused message send shows the user an error notification naming the
-   name and its folders; activity, touched files, ``whoAmI``, prompt
-   injection and Kanban owner resolution refuse silently
-   (``REQ_ACTOR_SCHEMA`` AC-7). Creation's own "already exists" notification
+   name and its folders; activity, touched files, prompt
+   injection, agent file maintenance and Kanban owner resolution refuse
+   silently (``REQ_ACTOR_SCHEMA`` AC-7). Agent file maintenance
+   (``SPEC_ACTOR_WHOAMI``) refuses by precondition: its callers
+   (``injectPrompt`` and the creation paths) have established exactly one
+   Actor before they call it. Creation's own "already exists" notification
    (``SPEC_ACTOR_CREATE`` step 3) is a separate case, not part of this list:
    it fires on any blocking result, ``found`` or ``ambiguous`` alike,
    because attempting to create a name that already exists is itself the
@@ -167,11 +169,13 @@ Actor Design Specifications
      job is removed when the heartbeat feature starts.
    * AC-8: ``getValidDestinations()`` excludes every name that resolves to
      ``ambiguous``.
+   * AC-9: An ``ActorEntry`` carries no ``agent``; a legacy ``agent`` key in
+     ``actor.yaml`` has no effect on any entry.
 
 
 .. spec:: Actor Schema
    :id: SPEC_ACTOR_SCHEMA
-   :status: approved
+   :status: implemented
    :links: REQ_ACTOR_SCHEMA
 
    **Description:**
@@ -193,7 +197,7 @@ Actor Design Specifications
         "properties": {
           "name":    { "type": "string", "minLength": 1 },
           "summary": { "type": "string" },
-          "agent":   { "type": "string", "description": "Agent identity (SPEC_ACTOR_AGENT_DISCOVERY); \"\" = no agent." }
+          "agent":   { "type": "string", "description": "Deprecated and ignored. An Actor's agent is identified by the Actor name (SPEC_ACTOR_WHOAMI)." }
         }
       }
 
@@ -203,8 +207,9 @@ Actor Design Specifications
 
    **Acceptance Criteria:**
 
-   * AC-1: The schema requires ``name``, allows ``summary`` and ``agent``,
-     and sets ``additionalProperties: false``.
+   * AC-1: The schema requires ``name``, allows ``summary`` and the
+     deprecated ``agent`` (described as ignored; Jarvis never writes it), and
+     sets ``additionalProperties: false``.
    * AC-2: ``actor.yaml`` is the only YAML file core binds to a schema;
      ``resolveJarvisYamlSchema()`` returns ``undefined`` for every other
      basename.
@@ -297,7 +302,7 @@ Actor Design Specifications
 
 .. spec:: Actor File Children
    :id: SPEC_ACTOR_FILES
-   :status: approved
+   :status: implemented
    :links: REQ_ACTOR_FILES_TREE; SPEC_ACTOR_TREE; SPEC_ACTOR_AGENT_DISCOVERY; SPEC_MSG_EDITORPLACEMENT
 
    **Description:**
@@ -331,7 +336,7 @@ Actor Design Specifications
 
       async function actorChildren(actor: ActorEntry): Promise<ActorTreeNode[]> {
           const nodes: ActorTreeNode[] = [];
-          if (await resolveAgentFile(actor.agent)) {
+          if (await resolveAgentFile(actor.name)) {
               nodes.push({ kind: 'actorFileCategory', category: 'agent', actorId: actor.id });
           }
           nodes.push({ kind: 'actorFileCategory', category: 'files', actorId: actor.id });
@@ -339,10 +344,10 @@ Actor Design Specifications
           return nodes;
       }
 
-   ``resolveAgentFile(agent)`` returns the absolute path of the
-   ``*.agent.md`` whose identity equals ``agent``, using
+   ``resolveAgentFile(name)`` returns the absolute path of the
+   ``*.agent.md`` whose identity equals the Actor name, using
    ``discoverAgentModes()`` (``SPEC_ACTOR_AGENT_DISCOVERY``). It returns
-   ``undefined`` for an empty or unresolved ``agent``; the category is then
+   ``undefined`` when no agent carries that name; the category is then
    omitted without error (``REQ_ACTOR_FILES_TREE`` AC-4). Discovery runs on
    every call; the former module-level cache (``getAgentModesCached``) is
    removed, because ``REQ_ACTOR_AGENT_DISCOVERY`` AC-6 forbids a persistent
@@ -418,8 +423,8 @@ Actor Design Specifications
 
    **Acceptance Criteria:**
 
-   * AC-1: An Actor node's children are "Agent" (only when the agent
-     resolves to an existing file) followed by "Files"; the touched-files
+   * AC-1: An Actor node's children are "Agent" (only when the Actor's own
+     agent is found by the Actor name) followed by "Files"; the touched-files
      category follows them (``SPEC_ACTOR_TOUCHEDFILES``).
    * AC-2: "Files" and every subfolder are listed by ``readdir`` on each
      expansion, alphabetically, hidden entries included.
@@ -780,8 +785,8 @@ Actor Design Specifications
 
 .. spec:: Actor Creation
    :id: SPEC_ACTOR_CREATE
-   :status: approved
-   :links: REQ_ACTOR_CREATE; REQ_ACTOR_CREATETOOL; REQ_ACTOR_SCHEMA; SPEC_ACTOR_SCANNER; SPEC_ACTOR_AGENT_DISCOVERY; SPEC_ACTOR_OPENSESSION
+   :status: implemented
+   :links: REQ_ACTOR_CREATE; REQ_ACTOR_CREATETOOL; REQ_ACTOR_SCHEMA; SPEC_ACTOR_SCANNER; SPEC_ACTOR_WHOAMI; SPEC_ACTOR_OPENSESSION
 
    **Description:**
    ``engine/actors/actorCreation.ts`` owns everything that touches the file
@@ -802,13 +807,8 @@ Actor Design Specifications
 
       /** mkdir <actorsFolder>/<name>, write actor.yaml and context.md. Caller has checked non-existence. */
       export async function writeActorFiles(actorsFolder: string, a: {
-          name: string; summary: string; agent: string;
+          name: string; summary: string;
       }): Promise<string /* absolute Actor folder */>;
-
-      /** Rewrites only the agent field of an existing actor.yaml. */
-      export async function writeActorAgent(actorFolder: string, a: {
-          name: string; summary: string; agent: string;
-      }): Promise<void>;
 
       /**
        * Rescans, then returns the folder that blocks creating `name`, or undefined:
@@ -825,9 +825,8 @@ Actor Design Specifications
 
       name: "<name>"
       summary: "<summary or empty>"
-      agent: "<agent or empty>"
 
-   All three fields are always written; values are double-quoted with ``\``
+   Both fields are always written; values are double-quoted with ``\``
    and ``"`` escaped (``yamlString``). ``context.md`` is ``# <name>\n\n``
    followed by ``<summary>\n`` when the summary is non-blank. The folder
    name is the verbatim ``name`` (``REQ_ACTOR_SCHEMA`` AC-6).
@@ -843,9 +842,9 @@ Actor Design Specifications
       nothing written (AC-3). The rescan inside the check catches an
       ``actor.yaml`` edited by hand since the last scan.
    3. Optional InputBox for the summary; Escape → ``""`` (AC-4).
-   4. ``writeActorFiles(folder, { name, summary, agent: "" })`` (AC-5).
-   5. ``pickAgentMode()`` (``SPEC_ACTOR_AGENT_DISCOVERY``); a selection is
-      written with ``writeActorAgent``; "No agent" or Escape keeps ``""``
+   4. ``writeActorFiles(folder, { name, summary })`` (AC-5).
+   5. ``ensureActorAgent({ name, folder })`` (``SPEC_ACTOR_WHOAMI``); no
+      picker is shown, and a ``skipped`` result does not abort the creation
       (AC-6).
    6. ``await actorScanner.rescan()`` (AC-7).
    7. When ``jarvis.actors.openSessionOnCreate`` is ``true``, execute
@@ -867,20 +866,20 @@ Actor Design Specifications
    * AC-1: Folder creation and all writes of ``actor.yaml`` and
      ``context.md`` happen only in ``actorCreation.ts``.
    * AC-2: The command and the tool produce byte-identical files for the
-     same name, summary and agent.
+     same name and summary.
    * AC-3: An existing target folder, or an existing Actor with the same
      name in any folder, aborts the command before any write; both entry
      points decide this through ``existingActorFolder`` only.
-   * AC-4: The agent picker runs after the files exist; its result never
-     aborts the creation.
+   * AC-4: ``ensureActorAgent`` runs after the files exist, in both entry
+     points; its result never aborts the creation.
    * AC-5: The session is opened only when
      ``jarvis.actors.openSessionOnCreate`` is ``true``.
 
 
 .. spec:: jarvis_createActor Tool
    :id: SPEC_ACTOR_CREATETOOL
-   :status: approved
-   :links: REQ_ACTOR_CREATETOOL; SPEC_ACTOR_CREATE; SPEC_ACTOR_AGENT_DISCOVERY; SPEC_ACTOR_OPENSESSION; SPEC_ENG_REGISTER_TOOL; SPEC_MSG_DUALREGISTRATION; SPEC_MSG_QUEUESTORE
+   :status: implemented
+   :links: REQ_ACTOR_CREATETOOL; SPEC_ACTOR_CREATE; SPEC_ACTOR_WHOAMI; SPEC_ACTOR_OPENSESSION; SPEC_ENG_REGISTER_TOOL; SPEC_MSG_DUALREGISTRATION; SPEC_MSG_QUEUESTORE
 
    **Description:**
    ``jarvis_createActor`` is registered with ``engine.registerTool()``
@@ -891,10 +890,8 @@ Actor Design Specifications
    **Algorithm:**
 
    1. ``validateActorName(name)`` (AC-5).
-   2. If ``agent`` is non-blank: compare it with the identities from
-      ``discoverAgentModes()``; unknown → throw
-      ``Agent "<agent>" is not available.\nAvailable agents: <sorted names | (none)>``
-      (AC-6).
+   2. An ``agent`` input is ignored: it is neither validated nor written
+      (``REQ_ACTOR_CREATETOOL`` AC-1).
    3. Resolve the actors folder; none → throw
       ``"jarvis_createActor: no workspace open"`` (AC-8).
    4. ``existingActorFolder(actorsFolder, name, actorScanner)`` returns a
@@ -902,7 +899,9 @@ Actor Design Specifications
       ``{ created: false, reason: 'actor "<name>" already exists; no action taken', path }``
       with ``path`` the workspace-relative returned folder, and do nothing
       else: no write, no enqueue, no session (AC-7).
-   5. ``writeActorFiles(folder, { name, summary: summary ?? "", agent: agent ?? "" })``.
+   5. ``writeActorFiles(folder, { name, summary: summary ?? "" })``, then
+      ``ensureActorAgent({ name, folder })`` (``SPEC_ACTOR_WHOAMI``,
+      ``REQ_ACTOR_CREATETOOL`` AC-6).
    6. ``initialMessage`` → ``appendMessage(messagesPath, name, 'jarvis_createActor', initialMessage)``
       and reload the Messages view (AC-4).
    7. ``await actorScanner.rescan()`` (AC-3).
@@ -929,7 +928,6 @@ Actor Design Specifications
           "properties": {
             "name":           { "type": "string", "description": "Actor name; used verbatim as the folder name." },
             "summary":        { "type": "string", "description": "Optional short description." },
-            "agent":          { "type": "string", "description": "Optional agent identity to bind." },
             "initialMessage": { "type": "string", "description": "Optional first message queued for the new Actor." }
           }
         }
@@ -944,11 +942,14 @@ Actor Design Specifications
      session opening.
    * AC-3: Files are written through ``writeActorFiles`` only.
    * AC-4: The tool is not gated by any feature setting.
+   * AC-5: The input schema has no ``agent`` property; a caller that passes
+     one anyway (e.g. through ``invokeTool``) is not rejected and the value
+     has no effect.
 
 
 .. spec:: jarvis_listActors Tool
    :id: SPEC_ACTOR_LISTTOOL
-   :status: approved
+   :status: implemented
    :links: REQ_ACTOR_LISTTOOL; SPEC_ACTOR_SCANNER; SPEC_ENG_REGISTER_TOOL; SPEC_ENG_ACTORLIST
 
    **Description:**
@@ -960,9 +961,12 @@ Actor Design Specifications
    .. code-block:: typescript
 
       const actors = actorScanner.actors.map(a => ({
-          name: a.name, summary: a.summary, agent: a.agent, folder: a.folder, id: a.id,
+          name: a.name, summary: a.summary, agent: a.name, folder: a.folder, id: a.id,
       }));
       return JSON.stringify({ actors });
+
+   ``agent`` is the Actor's own agent, identified by the Actor name
+   (``SPEC_ACTOR_WHOAMI``), so it always equals ``name``.
 
    **package.json ``languageModelTools``:** name ``jarvis_listActors``,
    ``toolReferenceName`` ``listActors``, empty ``inputSchema``,
@@ -977,79 +981,164 @@ Actor Design Specifications
    * AC-2: Entries come from ``ActorScanner`` only.
 
 
-.. spec:: jarvis_whoAmI Tool
+.. spec:: Actor Identity via Own Agent
    :id: SPEC_ACTOR_WHOAMI
-   :status: approved
-   :links: REQ_ACTOR_WHOAMI; REQ_ACTOR_BINDING; SPEC_ACTOR_SCANNER; SPEC_HOOK_ROUTE; SPEC_HOOK_INTAKE; SPEC_ENG_REGISTER_TOOL
+   :status: implemented
+   :links: REQ_ACTOR_WHOAMI; REQ_ACTOR_BINDING; SPEC_ACTOR_AGENT_DISCOVERY; SPEC_ACTOR_SCANNER; SPEC_ACTOR_CREATE; SPEC_INJ_INJECT
 
    **Description:**
-   ``jarvis_whoAmI`` is registered with ``engine.registerTool()`` whenever
-   the actors folder is resolvable, with no feature gate. It identifies the
-   calling session from that session's own hook ``session_id`` and never
-   from editor focus.
+   ``engine/actors/actorAgent.ts`` owns the Actor's agent file. Its one
+   function ``ensureActorAgent`` makes the file exist and carry the two
+   Jarvis lines, and nothing else in Jarvis writes an agent file. The spec ID
+   is kept for traceability from the former ``jarvis_whoAmI`` tool, which is
+   removed together with its handler, its ``package.json`` contribution and
+   the hook correlation buffer in ``extension.ts``. The agent body reaches
+   every request of the session, so the Actor knows its name and the
+   location of its ``context.md`` without a tool call and without hooks
+   (``REQ_ACTOR_WHOAMI``).
 
-   **Why a correlation buffer:** ``LanguageModelToolInvocationOptions``
-   carries no session identity. The ``session_id`` arrives on the
-   invocation's own ``PreToolUse`` hook event, which ``SPEC_HOOK_INTAKE``
-   dispatches before the tool handler runs. The handler reads it from a
-   buffer filled by a ``PreToolUse`` subscriber. Focus is not a fallback:
-   it moves independently of the executing session and gives confidently
-   wrong answers (``REQ_ACTOR_WHOAMI`` AC-4, AC-7).
+   **Signature:**
 
-   **Buffer rules:**
+   .. code-block:: typescript
 
-   1. Capture only ``PreToolUse`` events whose ``payload.tool_name`` ends
-      with ``jarvis_whoAmI`` (bare or transport-prefixed) and that carry a
-      ``sessionId``.
-   2. The handler drains the buffer; an entry serves at most one call.
-   3. Entries older than a freshness window (10 s) are discarded.
-   4. Fresh entries with more than one distinct ``session_id`` are
-      ambiguous; none is picked. Several sessions calling ``whoAmI`` close
-      together are normal in a multi-actor workspace.
-   5. No fresh entry is an absence; there is no second source.
+      export type EnsureAgentResult =
+          | { status: 'ready'; mode: string }   // mode = the Actor name
+          | { status: 'skipped';
+              reason: 'nameMismatch' | 'duplicateAgent' | 'noWorkspace' | 'writeFailed' };
+
+      /**
+       * Precondition: actor.name resolved to exactly one Actor, or the Actor
+       * was just created. Never throws; a failure is logged and returned.
+       */
+      export async function ensureActorAgent(
+          actor: { name: string; folder: string }
+      ): Promise<EnsureAgentResult>;
+
+   **Callers** (``REQ_ACTOR_WHOAMI`` AC-4), and only these:
+
+   * ``injectPrompt`` step 1b (``SPEC_INJ_INJECT``). Every open of an Actor
+     session, every delivery and the injection tool and command reach the
+     Actor through ``injectPrompt``, so one call there covers
+     ``jarvis.openActorSession``, ``jarvis.sendMessages`` and the
+     auto-delivery poll loop.
+   * ``jarvis.newActor`` (``SPEC_ACTOR_CREATE`` step 5).
+   * ``createActorHandler`` for ``jarvis_createActor``
+     (``SPEC_ACTOR_CREATETOOL`` step 5).
 
    **Algorithm:**
 
-   1. ``takeCallingSessionId()``; ``undefined`` → error.
-   2. ``getEntityNameForSessionId(id)``; unresolved → error.
-   3. ``actorScanner.resolveName(title)``: ``unknown`` or ``ambiguous`` →
-      error (``REQ_ACTOR_WHOAMI`` AC-8).
-   4. Return ``{ name, contextPath: path.join(folder, 'context.md'), id }``
-      (AC-2).
+   1. Calls for the same Actor name are serialized: a second call waits for
+      the first, so two deliveries to one Actor never write the file twice
+      at the same time.
+   2. The target folder is ``.github/agents/`` of the first workspace folder,
+      the folder the actors folder is resolved against
+      (``SPEC_CFG_PATHRESOLVER``). No workspace folder → ``skipped``
+      (``noWorkspace``).
+   3. ``discoverAgentModes()`` (``SPEC_ACTOR_AGENT_DISCOVERY``); the
+      candidates are the entries whose identity equals the Actor name.
 
-   Every failure returns the same result:
-   ``{ "error": "Unable to determine your identity automatically (hooks disabled or unavailable). Please confirm your identity with the user." }``.
-   The distinguishing cause goes to the log only. This replaces today's
-   separate collision message that lists the colliding paths: the remedy is
-   the same in every case, and ``REQ_ACTOR_WHOAMI`` AC-8 asks for the AC-3
-   error.
+      * More than one → no file is touched; one warning notification
+        naming the files; ``skipped`` (``duplicateAgent``).
+      * Exactly one → step 4 on that file, whatever its file name is.
+      * None → the target file is ``<Actor name>.agent.md``. When it
+        already exists, it is not the Actor's agent (its ``name`` differs, or
+        discovery skips it): no file is touched; one warning notification
+        naming the file; ``skipped`` (``nameMismatch``). Otherwise step 5.
+   4. **Restore the two lines.** Find the end of the front matter (the
+      closing ``---`` line of a file that starts with ``---``; no front
+      matter means the start of the file). Directly after it, line 1 is
+      replaced when it starts with ``You act as Actor ``, otherwise
+      inserted; the following line is replaced when it starts with
+      ``Your context memory is ``, otherwise inserted. The line ending of
+      the file (``\n`` or ``\r\n``) is kept. The file is written only when
+      the result differs from the content read.
+   5. **Create.** Create the folder when needed and write the file below.
+      Then wait until VS Code has registered the mode command
+      ``workbench.action.chat.open<Actor name>``, polling
+      ``vscode.commands.getCommands(true)`` every 100 ms for at most 3 s,
+      because VS Code learns of a new agent file asynchronously. On timeout
+      the result is still ``ready``; ``reapplyAgentMode`` skips with a
+      logged warning when the command is not registered yet
+      (``SPEC_MSG_OPENCHAT``), and the next open applies the mode. A write
+      error is logged and returns ``skipped`` (``writeFailed``).
+   6. Return ``{ status: 'ready', mode: <Actor name> }``.
 
-   **Known limitation:** with hook intake off (``SPEC_HOOK_AUTOINST``) the
-   buffer stays empty and the tool always returns the error. A tool that
-   reliably says "ask the user" is safe; one that sometimes guesses is not.
+   **File content** (steps 4 and 5; ``<rel>`` is the workspace-relative path
+   of ``<Actor folder>/context.md`` with forward slashes):
 
-   **package.json ``languageModelTools``:** name ``jarvis_whoAmI``,
-   ``toolReferenceName`` ``whoAmI``, icon ``$(account)``, empty
-   ``inputSchema``.
+   .. code-block:: text
+
+      ---
+      name: "<Actor name>"
+      ---
+      You act as Actor <Actor name>
+      Your context memory is <rel>. Read it and the files it links if you did not do that already or after a compaction.
+
+   The front matter is written only when the file is created; ``name`` is
+   double-quoted with ``\`` and ``"`` escaped (``yamlString``). An existing
+   file keeps everything except the two recognised lines. Persona content is
+   never written: the persona is referenced from ``context.md``
+   (``REQ_ACTOR_WHOAMI`` AC-8).
+
+   **Warnings:** a warning notification for a given file and reason is shown
+   at most once per window session, because the check runs on every open and
+   delivery and would otherwise repeat for every message. The text is
+   ``Jarvis: <rel file> exists but is not the agent of Actor "<name>"; the
+   Actor opens without its own agent.`` (``nameMismatch``) and
+   ``Jarvis: Several agents are named "<name>": <files>; the Actor opens
+   without its own agent.`` (``duplicateAgent``).
+
+   **Removed with ``jarvis_whoAmI``:** the tool registration, its
+   ``languageModelTools`` entry (``toolReferenceName`` ``whoAmI``), the
+   ``PreToolUse`` correlation buffer and its freshness window. The delivered
+   ``jarvis-actor.kernel.instructions.md`` (``SPEC_MOD_ACTORRULES``) has no
+   identity section: the Actor's agent already carries its name and the
+   path of its ``context.md``, so section ``## 0. Identity`` is removed.
+   Sections ``## 1. Local Memory`` to ``## 4. Culture`` keep their numbers.
+   The kernel no longer says what an Actor does when the two lines of
+   its agent are missing.
 
    **Acceptance Criteria:**
 
-   * AC-1: The handler reads no editor-focus API.
-   * AC-2: Buffer entries are filtered at capture, consumed on read and
-     expire after the freshness window; disagreeing entries are an error.
-   * AC-3: Name resolution uses ``resolveName`` and fails unless the result
-     is ``found``.
-   * AC-4: All failures return the single error text above.
+   * AC-1: ``ensureActorAgent`` is the only function that creates or changes
+     an Actor's agent file, and it has exactly the three callers above.
+   * AC-2: An agent is found by its identity, not by its file name; when
+     none carries the Actor name, ``<Actor name>.agent.md`` is created with
+     ``name`` in its front matter.
+   * AC-3: The two lines have the text above, are recognised by their fixed
+     prefixes, and are restored when absent or different; nothing else in
+     the file changes, and an unchanged file is not written.
+   * AC-4: The check runs only at the three callers: not at extension
+     startup and not in a rescan.
+   * AC-5: A caller reaches it only after the Actor name resolved to exactly
+     one Actor (``injectPrompt`` step 1) or after creation checked that no
+     Actor of that name exists (``SPEC_ACTOR_CREATE`` step 2); an ambiguous
+     name therefore never gets an agent created or changed.
+   * AC-6: A file named ``<Actor name>.agent.md`` that is not the Actor's
+     agent, or two agents with the Actor's name, leave every file unchanged,
+     show one warning per file and reason and window session, and return
+     ``skipped``.
+   * AC-7: No agent file is ever deleted; the agent of a former name stays
+     after a rename.
+   * AC-8: ``jarvis_whoAmI`` is neither registered as Language Model or MCP
+     tool nor contributed in ``package.json``, and the kernel instructions
+     asset does not mention it.
+   * AC-9: Concurrent calls for one Actor name are serialized.
+   * AC-10: The kernel instructions asset has no identity section, and its
+     remaining sections keep their numbers (``## 1.`` to ``## 4.``).
 
 
-.. spec:: Agent Discovery and Picker
+
+
+.. spec:: Agent Discovery
    :id: SPEC_ACTOR_AGENT_DISCOVERY
-   :status: approved
-   :links: REQ_ACTOR_AGENT_DISCOVERY; REQ_ACTOR_CREATE; REQ_ACTOR_CREATETOOL; REQ_ACTOR_FILES_TREE
+   :status: implemented
+   :links: REQ_ACTOR_AGENT_DISCOVERY; REQ_ACTOR_FILES_TREE; SPEC_ACTOR_WHOAMI
 
    **Description:**
-   ``engine/sessions/agentDiscovery.ts`` finds the agents an Actor can be
-   bound to and offers the picker used by ``jarvis.newActor``.
+   ``engine/sessions/agentDiscovery.ts`` finds the agents of the workspace,
+   so that an Actor's agent can be found by its name
+   (``SPEC_ACTOR_WHOAMI``).
 
    .. code-block:: typescript
 
@@ -1058,7 +1147,6 @@ Actor Design Specifications
           filePath: string;  // workspace-relative, e.g. ".github/agents/syspilot.cm.agent.md"
       }
       export async function discoverAgentModes(): Promise<AgentModeEntry[]>;
-      export async function pickAgentMode(): Promise<string | undefined>;
 
    **Discovery:** ``readdir`` ``<folder>/.github/agents/`` of each
    workspace folder; take every file ending in ``.agent.md``
@@ -1070,15 +1158,6 @@ Actor Design Specifications
    regexes; no YAML parser is involved. There is no cache: each call reads
    the directory (``REQ_ACTOR_AGENT_DISCOVERY`` AC-6).
 
-   **Picker:** a QuickPick with "No agent" first (detail "Opens a default
-   chat — pick mode via the chat dropdown"), then one item per discovered
-   agent (label = identity, description = ``filePath``). It returns
-   ``undefined`` on Escape, ``""`` for "No agent", otherwise the identity.
-   ``jarvis.newActor`` treats ``undefined`` like ``""``
-   (``REQ_ACTOR_CREATE`` AC-6). The picker is shown only by
-   ``jarvis.newActor``; the tool validates against ``discoverAgentModes()``
-   without a picker.
-
    **Acceptance Criteria:**
 
    * AC-1: Discovery includes every ``*.agent.md`` without
@@ -1086,7 +1165,7 @@ Actor Design Specifications
      is missing.
    * AC-2: The identity rule is frontmatter ``name`` or file stem.
    * AC-3: No discovery result is cached across calls.
-   * AC-4: The picker's first entry is "No agent" and returns ``""``.
+   * AC-4: The module offers no picker; ``pickAgentMode`` does not exist.
 
 
 .. spec:: Open Actor Session Command
@@ -1124,8 +1203,8 @@ Actor Design Specifications
 
 .. spec:: Actor Session Initialization Prompt
    :id: SPEC_ACTOR_INITPROMPT
-   :status: approved
-   :links: REQ_ACTOR_INITPROMPT; SPEC_INJ_INJECT; SPEC_MSG_NOTIFICATION_RESOLVE
+   :status: implemented
+   :links: REQ_ACTOR_INITPROMPT; SPEC_INJ_INJECT; SPEC_MSG_NOTIFICATION_RESOLVE; SPEC_ACTOR_WHOAMI
 
    **Description:**
    The init prompt is composed in exactly one place: the new-session branch
@@ -1164,11 +1243,12 @@ Actor Design Specifications
       - Before writing, ask: "Will this still matter in 2 weeks?" If no, skip.
       - When a topic grows past ~5 bullets, move it to a dedicated file beside `context.md` and leave a one-line summary with a relative link in `context.md`.
 
-   **Mode priming** (``REQ_ACTOR_INITPROMPT`` AC-6, AC-7): when the Actor's
-   ``agent`` is non-empty, the new-session branch runs
-   ``workbench.action.chat.open { mode: agent }`` and waits 300 ms before
-   ``openNewChatEditor()``; a failure is logged and the default mode
-   applies.
+   **Mode priming** (``REQ_ACTOR_INITPROMPT`` AC-6, AC-7): when
+   ``ensureActorAgent`` returned ``ready`` (``SPEC_INJ_INJECT`` step 1b), the
+   new-session branch runs
+   ``workbench.action.chat.open { mode: <Actor name> }`` and waits 300 ms
+   before ``openNewChatEditor()``; a failure is logged and the default mode
+   applies. With a ``skipped`` result no mode is passed.
 
    **package.json (core), Prompt Templates group:**
    ``jarvis.agentSession.initPromptTemplate`` — ``string``, scope

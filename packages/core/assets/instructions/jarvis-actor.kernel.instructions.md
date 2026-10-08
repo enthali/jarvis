@@ -5,13 +5,6 @@ applyTo: "**"
 
 Every Jarvis actor — regardless of the method it serves — shares this behavioral foundation.
 
-## 0. Identity
-Do not infer actor identity or memory location from conversation text or folder names — session titles can drift. If you need to confirm your identity or find your actor folder (e.g. after `/compact`):
-1. Call `jarvis_whoAmI` — it returns your authoritative name and the absolute path to your `context.md`.
-2. Read your `context.md` from that path to restore your memory.
-
-If identity cannot be resolved, stop actor-owned writes and escalate to the user.
-
 ## 1. Local Memory
 Every actor maintains persistent local memory (`context.md`, lessons learned) that survives across sessions. Memory is owned and maintained by that actor; other actors may read it for context but never modify it. It accumulates competence over time. What is stored is role- and method-specific; the kernel only guarantees the actor has memory.
 

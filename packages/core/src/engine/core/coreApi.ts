@@ -62,7 +62,7 @@ export class JarvisEngine implements JarvisCoreApi {
 
     listActors(): JarvisActor[] {
         return this._actorScanner.actors.map(a => ({
-            name: a.name, summary: a.summary, agent: a.agent, folder: a.folder, id: a.id,
+            name: a.name, summary: a.summary, agent: a.name, folder: a.folder, id: a.id,
         }));
     }
 

@@ -264,7 +264,7 @@ Hook Engine Design Specifications
    log inspection of a live payload, which showed ``session_id`` present at the
    top level of the JSON body. See REQ_HOOK_INTAKE AC-8.~~
 
-   **Dispatch-before-response ordering (whoami-session-id-resolution CR, GH #51):**
+   **Dispatch-before-response ordering (introduced by the whoami-session-id-resolution CR, GH #51; retired as a contract by the actor-identity-via-agent-file CR):**
 
    ``receive(event)`` is called **before** ``res.end()``, and dispatch to
    subscribers is synchronous (SPEC_HOOK_ROUTE). The bridge in turn writes its
@@ -281,24 +281,12 @@ Hook Engine Design Specifications
         -> bridge writes {"continue": true}, exits
       VS Code invokes the tool handler
 
-   **Therefore a tool handler can rely on its own ``PreToolUse`` event having
-   already been dispatched.** This is the basis for ``SPEC_ACTOR_WHOAMI``
-   resolving its calling session.
+   The implementation may keep this order, but no consumer relies on it: its
+   only consumer, ``jarvis_whoAmI`` (``SPEC_ACTOR_WHOAMI``), is removed.
 
-   This ordering is **normative** (REQ_HOOK_INTAKE AC-9), not an accident of
-   the current code. Responding before dispatching would be a natural-looking
-   latency optimisation and would break every ordering-dependent consumer
-   *silently* — no test that exercises intake in isolation would notice, since
-   the event still arrives, just too late. It is recorded here, at the
-   listener, rather than only in the consumer that first depended on it.
-
-   The guarantee holds only while the hook actually fires and the transport
-   succeeds. It does **not** hold when hook intake is disabled
-   (SPEC_HOOK_AUTOINST), when ``.github/hooks/jarvis-port`` is missing or stale,
-   when
-   the POST fails, or when VS Code's hook timeout elapses. In all of these the
-   bridge still continues (AC-3) and the tool simply runs with no event
-   delivered — consumers must define their own behaviour for that case.
+   This ordering is **no longer normative** (``REQ_HOOK_INTAKE`` AC-9 is
+   retired). The touched-files tracker and the activity indicator are
+   observe-only subscribers and need no ordering relative to a tool handler.
 
    **Design notes:**
 
@@ -333,9 +321,9 @@ Hook Engine Design Specifications
      bus/subscribers can be inserted without changing the bridge or listener.
    * AC-5: The listener starts in ``activate()`` and stops in ``deactivate()``;
      activation does not depend on ``jarvis.mcpEnabled``.
-   * AC-6: (GH #51) ``HookEngine.receive(event)`` is called before the ``200``
-     response is written, so subscribers have observed the event by the time
-     the bridge returns and VS Code proceeds (REQ_HOOK_INTAKE AC-9).
+   * AC-6: (retired with ``REQ_HOOK_INTAKE`` AC-9) ``HookEngine.receive(event)``
+     is no longer required to run before the ``200`` response is written; the
+     implementation need not keep that order.
 
 
 .. spec:: Hook Event Logging Sink

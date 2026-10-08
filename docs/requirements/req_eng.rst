@@ -74,7 +74,7 @@ Engine Requirements
 
 .. req:: Platform Actor List API
    :id: REQ_ENG_ACTORLIST
-   :status: approved
+   :status: implemented
    :priority: required
    :links: US_ACTOR_LISTTOOL; REQ_ACTOR_LISTTOOL; REQ_ACTOR_SCHEMA
 
@@ -93,8 +93,9 @@ Engine Requirements
      ``REQ_ACTOR_TREE`` AC-2, from the current Actor scan.
    * AC-3: The method performs no filesystem scan of its own — it is a
      read-only view of the existing scan state.
-   * AC-4: Missing optional fields (``summary``, ``agent``) are returned as
-     empty strings.
+   * AC-4: A missing optional ``summary`` is returned as an empty string;
+     ``agent`` is the Actor's own agent, equal to ``name``
+     (``REQ_ACTOR_LISTTOOL`` AC-2).
    * AC-5: ``listJarvisSessions()`` and the ``JarvisSession`` type SHALL be
      removed; existing add-on callers SHALL use ``listActors()``.
 

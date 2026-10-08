@@ -59,33 +59,12 @@ function resolveOwnerByName(name: string, api: JarvisCoreApi): ResolvedOwner | u
 async function resolveOwner(
     ownerName: string | undefined,
     api: JarvisCoreApi,
-    token: vscode.CancellationToken
+    _token: vscode.CancellationToken
 ): Promise<ResolvedOwner | { error: string }> {
-    if (ownerName) {
-        const owner = resolveOwnerByName(ownerName, api);
-        if (!owner) { return { error: 'actor unknown' }; }
-        return owner;
-    }
-    // Invoke jarvis_whoAmI to resolve the calling actor
-    try {
-        const result = await api.invokeTool(
-            'jarvis_whoAmI',
-            { input: {}, toolInvocationToken: undefined } as unknown as vscode.LanguageModelToolInvocationOptions<unknown>,
-            token
-        );
-        // Parse the result — whoAmI returns JSON with name + contextPath
-        const text = (result as { content: Array<{ value: string }> }).content
-            ?.map(part => (part as { value: string }).value)
-            .join('') ?? '';
-        const parsed = JSON.parse(text);
-        if (parsed.error) { return { error: parsed.error }; }
-        const name = parsed.name as string;
-        const owner = resolveOwnerByName(name, api);
-        if (!owner) { return { error: `actor "${name}" resolved but folder not found` }; }
-        return owner;
-    } catch (e) {
-        return { error: `whoAmI resolution failed: ${e}` };
-    }
+    if (!ownerName) { return { error: 'ownerName required' }; }
+    const owner = resolveOwnerByName(ownerName, api);
+    if (!owner) { return { error: 'actor unknown' }; }
+    return owner;
 }
 
 function resolveBoardPath(folder: string, boardName: string | undefined): string {

@@ -21,8 +21,8 @@ Kanban Management Tools UAT Design Specifications
    * Before each scenario: copy ``testdata/kanban/sample.kanban.yaml``
      to ``testdata/.jarvis/actors/Change Manager/kanban.yaml`` for a clean
      state (unless stated otherwise).
-   * Active actor tab: confirm ``jarvis_whoAmI`` resolves to ``Change Manager``
-     before invoking tools without ``ownerName``.
+   * Every tool call passes ``ownerName: "Change Manager"``; the Actor's own
+     name is no longer looked up (``REQ_KAN_CREATE`` AC-3).
 
    **Expected Outcomes — ADD (T-1..T-6):**
 
@@ -42,7 +42,7 @@ Kanban Management Tools UAT Design Specifications
         - Note the current ``nextId`` value in ``kanban.yaml`` (say, ``N``).
           Call ``jarvis_addKanbanItem`` with ``name: "New Task"``,
           ``status: "Backlog"``, ``priority: "High"``
-          (no ``ownerName``).
+          (``ownerName: "Change Manager"``).
         - Response: ``{ path: ..., added: true, itemId: N }``.
           Open board YAML — new item present with ``id: N``.
           ``nextId`` is now ``N + 1``.

@@ -13,6 +13,7 @@
 import { describe, it, expect } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
+import { DEFAULT_INIT_PROMPT } from '@engine/sessions/injectPrompt';
 
 const coreSrcDir = path.resolve(__dirname, '..', '..', 'packages', 'core', 'src');
 const injectPromptSrc = fs.readFileSync(
@@ -104,5 +105,11 @@ describe('TC-5: Custom-template override path unbroken', () => {
     it('package.json setting has type string and allows empty override', () => {
         expect(initPromptSetting.type).toBe('string');
         expect(initPromptSetting.description).toContain('Leave empty');
+    });
+});
+
+describe('TC-6: package.json default is pinned to DEFAULT_INIT_PROMPT (SPEC_ACTOR_INITPROMPT)', () => {
+    it('packageDefault equals the DEFAULT_INIT_PROMPT constant verbatim', () => {
+        expect(packageDefault).toBe(DEFAULT_INIT_PROMPT);
     });
 });

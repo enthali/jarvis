@@ -209,16 +209,14 @@ Kanban Skill Content UAT Design Specifications
 
       * - T-11
 
-          Skill: Owner Resolution says omit, not pre-resolve
+          Skill: Owner Resolution says ownerName is always supplied
 
           *AC: REQ_KAN_SKILLCONTENT AC-4;
           SPEC_KAN_SKILLCONTENT AC-3*
         - Open skill; read the **Owner Resolution** section.
-        - Section says: omit ``ownerName`` to address the calling actor's
-          own board. Section does **not** instruct the reader to call
-          ``jarvis_whoAmI`` first and pass the result. The anti-pattern
-          (calling ``jarvis_whoAmI`` then passing the name) is either
-          absent or explicitly warned against.
+        - Section says: ``ownerName`` is always supplied; the calling actor
+          passes its own name to address its own board. Section does **not**
+          mention ``jarvis_whoAmI``.
 
       * - T-12
 
