@@ -26,8 +26,12 @@ capability modules. Install only what you need.
 ### Jarvis Core
 
 - **Actors & sessions** — persistent entities with their own `context.md` memory. The ACTORS view shows direct child folders with `actor.yaml`. See [Core getting started](packages/core/README.md#getting-started) for folder and tool-ID behavior.
-- **Heartbeat scheduler** — cron-based jobs running scripts (Python, PowerShell), VS Code commands, or single-shot LLM calls
-- **Messaging, reminders & LM tools** — an inter-actor message queue, reminders, and tools like `#listActors`, `#sendMessage`, `#receiveMessage`, `#createActor`, `#injectPrompt`, `#whoAmI`, `#createKanbanBoard`, `#verifyKanbanSchema`, and `#openKanbanBoard`
+- **Heartbeat scheduler** — cron-based jobs running scripts (Python, PowerShell), VS Code
+  commands, or single-shot LLM agent steps. Each agent step must name `vendor` and `model`
+  (the model ID); there is no default or fallback, so existing steps without both fail until
+  updated. Use **Jarvis: List Language Models** or `jarvis_listModels` to inspect the pairs
+  currently offered to Jarvis by VS Code.
+- **Messaging, reminders & LM tools** — an inter-actor message queue, reminders, and tools like `#listActors`, `#listModels`, `#sendMessage`, `#receiveMessage`, `#createActor`, `#injectPrompt`, `#whoAmI`, `#createKanbanBoard`, `#verifyKanbanSchema`, and `#openKanbanBoard`
 - **Prompt injection** — inject any text or slash-command (e.g. `/compact`) into a named actor's session via the `jarvis_injectPrompt` LM tool or the **Jarvis: Inject Prompt** command; spawns the session automatically if none exists. Useful for bulk operations such as compacting all actors after a CR:
   ```
   jarvis_injectPrompt(actor="Change Manager", text="/compact")

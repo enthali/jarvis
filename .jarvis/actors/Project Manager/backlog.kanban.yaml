@@ -1,5 +1,5 @@
 title: backlog
-nextId: 52
+nextId: 55
 fields:
   - name: status
     type: single_select
@@ -700,3 +700,54 @@ items:
       Open for PM and user: scope, whether obsolete fields are removed from
       existing files, and the order relative to backlog 42."
     priority: Medium
+  - id: 52
+    name: "Heartbeat agent step: choose vendor and model of the language model"
+    status: In Progress
+    labels:
+      - heartbeat
+      - llm
+    notes: "User decision 2026-10-08: the heartbeat agent step shall let the user
+      choose vendor and model of the language model, nothing more. Today
+      executeAgentStep() in packages/core/src/apps/session/heartbeat.ts calls
+      selectChatModels with the fixed vendor copilot and family gpt-4o (also
+      stated in SPEC_AUT_AGENTEXEC). Change document
+      docs/changes/heartbeat-agent-model-selection.md on branch
+      feature/heartbeat-agent-model-selection, created 2026-10-08, not yet sent
+      to CM (the user reviews the CD first)."
+    priority: High
+  - id: 53
+    name: jarvis_registerJob schema and SPEC_ENG_API HeartbeatStep lack outputVar
+    status: Backlog
+    labels:
+      - heartbeat
+      - tools
+    notes: "Findings from the System Designer and CM during
+      heartbeat-agent-model-selection (2026-10-08), out of scope there: (1) the
+      input schema of the tool jarvis_registerJob does not list the step field
+      outputVar, so an actor registering a job cannot know that field exists;
+      (2) the HeartbeatStep copy in SPEC_ENG_API lacks outputVar (older gap;
+      vendor and model were added there by the change). After the change is
+      merged check whether the registerJob schema lists vendor and model."
+  - id: 54
+    name: Removed setting jarvis.heartbeatConfigFile still named as live in README
+      and specs
+    status: Backlog
+    labels:
+      - docs
+      - settings
+    notes: "Found 2026-10-08 during the live test of
+      heartbeat-agent-model-selection: the setting jarvis.heartbeatConfigFile
+      was removed in v0.5.11 (fixed path .jarvis/heartbeat.yaml in the workspace
+      root) but is still named as live in many places. Classification by the
+      System Designer (CD heartbeat-agent-model-selection, I-6). Spec-level
+      contradictions with the code: US_CFG_HEARTBEAT AC-1/AC-2 (us_cfg.rst);
+      REQ_CFG_HEARTBEATPATH AC-1, AC-2, AC-4 and AC-3 (it says no
+      .jarvis/heartbeat.yaml fallback, the opposite of the code) (req_cfg.rst);
+      spec_cfg.rst line about 183; root README.md settings table line about 70,
+      which contradicts package.json. Stale UAT setup text only:
+      spec_uat_heartbeat_pause.rst line 26, spec_uat_listjobs.rst line 36,
+      us_uat_tree_node_open_file.rst T-1 (line 28) and T-3 (line 45, its premise
+      needs a redesign, not new wording). Intentional, no action: the deprecated
+      SPEC_CFG_HEARTBEATSETTINGS and its replacement text. The UAT setup of
+      us_uat_heartbeat and spec_uat_heartbeat was fixed inside
+      heartbeat-agent-model-selection (9208b32)."

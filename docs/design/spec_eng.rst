@@ -49,6 +49,8 @@ Engine Design Specifications
           prompt?: string;
           outputFile?: string;
           append?: boolean;
+          vendor?: string;       // agent: language model vendor (SPEC_AUT_JOBSCHEMA)
+          model?: string;        // agent: language model id (SPEC_AUT_JOBSCHEMA)
           destination?: string;
           sender?: string;
           text?: string;

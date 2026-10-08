@@ -171,3 +171,10 @@ Points agreed in the discussion (nothing decided as a product):
   JSON from them.
 - Model picker in the PIM settings (vendor list, then model list) and the error
   workflow: the user's UI idea, to be designed.
+
+## Field data, 2026-10-08 (the user's own triage setup, not a Jarvis feature)
+
+- An LLM classifies one mail per call; several mails in one call degrade the result. A first test: 6 mails assigned cleanly, including mails without a project, 4.9 credits in total.
+- After half a day: about 18 credits with the model the user calls "gtp-6 luna", so he plans 40-50 cents per day; he will look again after one week (about 2026-10-15).
+- Past experience of the user: one chat session per mail (actor also acting as distributor) gave better assignment through session context but was heavy, and some models refused after several repeated calls; he dropped it and may return to it.
+- Consequence for Jarvis: a heartbeat step per list element would be needed to run one agent call per mail from a job (scripts cannot call `vscode.lm`). Not a backlog item yet; the user decides after #52 and his week of data.

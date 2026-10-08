@@ -158,7 +158,9 @@ describe('SPEC_AUT_STEP_OUTPUT_VARS: executeJob variable chaining', () => {
     it('AC-3: agent step response captured into outputVar and interpolated into a later step + prompt path templated', async () => {
         (fs.readFileSync as any).mockReturnValue('PROMPT_TEXT');
         const fakeModel = {
+            vendor: 'test-vendor',
             id: 'test-model',
+            name: 'Test Model',
             sendRequest: vi.fn().mockResolvedValue({
                 text: (async function* () { yield 'agent-result'; })(),
             }),
@@ -183,7 +185,7 @@ describe('SPEC_AUT_STEP_OUTPUT_VARS: executeJob variable chaining', () => {
             schedule: 'manual',
             steps: [
                 { type: 'python', run: 'metrics.py', outputVar: 'METRICS' },
-                { type: 'agent', prompt: 'prompt-${METRICS}.md', outputVar: 'AGENT_OUT' },
+                { type: 'agent', prompt: 'prompt-${METRICS}.md', vendor: 'test-vendor', model: 'test-model', outputVar: 'AGENT_OUT' },
                 { type: 'python', run: 'process-${AGENT_OUT}.py' },
             ],
         };

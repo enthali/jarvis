@@ -115,21 +115,56 @@
 
 ## Active CR
 
-- **Spike email-triage-embeddings-poc (2026-10-07, Research)** — handed to the
-  Research actor on the user's explicit go. Branch
-  `research/email-triage-embeddings-poc` from `development`, local, not pushed;
-  work under `experiments/email-triage-embeddings/`. Question: can the project
-  of an incoming mail be found by embeddings of the project documents
-  (`context.md`, `actor.yaml` from the OneDrive Projekte folder, 27 folders, RAM
-  only) against the 20 newest inbox mails, read only, via the Pantheon scripts,
-  with local Ollama and two multilingual models; console output top 10 with
-  scores and gap. No extension, no assignment, no cache. Done when the user has
-  seen the output and judged it, and Research's findings are written down.
-  Idea context and the user's thoughts (hybrid LLM plus embeddings, learning
-  from folders by hourly recompute, vectors in RAM plus local cache not
-  OneDrive, later changes: "Projekt-Index" with diagnostic command, then
-  "Zuweisung") are in `ideas/llm-gateway.md`, which now also holds the
-  embedding direction (third section).
+- **`heartbeat-agent-model-selection` (2026-10-08, backlog #52, autonomous
+  except SD)** — branch `feature/heartbeat-agent-model-selection`, CD created
+  and committed, SENT to CM on the user's "go" (2026-10-08). CM reported:
+  specs done and Dev dispatched (not yet ready for verification). Decided by
+  the user with SD: NO default model and NO fallback; agent steps without
+  `vendor`/`model` fail after the change (breaking, release notes need a
+  migration line, CM routes it to the documentation step). I corrected the CD
+  Summary to match. 2026-10-08 evening: CM reports ready for verification
+  (Dev, VE PARTIAL, docs done, QM Round 1 dispatched). Decided: release-notes
+  migration line is written by the Release Engineer at release time, CM puts
+  the exact text into the CD; VE's statuses accepted. OPEN, needs the USER:
+  verify-first in an Extension Development Host ("Jarvis: List Language
+  Models", copy an entry into an agent step, run the job; are BYOK and local
+  vendors listed?). Dev hint: without a Copilot token source the Copilot models
+  are not offered. Merge only after QM, verify-first and the user's "Merge OK".
+  Backlog #53 holds SD's side findings (registerJob schema and SPEC_ENG_API
+  lack outputVar); #54 the removed `jarvis.heartbeatConfigFile` setting still
+  documented. Live test 2026-10-08: list works, copilot/gpt-6-luna ran, BYOK
+  and local vendors appear in the list (user); open: no-default case T-7, a
+  job with a BYOK/local id. The user added a change request into this change:
+  the list shows only vendor and model (SD agreed it with him, D-12, Dev
+  dispatched), so QM Round 1 is partly repeated. Merge only after QM and the
+  user's "Merge OK". Mode confirmed by the user: autonomous, except the System
+  Designer agrees US and
+  REQ with the user (so CM must hand US/REQ to the user via SD). Intent: the
+  heartbeat agent step (`executeAgentStep()`, fixed to Copilot gpt-4o, also in
+  `SPEC_AUT_AGENTEXEC`) lets the user choose vendor and model; no choice keeps
+  today's behavior; a clear error when the model is missing; a way to find
+  out the available vendors and models. Scope per user (2026-10-08): only
+  model selection, no references to email triage or to what is excluded in
+  the CD (triage is just one possible customer, not a reason).
+- **Spike email-triage-embeddings-poc (2026-10-07, Research), findings in** —
+  Research measured with `bge-m3` via Ollama (findings under
+  `.jarvis/actors/Research/email-triage/findings-2026-10.md`): project documents
+  alone top-1 about 4 of 15, with folder mails 10-11 of 15 (top-3 13 of 15),
+  score and gap do not separate "no project" (small samples, one model, the
+  second model was not downloaded). User conclusion 2026-10-08: embeddings are
+  not enough, "no project" needs a language model call; embeddings stay a
+  possible shortlist stage later (parked). Open: Research's worktree
+  `C:\workspace\jarvis-email-poc` still exists with the local, unpushed branch
+  `research/email-triage-embeddings-poc`; ask Research to close it. Research's
+  `git push` from the shared tree also published my local memory commits to
+  `origin/development` (the user had pushed before as well; nothing sensitive
+  seen). Original brief: branch from `development`, work under
+  `experiments/email-triage-embeddings/`, project data (`context.md`,
+  `actor.yaml` from the OneDrive Projekte folder), the 20 newest inbox mails read
+  only via the Pantheon scripts, local Ollama, console output top 10. Idea
+  context (hybrid LLM plus embeddings, learning from folders, vectors in RAM plus
+  a local cache, later changes "Projekt-Index" then "Zuweisung") is in
+  `ideas/llm-gateway.md`, third section.
 - **No active CR (2026-10-03)** — v0.29.0 is released (see Recently Shipped).
   Open items after it: automatic retry after the first-start TLS failure
   (undecided, user's call); backlog #45 (SPEC_MOD_REC_PKG AC-2 tool infix),

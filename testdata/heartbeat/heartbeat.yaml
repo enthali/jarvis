@@ -35,6 +35,8 @@ jobs:
     steps:
       - type: agent
         prompt: prompts/hello.md
+        vendor: copilot
+        model: gpt-4o
         outputFile: agent-response.txt
   - name: t8-queue-message
     schedule: manual

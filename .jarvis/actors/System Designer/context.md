@@ -64,6 +64,10 @@ System Designer for Jarvis — designs specs and resolves open design questions 
 
 ## Next
 
+- **heartbeat-agent-model-selection** (`feature/heartbeat-agent-model-selection`): L0/L1/L2
+  approved by the user (2026-10-08), reported to CM. Agent step names `vendor` + `model`
+  (= `LanguageModelChat.id`), no default (breaking, accepted); list via command + tool.
+  If Dev's verify first fails (`selectChatModels()` list incomplete), the design comes back here.
 - **recorder-redesign** (`feature/recorder-redesign`): L0/L1/L2 approved by the user and
   handed to CM; QM R1 (F-1..F-4) and R2 (F-5 -> D-56, "close means exit": no wait at
   shutdown, notification only attempted) specified and reported. If the Dev Engineer's
