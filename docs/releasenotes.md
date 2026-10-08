@@ -1,5 +1,45 @@
 # Release Notes
 
+## v0.30.0 - Actor Identity via Agent Files + Heartbeat Model Selection
+
+*2026-10-08*
+
+### Breaking Changes and Migration
+
+- **actor-identity-via-agent-file**: `jarvis_whoAmI` is removed. Each Actor uses its own agent, identified by the Actor's name, instead of looking up identity through hooks. Jarvis creates the agent when missing and maintains two lines containing the Actor name and workspace-relative `context.md` path at Actor creation, session open, and message delivery. Replace instructions or integrations that call the removed tool with the identity supplied by the Actor's agent.
+- **Actor personas**: Jarvis no longer offers a persona/agent picker. A legacy `agent:` in `actor.yaml` is ignored, and a legacy `agent` argument to `jarvis_createActor` has no effect. Reference the intended persona from the Actor's `context.md`; `jarvis_listActors` still returns `agent`, now equal to the Actor name.
+- **Kanban tools**: Supply `ownerName` explicitly to every Kanban tool. Calls without it are refused; there is no identity-tool fallback.
+- **Agent-file edits**: Jarvis inserts or restores its two identity lines in matching agent files, leaving the rest of the content intact. In repositories carrying the 11 matching `syspilot.*.agent.md` files, these files receive the lines too: this is an expected working-tree diff, not an unrelated edit. Missing agents are created lazily, not at startup; renaming an Actor does not delete its old agent file. The delivered Actor kernel instructions no longer have an identity section. Re-provision stale kernel instructions and remove obsolete `jarvis_whoAmI` guidance from hand-maintained copies.
+- **heartbeat-agent-model-selection**: **Heartbeat agent steps now require `vendor` and `model`.** An agent step names the language model it calls with the two fields `vendor` and `model` (the model's id). There is no default and no fallback: an existing agent step without both fields fails before it sends its prompt, and the failure message names the choice and lists the models that are available. Add `vendor` and `model` to every agent step of your heartbeat jobs. To see the valid values, run **Jarvis: List Language Models** (output channel Jarvis) or use the tool `jarvis_listModels`.
+- **Heartbeat file location reminder**: The already-removed `jarvis.heartbeatConfigFile` setting has no effect. Jobs are read from the fixed workspace file `.jarvis/heartbeat.yaml`; put the job file there, with relative prompt/script/output paths resolved from `.jarvis/`. The README's obsolete setting row is removed in this release.
+
+### Features
+
+- **heartbeat-agent-model-selection**: Model discovery returns only the exact `vendor` and `model` values needed by a step, not display names. Selection matches vendor and model ID exactly and case-sensitively. Both fields support `${VAR}` interpolation and are accepted by `jarvis_registerJob`. Command output and unavailable-model errors use one entry per line as `vendor="x" model="y"`.
+
+### Validation and Known Limits
+
+- Release checks passed: all workspace packages compiled; ESLint reported 0 errors and 182 warnings; 53 automated test files / 500 tests passed; a fresh strict Sphinx build passed without warnings. Automated checks do not establish the manual results below.
+- **Actor identity**: Scripted User UAT T-1 through T-8 and T-10, plus the existing Kanban skill T-11, were **NOT RUN**. The user's partial Extension Development Host observations showed agent creation, mode assignment, messaging, and explicit-owner board/item creation; they are evidence, not a scripted UAT verdict. Compaction was not tested. The 3-second wait for VS Code to register a newly created agent's mode command remains an open assumption: one successful clean run over RDP does not settle timing. A session opened without its Actor mode relies on the session-start prompt rather than the agent's identity lines; that risk is accepted, not proven away.
+- **Heartbeat models**: Before the final two-field list-format change, the user reported a successful Copilot request and visible BYOK/local vendors. Successful requests to BYOK/local models are **NOT RUN** and support for a particular provider is not established. Live command/tool/MCP parity, final list/failure formatting, consent/quota behavior, legacy no-default behavior, Actor registration, and actual-ID interpolation remain **NOT RUN**; the user accepted these risks before merge.
+- **Specification status**: 13 amended elements from the Actor identity change remain `approved`, including the combined `SPEC_ENG_API`; pre-existing drafts and the retained draft UAT chains stay draft. Catalog-dependent heartbeat elements and other incoming elements also retain their recorded `approved` statuses. Shipping this release does not promote them or imply complete live acceptance.
+- Deferred PM backlog items #55 (18 pre-existing amended drafts), #57 (multi-root agent resolution), and #59 (kernel requirement/design/test alignment, QM R4-1) remain open. This release does not close them.
+
+### Correction to v0.29.0 Recorder Evidence
+
+- Recorder redesign already shipped in v0.29.0; it is not a new feature of v0.30.0. Its release notes said only a 5-minute session was run and a one-hour test was not tested. The user has reported a **49-minute real meeting**. This corrects the evidence description, but does not establish a scripted one-hour endurance-test PASS or change the other unrun recorder cases. The already-published v0.29.0 GitHub Release is unchanged; editing it requires the user's sign-off on the exact text.
+
+### Archived Change Artifacts
+
+- **actor-identity-via-agent-file.md**: Actor agent identity, removed lookup/persona selection, and explicit Kanban owner migration.
+- **tst-actor-identity-via-agent-file.md**: Scripted User scenarios retained as NOT RUN; registration-timing assumption open.
+- **val-actor-identity-via-agent-file.md**: Engineering verification and integration evidence; manual acceptance limits retained.
+- **heartbeat-agent-model-selection.md**: Explicit model choice, discovery, breaking migration, and accepted live-validation risk.
+- **tst-heartbeat-agent-model-selection.md**: PARTIAL, with user-reported pre-format-change observations separated from unrun live cases.
+- **val-heartbeat-agent-model-selection.md**: Automated verification including format regression checks; live-dependent status remains PARTIAL.
+
+---
+
 ## v0.29.0 — On-Device Recorder + New Actor Quick Fix
 
 *2026-10-03*
