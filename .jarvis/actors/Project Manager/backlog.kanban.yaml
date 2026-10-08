@@ -514,7 +514,7 @@ items:
     priority: Medium
   - id: 42
     name: Actor identity via agent mode - replaces jarvis_whoAmI
-    status: In Progress
+    status: Done
     labels:
       - architecture
       - identity
@@ -846,7 +846,7 @@ items:
     priority: Low
   - id: 58
     name: Remove the Identity section from the Jarvis actor kernel instructions
-    status: In Progress
+    status: Done
     labels:
       - spec
       - kernel

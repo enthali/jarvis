@@ -116,23 +116,13 @@
 
 ## Active CR
 
-- **actor-identity-via-agent-file** — scaffolded 2026-10-03 (branch
-  `feature/actor-identity-via-agent-file`, CD `docs/changes/actor-identity-via-agent-file.md`),
-  dispatched to CM 2026-10-03. Replaces `jarvis_whoAmI` (backlog #42): the
-  Actor name is the link to its own agent (found by front matter `name:`),
-  Jarvis creates it and keeps two identity lines in it, `agent` leaves
-  `actor.yaml`. Operation Mode: autonomous, except Level 0/1/2 with System
-  Designer user-guided (user's proven pattern). Concept and open spec
-  questions are in backlog #42. The Recorder change from the other machine is
-  released (v0.29.0); both lines were merged on 2026-10-08, conflicts were in actor
-  memory, backlog, SPEC_ENG_API and README. Do not push the feature branch.
+- **No active CR (2026-10-08).** `actor-identity-via-agent-file` is merged into
+  `development` (see Recently Shipped).
 - **Syspilot 0.10 test (2026-10-03)**: user tests the port in a separate
   throw-away repo; if it works, the current Jarvis version could be released
   with the new agents kept in a separate folder. Not started here; user decides
   next steps, ask before assuming. Project-ontology cleanup stays deferred (no
   functional gain); #42 then #41 are the urgent items for the user's job.
-- **WhoAmI follow-up** — hook-dependent `jarvis_whoAmI` recovery is replaced by
-  the active change above, not by AHP.
 - **Spike email-triage-embeddings-poc (2026-10-07, Research), findings in** —
   Research measured with `bge-m3` via Ollama (findings under
   `.jarvis/actors/Research/email-triage/findings-2026-10.md`): project documents
@@ -195,6 +185,16 @@
 
 ## Recently Shipped
 
+- **actor-identity-via-agent-file merged** 2026-10-08 into `development`
+  (squash `0e3f3aa1`, branch retained, replaces `jarvis_whoAmI`, backlog #42).
+  The Actor name is the key to its agent (front matter `name:`), Jarvis keeps
+  two identity lines in it, `agent` leaves `actor.yaml`, Kanban tools require
+  `ownerName`, the kernel instructions have no identity section (user decision
+  A, #58). NOT passed: the scripted UAT T-1..T-8 and T-10 (user's partial EDH
+  run is evidence only); 3 s mode wait OPEN; user dropped T-2 and T-9 (T-9 was
+  a leftover of the focus-based identity). Deferred: R4-1 (#59), multi-root
+  (#57), 18 old drafts (#55). My backlog items 43-47 became #55-#59 at the
+  merge, the other machine used #43-#54 meanwhile.
 - **heartbeat-agent-model-selection merged** 2026-10-08 into `development`
   (`452c769`, pushed), NOT released, release on hold by the user. Agent steps
   name `vendor` and `model` (model id from the list); no default or fallback, a
