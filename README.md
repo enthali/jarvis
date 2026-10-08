@@ -27,7 +27,8 @@ capability modules. Install only what you need.
 
 - **Actors & sessions** — persistent entities with their own `context.md` memory. Each Actor's own agent file contains two Jarvis identity lines (name and memory path); Jarvis creates or repairs them when needed, without an agent picker. The ACTORS view shows direct child folders with `actor.yaml`. See [Core getting started](packages/core/README.md#getting-started) for folder and tool-ID behavior.
 - **Heartbeat scheduler** — cron-based jobs running scripts (Python, PowerShell), VS Code
-  commands, or single-shot LLM agent steps. Each agent step must name `vendor` and `model`
+  commands, or single-shot LLM agent steps, configured in the fixed workspace file
+  `.jarvis/heartbeat.yaml`. Each agent step must name `vendor` and `model`
   (the model ID); there is no default or fallback, so existing steps without both fail until
   updated. Use **Jarvis: List Language Models** or `jarvis_listModels` to inspect the pairs
   currently offered to Jarvis by VS Code.
@@ -67,7 +68,6 @@ capability modules. Install only what you need.
 | Setting | Description | Default |
 |---------|-------------|---------|
 | `jarvis.scanInterval` | Background rescan interval in minutes (0 = disabled) | 2 |
-| `jarvis.heartbeatConfigFile` | Absolute path to `heartbeat.yaml` | workspace storage |
 | `jarvis.heartbeatInterval` | Scheduler tick interval in seconds | 60 |
 | `jarvis.hooks.autoInstall` | Auto-install hook bridge files in `.github/hooks/`. Set to `false` to remove managed files and opt out of hook management. | `true` |
 | `jarvis.gitignore.autoManage` | Maintain a marked region in the workspace `.gitignore` listing Jarvis transient runtime paths. Set to `false` to remove the region. | `true` |
