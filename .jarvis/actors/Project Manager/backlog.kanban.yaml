@@ -708,7 +708,12 @@ items:
       check then: starting with one working audio source is allowed with a
       warning (none appeared here), losing both sources ends the session, and
       the lost-device cases (U-3) were never tested because the laptop's devices
-      could not be removed."
+      could not be removed. Update from the user 2026-10-09: sessions over 3
+      hours ran without problems, abort and restart work; the recorder always
+      uses the first audio source, so a headset or external speaker cannot be
+      chosen. The user does not see this as a defect but as a possible future
+      feature (choosing the audio source); whether it explains the Jabra case
+      above is not established."
     priority: Low
   - id: 51
     name: "Review the actor.yaml schema: mandatory, obsolete and missing fields"

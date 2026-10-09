@@ -150,7 +150,11 @@
   implemented/verified/validated), #49 done in the release. Not yet read:
   licence file of `Microsoft.Windows.AI.MachineLearning.dll` and the npm/NuGet
   terms (user decided D-28 is no topic with SDK 2.1.0; my caveat stays on
-  record). The user will notice recorder problems in field use next week.
+  record). Field evidence 2026-10-09 (user): recorder sessions over 3 h ran
+  without problems, abort and restart work; the audio source is always the first
+  one (no choice of headset/speaker), a possible future feature, no defect
+  (noted on backlog #50). v0.30.0 agent mode: the user says a message to
+  oneself sets the right agent mode.
   Field evidence 2026-10-05 (user's report, for U-4): a real meeting recorded for
   49:18 min, 8311 words (about 170 words/min), user calls the one-hour test
   successful; no memory readings, no phrase timing, and whether it ended
