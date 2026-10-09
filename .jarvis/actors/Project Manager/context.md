@@ -154,9 +154,9 @@
   Field evidence 2026-10-05 (user's report, for U-4): a real meeting recorded for
   49:18 min, 8311 words (about 170 words/min), user calls the one-hour test
   successful; no memory readings, no phrase timing, and whether it ended
-  normally or with warnings was not reported. v0.29.0's release notes still say
-  the long-term test was not conducted: correct that in the next release notes;
-  editing the published GitHub Release needs the user's sign-off on the exact
+  normally or with warnings was not reported. v0.29.0's release notes said the
+  long-term test was not conducted; v0.30.0's notes correct that. Editing the
+  published v0.29.0 GitHub Release itself needs the user's sign-off on the exact
   text first (public repo). The meeting report from that transcript is still
   being generated (not mine).
 - **Git state after the merge (2026-10-03)**: the extra worktrees
@@ -185,6 +185,13 @@
 
 ## Recently Shipped
 
+- **v0.30.0 released** 2026-10-08 by the user from the other machine (tag
+  `v0.30.0`, back-merged, `origin/development` = `9331a8b`). Ships
+  `actor-identity-via-agent-file` and `heartbeat-agent-model-selection`; release
+  notes carry the breaking changes (`jarvis_whoAmI` removed, Kanban tools need
+  `ownerName`, agent steps need `vendor` and `model`), the NOT RUN limits and a
+  correction of the v0.29.0 recorder evidence (49 min real meeting). The
+  published v0.29.0 GitHub Release is unchanged. 500 tests.
 - **actor-identity-via-agent-file merged** 2026-10-08 into `development`
   (squash `0e3f3aa1`, branch retained, replaces `jarvis_whoAmI`, backlog #42).
   The Actor name is the key to its agent (front matter `name:`), Jarvis keeps
@@ -196,7 +203,7 @@
   (#57), 18 old drafts (#55). My backlog items 43-47 became #55-#59 at the
   merge, the other machine used #43-#54 meanwhile.
 - **heartbeat-agent-model-selection merged** 2026-10-08 into `development`
-  (`452c769`, pushed), NOT released, release on hold by the user. Agent steps
+  (`452c769`, pushed), released in v0.30.0 (see above). Agent steps
   name `vendor` and `model` (model id from the list); no default or fallback, a
   step without them fails (breaking). Command `jarvis.listModels` and tool
   `jarvis_listModels`, the list shows only vendor and model. Live acceptance:
