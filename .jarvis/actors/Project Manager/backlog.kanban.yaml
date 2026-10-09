@@ -1,5 +1,5 @@
 title: backlog
-nextId: 60
+nextId: 61
 fields:
   - name: status
     type: single_select
@@ -900,3 +900,26 @@ items:
       NOT contain an identity section) or state that AC-10 is a pure design pin;
       then narrow the test to the heading."
     priority: Low
+  - id: 60
+    name: Agent mode is set only after the second message to an Actor (v0.30.0)
+    status: Backlog
+    labels:
+      - actor
+      - agent-mode
+      - bug
+    notes: "User observation 2026-10-09, v0.30.0 installed: after the first message
+      delivered to an Actor session the agent mode is not set, after the second
+      it is. Also seen: after Developer: Reload Window the mode picker shows no
+      mode (probably VS Code behaviour; Jarvis re-applies the mode on the next
+      touch, which helps). Hypothesis from reading the code, NOT verified: on
+      the first delivery ensureActorAgent writes the two identity lines (the
+      file changes), VS Code re-reads the agent file, and the mode command is
+      briefly not registered; reapplyAgentMode (extension.ts) checks once after
+      400 ms and then skips with a warning, without waiting, whereas the
+      creation path waits up to 3 s (waitForModeCommand in actorAgent.ts). The
+      second delivery writes nothing, so it works. Alternative cause: the
+      focused tab label differs from the session name (second skip condition).
+      To decide: look in the Jarvis Output for the warning on the first message,
+      either 'reapplyAgentMode: command ... not registered yet - skipping' or
+      'skipped - intended ... but focused tab is'. Related: the open 3 s mode
+      wait assumption in the v0.30.0 release notes."
