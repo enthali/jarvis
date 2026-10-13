@@ -902,12 +902,18 @@ items:
     priority: Low
   - id: 60
     name: Agent mode is set only after the second message to an Actor (v0.30.0)
-    status: Backlog
+    status: Done
     labels:
       - actor
       - agent-mode
       - bug
-    notes: "User observation 2026-10-09, v0.30.0 installed: after the first message
+    notes: "CLOSED 2026-10-13, not fixed, accepted as known behaviour. User
+      decision and reason: on first setup the new mode is not yet known to VS
+      Code and the mode is dropped; afterwards it works, so this looks like a
+      VS Code runtime conflict, not a Jarvis defect. The reason is the user's
+      reading, not verified in the Jarvis Output log (the check below was never
+      run). Reopen if it shows up beyond first setup. Original note follows.
+      User observation 2026-10-09, v0.30.0 installed: after the first message
       delivered to an Actor session the agent mode is not set, after the second
       it is. Also seen: after Developer: Reload Window the mode picker shows no
       mode (probably VS Code behaviour; Jarvis re-applies the mode on the next
