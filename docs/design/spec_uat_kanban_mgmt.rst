@@ -16,7 +16,7 @@ Kanban Management Tools UAT Design Specifications
 
    **Test Setup:**
 
-   * EDH launched from ``feature/kanban-management-tools``.
+   * EDH launched from ``feature/kanban-list-details``.
    * Workspace ``testdata/test.code-workspace``; kanban extension active.
    * Before each scenario: copy ``testdata/kanban/sample.kanban.yaml``
      to ``testdata/.jarvis/actors/Change Manager/kanban.yaml`` for a clean
@@ -36,17 +36,22 @@ Kanban Management Tools UAT Design Specifications
 
       * - T-1
 
-          ADD happy path: auto id, nextId incremented
+          End to end: the empty test actor UAT Kanban Actor creates a kanban, opens it, asks the actor to add an item, and moves the item to Done.
 
-          *AC: REQ_KAN_ADD AC-3, AC-7*
-        - Note the current ``nextId`` value in ``kanban.yaml`` (say, ``N``).
-          Call ``jarvis_addKanbanItem`` with ``name: "New Task"``,
-          ``status: "Backlog"``, ``priority: "High"``
-          (``ownerName: "Change Manager"``).
-        - Response: ``{ path: ..., added: true, itemId: N }``.
-          Open board YAML — new item present with ``id: N``.
-          ``nextId`` is now ``N + 1``.
-          Webview panel (if open) refreshes to show the new card.
+          *AC: REQ_KAN_ADD AC-3, AC-7; REQ_KAN_UPDATE AC-2, AC-4*
+        - Call ``jarvis_createKanbanBoard`` with ``ownerName: "UAT Kanban Actor"``
+          only (default ``kanban.yaml``). Call ``jarvis_openKanbanBoard``. Call
+          ``jarvis_addKanbanItem`` with ``name: "New Task"``, ``status: "Backlog"``,
+          and ``fields: { priority: "High" }`` (``ownerName: "UAT Kanban Actor"``).
+          Call ``jarvis_updateKanbanItem`` with ``itemId: 1`` and
+          ``changes: { status: "Done" }``.
+        - The new ``kanban.yaml`` has ``nextId: 1``, the status and priority fields
+          with their options, and ``items: []``; the webview shows the empty board.
+          The add responds ``{ path, added: true, itemId: 1 }``; the item has
+          ``id: 1``, ``name: New Task``, ``status: Backlog`` and ``priority: High``,
+          ``nextId`` is 2, and the webview shows the card in Backlog. The move
+          responds ``{ path, updated: true, itemId: 1 }``; the item has
+          ``status: Done`` and the card appears in the Done column.
 
       * - T-2
 
@@ -228,12 +233,13 @@ Kanban Management Tools UAT Design Specifications
 
           *AC: REQ_KAN_FIELDS AC-2*
         - Call ``jarvis_updateKanbanFields`` with
-          ``operation: "addField"``, ``name: "rationale"``,
-          ``type: "text"``.
+          ``operation: "addField"``, ``fieldName: "rationale"``,
+          ``fieldType: "text"``.
           Then call again with ``operation: "addField"``,
-          ``name: "severity"``, ``type: "single_select"``,
-          ``options: ["Low", "Medium", "High"]``.
-        - First call: ``{ updated: true, operation: "addField" }``.
+          ``fieldName: "severity"``, ``fieldType: "single_select"``,
+          ``options: [{ name: "Low" }, { name: "Medium" }, { name: "High" }]``
+          (each option is an object ``{ name, color }``; ``color`` is optional).
+        - First call: ``{ path, updated: true, operation: "addField" }``.
           Second call: same shape. YAML now has ``rationale`` (no options)
           and ``severity`` (with the three options) in ``fields[]``.
           Webview refreshes.
@@ -244,9 +250,9 @@ Kanban Management Tools UAT Design Specifications
 
           *AC: REQ_KAN_FIELDS AC-3*
         - Call ``jarvis_updateKanbanFields`` with
-          ``operation: "addField"``, ``name: "status"``,
-          ``type: "single_select"``,
-          ``options: ["A", "B"]``.
+          ``operation: "addField"``, ``fieldName: "status"``,
+          ``fieldType: "single_select"``,
+          ``options: [{ name: "A" }, { name: "B" }]``.
         - Response contains ``{ error: ... }`` refusing the name
           ``"status"``. YAML unchanged.
 
@@ -255,10 +261,10 @@ Kanban Management Tools UAT Design Specifications
           FIELDS removeField: field with no item references removed
 
           *AC: REQ_KAN_FIELDS AC-4*
-        - First, add a field ``"temp"`` of type ``text`` (no items use it).
-          Call ``jarvis_updateKanbanFields`` with
-          ``operation: "removeField"``, ``name: "temp"``.
-        - Response: ``{ updated: true, operation: "removeField" }``.
+        - First, add a field with ``fieldName: "temp"`` and ``fieldType: "text"``
+          (no items use it). Call ``jarvis_updateKanbanFields`` with
+          ``operation: "removeField"``, ``fieldName: "temp"``.
+        - Response: ``{ path, updated: true, operation: "removeField" }``.
           ``temp`` absent from ``fields[]``. YAML otherwise unchanged.
 
       * - T-18
@@ -266,11 +272,13 @@ Kanban Management Tools UAT Design Specifications
           FIELDS removeField referenced: error naming item ids
 
           *AC: REQ_KAN_FIELDS AC-4*
-        - Add a ``single_select`` field ``"region"`` with options
-          ``["EU", "US"]``. Add an item with ``region: "EU"`` via
-          ``jarvis_addKanbanItem``. Note its id.
+        - Add a ``single_select`` field with ``fieldName: "region"``,
+          ``fieldType: "single_select"`` and
+          ``options: [{ name: "EU" }, { name: "US" }]``. Add an item via
+          ``jarvis_addKanbanItem`` with ``name: "Region item"`` and
+          ``region: "EU"``. Note its id.
           Call ``jarvis_updateKanbanFields`` with
-          ``operation: "removeField"``, ``name: "region"``.
+          ``operation: "removeField"``, ``fieldName: "region"``.
         - Response contains ``{ error: ... }`` listing the referencing
           item id(s). Field is NOT removed. YAML unchanged.
 
@@ -285,7 +293,7 @@ Kanban Management Tools UAT Design Specifications
           Then call ``jarvis_updateKanbanFields`` with
           ``operation: "addOption"``, ``fieldName: "priority"``,
           ``optionName: "Critical"`` again (duplicate).
-        - First call: ``{ updated: true }``. ``"Critical"`` appears in
+        - First call: ``{ path, updated: true, operation: "addOption" }``. ``"Critical"`` appears in
           ``priority`` options. Second call: ``{ error: ... }`` — option
           already exists. No duplicate.
 
@@ -320,21 +328,110 @@ Kanban Management Tools UAT Design Specifications
 
       * - T-21
 
-          Skill: 8 tools listed; id/reuse and compact projection documented
+          Skill: 9 tools listed; id/reuse, details and filter values documented
 
           *AC: REQ_KAN_SKILLCONTENT AC-8..AC-10*
         - Open ``.github/skills/jarvis-kanban.board/SKILL.md`` in the
           text editor.
-        - **Tools table** lists all eight tools:
+        - **Tools table** lists all nine tools:
           ``jarvis_createKanbanBoard``, ``jarvis_openKanbanBoard``,
           ``jarvis_verifyKanbanSchema``, ``jarvis_updateKanbanItem``,
           ``jarvis_addKanbanItem``, ``jarvis_deleteKanbanItem``,
-          ``jarvis_listKanbanItems``, ``jarvis_updateKanbanFields``.
+          ``jarvis_listKanbanItems``, ``jarvis_listKanbanFilterValues``,
+          ``jarvis_updateKanbanFields``.
 
           **id/reuse rules** are stated: ``id`` is assigned by
           ``jarvis_addKanbanItem``; a deleted id is never reused.
 
-          **Compact projection caveat**: the skill states that
-          ``jarvis_listKanbanItems`` returns ``id``, ``name``,
-          ``status``, ``labels`` only — full item content requires
-          reading by id.
+          **Projection and details**: the skill states that
+          ``jarvis_listKanbanItems`` returns ``id``, ``name``, ``status``,
+          ``labels`` by default, that ``details: true`` returns the full items of the
+          matches, and it names ``jarvis_listKanbanFilterValues`` for the values to
+          filter by. It does not say that an item can be fetched by id.
+
+   **Expected Outcomes — LIST DETAILS AND FILTER VALUES (T-22..T-27):**
+
+   Setup: the automated tests read ``testdata/kanban/sample.kanban.yaml`` and copy it
+   into a temporary folder.
+   The sample has four items: items 1 and 4 are in Backlog with the label ``urgent``,
+   item 2 is in In Progress, item 3 is in Done; items 2 and 3 carry no labels. Every
+   declared status has a card. The variants named below are made in the test
+   (``REQ_UAT_KAN_MGMT`` AC-1).
+
+   .. list-table::
+      :header-rows: 1
+      :widths: 8 42 50
+
+      * - Scenario
+        - Action
+        - Expected Result
+
+      * - T-22
+
+          LIST details: full items, notes included
+
+          *AC: REQ_KAN_LIST AC-8, AC-9*
+        - Call ``jarvis_listKanbanItems`` with ``details: true`` and no filter.
+        - Response: ``{ path, count: 4, items: [...] }``. Item 1 carries ``id``,
+          ``name``, ``status``, ``priority``, ``labels: ["urgent"]`` and ``notes``.
+          Item 2 carries ``labels: []`` and **no** ``notes`` key, because its card has
+          none. Every item holds every field its card has in the file.
+
+      * - T-23
+
+          LIST details does not change the matches or ``count``
+
+          *AC: REQ_KAN_LIST AC-10*
+        - Call ``jarvis_listKanbanItems`` with ``status: "Backlog"``, once without
+          ``details`` and once with ``details: true``.
+        - Both responses list items 1 and 4 with ``count: 2``. The first carries only
+          ``id``, ``name``, ``status``, ``labels`` per item; the second carries the full
+          items.
+
+      * - T-24
+
+          LIST details with a value other than true or false: error
+
+          *AC: REQ_KAN_LIST AC-9*
+        - Call ``jarvis_listKanbanItems`` with ``details: "true"`` (a string).
+        - Response: ``{ error: "details must be true or false" }``. No items. The board
+          file is unchanged in size.
+
+      * - T-25
+
+          FILTER VALUES statuses: declared order, empty columns included
+
+          *AC: REQ_KAN_FILTERVALUES AC-2, AC-3; SPEC_KAN_FILTERVALUES AC-3*
+        - Variant: add an option ``Review`` to the ``status`` field of the copy; no
+          card has it. Call ``jarvis_listKanbanFilterValues`` with ``ownerName``.
+        - ``statuses`` is Backlog 2, In Progress 1, Done 1, Review 0, in that order.
+          The counts add up to 4, the number of cards.
+
+      * - T-26
+
+          FILTER VALUES labels: counted per card, sorted, exact
+
+          *AC: REQ_KAN_FILTERVALUES AC-4, AC-5; SPEC_KAN_FILTERVALUES AC-5, AC-6*
+        - Step 1: call with the sample. Step 2: add the label ``Urgent`` (capital U)
+          to item 3 and call again.
+        - Step 1: ``labels`` is ``[{ name: "urgent", count: 2 }]``. Step 2: ``labels``
+          is ``[{ name: "Urgent", count: 1 }, { name: "urgent", count: 2 }]``: two
+          labels, sorted by name.
+
+      * - T-27
+
+          FILTER VALUES: no card content; errors for an unknown owner, a board without a
+          status field, and undeclared values
+
+          *AC: REQ_KAN_FILTERVALUES AC-1, AC-3, AC-6, AC-7, AC-8; SPEC_KAN_FILTERVALUES AC-1, AC-4, AC-7, AC-8*
+        - Step 1: call with the ``ownerName`` of an unknown Actor. Step 2: call with the
+          sample and read the whole response. Step 3: variant with the ``status`` field
+          removed from ``fields``; call again. Step 4: variant with the status of item 4
+          set to ``Archived`` (not declared); call the overview, then
+          ``jarvis_verifyKanbanSchema``. Note the file size before each call.
+        - Step 1: ``{ error: "actor unknown" }``. Step 2: only ``path``, ``statuses`` and
+          ``labels``; no ``id``, ``name``, ``notes`` or field values. Step 3:
+          ``{ error: "board has no status field" }``. Step 4: ``statuses`` counts 3 cards
+          (Archived is not listed); verify reports ``Value "Archived" is not a defined
+          status option.`` as an error. The file size is unchanged after each overview
+          call.

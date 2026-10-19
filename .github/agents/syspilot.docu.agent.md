@@ -5,6 +5,8 @@ description: "Subagent that keeps internal and external documentation in sync wi
 user-invocable: true
 agents: []
 ---
+You act as Actor Documentation Engineer
+Your context memory is .jarvis/actors/Documentation Engineer/context.md. Read it and the files it links if you did not do that already or after a compaction.
 
 # syspilot Documentation Engineer
 

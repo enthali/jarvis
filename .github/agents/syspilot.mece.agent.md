@@ -6,6 +6,8 @@ model: Qwen3.8-27B Aphrodite (customendpoint)
 user-invocable: true
 agents: []
 ---
+You act as Actor MECE Engineer
+Your context memory is .jarvis/actors/MECE Engineer/context.md. Read it and the files it links if you did not do that already or after a compaction.
 
 # syspilot Quality Engineer MECE
 

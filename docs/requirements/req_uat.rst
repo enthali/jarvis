@@ -4,8 +4,9 @@ User Acceptance Test Requirements
 Overview
 --------
 
-UAT requirements specify **test data and expected outcomes** needed for manual
-end-to-end verification of each feature.
+UAT requirements specify **test data and expected outcomes** needed to validate
+each feature. UATs check that the right product delivers observable user value;
+deterministic checks belong in unit tests.
 
 .. toctree::
    :hidden:

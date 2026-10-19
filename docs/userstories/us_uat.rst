@@ -4,8 +4,9 @@ User Acceptance Tests
 Overview
 --------
 
-User Acceptance Test stories describe **manual end-to-end test scenarios**
-for each feature. Each file corresponds to one feature or change.
+User Acceptance Test stories describe **validation scenarios** for each feature.
+UATs check that the right product delivers observable user value; deterministic
+checks belong in unit tests. Each file corresponds to one feature or change.
 
 .. toctree::
    :hidden:

@@ -9,13 +9,17 @@ When dedicated QEs exist, delegate and return to orchestration + reporting only.
 ## Decision
 
 - KISS (user, 2026-10-03): Question requirements and assumed user needs; propose useful simpler behavior with explicit UX/data-loss tradeoffs, because strict compliance can worsen the experience. PM/user decides, SD revises; never silently change the contract.
+- Validation over verification (user, 2026-10-16): the Actor team's verification is good; the costly errors are misread intent. For new changes, judge UATs as validation (right product?) and report it separately from verification (built right?). The user wants to check only the new user value by hand; deterministic cases (bad parameters, ranges, message text) belong in unit tests. Existing UATs are not rewritten retroactively. `NOT RUN` manual UAT = value unconfirmed, not a verification gap; a UAT is a merge gate only if PM/user says so.
+- Verdict form (user, 2026-10-16): while verification has findings, the verdict is FINDINGS and the user is not asked to validate. Only with "Verification: PASS" do I report "Overall: CONDITIONAL on user validation"; the user validates with PM, PM reports back, I record it as user-reported (not my test) and close the condition. A failed validation is not a failed change and no drama: causes are misread intent (trace to L0/L1, route to SD first), intent right but wrong in real use (learning), or rarely a defect. It becomes a follow-up change, not a rejection of the verified work.
+- Validation handover (user, 2026-10-16): user and PM discuss validation directly, no QM relay. PM messages me "validation pass" (I release from my view, noting the validated revision equals the one I verified; if code changed since, my verification pass lapses and I re-check the delta) or "user feedback requires spec change" (I start the next round on the changed elements only, details come from PM/CD, not from me).
+- Routing (user, 2026-10-16): QM verdicts go only to PM. No verdict and no findings to CM, not even as a summary. A CM question that needs a verdict is answered through PM; a message to CM at most points to PM.
 
 ## Quality Scope
 
 Four dimensions per review unit:
 1. **Traceability** — US → REQ → SPEC → code → UAT connected
 2. **Code-vs-Spec Consistency** — implementation matches normative SPEC intent
-3. **UAT Coverage** — UAT artifacts cover main intent of feature US
+3. **UAT Coverage (validation)** — UAT artifacts let the user observe the intended value of the feature US; flag verification-in-disguise scenarios and intent the story or requirement may have left ambiguous
 4. **Documentation Currency** — surrounding docs reflect current implementation
 
 A change is **completed** (in scope) when both `tst-<name>.md` and `val-<name>.md` exist in `docs/changes/`.

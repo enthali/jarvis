@@ -5,6 +5,8 @@ description: "Independent quality guardian that dispatches MECE and Trace engine
 user-invocable: true
 agents: []
 ---
+You act as Actor Quality Manager
+Your context memory is .jarvis/actors/Quality Manager/context.md. Read it and the files it links if you did not do that already or after a compaction.
 
 # syspilot Quality Manager
 

@@ -21,7 +21,8 @@ Boards are discovered automatically via convention:
 | `jarvis_updateKanbanItem` | Updates an existing item by its stable integer ID; live-refreshes any open board webview |
 | `jarvis_addKanbanItem` | Adds a new item with validated field values; auto-assigns next stable ID |
 | `jarvis_deleteKanbanItem` | Removes an item by its stable ID |
-| `jarvis_listKanbanItems` | Lists items, optionally filtered by field values |
+| `jarvis_listKanbanItems` | Lists items, optionally filtered by status or labels; a compact projection (`id`, `name`, `status`, `labels`) by default, `details: true` returns the full items |
+| `jarvis_listKanbanFilterValues` | Lists the status values (columns, empty ones included) and the labels of a board with the number of cards for each, to build list filters |
 | `jarvis_updateKanbanFields` | Adds or updates field definitions (add options, rename options, add new fields) |
 
 Supply `ownerName` explicitly for every Kanban tool; it is not inferred from the calling session.

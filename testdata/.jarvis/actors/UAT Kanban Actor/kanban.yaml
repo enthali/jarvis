@@ -1,0 +1,16 @@
+title: UAT Kanban Actor
+nextId: 4
+fields:
+  - name: status
+    type: single_select
+    options:
+      - name: Backlog
+      - name: In Progress
+      - name: Done
+  - name: priority
+    type: single_select
+    options:
+      - name: Low
+      - name: Medium
+      - name: High
+items: [ { id: 1, name: "Sample: Validate card layout", status: Backlog, labels: [ sample, uat ], notes: Placeholder check for board rendering., priority: Medium }, { id: 2, name: "Sample: Check status transitions", status: Done, labels: [ sample, workflow ], notes: Placeholder check for moving a card between columns., priority: High }, { id: 3, name: "Sample: Review priority options", status: Backlog, labels: [ sample, fields ], notes: Placeholder check for priority selection., priority: Low } ]

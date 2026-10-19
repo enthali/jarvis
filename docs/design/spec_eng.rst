@@ -20,7 +20,7 @@ Engine Design Specifications
       export interface JarvisActor {
           name: string;
           summary: string;   // "" when absent
-          agent: string;     // the Actor's own agent, equal to name
+          agent: string;     // "" when absent
           folder: string;    // absolute Actor folder
           id: string;        // absolute path of actor.yaml
       }
@@ -324,7 +324,7 @@ Engine Design Specifications
       }
 
    The entry shape equals a ``jarvis_listActors`` entry
-   (``SPEC_ACTOR_LISTTOOL``); both call the same projection function.
+   (``SPEC_ACTOR_LISTTOOL``).
 
    **Consumers:**
 

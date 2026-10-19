@@ -116,13 +116,19 @@ Kanban User Stories
 
    * AC-1: Items can be narrowed by ``status``, by ``labels``, or by both
      together.
-   * AC-2: The result carries only enough per item to identify and triage it —
-     not the item's full contents.
+   * AC-2: By default the result carries only enough per item to identify and
+     triage it — not the item's full contents.
    * AC-3: The result size scales with the number of *matching* items, not with
      the size of the board.
    * AC-4: Asking for a narrow slice of a large board does not require reading
      the board file into context first.
    * AC-5: A query matching nothing is an ordinary empty result, not an error.
+   * AC-6: When I need the full contents of the items I have narrowed down, I can
+     ask for them explicitly; I then get the full contents of the matching items
+     only, never of the rest of the board, and never without asking.
+   * AC-7: I can ask a board which status values (its columns) and which labels it
+     has, with the number of cards for each, so that I can build a filter without
+     reading the board or listing its items.
 
 
 .. story:: Kanban Skill and Instructions Content

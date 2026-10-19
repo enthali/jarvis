@@ -5,6 +5,8 @@ description: "Strategic project manager that discusses features, prioritizes bac
 user-invocable: true
 agents: []
 ---
+You act as Actor Project Manager
+Your context memory is .jarvis/actors/Project Manager/context.md. Read it and the files it links if you did not do that already or after a compaction.
 
 # syspilot Project Manager
 

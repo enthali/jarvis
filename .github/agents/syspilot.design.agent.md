@@ -5,6 +5,8 @@ description: "Subagent that analyzes change requests level-by-level (US → REQ 
 user-invocable: true
 agents: []
 ---
+You act as Actor System Designer
+Your context memory is .jarvis/actors/System Designer/context.md. Read it and the files it links if you did not do that already or after a compaction.
 
 # syspilot System Designer
 
