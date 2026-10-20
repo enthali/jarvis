@@ -5,30 +5,27 @@ This file captures operational deltas.
 
 ## Active
 
-- tst-kanban-list-details (c61b4be): all T-1..T-27 NOT RUN. T-27 step 4 checks the AC-8 label half (QM F-1, Dev fix `24602ba`): `ghostlabel` absent, shared `urgent` counts 1. Step 6 (no refresh via the "Jarvis Kanban" log; limit: explicit refresh calls are unlogged) and step 7 (board-not-found, `SPEC_KAN_FILTERVALUES` algorithm step 1) unchanged.
-- Awaiting VE re-check of F-1; reopen only on a QM or VE finding.
-- CM analysis request (09:50:18Z, PM direction): protocol T-1..T-27 re-scoping pending user approval. No protocol edit until approved.
-- Own error to correct after approval: T-1, T-4, T-5, T-6, T-18 put field values at top level; they belong under `fields`.
-- Spec gap (escalated, not decided): top-level `id` on add is silently ignored; REQ_KAN_ADD AC-4 and REQ_KAN_WRITEVALID AC-4 require rejection.
-- Open with PM: branch in spec line 19 (`feature/kanban-management-tools`) vs protocol header (`feature/kanban-list-details`). Protocol unchanged.
-- CM decisions applied: step 6 accepted with its limit; step 7 is board-not-found (`SPEC_KAN_FILTERVALUES` algorithm step 1, REQ AC-7); step 1 keeps `actor unknown` as written and cites `SPEC_KAN_SKILLCONTENT` owner bullet and `SPEC_KAN_CREATE` step 1.
+- tst-kanban-list-details (v0.31.0; header branch `feature/kanban-list-details`, not on `development`): 37 of 38 rows NOT RUN. T-21 PASS is a user observation (2026-10-19, see kanban-list-details.md#user-validation), not a protocol run.
+- Kanban F-1 (AC-8 label count; fix `24602ba`, protocol step `c61b4be`, val re-check `5ed617a`, all on `feature/kanban-list-details`): fix and protocol closed. Val status PARTIAL because the manual EDH cases are open.
+- tst-actor-tree-mail-marker (branch `feature/actor-tree-mail-marker`, not on `development`; protocol at `351ab47`): 22 rows NOT RUN, 0 PASS, 0 BLOCKED. T-8 and T-9 cannot run in EDH (agent hooks disabled). T-10 to T-12 must be run and recorded before merge. No merge.
+- Open with CM: analysis request (09:50:18Z) on protocol re-scoping. No approval or re-scoping commit is visible in git; ask CM before any protocol edit.
+- Open with PM: top-level `id` on add. Rejection is covered by T-6a and T-6b with test evidence; confirm the REQ_KAN_ADD AC-4 and REQ_KAN_WRITEVALID AC-4 reading with PM, then close.
 
 ## Findings
 
-- kanban verify (`jarvis_verifyKanbanSchema`) runs the JSON Schema check first and returns early; semantic checks (status options) run only when the structure passes. Non-text label entries are caught structurally (`labels` items are strings).
-- kanban panel refresh: save and file-change refreshes log to the "Jarvis Kanban" channel; explicit `refreshKanbanPanel` logs nothing and reaches only an open panel. Use the channel for no-refresh checks and state the explicit-call limit.
-- An AC that delegates (e.g. SPEC AC-1 to SPEC_KAN_LIST step 2) states no outcome. Before writing "not in approved spec", grep all specs, REQs and UAT specs for the text; state the grep scope when reporting "only in".
-- Quote the exact AC text read at HEAD in TST notes; a paraphrase cannot be checked against the spec.
-- CM status messages can describe an older HEAD; check `git log` and the protocol's commit before acting.
-- Test paths: resolve the EDH file location from the `.code-workspace` folder (`testdata/`), not the repo root; a bare `.github/...` path points at the repo's own copy.
-- Always create US_UAT_* + REQ_UAT_* stubs alongside SPEC_UAT_* — traceability gap on #43 required a second pass.
-- Module integration (compile/package/CI) is explicitly out of UAT scope — note this in every TST to avoid tester confusion.
-- For tools using active-tab heuristic (whoAmI, kanban tools): include a note reminding tester to confirm active tab before invoking.
-- Scope expansions arrive as additive T-N extensions to existing SPEC_UAT — check System Designer commits for new fixtures before writing scenarios.
-- module-skill-provisioning UAT delivered and executed: US/REQ/SPEC_UAT_SKILL_PROVISION + tst (T-1..T-8 static, all PASS). Static analysis is an accepted execution mode when EDH unavailable; cite code evidence per scenario.
-- kanban-skill-content UAT delivered and executed: US/REQ/SPEC_UAT_KAN_SKILL, T-1..T-12 (text field, backward compat, schema errors, undeclared-key warning, applyTo fix, skill content); prerequisite: stacked EDH (core + kanban).
-- agent-mode-reset-race UAT delivered and executed: US/REQ/SPEC_UAT_MSG_MODETARGET, T-1..T-7; two independent defects tested separately; all scenarios designed for static code analysis (structural properties, not runtime VS Code behavior).
-- kanban-management-tools UAT delivered: US/REQ/SPEC_UAT_KAN_MGMT, T-1..T-27 (ADD/DELETE/LIST/FIELDS + WRITEVALID + skill content; T-22..T-27 LIST details and FILTER VALUES added by kanban-list-details); T-5 explicitly tests that undeclared key is error (not warning) — the F-1 stricter-validation difference.
-- kanban-update-validation UAT delivered and executed: amended SPEC_UAT_KANBAN T-22 (id→error not silent skip); US/REQ/SPEC_UAT_KAN_UPDATE_VALID T-1..T-4 (BC-1 bad single_select, BC-2 undeclared key, BC-3 positive + compat); no stale pre-existing scenarios.
-- actor-kernel-instructions-delivery UAT delivered: US/REQ/SPEC_UAT_MOD_ACTORRULES T-1..T-6 (default-off, opt-in names, idempotency, opt-out, isolation, old-hyphen files not removed); T-6 tests REQ_MOD_SKILL_ORPHAN AC-3 guarantee.
-- whoami-all-entity-kinds UAT delivered: amended SPEC_UAT_WHOAMI T-3 (wording+AC-12); US/REQ/SPEC_UAT_ACT_WHOAMI_MULTIKINDS T-1..T-5 (Project/Event resolved, multi-match→error, Actor regression, kanban regression); T-3 needs temp fixture (Actor+Project same name).
+- A user observation is recorded as "seen" and names the steps it did not cover. Never mark PASS on partial coverage.
+- Status values (NOT RUN, PASS, FAIL) come from the owning spec. Do not add a status it does not define (BLOCKED was reverted per PM); record a blocker in the row note.
+- Never change an expected result to fit a test result. If a case is wrong, flag it to CM and keep the original until approved.
+- Before writing setup or memory that refers to a fix, check which branch carries its commit (`git branch --contains <hash>`).
+- Verify memory items against git before keeping them. CM status messages can describe an older HEAD; check `git log` first.
+- Field values go under `fields`. Top-level declared field names are rejected (rule 6), so cases must use `fields`.
+- Kanban verify (`jarvis_verifyKanbanSchema`) runs the JSON Schema check first and returns early; semantic checks run only when the structure passes.
+- Kanban refresh: save and file-change refreshes log to the "Jarvis Kanban" channel; explicit `refreshKanbanPanel` logs nothing. State the explicit-call limit in no-refresh checks.
+- An AC that delegates (e.g. to a SPEC step) states no outcome. Check the delegated step before writing an expected result.
+- Quote the exact AC text read at HEAD in TST notes. Before writing "not in approved spec", grep all specs, REQs and UAT specs, and state the grep scope when reporting "only in".
+- Static analysis is an accepted execution mode when EDH is unavailable. Cite code evidence per scenario.
+- Every SPEC_UAT_* needs matching US_UAT_* and REQ_UAT_* stubs (a traceability gap needed a second pass once).
+- Module integration (compile, package, CI) is out of UAT scope. State this in every TST.
+- Tools that use the active-tab heuristic (kanban tools, whoAmI): add a note to confirm the active tab before invoking.
+- EDH test paths resolve from the `.code-workspace` folder (`testdata/`), not the repo root.
+- Scope expansions arrive as additive T-N cases on the existing SPEC_UAT. Check System Designer commits for new fixtures first.
