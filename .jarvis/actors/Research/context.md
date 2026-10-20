@@ -40,6 +40,7 @@ Recorder-Redesign (Nemotron statt Docker/Whisper) wird als Change mit System Des
 - Stand: `bge-m3` mit Ordner-Mails je Projekt (Verfahren `mails3`) 11/15 Platz 1 live, nur Docs 4/15; "kein Projekt" per Score nicht trennbar. Kein zweites Modell verglichen (Verbindung).
 
 ## Weitere Research-Artefakte (in diesem Ordner)
+- `FIND-2026-10-20-syspilot-process-inconsistencies.md` — 15 Prozess-Inkonsistenzen (P1–P15) zwischen `syspilot.*.agent.md`, `*.tailoring.md` und Skills/Templates; getrennt nach lokalen Tailoring-Fixes vs. Upstream-syspilot-Fixes, uebergeben an `Repo Maintainer`.
 - `architecture-review-2026-05.md` — 11 Findings (F1–F11) zur Tech-Debt-Welle, priorisiert. Spawn-Quelle fuer kommende CRs an PM.
 - `future-ideas.md` — strategische Ideen, die noch keine CRs sind (Trigger / Idee / offene Fragen / Status). Neue Eintraege oben anfuegen.
 - `chat-injection-findings-2026-07.md` — Verhalten von `workbench.action.chat.*` in VS Code 1.130: Namenskonvention, Widget-Aufloesung, `needToClearSession`-Risiko, validierte Minimalsequenz fuer Injektion in Bestandssessions.
