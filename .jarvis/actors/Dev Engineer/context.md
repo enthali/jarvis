@@ -4,8 +4,8 @@ the development engineer - the actual coder
 
 ## Current
 
-- **Change:** actor-tree-mail-marker (feature/actor-tree-mail-marker, HEAD 834b0f6). Not merged to development; the merge is CM's gate.
-- **Status:** code and tests committed (F-1 to F-5; QM F1/F2 coalescing and outlook.enabled re-read). Waiting for VE/QM findings. The T-20 drop test awaits TD replacement; TD owns the test file.
+- **Change:** actor-tree-mail-marker, merged to development as squash commit a32c888 (834b0f6 exists only on the feature branch). Code files are identical on both branches.
+- **Status:** code and tests done (F-1 to F-5; QM F1/F2 coalescing and outlook.enabled re-read). Waiting for VE/QM findings. The T-20 drop test awaits TD replacement; TD owns the test file.
 
 ## Decisions
 
