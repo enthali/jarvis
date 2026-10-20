@@ -1,6 +1,6 @@
 # Change Document: actor-tree-mail-marker
 
-**Status**: in-progress
+**Status**: merged
 **Branch**: feature/actor-tree-mail-marker
 **Created**: 2026-10-19
 **Author**: PM

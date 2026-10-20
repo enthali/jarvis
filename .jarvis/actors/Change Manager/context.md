@@ -30,7 +30,7 @@ See [lessons-learned.md](lessons-learned.md).
 
 ## Active CRs
 
-- **actor-tree-mail-marker** — `feature/actor-tree-mail-marker` (HEAD 8f75644), status `QM Round 1 closed (PM accepted, CD 3790836); QM Round 2 findings 4 and 5 CLOSED (AC-5 fix ebc88b2, QM PASS at 2690eff); PM colon decision done: AC-5 full stop in 191654a (SD), recorded in CD 8f75644; QM diff confirmation pending`. Merge gate, user decides: listener in extension.ts has no automated test (residual risk NOT ACCEPTED by PM, manual T-12 NOT RUN); manual UAT T-2..T-6, T-10..T-12 NOT RUN; D-L1-8 setting-name drift deferred. CM never merges
+- **actor-tree-mail-marker** — merged to `development` as `a32c888` (PM squash of `351ab47`, 2026-10-20, user "ok to merge"); feature branch kept, not pushed. User accepted T-10 to T-12 NOT RUN and the listener residual risk (`extension.ts` line 1287, no automated test). Open, never passed: manual UAT T-2, T-4, T-6, T-10 to T-14 NOT RUN; T-8, T-9 NOT RUN (agent hooks disabled in EDH). D-L1-8 setting-name drift deferred. CD status and any status-only commit: PM decides
 - **agent-mode-reset-race** — `feature/agent-mode-reset-race`, status `qm-recheck` (R3 AC-7 fix applied 9a30f41: catch restored, spec sample corrected), QM re-notified; outcome unknown (session ended before response)
 - **kanban-management-tools** — `feature/kanban-management-tools`, status `ready-for-merge`, QM R3 CLEAR (low findings deferred to backlog item 14), PM notified; 2 URR flags disclosed (F-1 closed by kanban-update-validation)
 - **kanban-update-validation** — `feature/kanban-update-validation` (stacked on kanban-management-tools), status `ready-for-merge`, QM CLEAR, PM notified
