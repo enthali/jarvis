@@ -103,7 +103,7 @@ Engine Requirements
    :id: REQ_ENG_ACTORMARK
    :status: implemented
    :priority: required
-   :links: US_REC_CAPTURE; REQ_ACTOR_TREE; REQ_ACTOR_ACTIVITY; REQ_ENG_CONTRACT
+   :links: US_REC_CAPTURE; REQ_ACTOR_TREE; REQ_ACTOR_ACTIVITY; REQ_ACTOR_MAIL; REQ_ENG_CONTRACT
 
    **Description:**
    The core SHALL expose a method on ``JarvisCoreApi`` with which an add-on marks one
@@ -117,12 +117,13 @@ Engine Requirements
      ``vscode.Disposable``; ``actorId`` is ``JarvisActor.id`` and ``icon`` a
      ``vscode.ThemeIcon``
    * AC-2: While a mark is set, the Actor's node SHALL show the icon in place of its normal
-     icon, taking precedence over the activity indicator (``REQ_ACTOR_ACTIVITY`` AC-7);
-     when the mark is removed, the node SHALL show the normal icon or the activity
-     indicator that applies
-   * AC-3: Disposing the returned ``Disposable`` SHALL remove that mark. A new mark on the
-     same Actor SHALL replace the earlier one, and disposing the replaced ``Disposable``
-     SHALL NOT remove the newer mark.
+     icon, taking precedence over the activity indicator (``REQ_ACTOR_ACTIVITY`` AC-7) and
+     over the unread-mail icon (``REQ_ACTOR_MAIL``). Marks on the same Actor are kept as
+     separate entries; the node SHALL show the most recently added mark that is still set.
+     When no mark is set, the node SHALL show the activity indicator or the unread-mail icon
+     that applies (``REQ_ACTOR_MAIL`` AC-6), or its normal icon.
+   * AC-3: Disposing the returned ``Disposable`` SHALL remove exactly that mark and leave the
+     other marks on the same Actor in place. Disposing it a second time SHALL change nothing.
    * AC-4: A mark SHALL change nothing else on the node (label, context value, click
      command, menus, children)
    * AC-5: The member is additive: ``version`` stays ``2`` (``REQ_ENG_CONTRACT`` AC-3), and an

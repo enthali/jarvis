@@ -32,6 +32,7 @@ checks belong in unit tests. Each file corresponds to one feature or change.
    us_uat_kanban_update_valid
    us_uat_mod_actorrules
    us_uat_actor_identity
+   us_uat_actor_mail
 
 All UAT User Stories
 --------------------

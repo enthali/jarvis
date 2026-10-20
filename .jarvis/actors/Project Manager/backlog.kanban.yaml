@@ -1,5 +1,5 @@
 title: backlog
-nextId: 70
+nextId: 71
 fields:
   - name: status
     type: single_select
@@ -1033,3 +1033,10 @@ items:
       migration of existing US_UAT_* (automatable -> verification, needs user
       judgement -> validation)."
     priority: High
+  - id: 70
+    name: Align OLK setting name in REQ_OLK_ENABLE and SPEC_OLK_SETTINGS with
+      jarvis.outlook.enabled
+    status: Backlog
+    notes: Deferred doc fix from actor-tree-mail-marker (PM decision 2026-10-19).
+      Specs name jarvis.outlookEnabled; code and packages/pim/package.json use
+      jarvis.outlook.enabled. Code name stays. Separate small change.

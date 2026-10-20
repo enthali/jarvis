@@ -122,6 +122,8 @@
   `development` (see Recently Shipped).
 - **Next after kanban-list-details (2026-10-19)**: migration to syspilot 0.10 (backlog #69, bundles #40 and #48). PM has not seen 0.10 yet; look at it or ask the user before planning.
 - **Validation ownership (2026-10-19, user)**: the user executes manual/validation tests; PM only records the user's observations (user may review). Neither TD nor VE executes. Interim for kanban-list-details: PM records T-1, T-21, T-27, T-28(b) in a PM section of the CD; tst- cases point to it.
+- **Test access rules (2026-10-19, user, general)**: unit tests unrestricted; EDH integration tests may read Outlook only, never change mail; test actors live only in `testdata` (Outlook folders `Inbox\Test1`, `Inbox\Test2`); no other real mail folder is used for tests, and real folder names never appear in OSS documents; Outlook tests need `jarvis.outlook.enabled: true` in the testdata settings.
+- **actor-tree-mail-marker (2026-10-19)**: autonomous; user OK given, sent to CM 2026-10-19 evening. User asleep until 2026-10-20.
 - **Automate before routing to the user (2026-10-19, user)**: before a check goes to the user, ask whether it is automatable. Checks on file content, tool counts, or IDs are verification and belong in tests. The user validates only what needs human judgment. Mistake made 2026-10-19: I requested T-21 field values as user validation.
 - **Spike email-triage-embeddings-poc (2026-10-07, Research), findings in** —
   Research measured with `bge-m3` via Ollama (findings under

@@ -661,7 +661,7 @@ Actor Requirements
 
 .. req:: Actor Activity Indicator
    :id: REQ_ACTOR_ACTIVITY
-   :status: approved
+   :status: draft
    :priority: optional
    :links: US_ACTOR_ACTIVITY; REQ_ACTOR_TREE; REQ_HOOK_ROUTE; REQ_HOOK_INTAKE; REQ_ACTOR_SCHEMA
 
@@ -688,8 +688,9 @@ Actor Requirements
    * AC-6: Events without ``session_id``, or whose title matches no Actor,
      SHALL be ignored — no error, no state change.
    * AC-7: The indicator SHALL be an ``iconPath`` change: a green
-     filled-circle ``ThemeIcon`` while Active; while Inactive ``iconPath``
-     SHALL be left untouched.
+     filled-circle ``ThemeIcon`` while Active; while Inactive the indicator
+     SHALL NOT set ``iconPath``, so that another icon of the node
+     (``REQ_ENG_ACTORMARK``, ``REQ_ACTOR_MAIL``) may apply.
    * AC-8: If the session-to-Actor mapping never matches, the feature SHALL
      degrade to "no Actor shows Active" — a silent no-op, not an error and
      not a misleading indicator.
@@ -700,3 +701,54 @@ Actor Requirements
      that matches none: no Actor becomes Active and no notification is
      shown. A title matching no Actor is not an error either; it only means
      that chat's activity cannot be attributed to an Actor (AC-6, AC-8).
+
+
+.. req:: Unread Mail Icon on Actor Nodes
+   :id: REQ_ACTOR_MAIL
+   :status: draft
+   :priority: optional
+   :links: US_ACTOR_MAIL; REQ_ACTOR_TREE; REQ_ACTOR_ACTIVITY; REQ_ENG_ACTORMARK; REQ_OLK_ENABLE; REQ_CFG_SCANINTERVAL; REQ_EXP_REACTIVECACHE
+
+   **Description:**
+   While ``jarvis.outlook.enabled`` is ``true``, an Actor node SHALL show a mail icon when
+   the Outlook mail folder of the same name, directly under the Inbox, holds unread mail.
+   The state is read after each completed scan of the ACTORS view and is kept only as the
+   set of Actors that showed the icon last. The icon takes its place in the priority order
+   of AC-6.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The mail icon SHALL be shown on the Actor whose ``name`` (``REQ_ACTOR_TREE`` AC-3)
+     equals the name of an Outlook folder that is a direct child of the Inbox of the default
+     mail store.
+   * AC-2: The name comparison SHALL be exact and case-sensitive, as the name rule of
+     ``REQ_ACTOR_SCHEMA`` AC-7. Folders nested deeper than one level below the Inbox SHALL NOT
+     be considered.
+   * AC-3: When two or more Actors carry the same name (``REQ_ACTOR_SCHEMA`` AC-7), no Actor
+     with that name SHALL show the mail icon.
+   * AC-4: The mail icon SHALL be shown while that folder holds at least one unread item. A
+     folder without unread items SHALL NOT show the icon.
+   * AC-5: The state SHALL be read after every completed scan of the ACTORS view, whether or
+     not the Actor list changed: the periodic background rescan (``REQ_CFG_SCANINTERVAL``),
+     the manual rescan (``REQ_ACTOR_TREE`` AC-7) and the other scans. Between two scans the icon
+     SHALL NOT change, except for the read triggered by a change of ``jarvis.outlook.enabled``.
+     No Outlook event SHALL be subscribed, and no mail state SHALL be kept
+     beyond the set of Actors that showed the icon last. The tree SHALL be refreshed only when
+     that set changes (``REQ_EXP_REACTIVECACHE`` AC-4).
+   * AC-6: An Actor node SHALL show at most one icon, by this priority: the mark of a recording
+     (red, ``REQ_REC_BUTTON`` AC-3), then the active session (green, ``REQ_ACTOR_ACTIVITY``
+     AC-7), then the unread-mail icon. Without any of them the node shows no icon.
+   * AC-7: Each source keeps its own entry. When a higher-priority icon ends, the next one still
+     present SHALL be shown at the next tree refresh, and the node SHALL NOT be left without an
+     icon while a lower-priority icon still applies.
+   * AC-8: The feature SHALL only read Outlook. It SHALL NOT mark mail as read or unread, change,
+     move or send mail, or change any folder.
+   * AC-9: The feature SHALL NOT start Outlook. An Outlook that is not running is treated as
+     not readable (AC-10).
+   * AC-10: When Outlook cannot be read (the platform is not Windows, Outlook is not running,
+     Outlook reports an error, or the read does not finish in time), no Actor SHALL show a mail
+     icon, the failure SHALL be written to the log, and no message SHALL be shown to the user.
+   * AC-11: While ``jarvis.outlook.enabled`` is ``false``, no Outlook call SHALL be made and no
+     mail icon SHALL be shown (``REQ_OLK_ENABLE`` AC-2).
+   * AC-12: The mail icon SHALL NOT alter any other Actor-node behavior (label, click command,
+     context menu, children), as ``REQ_ACTOR_ACTIVITY`` AC-9 requires for the activity indicator.

@@ -4,6 +4,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
+import * as vscode from 'vscode';
 
 /** One Actor as discovered from `<actorsFolder>/<name>/actor.yaml`. */
 export interface ActorEntry {
@@ -33,6 +34,10 @@ export class ActorScanner {
     private _actors: ActorEntry[] = [];
     private _timer: ReturnType<typeof setInterval> | undefined;
     private _rescanPromise: Promise<void> | undefined;
+    private readonly _onDidScan = new vscode.EventEmitter<void>();
+
+    /** Fired after every completed rescan, changed or not (SPEC_ACTOR_MAIL). */
+    readonly onDidScan: vscode.Event<void> = this._onDidScan.event;
 
     constructor(
         private readonly _resolveRoot: () => string,
@@ -72,9 +77,11 @@ export class ActorScanner {
 
     private async _doRescan(): Promise<void> {
         const actors = await this._scanRoot(this._resolveRoot());
-        if (actorsEqual(actors, this._actors)) { return; }
-        this._actors = actors;
-        this._onDidChange();
+        if (!actorsEqual(actors, this._actors)) {
+            this._actors = actors;
+            this._onDidChange();
+        }
+        this._onDidScan.fire();
     }
 
     private async _scanRoot(folder: string): Promise<ActorEntry[]> {
@@ -116,6 +123,7 @@ export class ActorScanner {
 
     dispose(): void {
         this.stopTimer();
+        this._onDidScan.dispose();
     }
 }
 

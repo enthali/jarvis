@@ -31,6 +31,7 @@ outcome tables** for each feature's acceptance tests.
    spec_uat_kanban_update_valid
    spec_uat_mod_actorrules
    spec_uat_actor_identity
+   spec_uat_actor_mail
 
 All UAT Specifications
 ----------------------

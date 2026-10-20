@@ -32,6 +32,7 @@ deterministic checks belong in unit tests.
    req_uat_kanban_update_valid
    req_uat_mod_actorrules
    req_uat_actor_identity
+   req_uat_actor_mail
 
 All UAT Requirements
 --------------------

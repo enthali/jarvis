@@ -1,5 +1,5 @@
-// Implementation: SPEC_ACTOR_TREE, SPEC_ACTOR_FILES, SPEC_ACTOR_TOUCHEDFILES, SPEC_ACTOR_ACTIVITY, SPEC_ENG_ACTORMARK
-// Requirements: REQ_ACTOR_TREE, REQ_ACTOR_FILES_TREE, REQ_ACTOR_TOUCHEDFILES, REQ_ACTOR_ACTIVITY, REQ_ENG_ACTORMARK
+// Implementation: SPEC_ACTOR_TREE, SPEC_ACTOR_FILES, SPEC_ACTOR_TOUCHEDFILES, SPEC_ACTOR_ACTIVITY, SPEC_ENG_ACTORMARK, SPEC_ACTOR_MAIL
+// Requirements: REQ_ACTOR_TREE, REQ_ACTOR_FILES_TREE, REQ_ACTOR_TOUCHEDFILES, REQ_ACTOR_ACTIVITY, REQ_ENG_ACTORMARK, REQ_ACTOR_MAIL
 
 import * as vscode from 'vscode';
 import { ActorScanner, ActorEntry } from './actorScanner';
@@ -35,32 +35,45 @@ export interface ActivityLike {
     isActive(name: string): boolean;
 }
 
+/** Unread-mail state of Actors (SPEC_ACTOR_MAIL); ActorMailState implements it. */
+export interface MailLike {
+    isUnread(actorId: string): boolean;
+}
+
 export class ActorTreeProvider implements vscode.TreeDataProvider<ActorTreeNode>, vscode.Disposable {
     private readonly _onDidChangeTreeData = new vscode.EventEmitter<ActorTreeNode | undefined>();
     readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
-    private readonly _marks = new Map<string, { icon: vscode.ThemeIcon }>();
+    /** Icon marks per Actor id, oldest first; the last one still set is shown (SPEC_ENG_ACTORMARK). */
+    private readonly _marks = new Map<string, { icon: vscode.ThemeIcon }[]>();
 
     constructor(
         private readonly _scanner: ActorScanner,
         private readonly _touchStore: TouchStore,
         private readonly _activity: ActivityLike,
+        // Optional so that callers without mail state (tests) draw no mail icon.
+        private readonly _mail: MailLike = { isUnread: () => false },
     ) {}
 
     refresh(): void {
         this._onDidChangeTreeData.fire(undefined);
     }
 
-    /** Icon mark of an add-on on one Actor node; a second mark on the same id replaces the first (SPEC_ENG_ACTORMARK). */
+    /**
+     * Icon mark of an add-on on one Actor node. Marks on the same id stack; the node
+     * shows the most recent one still set (SPEC_ENG_ACTORMARK AC-1, AC-2, AC-3).
+     */
     mark(actorId: string, icon: vscode.ThemeIcon): vscode.Disposable {
         const entry = { icon };
-        this._marks.set(actorId, entry);
+        this._marks.set(actorId, [...(this._marks.get(actorId) ?? []), entry]);
         this.refresh();
+        let disposed = false;
         return new vscode.Disposable(() => {
-            if (this._marks.get(actorId) === entry) {
-                this._marks.delete(actorId);
-                this.refresh();
-            }
+            if (disposed) { return; }
+            disposed = true;
+            const rest = (this._marks.get(actorId) ?? []).filter(e => e !== entry);
+            if (rest.length > 0) { this._marks.set(actorId, rest); } else { this._marks.delete(actorId); }
+            this.refresh();
         });
     }
 
@@ -134,11 +147,14 @@ export class ActorTreeProvider implements vscode.TreeDataProvider<ActorTreeNode>
             item.tooltip = actor?.summary ?? '';
             item.contextValue = 'jarvisActor';
             item.command = { command: 'jarvis.openActorSession', title: 'Open Actor Session', arguments: [element] };
-            const mark = this._marks.get(element.id);
+            const marks = this._marks.get(element.id);
+            const mark = marks?.[marks.length - 1];
             if (mark) {
                 item.iconPath = mark.icon;
             } else if (actor && this._activity.isActive(actor.name)) {
                 item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('charts.green'));
+            } else if (actor && this._mail.isUnread(actor.id)) {
+                item.iconPath = new vscode.ThemeIcon('mail');
             }
             return item;
         }
