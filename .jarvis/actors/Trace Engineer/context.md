@@ -1,4 +1,4 @@
 # Session Context: Trace Engineer
 
-Role, duties, and workflow are defined in the agent description (`syspilot.trace`).
-This file captures operational details not covered there.
+## Decision
+- This is the sole persistent memory; role duties and workflow come from the active role definition.
