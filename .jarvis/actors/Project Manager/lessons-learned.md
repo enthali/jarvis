@@ -3,9 +3,6 @@
 ### A relayed statement grew stronger with every hop (2026-10-08)
 In actor-identity-via-agent-file Verify wrote that the incoming recorder and heartbeat parts "were not part of my verification scope"; CM relayed it as "not part of Verify's scope", SD put "no Verify of this change judged them" into the CD, and QM found Verify's own integration report had checked exactly those members (R6-1). Each hop was plausible, none was a lie. When a message states what someone did or did not check, quote the original or point to the report, and let a claim about evidence in a CD name the artefact it rests on.
 
-### Merging two machines' PM backlogs: item numbers collide, renumber the side that is not yet published (2026-10-08)
-Both machines had given #43 and up to different items. `git merge-tree --write-tree --name-only` showed the conflicts before anything was touched; the common `- id:` line sat outside the conflict hunk, so a scripted resolution missed one id (the schema check caught it). I renumbered mine (#55-#59), kept the published numbers, and left a mapping note at the top of the CD instead of rewriting QM's text. Order that worked: origin into development first (only my own files conflict), then development into the feature branch, owners resolve their own memory, then one Verify and one QM read of the result, then the squash.
-
 ### Committed CD content reverted twice in the shared tree, probably a stale editor buffer (2026-10-08)
 In heartbeat-agent-model-selection the QM Round 1 entry vanished, and later the SD found the committed QM entry and my PM decisions reverted to the template (85 deletions) before it restored from HEAD. Cause not proven; it fits an editor window holding an old buffer of the CD that was saved over the file. Third case the same evening in `req_aut.rst` and `spec_aut.rst` (reverted to wording older than HEAD). Git reflog shows no checkout, reset or stash, so a program wrote old content. The user sees it at home too and suspects screen lock then suspend while an actor works; unproven. Next time, before restoring: note the file's LastWriteTime, look at the VS Code Timeline of the file for a save at that time, run `git reflog -10`, and report to CM. Before editing a CD, compare it with HEAD (`git diff --stat`); after commits, check `git status` for an unexpected modified CD and never save an old buffer. Ask the user to close editor tabs of CDs that other actors write to.
 
@@ -26,9 +23,6 @@ Dispatched the v0.24.1 release via `runSubagent` — it executed fine (verified 
 
 ### Treated an unreviewed prior CD as the convention instead of the template itself (2026-07-28)
 Drafted `notification-template-empty-fallback`'s CD by imitating `kanban-yaml-comment-preservation.md`'s shape (Summary + Findings, no Level 0/1/2/Final-Consistency-Check headers) instead of copying `.github/templates/change-document.md` verbatim. That precedent was itself a process deviation that only shipped because the user hadn't reviewed it before send — not a settled convention. User caught it immediately: "the change document is the contract between the agents so why do you change its format?" Fixed by rebuilding the CD as a literal template copy (only header fields + Summary filled in). Added `scripts/new-change.mjs` (`npm run new-change -- <name>`) to remove the manual-authoring temptation entirely: it brances off `develop` and copies/renames the template mechanically, so there's no format decision left to drift on.
-
-### README readiness check must include packages/core/README.md, not just root + module README (2026-07-26)
-During CR #46 release-readiness audit I checked root `README.md` and `packages/kanban/README.md` but skipped `packages/core/README.md` — which is actually the content shown on the Marketplace listing for `jarvis-core` (the entry point most users see). It still had the old Add-ons table (missing Jarvis Kanban) and a stale "install via Jarvis Suite" link (Suite is deprecated). User caught it by pasting the live Marketplace text. Fix applied post-release (won't go live until the next publish). Going forward: README readiness check = root README + the specific new module's README + `packages/core/README.md`'s Add-ons table, every time a new module ships.
 
 ### New package's lint gap only caught at release time, not during CR QM rounds (2026-07-26)
 `packages/kanban` used `require('yaml')` (forbidden by `@typescript-eslint/no-require-imports`) in two files; it passed all 9 QM rounds of CR #46 and only surfaced when the Release Engineer ran a full release-time lint/build pass. QM's rounds checked tests/traceability/spec-match but apparently didn't run (or didn't block on) `npm run lint` for the new package. Fix going forward: confirm `npm run lint` is part of QM's standard verification for any CR that adds a new package, not just `npm test`/compile.
@@ -52,23 +46,11 @@ Sent `agent-mode-persistence` to CM while the Release Engineer was mid-process (
 ### Preparing the next CR while one is autonomously running still requires a status check first (2026-07-13)
 Repeated the "Finger weg" mistake from 2026-07-02, in a new shape: dispatched `actor-migration-command` autonomously, then — without checking whether it had actually completed — did `git checkout develop` + created a new branch for the next CR (`actor-tool-rename`) "in parallel while it runs." System Designer was mid-design on the still-running CR, uncommitted; the checkout yanked the shared working tree out from under it. No data was lost (uncommitted mods travel with `git checkout` when there's no conflict), but it could easily have gone wrong. Fix: before creating any new branch or switching branches, always `git log --oneline <branch> -3` (or check the inbox) to confirm the currently-running CR has actually reached a commit/checkpoint — autonomous mode doesn't mean "safe to ignore," it just means fewer PM checkpoints.
 
-### Release agent change-doc archival can leave duplicates (v0.14.0)
-Verify after release that archived change docs land only under `docs/changes/v{x.y.z}/`, not also duplicated at the `docs/changes/` root. Happened once (v0.14.0), cleaned up manually — check this every release until the release agent guards against it itself.
-
-### Release agent only bumps root package.json — spec gap (2026-06-24)
-SPEC_REL_RELEASEACTION does not require bumping ALL workspace package.json files — only the root. In an npm monorepo, each sub-package (core, pim, recorder, mcp, core-gh) has its own version field. The release agent missed them all, CI built v0.11.2 VSIXs under the v0.12.0 tag. Fix: add an AC to SPEC_REL_RELEASEACTION requiring the version bump to cover every `packages/*/package.json` in the workspace.
-
-### Moving a git tag: always specify the commit explicitly (2026-06-24)
-When moving a tag (delete + recreate), always use `git tag <tag> <sha>` with the explicit commit hash — never rely on a chain like `git tag -d <tag>; git tag <tag>` where a mid-chain failure leaves the local tag deleted but the new one uncreated, causing the subsequent push to go to the wrong commit. The safe pattern: `git tag -d v0.x.y; git push origin :refs/tags/v0.x.y; git tag v0.x.y <sha>; git push origin v0.x.y`.
-
 ### Meta-architecture first when introducing new concepts (2026-06-24)
 When a CR introduces a new structural pattern (e.g. marketplace packaging, multi-package CI), ask: "does the spec have a contract/template for this pattern?" If not, create the meta spec first (US→REQ→SPEC for the pattern), then implement against it. Patching missing files after the fact is a symptom — a missing spec contract is the root cause. The extension-pkg-contract CR demonstrated this: defining SPEC_REL_PKGCONTRACT first caused the implementation to naturally produce all required files.
 
 ### Never interrupt a running CM process with corrective messages (2026-06-24)
 If a note is for PM only (e.g. a mode correction), do NOT relay it to CM mid-process. Interrupting a running change breaks the CM's sequential workflow. Corrections to the change document take effect when CM reads it next.
-
-### CR default mode is user-guided (2026-06-24)
-Always set Operation Mode: user-guided in the change document unless the user explicitly agrees to autonomous. User-guided means the user sits in while specs are written, not just reviews a fait accompli afterward.
 
 ### Verify-Agent must not fabricate UAT results (2026-04-15)
 UAT results must never be filled in by an agent — only real manual executions count. CM must leave UAT lines as PENDING until the human fills them in.

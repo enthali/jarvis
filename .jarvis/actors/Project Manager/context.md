@@ -17,7 +17,7 @@
 - **Shared Git Workspace — Finger weg outside own folder while a CR runs**:
   while another CR is actively in the pipeline (CM/Designer/Dev Engineer
   working on a feature branch), PM may ONLY `git commit` files inside its own
-  session folder (`.jarvis/sessions/Project Manager/`). No `git checkout`,
+  actor folder (`.jarvis/actors/Project Manager/`). No `git checkout`,
   `pull`, `push`, or touching any other branch/file — even read-only-looking
   operations like `checkout development` to inspect something disrupt the
   shared working tree. Where PM's own commits land (which branch is checked out at
@@ -117,13 +117,10 @@
 ## Active CR
 
 - **F4 approved (2026-10-17)**: user OKs spec_uat line 39 (T-1 end-to-end) and the setup naming `UAT Kanban Actor`. Apply only after the current actor requests finish; then SEND SD the instruction. Nothing committed yet.
-- **Kanban-list-details (2026-10-16)**: E-1 closed (QM); cold-run item deferred (backlog 68). Committed as da29892 (VE: round 4 report, handler tests, mutation script). QM CLEARED as committed (22:09:50Z), no findings; the gap is closed. Report line 436 follow-up landed as 3ae72fe (QM CLEARED the committed line, 22:17:54Z); CM's CD record landed as 76d53ab. Then the user's EDH T-1..T-27 (Ctrl+F5); T-21 needs kanban activation first (provisioned SKILL copy is stale). Merge only on "OK to merge"; statuses stay approved until EDH; no EDH case dropped without user review. Before merge, ask the user about scope: about 95 commits beyond development dc3ab39 (ENG_ACTORLIST, agent files).
-- **No active CR (2026-10-08).** `actor-identity-via-agent-file` is merged into
-  `development` (see Recently Shipped).
-- **Next after kanban-list-details (2026-10-19)**: migration to syspilot 0.10 (backlog #69, bundles #40 and #48). PM has not seen 0.10 yet; look at it or ask the user before planning.
+- **Shipped in v0.31.0 (2026-10-20)**: kanban-list-details and actor-tree-mail-marker. Both have open manual validation (NOT RUN rows in the release notes); the user chose to include kanban-list-details despite its PARTIAL validation.
+- **Next: migration to syspilot 0.10 (backlog #69, bundles #40 and #48)**: actor folders move out of this repo with it (Repo Maintainer, 2026-10-20). PM has not seen 0.10 yet; look at it or ask the user before planning.
 - **Validation ownership (2026-10-19, user)**: the user executes manual/validation tests; PM only records the user's observations (user may review). Neither TD nor VE executes. Interim for kanban-list-details: PM records T-1, T-21, T-27, T-28(b) in a PM section of the CD; tst- cases point to it.
 - **Test access rules (2026-10-19, user, general)**: unit tests unrestricted; EDH integration tests may read Outlook only, never change mail; test actors live only in `testdata` (Outlook folders `Inbox\Test1`, `Inbox\Test2`); no other real mail folder is used for tests, and real folder names never appear in OSS documents; Outlook tests need `jarvis.outlook.enabled: true` in the testdata settings.
-- **actor-tree-mail-marker (2026-10-19)**: autonomous; user OK given, sent to CM 2026-10-19 evening. User asleep until 2026-10-20.
 - **Automate before routing to the user (2026-10-19, user)**: before a check goes to the user, ask whether it is automatable. Checks on file content, tool counts, or IDs are verification and belong in tests. The user validates only what needs human judgment. Mistake made 2026-10-19: I requested T-21 field values as user validation.
 - **Spike email-triage-embeddings-poc (2026-10-07, Research), findings in** —
   Research measured with `bge-m3` via Ollama (findings under
@@ -134,248 +131,30 @@
   not enough, "no project" needs a language model call; embeddings stay a
   possible shortlist stage later (parked). Open: Research's worktree
   `C:\workspace\jarvis-email-poc` still exists with the local, unpushed branch
-  `research/email-triage-embeddings-poc`; ask Research to close it. Research's
-  `git push` from the shared tree also published my local memory commits to
-  `origin/development` (the user had pushed before as well; nothing sensitive
-  seen). Original brief: branch from `development`, work under
+  `research/email-triage-embeddings-poc`; ask Research to close it. Original brief: branch from `development`, work under
   `experiments/email-triage-embeddings/`, project data (`context.md`,
   `actor.yaml` from the OneDrive Projekte folder), the 20 newest inbox mails read
   only via the Pantheon scripts, local Ollama, console output top 10. Idea
   context (hybrid LLM plus embeddings, learning from folders, vectors in RAM plus
   a local cache, later changes "Projekt-Index" then "Zuweisung") is in
   `ideas/llm-gateway.md`, third section.
-- **Open items since v0.29.0 (2026-10-03)** — v0.29.0 is released (see Recently Shipped).
-  Open items after it: automatic retry after the first-start TLS failure
-  (undecided, user's call); backlog #45 (SPEC_MOD_REC_PKG AC-2 tool infix),
-  #46 (retire `ideas/recording-design.md`, now possible), #47 (test automation
-  for Dev Engineer and QM), #48 (ontology status vocabulary
-  implemented/verified/validated), #49 done in the release. Not yet read:
-  licence file of `Microsoft.Windows.AI.MachineLearning.dll` and the npm/NuGet
-  terms (user decided D-28 is no topic with SDK 2.1.0; my caveat stays on
-  record). Field evidence 2026-10-09 (user): recorder sessions over 3 h ran
-  without problems, abort and restart work; the audio source is always the first
-  one (no choice of headset/speaker), a possible future feature, no defect
-  (noted on backlog #50). v0.30.0 agent mode: the user says a message to
-  oneself sets the right agent mode.
-  Field evidence 2026-10-05 (user's report, for U-4): a real meeting recorded for
-  49:18 min, 8311 words (about 170 words/min), user calls the one-hour test
-  successful; no memory readings, no phrase timing, and whether it ended
-  normally or with warnings was not reported. v0.29.0's release notes said the
-  long-term test was not conducted; v0.30.0's notes correct that. Editing the
-  published v0.29.0 GitHub Release itself needs the user's sign-off on the exact
-  text first (public repo). The meeting report from that transcript is still
-  being generated (not mine).
-- **Git state after the merge (2026-10-03)**: the extra worktrees
-  `jarvis-dev-docs` and `jarvis-nemotron-spike` are closed on the user's order
-  (their folders deleted; the spike's test transcripts were not needed). Branch
-  `research/recorder-nemotron-spike` stays, in sync with origin. The main tree is
-  on `development` again, clean. Lesson: a branch checked out in another worktree
-  cannot be checked out in the main tree, so a squash needed a temporary worktree.
-  The old feature branch still holds the single-commit history, not needed again.
-- **Shared-tree lesson (2026-10-03)**: an unknown actor left
-  `packages/recorder/package.json` modified (identical to `development`),
-  which failed 7 tests in the shared tree while the committed branch passed.
-  Restored with the user's OK. When tests differ between the shared tree and a
-  clean checkout, check `git status` for foreign uncommitted files first.
+- **Open after v0.29.0 (2026-10-03)**: automatic retry after the first-start TLS failure (user's call); backlog #45, #47, #48; backlog #46 (retire `ideas/recording-design.md`) is handled by the 2026-10-20 cleanup. Not read: licence file of `Microsoft.Windows.AI.MachineLearning.dll` and the npm/NuGet terms (PM caveat on record). Field evidence: a 49 min real meeting (2026-10-05) and recorder sessions over 3 h (2026-10-09) ran without a defect; audio source is always the first one (backlog #50).
 - **QM may propose simplifications (2026-10-03)**: the user told QM it may
   propose a simpler solution over strict spec adherence, with the spec
   changed openly, when user value is not materially hurt. Evaluate such
   proposals as UX/requirement decisions with benefits and losses stated; the
   user decides, SD revises, nothing is relaxed silently.
-- **Post-change watch: private Actor repo** — after a future active CR, remove
-  `.jarvis/actors/` from OSS Git tracking without deleting local files, ignore
-  it in OSS, then initialize a separate private repo in that folder and connect
-  it to a new private GitHub repo. Keep Actors in place until the configurable
-  external path is released; existing public Git history is not erased by this
-  move.
+- **Private Actor repo (2026-10-20)**: actor folders move out of this repo into a separate private repo with the syspilot 0.10 migration. Public Git history is not erased by this move.
 
 ## Recently Shipped
 
-- **v0.30.0 released** 2026-10-08 by the user from the other machine (tag
-  `v0.30.0`, back-merged, `origin/development` = `9331a8b`). Ships
-  `actor-identity-via-agent-file` and `heartbeat-agent-model-selection`; release
-  notes carry the breaking changes (`jarvis_whoAmI` removed, Kanban tools need
-  `ownerName`, agent steps need `vendor` and `model`), the NOT RUN limits and a
-  correction of the v0.29.0 recorder evidence (49 min real meeting). The
-  published v0.29.0 GitHub Release is unchanged. 500 tests.
-- **actor-identity-via-agent-file merged** 2026-10-08 into `development`
-  (squash `0e3f3aa1`, branch retained, replaces `jarvis_whoAmI`, backlog #42).
-  The Actor name is the key to its agent (front matter `name:`), Jarvis keeps
-  two identity lines in it, `agent` leaves `actor.yaml`, Kanban tools require
-  `ownerName`, the kernel instructions have no identity section (user decision
-  A, #58). NOT passed: the scripted UAT T-1..T-8 and T-10 (user's partial EDH
-  run is evidence only); 3 s mode wait OPEN; user dropped T-2 and T-9 (T-9 was
-  a leftover of the focus-based identity). Deferred: R4-1 (#59), multi-root
-  (#57), 18 old drafts (#55). My backlog items 43-47 became #55-#59 at the
-  merge, the other machine used #43-#54 meanwhile.
-- **heartbeat-agent-model-selection merged** 2026-10-08 into `development`
-  (`452c769`, pushed), released in v0.30.0 (see above). Agent steps
-  name `vendor` and `model` (model id from the list); no default or fallback, a
-  step without them fails (breaking). Command `jarvis.listModels` and tool
-  `jarvis_listModels`, the list shows only vendor and model. Live acceptance:
-  Copilot verified by the user; the rest NOT RUN, risk accepted by the user, the
-  new elements stay `approved`. Migration text for the Release Engineer is in the
-  CD section "Release Note (for the Release Engineer)". Side debts: backlog #53,
-  #54. Parked: a heartbeat step per list element (`ideas/llm-gateway.md`).
-- **v0.29.0 released** 2026-10-03 (tag `v0.29.0` on `main` at `6ba6cf9`, back-merged
-  into `development`, `origin/development` = `cb44218`; GitHub Release with 9
-  VSIX assets, publishing Action green). Ships `recorder-redesign` (on-device
-  live transcription replaces Docker/Whisper, Actor mark API in core, group
-  "Jarvis Recorder", "Jarvis:"-prefixed command titles) and
-  `remove-newactor-legacy-quickpick`. Both CDs archived to `docs/changes/v0.29.0/`.
-  Validation: 457/457 tests, sphinx clean, lint 0 errors. Released on the user's
-  explicit go, with release-note warnings: U-3 and U-4 not tested (device-loss
-  cases, one-hour run), echo only on one laptop, T-1..T-17 not run, 12 spec
-  elements stay `approved`, telemetry note (non-essential off, a minimal
-  process-info event may still upload). Post-release distribution is automatic
-  via CD, back-merge already done by the Release Engineer. The Release Engineer
-  also added an `.venv` ignore to `eslint.config.js` (`0be05a4`, lint scanned the
-  gitignored virtual environment). Feature branch `feature/recorder-redesign`
-  retained.
-- **v0.28.0 released** 2026-09-30 (tag `v0.28.0` on `main` at `7605e766`,
-  back-merged to `development`; done on the user's other machine). Contains
-  one-kind-consolidation Phase 1 and Phase 2 `retire-legacy-actor-kinds`
-  (merged 2026-09-27, `1a30326`) plus `remove-newactor-legacy-quickpick`. Old
-  kind-based Project/Event/legacy-Actor code and specs are gone; the single
-  Actor kind is live. CDs archived to `docs/changes/v0.28.0/`.
-- **retire-legacy-actor-kinds merged** 2026-09-27 into `development` (`1a30326`,
-  pushed). Phase 2 of one-kind-consolidation: old kind-based Project/Event/
-  legacy-Actor specs and code fully removed (not just deprecated); backlog
-  #31/#32 gaps ported into the Actor kind first, per user's port-before-delete
-  decision. QM Round 4 CLEAR (direct); VE PASSED. User validated core
-  behavior manually (Actor creation, messaging, auto-delivery, path change).
-  One user-found regression during that manual test — `packages/flow`'s
-  activation guard wasn't updated for this change's `JarvisCoreApi.version`
-  bump to 2, so Flow silently failed to activate — fixed (`6df1b5e`) and
-  user-confirmed via manual smoke-check. Formal User UAT deliberately NOT RUN,
-  deferred to backlog #40 (UAT ontology redesign). Also fixed as a same-session
-  tooling lesson: an EDH hang some rounds in was NOT a code/profile defect but
-  the local F5 debugger-attach handshake — use Ctrl+F5 ("Run Without
-  Debugging") when validating, not debugging; recorded in Working Principles.
-- **v0.27.2 released** 2026-09-19 (tag `v0.27.2` on `main` at `b7bbfa8`,
-  back-merged to `development` at `c1036bd`). Patch release of two fixes:
-  (1) `whoami-hookless-error` — honest error message when hooks disabled
-  (error text: "Unable to determine your identity automatically (hooks disabled
-  or unavailable). Please confirm your identity with the user."); (2)
-  `focus-restore-toggle` — configurable focus restore after delivery via
-  `jarvis.messaging.restoreFocusAfterDelivery` (bool, default true). Both QM
-  Round 2 CLEAR; 406/406 tests; val-reports created. CDs archived to
-  `docs/changes/v0.27.2/`.
-- **v0.27.1 released** 2026-09-01 (tag `v0.27.1` on `main` at `d70ba52`,
-  back-merged to `development` at `356d263`). Patch release of
-  `whoami-all-entity-kinds` — `jarvis_whoAmI` now resolves Actor, Project,
-  and Event identities through the complete scanner registry; zero/multiple
-  matches return the existing ambiguity error. QM Round 3 CLEAR; 406/406
-  tests passed. CD archived to `docs/changes/v0.27.1/`.
-- **whoami-all-entity-kinds merged** 2026-08-31 into `development` (backlog
-  item 20). `jarvis_whoAmI` now resolves Actor, Project, and Event identities
-  through the complete scanner registry; zero/multiple matches return the
-  existing ambiguity error. QM Round 3 CLEAR after stale guarding tests and
-  `SPEC_ACT_WHOAMI` AC-2 were corrected; 406/406 tests passed. Backlog item 22
-  tracks the verification-protocol gap that let those stale tests reach QM.
-- **v0.27.0 released** 2026-08-26 (tag `v0.27.0` on `main` at `3079cec`,
-  back-merged to `development` at `ec0455a`). Solo release of
-  `actor-kernel-instructions-delivery` — no other change was on `development`
-  since v0.26.0, and the next work is expected in PIM, not core, so it wasn't
-  worth holding back a day. CD archived to `docs/changes/v0.27.0/`. One
-  transient artifact found post-release: a stray uncommitted `.gitignore`
-  edit dropped the `!packages/*/assets/**` negation — traced to a
-  not-yet-reloaded Extension Development Host running pre-fix code in
-  memory (fix itself, from v0.26.0's module-skill-provisioning QM round, is
-  intact in HEAD/src/compiled `out/`). Discarded the stray change, no repo
-  action needed; recommended reloading this dev window.
-- **actor-kernel-instructions-delivery** (backlog item 19) — merged to
-  `development` 2026-08-26 (`6a96081`). Ships the three `jarvis-actor.*`
-  instruction files (kernel/memory/authoring, dot-separated names — required
-  by the provisioning helper's namespace-prefix gate) from
-  `packages/core/assets/instructions/` via the existing `provisionModuleAssets`
-  mechanism. `jarvis.actor.autoProvision` defaults **false** (optional assets
-  → default false, vs. kanban's required-asset default true — same
-  underlying principle, not a contradiction). Content baseline consolidated
-  from 5 drifted workspace copies (jarvis/syspilot/Automobil/Assistant/sonar):
-  kernel = Automobil's superset, memory = common + "Memory First" rule,
-  authoring = common version. User reversed the prior "private IP" stance —
-  released under the project's MIT license. QM CLEARED twice (Round 1 MECE,
-  Round 2 independent QM review — live diff, byte-compared content, clean
-  `tsc`+`vitest`), one Low process finding (CM's dispatch template should say
-  "PM" not "Change Manager" for findings routing) routed to CM to fix, not
-  blocking. User-confirmed merge 2026-08-26.
-- **v0.26.0 released** 2026-08-26 (tag `ae51eb8` on `main`, back-merged to
-  `development` at `0a8f836`). Ships kanban-management-tools,
-  kanban-skill-content, module-skill-provisioning (features) +
-  kanban-update-validation, agent-mode-reset-race (fixes). No GH issues
-  closed (none of the 5 CDs carried a formal GitHub Issue line).
-- **touched-files-created-files** (backlog item 9) — CLOSED 2026-08-26 as
-  **not reproducible**, no code changed, CD deleted (nothing to archive). SD
-  reproduced live with the user on Windows + WSL2: `create_file` has been in
-  `TOUCH_RULES` since the feature's original commit, created files are
-  tracked and render correctly, 35/35 corpus files since 2026-08-24 tracked.
-  Real finding routed separately: `TOUCH_RULES`'s 4-tool allowlist silently
-  drops writes from any tool not on it (no log at any level) — logged as
-  backlog item 18 (observability, log unmatched tool_names before extending
-  the list).
-- **kanban-update-validation** merged to `development` 2026-08-26 (F-1 follow-up,
-  stacked on `feature/kanban-management-tools`). `jarvis_updateKanbanItem` now
-  delegates to the shared `validateItemValues` helper instead of its old
-  status-only inline check — closes F-1, all four write tools now share one
-  write-validation contract. QM CLEARED (Round 1), one Low deferred (backlog
-  item 17, `changes.labels` schema type). User-validated together with
-  `kanban-management-tools`.
-- **kanban-management-tools** merged to `development` 2026-08-26 (backlog items
-  3, 11, 12, 13). Four new tools: `jarvis_addKanbanItem`, `jarvis_deleteKanbanItem`,
-  `jarvis_listKanbanItems` (filtered, compact projection), `jarvis_updateKanbanFields`
-  (add/remove field or select option). Dispatched unattended overnight
-  2026-08-24; QM CLEARED (Round 3, 2 Lows deferred to backlog item 14). Two
-  USER REVIEW REQUIRED flags resolved with the user 2026-08-26: F-1 (weaker
-  validation in the pre-existing `jarvis_updateKanbanItem`) spun off as its own
-  CR (`kanban-update-validation`, stacked, pending merge); F-2 (field/option
-  rename not offered) accepted as-is, bulk-rename idea captured as backlog
-  item 15. All 8 kanban tools user-validated live in the EDH before merge.
-- **agent-mode-reset-race** merged to `development` 2026-08-24 (backlog item 8).
-  Fixed the Agent Mode misassignment bug: added a target-identity check before
-  the mode-set command executes (skip + warn on mismatch instead of blindly
-  firing), moved the success log inside that check, plus an unrelated
-  delivery-loop re-entrancy guard. Took 4 QM rounds — Round 3 caught a
-  self-inflicted AC-7 regression (a "fix the spec" decision got executed
-  backwards, code synced to a buggy spec sample and dropped an error catch);
-  corrected before merge. User-validated live in the EDH. Clean squash-merge,
-  no stacking (independent branch off `development`).
-- **module-skill-provisioning** + **kanban-skill-content** merged to `development`
-  2026-08-24 (squashed in that order; stacked-branch second squash-merge produced
-  expected conflicts on files both CRs touched — resolved by taking the incoming
-  branch's version everywhere except the first CD's Status field, since the second
-  branch was a strict superset). Delivered: generic module asset self-install
-  mechanism, real jarvis-kanban skill content (ontology, ownerName convention,
-  freeform text field). Closed backlog items 1, 2, 4, 5.
-- **v0.25.0** released 2026-08-05 @ `bcb5c96`. Contains: touched-files-cleanup, gitignore
-  automanage followup, wiring restore (gitignore + release-notes), kanban+suite in
-  self-update mapping. Issues #58/#59/#60/#63 closed.
-- **touched-files-cleanup** merged @ 9a4611b. Display-filter design (window + dead-file
-  hiding), bulk removal, cleanup command. Introduced regression in same merge (gitignore
-  + release-notes wiring deleted) — fixed in wiring-restore CR before release.
-- jarvis-kanban (#46) released as v0.24.0 on 2026-07-26.
+- **v0.31.0 (2026-10-20)**: kanban-list-details and actor-tree-mail-marker. Release notes and CDs in `docs/changes/v0.31.0/`.
+- **v0.30.0 (2026-10-08)**: actor-identity-via-agent-file and heartbeat-agent-model-selection. Breaking changes are in the release notes.
+- Older releases: `docs/releasenotes.md` and `docs/changes/v<version>/`.
 
 ## Ideas
 
-- **Parallel feature teams, retro and actor namespace (user thoughts 2026-10-03,
-  first test: recorder here, #42 on another machine; gather experience first,
-  nothing decided)**: (1) one team per worktree, worktrees only on feature
-  branches, main workspace holds `development`/`main` with PM and Release
-  Engineer, merge by pull request or direct; (2) each team has its own memory
-  and a "retro" before a release (or after a change) where counterparts read
-  each other's memory pairwise by role — fits the kernel (read others' memory
-  as evidence, change only your own, disagreement escalates to the user);
-  (3) biggest worry: actor names must be unique today and messaging addresses
-  by name, so two architects cannot coexist — idea: a namespace, address =
-  role + team + project (short name resolves inside the own team, qualified
-  across teams/projects), better as structured fields than a flat string, with a
-  host layer possible later; (4) cross-workspace and remote (cloud) sessions
-  depend on AHP, which Research recommends deferring 2-3 months (commit
-  `8afdccb`, note not read by me); (5) naming interacts with #42 (agent file
-  and identity sentence use the actor name) — tell the #42 side not to freeze
-  the name form; (6) open: who may message whom across projects. No backlog
-  item yet; the user has not said yes to one. See also my lessons-learned entry
-  on parallel work.
+- [Parallel feature teams, retro, actor namespace](ideas/parallel-teams.md) — one team per worktree, pairwise memory retro, namespace for actor names (user thoughts 2026-10-03, nothing decided)
 - **US/REQ/SPEC — is the SPEC level redundant? (2026-08-20)**: SPEC often ends up
   just restating the code. Idea: try dropping it for one new feature as an
   experiment. Not trivial — the 3-level structure is hardwired throughout
@@ -383,7 +162,8 @@
   version doesn't give the flexibility needed yet. Parked, revisit later.
 - [LLM access for scripts](ideas/llm-gateway.md) — expose `vscode.lm` to local scripts (OpenAI-style endpoint vs MCP); blocked on GitHub licence/Bosch clarification and auth design (2026-10-07)
 - [PIM Modularization](ideas/pim-modularization.md) — drop per-component enable/disable settings, go installable-sub-extensions instead
-- [Session Recording](ideas/recording-design.md) — meeting recording + transcription pipeline
+- [Reorganize `.jarvis/` layout](ideas/jarvis-dotfolder-layout.md) — group flat state files per module; parked, not urgent (2026-07-21)
+- Calendar auto-recording (from the retired recording design, 2026-04): start and stop a recording with a calendar event. Not decided.
 - Recorder on built-in VS Code dictation (deferred, 2026-08-05) — see Research's
   `.jarvis/actors/Research/future-ideas.md` FI-2026-08-05; blocked on unverified
   assumption (extension-facing access to the dictation model). Not planned.
@@ -401,7 +181,7 @@
   become unnecessary. Not acting yet — revisit #34's scope once IMAP approach
   proves stable. The other half (import agents/skills from Assistant spike,
   incl. two agent.md persona files the user likes) still stands independently.
-- **AHP migration research spike (planned, week of 2026-07-28)**: VS Code 1.130
+- **AHP migration research spike (planned week of 2026-07-28; status not recorded, ask the user)**: VS Code 1.130
   confirmed AHP as the platform direction. FI-2026-07-21 documents the right
   path: `editorService.openEditor({ resource })` + Session-URIs instead of
   `chat.open` hack. Goal: assess what it takes to migrate Jarvis session-layer
@@ -410,9 +190,6 @@
   actor session can spawn a phantom "broken" chat in a 2nd editor tab; split
   view mirrors one session synchronously into both panes (same session, not
   two actors). Fits AHP session-layer rework — assess together.
-- **CR #51 (agent-mode-reset fix) merged but not yet released (2026-07-28)**:
-  live mode resets still happen (PM + CM both hit it mid-CR-#56) until the
-  next release ships. Not a new bug — expected until then.
 - **Terminal context leaks across actor sessions (2026-07-30)**: the
   "Terminals" block injected into every turn showed OTHER actors' (CM/Dev
   Engineer/QM) commands, not just this session's own — because VS Code
