@@ -5,8 +5,8 @@ This file captures operational deltas.
 
 ## Active
 
-- tst-kanban-list-details (v0.31.0; header branch `feature/kanban-list-details`, not on `development`): 37 of 38 rows NOT RUN. T-21 PASS is a user observation (2026-10-19, see kanban-list-details.md#user-validation), not a protocol run.
-- Kanban F-1 (AC-8 label count; fix `24602ba`, protocol step `c61b4be`, val re-check `5ed617a`, all on `feature/kanban-list-details`): fix and protocol closed. Val status PARTIAL because the manual EDH cases are open.
+- tst-kanban-list-details (v0.31.0, merged and archived on `development` by `3030222`): 37 of 38 rows NOT RUN. T-21 PASS is a user observation (2026-10-19, see kanban-list-details.md#user-validation), not a protocol run.
+- Kanban F-1 (AC-8 label count; fix `24602ba`, protocol step `c61b4be`, val re-check `5ed617a`): the fix is in development's kanban code (no diff in `packages/kanban/src` against the feature branch). These hashes are on the feature branch only (squash). Val status PARTIAL because the manual EDH cases are open.
 - tst-actor-tree-mail-marker: merged to `development` as squash `a32c888`; protocol now at `docs/changes/v0.31.0/`. 22 rows NOT RUN, 0 PASS, 0 BLOCKED. T-8 and T-9 carry the user's observation (agent hooks disabled in EDH) and stay NOT RUN.
 - Open with PM: the 2026-10-19 PM condition (T-2 to T-6 and T-10 to T-12 run and recorded before merge) was not met at merge. CM `02dd2d4` records accepted residual risk; no PM waiver found in git. Ask PM to confirm or waive in writing.
 - `feature/actor-tree-mail-marker` (tip `e8ba039`) is not an ancestor of `development`; treat it as superseded by `a32c888`.
