@@ -16,7 +16,7 @@ breaking changes (v0.16.0 shipped a hard API deprecation as MINOR).
 
 ## Version Marker Location
 Bump `version` in the root `package.json` AND every `packages/*/package.json`
-(core, pim, recorder, mcp, flow, suite, core-gh, syspilot) — all must match
+(core, pim, recorder, mcp, flow, suite, core-gh, syspilot, kanban) — all must match
 the new version. (Past miss: v0.12.0 shipped stale v0.11.2 VSIXs because only
 root was bumped.)
 
