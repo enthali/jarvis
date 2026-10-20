@@ -64,6 +64,7 @@ describe('SPEC_KAN_CREATE AC-5: ownerName is required in every tool inputSchema'
         'jarvis_addKanbanItem',
         'jarvis_deleteKanbanItem',
         'jarvis_listKanbanItems',
+        'jarvis_listKanbanFilterValues',
         'jarvis_updateKanbanFields',
     ];
 
@@ -76,7 +77,7 @@ describe('SPEC_KAN_CREATE AC-5: ownerName is required in every tool inputSchema'
         expect(entry!.inputSchema.required).toContain('ownerName');
     });
 
-    it('exactly the 8 Kanban tools are declared', () => {
+    it('exactly the 9 Kanban tools are declared', () => {
         const kanbanToolNames = entries.map(e => e.name).filter(n => n.startsWith('jarvis_') && n.toLowerCase().includes('kanban'));
         expect(kanbanToolNames.sort()).toEqual([...tools].sort());
     });

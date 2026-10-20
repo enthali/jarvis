@@ -1,5 +1,31 @@
 # Release Notes
 
+## v0.31.0 - Actor Mail Marker + Kanban Item Details
+
+*2026-10-20*
+
+### Features
+
+- **actor-tree-mail-marker**: With Outlook email sync enabled, an actor whose name matches an Outlook folder directly under the Inbox shows a mail icon while that folder holds unread mail. An actor shows one icon by priority: recording (red dot), then active session (green dot), then unread mail. The state is read on each tree refresh and on manual scan.
+- **kanban-list-details**: `jarvis_listKanbanItems` accepts `details: true` to return every field of each card; the default projection is unchanged. New read-only tool `jarvis_listKanbanFilterValues` returns the declared status values with card counts (empty columns included) and the labels in use with counts. The board skill no longer tells callers to omit `ownerName`.
+
+### Validation and Known Limits
+
+- Release checks: vitest 61/61 test files and 652/652 tests passed at `8e3608d` (uppercase drive-letter root); strict Sphinx passed (incremental and fresh `-E` build); flow and kanban webview builds passed. Compile and lint last ran at `ee5cee5`; `8e3608d` changes one memory file only.
+- **actor-tree-mail-marker**: The automated scope passes. The manual Extension Development Host UAT (T-2 to T-6, T-10 to T-12) is **NOT RUN**. Residual risk: the `extension.ts` listener has no automated test.
+- **kanban-list-details**: The validation report is **PARTIAL**. All 27 manual protocol scenarios are **NOT RUN** (EDH). The two new elements `REQ_KAN_FILTERVALUES` and `SPEC_KAN_FILTERVALUES` are approved. Remaining review findings are open with the Change Manager. The workspace copies of the board skill are stale until re-provisioned.
+
+### Archived Change Artifacts
+
+- **actor-tree-mail-marker.md**: Mail icon for actors whose name matches an Outlook Inbox subfolder; priority order with recording and active session; the change document's status is `merged`.
+- **tst-actor-tree-mail-marker.md**: T-1 to T-14 manual and NOT RUN; T-15 to T-22 automated.
+- **val-actor-tree-mail-marker.md**: PASS for the automated scope at `2168e2a`; manual UAT NOT RUN; residual risk recorded above.
+- **kanban-list-details.md**: `details` option, filter-values tool, and the skill `ownerName` change; the change document's status is still `in-progress`.
+- **tst-kanban-list-details.md**: 28 cases; 27 manual cases NOT RUN (EDH); T-28 part (a) automated.
+- **val-kanban-list-details.md**: PARTIAL; 552/552 tests at `5ed617a`; QM F-1 closed; other findings open with the Change Manager.
+
+---
+
 ## v0.30.0 - Actor Identity via Agent Files + Heartbeat Model Selection
 
 *2026-10-08*

@@ -39,6 +39,9 @@ testdata/.jarvis/heartbeat.yaml
 testdata/.jarvis/state/
 testdata/.jarvis/syspilot-state.json
 
+# Extension Development Host isolated extensions (launch.json --extensions-dir)
+.vscode-test/
+
 # OS
 Thumbs.db
 .DS_Store
@@ -48,6 +51,9 @@ Thumbs.db
 
 # testdata hook engine bridge files
 testdata/.github/hooks/jarvis-*
+
+# testdata test-environment VS Code settings
+testdata/.vscode/settings.json
 
 # Vitest compiled artifacts (vitest.config.ts is the source)
 vitest.config.js

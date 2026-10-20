@@ -40,15 +40,14 @@ Kanban Requirements
      ``max(existing ids) + 1``.
    * AC-8: Item IDs SHALL never be reassigned or reused after deletion.
    * AC-9: (**kanban-yaml-comment-preservation CR, GH #53**) The board file is
-     a hand-authored, git-tracked artifact. Content that carries meaning to the
-     author but has no schema representation — comments, key order, and
-     per-node formatting style (flow vs. block sequences, string wrapping and
-     quoting) — is first-class file content. **Every** write path that modifies
-     an *existing* board file SHALL preserve it: the file SHALL change only
-     where the operation semantically changed it. This binds all current and
-     future writers (``REQ_KAN_UPDATE`` today; Phase 2 write-back and any later
-     editing surface), not only the write path where the defect was first
-     observed.
+     a hand-authored, git-tracked artifact. Comments carry meaning to the author
+     but have no schema representation, so they are first-class file content.
+     **Every** write path that modifies an *existing* board file SHALL preserve its
+     comments and the parsed values of untouched items: both change only where the
+     operation semantically changed them. Formatting is not promised: line folding
+     and line endings may change on a rewrite. This binds all current and future
+     writers (``REQ_KAN_UPDATE`` today; Phase 2 write-back and any later editing
+     surface), not only the write path where the defect was first observed.
 
      Creating a *new* board file (``REQ_KAN_CREATE``) is out of scope — there
      is no prior authored content to preserve.
@@ -276,11 +275,10 @@ Kanban Requirements
    * AC-5: Item IDs SHALL never be reassigned or reused — the ``id`` field
      is immutable.
    * AC-6: (**kanban-yaml-comment-preservation CR, GH #53**) The tool SHALL
-     preserve everything in the board file that it did not semantically change,
-     per ``REQ_KAN_SCHEMA`` AC-9. Specifically: comments (header, standalone,
-     and inline) SHALL survive verbatim, and lines the update did not touch
-     SHALL NOT be reformatted. An update that changes one field SHALL produce a
-     diff confined to that field.
+     preserve the comments of the board file (header, standalone, and inline) and
+     the parsed values of untouched items, per ``REQ_KAN_SCHEMA`` AC-9. Byte
+     identity and line endings are not promised. An update that changes one field
+     SHALL change only that field's parsed value.
    * AC-7: (**superseded by the** ``kanban-update-validation`` **CR**) This
      criterion previously froze the tool's validation at "``status`` only,
      exactly as before", which is what kept ``jarvis_updateKanbanItem`` outside
@@ -418,8 +416,10 @@ Kanban Requirements
    **Acceptance Criteria:**
 
    * AC-1: The tool SHALL accept ``name`` (required string) and optional
-     ``status``, ``labels``, ``notes``, further declared-field values, plus
-     optional ``boardName`` and required ``ownerName``.
+     ``status``, ``labels``, ``notes``, plus optional ``boardName`` and required
+     ``ownerName``. Declared-field values SHALL be passed under ``fields``, an
+     object that maps each declared field name to a string. They are not accepted
+     as top-level keys.
    * AC-2: Owner and board resolution SHALL follow the uniform pattern
      (``REQ_KAN_CREATE`` AC-3/AC-4; board not found → ``{ error: "board not
      found" }``).
@@ -460,6 +460,8 @@ Kanban Requirements
    * AC-5: On success the tool SHALL return ``{ path, deleted: true, itemId }``.
    * AC-6: The write SHALL preserve unrelated file content per
      ``REQ_KAN_SCHEMA`` AC-9.
+   * AC-7: The write SHALL keep the parsed values of every untouched item
+     unchanged. Byte identity of the file is not promised for arbitrary YAML.
 
 
 .. req:: jarvis_listKanbanItems Tool
@@ -470,19 +472,22 @@ Kanban Requirements
 
    **Description:**
    An LM+MCP tool ``jarvis_listKanbanItems`` SHALL return a filtered, compact
-   projection of a board's items. It is a read-only tool.
+   projection of a board's items and, when asked, the full contents of the
+   matching items. It is a read-only tool.
 
    **Acceptance Criteria:**
 
    * AC-1: The tool SHALL accept optional ``status`` and ``labels`` filters,
-     plus optional ``boardName`` and required ``ownerName``.
+     plus optional ``boardName``, optional ``details`` (AC-9) and required
+     ``ownerName``.
    * AC-2: When both filters are given they SHALL be AND-combined. An item
      matches the ``labels`` filter when it carries **every** requested label.
    * AC-3: When no filter is given, all items SHALL be returned — still as the
-     compact projection.
-   * AC-4: Each returned item SHALL carry exactly ``id``, ``name``, ``status``
-     and ``labels`` (``US_KAN_QUERY`` AC-2). Notes and declared-field values
-     SHALL be omitted; a caller needing them reads the item by ``id``.
+     compact projection, unless ``details`` is requested (AC-9).
+   * AC-4: Unless ``details`` is requested (AC-9), each returned item SHALL carry
+     exactly ``id``, ``name``, ``status`` and ``labels`` (``US_KAN_QUERY`` AC-2).
+     Notes and declared-field values SHALL be omitted; a caller needing them
+     requests ``details`` (AC-9).
    * AC-5: A filter matching no item SHALL return an empty list, not an error
      (``US_KAN_QUERY`` AC-5).
    * AC-6: A ``status`` filter value matching no declared option SHALL return
@@ -492,6 +497,56 @@ Kanban Requirements
    * AC-7: The tool SHALL NOT modify the board file.
    * AC-8: On success the tool SHALL return
      ``{ path, count, items: [...] }``.
+   * AC-9: The tool SHALL accept an optional boolean ``details``. Only ``true``
+     requests the full contents; absent or ``false`` leaves the compact
+     projection of AC-4. Any other value, ``null`` included, SHALL return the error
+     ``{ error: "details must be true or false" }`` and no items, as AC-6 does for
+     ``status``. With ``details: true`` each returned item SHALL carry
+     ``id``, ``name``, ``status`` and ``labels`` (an empty list when the card has
+     none) and every other field the card has, notes and declared-field values
+     included (``US_KAN_QUERY`` AC-6).
+   * AC-10: ``details`` SHALL change only what each item carries: which items
+     match, ``count`` and the response shape of AC-8 are the same with and
+     without it, and the filters of AC-2 and AC-6 behave the same.
+
+
+.. req:: jarvis_listKanbanFilterValues Tool
+   :id: REQ_KAN_FILTERVALUES
+   :status: approved
+   :priority: required
+   :links: US_KAN_QUERY; REQ_ACTOR_WHOAMI
+
+   **Description:**
+   An LM+MCP tool ``jarvis_listKanbanFilterValues`` SHALL return the values a
+   caller can use as filters of ``jarvis_listKanbanItems``, with the number of
+   cards for each, and no card content. It is a read-only tool.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The tool SHALL accept an optional ``boardName`` and a required
+     ``ownerName``, resolved as for ``jarvis_listKanbanItems`` (``REQ_KAN_LIST``
+     AC-1).
+   * AC-2: On success the tool SHALL return
+     ``{ path, statuses: [{ name, count }], labels: [{ name, count }] }``.
+   * AC-3: ``statuses`` SHALL hold every option declared for the board's
+     ``status`` field, in the declared order, including options no card has
+     (``count: 0``); ``count`` is the number of cards with that status. A board
+     without a ``status`` field SHALL return an error, since it has no status values
+     to list.
+   * AC-4: ``labels`` SHALL hold every label carried by at least one card, once,
+     with the number of cards that carry it. A label no card carries does not
+     appear, because labels are not declared on the board.
+   * AC-5: Each name SHALL be written as the filters of ``jarvis_listKanbanItems``
+     accept it (``REQ_KAN_LIST`` AC-2, AC-6), so a value copied from the result
+     matches.
+   * AC-6: The result SHALL carry no card content (no ``id``, ``name``, notes or
+     field values); its size scales with the number of distinct status values and
+     labels, not with the number of cards (``US_KAN_QUERY`` AC-3, AC-4).
+   * AC-7: The tool SHALL NOT modify the board file. A missing board or an
+     unknown owner SHALL return the same errors as ``jarvis_listKanbanItems``.
+   * AC-8: A card whose ``status`` matches no declared option, and a label entry that
+     is not text, SHALL NOT appear in the result and SHALL NOT be counted;
+     ``jarvis_verifyKanbanSchema`` reports such values.
 
 
 .. req:: jarvis_updateKanbanFields Tool
@@ -585,9 +640,10 @@ Kanban Requirements
      caller, and that a deleted id is never reused
      (``REQ_KAN_ADD`` AC-4, ``REQ_KAN_DELETE`` AC-4).
    * AC-10 (``kanban-management-tools`` CR): The skill SHALL state that
-     ``jarvis_listKanbanItems`` returns a compact projection and that full item
-     contents require reading the item by ``id`` — so an actor does not read the
-     projection as the whole item (``REQ_KAN_LIST`` AC-4).
+     ``jarvis_listKanbanItems`` returns a compact projection by default and that
+     ``details: true`` returns the full contents of the matching items — so an
+     actor does not read the projection as the whole item (``REQ_KAN_LIST``
+     AC-4, AC-9).
 
 
 .. req:: Kanban Instructions Asset Content

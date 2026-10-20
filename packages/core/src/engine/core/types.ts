@@ -64,8 +64,10 @@ export interface JarvisCoreApi {
     listActors(): JarvisActor[];
 
     /**
-     * Replace the icon of one Actor node until the returned Disposable is disposed
-     * (SPEC_ENG_ACTORMARK). Additive: add-ons check that the member exists before calling it.
+     * Show an icon on one Actor node until the returned Disposable is disposed
+     * (SPEC_ENG_ACTORMARK). Marks on the same Actor stack: the most recent one still
+     * set is shown, and disposing a mark restores the one beneath it. Additive: add-ons
+     * check that the member exists before calling it.
      */
     markActor(actorId: string, icon: vscode.ThemeIcon): vscode.Disposable;
 

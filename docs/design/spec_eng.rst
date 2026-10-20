@@ -3,7 +3,7 @@ Engine Design Specifications
 
 .. spec:: JarvisCoreApi Contract & Types
    :id: SPEC_ENG_API
-   :status: approved
+   :status: draft
    :links: REQ_ENG_CONTRACT; REQ_ENG_ACTORLIST; REQ_ENG_ACTORMARK; REQ_MOD_SKILL_PROVISION; REQ_ACTOR_SCHEMA
 
    **Description:**
@@ -20,7 +20,7 @@ Engine Design Specifications
       export interface JarvisActor {
           name: string;
           summary: string;   // "" when absent
-          agent: string;     // the Actor's own agent, equal to name
+          agent: string;     // "" when absent
           folder: string;    // absolute Actor folder
           id: string;        // absolute path of actor.yaml
       }
@@ -77,7 +77,7 @@ Engine Design Specifications
           listActors(): JarvisActor[];
 
           /**
-           * Replace the icon of one Actor node until the returned Disposable is
+           * Show an icon on one Actor node until the returned Disposable is
            * disposed (SPEC_ENG_ACTORMARK). Additive: add-ons check that the
            * member exists before calling it.
            */
@@ -324,7 +324,7 @@ Engine Design Specifications
       }
 
    The entry shape equals a ``jarvis_listActors`` entry
-   (``SPEC_ACTOR_LISTTOOL``); both call the same projection function.
+   (``SPEC_ACTOR_LISTTOOL``).
 
    **Consumers:**
 
@@ -348,44 +348,49 @@ Engine Design Specifications
 
 .. spec:: Actor Node Mark API
    :id: SPEC_ENG_ACTORMARK
-   :status: approved
-   :links: REQ_ENG_ACTORMARK; SPEC_ACTOR_TREE; SPEC_ACTOR_ACTIVITY
+   :status: draft
+   :links: REQ_ENG_ACTORMARK; SPEC_ACTOR_TREE; SPEC_ACTOR_ACTIVITY; SPEC_ACTOR_MAIL
 
    **Description:**
-   ``JarvisCoreApi.markActor(actorId, icon)`` lets an add-on replace the icon of one
-   Actor node. ``ActorTreeProvider`` holds the marks and draws the node; no callback
+   ``JarvisCoreApi.markActor(actorId, icon)`` lets an add-on show an icon on one
+   Actor node. Marks on the same Actor stack (AC-2). ``ActorTreeProvider`` holds the marks and draws the node; no callback
    into the add-on is made.
 
    .. code-block:: typescript
 
       // ActorTreeProvider
-      private marks = new Map<string, { icon: vscode.ThemeIcon }>();   // key = ActorEntry.id
+      private marks = new Map<string, { icon: vscode.ThemeIcon }[]>();   // key = ActorEntry.id; oldest first
 
       mark(actorId: string, icon: vscode.ThemeIcon): vscode.Disposable {
           const entry = { icon };
-          this.marks.set(actorId, entry);
+          this.marks.set(actorId, [...(this.marks.get(actorId) ?? []), entry]);
           this.refresh();
+          let disposed = false;
           return new vscode.Disposable(() => {
-              if (this.marks.get(actorId) === entry) {
-                  this.marks.delete(actorId);
-                  this.refresh();
-              }
+              if (disposed) { return; }
+              disposed = true;
+              const rest = (this.marks.get(actorId) ?? []).filter(e => e !== entry);
+              if (rest.length > 0) { this.marks.set(actorId, rest); } else { this.marks.delete(actorId); }
+              this.refresh();
           });
       }
 
    ``extension.ts`` wires ``markActor`` to ``actorTreeProvider.mark`` when it builds the API
-   object, like ``listActors``. The node rendering reads the mark first
+   object, like ``listActors``. The node rendering reads the most recent mark that is still set first
    (``SPEC_ACTOR_TREE``). A mark for an id with no node stays in the map and applies when the
    node appears.
 
    **Acceptance Criteria:**
 
-   * AC-1: ``markActor`` returns a ``Disposable``; disposing it removes the mark and
-     refreshes the tree.
-   * AC-2: A second mark on the same id replaces the first; disposing the first
-     ``Disposable`` afterwards does not remove the second mark.
+   * AC-1: ``markActor`` returns a ``Disposable``; disposing it removes that mark and
+     refreshes the tree. A second dispose changes nothing and refreshes nothing.
+   * AC-2: Marks on the same id are separate entries. The node shows the most recent mark
+     still set; when it is disposed, the next one still set shows, and when none is left the
+     node shows the activity indicator or the unread-mail icon that applies (``SPEC_ACTOR_TREE``
+     AC-6).
    * AC-3: While a mark exists the node's ``iconPath`` is the mark's icon, ahead of the
-     activity indicator; nothing else on the node changes.
+     activity indicator and the unread-mail icon (``SPEC_ACTOR_MAIL``); nothing else on the node
+     changes.
    * AC-4: The mark does not touch the activity state (``SPEC_ACTOR_ACTIVITY``): once the
      mark is gone the activity indicator shows again if the Actor is Active.
    * AC-5: ``markActor`` is additive: ``version`` stays ``2``, and an add-on checks that the

@@ -25,10 +25,9 @@ capability modules. Install only what you need.
 
 ### Jarvis Core
 
-- **Actors & sessions** — persistent entities with their own `context.md` memory. Each Actor's own agent file contains two Jarvis identity lines (name and memory path); Jarvis creates or repairs them when needed, without an agent picker. The ACTORS view shows direct child folders with `actor.yaml`. See [Core getting started](packages/core/README.md#getting-started) for folder and tool-ID behavior.
+- **Actors & sessions** — persistent entities with their own `context.md` memory. The ACTORS view shows direct child folders with `actor.yaml`; with Outlook email sync enabled, an actor whose name matches a folder directly under the Inbox shows a mail icon while that folder holds unread mail (recording and active session icons take priority). See [Core getting started](packages/core/README.md#getting-started) for folder and tool-ID behavior.
 - **Heartbeat scheduler** — cron-based jobs running scripts (Python, PowerShell), VS Code
-  commands, or single-shot LLM agent steps, configured in the fixed workspace file
-  `.jarvis/heartbeat.yaml`. Each agent step must name `vendor` and `model`
+  commands, or single-shot LLM agent steps. Each agent step must name `vendor` and `model`
   (the model ID); there is no default or fallback, so existing steps without both fail until
   updated. Use **Jarvis: List Language Models** or `jarvis_listModels` to inspect the pairs
   currently offered to Jarvis by VS Code.
@@ -61,7 +60,7 @@ capability modules. Install only what you need.
 
 - **Convention-based discovery** — place a `kanban.yaml` (or `<name>.kanban.yaml`) in an Actor folder; a board button appears automatically in the explorer tree
 - **Read-only webview renderer** — GitHub-Projects-shaped schema (`fields[]` + `items[]`; `status` field drives columns); open via tree button or Command Palette **Jarvis: Open Kanban Board**
-- **LM tools** — `jarvis_createKanbanBoard`, `jarvis_verifyKanbanSchema`, `jarvis_openKanbanBoard`, `jarvis_updateKanbanItem`, `jarvis_addKanbanItem`, `jarvis_deleteKanbanItem`, `jarvis_listKanbanItems`, and `jarvis_updateKanbanFields` create, inspect, and manage boards. Supply `ownerName` explicitly for every Kanban tool.
+- **LM tools** — `jarvis_createKanbanBoard(boardName?, ownerName?)` creates the YAML file; `jarvis_verifyKanbanSchema(boardName?, ownerName?)` validates it; `jarvis_openKanbanBoard(boardName?, ownerName?)` opens the webview; `jarvis_updateKanbanItem(itemId, changes, boardName?, ownerName?)` updates an existing item by its stable integer ID; `jarvis_addKanbanItem`, `jarvis_deleteKanbanItem`, `jarvis_listKanbanItems` (compact by default; `details: true` returns full cards), `jarvis_listKanbanFilterValues` (status values and labels with card counts, for building filters), and `jarvis_updateKanbanFields` provide full board management (add, delete, query, and update field definitions)
 
 ## Configuration
 

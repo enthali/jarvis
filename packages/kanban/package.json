@@ -2,7 +2,7 @@
   "name": "jarvis-kanban",
   "displayName": "Jarvis Kanban",
   "description": "Jarvis Kanban — convention-based kanban boards for actors, projects, and events",
-  "version": "0.30.0",
+  "version": "0.31.0",
   "publisher": "enthali",
   "icon": "resources/jarvis-128.png",
   "repository": {
@@ -74,7 +74,7 @@
         { "command": "jarvis.openKanbanAsText", "when": "activeCustomEditorId == jarvis.kanbanEditor" }
       ],
       "view/item/context": [
-        { "command": "jarvis.createKanbanBoard", "title": "Add Kanban Board", "when": "viewItem =~ /^jarvis(Session|Project|Event)/", "group": "kanban@1" }
+        { "command": "jarvis.createKanbanBoard", "title": "Add Kanban Board", "when": "viewItem =~ /^jarvis(Session|Project|Event)/ || viewItem == jarvisActor", "group": "kanban@1" }
       ],
       "editor/title": [
         { "command": "jarvis.openKanbanAsText", "when": "activeCustomEditorId == jarvis.kanbanEditor", "group": "navigation" }
@@ -212,13 +212,30 @@
         "toolReferenceName": "listKanbanItems",
         "icon": "$(list-flat)",
         "canBeReferencedInPrompt": true,
-        "modelDescription": "Lists kanban board items with optional status and/or labels filter. Returns compact projection (id, name, status, labels). ownerName is required.",
+        "modelDescription": "Lists kanban board items with optional status and/or labels filter. Returns a compact projection (id, name, status, labels) per item; details: true returns the full items, notes included. ownerName is required.",
         "inputSchema": {
           "type": "object",
           "required": ["ownerName"],
           "properties": {
             "status": { "type": "string", "description": "Filter by status value. Must match a declared option." },
             "labels": { "type": "array", "items": { "type": "string" }, "description": "Filter by labels — all must be present on the item." },
+            "details": { "type": "boolean", "description": "true: return the full items (every field, notes included) of the matching items. Omit or false: compact projection." },
+            "boardName": { "type": "string", "description": "Board file name (without .kanban.yaml suffix). Omit for default 'kanban.yaml'." },
+            "ownerName": { "type": "string", "description": "Name of the owning actor/project/event (required)." }
+          }
+        }
+      },
+      {
+        "name": "jarvis_listKanbanFilterValues",
+        "displayName": "List Kanban Filter Values",
+        "toolReferenceName": "listKanbanFilterValues",
+        "icon": "$(filter)",
+        "canBeReferencedInPrompt": true,
+        "modelDescription": "Returns the status values (columns, empty ones included) and the labels in use on a kanban board, each with the number of cards. Use these values as filters for jarvis_listKanbanItems. ownerName is required.",
+        "inputSchema": {
+          "type": "object",
+          "required": ["ownerName"],
+          "properties": {
             "boardName": { "type": "string", "description": "Board file name (without .kanban.yaml suffix). Omit for default 'kanban.yaml'." },
             "ownerName": { "type": "string", "description": "Name of the owning actor/project/event (required)." }
           }

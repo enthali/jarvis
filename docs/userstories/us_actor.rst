@@ -272,7 +272,7 @@ Actor User Stories
 
 .. story:: Activity Indicator on Actor Nodes
    :id: US_ACTOR_ACTIVITY
-   :status: approved
+   :status: draft
    :priority: optional
    :links: US_ACTOR_TREE
 
@@ -284,9 +284,11 @@ Actor User Stories
 
    **Acceptance Criteria:**
 
-   * AC-1: Every Actor node shows one of exactly two visual states: **Active**
-     while an agent turn is running in the Actor's session, or **Inactive**
-     otherwise.
+   * AC-1: The activity indicator has two states: **Active** while an agent turn is
+     running in the Actor's session, or **Inactive** otherwise. The other icons of an Actor
+     node are not activity states: the recording mark (``US_REC_CAPTURE`` AC-2) and the
+     unread-mail icon (``US_ACTOR_MAIL``) keep their own rules, and ``US_ACTOR_MAIL`` AC-4
+     orders them against this indicator.
    * AC-2: An Actor becomes Active when agent activity starts in its session
      (a session starts, a prompt is submitted, a tool runs, the session is
      compacted, or a subagent runs), and Inactive when the agent turn ends.
@@ -298,6 +300,38 @@ Actor User Stories
      Actor-node behavior (click-to-chat, context menu, file children).
    * AC-6: Which runtime signals report this activity is specified at L1/L2;
      replacing the signal source does not change this story.
+
+
+.. story:: Unread Mail Icon on Actor Nodes
+   :id: US_ACTOR_MAIL
+   :status: draft
+   :priority: optional
+   :links: US_ACTOR_TREE; US_ACTOR_ACTIVITY; US_REC_CAPTURE
+
+   **As a** Jarvis User,
+   **I want** an Actor node in the ACTORS tree to show a mail icon while the Outlook mail
+   folder of the same name, directly under my Inbox, holds unread mail,
+   **so that** I can see which Actors have unread email without leaving VS Code.
+
+   **Acceptance Criteria:**
+
+   * AC-1: When Outlook integration is enabled in the settings, an Actor node shows a mail
+     icon in front of its name while the Outlook folder with the Actor's name, directly
+     under my Inbox, holds at least one unread mail.
+   * AC-2: An Actor without such a folder, or whose folder has no unread mail, shows no mail
+     icon. A folder nested deeper in the Inbox does not count.
+   * AC-3: The state is read from Outlook on each scan of the ACTORS tree, that is on the
+     periodic background rescan and on the manual rescan. Between two scans the icon does not
+     change: there is no live update when mail is read or arrives.
+   * AC-4: An Actor node shows at most one icon at a time, by this priority: recording (red
+     dot) before active session (green dot) before unread mail (mail icon). When an icon of a
+     higher priority ends, the next one still present is shown; when none is present, the node
+     shows no icon.
+   * AC-5: The feature only reads Outlook. It never marks mail as read or unread, never moves,
+     changes or sends mail, and never changes a folder.
+   * AC-6: When Outlook cannot be read (for example because it is not running), no Actor shows
+     a mail icon and no error message is shown.
+   * AC-7: The mail icon does not change anything else on the Actor node.
 
 
 .. story:: Context Actions on Actor Nodes

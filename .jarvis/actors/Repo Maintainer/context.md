@@ -13,6 +13,7 @@ Owns repository hygiene outside the syspilot change pipeline, plus CI/CD workflo
 
 - The branching permission table enumerates only change-pipeline agents, so it is a gap rather than a prohibition for non-pipeline actors; extend it via `tailoring.md`, not by editing the shipped skill.
 - All actors share one working tree, so a branch switch is never free — commit own files on whatever branch is checked out rather than disturbing another actor's uncommitted work.
+- Vitest on Windows needs an uppercase drive letter: a root of `c:/workspace/jarvis` (e.g. `npm --prefix c:\...`) makes all suites fail at load ("failed to find the runner/current suite", "reading 'config'"); verified 2026-10-20.
 
 ## Next
 

@@ -1,5 +1,5 @@
 title: backlog
-nextId: 60
+nextId: 71
 fields:
   - name: status
     type: single_select
@@ -708,7 +708,12 @@ items:
       check then: starting with one working audio source is allowed with a
       warning (none appeared here), losing both sources ends the session, and
       the lost-device cases (U-3) were never tested because the laptop's devices
-      could not be removed."
+      could not be removed. Update from the user 2026-10-09: sessions over 3
+      hours ran without problems, abort and restart work; the recorder always
+      uses the first audio source, so a headset or external speaker cannot be
+      chosen. The user does not see this as a defect but as a possible future
+      feature (choosing the audio source); whether it explains the Jabra case
+      above is not established."
     priority: Low
   - id: 51
     name: "Review the actor.yaml schema: mandatory, obsolete and missing fields"
@@ -895,3 +900,143 @@ items:
       NOT contain an identity section) or state that AC-10 is a pure design pin;
       then narrow the test to the heading."
     priority: Low
+  - id: 60
+    name: Agent mode is set only after the second message to an Actor (v0.30.0)
+    status: Done
+    labels:
+      - actor
+      - agent-mode
+      - bug
+    notes: "CLOSED 2026-10-13, not fixed, accepted as known behaviour. User decision
+      and reason: on first setup the new mode is not yet known to VS Code and
+      the mode is dropped; afterwards it works, so this looks like a VS Code
+      runtime conflict, not a Jarvis defect. The reason is the user's reading,
+      not verified in the Jarvis Output log (the check below was never run).
+      Reopen if it shows up beyond first setup. Original note follows. User
+      observation 2026-10-09, v0.30.0 installed: after the first message
+      delivered to an Actor session the agent mode is not set, after the second
+      it is. Also seen: after Developer: Reload Window the mode picker shows no
+      mode (probably VS Code behaviour; Jarvis re-applies the mode on the next
+      touch, which helps). Hypothesis from reading the code, NOT verified: on
+      the first delivery ensureActorAgent writes the two identity lines (the
+      file changes), VS Code re-reads the agent file, and the mode command is
+      briefly not registered; reapplyAgentMode (extension.ts) checks once after
+      400 ms and then skips with a warning, without waiting, whereas the
+      creation path waits up to 3 s (waitForModeCommand in actorAgent.ts). The
+      second delivery writes nothing, so it works. Alternative cause: the
+      focused tab label differs from the session name (second skip condition).
+      To decide: look in the Jarvis Output for the warning on the first message,
+      either 'reapplyAgentMode: command ... not registered yet - skipping' or
+      'skipped - intended ... but focused tab is'. Related: the open 3 s mode
+      wait assumption in the v0.30.0 release notes."
+  - id: 61
+    name: "I-5: one release-note line for kanban-list-details (default stays;
+      details option and values tool new) - for Release Engineer"
+    status: Backlog
+    notes: From SD via CM, 2026-10-16. Belongs to the kanban-list-details release,
+      not to the change itself.
+    priority: Medium
+  - id: 62
+    name: "I-6: kanban-ownername-required.test.ts replicates resolveOwner instead of
+      testing it"
+    status: Backlog
+    notes: From SD via CM, 2026-10-16. Test copies the owner-resolution logic rather
+      than exercising it, so a regression in resolveOwner would not fail it.
+    priority: Low
+  - id: 63
+    name: SPEC_KAN_LIST projection passes non-string labels through (boardQuery.ts
+      selectItems); not checked against the spec
+    status: Backlog
+    notes: From CM, 2026-10-16, found during kanban-list-details. Out of that CR's
+      scope. Needs an SD spec decision on label types, then a fix.
+    priority: Low
+  - id: 64
+    name: jarvis_createActor tool description names <workspace>/.jarvis/actors/
+      although the folder follows the actors.folder setting
+    status: Backlog
+    notes: Reported by user. packages/core/package.json L299 hardcodes
+      .jarvis/actors/<name>/. The code (core/src/extension.ts L1024,
+      configPaths.getActorsDir) uses the actors.folder setting (default
+      .jarvis/actors). Fix the description to name the configured folder; next
+      change, needs the user's go.
+    priority: Medium
+  - id: 65
+    name: listActors registered description omits id (SPEC_ACTOR_LISTTOOL, low,
+      documentation)
+    status: Backlog
+    notes: "packages/core/src/extension.ts registerTool description omits id;
+      packages/core/package.json modelDescription includes it and matches
+      SPEC_ACTOR_LISTTOOL. Fix: align the registered description with the spec
+      text and pin it with one test. Start after the kanban-list-details chain.
+      Found by SD, QM disposition 2026-10-16."
+  - id: 66
+    name: "Lockfile version drift: package-lock.json says 0.29.0, package.json files
+      say 0.30.0"
+    status: Backlog
+    labels:
+      - build
+      - release
+    notes: "Found during kanban-list-details (2026-10-16). Version fields only: the
+      lockfile header and root entry say 0.29.0, the package.json files say
+      0.30.0. Pre-existing and outside that change; npm ci accepts it (QM clean
+      npm ci at f6ac58a). Fix in a separate change that touches only the version
+      fields, after checking that no dependency entry changes."
+    priority: Low
+  - id: 67
+    name: "Kanban board skill step 1 says omit ownerName for your own board, but
+      Kanban tools need ownerName"
+    status: Backlog
+    labels:
+      - kanban
+      - skill
+    notes: "CM list item F-4 (noted in the QM Round 1 review of kanban-list-details,
+      2026-10-16); the CM names it as a PM backlog item. Step 1 is pre-existing
+      and untouched by that change. It conflicts with the rule that Kanban tools
+      need ownerName (backlog 42). To decide: the step text in the skill asset
+      and in the provisioned copy in the workspace; the System Designer checks
+      whether the spec is affected."
+    priority: Medium
+  - id: 68
+    name: "Kanban list details: one unexplained failure of
+      kanban-tool-handlers.test.ts (5 of 15 on one cold run, cause not found)"
+    status: Backlog
+    labels:
+      - test
+      - investigate
+    notes: "PM decision 2026-10-16 (defer; QM gate on the VE report). One
+      fresh-worktree first run on the old code, with ajv 8 linked, reported 5 of
+      15 failing and took 5.7 s; all other runs took 0.2 to 0.4 s. The failure
+      message was not captured. Not reproduced in 22 further runs (0
+      deviations). Cause not established; a timeout under load (vitest default 5
+      s) is an unverified guess. Follow-up: on any recurrence, capture the
+      verbose output, the failure message and the per-test durations before
+      changing the test. Reopen if it recurs. Report:
+      docs/changes/val-kanban-list-details.md."
+    priority: Low
+  - id: 69
+    name: "Syspilot 0.10 migration: verification/validation ontology and artefact
+      owners"
+    status: Backlog
+    labels:
+      - architecture
+      - uat
+    notes: "User decision 2026-10-19: next topic after kanban-list-details. Bundles
+      #40 (UAT model) and #48 (status vocabulary). Agreed direction (to be
+      specified, not decided in detail): user executes validation tests, PM only
+      records the user's observations (user may review); PM owns a real
+      validation record. Today tst- is in fact verification evidence and val-
+      (Verify Engineer) is a verification report; validation has no artefact or
+      owner, which is why UATs degraded into verification tests. Open: artefact
+      names (ver-/val-), ontology types and owners in syspilot 0.10 (PM has not
+      seen 0.10 yet), REQ_DEV_TESTPROTOCOL/REQ_DEV_TESTSUMMARY (assign to
+      Implement Agent, which has no such step), Verify Engineer protocol check,
+      migration of existing US_UAT_* (automatable -> verification, needs user
+      judgement -> validation)."
+    priority: High
+  - id: 70
+    name: Align OLK setting name in REQ_OLK_ENABLE and SPEC_OLK_SETTINGS with
+      jarvis.outlook.enabled
+    status: Backlog
+    notes: Deferred doc fix from actor-tree-mail-marker (PM decision 2026-10-19).
+      Specs name jarvis.outlookEnabled; code and packages/pim/package.json use
+      jarvis.outlook.enabled. Code name stays. Separate small change.

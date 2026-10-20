@@ -1,5 +1,5 @@
-// Implementation: SPEC_KAN_MODULE, SPEC_KAN_DISCOVER, SPEC_KAN_CREATE, SPEC_KAN_VERIFY, SPEC_KAN_OPEN, SPEC_KAN_UX, SPEC_KAN_UPDATE
-// Requirements: REQ_KAN_MODULE, REQ_KAN_DISCOVER, REQ_KAN_CREATE, REQ_KAN_VERIFY, REQ_KAN_OPEN, REQ_KAN_UX, REQ_KAN_UPDATE
+// Implementation: SPEC_KAN_MODULE, SPEC_KAN_DISCOVER, SPEC_KAN_CREATE, SPEC_KAN_VERIFY, SPEC_KAN_OPEN, SPEC_KAN_UX, SPEC_KAN_UPDATE, SPEC_KAN_LIST, SPEC_KAN_FILTERVALUES
+// Requirements: REQ_KAN_MODULE, REQ_KAN_DISCOVER, REQ_KAN_CREATE, REQ_KAN_VERIFY, REQ_KAN_OPEN, REQ_KAN_UX, REQ_KAN_UPDATE, REQ_KAN_LIST, REQ_KAN_FILTERVALUES
 
 import * as vscode from 'vscode';
 import * as path from 'path';
@@ -7,6 +7,7 @@ import * as fs from 'fs';
 import type { JarvisCoreApi } from 'jarvis-core';
 import { openKanbanPanel, refreshKanbanPanel } from './kanbanPanel';
 import { KanbanEditorProvider } from './kanbanEditorProvider';
+import { BoardData, detailsError, filterValues, selectItems } from './boardQuery';
 
 // ── Board index ────────────────────────────────────────────────────────
 
@@ -76,6 +77,11 @@ function resolveBoardPath(folder: string, boardName: string | undefined): string
     // "kanban" (or empty) maps to the default board
     if (!stem || stem === 'kanban') { return path.join(folder, 'kanban.yaml'); }
     return path.join(folder, `${stem}.kanban.yaml`);
+}
+
+// lineWidth 0: yaml would otherwise re-fold long scalars at 80 columns.
+function serializeBoard(doc: import('yaml').Document): string {
+    return doc.toString({ lineWidth: 0 });
 }
 
 // ── Skeleton board template ────────────────────────────────────────────
@@ -626,7 +632,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
             // 6. Serialize round-trip representation back to file
             try {
-                await fs.promises.writeFile(boardPath, doc.toString());
+                await fs.promises.writeFile(boardPath, serializeBoard(doc));
             } catch (e) {
                 return new vscode.LanguageModelToolResult([
                     new vscode.LanguageModelTextPart(JSON.stringify({ error: `failed to write file: ${e}` }))
@@ -648,7 +654,7 @@ export function activate(context: vscode.ExtensionContext): void {
         'Adds a new item to a kanban board. Auto-assigns id; validates values before writing.',
         async (options, token) => {
             const input = options.input as {
-                name: string; status?: string; labels?: string[]; notes?: string;
+                id?: unknown; name: string; status?: string; labels?: string[]; notes?: string;
                 fields?: Record<string, string>; boardName?: string; ownerName?: string;
             };
             const ownerResult = await resolveOwner(input.ownerName, api, token);
@@ -680,6 +686,19 @@ export function activate(context: vscode.ExtensionContext): void {
                 items: Array<Record<string, unknown>>;
             };
 
+            // Rule 6: top-level keys outside the input schema; id is excluded here and keeps rule 1's error.
+            const schemaKeys = new Set(['name', 'status', 'labels', 'notes', 'fields', 'boardName', 'ownerName']);
+            for (const key of Object.keys(input)) {
+                if (key !== 'id' && !schemaKeys.has(key)) {
+                    const declared = data.fields.map(f => f.name).join(', ');
+                    return new vscode.LanguageModelToolResult([
+                        new vscode.LanguageModelTextPart(JSON.stringify({
+                            error: `Unknown parameter "${key}". Declared fields: ${declared}. Field values go under "fields".`,
+                        }))
+                    ]);
+                }
+            }
+
             // Reject builtin property names in input.fields
             const builtinProps = new Set(['id', 'name', 'status', 'labels', 'notes']);
             if (input.fields) {
@@ -696,6 +715,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
             // Build values to validate
             const values: Record<string, unknown> = { ...(input.fields || {}) };
+            if ('id' in input) { values.id = input.id; }
             if (input.status !== undefined) { values.status = input.status; }
             if (input.labels !== undefined) { values.labels = input.labels; }
             if (input.notes !== undefined) { values.notes = input.notes; }
@@ -738,7 +758,7 @@ export function activate(context: vscode.ExtensionContext): void {
             // Set nextId
             doc.set('nextId', itemId + 1);
 
-            try { await fs.promises.writeFile(boardPath, doc.toString()); }
+            try { await fs.promises.writeFile(boardPath, serializeBoard(doc)); }
             catch (e) { return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart(JSON.stringify({ error: `write failed: ${e}` }))]); }
 
             log.info(`[Kanban] added item #${itemId} to ${boardPath}`);
@@ -778,7 +798,7 @@ export function activate(context: vscode.ExtensionContext): void {
             try { doc = yaml.parseDocument(rawContent); }
             catch (e) { return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart(JSON.stringify({ error: `YAML parse error: ${e}` }))]); }
 
-            const data = doc.toJSON() as { items: Array<Record<string, unknown>> };
+            const data = doc.toJSON() as { items: Array<Record<string, unknown>>; nextId?: number };
             const itemIndex = data.items.findIndex(i => i.id === input.itemId);
             if (itemIndex === -1) {
                 return new vscode.LanguageModelToolResult([
@@ -786,10 +806,15 @@ export function activate(context: vscode.ExtensionContext): void {
                 ]);
             }
 
+            // Without this, a later add re-derives the deleted id as max(existing ids) + 1.
+            if (data.nextId == null) {
+                doc.set('nextId', Math.max(...data.items.map(i => (i.id as number) || 0)) + 1);
+            }
+
             const itemsSeq = doc.get('items') as import('yaml').YAMLSeq;
             itemsSeq.delete(itemIndex);
 
-            try { await fs.promises.writeFile(boardPath, doc.toString()); }
+            try { await fs.promises.writeFile(boardPath, serializeBoard(doc)); }
             catch (e) { return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart(JSON.stringify({ error: `write failed: ${e}` }))]); }
 
             log.info(`[Kanban] deleted item #${input.itemId} from ${boardPath}`);
@@ -800,71 +825,66 @@ export function activate(context: vscode.ExtensionContext): void {
         }
     ));
 
+    // Shared by the read-only query tools (SPEC_KAN_LIST step 2-3, SPEC_KAN_FILTERVALUES step 1-2):
+    // owner, board file and parsing; the query logic itself is in boardQuery.ts.
+    async function loadBoardForQuery(
+        api: JarvisCoreApi,
+        input: { boardName?: string; ownerName?: string },
+        token: vscode.CancellationToken
+    ): Promise<{ error: string } | { boardPath: string; data: BoardData }> {
+        const ownerResult = await resolveOwner(input.ownerName, api, token);
+        if ('error' in ownerResult) { return { error: ownerResult.error }; }
+
+        const boardPath = resolveBoardPath(ownerResult.folder, input.boardName);
+        if (!fs.existsSync(boardPath)) { return { error: 'board not found' }; }
+
+        let rawContent: string;
+        try { rawContent = fs.readFileSync(boardPath, 'utf-8'); }
+        catch (e) { return { error: `failed to read: ${e}` }; }
+
+        const yaml = await import('yaml');
+        try { return { boardPath, data: yaml.parse(rawContent) as BoardData }; }
+        catch (e) { return { error: `YAML parse error: ${e}` }; }
+    }
+
+    const asResult = (value: unknown) =>
+        new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart(JSON.stringify(value))]);
+
     // Tool: jarvis_listKanbanItems (SPEC_KAN_LIST)
     context.subscriptions.push(api.registerTool(
         'jarvis_listKanbanItems',
-        'Lists kanban board items with optional status/labels filter. Returns compact projection (id, name, status, labels).',
+        'Lists kanban board items, optionally filtered by status or labels. Returns a compact projection (id, name, status, labels) per item; details: true returns the full items.',
         async (options, token) => {
-            const input = options.input as { status?: string; labels?: string[]; boardName?: string; ownerName?: string };
-            const ownerResult = await resolveOwner(input.ownerName, api, token);
-            if ('error' in ownerResult) {
-                return new vscode.LanguageModelToolResult([
-                    new vscode.LanguageModelTextPart(JSON.stringify({ error: ownerResult.error }))
-                ]);
-            }
+            const input = options.input as { status?: string; labels?: string[]; details?: unknown; boardName?: string; ownerName?: string };
 
-            const boardPath = resolveBoardPath(ownerResult.folder, input.boardName);
-            if (!fs.existsSync(boardPath)) {
-                return new vscode.LanguageModelToolResult([
-                    new vscode.LanguageModelTextPart(JSON.stringify({ error: 'board not found' }))
-                ]);
-            }
+            // The board is not read for an invalid `details` (REQ_KAN_LIST AC-9).
+            const badDetails = detailsError(input.details);
+            if (badDetails) { return asResult({ error: badDetails }); }
 
-            let rawContent: string;
-            try { rawContent = fs.readFileSync(boardPath, 'utf-8'); }
-            catch (e) { return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart(JSON.stringify({ error: `failed to read: ${e}` }))]); }
+            const loaded = await loadBoardForQuery(api, input, token);
+            if ('error' in loaded) { return asResult({ error: loaded.error }); }
 
-            const yaml = await import('yaml');
-            let data: { fields: Array<{ name: string; type: string; options?: Array<{ name: string }> }>; items: Array<Record<string, unknown>> };
-            try { data = yaml.parse(rawContent); }
-            catch (e) { return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart(JSON.stringify({ error: `YAML parse error: ${e}` }))]); }
+            const selected = selectItems(loaded.data, { status: input.status, labels: input.labels, details: input.details === true });
+            if ('error' in selected) { return asResult({ error: selected.error }); }
 
-            // Validate status filter against declared options
-            if (input.status) {
-                const statusField = data.fields.find(f => f.name === 'status');
-                const validOptions = statusField?.options?.map(o => o.name) ?? [];
-                if (!validOptions.includes(input.status)) {
-                    return new vscode.LanguageModelToolResult([
-                        new vscode.LanguageModelTextPart(JSON.stringify({
-                            error: `Unknown status "${input.status}". Valid: ${validOptions.join(', ')}`,
-                        }))
-                    ]);
-                }
-            }
+            return asResult({ path: loaded.boardPath, count: selected.items.length, items: selected.items });
+        }
+    ));
 
-            // Filter
-            let items = data.items;
-            if (input.status) {
-                items = items.filter(i => i.status === input.status);
-            }
-            if (input.labels && input.labels.length > 0) {
-                items = items.filter(i => {
-                    const itemLabels = (i.labels as string[]) ?? [];
-                    return input.labels!.every(l => itemLabels.includes(l));
-                });
-            }
+    // Tool: jarvis_listKanbanFilterValues (SPEC_KAN_FILTERVALUES)
+    context.subscriptions.push(api.registerTool(
+        'jarvis_listKanbanFilterValues',
+        'Lists the status values (columns, empty ones included) and the labels of a kanban board with the number of cards for each, to build list filters.',
+        async (options, token) => {
+            const input = options.input as { boardName?: string; ownerName?: string };
 
-            // Project
-            const projected = items.map(i => ({
-                id: i.id,
-                name: i.name,
-                status: i.status,
-                labels: (i.labels as string[]) ?? [],
-            }));
+            const loaded = await loadBoardForQuery(api, input, token);
+            if ('error' in loaded) { return asResult({ error: loaded.error }); }
 
-            return new vscode.LanguageModelToolResult([
-                new vscode.LanguageModelTextPart(JSON.stringify({ path: boardPath, count: projected.length, items: projected }))
-            ]);
+            const values = filterValues(loaded.data);
+            if ('error' in values) { return asResult({ error: values.error }); }
+
+            return asResult({ path: loaded.boardPath, statuses: values.statuses, labels: values.labels });
         }
     ));
 
@@ -1007,7 +1027,7 @@ export function activate(context: vscode.ExtensionContext): void {
                     return makeError(`Unknown operation "${input.operation}".`);
             }
 
-            try { await fs.promises.writeFile(boardPath, doc.toString()); }
+            try { await fs.promises.writeFile(boardPath, serializeBoard(doc)); }
             catch (e) { return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart(JSON.stringify({ error: `write failed: ${e}` }))]); }
 
             log.info(`[Kanban] ${input.operation} "${input.fieldName}" on ${boardPath}`);

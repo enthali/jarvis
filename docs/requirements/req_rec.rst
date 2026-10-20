@@ -26,7 +26,7 @@ Recording Requirements
    :id: REQ_REC_BUTTON
    :status: approved
    :priority: mandatory
-   :links: US_REC_CAPTURE; US_REC_ENABLE; REQ_REC_LIVEVIEW; REQ_ACTOR_ACTIVITY; REQ_ENG_ACTORMARK
+   :links: US_REC_CAPTURE; US_REC_ENABLE; REQ_REC_LIVEVIEW; REQ_ACTOR_ACTIVITY; REQ_ACTOR_MAIL; REQ_ENG_ACTORMARK
 
    **Description:**
    The extension SHALL let the user start a recording for an Actor from the
@@ -43,8 +43,9 @@ Recording Requirements
      recording for the chosen one. Cancelling the pick SHALL start nothing.
    * AC-3: While a recording runs, the Actor it is for SHALL show a red filled circle icon in
      front of its name, always visible (not only on hover). While it is shown, it takes the
-     place of the activity indicator (``REQ_ACTOR_ACTIVITY`` AC-7); when the recording is
-     over, the activity indicator applies again.
+     place of the activity indicator (``REQ_ACTOR_ACTIVITY`` AC-7) and of the unread-mail icon
+     (``REQ_ACTOR_MAIL``); when the recording is over, the icon of the next source still present
+     applies (``REQ_ACTOR_MAIL`` AC-6 and AC-7), or none.
    * AC-4: While a recording runs, the inline action of every Actor SHALL bring the
      transcript view (``REQ_REC_LIVEVIEW``) back instead of starting a recording; it SHALL NOT
      end a recording

@@ -5,6 +5,8 @@ description: "Subagent that guides the release process: squash merge, version bu
 user-invocable: true
 agents: []
 ---
+You act as Actor Release Engineer
+Your context memory is .jarvis/actors/Release Engineer/context.md. Read it and the files it links if you did not do that already or after a compaction.
 
 # syspilot Release Engineer
 

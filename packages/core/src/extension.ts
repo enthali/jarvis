@@ -29,6 +29,7 @@ import { applyGitignore, setIgnoreManagerLogger } from './engine/core/gitignoreM
 import { setAssetProvisioningLogger, provisionModuleAssets } from './engine/core/assetProvisioning';
 import { announceIfNewVersion, showReleaseNotes } from './engine/core/releaseNotes';
 import { ActorScanner, ambiguousActorMessage } from './engine/actors/actorScanner';
+import { ActorMailState } from './engine/actors/actorMail';
 import { ActorTreeProvider, ActorNode } from './engine/actors/actorTreeProvider';
 import { actorNameProblem, existingActorFolder, writeActorFiles } from './engine/actors/actorCreation';
 import { ensureActorAgent, setActorAgentLogger } from './engine/actors/actorAgent';
@@ -371,7 +372,11 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         actorTreeProvider?.refresh();
     }, log);
 
-    actorTreeProvider = new ActorTreeProvider(actorScanner, touchStore, activityTracker);
+    // Unread-mail state (SPEC_ACTOR_MAIL): read after every scan, drawn by the tree.
+    const actorMail = new ActorMailState(actorScanner, log, () => actorTreeProvider?.refresh());
+    context.subscriptions.push(actorMail);
+
+    actorTreeProvider = new ActorTreeProvider(actorScanner, touchStore, activityTracker, actorMail);
     const treeProvider = actorTreeProvider;
     engine.setMarker((id, icon) => treeProvider.mark(id, icon));
     initInjectPrompt({
@@ -1279,6 +1284,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             if (e.affectsConfiguration('jarvis.actors.folder')) {
                 void actorScanner.rescan();
             }
+            if (e.affectsConfiguration('jarvis.outlook.enabled')) { actorMail.requestRead(); }
         }),
     );
 

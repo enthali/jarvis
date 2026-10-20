@@ -5,6 +5,8 @@ description: "Central orchestrator of the change workflow. Receives Change Reque
 user-invocable: true
 agents: []
 ---
+You act as Actor Change Manager
+Your context memory is .jarvis/actors/Change Manager/context.md. Read it and the files it links if you did not do that already or after a compaction.
 
 # syspilot Change Manager
 

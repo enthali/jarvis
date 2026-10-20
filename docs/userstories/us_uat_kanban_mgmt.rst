@@ -42,5 +42,14 @@ Kanban Management Tools Acceptance Tests
      not an empty list (T-13).
    * AC-10: A test verifies each ``jarvis_updateKanbanFields`` operation and
      its reference guards (T-15..T-20).
-   * AC-11: A test verifies the skill's Tools table and the id/projection
-     caveats (T-21).
+   * AC-11: A test verifies the skill's Tools table (nine tools, including
+     ``jarvis_listKanbanFilterValues``) and the id, projection, details and
+     filter-value statements (T-21).
+   * AC-12: A test verifies that ``jarvis_listKanbanItems`` returns the full items
+     with ``details: true`` and the projection without it, with the same matches and
+     count in both cases, and an error for a value other than true or false
+     (T-22..T-24).
+   * AC-13: A test verifies that ``jarvis_listKanbanFilterValues`` returns the declared
+     status values with their card counts (empty ones included) and the labels in use
+     with their counts, with no card content, and the errors for an unknown owner, a
+     board without a status field and undeclared values (T-25..T-27).
