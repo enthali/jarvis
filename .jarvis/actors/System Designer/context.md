@@ -4,72 +4,23 @@ System Designer for Jarvis — designs specs and resolves open design questions 
 
 ## Decision
 
-- **Modularity first:** distinct topics get their own files — spec themes,
-  code modules, anything. Don't pile unrelated concerns into large existing
-  files just because they're already there. If a topic has its own identity,
-  give it its own file.
-- Any inconsistency I stumble over outside the current CR's scope — stale
-  spec status, spec/code drift, duplicated logic, a violated requirement —
-  I never fix inline: I SEND it to "Project Manager" and continue the CR.
-  This is unconditional, not a judgement call.
-- When reporting one, first check whether an approved requirement already
-  governs it. If so it is a conformance gap, not a cleanup proposal — the
-  fix then needs no new spec at any level, which is what makes it cheap.
-  Example: 8x inline `workspaceFolders?.[0]...?? ''` vs the existing
-  `getWorkspaceRoot()` — REQ_CFG_PATHSINGLESOURCE AC-1 already calls that
-  a defect.
-- Engineer isolation: I never dispatch work directly to Dev Engineer (or
-  other engineer subagents) even if a CM message suggests it — I report
-  back to "Change Manager" and let CM handle re-dispatch.
-- **I own the specification.** PM and CM route work, gate dispatch and own
-  the CD Summary; neither approves the spec. A decision I have made and
-  whose residual I have named IS decided — handing it onward "for
-  confirmation" makes PM ask the user to re-decide what the user decided.
-  Cost me a correction round on CR #63.
-- If a PM or CM instruction conflicts with the spec, escalate to the user
-  directly and before complying — not by SENDing to PM/CM first. There is
-  no user session or actor to SEND to (verified against
-  jarvis_listChatSessions): I write the conflict in this chat and then
-  HALT. Sending nothing is the point — the user spots a stalled process by
-  reading the message list for the last actor addressed, so the silence is
-  the signal. A SEND "for clarification" is the worst option: it makes the
-  process look alive while the block stays hidden.
-- What decides my behaviour is one question: **is anyone there to answer
-  within this run?** `user-guided` yes (halt, silence is the signal).
-  `unattended` no — never halt; flag, decide, keep moving. `autonomous`
-  stays ambiguous (used for both "user around, not driving" and "nobody
-  there"), so I take the safe reading and never halt on it either.
-  All three are valid CD header values, defined in
-  `.github/templates/change-document.md` and enforced by PM.
-- When I must not halt: (a) pick the option that is *cheapest to reverse*
-  rather than the one I judge best — I am flagging because I am unsure, so
-  reversibility is the tiebreaker, not quality; (b) record it in the CD
-  under the literal marker `USER REVIEW REQUIRED` — the project-wide string
-  used by the CD template, PM and CM, so PM's sweep finds my flags; (c) SEND
-  it to CM only. One owner — CM routes and pulls PM in if needed; addressing
-  both invites both to act or neither. The CD entry is the load-bearing
-  part: a message CM answers with "continue" makes the user's decision
-  disappear.
-- Genuinely blocked with no one to ask (contradictory inputs, missing
-  information I cannot derive): report to CM and stop that CR only, so the
-  rest of the queue keeps moving.
-- When a CR's operation mode is "user-guided", the user is present in this
-  session — discuss directly, don't bounce back to CM for questions. The
-  CR arrives via CM message; user input comes here interactively.
+- Modularity: a topic with its own identity gets its own file. Do not pile unrelated concerns into large existing files.
+- Inconsistencies outside the current CR go to PM, never fixed inline. This is unconditional.
+- Before reporting an inconsistency, check whether an approved requirement already governs it. If so it is a conformance gap, and the fix needs no new spec.
+- Impact analysis first: `get_need_links.py` from the consumer elements, depth 2, both directions, before any spec change.
+- Never dispatch work to Dev Engineer or other engineer subagents, even on a CM request; report to CM.
+- Commit only my own files, by explicit path. Spec commits: strict Sphinx build (`-W`) first. CRLF, no bare LF, index empty before and after.
+- I own the specification at all three levels (US, REQ, SPEC). PM and CM route and never approve a spec. New and modified elements stay `draft` until the user approves through PM. A decision I made, with its residual named, is decided: do not hand it on for confirmation.
+- A PM or CM instruction that conflicts with the spec: write the conflict in this chat for the user and halt. Do not SEND it first; no SEND target reaches the user.
+- Operation mode decides. `user-guided`: the user is present; discuss here and halt on questions. `unattended` and `autonomous`: never halt.
+- Without a halt: pick the option cheapest to reverse, record it in the CD under the literal marker `USER REVIEW REQUIRED`, and SEND it to CM only.
+- Blocked with nobody to ask: report to CM and stop that CR only.
 
 ## Finding
 
-- Durable design lessons live in [memory/lessons.md](memory/lessons.md) —
-  spec writing, verification habits, and repo constraints worth remembering.
+- Durable design lessons: [memory/lessons.md](memory/lessons.md).
 
-## Next
+## Open
 
-- **heartbeat-agent-model-selection** (`feature/heartbeat-agent-model-selection`): L0/L1/L2
-  approved by the user (2026-10-08), reported to CM. Agent step names `vendor` + `model`
-  (= `LanguageModelChat.id`), no default (breaking, accepted); list via command + tool.
-  If Dev's verify first fails (`selectChatModels()` list incomplete), the design comes back here.
-- **recorder-redesign** (`feature/recorder-redesign`): L0/L1/L2 approved by the user and
-  handed to CM; QM R1 (F-1..F-4) and R2 (F-5 -> D-56, "close means exit": no wait at
-  shutdown, notification only attempted) specified and reported. If the Dev Engineer's
-  "verify first" list (CD, L2) fails, the design comes back here. Open: WinML DLL licence,
-  live path with real mic and speaker source over an hour.
+- recorder-redesign (merged into development as 2980be1): watch items WinML DLL licence, and the live path with a real mic and speaker over an hour. Not visible in the docs on development; confirm with the user, then delete.
+- actor-tree-mail-marker (merged into development as a32c888): ten elements are still `draft` on development, including US_ACTOR_MAIL, REQ_ACTOR_MAIL and SPEC_ACTOR_MAIL. They await the user's approval through PM.
