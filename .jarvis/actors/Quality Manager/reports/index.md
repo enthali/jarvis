@@ -4,13 +4,15 @@ Reference list of all narrative Quality Reports filed in this folder. Append a
 row here whenever a new `qr-<date>[-<slug>].md` report is created — most recent
 first.
 
+Reports filed before 2026-09-25 were removed on 2026-10-20 as finished work. Their rows stay here as the outcome record; the files remain in git history.
+
 | Date | Report | Scope | Outcome |
 |---|---|---|---|
 | 2026-10-02 | [qr-2026-10-02-friday-heartbeat.md](qr-2026-10-02-friday-heartbeat.md) | Friday heartbeat — SC-001 through SC-005 + release/CR scan | SC-001 +2 (14 total); SC-002 unchanged (4); SC-003 RESOLVED 6→0 (removed, disclosed); SC-004 16 unchanged; SC-005 PASS; both root CRs now merged (backfilled CR Review Log); uncommitted working-tree anomaly flagged on `retire-legacy-actor-kinds.md` |
 | 2026-09-25 | [qr-2026-09-25-friday-heartbeat.md](qr-2026-09-25-friday-heartbeat.md) | Friday heartbeat — SC-001 through SC-005 + release/CR scan | SC-001 +1, SC-002 +1, SC-003 +6; SC-004 16 unchanged; SC-005 PASS; 2 archived `val-` without `tst-` and matrix/trigger mismatch for PM decision |
-| 2026-08-21 | [qr-2026-08-21-friday-heartbeat.md](qr-2026-08-21-friday-heartbeat.md) | Friday heartbeat — SC-001 through SC-005 full portfolio + release/CR scan | SC-001/002/003/005 unchanged/PASS; SC-004's 3 pending findings resolved (val- reports added), 2 additional historic gaps recorded under existing accept-as-is — no PM decision needed |
-| 2026-07-31 | [qr-2026-07-31-friday-heartbeat.md](qr-2026-07-31-friday-heartbeat.md) | Friday heartbeat — SC-001 through SC-005 full portfolio + release/CR scan | SC-001/002/003/005 unchanged/PASS; SC-004 3 new findings (val- reports missing for jarvis-whoami, prompt-injection-tool, jarvis-kanban) — pending PM decision |
-| 2026-07-17 | [qr-2026-07-17-friday-heartbeat.md](qr-2026-07-17-friday-heartbeat.md) | Friday heartbeat — SC-001 through SC-005 full portfolio + release/CR scan | 17 low + 11 informational findings, all closed same-day by PM decision (defer/accept-as-is/unchanged) — PM's verbatim response appended to report |
-| 2026-04-15 | [qr-2026-04-15-outlook-tasks.md](qr-2026-04-15-outlook-tasks.md) | `outlook-tasks` on `develop` before v0.5.0 release | 1 HIGH, 3 MEDIUM, 1 LOW — release-blocking data-loss bug found; do not treat existing verification report as sufficient |
-| 2026-04-15 | [qr-2026-04-15-l0-mece-followup.md](qr-2026-04-15-l0-mece-followup.md) | L0 MECE follow-up review | see report |
-| 2026-04-10 | [qr-2026-04-10.md](qr-2026-04-10.md) | Early quality review | see report |
+| 2026-08-21 | qr-2026-08-21-friday-heartbeat.md (file removed 2026-10-20; in git history) | Friday heartbeat — SC-001 through SC-005 full portfolio + release/CR scan | SC-001/002/003/005 unchanged/PASS; SC-004's 3 pending findings resolved (val- reports added), 2 additional historic gaps recorded under existing accept-as-is — no PM decision needed |
+| 2026-07-31 | qr-2026-07-31-friday-heartbeat.md (file removed 2026-10-20; in git history) | Friday heartbeat — SC-001 through SC-005 full portfolio + release/CR scan | SC-001/002/003/005 unchanged/PASS; SC-004 3 new findings (val- reports missing for jarvis-whoami, prompt-injection-tool, jarvis-kanban) — pending PM decision |
+| 2026-07-17 | qr-2026-07-17-friday-heartbeat.md (file removed 2026-10-20; in git history) | Friday heartbeat — SC-001 through SC-005 full portfolio + release/CR scan | 17 low + 11 informational findings, all closed same-day by PM decision (defer/accept-as-is/unchanged) — PM's verbatim response appended to report |
+| 2026-04-15 | qr-2026-04-15-outlook-tasks.md (file removed 2026-10-20; in git history) | `outlook-tasks` on `develop` before v0.5.0 release | 1 HIGH, 3 MEDIUM, 1 LOW — release-blocking data-loss bug found; do not treat existing verification report as sufficient |
+| 2026-04-15 | qr-2026-04-15-l0-mece-followup.md (file removed 2026-10-20; in git history) | L0 MECE follow-up review | see report |
+| 2026-04-10 | qr-2026-04-10.md (file removed 2026-10-20; in git history) | Early quality review | see report |

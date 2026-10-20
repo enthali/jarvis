@@ -9,3 +9,6 @@
 - Spec-vs-code conflict ≠ automatic "code is wrong" — escalate to PM/user for a ruling rather than QM+CM resolving it alone; CM has no content authority (CR#46 R4/R5).
 - Never trust a CD/VE claim about which modules a change touches or leaves unverified — run `git diff --stat <baseline>...<branch> -- <path>` yourself; the User caught VE/CD text bundling an untouched module (MCP transport) into this change's open evidence (one-kind-consolidation R6, Finding 11).
 - Don't imply a PM disposition ("routed to backlog #N") for a finding PM hasn't actually recorded in the Dispositions table — state it as QM's own recommendation and mark the finding PENDING until PM's table says otherwise (one-kind-consolidation R6, Findings 11/12).
+- Before confirming a CM-announced commit, check it exists (`git log`, `git show --stat <hash>`); a working-tree edit is not a commit (actor-tree-mail-marker AC-5, 2026-10-20).
+- A phrase grep across a hard-wrapped RST paragraph returns false zeros; collapse line breaks before counting, or check the hit visually (AC-5 check, 2026-10-20).
+- For a small PM-requested wording change, diff the committed hunk and byte-compare the neighbouring clauses against the baseline commit instead of re-reviewing the whole element (AC-5, 2026-10-20).

@@ -30,9 +30,9 @@ Three files, strict separation of concerns:
 
 | File | Purpose | Updated when |
 |---|---|---|
-| `review-matrix.md` | Definitions only — Standing Check registry (ID, scope, pass criterion, status). Never touched during a review cycle. | Only when adding/retiring a check or structural redesign. |
-| `scan-state.md` | All runtime state — last run dates, standing check results, CR review log, known releases/changes, pending items. | Every Friday cycle and after every CR review. |
-| `reports/qr-<date>[-<slug>].md` | Full narrative quality reports for non-trivial findings. Linked from scan-state and from `reports/index.md`. After filing, send PM a Jarvis message containing just the report's relative path (e.g. `reports/qr-2026-07-17-friday-heartbeat.md`) — no need to repeat the findings in the message. Once PM responds, append the verbatim decision as a "PM Response" section at the end of the report file. | When findings warrant a detailed write-up beyond a table row. |
+| [review-matrix.md](review-matrix.md) | Definitions only — Standing Check registry (ID, scope, pass criterion, status). Never touched during a review cycle. | Only when adding/retiring a check or structural redesign. |
+| [scan-state.md](scan-state.md) | All runtime state — last run dates, standing check results, CR review log, known releases/changes, pending items. | Every Friday cycle and after every CR review. |
+| `reports/qr-<date>[-<slug>].md` | Full narrative quality reports for non-trivial findings. Linked from scan-state and from `reports/index.md`. After filing, send PM a Jarvis message containing just the report's relative path (e.g. `reports/qr-<date>-friday-heartbeat.md`) — no need to repeat the findings in the message. Once PM responds, append the verbatim decision as a "PM Response" section at the end of the report file. | When findings warrant a detailed write-up beyond a table row. |
 | [`reports/index.md`](reports/index.md) | Reference list of every report ever filed (date, scope, outcome) — append a row whenever a new report is created. | Every time a new `qr-<date>.md` report is created. |
 
 ## Audit Patterns
@@ -49,7 +49,9 @@ Three files, strict separation of concerns:
 
 ## Active Reviews
 
-None in progress. Full CR review log (all rounds, findings, verdicts) lives in `scan-state.md`.
+- actor-tree-mail-marker (CM-triggered 2026-10-20, branch `feature/actor-tree-mail-marker`): verdicts sent to CM and PM; Round 1 rows 1 to 3 closure pending PM acceptance. Open residual risk for the user: no automated test on the extension listener; manual T-12 NOT RUN. Details: [scan-state.md](scan-state.md) Open Items.
+
+CR review log is condensed in [scan-state.md](scan-state.md). Per-CR detail: each CD's `## QM Findings` section and git history.
 
 ## Lessons
 
