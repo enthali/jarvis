@@ -25,7 +25,7 @@ Schritt 1 = nur `actor.yaml` + `context.md` als Projektvektoren (`run.mjs`). Sch
 - Abstand Platz 1/2 bei `max`: Median 0,014, von 0,000 bis 0,077; 13 von 20 unter 0,03. Spitzen-Score 0,47–0,64.
 - Dieselben Projekte erscheinen in den Top 3 fuer fachlich verschiedene Mails: Jarvis, GenAI, Compliance, Customer GM, Event 2026-10-09 Summit, Project XC TRM. Hypothese: breit formulierte Projektdokumente werden von vielen Mails "angezogen" (Hubness); nicht geprueft.
 - Sehr kurze oder formelhafte Mails (Abwesenheitsnotiz, Freigabe-Benachrichtigung) liefern beliebige Top 1 mit kleinem Abstand — Inhalt fehlt.
-- Treffer, die plausibel wirken (Einschaetzung durch mich, nicht vom User bestaetigt): "Exchange with NE-TE | MCP Server Setup in SDV.Suite" -> Project XC SDV (0,574, Abstand 0,030); "Bosch:AWS Sync" -> Event Summit (Abstand 0,053); "Incubation and PMT workshop" -> Customer GM (Abstand 0,077). **Bewertung top-1/top-3 durch den User steht aus.**
+- Einige Treffer mit spezifischen Fachbegriffen oder Veranstaltungsnamen im Betreff lagen mit Abstand 0,030–0,077 plausibel auf Platz 1; in Schritt 3/4 gegen die Labels des Users ausgewertet.
 
 ## Test B: bereits abgelegte Mails (nur gelesene, Ordner = Wahrheit; read-only)
 81 gelesene Mails aus 18 Projektordnern (max. 6 je Ordner), dazu 25 gelesene Mails aus `4 Unwichtig` als "kein Projekt".

@@ -14,7 +14,6 @@ Sessions deaktiviert; Stuck-Session bleibt bis VS Code Session-Deletion implemen
 Verwandter GH-Issue kandidat: ggf. vscode#issue melden re "no way to delete AHP sessions".
 
 **Trigger:** Themenwechsel „schau, was VS Code 1.129.1 liefert" — Microsoft hat in 1.129 den **Agent Host** + **AHP** ausgeliefert. Frage: überlebt Jarvis' Session-/Messaging-Layer die neue Prozessgrenze?
-**Verwandt:** [FI-2026-05-23-ahp-foundation.md](FI-2026-05-23-ahp-foundation.md) (AHP-Foundation), [FI-2026-06-28-hook-engine.md](FI-2026-06-28-hook-engine.md) (Hook-Verdacht falsifiziert), [FIND-2026-04-16-background-agent-sessions.md](FIND-2026-04-16-background-agent-sessions.md) (Provider-Sackgasse), [FI-2026-07-01-editor-group-placement.md](FI-2026-07-01-editor-group-placement.md).
 
 ---
 
