@@ -14,4 +14,4 @@ Durable lessons from verification rounds. Linked from `context.md`.
 - A test that installs fake timers after construction misses timers the constructor already started.
 - A state-path test does not cover a listener in `extension.ts`; state that residual risk in the verdict.
 - Before recording where a change lives, check the integration branch: a squash merge leaves the feature tip stale, and the release can move its change documents.
-- Check a val report's manual-row list against the test protocol before stating what is NOT RUN; a mismatch is a finding, not a note.
+- Check a val report's manual-row list and case tables against the released protocol and test file before stating what is NOT RUN; later rounds leave Round 1 tables stale, and a mismatch is a finding, not a note.
