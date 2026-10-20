@@ -100,12 +100,8 @@
   - `.github/agents/syspilot.qm.tailoring.md` (Zeilen 8–10): Speichert Heartbeat-Reports noch unter `.jarvis/sessions/Quality Manager/reports/<date>-heartbeat.md`.
 - **Betroffene Dateien (lokal):** `.github/agents/syspilot.pm.tailoring.md`, `.github/agents/syspilot.qm.tailoring.md`
 
-### P12 — Verweise auf nicht existierende Memory-Dateien in `syspilot.pm.tailoring.md`
-- **Befund:**
-  - `.github/agents/syspilot.pm.tailoring.md` (Zeile 49, *Post-Merge Housekeeping Checkpoint*): Verlangt das aktive Lesen von `lessons-learned.md` und erwähnt `ideas/*.md`.
-  - `.github/agents/syspilot.pm.tailoring.md` (Zeile 195, *README Staleness Report*): Verweist auf `deferred-issues.md` (*"linked from `context.md`"*).
-  - Im Ordner `.jarvis/actors/Project Manager/` existieren aktuell nur `actor.yaml`, `context.md` und `backlog.kanban.yaml` (Lessons und Deferred Findings stehen direkt in `context.md` bzw. `backlog.kanban.yaml`).
-- **Betroffene Datei (lokal):** `.github/agents/syspilot.pm.tailoring.md`
+### P12 — ~~Verweise auf nicht existierende Memory-Dateien in `syspilot.pm.tailoring.md`~~ *(Zurückgezogen — Fehlalarm)*
+- **Korrektur (nach Hinweis von `Repo Maintainer` per `list_dir` verifiziert):** `lessons-learned.md`, `deferred-issues.md` und `ideas/` existieren unter `.jarvis/actors/Project Manager/` und sind in `.jarvis/actors/Project Manager/context.md` verlinkt. P12 entfällt vollständig.
 
 ### P13 — Falscher Spec-Pfad und falsche Eskalationsrichtung in `syspilot.verify.agent.md`
 - **Befund:**
