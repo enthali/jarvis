@@ -13,7 +13,7 @@ This file captures operational details not covered there. Verification lessons a
 
 - `actor-tree-mail-marker` is squash-merged to `development` as `a32c888` and released in v0.31.0 (release `eca06ef`; change documents archived in `3030222` under `docs/changes/v0.31.0/`). Automated PASS for the scope at `2168e2a`.
 - Manual UAT NOT RUN: T-1 to T-14; T-8 and T-9 are blocked (agent hooks disabled in the EDH, user-reported 2026-10-20). The PM-required subset is T-2 to T-6 and T-10 to T-12, open on released code, not a merge gate.
-- Record gaps (raise; do not edit the archive without a go-ahead): the v0.31.0 test protocol records all 22 cases NOT RUN, including automated T-15 to T-22.
+- Record gaps (raise; archive untouched until the user or PM decides, per Repo Maintainer 2026-10-20): the v0.31.0 test protocol records all 22 cases NOT RUN, including automated T-15 to T-22.
 - Val report is stale against the released protocol and test file: case table (lines 242-249) omits T-22 (credited as automated at line 41) and says 'no Dev test' for T-15, T-16, T-21; lines 150 and 251 say T-15 to T-21 Evidence reads 'Not yet written' (the protocol has no such text).
 - Stale after release: 'before merge' in the val report (lines 53, 118, 133) and the protocol (line 70); flag, do not edit.
 - Residual risk: the `extension.ts` listener for `jarvis.outlook.enabled` has no automated test; T-12 is its only check. The read script has not been run against Outlook.
