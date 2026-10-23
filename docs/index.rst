@@ -32,6 +32,13 @@ requirements engineering and traceability.
 
 .. toctree::
    :maxdepth: 1
+   :caption: Contracts
+
+   Jarvis Contracts/index
+   Jarvis Actors/index
+
+.. toctree::
+   :maxdepth: 1
    :caption: Guides
 
    namingconventions

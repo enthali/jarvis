@@ -45,84 +45,12 @@ html_title = 'Jarvis'
 
 # -- Sphinx-Needs Configuration ----------------------------------------------
 # https://sphinx-needs.readthedocs.io/
-
-needs_types = [
-    # User Stories - WHY (Stakeholder perspective)
-    dict(
-        directive="story",
-        title="User Story",
-        prefix="US_",
-        color="#E8D5B7",
-        style="node"
-    ),
-    # Requirements - WHAT (System behavior)
-    dict(
-        directive="req",
-        title="Requirement",
-        prefix="REQ_",
-        color="#BFD8D2",
-        style="node"
-    ),
-    # Design Specifications - HOW (Technical approach)
-    dict(
-        directive="spec",
-        title="Design Specification",
-        prefix="SPEC_",
-        color="#FEDCD2",
-        style="node"
-    ),
-    # Implementation - WHERE (Code location)
-    dict(
-        directive="impl",
-        title="Implementation",
-        prefix="IMPL_",
-        color="#DF744A",
-        style="node"
-    ),
-    # Test Cases - VERIFY (Validation)
-    dict(
-        directive="test",
-        title="Test Case",
-        prefix="TEST_",
-        color="#DCB239",
-        style="node"
-    ),
-]
-
-# Fields (sphinx-needs 7.0.0+ API)
+# The ontology (types, fields, statuses, build options) lives in
+# docs/jarvis-ontology.toml — the single source for Sphinx and the syspilot skills.
 # Implementation: SPEC_REL_SPHINXCOMPAT
 # Requirements: REQ_REL_SPHINXCOMPAT
-needs_fields = {
-    "priority": {"nullable": True},
-    "rationale": {"nullable": True},
-    "acceptance_criteria": {"nullable": True},
-    "status": {
-        "schema": {
-            "enum": [
-                "draft", "open", "approved",
-                "implemented", "verified", "deprecated",
-            ],
-        },
-    },
-}
 
-# Require explicit IDs
-needs_id_required = True
-
-# Configure needs file output
-needs_build_json = True
-needs_build_json_per_id = True
-
-# Use Graphviz for needflow diagrams
-needs_flow_engine = "graphviz"
-
-# Configure needflow to use SVG
-needs_flow_configs = {
-    'needflow': {
-        'engine': 'dot',
-        'format': 'svg',
-    }
-}
+needs_from_toml = "jarvis-ontology.toml"
 
 # -- MyST Parser Configuration -----------------------------------------------
 # https://myst-parser.readthedocs.io/

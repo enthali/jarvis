@@ -1,0 +1,64 @@
+[syspilot]
+schema_version = "1.0"
+description = "Jarvis ontology, moved unchanged from docs/conf.py; sphinx-needs reads [needs] via needs_from_toml."
+
+[needs]
+
+id_required = true
+build_json = true
+build_json_per_id = true
+flow_engine = "graphviz"
+
+[needs.flow_configs.needflow]
+engine = "dot"
+format = "svg"
+
+# User Stories - WHY (stakeholder perspective)
+[[needs.types]]
+directive = "story"
+title = "User Story"
+prefix = "US_"
+color = "#E8D5B7"
+style = "node"
+
+# Requirements - WHAT (system behavior)
+[[needs.types]]
+directive = "req"
+title = "Requirement"
+prefix = "REQ_"
+color = "#BFD8D2"
+style = "node"
+
+# Design Specifications - HOW (technical approach)
+[[needs.types]]
+directive = "spec"
+title = "Design Specification"
+prefix = "SPEC_"
+color = "#FEDCD2"
+style = "node"
+
+[[needs.types]]
+directive = "impl"
+title = "Implementation"
+prefix = "IMPL_"
+color = "#DF744A"
+style = "node"
+
+[[needs.types]]
+directive = "test"
+title = "Test Case"
+prefix = "TEST_"
+color = "#DCB239"
+style = "node"
+
+[needs.fields.priority]
+nullable = true
+
+[needs.fields.rationale]
+nullable = true
+
+[needs.fields.acceptance_criteria]
+nullable = true
+
+[needs.fields.status.schema]
+enum = ["draft", "open", "approved", "implemented", "verified", "deprecated"]

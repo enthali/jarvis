@@ -3,7 +3,12 @@
 *.pyc
 
 # Actor instructions — provisioned output, source of truth is packages/core/assets/
-.github/instructions/
+.github/instructions/*
+# Project-owned process instruction (Admin)
+!.github/instructions/contract-handling.instructions.md
+
+# Actor agent bindings — Jarvis writes them from the actors folder at runtime
+.github/agents/*
 
 #environment files
 .env
@@ -31,6 +36,9 @@ docs/_build/
 jarvis-*
 !packages/*/assets/**
 # END JARVIS MANAGED
+
+# Project ontology (Admin); listed after the managed block so it survives the jarvis-* rule
+!docs/jarvis-ontology.toml
 
 # testdata workspace runtime/scratch state (Dev Host manual testing,
 # not automated-test fixtures - those live under testdata/heartbeat/)

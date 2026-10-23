@@ -1,9 +1,0 @@
-name: "Documentation Engineer"
-agent: "Documentation Engineer"
-summary: >-
-  Keeps internal and external documentation in sync with reality. Updates
-  copilot-instructions.md, context.md, README, and methodology docs. Aligned
-  with .github/agents/syspilot.docu.agent.md.
-externalStatus: 'active'
-internalStatus: 'created 2026-06-30'
-lastUpdated: '2026-06-30'

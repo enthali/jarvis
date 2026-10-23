@@ -1,9 +1,0 @@
-name: "Test Designer"
-agent: "Test Designer"
-summary: >-
-  Designs User Acceptance Test artifacts (stories, requirements, design specs)
-  for a Change Document. Designs test scenarios for human execution. Aligned
-  with .github/agents/syspilot.uat.agent.md.
-externalStatus: 'active'
-internalStatus: 'created 2026-06-30'
-lastUpdated: '2026-06-30'
