@@ -34,6 +34,7 @@ exclude_patterns = [
     '.venv',
     'venv',
     'changes/*',
+    'releases/*',
 ]
 
 # -- Options for HTML output -------------------------------------------------
