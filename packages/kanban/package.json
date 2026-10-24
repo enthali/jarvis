@@ -70,31 +70,15 @@
     ],
     "menus": {
       "commandPalette": [
-        {
-          "command": "jarvis.openKanbanBoard"
-        },
-        {
-          "command": "jarvis.createKanbanBoard"
-        },
-        {
-          "command": "jarvis.openKanbanAsText",
-          "when": "activeCustomEditorId == jarvis.kanbanEditor"
-        }
+        { "command": "jarvis.openKanbanBoard" },
+        { "command": "jarvis.createKanbanBoard" },
+        { "command": "jarvis.openKanbanAsText", "when": "activeCustomEditorId == jarvis.kanbanEditor" }
       ],
       "view/item/context": [
-        {
-          "command": "jarvis.createKanbanBoard",
-          "title": "Add Kanban Board",
-          "when": "viewItem =~ /^jarvis(Session|Project|Event)/ || viewItem == jarvisActor",
-          "group": "kanban@1"
-        }
+        { "command": "jarvis.createKanbanBoard", "title": "Add Kanban Board", "when": "viewItem =~ /^jarvis(Session|Project|Event)/ || viewItem == jarvisActor", "group": "kanban@1" }
       ],
       "editor/title": [
-        {
-          "command": "jarvis.openKanbanAsText",
-          "when": "activeCustomEditorId == jarvis.kanbanEditor",
-          "group": "navigation"
-        }
+        { "command": "jarvis.openKanbanAsText", "when": "activeCustomEditorId == jarvis.kanbanEditor", "group": "navigation" }
       ]
     },
     "customEditors": [
@@ -102,12 +86,8 @@
         "viewType": "jarvis.kanbanEditor",
         "displayName": "Kanban Board",
         "selector": [
-          {
-            "filenamePattern": "*.kanban.yaml"
-          },
-          {
-            "filenamePattern": "kanban.yaml"
-          }
+          { "filenamePattern": "*.kanban.yaml" },
+          { "filenamePattern": "kanban.yaml" }
         ],
         "priority": "default"
       }
@@ -132,18 +112,10 @@
         "modelDescription": "jarvis_kanban: Creates a new kanban board YAML file for an Actor, project, or event. Returns the file path. ownerName is required.",
         "inputSchema": {
           "type": "object",
-          "required": [
-            "ownerName"
-          ],
+          "required": ["ownerName"],
           "properties": {
-            "boardName": {
-              "type": "string",
-              "description": "Board file name (without .kanban.yaml suffix). Omit for default 'kanban.yaml'."
-            },
-            "ownerName": {
-              "type": "string",
-              "description": "Name of the owning actor/project/event (required)."
-            }
+            "boardName": { "type": "string", "description": "Board file name (without .kanban.yaml suffix). Omit for default 'kanban.yaml'." },
+            "ownerName": { "type": "string", "description": "Name of the owning actor/project/event (required)." }
           }
         }
       },
@@ -156,18 +128,10 @@
         "modelDescription": "jarvis_kanban: Validates a kanban board YAML file against the schema and semantic rules. Returns structured errors and warnings. ownerName is required.",
         "inputSchema": {
           "type": "object",
-          "required": [
-            "ownerName"
-          ],
+          "required": ["ownerName"],
           "properties": {
-            "boardName": {
-              "type": "string",
-              "description": "Board file name (without .kanban.yaml suffix). Omit for default 'kanban.yaml'."
-            },
-            "ownerName": {
-              "type": "string",
-              "description": "Name of the owning actor/project/event (required)."
-            }
+            "boardName": { "type": "string", "description": "Board file name (without .kanban.yaml suffix). Omit for default 'kanban.yaml'." },
+            "ownerName": { "type": "string", "description": "Name of the owning actor/project/event (required)." }
           }
         }
       },
@@ -180,18 +144,10 @@
         "modelDescription": "jarvis_kanban: Opens a kanban board in the webview renderer. ownerName is required.",
         "inputSchema": {
           "type": "object",
-          "required": [
-            "ownerName"
-          ],
+          "required": ["ownerName"],
           "properties": {
-            "boardName": {
-              "type": "string",
-              "description": "Board file name (without .kanban.yaml suffix). Omit for default 'kanban.yaml'."
-            },
-            "ownerName": {
-              "type": "string",
-              "description": "Name of the owning actor/project/event (required)."
-            }
+            "boardName": { "type": "string", "description": "Board file name (without .kanban.yaml suffix). Omit for default 'kanban.yaml'." },
+            "ownerName": { "type": "string", "description": "Name of the owning actor/project/event (required)." }
           }
         }
       },
@@ -204,31 +160,12 @@
         "modelDescription": "jarvis_kanban: Updates fields on an existing kanban board item by ID. Merges changes into the item, validates status values. ownerName is required.",
         "inputSchema": {
           "type": "object",
-          "required": [
-            "itemId",
-            "changes",
-            "ownerName"
-          ],
+          "required": ["itemId", "changes", "ownerName"],
           "properties": {
-            "itemId": {
-              "type": "integer",
-              "description": "The ID of the item to update."
-            },
-            "changes": {
-              "type": "object",
-              "description": "Key-value pairs of fields to update. The 'id' field cannot be changed.",
-              "additionalProperties": {
-                "type": "string"
-              }
-            },
-            "boardName": {
-              "type": "string",
-              "description": "Board file name (without .kanban.yaml suffix). Omit for default 'kanban.yaml'."
-            },
-            "ownerName": {
-              "type": "string",
-              "description": "Name of the owning actor/project/event (required)."
-            }
+            "itemId": { "type": "integer", "description": "The ID of the item to update." },
+            "changes": { "type": "object", "description": "Key-value pairs of fields to update. The 'id' field cannot be changed.", "additionalProperties": { "type": "string" } },
+            "boardName": { "type": "string", "description": "Board file name (without .kanban.yaml suffix). Omit for default 'kanban.yaml'." },
+            "ownerName": { "type": "string", "description": "Name of the owning actor/project/event (required)." }
           }
         }
       },
@@ -241,45 +178,15 @@
         "modelDescription": "jarvis_kanban: Adds a new item to a kanban board. Auto-assigns id; validates values before writing. ownerName is required.",
         "inputSchema": {
           "type": "object",
-          "required": [
-            "name",
-            "ownerName"
-          ],
+          "required": ["name", "ownerName"],
           "properties": {
-            "name": {
-              "type": "string",
-              "description": "Item title."
-            },
-            "status": {
-              "type": "string",
-              "description": "Status value. Defaults to first declared status option if omitted."
-            },
-            "labels": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "description": "Labels/tags for the item."
-            },
-            "notes": {
-              "type": "string",
-              "description": "Freeform notes."
-            },
-            "fields": {
-              "type": "object",
-              "description": "Values for declared fields (key = field name, value = string).",
-              "additionalProperties": {
-                "type": "string"
-              }
-            },
-            "boardName": {
-              "type": "string",
-              "description": "Board file name (without .kanban.yaml suffix). Omit for default 'kanban.yaml'."
-            },
-            "ownerName": {
-              "type": "string",
-              "description": "Name of the owning actor/project/event (required)."
-            }
+            "name": { "type": "string", "description": "Item title." },
+            "status": { "type": "string", "description": "Status value. Defaults to first declared status option if omitted." },
+            "labels": { "type": "array", "items": { "type": "string" }, "description": "Labels/tags for the item." },
+            "notes": { "type": "string", "description": "Freeform notes." },
+            "fields": { "type": "object", "description": "Values for declared fields (key = field name, value = string).", "additionalProperties": { "type": "string" } },
+            "boardName": { "type": "string", "description": "Board file name (without .kanban.yaml suffix). Omit for default 'kanban.yaml'." },
+            "ownerName": { "type": "string", "description": "Name of the owning actor/project/event (required)." }
           }
         }
       },
@@ -292,23 +199,11 @@
         "modelDescription": "jarvis_kanban: Deletes a kanban board item by ID. The deleted id is never reused. ownerName is required.",
         "inputSchema": {
           "type": "object",
-          "required": [
-            "itemId",
-            "ownerName"
-          ],
+          "required": ["itemId", "ownerName"],
           "properties": {
-            "itemId": {
-              "type": "integer",
-              "description": "The ID of the item to delete."
-            },
-            "boardName": {
-              "type": "string",
-              "description": "Board file name (without .kanban.yaml suffix). Omit for default 'kanban.yaml'."
-            },
-            "ownerName": {
-              "type": "string",
-              "description": "Name of the owning actor/project/event (required)."
-            }
+            "itemId": { "type": "integer", "description": "The ID of the item to delete." },
+            "boardName": { "type": "string", "description": "Board file name (without .kanban.yaml suffix). Omit for default 'kanban.yaml'." },
+            "ownerName": { "type": "string", "description": "Name of the owning actor/project/event (required)." }
           }
         }
       },
@@ -321,33 +216,13 @@
         "modelDescription": "jarvis_kanban: Lists kanban board items with optional status and/or labels filter. Returns a compact projection (id, name, status, labels) per item; details: true returns the full items, notes included. ownerName is required.",
         "inputSchema": {
           "type": "object",
-          "required": [
-            "ownerName"
-          ],
+          "required": ["ownerName"],
           "properties": {
-            "status": {
-              "type": "string",
-              "description": "Filter by status value. Must match a declared option."
-            },
-            "labels": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "description": "Filter by labels — all must be present on the item."
-            },
-            "details": {
-              "type": "boolean",
-              "description": "true: return the full items (every field, notes included) of the matching items. Omit or false: compact projection."
-            },
-            "boardName": {
-              "type": "string",
-              "description": "Board file name (without .kanban.yaml suffix). Omit for default 'kanban.yaml'."
-            },
-            "ownerName": {
-              "type": "string",
-              "description": "Name of the owning actor/project/event (required)."
-            }
+            "status": { "type": "string", "description": "Filter by status value. Must match a declared option." },
+            "labels": { "type": "array", "items": { "type": "string" }, "description": "Filter by labels — all must be present on the item." },
+            "details": { "type": "boolean", "description": "true: return the full items (every field, notes included) of the matching items. Omit or false: compact projection." },
+            "boardName": { "type": "string", "description": "Board file name (without .kanban.yaml suffix). Omit for default 'kanban.yaml'." },
+            "ownerName": { "type": "string", "description": "Name of the owning actor/project/event (required)." }
           }
         }
       },
@@ -360,18 +235,10 @@
         "modelDescription": "jarvis_kanban: Returns the status values (columns, empty ones included) and the labels in use on a kanban board, each with the number of cards. Use these values as filters for jarvis_listKanbanItems. ownerName is required.",
         "inputSchema": {
           "type": "object",
-          "required": [
-            "ownerName"
-          ],
+          "required": ["ownerName"],
           "properties": {
-            "boardName": {
-              "type": "string",
-              "description": "Board file name (without .kanban.yaml suffix). Omit for default 'kanban.yaml'."
-            },
-            "ownerName": {
-              "type": "string",
-              "description": "Name of the owning actor/project/event (required)."
-            }
+            "boardName": { "type": "string", "description": "Board file name (without .kanban.yaml suffix). Omit for default 'kanban.yaml'." },
+            "ownerName": { "type": "string", "description": "Name of the owning actor/project/event (required)." }
           }
         }
       },
@@ -384,68 +251,16 @@
         "modelDescription": "jarvis_kanban: Adds or removes field definitions or options on a kanban board. Refuses to remove fields/options still referenced by items. ownerName is required.",
         "inputSchema": {
           "type": "object",
-          "required": [
-            "operation",
-            "fieldName",
-            "ownerName"
-          ],
+          "required": ["operation", "fieldName", "ownerName"],
           "properties": {
-            "operation": {
-              "type": "string",
-              "enum": [
-                "addField",
-                "removeField",
-                "addOption",
-                "removeOption"
-              ],
-              "description": "The operation to perform."
-            },
-            "fieldName": {
-              "type": "string",
-              "description": "Target field name."
-            },
-            "fieldType": {
-              "type": "string",
-              "enum": [
-                "single_select",
-                "text"
-              ],
-              "description": "Field type (addField only)."
-            },
-            "options": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string"
-                  },
-                  "color": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "name"
-                ]
-              },
-              "description": "Initial options (addField with single_select)."
-            },
-            "optionName": {
-              "type": "string",
-              "description": "Option name (addOption/removeOption)."
-            },
-            "optionColor": {
-              "type": "string",
-              "description": "Option color (addOption)."
-            },
-            "boardName": {
-              "type": "string",
-              "description": "Board file name (without .kanban.yaml suffix). Omit for default 'kanban.yaml'."
-            },
-            "ownerName": {
-              "type": "string",
-              "description": "Name of the owning actor/project/event (required)."
-            }
+            "operation": { "type": "string", "enum": ["addField", "removeField", "addOption", "removeOption"], "description": "The operation to perform." },
+            "fieldName": { "type": "string", "description": "Target field name." },
+            "fieldType": { "type": "string", "enum": ["single_select", "text"], "description": "Field type (addField only)." },
+            "options": { "type": "array", "items": { "type": "object", "properties": { "name": { "type": "string" }, "color": { "type": "string" } }, "required": ["name"] }, "description": "Initial options (addField with single_select)." },
+            "optionName": { "type": "string", "description": "Option name (addOption/removeOption)." },
+            "optionColor": { "type": "string", "description": "Option color (addOption)." },
+            "boardName": { "type": "string", "description": "Board file name (without .kanban.yaml suffix). Omit for default 'kanban.yaml'." },
+            "ownerName": { "type": "string", "description": "Name of the owning actor/project/event (required)." }
           }
         }
       }

@@ -96,419 +96,103 @@
       ]
     },
     "commands": [
-      {
-        "command": "jarvis.runHeartbeatJob",
-        "title": "Jarvis: Run Heartbeat Job"
-      },
-      {
-        "command": "jarvis.sendMessages",
-        "title": "Jarvis: Send Messages to Chat Session",
-        "icon": "$(debug-start)"
-      },
-      {
-        "command": "jarvis.enableAutoDelivery",
-        "title": "Enable Direct Delivery",
-        "icon": "$(zap)"
-      },
-      {
-        "command": "jarvis.disableAutoDelivery",
-        "title": "Disable Direct Delivery",
-        "icon": "$(zap)"
-      },
-      {
-        "command": "jarvis.deleteMessage",
-        "title": "Jarvis: Delete Queued Message",
-        "icon": "$(trash)"
-      },
-      {
-        "command": "jarvis.openSession",
-        "title": "Jarvis: Open Chat Session"
-      },
-      {
-        "command": "jarvis.openActorSession",
-        "title": "Open"
-      },
-      {
-        "command": "jarvis.injectPrompt",
-        "title": "Jarvis: Inject Prompt"
-      },
-      {
-        "command": "jarvis.newActor",
-        "title": "Jarvis: New Actor",
-        "icon": "$(add)"
-      },
-      {
-        "command": "jarvis.checkForUpdates",
-        "title": "Jarvis: Check for Updates"
-      },
-      {
-        "command": "jarvis.showReleaseNotes",
-        "title": "Jarvis: Show Release Notes"
-      },
-      {
-        "command": "jarvis.rescan",
-        "title": "Jarvis: Rescan",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "jarvis.runJob",
-        "title": "Jarvis: Run Job",
-        "icon": "$(play)"
-      },
-      {
-        "command": "jarvis.listModels",
-        "title": "Jarvis: List Language Models"
-      },
-      {
-        "command": "jarvis.pauseHeartbeatJob",
-        "title": "Jarvis: Pause Heartbeat Job",
-        "icon": "$(debug-pause)"
-      },
-      {
-        "command": "jarvis.resumeHeartbeatJob",
-        "title": "Jarvis: Resume Heartbeat Job",
-        "icon": "$(debug-continue)"
-      },
-      {
-        "command": "jarvis.refreshHeartbeat",
-        "title": "Jarvis: Refresh Heartbeat",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "jarvis.revealInExplorer",
-        "title": "Reveal in Explorer"
-      },
-      {
-        "command": "jarvis.revealInOS",
-        "title": "Reveal in File Explorer"
-      },
-      {
-        "command": "jarvis.openInTerminal",
-        "title": "Open in Terminal"
-      },
-      {
-        "command": "jarvis.openHeartbeatJob",
-        "title": "Jarvis: Open Heartbeat Job"
-      },
-      {
-        "command": "jarvis.openMessageFile",
-        "title": "Jarvis: Open Message File"
-      },
-      {
-        "command": "jarvis.openActorFile",
-        "title": "Jarvis: Open Actor File"
-      },
-      {
-        "command": "jarvis.openReminderFile",
-        "title": "Jarvis: Open Reminder File"
-      },
-      {
-        "command": "jarvis.cancelReminder",
-        "title": "Jarvis: Cancel Reminder",
-        "icon": "$(trash)"
-      },
-      {
-        "command": "jarvis.copyPath",
-        "title": "Copy Path"
-      },
-      {
-        "command": "jarvis.copyFullPath",
-        "title": "Copy Full Path"
-      },
-      {
-        "command": "jarvis.copyFileName",
-        "title": "Copy File Name"
-      },
-      {
-        "command": "jarvis.openMessageSession",
-        "title": "Jarvis: Open Message Session"
-      },
-      {
-        "command": "jarvis.diffTouchedFile",
-        "title": "Jarvis: Show Changes"
-      },
-      {
-        "command": "jarvis.removeTouchedFile",
-        "title": "Jarvis: Remove Touched File",
-        "icon": "$(trash)"
-      },
-      {
-        "command": "jarvis.removeTouchedFiles",
-        "title": "Jarvis: Remove Touched Files",
-        "icon": "$(trash)"
-      },
-      {
-        "command": "jarvis.cleanupTouchedFiles",
-        "title": "Jarvis: Clean Up Touched Files",
-        "icon": "$(clear-all)"
-      }
+      { "command": "jarvis.runHeartbeatJob", "title": "Jarvis: Run Heartbeat Job" },
+      { "command": "jarvis.sendMessages", "title": "Jarvis: Send Messages to Chat Session", "icon": "$(debug-start)" },
+      { "command": "jarvis.enableAutoDelivery", "title": "Enable Direct Delivery", "icon": "$(zap)" },
+      { "command": "jarvis.disableAutoDelivery", "title": "Disable Direct Delivery", "icon": "$(zap)" },
+      { "command": "jarvis.deleteMessage", "title": "Jarvis: Delete Queued Message", "icon": "$(trash)" },
+      { "command": "jarvis.openSession", "title": "Jarvis: Open Chat Session" },
+      { "command": "jarvis.openActorSession", "title": "Open" },
+      { "command": "jarvis.injectPrompt", "title": "Jarvis: Inject Prompt" },
+      { "command": "jarvis.newActor", "title": "Jarvis: New Actor", "icon": "$(add)" },
+      { "command": "jarvis.checkForUpdates", "title": "Jarvis: Check for Updates" },
+      { "command": "jarvis.showReleaseNotes", "title": "Jarvis: Show Release Notes" },
+      { "command": "jarvis.rescan", "title": "Jarvis: Rescan", "icon": "$(refresh)" },
+      { "command": "jarvis.runJob", "title": "Jarvis: Run Job", "icon": "$(play)" },
+      { "command": "jarvis.listModels", "title": "Jarvis: List Language Models" },
+      { "command": "jarvis.pauseHeartbeatJob", "title": "Jarvis: Pause Heartbeat Job", "icon": "$(debug-pause)" },
+      { "command": "jarvis.resumeHeartbeatJob", "title": "Jarvis: Resume Heartbeat Job", "icon": "$(debug-continue)" },
+      { "command": "jarvis.refreshHeartbeat", "title": "Jarvis: Refresh Heartbeat", "icon": "$(refresh)" },
+      { "command": "jarvis.revealInExplorer", "title": "Reveal in Explorer" },
+      { "command": "jarvis.revealInOS", "title": "Reveal in File Explorer" },
+      { "command": "jarvis.openInTerminal", "title": "Open in Terminal" },
+      { "command": "jarvis.openHeartbeatJob", "title": "Jarvis: Open Heartbeat Job" },
+      { "command": "jarvis.openMessageFile", "title": "Jarvis: Open Message File" },
+      { "command": "jarvis.openActorFile", "title": "Jarvis: Open Actor File" },
+      { "command": "jarvis.openReminderFile", "title": "Jarvis: Open Reminder File" },
+      { "command": "jarvis.cancelReminder", "title": "Jarvis: Cancel Reminder", "icon": "$(trash)" },
+      { "command": "jarvis.copyPath", "title": "Copy Path" },
+      { "command": "jarvis.copyFullPath", "title": "Copy Full Path" },
+      { "command": "jarvis.copyFileName", "title": "Copy File Name" },
+      { "command": "jarvis.openMessageSession", "title": "Jarvis: Open Message Session" },
+      { "command": "jarvis.diffTouchedFile", "title": "Jarvis: Show Changes" },
+      { "command": "jarvis.removeTouchedFile", "title": "Jarvis: Remove Touched File", "icon": "$(trash)" },
+      { "command": "jarvis.removeTouchedFiles", "title": "Jarvis: Remove Touched Files", "icon": "$(trash)" },
+      { "command": "jarvis.cleanupTouchedFiles", "title": "Jarvis: Clean Up Touched Files", "icon": "$(clear-all)" }
     ],
     "menus": {
       "commandPalette": [
-        {
-          "command": "jarvis.openActorSession",
-          "when": "false"
-        },
-        {
-          "command": "jarvis.newActor",
-          "when": "false"
-        },
-        {
-          "command": "jarvis.rescan",
-          "when": "false"
-        },
-        {
-          "command": "jarvis.runJob",
-          "when": "false"
-        },
-        {
-          "command": "jarvis.pauseHeartbeatJob",
-          "when": "false"
-        },
-        {
-          "command": "jarvis.resumeHeartbeatJob",
-          "when": "false"
-        },
-        {
-          "command": "jarvis.refreshHeartbeat",
-          "when": "false"
-        },
-        {
-          "command": "jarvis.revealInExplorer",
-          "when": "false"
-        },
-        {
-          "command": "jarvis.revealInOS",
-          "when": "false"
-        },
-        {
-          "command": "jarvis.openInTerminal",
-          "when": "false"
-        },
-        {
-          "command": "jarvis.openHeartbeatJob",
-          "when": "false"
-        },
-        {
-          "command": "jarvis.openMessageFile",
-          "when": "false"
-        },
-        {
-          "command": "jarvis.openActorFile",
-          "when": "false"
-        },
-        {
-          "command": "jarvis.openReminderFile",
-          "when": "false"
-        },
-        {
-          "command": "jarvis.enableAutoDelivery",
-          "when": "false"
-        },
-        {
-          "command": "jarvis.disableAutoDelivery",
-          "when": "false"
-        },
-        {
-          "command": "jarvis.cancelReminder",
-          "when": "false"
-        },
-        {
-          "command": "jarvis.copyPath",
-          "when": "false"
-        },
-        {
-          "command": "jarvis.copyFullPath",
-          "when": "false"
-        },
-        {
-          "command": "jarvis.copyFileName",
-          "when": "false"
-        },
-        {
-          "command": "jarvis.openMessageSession",
-          "when": "false"
-        },
-        {
-          "command": "jarvis.diffTouchedFile",
-          "when": "false"
-        },
-        {
-          "command": "jarvis.removeTouchedFile",
-          "when": "false"
-        },
-        {
-          "command": "jarvis.removeTouchedFiles",
-          "when": "false"
-        },
-        {
-          "command": "jarvis.cleanupTouchedFiles",
-          "when": "false"
-        }
+        { "command": "jarvis.openActorSession", "when": "false" },
+        { "command": "jarvis.newActor", "when": "false" },
+        { "command": "jarvis.rescan", "when": "false" },
+        { "command": "jarvis.runJob", "when": "false" },
+        { "command": "jarvis.pauseHeartbeatJob", "when": "false" },
+        { "command": "jarvis.resumeHeartbeatJob", "when": "false" },
+        { "command": "jarvis.refreshHeartbeat", "when": "false" },
+        { "command": "jarvis.revealInExplorer", "when": "false" },
+        { "command": "jarvis.revealInOS", "when": "false" },
+        { "command": "jarvis.openInTerminal", "when": "false" },
+        { "command": "jarvis.openHeartbeatJob", "when": "false" },
+        { "command": "jarvis.openMessageFile", "when": "false" },
+        { "command": "jarvis.openActorFile", "when": "false" },
+        { "command": "jarvis.openReminderFile", "when": "false" },
+        { "command": "jarvis.enableAutoDelivery", "when": "false" },
+        { "command": "jarvis.disableAutoDelivery", "when": "false" },
+        { "command": "jarvis.cancelReminder", "when": "false" },
+        { "command": "jarvis.copyPath", "when": "false" },
+        { "command": "jarvis.copyFullPath", "when": "false" },
+        { "command": "jarvis.copyFileName", "when": "false" },
+        { "command": "jarvis.openMessageSession", "when": "false" },
+        { "command": "jarvis.diffTouchedFile", "when": "false" },
+        { "command": "jarvis.removeTouchedFile", "when": "false" },
+        { "command": "jarvis.removeTouchedFiles", "when": "false" },
+        { "command": "jarvis.cleanupTouchedFiles", "when": "false" }
       ],
       "view/title": [
-        {
-          "command": "jarvis.newActor",
-          "when": "view == jarvisActors",
-          "group": "navigation@1"
-        },
-        {
-          "command": "jarvis.rescan",
-          "when": "view == jarvisActors",
-          "group": "navigation@2"
-        },
-        {
-          "command": "jarvis.refreshHeartbeat",
-          "when": "view == jarvisHeartbeat",
-          "group": "navigation@1"
-        }
+        { "command": "jarvis.newActor", "when": "view == jarvisActors", "group": "navigation@1" },
+        { "command": "jarvis.rescan", "when": "view == jarvisActors", "group": "navigation@2" },
+        { "command": "jarvis.refreshHeartbeat", "when": "view == jarvisHeartbeat", "group": "navigation@1" }
       ],
       "view/item/context": [
-        {
-          "command": "jarvis.sendMessages",
-          "when": "viewItem == messageSession || viewItem == jarvisSessionManual || viewItem == jarvisSessionAutoDeliver",
-          "group": "inline"
-        },
-        {
-          "command": "jarvis.enableAutoDelivery",
-          "when": "viewItem == jarvisSessionManual",
-          "group": "inline"
-        },
-        {
-          "command": "jarvis.disableAutoDelivery",
-          "when": "viewItem == jarvisSessionAutoDeliver",
-          "group": "inline"
-        },
-        {
-          "command": "jarvis.deleteMessage",
-          "when": "viewItem == messageItem",
-          "group": "inline"
-        },
-        {
-          "command": "jarvis.runJob",
-          "when": "viewItem == heartbeatJob",
-          "group": "inline"
-        },
-        {
-          "command": "jarvis.runJob",
-          "when": "viewItem == heartbeatJobPaused",
-          "group": "inline"
-        },
-        {
-          "command": "jarvis.pauseHeartbeatJob",
-          "when": "viewItem == heartbeatJob",
-          "group": "inline"
-        },
-        {
-          "command": "jarvis.resumeHeartbeatJob",
-          "when": "viewItem == heartbeatJobPaused",
-          "group": "inline"
-        },
-        {
-          "command": "jarvis.cancelReminder",
-          "when": "viewItem == jarvisReminder",
-          "group": "inline"
-        },
-        {
-          "command": "jarvis.openActorSession",
-          "when": "viewItem == jarvisActor",
-          "group": "open"
-        },
-        {
-          "command": "jarvis.revealInExplorer",
-          "when": "viewItem == jarvisActor",
-          "group": "context-actions"
-        },
-        {
-          "command": "jarvis.revealInOS",
-          "when": "viewItem == jarvisActor",
-          "group": "context-actions"
-        },
-        {
-          "command": "jarvis.openInTerminal",
-          "when": "viewItem == jarvisActor",
-          "group": "context-actions"
-        },
-        {
-          "command": "jarvis.copyPath",
-          "when": "viewItem == jarvisActor",
-          "group": "clipboard@1"
-        },
-        {
-          "command": "jarvis.copyFullPath",
-          "when": "viewItem == jarvisActor",
-          "group": "clipboard@2"
-        },
-        {
-          "command": "jarvis.openActorFile",
-          "when": "viewItem == jarvisActorFile",
-          "group": "open"
-        },
-        {
-          "command": "jarvis.copyPath",
-          "when": "viewItem == jarvisActorFile",
-          "group": "clipboard@1"
-        },
-        {
-          "command": "jarvis.copyFullPath",
-          "when": "viewItem == jarvisActorFile",
-          "group": "clipboard@2"
-        },
-        {
-          "command": "jarvis.copyFileName",
-          "when": "viewItem == jarvisActorFile",
-          "group": "clipboard@3"
-        },
-        {
-          "command": "jarvis.openActorFile",
-          "when": "viewItem == jarvisTouchedFile",
-          "group": "open"
-        },
-        {
-          "command": "jarvis.revealInExplorer",
-          "when": "viewItem == jarvisTouchedFile",
-          "group": "context-actions"
-        },
-        {
-          "command": "jarvis.copyPath",
-          "when": "viewItem == jarvisTouchedFile",
-          "group": "clipboard@1"
-        },
-        {
-          "command": "jarvis.copyFullPath",
-          "when": "viewItem == jarvisTouchedFile",
-          "group": "clipboard@2"
-        },
-        {
-          "command": "jarvis.copyFileName",
-          "when": "viewItem == jarvisTouchedFile",
-          "group": "clipboard@3"
-        },
-        {
-          "command": "jarvis.diffTouchedFile",
-          "when": "viewItem == jarvisTouchedFile",
-          "group": "diff"
-        },
-        {
-          "command": "jarvis.removeTouchedFile",
-          "when": "viewItem == jarvisTouchedFile",
-          "group": "inline"
-        },
-        {
-          "command": "jarvis.removeTouchedFiles",
-          "when": "viewItem == jarvisTouchedFileFolder",
-          "group": "inline"
-        },
-        {
-          "command": "jarvis.removeTouchedFiles",
-          "when": "viewItem == jarvisActorFileCategory:touched",
-          "group": "inline@2"
-        },
-        {
-          "command": "jarvis.cleanupTouchedFiles",
-          "when": "viewItem == jarvisActorFileCategory:touched",
-          "group": "inline@1"
-        }
+        { "command": "jarvis.sendMessages", "when": "viewItem == messageSession || viewItem == jarvisSessionManual || viewItem == jarvisSessionAutoDeliver", "group": "inline" },
+        { "command": "jarvis.enableAutoDelivery", "when": "viewItem == jarvisSessionManual", "group": "inline" },
+        { "command": "jarvis.disableAutoDelivery", "when": "viewItem == jarvisSessionAutoDeliver", "group": "inline" },
+        { "command": "jarvis.deleteMessage", "when": "viewItem == messageItem", "group": "inline" },
+        { "command": "jarvis.runJob", "when": "viewItem == heartbeatJob", "group": "inline" },
+        { "command": "jarvis.runJob", "when": "viewItem == heartbeatJobPaused", "group": "inline" },
+        { "command": "jarvis.pauseHeartbeatJob", "when": "viewItem == heartbeatJob", "group": "inline" },
+        { "command": "jarvis.resumeHeartbeatJob", "when": "viewItem == heartbeatJobPaused", "group": "inline" },
+        { "command": "jarvis.cancelReminder", "when": "viewItem == jarvisReminder", "group": "inline" },
+        { "command": "jarvis.openActorSession", "when": "viewItem == jarvisActor", "group": "open" },
+        { "command": "jarvis.revealInExplorer", "when": "viewItem == jarvisActor", "group": "context-actions" },
+        { "command": "jarvis.revealInOS", "when": "viewItem == jarvisActor", "group": "context-actions" },
+        { "command": "jarvis.openInTerminal", "when": "viewItem == jarvisActor", "group": "context-actions" },
+        { "command": "jarvis.copyPath", "when": "viewItem == jarvisActor", "group": "clipboard@1" },
+        { "command": "jarvis.copyFullPath", "when": "viewItem == jarvisActor", "group": "clipboard@2" },
+        { "command": "jarvis.openActorFile", "when": "viewItem == jarvisActorFile", "group": "open" },
+        { "command": "jarvis.copyPath", "when": "viewItem == jarvisActorFile", "group": "clipboard@1" },
+        { "command": "jarvis.copyFullPath", "when": "viewItem == jarvisActorFile", "group": "clipboard@2" },
+        { "command": "jarvis.copyFileName", "when": "viewItem == jarvisActorFile", "group": "clipboard@3" },
+        { "command": "jarvis.openActorFile", "when": "viewItem == jarvisTouchedFile", "group": "open" },
+        { "command": "jarvis.revealInExplorer", "when": "viewItem == jarvisTouchedFile", "group": "context-actions" },
+        { "command": "jarvis.copyPath", "when": "viewItem == jarvisTouchedFile", "group": "clipboard@1" },
+        { "command": "jarvis.copyFullPath", "when": "viewItem == jarvisTouchedFile", "group": "clipboard@2" },
+        { "command": "jarvis.copyFileName", "when": "viewItem == jarvisTouchedFile", "group": "clipboard@3" },
+        { "command": "jarvis.diffTouchedFile", "when": "viewItem == jarvisTouchedFile", "group": "diff" },
+        { "command": "jarvis.removeTouchedFile", "when": "viewItem == jarvisTouchedFile", "group": "inline" },
+        { "command": "jarvis.removeTouchedFiles", "when": "viewItem == jarvisTouchedFileFolder", "group": "inline" },
+        { "command": "jarvis.removeTouchedFiles", "when": "viewItem == jarvisActorFileCategory:touched", "group": "inline@2" },
+        { "command": "jarvis.cleanupTouchedFiles", "when": "viewItem == jarvisActorFileCategory:touched", "group": "inline@1" }
       ]
     },
     "configuration": [
@@ -535,16 +219,8 @@
       {
         "title": "Messages",
         "properties": {
-          "jarvis.messages.enabled": {
-            "type": "boolean",
-            "default": true,
-            "description": "Enable the Messages feature."
-          },
-          "jarvis.messages.logging": {
-            "type": "boolean",
-            "default": true,
-            "description": "When enabled, every queued message is also appended to .jarvis/message-log.json."
-          }
+          "jarvis.messages.enabled": { "type": "boolean", "default": true, "description": "Enable the Messages feature." },
+          "jarvis.messages.logging": { "type": "boolean", "default": true, "description": "When enabled, every queued message is also appended to .jarvis/message-log.json." }
         }
       },
       {
@@ -569,33 +245,15 @@
       {
         "title": "Heartbeat",
         "properties": {
-          "jarvis.heartbeat.enabled": {
-            "type": "boolean",
-            "default": true,
-            "description": "Enable the Heartbeat scheduler."
-          },
-          "jarvis.heartbeatInterval": {
-            "type": "number",
-            "default": 60,
-            "minimum": 10,
-            "description": "Heartbeat scheduler tick interval in seconds."
-          },
-          "jarvis.scanInterval": {
-            "type": "number",
-            "default": 2,
-            "minimum": 0,
-            "description": "Background rescan interval in minutes (0 = disabled)."
-          }
+          "jarvis.heartbeat.enabled": { "type": "boolean", "default": true, "description": "Enable the Heartbeat scheduler." },
+          "jarvis.heartbeatInterval": { "type": "number", "default": 60, "minimum": 10, "description": "Heartbeat scheduler tick interval in seconds." },
+          "jarvis.scanInterval": { "type": "number", "default": 2, "minimum": 0, "description": "Background rescan interval in minutes (0 = disabled)." }
         }
       },
       {
         "title": "Reminders",
         "properties": {
-          "jarvis.reminders.enabled": {
-            "type": "boolean",
-            "default": true,
-            "description": "Enable the Reminders sub-feature."
-          }
+          "jarvis.reminders.enabled": { "type": "boolean", "default": true, "description": "Enable the Reminders sub-feature." }
         }
       },
       {
@@ -612,17 +270,8 @@
       {
         "title": "Updates",
         "properties": {
-          "jarvis.checkForUpdates": {
-            "type": "boolean",
-            "default": true,
-            "description": "Check for new Jarvis releases on GitHub when the extension activates."
-          },
-          "jarvis.releaseNotes.showOnUpdate": {
-            "type": "boolean",
-            "default": true,
-            "scope": "application",
-            "description": "Open the release notes in the editor the first time a newly installed Jarvis version runs. The command \"Jarvis: Show Release Notes\" works regardless of this setting."
-          }
+          "jarvis.checkForUpdates": { "type": "boolean", "default": true, "description": "Check for new Jarvis releases on GitHub when the extension activates." },
+          "jarvis.releaseNotes.showOnUpdate": { "type": "boolean", "default": true, "scope": "application", "description": "Open the release notes in the editor the first time a newly installed Jarvis version runs. The command \"Jarvis: Show Release Notes\" works regardless of this setting." }
         }
       },
       {
@@ -648,342 +297,108 @@
         "name": "jarvis_createActor",
         "displayName": "Create Actor",
         "modelDescription": "jarvis_core: Creates a new Jarvis Actor folder with actor.yaml and context.md under <workspace>/.jarvis/actors/<name>/. Idempotent.",
-        "canBeReferencedInPrompt": true,
-        "toolReferenceName": "jarvis_core_createActor",
-        "icon": "$(add)",
-        "tags": [
-          "jarvis"
-        ],
-        "inputSchema": {
-          "type": "object",
-          "required": [
-            "name"
-          ],
-          "properties": {
-            "name": {
-              "type": "string"
-            },
-            "summary": {
-              "type": "string"
-            },
-            "initialMessage": {
-              "type": "string"
-            }
-          }
-        }
+        "canBeReferencedInPrompt": true, "toolReferenceName": "jarvis_core_createActor", "icon": "$(add)", "tags": ["jarvis"],
+        "inputSchema": { "type": "object", "required": ["name"], "properties": { "name": { "type": "string" }, "summary": { "type": "string" }, "initialMessage": { "type": "string" } } }
       },
       {
         "name": "jarvis_sendToSession",
         "displayName": "Send Message to Chat Session",
         "modelDescription": "jarvis_core: [DEPRECATED AND DISABLED — use jarvis_sendMessage instead.] Queues a message for delivery to another VS Code chat session identified by name.",
-        "canBeReferencedInPrompt": true,
-        "toolReferenceName": "jarvis_core_sendToSession",
-        "icon": "$(comment-discussion)",
-        "inputSchema": {
-          "type": "object",
-          "required": [
-            "session",
-            "text"
-          ],
-          "properties": {
-            "session": {
-              "type": "string"
-            },
-            "senderSession": {
-              "type": "string"
-            },
-            "text": {
-              "type": "string"
-            }
-          }
-        }
+        "canBeReferencedInPrompt": true, "toolReferenceName": "jarvis_core_sendToSession", "icon": "$(comment-discussion)",
+        "inputSchema": { "type": "object", "required": ["session", "text"], "properties": { "session": { "type": "string" }, "senderSession": { "type": "string" }, "text": { "type": "string" } } }
       },
       {
         "name": "jarvis_sendMessage",
         "displayName": "Send Message",
         "modelDescription": "jarvis_core: Queues a text message for delivery to a destination identified by name. Valid destinations are VS Code chat session tabs AND Actor names. senderSession is required and validated against the same set — callers must pass their own session name explicitly. Fails immediately with an error if the destination or sender does not exist.",
-        "canBeReferencedInPrompt": true,
-        "toolReferenceName": "jarvis_core_sendMessage",
-        "icon": "$(mail)",
-        "inputSchema": {
-          "type": "object",
-          "required": [
-            "session",
-            "text",
-            "senderSession"
-          ],
-          "properties": {
-            "session": {
-              "type": "string",
-              "description": "The exact name of the target (VS Code chat session title or YAML entity name)"
-            },
-            "text": {
-              "type": "string",
-              "description": "The message text to queue"
-            },
-            "senderSession": {
-              "type": "string",
-              "description": "Required: the exact name of the sending session — must not be omitted or inferred from the active tab"
-            }
-          }
-        }
+        "canBeReferencedInPrompt": true, "toolReferenceName": "jarvis_core_sendMessage", "icon": "$(mail)",
+        "inputSchema": { "type": "object", "required": ["session", "text", "senderSession"], "properties": { "session": { "type": "string", "description": "The exact name of the target (VS Code chat session title or YAML entity name)" }, "text": { "type": "string", "description": "The message text to queue" }, "senderSession": { "type": "string", "description": "Required: the exact name of the sending session — must not be omitted or inferred from the active tab" } } }
       },
       {
         "name": "jarvis_listActors",
         "displayName": "List Actors",
         "modelDescription": "jarvis_core: Lists all Jarvis Actors (name, summary, agent, folder, id). Distinct from jarvis_listChatSessions, which lists VS Code chat tab titles.",
-        "canBeReferencedInPrompt": true,
-        "toolReferenceName": "jarvis_core_listActors",
-        "icon": "$(list-unordered)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {}
-        }
+        "canBeReferencedInPrompt": true, "toolReferenceName": "jarvis_core_listActors", "icon": "$(list-unordered)",
+        "inputSchema": { "type": "object", "properties": {} }
       },
       {
         "name": "jarvis_listChatSessions",
         "displayName": "List Chat Sessions",
         "modelDescription": "jarvis_core: Returns the list of named VS Code chat session titles in the current workspace.",
-        "canBeReferencedInPrompt": true,
-        "toolReferenceName": "jarvis_core_listChatSessions",
-        "icon": "$(comment-discussion)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {}
-        }
+        "canBeReferencedInPrompt": true, "toolReferenceName": "jarvis_core_listChatSessions", "icon": "$(comment-discussion)",
+        "inputSchema": { "type": "object", "properties": {} }
       },
       {
         "name": "jarvis_readMessage",
         "displayName": "Read Message from Inbox",
         "modelDescription": "jarvis_core: [DEPRECATED AND DISABLED — use jarvis_receiveMessage instead.] Reads and removes the oldest message from the Jarvis message queue for the given destination session.",
-        "canBeReferencedInPrompt": true,
-        "toolReferenceName": "jarvis_core_readMessage",
-        "icon": "$(mail-read)",
-        "inputSchema": {
-          "type": "object",
-          "required": [
-            "destination"
-          ],
-          "properties": {
-            "destination": {
-              "type": "string"
-            }
-          }
-        }
+        "canBeReferencedInPrompt": true, "toolReferenceName": "jarvis_core_readMessage", "icon": "$(mail-read)",
+        "inputSchema": { "type": "object", "required": ["destination"], "properties": { "destination": { "type": "string" } } }
       },
       {
         "name": "jarvis_receiveMessage",
         "displayName": "Receive Message from Inbox",
         "modelDescription": "jarvis_core: Reads and removes the oldest message from the Jarvis inbox for the given destination session. Returns { message: { sender, text, timestamp } | null, remaining: number }. Call repeatedly until remaining === 0.",
-        "canBeReferencedInPrompt": true,
-        "toolReferenceName": "jarvis_core_receiveMessage",
-        "icon": "$(mail-read)",
-        "inputSchema": {
-          "type": "object",
-          "required": [
-            "destination"
-          ],
-          "properties": {
-            "destination": {
-              "type": "string",
-              "description": "The exact name/title of the chat session whose inbox to read"
-            }
-          }
-        }
+        "canBeReferencedInPrompt": true, "toolReferenceName": "jarvis_core_receiveMessage", "icon": "$(mail-read)",
+        "inputSchema": { "type": "object", "required": ["destination"], "properties": { "destination": { "type": "string", "description": "The exact name/title of the chat session whose inbox to read" } } }
       },
       {
         "name": "jarvis_registerJob",
         "displayName": "Register Heartbeat Job",
         "modelDescription": "jarvis_core: Registers (or updates) a heartbeat job.",
-        "canBeReferencedInPrompt": true,
-        "toolReferenceName": "jarvis_core_registerJob",
-        "icon": "$(add)",
-        "inputSchema": {
-          "type": "object",
-          "required": [
-            "name",
-            "schedule",
-            "steps"
-          ],
-          "properties": {
-            "name": {
-              "type": "string"
-            },
-            "schedule": {
-              "type": "string"
-            },
-            "steps": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "required": [
-                  "type"
-                ],
-                "properties": {
-                  "type": {
-                    "type": "string"
-                  },
-                  "run": {
-                    "type": "string"
-                  },
-                  "prompt": {
-                    "type": "string"
-                  },
-                  "outputFile": {
-                    "type": "string"
-                  },
-                  "append": {
-                    "type": "boolean"
-                  },
-                  "vendor": {
-                    "type": "string",
-                    "description": "Agent step: vendor of the language model, exactly as returned by jarvis_listModels."
-                  },
-                  "model": {
-                    "type": "string",
-                    "description": "Agent step: model id, exactly as returned by jarvis_listModels."
-                  },
-                  "destination": {
-                    "type": "string"
-                  },
-                  "sender": {
-                    "type": "string"
-                  },
-                  "text": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        }
+        "canBeReferencedInPrompt": true, "toolReferenceName": "jarvis_core_registerJob", "icon": "$(add)",
+        "inputSchema": { "type": "object", "required": ["name", "schedule", "steps"], "properties": { "name": { "type": "string" }, "schedule": { "type": "string" }, "steps": { "type": "array", "items": { "type": "object", "required": ["type"], "properties": { "type": { "type": "string" }, "run": { "type": "string" }, "prompt": { "type": "string" }, "outputFile": { "type": "string" }, "append": { "type": "boolean" }, "vendor": { "type": "string", "description": "Agent step: vendor of the language model, exactly as returned by jarvis_listModels." }, "model": { "type": "string", "description": "Agent step: model id, exactly as returned by jarvis_listModels." }, "destination": { "type": "string" }, "sender": { "type": "string" }, "text": { "type": "string" } } } } } }
       },
       {
         "name": "jarvis_unregisterJob",
         "displayName": "Unregister Heartbeat Job",
         "modelDescription": "jarvis_core: Removes a heartbeat job by name.",
-        "canBeReferencedInPrompt": true,
-        "toolReferenceName": "jarvis_core_unregisterJob",
-        "icon": "$(trash)",
-        "inputSchema": {
-          "type": "object",
-          "required": [
-            "name"
-          ],
-          "properties": {
-            "name": {
-              "type": "string"
-            }
-          }
-        }
+        "canBeReferencedInPrompt": true, "toolReferenceName": "jarvis_core_unregisterJob", "icon": "$(trash)",
+        "inputSchema": { "type": "object", "required": ["name"], "properties": { "name": { "type": "string" } } }
       },
       {
         "name": "jarvis_listJobs",
         "displayName": "List Heartbeat Jobs",
         "modelDescription": "jarvis_core: Returns all registered heartbeat jobs.",
-        "canBeReferencedInPrompt": true,
-        "toolReferenceName": "jarvis_core_listJobs",
-        "icon": "$(list-unordered)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {}
-        }
+        "canBeReferencedInPrompt": true, "toolReferenceName": "jarvis_core_listJobs", "icon": "$(list-unordered)",
+        "inputSchema": { "type": "object", "properties": {} }
       },
       {
         "name": "jarvis_listModels",
         "displayName": "List Language Models",
         "modelDescription": "jarvis_core: Returns the language models an agent step of a heartbeat job can name, as an array of { vendor, model }. Use vendor and model exactly as returned.",
-        "canBeReferencedInPrompt": true,
-        "toolReferenceName": "jarvis_core_listModels",
-        "icon": "$(list-unordered)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {}
-        }
+        "canBeReferencedInPrompt": true, "toolReferenceName": "jarvis_core_listModels", "icon": "$(list-unordered)",
+        "inputSchema": { "type": "object", "properties": {} }
       },
       {
         "name": "jarvis_setReminder",
         "displayName": "Set Reminder",
         "modelDescription": "jarvis_core: Registers a time-scheduled reminder.",
-        "canBeReferencedInPrompt": true,
-        "toolReferenceName": "jarvis_core_setReminder",
-        "icon": "$(bell)",
-        "inputSchema": {
-          "type": "object",
-          "required": [
-            "text",
-            "session",
-            "deliverAt"
-          ],
-          "properties": {
-            "text": {
-              "type": "string"
-            },
-            "session": {
-              "type": "string"
-            },
-            "deliverAt": {
-              "type": "string"
-            }
-          }
-        }
+        "canBeReferencedInPrompt": true, "toolReferenceName": "jarvis_core_setReminder", "icon": "$(bell)",
+        "inputSchema": { "type": "object", "required": ["text", "session", "deliverAt"], "properties": { "text": { "type": "string" }, "session": { "type": "string" }, "deliverAt": { "type": "string" } } }
       },
       {
         "name": "jarvis_listReminders",
         "displayName": "List Reminders",
         "modelDescription": "jarvis_core: Returns all pending reminders.",
-        "canBeReferencedInPrompt": true,
-        "toolReferenceName": "jarvis_core_listReminders",
-        "icon": "$(bell)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {}
-        }
+        "canBeReferencedInPrompt": true, "toolReferenceName": "jarvis_core_listReminders", "icon": "$(bell)",
+        "inputSchema": { "type": "object", "properties": {} }
       },
       {
         "name": "jarvis_cancelReminder",
         "displayName": "Cancel Reminder",
         "modelDescription": "jarvis_core: Cancels a pending reminder by id.",
-        "canBeReferencedInPrompt": true,
-        "toolReferenceName": "jarvis_core_cancelReminder",
-        "icon": "$(bell-slash)",
-        "inputSchema": {
-          "type": "object",
-          "required": [
-            "id"
-          ],
-          "properties": {
-            "id": {
-              "type": "string"
-            }
-          }
-        }
+        "canBeReferencedInPrompt": true, "toolReferenceName": "jarvis_core_cancelReminder", "icon": "$(bell-slash)",
+        "inputSchema": { "type": "object", "required": ["id"], "properties": { "id": { "type": "string" } } }
       },
       {
         "name": "jarvis_injectPrompt",
         "displayName": "Inject Prompt",
         "modelDescription": "jarvis_core: Inject a prompt or slash-command into a named Actor's chat session. If no session exists, one is spawned automatically.",
-        "canBeReferencedInPrompt": true,
-        "toolReferenceName": "jarvis_core_injectPrompt",
-        "icon": "$(terminal)",
-        "inputSchema": {
-          "type": "object",
-          "required": [
-            "actor",
-            "text"
-          ],
-          "properties": {
-            "actor": {
-              "type": "string",
-              "description": "The name of the target Actor."
-            },
-            "text": {
-              "type": "string",
-              "description": "The text or slash-command to inject (e.g. \"/compact\", \"read your context.md\")."
-            }
-          }
-        }
+        "canBeReferencedInPrompt": true, "toolReferenceName": "jarvis_core_injectPrompt", "icon": "$(terminal)",
+        "inputSchema": { "type": "object", "required": ["actor", "text"], "properties": { "actor": { "type": "string", "description": "The name of the target Actor." }, "text": { "type": "string", "description": "The text or slash-command to inject (e.g. \"/compact\", \"read your context.md\")." } } }
       }
     ]
   }
 }
+

@@ -65,39 +65,15 @@
         "name": "jarvis_delaySyspilotUpdate",
         "displayName": "Delay Syspilot Update",
         "modelDescription": "jarvis_syspilot: Delays the syspilot update prompt for N days by suspending update notifications until then.",
-        "canBeReferencedInPrompt": true,
-        "toolReferenceName": "jarvis_syspilot_delaySyspilotUpdate",
-        "icon": "$(watch)",
-        "tags": [
-          "jarvis"
-        ],
-        "inputSchema": {
-          "type": "object",
-          "required": [
-            "days"
-          ],
-          "properties": {
-            "days": {
-              "type": "number",
-              "description": "Number of days to delay the update prompt"
-            }
-          }
-        }
+        "canBeReferencedInPrompt": true, "toolReferenceName": "jarvis_syspilot_delaySyspilotUpdate", "icon": "$(watch)", "tags": ["jarvis"],
+        "inputSchema": { "type": "object", "required": ["days"], "properties": { "days": { "type": "number", "description": "Number of days to delay the update prompt" } } }
       },
       {
         "name": "jarvis_SyspilotSkipThisVersion",
         "displayName": "Skip This Syspilot Version",
         "modelDescription": "jarvis_syspilot: Permanently skips the current pending upstream syspilot version — no further update notifications are sent for it.",
-        "canBeReferencedInPrompt": true,
-        "toolReferenceName": "jarvis_syspilot_SyspilotSkipThisVersion",
-        "icon": "$(debug-step-over)",
-        "tags": [
-          "jarvis"
-        ],
-        "inputSchema": {
-          "type": "object",
-          "properties": {}
-        }
+        "canBeReferencedInPrompt": true, "toolReferenceName": "jarvis_syspilot_SyspilotSkipThisVersion", "icon": "$(debug-step-over)", "tags": ["jarvis"],
+        "inputSchema": { "type": "object", "properties": {} }
       }
     ]
   },
