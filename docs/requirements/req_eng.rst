@@ -49,6 +49,45 @@ Engine Requirements
    * AC-4: Core tool names retain the ``jarvis_<verb>`` form without an infix.
 
 
+.. req:: Tool Reference and Description Namespace
+   :id: REQ_ENG_TOOLREF
+   :status: approved
+   :priority: required
+   :links: US_MOD_TOOLREF; REQ_ENG_TOOLNS
+
+   **Description:**
+   Every entry of ``contributes.languageModelTools`` in a Jarvis package SHALL
+   name its owning package in its ``toolReferenceName`` and at the start of its
+   ``modelDescription``. The package is the suffix of the extension id
+   ``enthali.jarvis-<package>``: ``core``, ``kanban``, ``pim`` and ``syspilot``
+   today. The tool ``name`` is governed by ``REQ_ENG_TOOLNS`` and does not
+   change.
+
+   A former ``toolReferenceName`` no longer resolves after this change; the
+   ``languageModelTools`` contribution point offers no property that keeps an
+   old reference as an alias (VS Code contribution points reference, checked
+   2026-10-24).
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``toolReferenceName`` SHALL be ``jarvis_<package>_<former
+     reference>``; ``createActor`` becomes ``jarvis_core_createActor`` and
+     ``task`` becomes ``jarvis_pim_task``.
+   * AC-2: ``modelDescription`` SHALL begin with ``jarvis_<package>:`` and a
+     space, followed by the description the tool had before.
+   * AC-3: A ``modelDescription`` that carries a deprecation notice
+     (``REQ_MSG_READ`` AC-6, ``REQ_MSG_SENDTOSESSION`` AC-6) SHALL carry the
+     package first and the notice directly after it, so the notice stays at the
+     start of the description text.
+   * AC-4: The ``toolReferenceName`` values of all Jarvis packages SHALL be
+     unique.
+   * AC-5: ``name``, ``displayName``, ``icon``, ``canBeReferencedInPrompt``,
+     ``inputSchema`` and the description passed to ``registerTool`` SHALL NOT
+     change, and no tool is added or removed.
+   * AC-6: A maintained document or shipped asset that names a tool as a ``#``
+     chat reference SHALL use the new ``toolReferenceName``.
+
+
 .. req:: Tool Registry Exposure
    :id: REQ_ENG_TOOLREGISTRY
    :status: approved

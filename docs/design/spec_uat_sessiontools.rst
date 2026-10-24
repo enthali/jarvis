@@ -63,12 +63,12 @@ Session Tools UAT Design Specifications
         - Expected Result
       * - T-1 (tool picker)
         - Type ``#`` in Chat panel
-        - ``listSessions`` appears in tool list
+        - ``jarvis_core_listChatSessions`` appears in tool list
       * - T-2 (list named)
-        - Invoke ``#listSessions`` with a named session present
+        - Invoke ``#jarvis_core_listChatSessions`` with a named session present
         - JSON array containing ``"Project Alpha"`` returned
       * - T-3 (empty list)
-        - Invoke ``#listSessions`` with no named sessions
+        - Invoke ``#jarvis_core_listChatSessions`` with no named sessions
         - Empty JSON array ``[]`` returned
       * - T-4 (filter unnamed)
         - Invoke tool with named, unnamed, and "New Chat" sessions

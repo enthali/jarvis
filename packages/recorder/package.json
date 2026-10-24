@@ -4,6 +4,7 @@
   "description": "Jarvis Recorder — records a meeting from microphone and speaker output, transcribes it locally and hands the transcript to an Actor (Windows only)",
   "version": "0.31.0",
   "publisher": "enthali",
+  "license": "MIT",
   "icon": "resources/jarvis-128.png",
   "engines": {
     "vscode": "^1.95.0"

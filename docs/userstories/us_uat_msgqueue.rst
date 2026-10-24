@@ -33,8 +33,8 @@ Message Queue User Acceptance Tests
      functional" error text and produces zero side effects (no message queued,
      no message popped, no tree refresh)
    * AC-8: A test scenario verifies that each deprecated tool's
-     ``modelDescription`` is prefixed with its "DEPRECATED AND DISABLED"
-     notice, visible at tool-discovery time before any invocation is attempted
+     ``modelDescription`` carries its "DEPRECATED AND DISABLED" notice directly
+     after the package prefix, visible at tool-discovery time before any invocation is attempted
 
    **Test Scenarios:**
 

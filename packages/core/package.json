@@ -296,106 +296,106 @@
       {
         "name": "jarvis_createActor",
         "displayName": "Create Actor",
-        "modelDescription": "Creates a new Jarvis Actor folder with actor.yaml and context.md under <workspace>/.jarvis/actors/<name>/. Idempotent.",
-        "canBeReferencedInPrompt": true, "toolReferenceName": "createActor", "icon": "$(add)", "tags": ["jarvis"],
+        "modelDescription": "jarvis_core: Creates a new Jarvis Actor folder with actor.yaml and context.md under <workspace>/.jarvis/actors/<name>/. Idempotent.",
+        "canBeReferencedInPrompt": true, "toolReferenceName": "jarvis_core_createActor", "icon": "$(add)", "tags": ["jarvis"],
         "inputSchema": { "type": "object", "required": ["name"], "properties": { "name": { "type": "string" }, "summary": { "type": "string" }, "initialMessage": { "type": "string" } } }
       },
       {
         "name": "jarvis_sendToSession",
         "displayName": "Send Message to Chat Session",
-        "modelDescription": "[DEPRECATED AND DISABLED — use jarvis_sendMessage instead.] Queues a message for delivery to another VS Code chat session identified by name.",
-        "canBeReferencedInPrompt": true, "toolReferenceName": "sendToSession", "icon": "$(comment-discussion)",
+        "modelDescription": "jarvis_core: [DEPRECATED AND DISABLED — use jarvis_sendMessage instead.] Queues a message for delivery to another VS Code chat session identified by name.",
+        "canBeReferencedInPrompt": true, "toolReferenceName": "jarvis_core_sendToSession", "icon": "$(comment-discussion)",
         "inputSchema": { "type": "object", "required": ["session", "text"], "properties": { "session": { "type": "string" }, "senderSession": { "type": "string" }, "text": { "type": "string" } } }
       },
       {
         "name": "jarvis_sendMessage",
         "displayName": "Send Message",
-        "modelDescription": "Queues a text message for delivery to a destination identified by name. Valid destinations are VS Code chat session tabs AND Actor names. senderSession is required and validated against the same set — callers must pass their own session name explicitly. Fails immediately with an error if the destination or sender does not exist.",
-        "canBeReferencedInPrompt": true, "toolReferenceName": "sendMessage", "icon": "$(mail)",
+        "modelDescription": "jarvis_core: Queues a text message for delivery to a destination identified by name. Valid destinations are VS Code chat session tabs AND Actor names. senderSession is required and validated against the same set — callers must pass their own session name explicitly. Fails immediately with an error if the destination or sender does not exist.",
+        "canBeReferencedInPrompt": true, "toolReferenceName": "jarvis_core_sendMessage", "icon": "$(mail)",
         "inputSchema": { "type": "object", "required": ["session", "text", "senderSession"], "properties": { "session": { "type": "string", "description": "The exact name of the target (VS Code chat session title or YAML entity name)" }, "text": { "type": "string", "description": "The message text to queue" }, "senderSession": { "type": "string", "description": "Required: the exact name of the sending session — must not be omitted or inferred from the active tab" } } }
       },
       {
         "name": "jarvis_listActors",
         "displayName": "List Actors",
-        "modelDescription": "Lists all Jarvis Actors (name, summary, agent, folder, id). Distinct from jarvis_listChatSessions, which lists VS Code chat tab titles.",
-        "canBeReferencedInPrompt": true, "toolReferenceName": "listActors", "icon": "$(list-unordered)",
+        "modelDescription": "jarvis_core: Lists all Jarvis Actors (name, summary, agent, folder, id). Distinct from jarvis_listChatSessions, which lists VS Code chat tab titles.",
+        "canBeReferencedInPrompt": true, "toolReferenceName": "jarvis_core_listActors", "icon": "$(list-unordered)",
         "inputSchema": { "type": "object", "properties": {} }
       },
       {
         "name": "jarvis_listChatSessions",
         "displayName": "List Chat Sessions",
-        "modelDescription": "Returns the list of named VS Code chat session titles in the current workspace.",
-        "canBeReferencedInPrompt": true, "toolReferenceName": "listChatSessions", "icon": "$(comment-discussion)",
+        "modelDescription": "jarvis_core: Returns the list of named VS Code chat session titles in the current workspace.",
+        "canBeReferencedInPrompt": true, "toolReferenceName": "jarvis_core_listChatSessions", "icon": "$(comment-discussion)",
         "inputSchema": { "type": "object", "properties": {} }
       },
       {
         "name": "jarvis_readMessage",
         "displayName": "Read Message from Inbox",
-        "modelDescription": "[DEPRECATED AND DISABLED — use jarvis_receiveMessage instead.] Reads and removes the oldest message from the Jarvis message queue for the given destination session.",
-        "canBeReferencedInPrompt": true, "toolReferenceName": "readMessage", "icon": "$(mail-read)",
+        "modelDescription": "jarvis_core: [DEPRECATED AND DISABLED — use jarvis_receiveMessage instead.] Reads and removes the oldest message from the Jarvis message queue for the given destination session.",
+        "canBeReferencedInPrompt": true, "toolReferenceName": "jarvis_core_readMessage", "icon": "$(mail-read)",
         "inputSchema": { "type": "object", "required": ["destination"], "properties": { "destination": { "type": "string" } } }
       },
       {
         "name": "jarvis_receiveMessage",
         "displayName": "Receive Message from Inbox",
-        "modelDescription": "Reads and removes the oldest message from the Jarvis inbox for the given destination session. Returns { message: { sender, text, timestamp } | null, remaining: number }. Call repeatedly until remaining === 0.",
-        "canBeReferencedInPrompt": true, "toolReferenceName": "receiveMessage", "icon": "$(mail-read)",
+        "modelDescription": "jarvis_core: Reads and removes the oldest message from the Jarvis inbox for the given destination session. Returns { message: { sender, text, timestamp } | null, remaining: number }. Call repeatedly until remaining === 0.",
+        "canBeReferencedInPrompt": true, "toolReferenceName": "jarvis_core_receiveMessage", "icon": "$(mail-read)",
         "inputSchema": { "type": "object", "required": ["destination"], "properties": { "destination": { "type": "string", "description": "The exact name/title of the chat session whose inbox to read" } } }
       },
       {
         "name": "jarvis_registerJob",
         "displayName": "Register Heartbeat Job",
-        "modelDescription": "Registers (or updates) a heartbeat job.",
-        "canBeReferencedInPrompt": true, "toolReferenceName": "registerJob", "icon": "$(add)",
+        "modelDescription": "jarvis_core: Registers (or updates) a heartbeat job.",
+        "canBeReferencedInPrompt": true, "toolReferenceName": "jarvis_core_registerJob", "icon": "$(add)",
         "inputSchema": { "type": "object", "required": ["name", "schedule", "steps"], "properties": { "name": { "type": "string" }, "schedule": { "type": "string" }, "steps": { "type": "array", "items": { "type": "object", "required": ["type"], "properties": { "type": { "type": "string" }, "run": { "type": "string" }, "prompt": { "type": "string" }, "outputFile": { "type": "string" }, "append": { "type": "boolean" }, "vendor": { "type": "string", "description": "Agent step: vendor of the language model, exactly as returned by jarvis_listModels." }, "model": { "type": "string", "description": "Agent step: model id, exactly as returned by jarvis_listModels." }, "destination": { "type": "string" }, "sender": { "type": "string" }, "text": { "type": "string" } } } } } }
       },
       {
         "name": "jarvis_unregisterJob",
         "displayName": "Unregister Heartbeat Job",
-        "modelDescription": "Removes a heartbeat job by name.",
-        "canBeReferencedInPrompt": true, "toolReferenceName": "unregisterJob", "icon": "$(trash)",
+        "modelDescription": "jarvis_core: Removes a heartbeat job by name.",
+        "canBeReferencedInPrompt": true, "toolReferenceName": "jarvis_core_unregisterJob", "icon": "$(trash)",
         "inputSchema": { "type": "object", "required": ["name"], "properties": { "name": { "type": "string" } } }
       },
       {
         "name": "jarvis_listJobs",
         "displayName": "List Heartbeat Jobs",
-        "modelDescription": "Returns all registered heartbeat jobs.",
-        "canBeReferencedInPrompt": true, "toolReferenceName": "listJobs", "icon": "$(list-unordered)",
+        "modelDescription": "jarvis_core: Returns all registered heartbeat jobs.",
+        "canBeReferencedInPrompt": true, "toolReferenceName": "jarvis_core_listJobs", "icon": "$(list-unordered)",
         "inputSchema": { "type": "object", "properties": {} }
       },
       {
         "name": "jarvis_listModels",
         "displayName": "List Language Models",
-        "modelDescription": "Returns the language models an agent step of a heartbeat job can name, as an array of { vendor, model }. Use vendor and model exactly as returned.",
-        "canBeReferencedInPrompt": true, "toolReferenceName": "listModels", "icon": "$(list-unordered)",
+        "modelDescription": "jarvis_core: Returns the language models an agent step of a heartbeat job can name, as an array of { vendor, model }. Use vendor and model exactly as returned.",
+        "canBeReferencedInPrompt": true, "toolReferenceName": "jarvis_core_listModels", "icon": "$(list-unordered)",
         "inputSchema": { "type": "object", "properties": {} }
       },
       {
         "name": "jarvis_setReminder",
         "displayName": "Set Reminder",
-        "modelDescription": "Registers a time-scheduled reminder.",
-        "canBeReferencedInPrompt": true, "toolReferenceName": "setReminder", "icon": "$(bell)",
+        "modelDescription": "jarvis_core: Registers a time-scheduled reminder.",
+        "canBeReferencedInPrompt": true, "toolReferenceName": "jarvis_core_setReminder", "icon": "$(bell)",
         "inputSchema": { "type": "object", "required": ["text", "session", "deliverAt"], "properties": { "text": { "type": "string" }, "session": { "type": "string" }, "deliverAt": { "type": "string" } } }
       },
       {
         "name": "jarvis_listReminders",
         "displayName": "List Reminders",
-        "modelDescription": "Returns all pending reminders.",
-        "canBeReferencedInPrompt": true, "toolReferenceName": "listReminders", "icon": "$(bell)",
+        "modelDescription": "jarvis_core: Returns all pending reminders.",
+        "canBeReferencedInPrompt": true, "toolReferenceName": "jarvis_core_listReminders", "icon": "$(bell)",
         "inputSchema": { "type": "object", "properties": {} }
       },
       {
         "name": "jarvis_cancelReminder",
         "displayName": "Cancel Reminder",
-        "modelDescription": "Cancels a pending reminder by id.",
-        "canBeReferencedInPrompt": true, "toolReferenceName": "cancelReminder", "icon": "$(bell-slash)",
+        "modelDescription": "jarvis_core: Cancels a pending reminder by id.",
+        "canBeReferencedInPrompt": true, "toolReferenceName": "jarvis_core_cancelReminder", "icon": "$(bell-slash)",
         "inputSchema": { "type": "object", "required": ["id"], "properties": { "id": { "type": "string" } } }
       },
       {
         "name": "jarvis_injectPrompt",
         "displayName": "Inject Prompt",
-        "modelDescription": "Inject a prompt or slash-command into a named Actor's chat session. If no session exists, one is spawned automatically.",
-        "canBeReferencedInPrompt": true, "toolReferenceName": "injectPrompt", "icon": "$(terminal)",
+        "modelDescription": "jarvis_core: Inject a prompt or slash-command into a named Actor's chat session. If no session exists, one is spawned automatically.",
+        "canBeReferencedInPrompt": true, "toolReferenceName": "jarvis_core_injectPrompt", "icon": "$(terminal)",
         "inputSchema": { "type": "object", "required": ["actor", "text"], "properties": { "actor": { "type": "string", "description": "The name of the target Actor." }, "text": { "type": "string", "description": "The text or slash-command to inject (e.g. \"/compact\", \"read your context.md\")." } } }
       }
     ]

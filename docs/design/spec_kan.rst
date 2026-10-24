@@ -352,7 +352,7 @@ Kanban Design Specifications
 .. spec:: jarvis_createKanbanBoard Tool
    :id: SPEC_KAN_CREATE
    :status: draft
-   :links: REQ_KAN_CREATE; SPEC_ACTOR_WHOAMI; SPEC_KAN_SCHEMA; SPEC_ENG_ACTORLIST; SPEC_ACTOR_SCANNER
+   :links: REQ_KAN_CREATE; SPEC_ACTOR_WHOAMI; SPEC_KAN_SCHEMA; SPEC_ENG_ACTORLIST; SPEC_ACTOR_SCANNER; REQ_ENG_TOOLREF
 
    **Description:**
    Register ``jarvis_createKanbanBoard`` via ``engine.registerTool()`` in the
@@ -426,13 +426,13 @@ Kanban Design Specifications
      ``{ error: "ownerName required" }``; the tool's input schema lists
      ``ownerName`` as required.
    * AC-3: Returns error if file exists (no overwrite).
-   * AC-4: Registers with ``toolReferenceName: "createKanbanBoard"``.
+   * AC-4: Registers with ``toolReferenceName: "jarvis_kanban_createKanbanBoard"``.
 
 
 .. spec:: jarvis_verifyKanbanSchema Tool
    :id: SPEC_KAN_VERIFY
    :status: draft
-   :links: REQ_KAN_VERIFY; REQ_KAN_TEXTFIELD; SPEC_ACTOR_WHOAMI; SPEC_KAN_SCHEMA
+   :links: REQ_KAN_VERIFY; REQ_KAN_TEXTFIELD; SPEC_ACTOR_WHOAMI; SPEC_KAN_SCHEMA; REQ_ENG_TOOLREF
 
    **Description:**
    Register ``jarvis_verifyKanbanSchema`` via ``engine.registerTool()`` in the
@@ -490,7 +490,7 @@ Kanban Design Specifications
    * AC-1: Detects missing ``status`` field.
    * AC-2: Detects item ``status`` values not matching defined options.
    * AC-3: Returns structured findings with field and item context.
-   * AC-4: Registers with ``toolReferenceName: "verifyKanbanSchema"``.
+   * AC-4: Registers with ``toolReferenceName: "jarvis_kanban_verifyKanbanSchema"``.
    * AC-5: (``kanban-skill-content`` CR) A value under a declared ``text``
      field produces neither error nor warning, whatever the string.
    * AC-6: (``kanban-skill-content`` CR) A ``status`` field declared as
@@ -502,7 +502,7 @@ Kanban Design Specifications
 .. spec:: jarvis_openKanbanBoard Tool
    :id: SPEC_KAN_OPEN
    :status: draft
-   :links: REQ_KAN_OPEN; SPEC_ACTOR_WHOAMI; SPEC_KAN_RENDERER
+   :links: REQ_KAN_OPEN; SPEC_ACTOR_WHOAMI; SPEC_KAN_RENDERER; REQ_ENG_TOOLREF
 
    **Description:**
    Register ``jarvis_openKanbanBoard`` via ``engine.registerTool()`` in the
@@ -530,13 +530,13 @@ Kanban Design Specifications
 
    * AC-1: Opens the board in the renderer webview.
    * AC-2: Returns error for missing board file.
-   * AC-3: Registers with ``toolReferenceName: "openKanbanBoard"``.
+   * AC-3: Registers with ``toolReferenceName: "jarvis_kanban_openKanbanBoard"``.
 
 
 .. spec:: jarvis_updateKanbanItem Tool
    :id: SPEC_KAN_UPDATE
    :status: draft
-   :links: REQ_KAN_UPDATE; REQ_KAN_WRITEVALID; SPEC_KAN_WRITEVALID; SPEC_ACTOR_WHOAMI; SPEC_KAN_SCHEMA
+   :links: REQ_KAN_UPDATE; REQ_KAN_WRITEVALID; SPEC_KAN_WRITEVALID; SPEC_ACTOR_WHOAMI; SPEC_KAN_SCHEMA; REQ_ENG_TOOLREF
 
    **Description:**
    Register ``jarvis_updateKanbanItem`` via ``engine.registerTool()`` in the
@@ -664,7 +664,7 @@ Kanban Design Specifications
    * AC-2: Returns error for unknown item ID.
    * AC-3: Returns error for invalid ``status`` value.
    * AC-4: ``id`` field is immutable — never changed by this tool.
-   * AC-5: Registers with ``toolReferenceName: "updateKanbanItem"``.
+   * AC-5: Registers with ``toolReferenceName: "jarvis_kanban_updateKanbanItem"``.
    * AC-6: A board file containing comments retains all of them, and the parsed
      values of untouched items are unchanged, after an update to an unrelated field
      (``REQ_KAN_UPDATE`` AC-6).
@@ -945,8 +945,8 @@ Kanban Design Specifications
 
 .. spec:: jarvis_addKanbanItem Tool
    :id: SPEC_KAN_ADD
-   :status: implemented
-   :links: REQ_KAN_ADD; SPEC_KAN_WRITEVALID; SPEC_KAN_UPDATE; SPEC_ACTOR_WHOAMI
+   :status: approved
+   :links: REQ_KAN_ADD; SPEC_KAN_WRITEVALID; SPEC_KAN_UPDATE; SPEC_ACTOR_WHOAMI; REQ_ENG_TOOLREF
 
    **Description:**
    Register ``jarvis_addKanbanItem`` via ``api.registerTool()`` in the kanban
@@ -1000,13 +1000,13 @@ Kanban Design Specifications
      on the error path.
    * AC-5: Comments and formatting elsewhere in the file are preserved.
    * AC-6: The open panel refreshes after the write.
-   * AC-7: Registers with ``toolReferenceName: "addKanbanItem"``.
+   * AC-7: Registers with ``toolReferenceName: "jarvis_kanban_addKanbanItem"``.
 
 
 .. spec:: jarvis_deleteKanbanItem Tool
    :id: SPEC_KAN_DELETE
-   :status: implemented
-   :links: REQ_KAN_DELETE; SPEC_KAN_UPDATE; SPEC_ACTOR_WHOAMI
+   :status: approved
+   :links: REQ_KAN_DELETE; SPEC_KAN_UPDATE; SPEC_ACTOR_WHOAMI; REQ_ENG_TOOLREF
 
    **Description:**
    Register ``jarvis_deleteKanbanItem`` via ``api.registerTool()``, using the
@@ -1048,13 +1048,13 @@ Kanban Design Specifications
      preserved (REQ_KAN_DELETE AC-7). Byte identity and line endings are not
      promised.
    * AC-6: The open panel refreshes after the write.
-   * AC-7: Registers with ``toolReferenceName: "deleteKanbanItem"``.
+   * AC-7: Registers with ``toolReferenceName: "jarvis_kanban_deleteKanbanItem"``.
 
 
 .. spec:: jarvis_listKanbanItems Tool
    :id: SPEC_KAN_LIST
-   :status: implemented
-   :links: REQ_KAN_LIST; REQ_KAN_FILTERVALUES; SPEC_ACTOR_WHOAMI
+   :status: approved
+   :links: REQ_KAN_LIST; REQ_KAN_FILTERVALUES; SPEC_ACTOR_WHOAMI; REQ_ENG_TOOLREF
 
    **Description:**
    Register ``jarvis_listKanbanItems`` via ``api.registerTool()``. Read-only:
@@ -1137,7 +1137,7 @@ Kanban Design Specifications
    * AC-4: A filter matching nothing returns ``count: 0`` and an empty array.
    * AC-5: An unknown ``status`` value returns an error listing valid options.
    * AC-6: The board file is not modified and no panel refresh is triggered.
-   * AC-7: Registers with ``toolReferenceName: "listKanbanItems"``.
+   * AC-7: Registers with ``toolReferenceName: "jarvis_kanban_listKanbanItems"``.
    * AC-8: With ``details: true``, each returned object carries every field the
      card has, as stored, including ``notes`` and declared-field values, and
      ``labels`` as a list (``[]`` when the card has none) (``REQ_KAN_LIST`` AC-9).
@@ -1153,7 +1153,7 @@ Kanban Design Specifications
      optionally filtered by status or labels. Returns a compact projection (id, name,
      status, labels) per item; details: true returns the full items." The
      ``languageModelTools`` entry declares ``details`` as a boolean in its input
-     schema, with the ``modelDescription`` "Lists kanban board items with optional
+     schema, with the ``modelDescription`` "jarvis_kanban: Lists kanban board items with optional
      status and/or labels filter. Returns a compact projection (id, name, status,
      labels) per item; details: true returns the full items, notes included.
      ownerName is required." (``REQ_KAN_MODULE`` AC-9).
@@ -1162,7 +1162,7 @@ Kanban Design Specifications
 .. spec:: jarvis_listKanbanFilterValues Tool
    :id: SPEC_KAN_FILTERVALUES
    :status: approved
-   :links: REQ_KAN_FILTERVALUES; SPEC_KAN_LIST
+   :links: REQ_KAN_FILTERVALUES; SPEC_KAN_LIST; REQ_ENG_TOOLREF
 
    **Description:**
    Register ``jarvis_listKanbanFilterValues`` via ``api.registerTool()``. Read-only:
@@ -1231,11 +1231,11 @@ Kanban Design Specifications
      not a string, are neither listed nor counted (``REQ_KAN_FILTERVALUES`` AC-8).
    * AC-9: The board file is not modified and no panel refresh is triggered
      (``REQ_KAN_FILTERVALUES`` AC-7).
-   * AC-10: Registered with ``toolReferenceName: "listKanbanFilterValues"`` and the
+   * AC-10: Registered with ``toolReferenceName: "jarvis_kanban_listKanbanFilterValues"`` and the
      one-line description "Lists the status values (columns, empty ones included) and the
      labels of a kanban board with the number of cards for each, to build list filters.";
      the ``languageModelTools`` entry declares ``ownerName`` as required, with the
-     ``modelDescription`` "Returns the status values (columns, empty ones included) and the
+     ``modelDescription`` "jarvis_kanban: Returns the status values (columns, empty ones included) and the
      labels in use on a kanban board, each with the number of cards. Use these values as
      filters for jarvis_listKanbanItems. ownerName is required." and an ``icon`` of
      ``$(filter)`` (``REQ_KAN_MODULE`` AC-8, AC-9).
@@ -1243,8 +1243,8 @@ Kanban Design Specifications
 
 .. spec:: jarvis_updateKanbanFields Tool
    :id: SPEC_KAN_FIELDS
-   :status: implemented
-   :links: REQ_KAN_FIELDS; SPEC_KAN_SCHEMA; SPEC_KAN_UPDATE; SPEC_ACTOR_WHOAMI
+   :status: approved
+   :links: REQ_KAN_FIELDS; SPEC_KAN_SCHEMA; SPEC_KAN_UPDATE; SPEC_ACTOR_WHOAMI; REQ_ENG_TOOLREF
 
    **Description:**
    Register ``jarvis_updateKanbanFields`` via ``api.registerTool()``, using the
@@ -1320,7 +1320,7 @@ Kanban Design Specifications
      ``schemas/kanban.schema.json``.
    * AC-9: Comments and formatting elsewhere in the file are preserved.
    * AC-10: The open panel refreshes after a successful write.
-   * AC-11: Registers with ``toolReferenceName: "updateKanbanFields"``.
+   * AC-11: Registers with ``toolReferenceName: "jarvis_kanban_updateKanbanFields"``.
 
 
 .. spec:: Kanban Skill Asset Content

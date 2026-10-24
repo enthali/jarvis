@@ -260,8 +260,8 @@ PIM Design Specifications
 
 .. spec:: jarvis_category Dual Tool
    :id: SPEC_PIM_CATTOOL
-   :status: implemented
-   :links: REQ_PIM_CATTOOL; SPEC_PIM_SERVICE; SPEC_MSG_DUALREGISTRATION
+   :status: approved
+   :links: REQ_PIM_CATTOOL; SPEC_PIM_SERVICE; SPEC_MSG_DUALREGISTRATION; REQ_ENG_TOOLREF
 
    **Description:**
    Register ``jarvis_category`` via ``registerDualTool()`` in
@@ -369,9 +369,9 @@ PIM Design Specifications
       {
         "name": "jarvis_category",
         "displayName": "Manage Categories",
-        "modelDescription": "Manage categories from all configured PIM providers. Actions: get (list/filter categories from cache), set (create/update a category), delete (remove a category), rename (rename a category). When no providers are configured, returns an error.",
+        "modelDescription": "jarvis_pim: Manage categories from all configured PIM providers. Actions: get (list/filter categories from cache), set (create/update a category), delete (remove a category), rename (rename a category). When no providers are configured, returns an error.",
         "canBeReferencedInPrompt": true,
-        "toolReferenceName": "category",
+        "toolReferenceName": "jarvis_pim_category",
         "icon": "$(tag)",
         "inputSchema": {
           "type": "object",

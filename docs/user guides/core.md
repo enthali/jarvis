@@ -26,7 +26,7 @@ Send text or a slash command (for example `/compact`) to a named actor's session
 
 ## Language model tools
 
-Core provides tools such as `#listActors`, `#listModels`, `#sendMessage`, `#receiveMessage`, `#createActor`, and `#injectPrompt`. Installed packages add their own tools.
+Core provides tools such as `#jarvis_core_listActors`, `#jarvis_core_listModels`, `#jarvis_core_sendMessage`, `#jarvis_core_receiveMessage`, `#jarvis_core_createActor`, and `#jarvis_core_injectPrompt`. Installed packages add their own tools.
 
 ## Add-ons
 

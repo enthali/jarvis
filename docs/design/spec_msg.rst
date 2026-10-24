@@ -411,9 +411,9 @@ Message Queue Design Specifications
       {
         "name": "jarvis_readMessage",
         "displayName": "Read Message from Inbox",
-        "modelDescription": "[DEPRECATED AND DISABLED — use jarvis_receiveMessage instead.] Reads and removes the oldest message from the Jarvis inbox for the given destination session.",
+        "modelDescription": "jarvis_core: [DEPRECATED AND DISABLED — use jarvis_receiveMessage instead.] Reads and removes the oldest message from the Jarvis inbox for the given destination session.",
         "canBeReferencedInPrompt": true,
-        "toolReferenceName": "readMessage",
+        "toolReferenceName": "jarvis_core_readMessage",
         "icon": "$(mail-read)",
         "inputSchema": {
           "type": "object",
@@ -728,7 +728,7 @@ Message Queue Design Specifications
 .. spec:: List Sessions LM Tool
    :id: SPEC_MSG_LISTSESSIONS
    :status: draft
-   :links: REQ_MSG_LISTSESSIONS; REQ_MSG_SESSIONFILTER; SPEC_MSG_SESSIONLOOKUP
+   :links: REQ_MSG_LISTSESSIONS; REQ_MSG_SESSIONFILTER; SPEC_MSG_SESSIONLOOKUP; REQ_ENG_TOOLREF
 
    **Description:**
    Register ``jarvis_listChatSessions`` as a Language Model Tool in
@@ -761,9 +761,9 @@ Message Queue Design Specifications
       {
         "name": "jarvis_listChatSessions",
         "displayName": "List Chat Sessions",
-        "modelDescription": "Returns the list of named VS Code chat session tab titles in the current workspace. Use this to discover active chat tabs. Distinct from jarvis_listActors, which lists the Actors.",
+        "modelDescription": "jarvis_core: Returns the list of named VS Code chat session tab titles in the current workspace. Use this to discover active chat tabs. Distinct from jarvis_listActors, which lists the Actors.",
         "canBeReferencedInPrompt": true,
-        "toolReferenceName": "listChatSessions",
+        "toolReferenceName": "jarvis_core_listChatSessions",
         "icon": "$(list-unordered)",
         "inputSchema": {
           "type": "object",
@@ -2371,7 +2371,7 @@ Message Queue Design Specifications
 .. spec:: Reminder LM and MCP Tools Registration
    :id: SPEC_MSG_REMINDERSTOOLS
    :status: draft
-   :links: REQ_MSG_REMINDERS_TOOLS; SPEC_MSG_REMINDERSTORE; SPEC_MSG_DUALREGISTRATION
+   :links: REQ_MSG_REMINDERS_TOOLS; SPEC_MSG_REMINDERSTORE; SPEC_MSG_DUALREGISTRATION; REQ_ENG_TOOLREF
 
    **Description:**
    Register three tools via ``registerDualTool()`` in ``extension.ts``:
@@ -2485,9 +2485,9 @@ Message Queue Design Specifications
         {
           "name": "jarvis_setReminder",
           "displayName": "Set Reminder",
-          "modelDescription": "Registers a time-scheduled reminder. Delivers a message to the named chat session at deliverAt (ISO 8601). Returns { id, deliverAt }.",
+          "modelDescription": "jarvis_core: Registers a time-scheduled reminder. Delivers a message to the named chat session at deliverAt (ISO 8601). Returns { id, deliverAt }.",
           "canBeReferencedInPrompt": true,
-          "toolReferenceName": "setReminder",
+          "toolReferenceName": "jarvis_core_setReminder",
           "icon": "$(bell)",
           "inputSchema": {
             "type": "object",
@@ -2502,18 +2502,18 @@ Message Queue Design Specifications
         {
           "name": "jarvis_listReminders",
           "displayName": "List Reminders",
-          "modelDescription": "Returns all pending reminders: { reminders: [{ id, text, session, deliverAt, remainingMs }] }.",
+          "modelDescription": "jarvis_core: Returns all pending reminders: { reminders: [{ id, text, session, deliverAt, remainingMs }] }.",
           "canBeReferencedInPrompt": true,
-          "toolReferenceName": "listReminders",
+          "toolReferenceName": "jarvis_core_listReminders",
           "icon": "$(bell)",
           "inputSchema": { "type": "object", "properties": {} }
         },
         {
           "name": "jarvis_cancelReminder",
           "displayName": "Cancel Reminder",
-          "modelDescription": "Cancels a pending reminder by id. Returns { status: 'cancelled' | 'not_found' }.",
+          "modelDescription": "jarvis_core: Cancels a pending reminder by id. Returns { status: 'cancelled' | 'not_found' }.",
           "canBeReferencedInPrompt": true,
-          "toolReferenceName": "cancelReminder",
+          "toolReferenceName": "jarvis_core_cancelReminder",
           "icon": "$(bell-slash)",
           "inputSchema": {
             "type": "object",
@@ -2697,9 +2697,9 @@ Message Queue Design Specifications
       {
         "name": "jarvis_sendToSession",
         "displayName": "Send Message to Session",
-        "modelDescription": "[DEPRECATED AND DISABLED — use jarvis_sendMessage instead.] Queues a text message for delivery to a destination identified by name.",
+        "modelDescription": "jarvis_core: [DEPRECATED AND DISABLED — use jarvis_sendMessage instead.] Queues a text message for delivery to a destination identified by name.",
         "canBeReferencedInPrompt": true,
-        "toolReferenceName": "sendToSession",
+        "toolReferenceName": "jarvis_core_sendToSession",
         "icon": "$(mail)",
         "inputSchema": {
           "type": "object",
@@ -2743,7 +2743,7 @@ Message Queue Design Specifications
 .. spec:: Send Message LM / MCP Tool (Canonical)
    :id: SPEC_MSG_SENDMESSAGE
    :status: draft
-   :links: REQ_MSG_SENDMESSAGE; REQ_MSG_DEST_ERROR; REQ_MSG_SENDER_ERROR; REQ_ACTOR_SCHEMA; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_QUEUESTORE; SPEC_ACTOR_SCANNER
+   :links: REQ_MSG_SENDMESSAGE; REQ_MSG_DEST_ERROR; REQ_MSG_SENDER_ERROR; REQ_ACTOR_SCHEMA; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_QUEUESTORE; SPEC_ACTOR_SCANNER; REQ_ENG_TOOLREF
 
    **Description:**
    Implements the canonical ``jarvis_sendMessage`` tool in
@@ -2821,9 +2821,9 @@ Message Queue Design Specifications
       {
         "name": "jarvis_sendMessage",
         "displayName": "Send Message",
-        "modelDescription": "Queues a text message for delivery to an Actor identified by name. senderSession is required and must also name an Actor — callers must pass their own Actor name explicitly. Fails immediately with an error if the destination or sender is not an Actor.",
+        "modelDescription": "jarvis_core: Queues a text message for delivery to an Actor identified by name. senderSession is required and must also name an Actor — callers must pass their own Actor name explicitly. Fails immediately with an error if the destination or sender is not an Actor.",
         "canBeReferencedInPrompt": true,
-        "toolReferenceName": "sendMessage",
+        "toolReferenceName": "jarvis_core_sendMessage",
         "icon": "$(mail)",
         "inputSchema": {
           "type": "object",
@@ -2890,7 +2890,7 @@ Message Queue Design Specifications
 .. spec:: Receive Message LM / MCP Tool (Canonical)
    :id: SPEC_MSG_RECEIVEMESSAGE
    :status: draft
-   :links: REQ_MSG_RECEIVEMESSAGE; SPEC_MSG_QUEUESTORE; SPEC_MSG_SESSIONLOOKUP
+   :links: REQ_MSG_RECEIVEMESSAGE; SPEC_MSG_QUEUESTORE; SPEC_MSG_SESSIONLOOKUP; REQ_ENG_TOOLREF
 
    **Description:**
    Implements the canonical ``jarvis_receiveMessage`` tool in
@@ -2934,9 +2934,9 @@ Message Queue Design Specifications
       {
         "name": "jarvis_receiveMessage",
         "displayName": "Receive Message from Inbox",
-        "modelDescription": "Reads and removes the oldest message from the Jarvis inbox for the given destination session. Returns { message: { sender, text, timestamp } | null, remaining: number }. Call repeatedly until remaining === 0.",
+        "modelDescription": "jarvis_core: Reads and removes the oldest message from the Jarvis inbox for the given destination session. Returns { message: { sender, text, timestamp } | null, remaining: number }. Call repeatedly until remaining === 0.",
         "canBeReferencedInPrompt": true,
-        "toolReferenceName": "receiveMessage",
+        "toolReferenceName": "jarvis_core_receiveMessage",
         "icon": "$(mail-read)",
         "inputSchema": {
           "type": "object",

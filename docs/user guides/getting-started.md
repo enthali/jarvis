@@ -18,7 +18,7 @@ Actors are folders with an `actor.yaml` file. New actors are created in `.jarvis
 
 ## 4. Create your first actor
 
-Click **+** in the ACTORS view title bar, run **Jarvis: New Actor** from the Command Palette, or use the `#createActor` tool in chat. Jarvis creates the actor folder with its `actor.yaml` and `context.md` memory file and opens the actor's chat; `jarvis.actors.openSessionOnCreate` controls the last step.
+Click **+** in the ACTORS view title bar, run **Jarvis: New Actor** from the Command Palette, or use the `#jarvis_core_createActor` tool in chat. Jarvis creates the actor folder with its `actor.yaml` and `context.md` memory file and opens the actor's chat; `jarvis.actors.openSessionOnCreate` controls the last step.
 
 ## Where to go next
 

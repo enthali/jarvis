@@ -9,6 +9,7 @@
     "type": "git",
     "url": "https://github.com/enthali/Jarvis.git"
   },
+  "license": "MIT",
   "engines": {
     "vscode": "^1.95.0"
   },
@@ -105,10 +106,10 @@
       {
         "name": "jarvis_createKanbanBoard",
         "displayName": "Create Kanban Board",
-        "toolReferenceName": "createKanbanBoard",
+        "toolReferenceName": "jarvis_kanban_createKanbanBoard",
         "icon": "$(add)",
         "canBeReferencedInPrompt": true,
-        "modelDescription": "Creates a new kanban board YAML file for an Actor, project, or event. Returns the file path. ownerName is required.",
+        "modelDescription": "jarvis_kanban: Creates a new kanban board YAML file for an Actor, project, or event. Returns the file path. ownerName is required.",
         "inputSchema": {
           "type": "object",
           "required": ["ownerName"],
@@ -121,10 +122,10 @@
       {
         "name": "jarvis_verifyKanbanSchema",
         "displayName": "Verify Kanban Schema",
-        "toolReferenceName": "verifyKanbanSchema",
+        "toolReferenceName": "jarvis_kanban_verifyKanbanSchema",
         "icon": "$(check)",
         "canBeReferencedInPrompt": true,
-        "modelDescription": "Validates a kanban board YAML file against the schema and semantic rules. Returns structured errors and warnings. ownerName is required.",
+        "modelDescription": "jarvis_kanban: Validates a kanban board YAML file against the schema and semantic rules. Returns structured errors and warnings. ownerName is required.",
         "inputSchema": {
           "type": "object",
           "required": ["ownerName"],
@@ -137,10 +138,10 @@
       {
         "name": "jarvis_openKanbanBoard",
         "displayName": "Open Kanban Board",
-        "toolReferenceName": "openKanbanBoard",
+        "toolReferenceName": "jarvis_kanban_openKanbanBoard",
         "icon": "$(list-unordered)",
         "canBeReferencedInPrompt": true,
-        "modelDescription": "Opens a kanban board in the webview renderer. ownerName is required.",
+        "modelDescription": "jarvis_kanban: Opens a kanban board in the webview renderer. ownerName is required.",
         "inputSchema": {
           "type": "object",
           "required": ["ownerName"],
@@ -153,10 +154,10 @@
       {
         "name": "jarvis_updateKanbanItem",
         "displayName": "Update Kanban Item",
-        "toolReferenceName": "updateKanbanItem",
+        "toolReferenceName": "jarvis_kanban_updateKanbanItem",
         "icon": "$(edit)",
         "canBeReferencedInPrompt": true,
-        "modelDescription": "Updates fields on an existing kanban board item by ID. Merges changes into the item, validates status values. ownerName is required.",
+        "modelDescription": "jarvis_kanban: Updates fields on an existing kanban board item by ID. Merges changes into the item, validates status values. ownerName is required.",
         "inputSchema": {
           "type": "object",
           "required": ["itemId", "changes", "ownerName"],
@@ -171,10 +172,10 @@
       {
         "name": "jarvis_addKanbanItem",
         "displayName": "Add Kanban Item",
-        "toolReferenceName": "addKanbanItem",
+        "toolReferenceName": "jarvis_kanban_addKanbanItem",
         "icon": "$(add)",
         "canBeReferencedInPrompt": true,
-        "modelDescription": "Adds a new item to a kanban board. Auto-assigns id; validates values before writing. ownerName is required.",
+        "modelDescription": "jarvis_kanban: Adds a new item to a kanban board. Auto-assigns id; validates values before writing. ownerName is required.",
         "inputSchema": {
           "type": "object",
           "required": ["name", "ownerName"],
@@ -192,10 +193,10 @@
       {
         "name": "jarvis_deleteKanbanItem",
         "displayName": "Delete Kanban Item",
-        "toolReferenceName": "deleteKanbanItem",
+        "toolReferenceName": "jarvis_kanban_deleteKanbanItem",
         "icon": "$(trash)",
         "canBeReferencedInPrompt": true,
-        "modelDescription": "Deletes a kanban board item by ID. The deleted id is never reused. ownerName is required.",
+        "modelDescription": "jarvis_kanban: Deletes a kanban board item by ID. The deleted id is never reused. ownerName is required.",
         "inputSchema": {
           "type": "object",
           "required": ["itemId", "ownerName"],
@@ -209,10 +210,10 @@
       {
         "name": "jarvis_listKanbanItems",
         "displayName": "List Kanban Items",
-        "toolReferenceName": "listKanbanItems",
+        "toolReferenceName": "jarvis_kanban_listKanbanItems",
         "icon": "$(list-flat)",
         "canBeReferencedInPrompt": true,
-        "modelDescription": "Lists kanban board items with optional status and/or labels filter. Returns a compact projection (id, name, status, labels) per item; details: true returns the full items, notes included. ownerName is required.",
+        "modelDescription": "jarvis_kanban: Lists kanban board items with optional status and/or labels filter. Returns a compact projection (id, name, status, labels) per item; details: true returns the full items, notes included. ownerName is required.",
         "inputSchema": {
           "type": "object",
           "required": ["ownerName"],
@@ -228,10 +229,10 @@
       {
         "name": "jarvis_listKanbanFilterValues",
         "displayName": "List Kanban Filter Values",
-        "toolReferenceName": "listKanbanFilterValues",
+        "toolReferenceName": "jarvis_kanban_listKanbanFilterValues",
         "icon": "$(filter)",
         "canBeReferencedInPrompt": true,
-        "modelDescription": "Returns the status values (columns, empty ones included) and the labels in use on a kanban board, each with the number of cards. Use these values as filters for jarvis_listKanbanItems. ownerName is required.",
+        "modelDescription": "jarvis_kanban: Returns the status values (columns, empty ones included) and the labels in use on a kanban board, each with the number of cards. Use these values as filters for jarvis_listKanbanItems. ownerName is required.",
         "inputSchema": {
           "type": "object",
           "required": ["ownerName"],
@@ -244,10 +245,10 @@
       {
         "name": "jarvis_updateKanbanFields",
         "displayName": "Update Kanban Fields",
-        "toolReferenceName": "updateKanbanFields",
+        "toolReferenceName": "jarvis_kanban_updateKanbanFields",
         "icon": "$(symbol-field)",
         "canBeReferencedInPrompt": true,
-        "modelDescription": "Adds or removes field definitions or options on a kanban board. Refuses to remove fields/options still referenced by items. ownerName is required.",
+        "modelDescription": "jarvis_kanban: Adds or removes field definitions or options on a kanban board. Refuses to remove fields/options still referenced by items. ownerName is required.",
         "inputSchema": {
           "type": "object",
           "required": ["operation", "fieldName", "ownerName"],

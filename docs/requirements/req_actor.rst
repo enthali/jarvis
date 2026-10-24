@@ -275,7 +275,7 @@ Actor Requirements
 
 .. req:: Programmatic Actor Creation Tool
    :id: REQ_ACTOR_CREATETOOL
-   :status: implemented
+   :status: approved
    :priority: required
    :links: US_ACTOR_CREATETOOL; REQ_ACTOR_SCHEMA; REQ_ACTOR_WHOAMI; REQ_ACTOR_OPENSESSION; REQ_ACTOR_TREE
 
@@ -288,7 +288,7 @@ Actor Requirements
 
    * AC-1: The tool SHALL be registered whenever ``jarvis.actors.folder`` is
      resolvable at activation time and SHALL appear in the Chat tool picker
-     with ``toolReferenceName`` ``createActor``. Inputs: ``name``
+     with ``toolReferenceName`` ``jarvis_core_createActor``. Inputs: ``name``
      (required), ``summary``, ``initialMessage`` (optional). A caller that
      still passes ``agent`` SHALL NOT be rejected; the value has no effect.
    * AC-2: On a successful create, the shared creation routine SHALL:
@@ -333,7 +333,7 @@ Actor Requirements
 
 .. req:: List Actors Tool
    :id: REQ_ACTOR_LISTTOOL
-   :status: implemented
+   :status: approved
    :priority: required
    :links: US_ACTOR_LISTTOOL; REQ_ACTOR_SCHEMA; REQ_ACTOR_TREE
 
@@ -346,7 +346,7 @@ Actor Requirements
    * AC-1: The tool SHALL be registered whenever ``jarvis.actors.folder`` is
      resolvable at activation time, SHALL accept no input parameters, and
      SHALL appear in the Chat tool picker with ``toolReferenceName``
-     ``listActors``.
+     ``jarvis_core_listActors``.
    * AC-2: The tool SHALL return ``{ "actors": [...] }`` with one entry per
      Actor discovered per ``REQ_ACTOR_TREE`` AC-2. Each entry SHALL have
      ``name``, ``summary``, ``agent`` (the Actor's own agent, identified by

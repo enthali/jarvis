@@ -26,6 +26,7 @@ Message Queue UAT Requirements
      documented in the test protocol, including the exact expected error text for
      missing/invalid ``senderSession``, the exact "no longer functional" error
      text and zero-side-effect guarantee for the deprecated tools, the
-     "DEPRECATED AND DISABLED" ``modelDescription`` prefix visible at
+     "DEPRECATED AND DISABLED" notice at the start of the ``modelDescription``
+     (after the package prefix), visible at
      discovery time, and the correct ``sender`` attribution in
      ``message-log.json``

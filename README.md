@@ -41,7 +41,7 @@ capability modules. Install only what you need.
   (the model ID); there is no default or fallback, so existing steps without both fail until
   updated. Use **Jarvis: List Language Models** or `jarvis_listModels` to inspect the pairs
   currently offered to Jarvis by VS Code.
-- **Messaging, reminders & LM tools** — an inter-actor message queue, reminders, and tools like `#listActors`, `#listModels`, `#sendMessage`, `#receiveMessage`, `#createActor`, `#injectPrompt`, `#createKanbanBoard`, `#verifyKanbanSchema`, and `#openKanbanBoard`
+- **Messaging, reminders & LM tools** — an inter-actor message queue, reminders, and tools like `#jarvis_core_listActors`, `#jarvis_core_listModels`, `#jarvis_core_sendMessage`, `#jarvis_core_receiveMessage`, `#jarvis_core_createActor`, `#jarvis_core_injectPrompt`, `#jarvis_kanban_createKanbanBoard`, `#jarvis_kanban_verifyKanbanSchema`, and `#jarvis_kanban_openKanbanBoard`
 - **Prompt injection** — inject any text or slash-command (e.g. `/compact`) into a named actor's session via the `jarvis_injectPrompt` LM tool or the **Jarvis: Inject Prompt** command; spawns the session automatically if none exists. Useful for bulk operations such as compacting all actors after a CR:
   ```
   jarvis_injectPrompt(actor="Change Manager", text="/compact")
