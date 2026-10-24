@@ -109,7 +109,7 @@ describe('QM F-4: package content (SPEC_MOD_REC_PKG AC-6)', () => {
         }
         expect(files.join('\n')).not.toMatch(/recording\.js|whisper|recorder\.py/i);
         expect(files.filter(f => !f.startsWith('out/')).sort()).toEqual([
-            'README.md', 'package.json', 'resources/capture.ps1', 'resources/components.json', 'resources/jarvis-128.png',
+            'LICENSE', 'README.md', 'package.json', 'resources/capture.ps1', 'resources/components.json', 'resources/jarvis-128.png',
         ]);
     }, 120000);
 

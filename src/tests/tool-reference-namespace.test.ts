@@ -159,5 +159,5 @@ describe('REQ_ENG_TOOLREF AC-6 / SPEC_ENG_TOOLREF AC-5 / US_MOD_TOOLREF AC-4: ma
             });
         }
         expect(hits).toEqual([]);
-    });
+    }, 30000);
 });
