@@ -1,5 +1,19 @@
 # Release Notes
 
+## v0.31.1 - Copilot CLI Tool Reference Fix + Extension Retirement
+
+*2026-10-24*
+
+### Fixes
+
+- **namespace-jarvis-language-model-tools**: Prefixes Core, PIM, Kanban, and Syspilot Language Model Tool references and descriptions with their package, preventing generic references such as `task` from colliding with other Copilot CLI tools. Existing prompts that use `#task` or `#category` must use the new package-prefixed references, such as `#jarvis_pim_task`; API and MCP tool names are unchanged.
+
+### Changes
+
+- **extension-readiness-and-suite-retirement**: Marks PIM as experimental and clarifies that email triage is not part of Jarvis PIM; marks Syspilot `EXPERIMENTAL — DO NOT USE` because the upcoming syspilot 0.10 release is expected to break compatibility. Removes Jarvis Suite from the repository and future distribution; existing installations remain but receive no updates, while the Marketplace extension ID and historical GitHub assets are retained. Removes the obsolete `new-change` scaffolder; use the current Contract process.
+
+---
+
 ## v0.31.0 - Actor Mail Marker + Kanban Item Details
 
 *2026-10-20*
