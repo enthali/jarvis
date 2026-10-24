@@ -17,6 +17,20 @@ tasks. Actors are stored as `actor.yaml` files in configurable folders.
 
 New to Jarvis? Follow the [Getting Started guide](docs/user%20guides/getting-started.md).
 
+## Version 0.31.1
+
+This patch fixes conflicting CLI tool references without adding a new capability.
+Chat tool references now use their package namespace, for example
+`#jarvis_core_createActor` and `#jarvis_pim_task`. Update existing prompts to use
+the new references; registered tool IDs and MCP tool names are unchanged.
+
+The release includes the PIM and Syspilot readiness warnings above and removes
+the deprecated Jarvis Suite from the repository and future distribution.
+Existing Suite installations are not removed and receive no further Suite updates;
+install individual extensions instead. Historical release assets remain available.
+The obsolete Change generator and template are also removed; contributors use
+the [Change Contract process](docs/Jarvis%20Contracts/change.md).
+
 ## Modules
 
 Jarvis ships as a suite of VS Code extensions — one core harness plus optional

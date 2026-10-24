@@ -8,6 +8,13 @@ Install **Jarvis Core** (`enthali.jarvis-core`) from the VS Code Marketplace, or
 
 The other packages are optional add-ons that need Jarvis Core. Install only what you need; see the [Core guide](core.md) for the list.
 
+### Updating to 0.31.1
+
+Update tool references in existing prompts to `#jarvis_<package>_<reference>`,
+for example `#jarvis_core_createActor`, `#jarvis_pim_task`, and
+`#jarvis_pim_category`. The former unprefixed references no longer resolve.
+Registered tool IDs and MCP tool names are unchanged.
+
 ## 2. Open Jarvis
 
 Open the Jarvis view in the activity bar. Jarvis scans its folders and fills the views automatically.
