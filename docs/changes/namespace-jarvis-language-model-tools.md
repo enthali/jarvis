@@ -1,6 +1,6 @@
 # Change Contract: namespace-jarvis-language-model-tools
 
-**Status:** active<br>
+**Status:** closed<br>
 **Process owner:** Project Manager<br>
 **Current responsibility:** Project Manager<br>
 **Current blocker:** none<br>
@@ -53,7 +53,7 @@ All Language Model Tool references are package-namespaced and unique across Jarv
 |---|---|---|---|---|
 | Intent and outcome | yes | Project Manager | Goal, value, scope, and observable outcome are explicit and approved | approved |
 | Contract release | yes | User | User authorization to start the change; set by the User only | approved |
-| Version control | yes | Project Manager | Local branch `feature/namespace-jarvis-language-model-tools`; squash-integrated into `development` at closure; branch retained | active |
+| Version control | yes | Project Manager | Squash-integrated into `development` at `98c38a8`; feature branch retained | merged |
 | Product specification | yes | Architect | Affected Needs and exact package-prefix rules are linked and approved | complete |
 | Infrastructure impact | yes | Admin | Build, packaging, and contribution-point impacts are assessed | complete |
 | Documentation impact | yes | Technical Writer | Three user documents updated; namespace tests pass 24 of 24; clean strict Sphinx and rendered guide check pass | complete |
@@ -209,14 +209,14 @@ After Quality's `proceed`, the Project Manager presents the observable outcome. 
 ## Closure
 
 **Owner:** Project Manager<br>
-**Status:** pending | closed
+**Status:** closed
 
-- [ ] Every included artifact or gate has terminal status and completion evidence.
-- [ ] Intent and outcome are `approved`.
-- [ ] Quality has recorded `proceed`.
-- [ ] Open Findings contains `None`.
+- [x] Every included artifact or gate has terminal status and completion evidence.
+- [x] Intent and outcome are `approved`.
+- [x] Quality has recorded `proceed`.
+- [x] Open Findings contains `None`.
 - [x] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
-- [ ] The feature branch is squash-integrated into `development`.
-- [ ] Current blocker is `none`.
+- [x] The feature branch is squash-integrated into `development`.
+- [x] Current blocker is `none`.
 
-**Final outcome:** {accepted result and integration commit}
+**Final outcome:** Package-prefixed Language Model Tool references and descriptions merged into `development` at `98c38a8`; Quality proceeded, User validated CLI references, and the feature branch is retained.
