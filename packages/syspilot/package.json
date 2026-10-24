@@ -1,7 +1,7 @@
 {
   "name": "jarvis-syspilot",
   "displayName": "Jarvis Syspilot",
-  "description": "Jarvis Syspilot — detects and hands off syspilot install/update lifecycle to the Syspilot Setup Engineer actor",
+  "description": "EXPERIMENTAL — DO NOT USE. The upcoming syspilot 0.10 release will break compatibility. Jarvis Syspilot detects and hands off install/update lifecycle to the Syspilot Setup Engineer actor.",
   "version": "0.31.0",
   "publisher": "enthali",
   "icon": "resources/jarvis-128.png",

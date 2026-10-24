@@ -336,9 +336,9 @@ Release Design Specifications
 
 
 .. spec:: Legacy Package → Migration Shim (enthali.jarvis)
-   :id: SPEC_REL_COREGH
-   :status: draft
-   :links: REQ_REL_RELEASEACTION; REQ_REL_RETIRENORELEASE
+  :id: SPEC_REL_COREGH
+  :status: draft
+  :links: REQ_REL_RELEASEACTION; REQ_REL_RETIRENORELEASE; REQ_MOD_READINESS
 
    **Description:**
    ``packages/core-gh/`` produces the legacy ``enthali.jarvis`` VSIX for GitHub
@@ -390,13 +390,13 @@ Release Design Specifications
 
    **Complete release.yml CI sequence:**
 
-   1. ``npm ci`` + ``npm run compile`` + esbuild bundle (core)
-   2. Package ``enthali.jarvis-core`` from ``packages/core/``
-   3. Build + package ``enthali.jarvis`` migration shim from ``packages/core-gh/``
-      (own ``vscode:prepublish`` — no bundle copy from core)
-   4. Package add-ons (``pim``, ``recorder``, ``mcp``, ``flow``, ``syspilot``) — each runs own ``vscode:prepublish``
-   5. GitHub Release — upload all VSIXs (core, core-gh shim, pim, recorder, mcp, flow, syspilot)
-   6. Marketplace publish — ``jarvis-core`` + add-ons only (NOT ``jarvis``)
+  The sequence is ``npm ci``, compile and bundle core, package ``enthali.jarvis-core``,
+  build and package the legacy ``enthali.jarvis`` migration shim, then package the
+  supported add-ons (PIM, Recorder, MCP, Flow, Kanban, Syspilot), each with its
+  own ``vscode:prepublish``. The GitHub Release uploads those VSIXs; Marketplace
+  publication covers core and supported add-ons only, not the legacy shim or
+  retired Suite.
+
 
    **Acceptance Criteria (testable)**
 
@@ -410,6 +410,9 @@ Release Design Specifications
    * AC-4: ``enthali.jarvis`` shim VSIX is uploaded to GitHub Release
    * AC-5: ``enthali.jarvis`` VSIX is NOT in any marketplace publish step
    * AC-6: No ``enthali.jarvis`` release is produced after this shim release
+   * AC-7: The release workflow has no Suite package step, Suite VSIX GitHub
+     Release asset, or Suite Marketplace publish step; historical GitHub
+     Release assets are not deleted by this workflow change.
 
 
 .. spec:: No-Push Constraint in Release Agent

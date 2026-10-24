@@ -342,10 +342,10 @@ Configuration Requirements
 
 
 .. req:: Jarvis File Prefix in Shared Directories
-   :id: REQ_CFG_FILEPREFIX
-   :status: implemented
-   :priority: required
-   :links: US_CFG_WORKSPACEFILES
+  :id: REQ_CFG_FILEPREFIX
+  :status: approved
+  :priority: required
+  :links: US_CFG_WORKSPACEFILES; REQ_MOD_READINESS
 
    **Description:**
    Every file Jarvis generates into a workspace directory that Jarvis does not
@@ -357,8 +357,7 @@ Configuration Requirements
    (``jarvis-hook-file-prefix`` CR, GH #58). It is already applied to
    ``.github/hooks/jarvis-hooks.json`` and repo-wide (``jarvis-core``,
    ``jarvis-flow``, ``jarvis-pim``, ``jarvis-recorder``, ``jarvis-mcp``,
-   ``jarvis-suite``, ``jarvis-128.png``,
-   ``jarvis-actor.kernel.instructions.md``).
+   ``jarvis-128.png``, ``jarvis-actor.kernel.instructions.md``).
    Two files generated later into the same directory — ``bridge.mjs`` and
    ``port`` — did not inherit it. This requirement therefore states the rule
    **prospectively**, binding files Jarvis adds in future, rather than

@@ -214,10 +214,10 @@ Release Requirements
 
 
 .. req:: Selective Download and Install
-   :id: REQ_REL_UPDATEINSTALL
-   :status: implemented
-   :priority: mandatory
-   :links: US_REL_SELFUPDATE
+  :id: REQ_REL_UPDATEINSTALL
+  :status: approved
+  :priority: mandatory
+  :links: US_REL_SELFUPDATE; REQ_MOD_READINESS
 
    **Description:**
    The "Download & Install" action SHALL identify which ``enthali.jarvis*``
@@ -230,21 +230,21 @@ Release Requirements
    =============================== ======================================
    Extension ID                    VSIX filename (``{id}-{ver}.vsix``)
    =============================== ======================================
-   ``enthali.jarvis``              ``jarvis-{version}.vsix``
+    ``enthali.jarvis``              ``jarvis-{version}.vsix``
    ``enthali.jarvis-core``         ``jarvis-core-{version}.vsix``
    ``enthali.jarvis-pim``          ``jarvis-pim-{version}.vsix``
    ``enthali.jarvis-recorder``     ``jarvis-recorder-{version}.vsix``
    ``enthali.jarvis-mcp``          ``jarvis-mcp-{version}.vsix``
    ``enthali.jarvis-flow``         ``jarvis-flow-{version}.vsix``
-   ``enthali.jarvis-kanban``       ``jarvis-kanban-{version}.vsix``
-   ``enthali.jarvis-suite``        ``jarvis-suite-{version}.vsix``
+    ``enthali.jarvis-kanban``       ``jarvis-kanban-{version}.vsix``
    ``enthali.jarvis-syspilot``     ``jarvis-syspilot-{version}.vsix``
    =============================== ======================================
 
    **Acceptance Criteria:**
 
-   * AC-1: All currently installed ``enthali.jarvis*`` extensions are detected;
-     each is matched to its expected VSIX asset via the mapping above
+   * AC-1: Installed supported extensions listed in the mapping above are
+     matched to their expected VSIX assets. An installed extension ID not in
+     the mapping receives no update and is not removed.
    * AC-2: Only the matched assets are downloaded, each to a temporary directory
    * AC-3: Each ``.vsix`` is installed via
      ``workbench.extensions.installExtension`` with a ``vscode.Uri.file`` path

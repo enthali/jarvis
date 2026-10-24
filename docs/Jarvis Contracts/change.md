@@ -4,6 +4,10 @@ Use this process for every modification to versioned source code or documentatio
 
 The canonical Change Contract template lives here. A concrete change starts as a tailored copy at `docs/changes/<change>.md`.
 
+## Process Owner
+
+Project Manager
+
 ## Process Definition
 
 - **Applicability:** Every modification to versioned source code or documentation.
@@ -53,18 +57,25 @@ The Project Manager initializes a change as one consistent version-controlled st
 # Change Contract: {NAME}
 
 **Status:** proposed | approved | active | blocked | review | accepted | closed<br>
-**Process owner:** Project Manager<br>
 **Current responsibility:** Project Manager<br>
 **Current blocker:** none | {decision or action currently needed}<br>
 **Created:** {DATE}<br>
 **Related GitHub Issue(s):** {#n, …} — delete this line if not applicable<br>
-- **Operation Mode**: user-guided (default) | autonomous | unattended; select one with the User before Contract release
-
+- **Operation Mode**:
 *(Template note - delete this line and the two non-applicable mode bullets once the mode is picked.)*
 
 - **user-guided** - every actor involves the user in its decision-making before proceeding.
 - **autonomous** - every actor decides on its own; when genuinely unsure, it asks the user directly and pauses only its own step until answered.
 - **unattended** - the user is away. When unsure, the actor flags `USER REVIEW REQUIRED` in this document, takes the simplest KISS path that is cheapest to reverse or amend, and keeps the change moving. The PM reviews flagged points once reachable again; decision ownership remains with the actor that made the decision.
+
+## Handover log
+
+Owned by: Project Manager
+
+Append one line as the last act before handing over to the next appropriate Actor in the development flow.
+
+| Date : Time | From | To | Note |
+|--|--|--|--|
 
 ## Intent And Outcome
 
@@ -128,15 +139,6 @@ The Project Manager initializes a change as one consistent version-controlled st
 |---|---|---|
 | {build, test tooling, CI, workflow, configuration} | {what the change requires} | {action and evidence} |
 
-## Documentation Impact
-
-**Owner:** Technical Writer<br>
-**Status:** pending | complete | not applicable
-
-| Document | Required update | Evidence |
-|---|---|---|
-| {path} | {what the change makes true or false in it} | {commit or review result} |
-
 ## Implementation And Unit Verification
 
 **Owner:** Developer<br>
@@ -158,6 +160,15 @@ The Project Manager initializes a change as one consistent version-controlled st
 | Test | Kind | Traces to | Location |
 |---|---|---|---|
 | {test ID or title} | system / validation | {REQ or US ID} | {test file or procedure} |
+
+## Documentation Impact
+
+**Owner:** Technical Writer<br>
+**Status:** pending | complete | not applicable
+
+| Document | Required update | Evidence |
+|---|---|---|
+| {path} | {what the change makes true or false in it} | {commit or review result} |
 
 ## Quality Review
 

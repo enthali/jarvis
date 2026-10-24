@@ -332,3 +332,33 @@ Modular Delivery Requirements
      existing files are unversioned. Any local edit to them is unrecoverable
      once superseded. The migration note SHALL say so, so a user who customised
      a copy can rescue it before opting in.
+
+
+.. req:: Extension Readiness and Availability Disclosure
+  :id: REQ_MOD_READINESS
+  :status: approved
+  :priority: required
+  :links: US_MOD_READINESS; US_REL_MARKETPLACE; REQ_REL_MKTPUBLISH
+
+   **Description:**
+   Jarvis SHALL accurately disclose the maturity and capability boundaries of
+   PIM and Syspilot, and the Marketplace availability of the deprecated Suite,
+   across the root README and the affected extension pages and Marketplace
+   descriptions.
+
+   **Acceptance Criteria:**
+
+   * AC-1: PIM documentation and its Marketplace description identify PIM as
+     ``EXPERIMENTAL`` and state that email triage is not part of a Jarvis PIM
+     release; it remains in an externally maintained skill.
+   * AC-2: Syspilot documentation and its Marketplace description identify it
+     as ``EXPERIMENTAL — DO NOT USE`` and state that the upcoming syspilot 0.10
+     release will break compatibility.
+   * AC-3: The root README prominently states both maturity warnings and the
+     PIM email-triage limitation.
+   * AC-4: The Suite package is removed from the repository and future release
+     workflows do not build, upload, or publish a Suite VSIX. The User
+     unpublishes the Marketplace listing; its extension ID and statistics are
+     retained, and existing installations are not removed. Previously published
+     GitHub assets and permanent removal of the extension ID are not changed by
+     this requirement.

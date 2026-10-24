@@ -4,8 +4,18 @@ Jarvis is a VS Code extension that turns chat **sessions** and agent
 **personas** into **actors** — persistent entities with their own identity,
 memory (`context.md`), inter-actor messaging, and scheduling. Jarvis itself is
 the harness, not the assistant: the actors it hosts do the work — the syspilot
-actors handle software engineering, the PIM actors handle email, calendar, and
+actors handle software engineering, and PIM provides Outlook categories and
 tasks. Actors are stored as `actor.yaml` files in configurable folders.
+
+> **Jarvis PIM: EXPERIMENTAL.** Email triage is not part of a Jarvis PIM
+> release; it remains in an externally maintained skill.
+>
+> **Jarvis Syspilot: EXPERIMENTAL — DO NOT USE.** The upcoming syspilot 0.10
+> release will break compatibility.
+
+## Getting Started
+
+New to Jarvis? Follow the [Getting Started guide](docs/user%20guides/getting-started.md).
 
 ## Modules
 

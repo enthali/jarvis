@@ -118,3 +118,28 @@ Modular Delivery User Stories
      leaves anything it did not install untouched.
    * AC-5: The rules are recognisable as product-managed rather than
      hand-authored, so nobody edits the workspace copy expecting it to survive.
+
+
+.. story:: Know the Readiness of Jarvis Extensions
+  :id: US_MOD_READINESS
+  :status: approved
+  :priority: required
+  :links: US_MOD_INSTALL; US_REL_MARKETPLACE
+
+   **As a** VS Code user considering a Jarvis extension,
+   **I want** its maturity, limitations, and availability stated clearly,
+   **so that** I can decide whether to install or rely on it.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Jarvis PIM is identified as ``EXPERIMENTAL``, and users are told that
+     email triage is not provided by Jarvis PIM; it remains in an externally
+     maintained skill that is not part of a Jarvis PIM release.
+   * AC-2: Jarvis Syspilot is identified as ``EXPERIMENTAL — DO NOT USE``, with
+     the upcoming syspilot 0.10 incompatibility stated as the reason.
+   * AC-3: The Jarvis Suite is no longer supported: its package is removed from
+     the repository, and no future Suite VSIX is built, released on GitHub, or
+     published to the Marketplace. The User unpublishes the Marketplace listing;
+     the extension ID and statistics remain, and existing installations are
+     not removed. Previously published GitHub assets and permanent removal of
+     the extension ID are outside this decision.
