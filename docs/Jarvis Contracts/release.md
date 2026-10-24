@@ -23,7 +23,7 @@ Release work starts once the User sets the `Release start` gate to `approved`. T
 The Project Manager initializes a release as one consistent version-controlled state on `development`:
 
 1. Copy the canonical template from `# Release Contract: {VERSION}` through the end of this file to `docs/releases/v{version}.md`, using the intended version.
-2. Select the agreed Operation Mode, remove the template note and the non-applicable mode rule, and complete the header, `Objective And Scope`, and the list of included changes.
+2. Select the agreed Operation Mode and keep its definition with the specifics agreed with the User, remove the template note and the non-applicable mode rule, and complete the header, `Objective And Scope`, and the list of included changes.
 3. Ask the User to set the User-owned `Release start` gate to `approved`; only the User sets this gate.
 4. Commit the initialized Release Contract.
 5. Transfer current responsibility to Release.
@@ -38,12 +38,19 @@ The Project Manager initializes a release as one consistent version-controlled s
 **Current blocker:** none | {decision or action currently needed}<br>
 **Created:** {DATE}<br>
 **Related GitHub Issue(s):** {#n, …} — delete this line if not applicable<br>
-- **Operation Mode**: autonomous (default) | user-guided; select one with the User before Release start
+- **Operation Mode**: {select one of the following modes and agree its specifics for this release with the User before Release start; autonomous is the default}
 
 *(Template note - delete this line and the non-applicable mode bullet once the mode is picked. A release ends in an irreversible publication, so it always runs with the User reachable.)*
 
 - **autonomous** - every actor decides on its own; when genuinely unsure, it asks the user directly and pauses only its own step until answered.
 - **user-guided** - every actor involves the user in its decision-making before proceeding.
+
+## Handover log
+
+Append one line as the last act before handing over to the next appropriate Actor, in the same commit that changes Current responsibility.
+
+| Date | Time | From | To | Note |
+|---|---|---|---|---|
 
 ## Objective And Scope
 
@@ -111,6 +118,8 @@ Run in order and stop at the first failure, before any file is moved:
 2. `npm run lint`
 3. Requirement-level tests, all of them; unit tests already ran in every change. Until the test model separates the two, run the full `npm test` suite.
 4. Strict documentation build: `python -m sphinx -b html docs docs/_build/html -W --keep-going -E`
+
+Release runs checks 1, 2 and 4. For check 3, Release may hand responsibility to Quality, who runs the tests, records the result in the table below and hands back.
 
 | Check | Command and commit | Result |
 |---|---|---|
