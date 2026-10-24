@@ -2,7 +2,7 @@
   "name": "jarvis-pim",
   "displayName": "Jarvis PIM",
   "description": "EXPERIMENTAL — Jarvis PIM provides Outlook categories and tasks. Email triage is not part of a Jarvis PIM release; it remains in an externally maintained skill.",
-  "version": "0.31.0",
+  "version": "0.31.1",
   "publisher": "enthali",
   "license": "MIT",
   "icon": "resources/jarvis-128.png",
@@ -263,4 +263,3 @@
     ]
   }
 }
-
