@@ -1,6 +1,6 @@
 # Change Contract: extension-readiness-and-suite-retirement
 
-**Status:** active<br>
+**Status:** closed<br>
 **Process owner:** Project Manager<br>
 **Current responsibility:** Project Manager<br>
 **Current blocker:** none<br>
@@ -70,7 +70,7 @@ The root README and affected extension pages prominently show the agreed warning
 |---|---|---|---|---|
 | Intent and outcome | yes | Project Manager | Goal, value, scope, and observable outcome are explicit and approved | approved |
 | Contract release | yes | User | User authorization to start the change; set by the User only | approved |
-| Version control | yes | Project Manager | Local feature branch; squash-integrate into `development` | active |
+| Version control | yes | Project Manager | Squash-integrated into `development` at `f3aed83`; feature branch retained | merged |
 | Product specification | yes | Architect | No Need governs the retired generator, npm command or template; no specification change is required; the Suite Needs stay approved | complete |
 | Infrastructure impact | yes | Admin | Confirm task/build/workflow references for the retired generator and command are removed or unaffected | complete |
 | Documentation impact | yes | Technical Writer | Maintained contributor docs do not reference the retired generator/template; canonical Contract process verified; clean strict Sphinx and local preview checks pass | complete |
@@ -226,14 +226,14 @@ After Quality's `proceed`, the Project Manager presents the observable outcome. 
 ## Closure
 
 **Owner:** Project Manager<br>
-**Status:** pending | closed
+**Status:** closed
 
-- [ ] Every included artifact or gate has terminal status and completion evidence.
-- [ ] Intent and outcome are `approved`.
-- [ ] Quality has recorded `proceed`.
-- [ ] Open Findings contains `None`.
+- [x] Every included artifact or gate has terminal status and completion evidence.
+- [x] Intent and outcome are `approved`.
+- [x] Quality has recorded `proceed`.
+- [x] Open Findings contains `None`.
 - [x] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
-- [ ] The feature branch is squash-integrated into `development`.
-- [ ] Current blocker is `none`.
+- [x] The feature branch is squash-integrated into `development`.
+- [x] Current blocker is `none`.
 
-**Final outcome:** {accepted result and integration commit}
+**Final outcome:** Jarvis Suite and the legacy Change scaffolder removed; PIM/Syspilot readiness disclosed; User validation accepted; squash-integrated into `development` at `f3aed83`. Feature branch retained.
