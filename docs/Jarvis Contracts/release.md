@@ -8,7 +8,7 @@ The Release actor owns this process and runs it. The canonical Release Contract 
 
 - **Applicability:** Every publication of a Jarvis version.
 - **Canonical template:** The `Canonical Release Contract Template` section in this document.
-- **Concrete instances:** `docs/releases/v{version}.md`.
+- **Concrete instances:** `docs/releases/v{version}.md`, excluded from the documentation build in `docs/conf.py`.
 - **Initial responsibility:** Project Manager, who creates the Release Contract, completes objective and scope, and prepares it for the User-owned `Release start` gate.
 - **First handoff:** Release.
 - **Closure responsibility:** Release.
@@ -47,7 +47,7 @@ The Project Manager initializes a release as one consistent version-controlled s
 
 ## Handover log
 
-Append one line as the last act before handing over to the next appropriate Actor, in the same commit that changes Current responsibility.
+Append one line as the last act before handing over, in the same commit that changes Current responsibility. The note says what you did and states facts that change the next owner's situation; evidence stays in your own section.
 
 | Date | Time | From | To | Note |
 |---|---|---|---|---|
