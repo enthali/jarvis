@@ -319,19 +319,19 @@ describe('module boundary (D-12) and wiring of the two tools', () => {
     it('SPEC_KAN_LIST AC-11: registerTool description and languageModelTools entry', () => {
         expect(ext).toContain("'Lists kanban board items, optionally filtered by status or labels. Returns a compact projection (id, name, status, labels) per item; details: true returns the full items.'");
         const t = tool('jarvis_listKanbanItems');
-        expect(t.modelDescription).toBe('Lists kanban board items with optional status and/or labels filter. Returns a compact projection (id, name, status, labels) per item; details: true returns the full items, notes included. ownerName is required.');
+        expect(t.modelDescription).toBe('jarvis_kanban: Lists kanban board items with optional status and/or labels filter. Returns a compact projection (id, name, status, labels) per item; details: true returns the full items, notes included. ownerName is required.');
         expect(t.inputSchema.properties.details.type).toBe('boolean');
         expect(t.inputSchema.required).toEqual(['ownerName']);
-        expect(t.toolReferenceName).toBe('listKanbanItems');
+        expect(t.toolReferenceName).toBe('jarvis_kanban_listKanbanItems');
     });
 
     it('SPEC_KAN_FILTERVALUES AC-10: registered, declared with ownerName required, description and icon as specified', () => {
         expect(ext).toContain("'jarvis_listKanbanFilterValues'");
         expect(ext).toContain("'Lists the status values (columns, empty ones included) and the labels of a kanban board with the number of cards for each, to build list filters.'");
         const t = tool('jarvis_listKanbanFilterValues');
-        expect(t.toolReferenceName).toBe('listKanbanFilterValues');
+        expect(t.toolReferenceName).toBe('jarvis_kanban_listKanbanFilterValues');
         expect(t.icon).toBe('$(filter)');
-        expect(t.modelDescription).toBe('Returns the status values (columns, empty ones included) and the labels in use on a kanban board, each with the number of cards. Use these values as filters for jarvis_listKanbanItems. ownerName is required.');
+        expect(t.modelDescription).toBe('jarvis_kanban: Returns the status values (columns, empty ones included) and the labels in use on a kanban board, each with the number of cards. Use these values as filters for jarvis_listKanbanItems. ownerName is required.');
         expect(t.inputSchema.required).toEqual(['ownerName']);
         expect(Object.keys(t.inputSchema.properties).sort()).toEqual(['boardName', 'ownerName']);
     });

@@ -49,10 +49,6 @@ jobs:
       - name: Package enthali.jarvis-syspilot
         run: cd packages/syspilot && npx vsce package --no-dependencies
 
-      # ── Package extension pack (no build step, extensionPack only) ───────
-      - name: Package enthali.jarvis-suite
-        run: cd packages/suite && npx vsce package --no-dependencies
-
       # ── GitHub Release — all VSIXs ───────────────────────────────────────────
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -66,7 +62,6 @@ jobs:
             packages/flow/*.vsix
             packages/kanban/*.vsix
             packages/syspilot/*.vsix
-            packages/suite/*.vsix
           generate_release_notes: true
           # softprops/action-gh-release is idempotent: if a release for this
           # tag already exists (e.g. manually created by the Release Engineer
@@ -104,8 +99,4 @@ jobs:
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: npx vsce publish --packagePath packages/syspilot/jarvis-syspilot-*.vsix --no-dependencies
-      - name: Publish enthali.jarvis-suite to Marketplace
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: npx vsce publish --packagePath packages/suite/jarvis-suite-*.vsix --no-dependencies
 

@@ -2,6 +2,9 @@
 	"folders": [
 		{
 			"path": ".."
+		},
+		{
+			"path": "../../actor-context"
 		}
 	],
 	"settings": {
@@ -20,5 +23,11 @@
 		"workbench.experimental.modernUI": true,
 		"workbench.experimental.modernUIUppercaseViewHeaders": true,
 		"jarvis.mcpPort": 31420,
+		"jarvis.actors.folder": "../actor-context/jarvis",
+		"jarvis.actor.autoProvision": true,
+		"liveServer.settings.multiRootWorkspaceName": "jarvis",
+		"cSpell.words": [
+			"sysPilot"
+		],
 	}
 }

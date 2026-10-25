@@ -4,8 +4,32 @@ Jarvis is a VS Code extension that turns chat **sessions** and agent
 **personas** into **actors** — persistent entities with their own identity,
 memory (`context.md`), inter-actor messaging, and scheduling. Jarvis itself is
 the harness, not the assistant: the actors it hosts do the work — the syspilot
-actors handle software engineering, the PIM actors handle email, calendar, and
+actors handle software engineering, and PIM provides Outlook categories and
 tasks. Actors are stored as `actor.yaml` files in configurable folders.
+
+> **Jarvis PIM: EXPERIMENTAL.** Email triage is not part of a Jarvis PIM
+> release; it remains in an externally maintained skill.
+>
+> **Jarvis Syspilot: EXPERIMENTAL — DO NOT USE.** The upcoming syspilot 0.10
+> release will break compatibility.
+
+## Getting Started
+
+New to Jarvis? Follow the [Getting Started guide](docs/user%20guides/getting-started.md).
+
+## Version 0.31.1
+
+This patch fixes conflicting CLI tool references without adding a new capability.
+Chat tool references now use their package namespace, for example
+`#jarvis_core_createActor` and `#jarvis_pim_task`. Update existing prompts to use
+the new references; registered tool IDs and MCP tool names are unchanged.
+
+The release includes the PIM and Syspilot readiness warnings above and removes
+the deprecated Jarvis Suite from the repository and future distribution.
+Existing Suite installations are not removed and receive no further Suite updates;
+install individual extensions instead. Historical release assets remain available.
+The obsolete Change generator and template are also removed; contributors use
+the [Change Contract process](docs/Jarvis%20Contracts/change.md).
 
 ## Modules
 
@@ -31,7 +55,7 @@ capability modules. Install only what you need.
   (the model ID); there is no default or fallback, so existing steps without both fail until
   updated. Use **Jarvis: List Language Models** or `jarvis_listModels` to inspect the pairs
   currently offered to Jarvis by VS Code.
-- **Messaging, reminders & LM tools** — an inter-actor message queue, reminders, and tools like `#listActors`, `#listModels`, `#sendMessage`, `#receiveMessage`, `#createActor`, `#injectPrompt`, `#createKanbanBoard`, `#verifyKanbanSchema`, and `#openKanbanBoard`
+- **Messaging, reminders & LM tools** — an inter-actor message queue, reminders, and tools like `#jarvis_core_listActors`, `#jarvis_core_listModels`, `#jarvis_core_sendMessage`, `#jarvis_core_receiveMessage`, `#jarvis_core_createActor`, `#jarvis_core_injectPrompt`, `#jarvis_kanban_createKanbanBoard`, `#jarvis_kanban_verifyKanbanSchema`, and `#jarvis_kanban_openKanbanBoard`
 - **Prompt injection** — inject any text or slash-command (e.g. `/compact`) into a named actor's session via the `jarvis_injectPrompt` LM tool or the **Jarvis: Inject Prompt** command; spawns the session automatically if none exists. Useful for bulk operations such as compacting all actors after a CR:
   ```
   jarvis_injectPrompt(actor="Change Manager", text="/compact")

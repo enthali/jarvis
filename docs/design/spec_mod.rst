@@ -2,9 +2,9 @@ Modular Delivery Design Specifications
 ======================================
 
 .. spec:: Monorepo Layout & Shared Build
-   :id: SPEC_MOD_MONOREPO
-   :status: approved
-   :links: REQ_MOD_CORE; REQ_MOD_ADDONS
+  :id: SPEC_MOD_MONOREPO
+  :status: approved
+  :links: REQ_MOD_CORE; REQ_MOD_ADDONS; REQ_MOD_READINESS
 
    **Description:**
    The repository is an npm-workspaces monorepo producing five extension
@@ -26,7 +26,6 @@ Modular Delivery Design Specifications
         mcp/         -> enthali.jarvis-mcp
         flow/        -> enthali.jarvis-flow
         syspilot/    -> enthali.jarvis-syspilot
-        suite/       -> enthali.jarvis-suite  (extension pack)
 
    **Acceptance Criteria:**
 
@@ -116,8 +115,8 @@ Modular Delivery Design Specifications
    * AC-5: What the speech recognition needs is not part of the VSIX; it is fetched at the
      first start (``SPEC_REC_COMPONENTS``).
    * AC-6: The package holds only what the recorder needs now: the entry point, the engine
-     worker, the capture helper, the components manifest, the manifest and readme files and
-     the icon. Output of removed sources does not ship: the output folder is cleaned before a
+     worker, the capture helper, the components manifest, the manifest, readme and licence
+     files and the icon. Output of removed sources does not ship: the output folder is cleaned before a
      build, and the file list given by the packaging tool is checked against this AC before a
      release. Inclusion in the package does not depend on whether Git tracks a file.
 
@@ -166,30 +165,54 @@ Modular Delivery Design Specifications
      not introduce that mechanism either.
 
 
-.. spec:: Suite Extension Pack (Deprecated)
-   :id: SPEC_MOD_SUITE
-   :status: deprecated
-   :links: REQ_MOD_ADDONS
+.. spec:: Extension Readiness Disclosures
+  :id: SPEC_MOD_READINESS
+  :status: approved
+  :links: REQ_MOD_READINESS; SPEC_MOD_SUITE; SPEC_REL_MKTPUBLISH; SPEC_REL_COREGH
 
    **Description:**
-   ``enthali.jarvis-suite`` is **deprecated**. It was an extension pack
-   referencing core, PIM, recorder, MCP, and flow — offering a one-click
-   "install everything" path. Now that Jarvis spans genuinely different
-   audiences (personal-assistant users vs. software-engineering teams),
-   a single "install all" pack no longer makes sense.
-
-   Users should install individual components instead. No further add-ons
-   (including syspilot) SHALL be added to the pack.
+    User-facing readiness claims are consistent across the root README, affected extension pages, and Marketplace descriptions. The exact warning and capability boundary are governed by ``REQ_MOD_READINESS``. Complete Suite retirement is specified by ``SPEC_MOD_SUITE``.
 
    **Acceptance Criteria:**
 
-   * AC-1: ``packages/suite/package.json`` description and
-     ``packages/suite/README.md`` clearly state the pack is deprecated
-     and direct users to install components individually.
-   * AC-2: No new extensions are added to the pack’s
-     ``extensionPack`` array.
-   * AC-3: The pack remains publishable for existing users but receives
-     no further functional updates.
+   * AC-1: PIM is prominently marked ``EXPERIMENTAL``; its materials do not
+     imply that Jarvis PIM provides email triage or includes the external
+     email-triage skill in a PIM release.
+   * AC-2: Syspilot is prominently marked ``EXPERIMENTAL — DO NOT USE`` and
+     explains the incompatibility expected with the upcoming syspilot 0.10
+     release.
+   * AC-3: The root README communicates both warnings and the PIM limitation;
+     the PIM and Syspilot extension pages and Marketplace descriptions carry
+     their respective warnings.
+   * AC-4: The Suite package is removed from the repository, and future release
+     workflows neither package it nor upload or publish a Suite VSIX. The User
+     unpublishes the Marketplace listing; the existing extension ID and
+     statistics remain. Existing installations and historical GitHub release
+     assets are not removed by this change. Permanent extension ID removal and
+     deletion of historical GitHub assets remain open User decisions.
+
+
+.. spec:: Suite Extension Pack Retirement
+  :id: SPEC_MOD_SUITE
+  :status: approved
+  :links: REQ_MOD_ADDONS; REQ_MOD_READINESS
+
+   **Description:**
+   The deprecated ``enthali.jarvis-suite`` extension pack is removed from the
+   supported product and repository. Users install supported components
+   individually. Historical release notes remain historical records.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``packages/suite/`` is absent from the resulting repository and
+     ``SPEC_MOD_MONOREPO`` target layout.
+   * AC-2: No future release workflow packages a Suite VSIX, uploads it as a
+     GitHub Release asset, or publishes it to the Marketplace.
+   * AC-3: The User unpublishes the Marketplace listing; the extension ID and
+     statistics remain, and existing installations are not removed.
+   * AC-4: Previously published GitHub assets are not deleted and the
+     Marketplace extension ID is not permanently removed without a separate
+     explicit User decision.
 
 
 .. spec:: MCP Package

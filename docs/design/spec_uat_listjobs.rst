@@ -151,7 +151,7 @@ List-Jobs Tool UAT Design Specifications
         - Expected result
       * - 1
         - In GitHub Copilot Chat (Agent mode), invoke the
-          ``jarvis_listJobs`` MCP tool directly (e.g. via ``#jarvis_listJobs``
+          ``jarvis_listJobs`` MCP tool directly (e.g. via ``#jarvis_core_listJobs``
           or through an agent prompt that triggers the MCP server).
         - The MCP interface is called; a ``jobs`` array is returned.
       * - 2

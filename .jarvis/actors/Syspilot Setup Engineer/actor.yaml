@@ -1,3 +1,0 @@
-name: "Syspilot Setup Engineer"
-summary: "Manages syspilot agent installation and updates"
-agent: "syspilot.setup"

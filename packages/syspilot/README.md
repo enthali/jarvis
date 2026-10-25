@@ -1,5 +1,8 @@
 # Jarvis Syspilot
 
+> **EXPERIMENTAL — DO NOT USE.** The upcoming syspilot 0.10 release will
+> break compatibility.
+
 Detects new [syspilot](https://github.com/enthali/syspilot) releases and hands off installation/updates to the **Syspilot Setup Engineer** actor — it never asks for consent and never installs anything itself.
 
 ## Behavior

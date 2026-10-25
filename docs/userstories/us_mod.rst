@@ -118,3 +118,61 @@ Modular Delivery User Stories
      leaves anything it did not install untouched.
    * AC-5: The rules are recognisable as product-managed rather than
      hand-authored, so nobody edits the workspace copy expecting it to survive.
+
+
+.. story:: Know the Readiness of Jarvis Extensions
+  :id: US_MOD_READINESS
+  :status: approved
+  :priority: required
+  :links: US_MOD_INSTALL; US_REL_MARKETPLACE
+
+   **As a** VS Code user considering a Jarvis extension,
+   **I want** its maturity, limitations, and availability stated clearly,
+   **so that** I can decide whether to install or rely on it.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Jarvis PIM is identified as ``EXPERIMENTAL``, and users are told that
+     email triage is not provided by Jarvis PIM; it remains in an externally
+     maintained skill that is not part of a Jarvis PIM release.
+   * AC-2: Jarvis Syspilot is identified as ``EXPERIMENTAL — DO NOT USE``, with
+     the upcoming syspilot 0.10 incompatibility stated as the reason.
+   * AC-3: The Jarvis Suite is no longer supported: its package is removed from
+     the repository, and no future Suite VSIX is built, released on GitHub, or
+     published to the Marketplace. The User unpublishes the Marketplace listing;
+     the extension ID and statistics remain, and existing installations are
+     not removed. Previously published GitHub assets and permanent removal of
+     the extension ID are outside this decision.
+
+
+.. story:: Tell Jarvis Tools Apart From Other Tools
+   :id: US_MOD_TOOLREF
+   :status: approved
+   :priority: required
+   :links: US_MOD_INSTALL
+
+   **As a** user or model that sees Jarvis tools next to the tools of other
+   extensions,
+   **I want** every Jarvis tool reference and description to name the Jarvis
+   package that owns the tool,
+   **so that** a generic reference such as ``#task`` or ``#category`` cannot be
+   taken for a tool of another extension, nor the other way round.
+
+   **Context:**
+   The chat tool picker, ``#`` references and CLI listings show a tool by its
+   reference name and description. Two Jarvis references, ``task`` and
+   ``category``, are generic words that other extensions can use as well, and
+   the other Jarvis references name no package.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Every Language Model Tool of a Jarvis package is referenced by a name
+     that begins with ``jarvis_`` and the owning package, so no reference
+     coincides with that of another extension or of another Jarvis package.
+   * AC-2: The description of every such tool begins with the owning package,
+     so a listing shows where the tool comes from.
+   * AC-3: What a tool does, what it accepts, and the identifier under which
+     it is registered stay as they were; only how users and models refer to a
+     tool and recognise it changes.
+   * AC-4: A prompt that still uses a former reference no longer finds its
+     tool. Maintained documentation and shipped assets name the new references.

@@ -992,8 +992,8 @@ Actor Design Specifications
 
 .. spec:: jarvis_createActor Tool
    :id: SPEC_ACTOR_CREATETOOL
-   :status: implemented
-   :links: REQ_ACTOR_CREATETOOL; SPEC_ACTOR_CREATE; SPEC_ACTOR_WHOAMI; SPEC_ACTOR_OPENSESSION; SPEC_ENG_REGISTER_TOOL; SPEC_MSG_DUALREGISTRATION; SPEC_MSG_QUEUESTORE
+   :status: approved
+   :links: REQ_ACTOR_CREATETOOL; SPEC_ACTOR_CREATE; SPEC_ACTOR_WHOAMI; SPEC_ACTOR_OPENSESSION; SPEC_ENG_REGISTER_TOOL; SPEC_MSG_DUALREGISTRATION; SPEC_MSG_QUEUESTORE; REQ_ENG_TOOLREF
 
    **Description:**
    ``jarvis_createActor`` is registered with ``engine.registerTool()``
@@ -1032,10 +1032,10 @@ Actor Design Specifications
       {
         "name": "jarvis_createActor",
         "displayName": "Create Actor",
-        "toolReferenceName": "createActor",
+        "toolReferenceName": "jarvis_core_createActor",
         "canBeReferencedInPrompt": true,
         "icon": "$(add)",
-        "modelDescription": "Creates a Jarvis Actor (actor.yaml and context.md) under the configured actors folder. Returns created: false without changes when an Actor with that name or folder already exists.",
+        "modelDescription": "jarvis_core: Creates a Jarvis Actor (actor.yaml and context.md) under the configured actors folder. Returns created: false without changes when an Actor with that name or folder already exists.",
         "inputSchema": {
           "type": "object",
           "required": ["name"],
@@ -1063,8 +1063,8 @@ Actor Design Specifications
 
 .. spec:: jarvis_listActors Tool
    :id: SPEC_ACTOR_LISTTOOL
-   :status: implemented
-   :links: REQ_ACTOR_LISTTOOL; SPEC_ACTOR_SCANNER; SPEC_ENG_REGISTER_TOOL; SPEC_ENG_ACTORLIST
+   :status: approved
+   :links: REQ_ACTOR_LISTTOOL; SPEC_ACTOR_SCANNER; SPEC_ENG_REGISTER_TOOL; SPEC_ENG_ACTORLIST; REQ_ENG_TOOLREF
 
    **Description:**
    ``jarvis_listActors`` is registered with ``engine.registerTool()``
@@ -1083,8 +1083,8 @@ Actor Design Specifications
    (``SPEC_ACTOR_WHOAMI``), so it always equals ``name``.
 
    **package.json ``languageModelTools``:** name ``jarvis_listActors``,
-   ``toolReferenceName`` ``listActors``, empty ``inputSchema``,
-   ``modelDescription`` "Lists all Jarvis Actors (name, summary, agent,
+   ``toolReferenceName`` ``jarvis_core_listActors``, empty ``inputSchema``,
+   ``modelDescription`` "jarvis_core: Lists all Jarvis Actors (name, summary, agent,
    folder, id). Distinct from jarvis_listChatSessions, which lists VS Code
    chat tab titles."
 

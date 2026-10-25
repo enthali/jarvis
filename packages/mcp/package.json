@@ -2,8 +2,9 @@
   "name": "jarvis-mcp",
   "displayName": "Jarvis MCP",
   "description": "Jarvis MCP Server — exposes all registered Jarvis tools over MCP HTTP transport",
-  "version": "0.31.0",
+  "version": "0.31.1",
   "publisher": "enthali",
+  "license": "MIT",
   "icon": "resources/jarvis-128.png",
   "engines": {
     "vscode": "^1.95.0"

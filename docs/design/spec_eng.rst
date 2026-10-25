@@ -222,6 +222,83 @@ Engine Design Specifications
      surface.
 
 
+.. spec:: Language Model Tool Manifest Namespace
+   :id: SPEC_ENG_TOOLREF
+   :status: approved
+   :links: REQ_ENG_TOOLREF; SPEC_ENG_REGISTER_TOOL
+
+   **Description:**
+   ``toolReferenceName`` and ``modelDescription`` belong to the manifest entry
+   of a tool in ``contributes.languageModelTools``; ``registerTool`` does not
+   read them, so ``SPEC_ENG_REGISTER_TOOL`` stays as it is. The registered
+   ``name`` remains the key of the LM surface and of the MCP surface, which
+   lists tools by ``name`` (``SPEC_ENG_TOOLREGISTRY``) and already begins with
+   ``jarvis_``. The two manifest fields are what the chat tool picker, a ``#``
+   reference and a CLI listing show, and that is where a generic reference such
+   as ``task`` can coincide with a tool of another extension.
+
+   **Package segment:** the suffix of the extension id
+   ``enthali.jarvis-<package>``. A package that contributes tools later takes
+   its own suffix.
+
+   **Rule per manifest entry:** ``toolReferenceName`` is
+   ``jarvis_<package>_<former reference>``; ``modelDescription`` is
+   ``jarvis_<package>:``, a space, and the former description. A deprecated
+   tool reads ``jarvis_core: [DEPRECATED AND DISABLED — use jarvis_sendMessage
+   instead.] Queues ...``; the package comes first because every description
+   gets the same label, and the notice follows it directly, still ahead of the
+   text that says what the tool did.
+
+   **References after the change** (the ``name`` of each tool is unchanged):
+
+   .. code-block:: text
+
+      core     jarvis_core_createActor        jarvis_core_sendToSession
+               jarvis_core_sendMessage        jarvis_core_listActors
+               jarvis_core_listChatSessions   jarvis_core_readMessage
+               jarvis_core_receiveMessage     jarvis_core_registerJob
+               jarvis_core_unregisterJob      jarvis_core_listJobs
+               jarvis_core_listModels         jarvis_core_setReminder
+               jarvis_core_listReminders      jarvis_core_cancelReminder
+               jarvis_core_injectPrompt
+      kanban   jarvis_kanban_createKanbanBoard   jarvis_kanban_verifyKanbanSchema
+               jarvis_kanban_openKanbanBoard     jarvis_kanban_updateKanbanItem
+               jarvis_kanban_addKanbanItem       jarvis_kanban_deleteKanbanItem
+               jarvis_kanban_listKanbanItems     jarvis_kanban_listKanbanFilterValues
+               jarvis_kanban_updateKanbanFields
+      pim      jarvis_pim_category            jarvis_pim_task
+      syspilot jarvis_syspilot_delaySyspilotUpdate
+               jarvis_syspilot_SyspilotSkipThisVersion
+
+   **Why ``name`` stays:** the 28 registered names (core 15, kanban 9, pim 2,
+   syspilot 2) are pairwise different, and ``registerTool`` rejects a duplicate
+   (``SPEC_ENG_REGISTER_TOOL`` AC-2). The collision lies in the references
+   ``task`` and ``category``, not in the names. The MCP surface and the delivered
+   kernel instructions address tools by ``name``, so keeping it breaks neither.
+
+   **Compatibility:** a prompt or saved prompt file that uses a former ``#``
+   reference no longer resolves it. Tool identifiers and the MCP exposure are
+   unaffected. The only agent file in the repository that lists tools
+   (``testdata/.github/agents/syspilot.setup.agent.md``) names extension ids,
+   not references, so it is unaffected as well.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Every ``languageModelTools`` entry of ``packages/core``,
+     ``packages/kanban``, ``packages/pim`` and ``packages/syspilot`` has the
+     ``toolReferenceName`` listed above.
+   * AC-2: Every such entry has a ``modelDescription`` that begins with
+     ``jarvis_<package>:`` and a space; for the two deprecated core tools the text
+     ``[DEPRECATED AND DISABLED —`` follows directly.
+   * AC-3: No two ``toolReferenceName`` values across these packages are equal.
+   * AC-4: For every entry, ``name``, ``displayName``, ``icon``,
+     ``canBeReferencedInPrompt``, ``tags``, ``when`` and ``inputSchema`` equal
+     their values before the change, and the number of entries per package is
+     unchanged.
+   * AC-5: No maintained document or shipped asset uses a former ``#``
+     reference.
+
+
 .. spec:: Tool Registry Exposure Surface
    :id: SPEC_ENG_TOOLREGISTRY
    :status: approved

@@ -921,8 +921,8 @@ Automation Design Specifications
 
 .. spec:: List Jobs LM+MCP Tool
    :id: SPEC_AUT_LISTJOBS_TOOL
-   :status: implemented
-   :links: REQ_AUT_LISTJOBS_TOOL; SPEC_AUT_JOBREG; SPEC_AUT_SCHEDULERLOOP
+   :status: approved
+   :links: REQ_AUT_LISTJOBS_TOOL; SPEC_AUT_JOBREG; SPEC_AUT_SCHEDULERLOOP; REQ_ENG_TOOLREF
 
    **Description:**
    Register ``jarvis_listJobs`` via ``registerDualTool()`` in ``extension.ts``
@@ -997,9 +997,9 @@ Automation Design Specifications
       {
         "name": "jarvis_listJobs",
         "displayName": "List Heartbeat Jobs",
-        "modelDescription": "Returns all registered heartbeat jobs with name, schedule, enabled state, and next scheduled fire time (ISO 8601 or null for manual/paused jobs).",
+        "modelDescription": "jarvis_core: Returns all registered heartbeat jobs with name, schedule, enabled state, and next scheduled fire time (ISO 8601 or null for manual/paused jobs).",
         "canBeReferencedInPrompt": true,
-        "toolReferenceName": "listJobs",
+        "toolReferenceName": "jarvis_core_listJobs",
         "icon": "$(list-unordered)",
         "inputSchema": {
           "type": "object",
@@ -1022,7 +1022,7 @@ Automation Design Specifications
 .. spec:: List Available Language Models Command and Tool
    :id: SPEC_AUT_LISTMODELS
    :status: approved
-   :links: REQ_AUT_LISTMODELS; SPEC_AUT_AGENTEXEC; SPEC_ENG_REGISTER_TOOL
+   :links: REQ_AUT_LISTMODELS; SPEC_AUT_AGENTEXEC; SPEC_ENG_REGISTER_TOOL; REQ_ENG_TOOLREF
 
    **Description:**
    One list, two ways to read it: a command for the user and a tool for Actors. Both call
@@ -1057,9 +1057,9 @@ Automation Design Specifications
       {
         "name": "jarvis_listModels",
         "displayName": "List Language Models",
-        "modelDescription": "Returns the language models an agent step of a heartbeat job can name, as an array of { vendor, model }. Use vendor and model exactly as returned.",
+        "modelDescription": "jarvis_core: Returns the language models an agent step of a heartbeat job can name, as an array of { vendor, model }. Use vendor and model exactly as returned.",
         "canBeReferencedInPrompt": true,
-        "toolReferenceName": "listModels",
+        "toolReferenceName": "jarvis_core_listModels",
         "icon": "$(list-unordered)",
         "inputSchema": { "type": "object", "properties": {} }
       }

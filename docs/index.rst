@@ -8,6 +8,12 @@ requirements engineering and traceability.
 
 .. toctree::
    :maxdepth: 2
+   :caption: User Guides
+
+   user guides/index
+
+.. toctree::
+   :maxdepth: 2
    :caption: User Stories
 
    userstories/index
@@ -29,6 +35,13 @@ requirements engineering and traceability.
    :caption: Traceability
 
    traceability/index
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Contracts
+
+   Jarvis Contracts/index
+   Jarvis Actors/index
 
 .. toctree::
    :maxdepth: 1

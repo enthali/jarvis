@@ -255,10 +255,11 @@ Message Queue Requirements
      and Messages-tree refresh (former AC-3 through AC-6) are SUPERSEDED and
      no longer apply — the handler short-circuits to the error in AC-3 before
      any of that logic would run
-   * AC-6: The tool's ``modelDescription`` SHALL be prefixed with
-     ``"[DEPRECATED AND DISABLED — use jarvis_receiveMessage instead.]"`` so
-     the deprecation is visible at tool-discovery time, before any invocation
-     attempt
+   * AC-6: The tool's ``modelDescription`` SHALL carry
+     ``"[DEPRECATED AND DISABLED — use jarvis_receiveMessage instead.]"``
+     directly after the package prefix ``jarvis_core:``
+     (``REQ_ENG_TOOLREF`` AC-3), so the deprecation is visible at
+     tool-discovery time, before any invocation attempt
 
 
 .. req:: Embedded MCP Server
@@ -1132,10 +1133,11 @@ Message Queue Requirements
      and all other previously-specified behaviour (former AC-3 through AC-7b)
      are SUPERSEDED and no longer apply — the handler short-circuits to the
      error in AC-3 before any of that logic would run
-   * AC-6: The tool's ``modelDescription`` SHALL be prefixed with
-     ``"[DEPRECATED AND DISABLED — use jarvis_sendMessage instead.]"`` so the
-     deprecation is visible at tool-discovery time, before any invocation
-     attempt
+   * AC-6: The tool's ``modelDescription`` SHALL carry
+     ``"[DEPRECATED AND DISABLED — use jarvis_sendMessage instead.]"``
+     directly after the package prefix ``jarvis_core:``
+     (``REQ_ENG_TOOLREF`` AC-3), so the deprecation is visible at
+     tool-discovery time, before any invocation attempt
 
 
 .. req:: Destination Validation Error Contract

@@ -4,7 +4,7 @@ Syspilot Lifecycle Design Specifications
 .. spec:: Syspilot Module Package Structure
    :id: SPEC_SPL_PACKAGE
    :status: draft
-   :links: REQ_SPL_PACKAGE; SPEC_MOD_MONOREPO; SPEC_MOD_CORE_PKG
+   :links: REQ_SPL_PACKAGE; SPEC_MOD_MONOREPO; SPEC_MOD_CORE_PKG; REQ_ENG_TOOLREF
 
    **Description:**
    ``packages/syspilot`` builds ``enthali.jarvis-syspilot`` with
@@ -51,9 +51,9 @@ Syspilot Lifecycle Design Specifications
         {
           "name": "jarvis_delaySyspilotUpdate",
           "displayName": "Delay Syspilot Update",
-          "modelDescription": "Suspend syspilot update notifications for N days. The actor invokes this when the user chooses to delay.",
+          "modelDescription": "jarvis_syspilot: Suspend syspilot update notifications for N days. The actor invokes this when the user chooses to delay.",
           "canBeReferencedInPrompt": true,
-          "toolReferenceName": "delaySyspilotUpdate",
+          "toolReferenceName": "jarvis_syspilot_delaySyspilotUpdate",
           "icon": "$(watch)",
           "tags": ["jarvis"],
           "inputSchema": {
@@ -67,9 +67,9 @@ Syspilot Lifecycle Design Specifications
         {
           "name": "jarvis_SyspilotSkipThisVersion",
           "displayName": "Skip This Syspilot Version",
-          "modelDescription": "Permanently skip the current pending syspilot version so no further notifications are sent for it.",
+          "modelDescription": "jarvis_syspilot: Permanently skip the current pending syspilot version so no further notifications are sent for it.",
           "canBeReferencedInPrompt": true,
-          "toolReferenceName": "SyspilotSkipThisVersion",
+          "toolReferenceName": "jarvis_syspilot_SyspilotSkipThisVersion",
           "icon": "$(debug-step-over)",
           "tags": ["jarvis"],
           "inputSchema": { "type": "object", "properties": {} }

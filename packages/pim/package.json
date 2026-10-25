@@ -1,9 +1,10 @@
 {
   "name": "jarvis-pim",
   "displayName": "Jarvis PIM",
-  "description": "Jarvis Personal Information Manager — categories, tasks",
-  "version": "0.31.0",
+  "description": "EXPERIMENTAL — Jarvis PIM provides Outlook categories and tasks. Email triage is not part of a Jarvis PIM release; it remains in an externally maintained skill.",
+  "version": "0.31.1",
   "publisher": "enthali",
+  "license": "MIT",
   "icon": "resources/jarvis-128.png",
   "engines": {
     "vscode": "^1.95.0"
@@ -134,9 +135,9 @@
       {
         "name": "jarvis_pim_category",
         "displayName": "Manage Categories",
-        "modelDescription": "Manage categories from all configured PIM providers. Actions: get (list/filter categories from cache), set (create/update a category), delete (remove a category), rename (rename a category). When no providers are configured, returns an error.",
+        "modelDescription": "jarvis_pim: Manage categories from all configured PIM providers. Actions: get (list/filter categories from cache), set (create/update a category), delete (remove a category), rename (rename a category). When no providers are configured, returns an error.",
         "canBeReferencedInPrompt": true,
-        "toolReferenceName": "category",
+        "toolReferenceName": "jarvis_pim_category",
         "icon": "$(tag)",
         "inputSchema": {
           "type": "object",
@@ -180,9 +181,9 @@
       {
         "name": "jarvis_pim_task",
         "displayName": "Manage Tasks",
-        "modelDescription": "Manage Outlook tasks linked to Jarvis projects and events. Actions: get (list/filter tasks from cache), set (create a new task), modify (update task fields), delete (remove a task). completedDate is read-only. When no providers are configured, returns an error.",
+        "modelDescription": "jarvis_pim: Manage Outlook tasks linked to Jarvis projects and events. Actions: get (list/filter tasks from cache), set (create a new task), modify (update task fields), delete (remove a task). completedDate is read-only. When no providers are configured, returns an error.",
         "canBeReferencedInPrompt": true,
-        "toolReferenceName": "task",
+        "toolReferenceName": "jarvis_pim_task",
         "icon": "$(checklist)",
         "inputSchema": {
           "type": "object",
