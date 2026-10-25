@@ -115,8 +115,8 @@ Modular Delivery Design Specifications
    * AC-5: What the speech recognition needs is not part of the VSIX; it is fetched at the
      first start (``SPEC_REC_COMPONENTS``).
    * AC-6: The package holds only what the recorder needs now: the entry point, the engine
-     worker, the capture helper, the components manifest, the manifest and readme files and
-     the icon. Output of removed sources does not ship: the output folder is cleaned before a
+     worker, the capture helper, the components manifest, the manifest, readme and licence
+     files and the icon. Output of removed sources does not ship: the output folder is cleaned before a
      build, and the file list given by the packaging tool is checked against this AC before a
      release. Inclusion in the package does not depend on whether Git tracks a file.
 
