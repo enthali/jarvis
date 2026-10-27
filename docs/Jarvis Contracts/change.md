@@ -225,5 +225,6 @@ After Quality's `proceed`, the Project Manager presents the observable outcome. 
 - [ ] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
 - [ ] The feature branch is squash-integrated into `development`.
 - [ ] Current blocker is `none`.
+- [ ] Header Status is `closed`.
 
 **Final outcome:** {accepted result and integration commit}

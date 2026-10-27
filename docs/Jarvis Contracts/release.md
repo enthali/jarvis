@@ -205,3 +205,4 @@ Publish only when Release Verification is `proceed` and Open Findings is `None`.
 - [ ] Publication evidence is recorded.
 - [ ] `development` contains the back-merge of `main`.
 - [ ] Current blocker is `none`.
+- [ ] Header Status is `closed`.
