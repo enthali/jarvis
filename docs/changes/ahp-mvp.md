@@ -367,4 +367,4 @@ After Quality's `proceed`, the Project Manager presents the observable outcome. 
 - [x] Current blocker is `none`.
 - [x] Header Status is `closed`.
 
-**Final outcome:** Jarvis Core delivers Actor messages and opens Actor chats through the Agent Host Protocol; Quality proceeded and the User accepted with a partial validation in the Extension Development Host. Not run: the manual Agent Host scenarios in the pristine Sandbox (the provisioned hook needs `node`) and module tools and views/webviews in the Agents window. Complete hook removal is the separate next Change. Squash-integrated into `development`; the feature branch is retained.
+**Final outcome:** Jarvis Core delivers Actor messages and opens Actor chats through the Agent Host Protocol; Quality proceeded and the User accepted with a partial validation in the Extension Development Host. Not run: the manual Agent Host scenarios in the pristine Sandbox (the provisioned hook needs `node`) and module tools and views/webviews in the Agents window. Complete hook removal is the separate next Change. Squash-integrated into `development` at `93463aa`; the feature branch is retained.
