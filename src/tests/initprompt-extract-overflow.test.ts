@@ -13,11 +13,12 @@
 import { describe, it, expect } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
-import { DEFAULT_INIT_PROMPT } from '@engine/sessions/injectPrompt';
+import { DEFAULT_INIT_PROMPT } from '@engine/sessions/actorStartupPrompt';
 
 const coreSrcDir = path.resolve(__dirname, '..', '..', 'packages', 'core', 'src');
 const injectPromptSrc = fs.readFileSync(
-    path.join(coreSrcDir, 'engine', 'sessions', 'injectPrompt.ts'), 'utf-8');
+    path.join(coreSrcDir, 'engine', 'sessions', 'actorStartupPrompt.ts'), 'utf-8');
+const extensionSrc = fs.readFileSync(path.join(coreSrcDir, 'extension.ts'), 'utf-8');
 const packageJson = JSON.parse(fs.readFileSync(path.join(coreSrcDir, '..', 'package.json'), 'utf-8'));
 
 const NEW_BULLET = '- When a topic grows past ~5 bullets, move it to a dedicated file beside `context.md` and leave a one-line summary with a relative link in `context.md`.';
@@ -96,8 +97,8 @@ describe('TC-4: Non-regression on the five pre-existing bullets', () => {
 
 describe('TC-5: Custom-template override path unbroken', () => {
     it('injectPrompt.ts checks rawInitTemplate.trim() before falling back to DEFAULT_INIT_PROMPT', () => {
-        const pattern = /rawInitTemplate\.trim\(\)\s*\?\s*rawInitTemplate\s*:\s*DEFAULT_INIT_PROMPT/;
-        const matches = injectPromptSrc.match(pattern);
+        const pattern = /rawTemplate\.trim\(\)\s*\?\s*rawTemplate\s*:\s*DEFAULT_INIT_PROMPT/;
+        const matches = extensionSrc.match(pattern);
         expect(matches).not.toBeNull();
         expect(matches!.length).toBeGreaterThanOrEqual(1);
     });

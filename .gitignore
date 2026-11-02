@@ -50,6 +50,9 @@ testdata/.jarvis/syspilot-state.json
 # Extension Development Host isolated extensions (launch.json --extensions-dir)
 .vscode-test/
 
+# Windows Sandbox configuration, VSIX build output and guest logs
+test-environments/windows-sandbox/.local/
+
 # OS
 Thumbs.db
 .DS_Store

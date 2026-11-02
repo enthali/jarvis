@@ -12,7 +12,6 @@ outcome tables** for each feature's acceptance tests.
 
    spec_uat_heartbeat
    spec_uat_msgqueue
-   spec_uat_sessiontools
    spec_uat_selfupdate
    spec_uat_mcpserver
    spec_uat_outlookcategories
@@ -22,11 +21,9 @@ outcome tables** for each feature's acceptance tests.
    spec_uat_heartbeat_pause
    spec_uat_listjobs
    spec_uat_reminders
-   spec_uat_agent_prompt_tuning
    spec_uat_skill_provisioning
    spec_uat_flow
    spec_uat_kanban_skill
-   spec_uat_msg_modetarget
    spec_uat_kanban_mgmt
    spec_uat_kanban_update_valid
    spec_uat_mod_actorrules

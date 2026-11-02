@@ -121,11 +121,11 @@ Actor Design Specifications
    ``unknown`` for none and ``ambiguous`` with every match for more than one;
    it never picks one of several. The duplicate entries stay in ``actors``
    so the view shows both folders, but no name-based function acts on them.
-   Every core consumer resolves names through it: ``injectPrompt``
-   (``SPEC_INJ_INJECT``), the
+   Every core consumer resolves names through it: the client path of the
+   chat (``resolveActorForChat``, ``SPEC_COM_BINDING``), the
    touched-files tracker and display (``SPEC_ACTOR_TOUCHEDFILES``), the
-   activity tracker (``SPEC_ACTOR_ACTIVITY``), ``jarvis_sendMessage``
-   (``SPEC_MSG_SENDMESSAGE``), ``JarvisCoreApi.sendMessage``
+   Actor state (``SPEC_COM_STATE``), ``jarvis_sendMessage``
+   (``SPEC_COM_TOOLS``), ``JarvisCoreApi.sendMessage``
    (``SPEC_ENG_API``), the creation check (``SPEC_ACTOR_CREATE``: any
    result other than ``unknown`` blocks creation) and
    ``getValidDestinations()``. Among the ambiguous-name refusals, only a
@@ -223,8 +223,8 @@ Actor Design Specifications
 
 .. spec:: ACTORS Tree Provider
    :id: SPEC_ACTOR_TREE
-   :status: draft
-   :links: REQ_ACTOR_TREE; REQ_EXP_TREEVIEW; SPEC_ACTOR_SCANNER; SPEC_ACTOR_FILES; SPEC_ACTOR_TOUCHEDFILES; SPEC_ACTOR_ACTIVITY; SPEC_ACTOR_OPENSESSION; SPEC_ENG_ACTORMARK; SPEC_ACTOR_MAIL
+   :status: approved
+   :links: REQ_ACTOR_TREE; REQ_EXP_TREEVIEW; SPEC_ACTOR_SCANNER; SPEC_ACTOR_FILES; SPEC_ACTOR_TOUCHEDFILES; SPEC_COM_STATE; SPEC_COM_OPEN; SPEC_ENG_ACTORMARK; SPEC_ACTOR_MAIL
 
    **Description:**
    ``ActorTreeProvider`` (``engine/actors/actorTreeProvider.ts``) is the
@@ -232,9 +232,9 @@ Actor Design Specifications
    from ``ActorScanner`` and delegates their children to the file-children
    and touched-files logic (``SPEC_ACTOR_FILES``,
    ``SPEC_ACTOR_TOUCHEDFILES``). It sets the activity icon itself
-   (``SPEC_ACTOR_ACTIVITY``) and holds the icon marks of add-ons
-   (``SPEC_ENG_ACTORMARK``), which take precedence. It draws the unread-mail icon
-   (``SPEC_ACTOR_MAIL``) below the activity indicator.
+   (``SPEC_COM_STATE``) and holds the icon marks of add-ons
+   (``SPEC_ENG_ACTORMARK``), which show only while the Actor is Idle. It draws the
+   unread-mail icon (``SPEC_ACTOR_MAIL``) below the marks.
 
    **Node union** (provider-local; the variants below are defined in
    ``SPEC_ACTOR_FILES`` and ``SPEC_ACTOR_TOUCHEDFILES``):
@@ -308,10 +308,10 @@ Actor Design Specifications
      root level.
    * AC-5: The provider is the only ``TreeDataProvider`` for Actors; no
      generic tree factory or decorator registry exists.
-   * AC-6: An Actor node shows the first icon that applies, in this order: the most recent
-     mark (``SPEC_ENG_ACTORMARK``), the green activity indicator while Active, the unread-mail
-     icon (``SPEC_ACTOR_MAIL``). Without any of them the node has no icon (``REQ_ACTOR_MAIL``
-     AC-6).
+   * AC-6: An Actor node shows the first icon that applies, in this order: the activity state
+     other than Idle (``REQ_COM_STATE``), the most recent mark (``SPEC_ENG_ACTORMARK``), the
+     unread-mail icon (``SPEC_ACTOR_MAIL``). Without any of them the node has no icon
+     (``REQ_ACTOR_MAIL`` AC-6).
 
 
 .. spec:: Actor File Children
@@ -661,74 +661,6 @@ Actor Design Specifications
      "Recently Touched Files" category, whatever its store contains.
 
 
-.. spec:: Actor Activity Indicator
-   :id: SPEC_ACTOR_ACTIVITY
-   :status: draft
-   :links: REQ_ACTOR_ACTIVITY; SPEC_ACTOR_TREE; SPEC_ACTOR_SCANNER; SPEC_HOOK_ROUTE; SPEC_HOOK_INTAKE
-
-   **Description:**
-   ``ActivityTracker`` (``engine/hooks/activityTracker.ts``) keeps an
-   in-memory set of active Actor names from hook lifecycle events.
-   ``ActorTreeProvider`` asks it for each Actor node (``SPEC_ACTOR_TREE``).
-   The former ``ActivityDecorator`` and its registration through the
-   decorator API are removed.
-
-   .. code-block:: typescript
-
-      const ACTIVE_EVENTS = new Set([
-          'SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse',
-          'PreCompact', 'SubagentStart', 'SubagentStop',
-      ]);
-
-      export class ActivityTracker {
-          constructor(hookEngine: HookEngine, scanner: ActorScanner, onChange: () => void);
-          isActive(actorName: string): boolean;
-      }
-
-   **Algorithm** (one ``hookEngine.on`` subscription per event in
-   ``ACTIVE_EVENTS`` plus ``Stop``):
-
-   1. Ignore events without ``sessionId`` (``REQ_ACTOR_ACTIVITY`` AC-6).
-   2. Resolve ``sessionId`` to the chat title via
-      ``getEntityNameForSessionId()`` (reverse of ``lookupSessionUUID()``,
-      same ``getAllSessions()`` source), then the title with
-      ``scanner.resolveName(title)``. Ignore the event unless the result is
-      ``found``: a title of no Actor (AC-5, AC-6) and a title carried by
-      several Actors (AC-10) change nothing and show no notification.
-   3. ``Stop`` removes the name from the set; every other event adds it.
-   4. Call ``onChange()`` only when membership actually flipped, so a burst
-      of tool events in one turn causes one refresh.
-
-   ``isActive(actorName)`` returns ``false`` outright when
-   ``scanner.resolveName(actorName)`` is not ``found``, even if the name is
-   still in the set from before a duplicate appeared: a manual
-   ``actor.yaml`` edit can make a name ambiguous between one hook event and
-   the next tree refresh, and the query, not only the event path, is what
-   ``REQ_ACTOR_ACTIVITY`` AC-10 requires to stay silent about it. The
-   membership set is otherwise unpruned; a name that becomes unique again
-   resumes showing its old state without a new hook event.
-
-   ``onChange`` is wired to ``actorTreeProvider.refresh()``. While Active,
-   the node's ``iconPath`` is a green ``circle-filled`` ``ThemeIcon``;
-   while Inactive it sets no icon (``REQ_ACTOR_ACTIVITY`` AC-7). There is no timeout and no third
-   state (AC-4).
-
-   **Acceptance Criteria:**
-
-   * AC-1: The seven events in ``ACTIVE_EVENTS`` mark an Actor Active;
-     ``Stop`` marks it Inactive; an Actor never seen is Inactive.
-   * AC-2: Events without ``sessionId``, or whose title does not resolve to
-     ``found``, change nothing and raise no error or notification.
-   * AC-2a: ``isActive(actorName)`` is ``false`` whenever
-     ``scanner.resolveName(actorName)`` is not ``found``, regardless of
-     what the event-driven set holds.
-   * AC-3: A refresh is triggered only on a state flip.
-   * AC-4: The activity indicator is set by ``ActorTreeProvider`` alone; no decorator
-     API exists. The other influences on the icon are the mark of ``SPEC_ENG_ACTORMARK``,
-     which takes precedence while it is set, and the unread-mail icon of ``SPEC_ACTOR_MAIL``,
-     which applies only while the Actor is not Active.
-
-
 .. spec:: Unread Mail Icon Source
    :id: SPEC_ACTOR_MAIL
    :status: draft
@@ -831,7 +763,7 @@ Actor Design Specifications
 .. spec:: Actor Context Menus
    :id: SPEC_ACTOR_CONTEXTMENU
    :status: approved
-   :links: REQ_ACTOR_CONTEXTACTIONS; REQ_ACTOR_FILES_TREE; REQ_ACTOR_TOUCHEDFILES; SPEC_ACTOR_TREE; SPEC_ACTOR_FILES; SPEC_ACTOR_OPENSESSION
+   :links: REQ_ACTOR_CONTEXTACTIONS; REQ_ACTOR_FILES_TREE; REQ_ACTOR_TOUCHEDFILES; SPEC_ACTOR_TREE; SPEC_ACTOR_FILES; SPEC_COM_OPEN
 
    **Description:**
    Right-click menus on Actor nodes, file children and touched-file leaves.
@@ -900,7 +832,7 @@ Actor Design Specifications
 .. spec:: Actor Creation
    :id: SPEC_ACTOR_CREATE
    :status: implemented
-   :links: REQ_ACTOR_CREATE; REQ_ACTOR_CREATETOOL; REQ_ACTOR_SCHEMA; SPEC_ACTOR_SCANNER; SPEC_ACTOR_WHOAMI; SPEC_ACTOR_OPENSESSION
+   :links: REQ_ACTOR_CREATE; REQ_ACTOR_CREATETOOL; REQ_ACTOR_SCHEMA; SPEC_ACTOR_SCANNER; SPEC_ACTOR_WHOAMI; SPEC_COM_OPEN
 
    **Description:**
    ``engine/actors/actorCreation.ts`` owns everything that touches the file
@@ -993,7 +925,7 @@ Actor Design Specifications
 .. spec:: jarvis_createActor Tool
    :id: SPEC_ACTOR_CREATETOOL
    :status: approved
-   :links: REQ_ACTOR_CREATETOOL; SPEC_ACTOR_CREATE; SPEC_ACTOR_WHOAMI; SPEC_ACTOR_OPENSESSION; SPEC_ENG_REGISTER_TOOL; SPEC_MSG_DUALREGISTRATION; SPEC_MSG_QUEUESTORE; REQ_ENG_TOOLREF
+   :links: REQ_ACTOR_CREATETOOL; SPEC_ACTOR_CREATE; SPEC_ACTOR_WHOAMI; SPEC_COM_OPEN; SPEC_ENG_REGISTER_TOOL; SPEC_MSG_DUALREGISTRATION; SPEC_MSG_QUEUESTORE; REQ_ENG_TOOLREF
 
    **Description:**
    ``jarvis_createActor`` is registered with ``engine.registerTool()``
@@ -1061,44 +993,10 @@ Actor Design Specifications
      has no effect.
 
 
-.. spec:: jarvis_listActors Tool
-   :id: SPEC_ACTOR_LISTTOOL
-   :status: approved
-   :links: REQ_ACTOR_LISTTOOL; SPEC_ACTOR_SCANNER; SPEC_ENG_REGISTER_TOOL; SPEC_ENG_ACTORLIST; REQ_ENG_TOOLREF
-
-   **Description:**
-   ``jarvis_listActors`` is registered with ``engine.registerTool()``
-   whenever the actors folder is resolvable, with no feature gate. The
-   handler (``createListActorsHandler`` in ``actorRuntime.ts``) returns the
-   same projection as ``JarvisCoreApi.listActors()`` (``SPEC_ENG_ACTORLIST``).
-
-   .. code-block:: typescript
-
-      const actors = actorScanner.actors.map(a => ({
-          name: a.name, summary: a.summary, agent: a.name, folder: a.folder, id: a.id,
-      }));
-      return JSON.stringify({ actors });
-
-   ``agent`` is the Actor's own agent, identified by the Actor name
-   (``SPEC_ACTOR_WHOAMI``), so it always equals ``name``.
-
-   **package.json ``languageModelTools``:** name ``jarvis_listActors``,
-   ``toolReferenceName`` ``jarvis_core_listActors``, empty ``inputSchema``,
-   ``modelDescription`` "jarvis_core: Lists all Jarvis Actors (name, summary, agent,
-   folder, id). Distinct from jarvis_listChatSessions, which lists VS Code
-   chat tab titles."
-
-   **Acceptance Criteria:**
-
-   * AC-1: The response is ``{ "actors": [...] }`` with exactly the five
-     fields per entry.
-   * AC-2: Entries come from ``ActorScanner`` only.
-
-
 .. spec:: Actor Identity via Own Agent
    :id: SPEC_ACTOR_WHOAMI
-   :status: implemented
-   :links: REQ_ACTOR_WHOAMI; REQ_ACTOR_BINDING; SPEC_ACTOR_AGENT_DISCOVERY; SPEC_ACTOR_SCANNER; SPEC_ACTOR_CREATE; SPEC_INJ_INJECT
+   :status: approved
+   :links: REQ_ACTOR_WHOAMI; REQ_ACTOR_BINDING; SPEC_ACTOR_AGENT_DISCOVERY; SPEC_ACTOR_SCANNER; SPEC_ACTOR_CREATE
 
    **Description:**
    ``engine/actors/actorAgent.ts`` owns the Actor's agent file. Its one
@@ -1130,11 +1028,10 @@ Actor Design Specifications
 
    **Callers** (``REQ_ACTOR_WHOAMI`` AC-4), and only these:
 
-   * ``injectPrompt`` step 1b (``SPEC_INJ_INJECT``). Every open of an Actor
-     session, every delivery and the injection tool and command reach the
-     Actor through ``injectPrompt``, so one call there covers
-     ``jarvis.openActorSession``, ``jarvis.sendMessages`` and the
-     auto-delivery poll loop.
+   * ``resolveActorForChat`` in ``extension.ts`` (``SPEC_COM_BINDING``). It runs
+     before the client creates the chat of an Actor, opens it or delivers into
+     it, so one call there covers ``jarvis.openActorSession``,
+     ``jarvis.sendMessages`` and the automatic announcement.
    * ``jarvis.newActor`` (``SPEC_ACTOR_CREATE`` step 5).
    * ``createActorHandler`` for ``jarvis_createActor``
      (``SPEC_ACTOR_CREATETOOL`` step 5).
@@ -1166,15 +1063,12 @@ Actor Design Specifications
       ``Your context memory is ``, otherwise inserted. The line ending of
       the file (``\n`` or ``\r\n``) is kept. The file is written only when
       the result differs from the content read.
-   5. **Create.** Create the folder when needed and write the file below.
-      Then wait until VS Code has registered the mode command
-      ``workbench.action.chat.open<Actor name>``, polling
-      ``vscode.commands.getCommands(true)`` every 100 ms for at most 3 s,
-      because VS Code learns of a new agent file asynchronously. On timeout
-      the result is still ``ready``; ``reapplyAgentMode`` skips with a
-      logged warning when the command is not registered yet
-      (``SPEC_MSG_OPENCHAT``), and the next open applies the mode. A write
-      error is logged and returns ``skipped`` (``writeFailed``).
+   5. **Create.** Create the folder when needed and write the file below. The
+      front matter carries a ``description``, the summary of the Actor on one
+      line, because the Agent Host lists an agent file only when it has one
+      (``REQ_COM_CHATNAME`` AC-5); an existing file gets a ``description``
+      when it has none. A write error is logged and returns ``skipped``
+      (``writeFailed``).
    6. Return ``{ status: 'ready', mode: <Actor name> }``.
 
    **File content** (steps 4 and 5; ``<rel>`` is the workspace-relative path
@@ -1225,7 +1119,7 @@ Actor Design Specifications
    * AC-4: The check runs only at the three callers: not at extension
      startup and not in a rescan.
    * AC-5: A caller reaches it only after the Actor name resolved to exactly
-     one Actor (``injectPrompt`` step 1) or after creation checked that no
+     one Actor (``resolveActorForChat``) or after creation checked that no
      Actor of that name exists (``SPEC_ACTOR_CREATE`` step 2); an ambiguous
      name therefore never gets an agent created or changed.
    * AC-6: A file named ``<Actor name>.agent.md`` that is not the Actor's
@@ -1282,48 +1176,17 @@ Actor Design Specifications
    * AC-4: The module offers no picker; ``pickAgentMode`` does not exist.
 
 
-.. spec:: Open Actor Session Command
-   :id: SPEC_ACTOR_OPENSESSION
-   :status: approved
-   :links: REQ_ACTOR_OPENSESSION; SPEC_INJ_INJECT; SPEC_ACTOR_TREE; SPEC_MSG_EDITORPLACEMENT
-
-   **Description:**
-   ``jarvis.openActorSession`` opens an Actor's chat. It owns no session
-   logic: it resolves the Actor and delegates to ``injectPrompt`` with an
-   empty payload and Main placement (``SPEC_INJ_INJECT``). The primitive
-   focuses an existing session or spawns, mode-primes, renames and
-   initializes a new one, then relocates it to column 1.
-
-   .. code-block:: typescript
-
-      vscode.commands.registerCommand('jarvis.openActorSession', async (node: ActorNode) => {
-          const actor = actorScanner.getActor(node.id);
-          if (!actor) { return; }
-          await injectPrompt(actor.name, '', { placement: 'main' });
-      });
-
-   **package.json (core):** ``contributes.commands`` entry
-   ``jarvis.openActorSession`` (title "Open"), hidden from the Command
-   Palette. It is bound as the Actor node's click command
-   (``SPEC_ACTOR_TREE``) and as the "Open" context-menu entry
-   (``SPEC_ACTOR_CONTEXTMENU``).
-
-   **Acceptance Criteria:**
-
-   * AC-1: The handler calls ``injectPrompt(name, '', { placement: 'main' })``
-     and nothing else that opens, renames or prompts a chat.
-   * AC-2: An unknown node id is a silent no-op.
-
-
 .. spec:: Actor Session Initialization Prompt
    :id: SPEC_ACTOR_INITPROMPT
-   :status: implemented
-   :links: REQ_ACTOR_INITPROMPT; SPEC_INJ_INJECT; SPEC_MSG_NOTIFICATION_RESOLVE; SPEC_ACTOR_WHOAMI
+   :status: approved
+   :links: REQ_ACTOR_INITPROMPT; SPEC_ACTOR_WHOAMI
 
    **Description:**
-   The init prompt is composed in exactly one place: the new-session branch
-   of ``injectPrompt`` (``engine/sessions/injectPrompt.ts``,
-   ``SPEC_INJ_INJECT``). No caller composes or sends it.
+   The start-up instruction is composed in one place: ``startupTextFor`` in
+   ``extension.ts``, which the client calls when it creates the chat of an Actor
+   (``SPEC_COM_BINDING`` Creating the chat). ``DEFAULT_INIT_PROMPT`` lives in
+   ``engine/sessions/actorStartupPrompt.ts``. No other caller composes or sends
+   it.
 
    .. code-block:: typescript
 
@@ -1334,14 +1197,12 @@ Actor Design Specifications
           name: actor.name,
           contextPath: path.join(actor.folder, 'context.md'),            // absolute
       });
-      await sendPromptToFocusedAgentChat(prompt);
 
    ``applyTemplate`` replaces ``${key}`` for known keys and leaves every
    other placeholder as-is, so an old template using ``${kind}`` shows it
    literally (``REQ_ACTOR_INITPROMPT`` AC-2).
 
-   **``DEFAULT_INIT_PROMPT``** (single constant in ``injectPrompt.ts``,
-   co-located with ``DEFAULT_NOTIFICATION``, ``SPEC_MSG_NOTIFICATION_RESOLVE``):
+   **``DEFAULT_INIT_PROMPT``** (single constant in ``actorStartupPrompt.ts``):
 
    .. code-block:: text
 
@@ -1357,12 +1218,10 @@ Actor Design Specifications
       - Before writing, ask: "Will this still matter in 2 weeks?" If no, skip.
       - When a topic grows past ~5 bullets, move it to a dedicated file beside `context.md` and leave a one-line summary with a relative link in `context.md`.
 
-   **Mode priming** (``REQ_ACTOR_INITPROMPT`` AC-6, AC-7): when
-   ``ensureActorAgent`` returned ``ready`` (``SPEC_INJ_INJECT`` step 1b), the
-   new-session branch runs
-   ``workbench.action.chat.open { mode: <Actor name> }`` and waits 300 ms
-   before ``openNewChatEditor()``; a failure is logged and the default mode
-   applies. With a ``skipped`` result no mode is passed.
+   **Agent of the chat** (``REQ_ACTOR_INITPROMPT`` AC-6): ``ensureActorAgent``
+   runs first (``SPEC_ACTOR_WHOAMI``); the agent is carried by each text that the
+   client writes into the chat (``SPEC_COM_INJECT``). With a ``skipped`` result
+   no agent is passed.
 
    **package.json (core), Prompt Templates group:**
    ``jarvis.agentSession.initPromptTemplate`` — ``string``, scope
@@ -1372,6 +1231,5 @@ Actor Design Specifications
 
    * AC-1: Only ``${name}`` and ``${contextPath}`` are substituted.
    * AC-2: A blank setting falls back to ``DEFAULT_INIT_PROMPT``.
-   * AC-3: The prompt is sent only by the new-session branch of
-     ``injectPrompt``; the unused option ``skipInitPrompt`` is removed from
-     ``InjectPromptOptions``.
+   * AC-3: The prompt is sent only when the client creates the chat of an
+     Actor, once per chat (``SPEC_COM_BINDING``).

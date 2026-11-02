@@ -121,8 +121,8 @@ export function filterNamedSessions(
 
 /**
  * Reverse of lookupSessionUUID() (name -> uuid) — resolves a chat-session
- * id back to its title, for hook-driven activity tracking
- * (SPEC_HOOK_ACTIVITY). Same getAllSessions() data source, no new I/O path.
+ * id back to its title, for the touched-files tracker
+ * (SPEC_ACTOR_TOUCHEDFILES). Same getAllSessions() data source, no new I/O path.
  */
 export async function getEntityNameForSessionId(
     sessionId: string

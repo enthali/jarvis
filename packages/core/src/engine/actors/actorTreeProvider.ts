@@ -1,5 +1,5 @@
-// Implementation: SPEC_ACTOR_TREE, SPEC_ACTOR_FILES, SPEC_ACTOR_TOUCHEDFILES, SPEC_ACTOR_ACTIVITY, SPEC_ENG_ACTORMARK, SPEC_ACTOR_MAIL
-// Requirements: REQ_ACTOR_TREE, REQ_ACTOR_FILES_TREE, REQ_ACTOR_TOUCHEDFILES, REQ_ACTOR_ACTIVITY, REQ_ENG_ACTORMARK, REQ_ACTOR_MAIL
+// Implementation: SPEC_ACTOR_TREE, SPEC_ACTOR_FILES, SPEC_ACTOR_TOUCHEDFILES, SPEC_COM_STATE, SPEC_ENG_ACTORMARK, SPEC_ACTOR_MAIL
+// Requirements: REQ_ACTOR_TREE, REQ_ACTOR_FILES_TREE, REQ_ACTOR_TOUCHEDFILES, REQ_COM_STATE, REQ_ENG_ACTORMARK, REQ_ACTOR_MAIL
 
 import * as vscode from 'vscode';
 import { ActorScanner, ActorEntry } from './actorScanner';
@@ -9,6 +9,7 @@ import {
     TouchedFileFolderNode, TouchedFileLeafNode,
 } from './touchedFilesView';
 import { TouchStore, ACTOR_TOUCH_KIND } from '../hooks/touchStore';
+import type { ActorActivityState } from './actorActivity';
 
 export interface ActorNode {
     kind: 'actor';
@@ -32,7 +33,7 @@ export type ActorTreeNode =
     | TouchedFileLeafNode;
 
 export interface ActivityLike {
-    isActive(name: string): boolean;
+    state(name: string): ActorActivityState;
 }
 
 /** Unread-mail state of Actors (SPEC_ACTOR_MAIL); ActorMailState implements it. */
@@ -149,10 +150,15 @@ export class ActorTreeProvider implements vscode.TreeDataProvider<ActorTreeNode>
             item.command = { command: 'jarvis.openActorSession', title: 'Open Actor Session', arguments: [element] };
             const marks = this._marks.get(element.id);
             const mark = marks?.[marks.length - 1];
-            if (mark) {
+            const state = actor ? this._activity.state(actor.name) : 'idle';
+            if (state === 'error') {
+                item.iconPath = new vscode.ThemeIcon('error', new vscode.ThemeColor('charts.red'));
+            } else if (state === 'waiting') {
+                item.iconPath = new vscode.ThemeIcon('question', new vscode.ThemeColor('charts.blue'));
+            } else if (state === 'working') {
+                item.iconPath = new vscode.ThemeIcon('loading~spin');
+            } else if (mark) {
                 item.iconPath = mark.icon;
-            } else if (actor && this._activity.isActive(actor.name)) {
-                item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('charts.green'));
             } else if (actor && this._mail.isUnread(actor.id)) {
                 item.iconPath = new vscode.ThemeIcon('mail');
             }

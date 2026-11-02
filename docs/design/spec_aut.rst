@@ -1084,7 +1084,7 @@ Automation Design Specifications
 .. spec:: Heartbeat Load-Time Destination Validation
    :id: SPEC_AUT_HEARTBEAT_LOAD_VALIDATION
    :status: implemented
-   :links: REQ_AUT_HEARTBEAT_LOAD_VALIDATION; REQ_AUT_HEARTBEAT_RESOLVER_REUSE; REQ_AUT_HEARTBEAT_VALIDATION_NOREGRESSION; SPEC_AUT_JOBSCHEMA; SPEC_MSG_SENDTOSESSION
+   :links: REQ_AUT_HEARTBEAT_LOAD_VALIDATION; REQ_AUT_HEARTBEAT_RESOLVER_REUSE; REQ_AUT_HEARTBEAT_VALIDATION_NOREGRESSION; SPEC_AUT_JOBSCHEMA; SPEC_COM_TOOLS
 
    **Description:**
    Extend ``HeartbeatScheduler.reload()`` in ``src/heartbeat.ts`` to call an
@@ -1235,7 +1235,7 @@ Automation Design Specifications
 .. spec:: ``jarvis_registerJob`` Destination Validation
    :id: SPEC_AUT_REGISTERJOB_VALIDATION
    :status: approved
-   :links: REQ_AUT_REGISTERJOB_VALIDATION; REQ_MSG_DEST_ERROR; SPEC_AUT_JOBREG; SPEC_AUT_HEARTBEAT_RESOLVER_REUSE; SPEC_MSG_SENDTOSESSION
+   :links: REQ_AUT_REGISTERJOB_VALIDATION; SPEC_AUT_JOBREG; SPEC_AUT_HEARTBEAT_RESOLVER_REUSE; SPEC_COM_TOOLS
 
    **Description:**
    Add a pre-persistence validation call to both the LM and MCP handlers of
@@ -1281,8 +1281,9 @@ Automation Design Specifications
       await validateJobDestinations(steps);
       await scheduler!.registerJob(job);
 
-   **Error format:** matches ``REQ_MSG_DEST_ERROR`` exactly — the same template
-   used in ``SPEC_MSG_SENDTOSESSION``.  The first invalid destination encountered
+   **Error format:** names the invalid destination value and lists the valid
+   destinations, as ``jarvis_sendMessage`` does (``US_COM_SENDER`` AC-2,
+   ``SPEC_COM_TOOLS``).  The first invalid destination encountered
    causes immediate rejection; subsequent steps are not checked.
 
    **No persistence on error:** ``scheduler!.registerJob()`` is only reached
@@ -1295,13 +1296,13 @@ Automation Design Specifications
 .. spec:: Shared Resolver Reuse for Heartbeat Validation
    :id: SPEC_AUT_HEARTBEAT_RESOLVER_REUSE
    :status: draft
-   :links: REQ_AUT_HEARTBEAT_RESOLVER_REUSE; SPEC_MSG_SENDTOSESSION; SPEC_MSG_SESSIONLOOKUP
+   :links: REQ_AUT_HEARTBEAT_RESOLVER_REUSE; SPEC_COM_TOOLS; SPEC_MSG_SESSIONLOOKUP
 
    **Description:**
    All heartbeat destination validation sites (load-time, fire-time,
    ``jarvis_registerJob`` tool) reuse the shared ``getValidDestinations()``
-   function from ``src/sessionLookup.ts`` — the same function used by
-   ``SPEC_MSG_SENDTOSESSION``.  No parallel session-enumeration logic is
+   function from ``src/sessionLookup.ts``, the destination set that
+   ``jarvis_sendMessage`` uses (``SPEC_COM_TOOLS``).  No parallel session-enumeration logic is
    introduced.
 
    **Import in ``heartbeat.ts`` (updated):**

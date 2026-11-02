@@ -15,12 +15,12 @@ User Stories or Stakeholder needs describe **why** functionality is needed from 
    us_cfg
    us_aut
    us_msg
+   us_com
    us_pim
    us_olk
    us_rec
    us_actor
    us_mod
-   us_inj
    us_hook
    us_flow
    us_kan

@@ -27,7 +27,7 @@ function writeActor(root: string, folderName: string, name: string): void {
     fs.writeFileSync(path.join(folder, 'actor.yaml'), `name: "${name}"\nsummary: ""\nagent: ""\n`);
 }
 
-const noActivity = { isActive: () => false };
+const noActivity = { state: () => 'idle' as const };
 
 describe('REQ_ACTOR_TOUCHEDFILES AC-22: touched-files category ambiguity gating', () => {
     it('shows the category for a uniquely-named Actor with recent touches', async () => {

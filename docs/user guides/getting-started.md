@@ -8,12 +8,34 @@ Install **Jarvis Core** (`enthali.jarvis-core`) from the VS Code Marketplace, or
 
 The other packages are optional add-ons that need Jarvis Core. Install only what you need; see the [Core guide](core.md) for the list.
 
+Actor chats also require an available VS Code Agent Host and an authenticated agent. Jarvis no longer uses the old chat UI as a fallback. The Agent Host path has been exercised on Windows with VS Code 1.143.1 and, for clean Actor startup, 1.144.0; the manifest's minimum version alone does not establish Agent Host compatibility.
+
+### Updating to the Agent Host path
+
+Before the next release, update existing project-owned prompts, skills and agent instructions:
+
+| Former call or reference | Current call or action |
+|--------------------------|------------------------|
+| `jarvis_sendMessage(session, text, senderSession)` / `#jarvis_core_sendMessage` | `jarvis_sendMessage(session, text)`; `session` names the recipient Actor. The calling Actor chat supplies the sender. |
+| `jarvis_receiveMessage(destination)` / `#jarvis_core_receiveMessage` | `jarvis_receiveMessage()`; only the calling Actor's inbox is accessible. Repeat until `remaining` is `0`. |
+| `#jarvis_core_listActors` | `jarvis_listActors()`; returns Actor names and short descriptions, not `actor.yaml` path IDs. |
+| `jarvis_listChatSessions` / `#jarvis_core_listChatSessions` | No general session-list tool. Use `jarvis_listActors()` for Actors or the Agents window for chats. |
+| `jarvis_readMessage`, `jarvis_sendToSession` | Removed; use `jarvis_receiveMessage()` and `jarvis_sendMessage(session, text)`. |
+| `jarvis_injectPrompt` / `#jarvis_core_injectPrompt` / **Jarvis: Inject Prompt** | Removed without a general prompt-injection replacement. Open the Actor chat to interact directly. |
+| `jarvis.messages.notificationTemplate` | Removed; inbox announcements use fixed text. |
+
+`jarvis_createActorSession(actor)` finds or creates an Actor chat and returns its session address. These four Agent Host tools are not MCP tools. External scripts that previously woke an Actor through MCP messaging must move that work to a heartbeat step. Reminders and heartbeat message steps still write to the inbox.
+
+With `jarvis.actor.autoProvision` enabled, provisioning refreshes the bundled Actor instructions; owners must update hand-maintained copies themselves. The package-prefixed references of other extension tools, such as `#jarvis_core_createActor` and `#jarvis_pim_task`, remain in use.
+
+Known limitation: on a machine without `node` in the path, the currently provisioned hook can fail and block every tool call. Hook removal is a separate, mandatory follow-up; this Change does not add a Node installation requirement or fix that failure.
+
 ### Updating to 0.31.1
 
 Update tool references in existing prompts to `#jarvis_<package>_<reference>`,
 for example `#jarvis_core_createActor`, `#jarvis_pim_task`, and
 `#jarvis_pim_category`. The former unprefixed references no longer resolve.
-Registered tool IDs and MCP tool names are unchanged.
+That release left registered tool IDs and MCP tool names unchanged; the later Agent Host migration above changes the messaging interface.
 
 ## 2. Open Jarvis
 
@@ -25,7 +47,11 @@ Actors are folders with an `actor.yaml` file. New actors are created in `.jarvis
 
 ## 4. Create your first actor
 
-Click **+** in the ACTORS view title bar, run **Jarvis: New Actor** from the Command Palette, or use the `#jarvis_core_createActor` tool in chat. Jarvis creates the actor folder with its `actor.yaml` and `context.md` memory file and opens the actor's chat; `jarvis.actors.openSessionOnCreate` controls the last step.
+Click **+** in the ACTORS view title bar or use the `#jarvis_core_createActor` tool in chat. Jarvis creates the actor folder with its `actor.yaml` and `context.md` memory file and opens the Actor's Agent Host chat; `jarvis.actors.openSessionOnCreate` controls the last step. Click an existing Actor or choose **Open** to find its chat or create one.
+
+In the Agents window, tick **Created In > jarvis-core** to include Jarvis-created chats. **Mark done** archives a chat and makes it read-only; Jarvis restores it on opening or message delivery. Only **Delete** removes it. A workspace in a repository subfolder may be labelled **Worktree** without creating a Git worktree.
+
+For module tools such as `#jarvis_core_listJobs` or `#jarvis_kanban_listKanbanItems`, keep the Actor chat open in an editor window running Jarvis. Their availability, and the Jarvis views or webviews, in the Agents window remain unverified. See the [Core guide](core.md) for delivery controls, activity icons and workspace limits.
 
 ## Where to go next
 

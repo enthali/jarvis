@@ -5,7 +5,7 @@ Message Queue UAT Requirements
    :id: REQ_UAT_MSG_TESTDATA
    :status: approved
    :priority: optional
-   :links: US_UAT_MSG; REQ_MSG_QUEUE; REQ_MSG_SENDMESSAGE; REQ_MSG_RECEIVEMESSAGE; REQ_MSG_SENDER_ERROR; REQ_AUT_HEARTBEAT_RESOLVER_REUSE
+   :links: US_UAT_MSG; REQ_MSG_QUEUE; REQ_COM_CAPABILITY; REQ_COM_STATE; REQ_ACTOR_BINDING; REQ_AUT_HEARTBEAT_RESOLVER_REUSE
 
    **Description:**
    The repo SHALL contain test data and documented expected outcomes for manual
@@ -18,15 +18,12 @@ Message Queue UAT Requirements
    * AC-4: Every destination and sender named by the messaging UAT procedures
      SHALL exist as an Actor test fixture, since only Actors are valid
      destinations and senders (``REQ_AUT_HEARTBEAT_RESOLVER_REUSE`` AC-3)
-   * AC-2: Expected outcomes for each test scenario (T-1 through T-6 from
-     ``US_UAT_MSG``) SHALL be documented in the test protocol
-   * AC-3: Expected outcomes for the ``jarvis_sendMessage``/``jarvis_receiveMessage``
-     canonical tools and the hard-deprecated ``jarvis_sendToSession``/
-     ``jarvis_readMessage`` tools (T-7 through T-13 from ``US_UAT_MSG``) SHALL be
-     documented in the test protocol, including the exact expected error text for
-     missing/invalid ``senderSession``, the exact "no longer functional" error
-     text and zero-side-effect guarantee for the deprecated tools, the
-     "DEPRECATED AND DISABLED" notice at the start of the ``modelDescription``
-     (after the package prefix), visible at
-     discovery time, and the correct ``sender`` attribution in
-     ``message-log.json``
+   * AC-2: Expected outcomes for each test scenario (T-1 through T-21 from
+     ``US_UAT_MSG``) SHALL be documented in the test protocol, each with the
+     status NOT RUN, PASS or FAIL.
+   * AC-3: The scenarios that need the Agent Host (T-2 to T-6, T-9 to T-21) SHALL
+     run in a window of the same VS Code product that has the Copilot Chat
+     extension signed in, because the message tools and session states exist only
+     in Actor chats that the Agent Host hosts. A scenario that cannot be observed
+     (focus, Agents window, provoked failure) is recorded NOT RUN with the reason,
+     not PASS.

@@ -5,7 +5,7 @@ Jarvis is a personal assistant extension for Visual Studio Code that helps you m
 ## Features
 
 - **Actors** — Persistent personas with their own `context.md` and agent file; Jarvis creates or repairs the agent file with the Actor name and memory path when needed
-- **Messaging** — Pass messages between Copilot sessions via a simple queue
+- **Messaging** — Actor inboxes with automatic or manual announcements through VS Code's Agent Host; message content is read by a tool, never inserted into a prompt
 - **Reminders** — Set cron-based or one-off reminders with VS Code notifications
 - **Heartbeat** — Periodic background jobs with a live status view in the activity bar
 - **Engine API** — Extension point for add-ons (PIM, Recorder, MCP) to register tools and to self-provision their bundled Copilot Skills/Instructions into `.github/` via `provisionModuleAssets`
@@ -27,13 +27,33 @@ Jarvis is a personal assistant extension for Visual Studio Code that helps you m
 2. Open the Jarvis view in the activity bar (sidebar icon)
 3. Configure the data folder paths in **Settings → Extensions → Jarvis**:
    - `jarvis.actors.folder` — workspace-relative or absolute root for the dedicated **ACTORS** tree (default `.jarvis/actors`). Only direct child folders containing `actor.yaml` appear; nested folders are not scanned. Move or delete folders using the filesystem; there is no Jarvis archive feature.
-   - `jarvis_listActors` includes the absolute `actor.yaml` path as `id`. Each Actor's own agent file carries its identity; its persona is referenced from `context.md`. Creating an Actor does not prompt for an agent.
-   - `jarvis.heartbeatFolder` — folder for heartbeat job files
+   - `jarvis_listActors()` returns Actor names and short descriptions. Each Actor's own agent file carries its identity; its persona is referenced from `context.md`. Creating an Actor does not prompt for an agent.
 4. Jarvis will scan your folders and populate the tree views automatically
+
+## Actor Chats and Messaging
+
+Actor chats require an available, authenticated VS Code Agent Host; there is no fallback to the old chat UI. Click an Actor in ACTORS or choose **Open** to find its chat or create it. Messages and Message Flow open an existing Actor chat only; delivery never opens a tab. Jarvis reuses an existing editor tab or opens a pinned tab in the first editor group. In the Agents window, tick **Created In > jarvis-core** to show Jarvis-created chats. **Mark done** archives a chat; Jarvis restores it on opening or delivery. Only **Delete** removes it.
+
+The Jarvis client publishes and approves its own four tools:
+
+| Call | Purpose |
+|------|---------|
+| `jarvis_sendMessage(session, text)` | Queue a message for the recipient Actor; the sender comes from the calling chat. |
+| `jarvis_receiveMessage()` | Read and remove the calling Actor's oldest message; repeat until `remaining` is `0`. |
+| `jarvis_listActors()` | List Actor names and short descriptions. |
+| `jarvis_createActorSession(actor)` | Find or create an Actor chat and return its session address. |
+
+Remove `senderSession` and `destination` from send and receive calls in existing instructions and skills. These tools are not exposed through MCP. The old session-list, read-message, send-to-session and prompt-injection tools, the Inject Prompt command and `jarvis.messages.notificationTemplate` are removed. Provisioning refreshes bundled instructions when enabled; project-owned copies require manual updates.
+
+Extension tools retain references such as `#jarvis_core_listJobs` and reach an Actor chat while it is open in a window running Jarvis. Module tools and views in the Agents window remain unverified. The client serves the first workspace folder only; cross-workspace routing and the same workspace in two windows are not supported by this MVP. While disconnected, announcements wait.
+
+Activity icons come from the Agent Host: red cross for Error, blue question mark for Waiting, spinner for Working, none for Idle. Activity takes priority over the recording mark, then the mail icon.
+
+Known issue: the current provisioned hook blocks tool calls when `node` is absent from the path. Complete hook removal is a separate follow-up, not an added installation requirement. Full migration details are in the [Getting Started guide](../../docs/user%20guides/getting-started.md#updating-to-the-agent-host-path).
 
 ## Requirements
 
-- VS Code 1.95.0 or later
+- VS Code 1.95.0 or later (manifest minimum); Actor chats additionally require Agent Host support. Live evidence covers Windows on 1.143.1 and clean Actor startup on 1.144.0, not older versions.
 
 ## Source & Issues
 

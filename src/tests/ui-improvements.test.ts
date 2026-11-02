@@ -6,11 +6,10 @@
  * 3. context.md rendered preview — jarvis.openActorFile branches to
  *    markdown.showPreview for exact basename "context.md" only.
  * 4. Collapse All — showCollapseAll: true at all 6 createTreeView() sites.
- * 5. Messages tree group-node click-to-open — jarvis.openMessageSession,
+ * 5. Messages tree group-node click-to-open — jarvis.openMessageActorChat,
  *    bound via SessionGroupNode's TreeItem.command (not a context menu).
  *
- * Source-content assertions follow the established pattern (see
- * editor-group-placement.test.ts) since the relevant handlers are private
+ * Source-content assertions follow the established pattern since the relevant handlers are private
  * closures inside extension.ts's activate().
  */
 import { describe, it, expect } from 'vitest';
@@ -96,35 +95,44 @@ describe('Item 4: Collapse All — showCollapseAll: true at all createTreeView()
     });
 });
 
-describe('Item 5: Messages tree group-node click-to-open (SPEC_MSG_EDITORPLACEMENT / SPEC_MSG_TREEPROVIDER)', () => {
-    it('messageTreeProvider.ts sets item.command on SessionGroupNode to jarvis.openMessageSession', () => {
+describe('Item 5: Messages tree group-node click-to-open (SPEC_COM_OPEN)', () => {
+    it('messageTreeProvider.ts sets item.command on SessionGroupNode to jarvis.openMessageActorChat', () => {
         const getTreeItemIdx = messageTreeProviderSrc.indexOf('getTreeItem(element');
         expect(getTreeItemIdx).toBeGreaterThan(-1);
         const idx = messageTreeProviderSrc.indexOf("element.kind === 'session'", getTreeItemIdx);
         expect(idx).toBeGreaterThan(-1);
         const slice = messageTreeProviderSrc.slice(idx, idx + 650);
+        expect(slice).toContain("command: 'jarvis.openMessageActorChat'");
         expect(slice).toContain('arguments: [element]');
     });
 
-    it('extension.ts registers jarvis.openMessageSession using lookupSessionUUID + openAtMain, silent no-op on miss', () => {
-        const idx = extensionSrc.indexOf("'jarvis.openMessageSession'");
+    it('extension.ts opens existing Actor chats without creating them', () => {
+        const idx = extensionSrc.indexOf("'jarvis.openMessageActorChat'");
         expect(idx).toBeGreaterThan(-1);
         const slice = extensionSrc.slice(idx, idx + 500);
-        expect(slice).toContain('await lookupSessionUUID(node.destination)');
-        expect(slice).toContain('if (!uuid) { return; }');
-        expect(slice).toContain('await openAtMain(uri, node.destination)');
+        expect(slice).toContain('openChat(node.destination, false)');
     });
 
-    it('openMessageSessionCommand is pushed to context.subscriptions', () => {
-        expect(extensionSrc).toContain('openMessageSessionCommand,');
+    it('openMessageActorChatCommand is pushed to context.subscriptions', () => {
+        expect(extensionSrc).toContain('openMessageActorChatCommand,');
     });
 
-    it('core package.json declares jarvis.openMessageSession, hidden from command palette (no view/item/context binding — bound via TreeItem.command instead)', () => {
+    it('core package.json declares jarvis.openMessageActorChat, hidden from command palette', () => {
         const commands: { command: string }[] = corePackageJson.contributes.commands;
-        expect(commands.find(c => c.command === 'jarvis.openMessageSession')).toBeDefined();
+        expect(commands.find(c => c.command === 'jarvis.openMessageActorChat')).toBeDefined();
         const palette: { command: string; when?: string }[] = corePackageJson.contributes.menus.commandPalette;
-        expect(palette).toContainEqual({ command: 'jarvis.openMessageSession', when: 'false' });
+        expect(palette).toContainEqual({ command: 'jarvis.openMessageActorChat', when: 'false' });
         const items: { command: string }[] = corePackageJson.contributes.menus['view/item/context'];
-        expect(items.find(i => i.command === 'jarvis.openMessageSession')).toBeUndefined();
+        expect(items.find(i => i.command === 'jarvis.openMessageActorChat')).toBeUndefined();
+    });
+
+    it('opens the selected session pinned and does not open a chat during delivery', () => {
+        const open = extensionSrc.slice(extensionSrc.indexOf('async function openChat('), extensionSrc.indexOf('const openMessageActorChatCommand'));
+        expect(open).toContain("vscode.commands.executeCommand('vscode.open'");
+        expect(open).toContain('preview: false');
+        const delivery = extensionSrc.slice(extensionSrc.indexOf('async function deliverViaAhp('), extensionSrc.indexOf('// Inbox watcher'));
+        expect(delivery).toContain('if (!ahpClient?.isConnected())');
+        expect(delivery).not.toContain('openChat(');
+        expect(delivery).not.toContain('vscode.open');
     });
 });

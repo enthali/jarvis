@@ -57,7 +57,7 @@ Actor Requirements
      sender validation, heartbeat destinations, agent file maintenance,
      prompt injection, touched files, activity indicator, Kanban owner
      resolution) SHALL refuse to act on the ambiguous name rather than pick
-     one (``REQ_ACTOR_WHOAMI`` AC-5, ``REQ_INJ_PRIMITIVE`` AC-2). When a message
+     one (``REQ_ACTOR_WHOAMI`` AC-5). When a message
      send is refused because its destination or sender name is ambiguous,
      the user SHALL see an error notification naming the name and the
      folders that carry it; the other functions refuse without a
@@ -96,7 +96,7 @@ Actor Requirements
 
 .. req:: Actor Session Binding
    :id: REQ_ACTOR_BINDING
-   :status: implemented
+   :status: approved
    :priority: mandatory
    :links: US_ACTOR_ACTORS; REQ_ACTOR_SCHEMA; REQ_ACTOR_WHOAMI
 
@@ -106,8 +106,11 @@ Actor Requirements
 
    **Acceptance Criteria:**
 
-   * AC-1: Closing or restarting a bound chat session SHALL NOT delete or
-     change the Actor's ``actor.yaml`` or ``context.md``.
+   * AC-1: Neither closing or restarting a bound chat session nor any Jarvis
+     function SHALL delete, change, migrate or rename the ``actor.yaml`` or the
+     ``context.md`` of an existing Actor. ``context.md`` is written only by the
+     Actor itself; Jarvis writes the initial files only when it creates a new
+     Actor (``SPEC_ACTOR_CREATE`` AC-1).
    * AC-2: A replacement session SHALL be able to bind to the same Actor
      without changing its on-disk identity or memory.
    * AC-3: Once bound, the replacement session SHALL know that Actor
@@ -151,7 +154,7 @@ Actor Requirements
      It SHALL only collapse expanded nodes — no node is removed, reordered,
      or reloaded, and no click command fires.
    * AC-10: Clicking an Actor node SHALL invoke ``jarvis.openActorSession``
-     (``REQ_ACTOR_OPENSESSION``). Actor nodes are expandable
+     (``REQ_COM_OPEN``). Actor nodes are expandable
      (``REQ_ACTOR_FILES_TREE``); clicking the label still opens the session,
      clicking the expand arrow only expands or collapses.
    * AC-11: No kind categories, filter buttons, or archive feature SHALL be
@@ -168,7 +171,7 @@ Actor Requirements
    :id: REQ_ACTOR_CREATE
    :status: implemented
    :priority: mandatory
-   :links: US_ACTOR_CREATE; REQ_ACTOR_SCHEMA; REQ_ACTOR_TREE; REQ_ACTOR_CREATETOOL; REQ_ACTOR_WHOAMI; REQ_ACTOR_OPENSESSION
+   :links: US_ACTOR_CREATE; REQ_ACTOR_SCHEMA; REQ_ACTOR_TREE; REQ_ACTOR_CREATETOOL; REQ_ACTOR_WHOAMI; REQ_COM_OPEN
 
    **Description:**
    A ``+`` (``$(add)``) icon in the ACTORS view title bar SHALL create a new
@@ -206,8 +209,8 @@ Actor Requirements
    * AC-8: If the user cancels the name InputBox, the command SHALL exit
      without side effects (no folder, no file written).
    * AC-9: After creation, when ``jarvis.actors.openSessionOnCreate`` is
-     ``true``, the command SHALL open the new Actor's chat session via
-     ``REQ_ACTOR_OPENSESSION``.
+     ``true``, the command SHALL show the new Actor's chat as a click on it
+     does (``REQ_COM_OPEN`` AC-6).
    * AC-10: The setting ``jarvis.actors.openSessionOnCreate`` SHALL be a
      boolean in the Actors settings group, default ``true``. Its description
      SHALL state the trade-off: opening directly lets the user start working
@@ -277,7 +280,7 @@ Actor Requirements
    :id: REQ_ACTOR_CREATETOOL
    :status: approved
    :priority: required
-   :links: US_ACTOR_CREATETOOL; REQ_ACTOR_SCHEMA; REQ_ACTOR_WHOAMI; REQ_ACTOR_OPENSESSION; REQ_ACTOR_TREE
+   :links: US_ACTOR_CREATETOOL; REQ_ACTOR_SCHEMA; REQ_ACTOR_WHOAMI; REQ_COM_OPEN; REQ_ACTOR_TREE
 
    **Description:**
    A Language Model and MCP tool ``jarvis_createActor`` SHALL create an
@@ -318,7 +321,7 @@ Actor Requirements
    * AC-7: The tool SHALL rescan the actors folder before this check. When
      ``<actorsFolder>/<name>/`` already exists, or an Actor with that
      ``name`` already exists in any folder (``REQ_ACTOR_SCHEMA`` AC-7), the
-     tool SHALL return ``{ created: false, reason: "actor \"<name>\" already
+     tool SHALL return ``{ created: false, reason: "actor "<name>" already
      exists; no action taken", path: "<workspace-relative folder of the
      existing Actor or path>" }`` without modifying any file, enqueuing any
      message, or opening any session.
@@ -327,34 +330,9 @@ Actor Requirements
      distinct from the ``"invalid actor name:"`` prefix.
    * AC-9: After a successful create (``created: true``), when
      ``jarvis.actors.openSessionOnCreate`` is ``true`` (``REQ_ACTOR_CREATE``
-     AC-10), the tool SHALL open the new Actor's chat session via
-     ``REQ_ACTOR_OPENSESSION``. Errors from opening SHALL be logged at
+     AC-10), the tool SHALL show the new Actor's chat as a click on it does
+     (``REQ_COM_OPEN`` AC-6). Errors from opening SHALL be logged at
      ``warn`` level and SHALL NOT make the tool fail.
-
-.. req:: List Actors Tool
-   :id: REQ_ACTOR_LISTTOOL
-   :status: approved
-   :priority: required
-   :links: US_ACTOR_LISTTOOL; REQ_ACTOR_SCHEMA; REQ_ACTOR_TREE
-
-   **Description:**
-   A Language Model and MCP tool ``jarvis_listActors`` SHALL return all
-   Actors.
-
-   **Acceptance Criteria:**
-
-   * AC-1: The tool SHALL be registered whenever ``jarvis.actors.folder`` is
-     resolvable at activation time, SHALL accept no input parameters, and
-     SHALL appear in the Chat tool picker with ``toolReferenceName``
-     ``jarvis_core_listActors``.
-   * AC-2: The tool SHALL return ``{ "actors": [...] }`` with one entry per
-     Actor discovered per ``REQ_ACTOR_TREE`` AC-2. Each entry SHALL have
-     ``name``, ``summary``, ``agent`` (the Actor's own agent, identified by
-     the Actor name, so equal to ``name``), ``folder``
-     (absolute path of the Actor folder), and ``id`` (absolute path of its
-     ``actor.yaml``, ``REQ_ACTOR_SCHEMA`` AC-7).
-   * AC-3: The tool SHALL be distinct from ``jarvis_listChatSessions``,
-     which lists VS Code chat tab titles.
 
 .. req:: Agent Discovery
    :id: REQ_ACTOR_AGENT_DISCOVERY
@@ -386,46 +364,17 @@ Actor Requirements
    * AC-6: Discovery SHALL run on demand (session open, message delivery); no
      persistent cache is kept.
 
-.. req:: Open Actor Session
-   :id: REQ_ACTOR_OPENSESSION
-   :status: approved
-   :priority: required
-   :links: US_ACTOR_TREE; US_ACTOR_CONTEXTACTIONS; US_MSG_STABLESESSION; US_MSG_EDITORPLACEMENT; REQ_MSG_SESSIONLOOKUP; REQ_MSG_PINNED; REQ_MSG_OPENCHAT; REQ_MSG_EDITORPLACEMENT; REQ_ACTOR_INITPROMPT; REQ_INJ_PRIMITIVE
-
-   **Description:**
-   The command ``jarvis.openActorSession`` SHALL open the chat session of an
-   Actor. It is user-initiated and therefore always targets the Main
-   placement column (``REQ_MSG_EDITORPLACEMENT`` AC-1).
-
-   **Acceptance Criteria:**
-
-   * AC-1: The command SHALL be invoked by clicking an Actor node
-     (``REQ_ACTOR_TREE`` AC-10) and by the right-click "Open" entry
-     (``REQ_ACTOR_CONTEXTACTIONS`` AC-1). It SHALL NOT appear in the Command
-     Palette.
-   * AC-2: The command SHALL delegate to ``injectPrompt(<Actor name>, "")``
-     with Main placement (``REQ_INJ_PRIMITIVE``) and SHALL NOT itself
-     create, rename, mode-prime, or prompt a session. The empty payload
-     means no chat message is submitted beyond what the primitive sends
-     for a new session (``REQ_INJ_PRIMITIVE`` AC-7).
-   * AC-3: Through that delegation, an existing session is opened pinned
-     (``REQ_MSG_PINNED``) in the Main column, closed and reopened in column 1
-     if it is open elsewhere (``REQ_MSG_EDITORPLACEMENT`` AC-5); a missing
-     session is spawned by ``REQ_INJ_PRIMITIVE`` AC-4, which sends the
-     initialization prompt once, and is relocated to the Main column
-     (``REQ_MSG_EDITORPLACEMENT`` AC-12/AC-13).
-
 .. req:: Actor Session Initialization Prompt
    :id: REQ_ACTOR_INITPROMPT
-   :status: implemented
+   :status: approved
    :priority: required
-   :links: US_ACTOR_ACTORS; US_MSG_STABLESESSION; REQ_INJ_PRIMITIVE; REQ_ACTOR_AGENT_DISCOVERY; REQ_ACTOR_WHOAMI
+   :links: US_ACTOR_ACTORS; US_COM_NAME; REQ_ACTOR_AGENT_DISCOVERY; REQ_ACTOR_WHOAMI
 
    **Description:**
-   Every new chat session opened for an Actor SHALL receive an
+   Every new chat created for an Actor SHALL receive an
    initialization prompt that names the Actor and its ``context.md`` and
-   establishes the memory discipline, and SHALL open in the Actor's own
-   agent mode.
+   establishes the memory discipline, and SHALL be written to in the Actor's own
+   agent.
 
    **Acceptance Criteria:**
 
@@ -448,33 +397,19 @@ Actor Requirements
      (verbatim): ``- When a topic grows past ~5 bullets, move it to a
      dedicated file beside `context.md` and leave a one-line summary with a
      relative link in `context.md`.``
-   * AC-5: The prompt SHALL be sent only by the new-session branch of
-     ``REQ_INJ_PRIMITIVE`` (AC-4), once per created session. Every path that
-     can create an Actor session — ``REQ_ACTOR_OPENSESSION``,
-     ``jarvis.sendMessages``, the auto-delivery poll loop, and the injection
-     tool and command (``REQ_INJ_TOOL``, ``REQ_INJ_COMMAND``) — SHALL reach
-     it through that primitive and SHALL NOT send the prompt itself. It SHALL
-     NOT be re-sent to an existing session.
-   * AC-6: Before Jarvis creates an Actor session, or opens or delivers into
-     an existing one, it SHALL ensure the Actor's agent
-     (``REQ_ACTOR_WHOAMI`` AC-4) and then use that agent as the session's
-     mode. A new session SHALL be created mode-primed:
-     ``workbench.action.chat.open { mode: <Actor name> }`` and a 300 ms
-     settle **before** ``openNewChatEditor()``, so the new session inherits
-     the mode. For an existing session Jarvis SHALL re-apply the Actor's
-     agent (workaround for VS Code dropping the mode). It SHALL NOT select
-     any other mode. When the agent could not be ensured
-     (``REQ_ACTOR_WHOAMI`` AC-5, AC-6), no mode is passed and the session's
-     mode is left untouched.
-   * AC-7: If VS Code does not recognize the mode (e.g. the agent file was
-     removed), VS Code's default chat mode applies; Jarvis surfaces no
-     error.
-
+   * AC-5: The prompt SHALL be sent only when Jarvis creates the chat of an
+     Actor (``REQ_COM_CHATNAME`` AC-1), once per created chat. It SHALL NOT be
+     re-sent to an existing chat.
+   * AC-6: Before Jarvis creates the chat of an Actor, or opens it or delivers
+     into it, it SHALL ensure the Actor's agent (``REQ_ACTOR_WHOAMI`` AC-4). The
+     agent is carried by every text that Jarvis writes into the chat
+     (``REQ_COM_INJECT`` AC-3). When the agent could not be ensured
+     (``REQ_ACTOR_WHOAMI`` AC-5, AC-6), no agent is passed.
 .. req:: Actor Node Context Menu
    :id: REQ_ACTOR_CONTEXTACTIONS
    :status: approved
    :priority: optional
-   :links: US_ACTOR_CONTEXTACTIONS; REQ_ACTOR_TREE; REQ_ACTOR_OPENSESSION
+   :links: US_ACTOR_CONTEXTACTIONS; REQ_ACTOR_TREE; REQ_COM_OPEN
 
    **Description:**
    Right-clicking an Actor node (``contextValue`` ``jarvisActor``) SHALL show
@@ -483,7 +418,7 @@ Actor Requirements
    **Acceptance Criteria:**
 
    * AC-1: **Open** SHALL invoke ``jarvis.openActorSession``
-     (``REQ_ACTOR_OPENSESSION``), identical to clicking the node.
+     (``REQ_COM_OPEN``), identical to clicking the node.
    * AC-2: **Reveal in Explorer**, **Reveal in File Explorer**, and **Open
      in Terminal** SHALL reveal the Actor folder via the built-in commands
      ``revealInExplorer``, ``revealFileInOS``, and ``openInTerminal``
@@ -659,55 +594,11 @@ Actor Requirements
      category; touches are attributed to neither folder. No notification is
      shown.
 
-.. req:: Actor Activity Indicator
-   :id: REQ_ACTOR_ACTIVITY
-   :status: draft
-   :priority: optional
-   :links: US_ACTOR_ACTIVITY; REQ_ACTOR_TREE; REQ_HOOK_ROUTE; REQ_HOOK_INTAKE; REQ_ACTOR_SCHEMA
-
-   **Description:**
-   A two-state status (Active/Inactive) SHALL be tracked per Actor and shown
-   on its node in the ACTORS view. The signal source today is the Hook
-   Engine's lifecycle events (``REQ_HOOK_ROUTE``); AC-1, AC-2, AC-5 and AC-6
-   describe that source.
-
-   **Acceptance Criteria:**
-
-   * AC-1: An Actor SHALL become **Active** when its session's
-     ``session_id`` (``REQ_HOOK_INTAKE``) is the subject of any of
-     ``SessionStart``, ``UserPromptSubmit``, ``PreToolUse``, ``PostToolUse``,
-     ``PreCompact``, ``SubagentStart``, ``SubagentStop``.
-   * AC-2: An Actor SHALL become **Inactive** when its session's
-     ``session_id`` is the subject of a ``Stop`` event.
-   * AC-3: An Actor with no observed event yet SHALL be **Inactive**.
-   * AC-4: There SHALL be no third state and no timeout-based transition.
-   * AC-5: A ``session_id`` SHALL be mapped to an Actor by resolving it to
-     the chat session title via ``getAllSessions()`` and matching that title
-     verbatim against the Actor ``name`` (sessions are renamed to the Actor
-     name on creation, ``REQ_ACTOR_OPENSESSION`` AC-3).
-   * AC-6: Events without ``session_id``, or whose title matches no Actor,
-     SHALL be ignored — no error, no state change.
-   * AC-7: The indicator SHALL be an ``iconPath`` change: a green
-     filled-circle ``ThemeIcon`` while Active; while Inactive the indicator
-     SHALL NOT set ``iconPath``, so that another icon of the node
-     (``REQ_ENG_ACTORMARK``, ``REQ_ACTOR_MAIL``) may apply.
-   * AC-8: If the session-to-Actor mapping never matches, the feature SHALL
-     degrade to "no Actor shows Active" — a silent no-op, not an error and
-     not a misleading indicator.
-   * AC-9: The indicator SHALL NOT alter any other Actor-node behavior
-     (click-to-chat, context menu, file children).
-   * AC-10: When the title matches more than one Actor
-     (``REQ_ACTOR_SCHEMA`` AC-7), the event SHALL be ignored like a title
-     that matches none: no Actor becomes Active and no notification is
-     shown. A title matching no Actor is not an error either; it only means
-     that chat's activity cannot be attributed to an Actor (AC-6, AC-8).
-
-
 .. req:: Unread Mail Icon on Actor Nodes
    :id: REQ_ACTOR_MAIL
-   :status: draft
+   :status: approved
    :priority: optional
-   :links: US_ACTOR_MAIL; REQ_ACTOR_TREE; REQ_ACTOR_ACTIVITY; REQ_ENG_ACTORMARK; REQ_OLK_ENABLE; REQ_CFG_SCANINTERVAL; REQ_EXP_REACTIVECACHE
+   :links: US_ACTOR_MAIL; REQ_ACTOR_TREE; REQ_COM_STATE; REQ_ENG_ACTORMARK; REQ_OLK_ENABLE; REQ_CFG_SCANINTERVAL; REQ_EXP_REACTIVECACHE
 
    **Description:**
    While ``jarvis.outlook.enabled`` is ``true``, an Actor node SHALL show a mail icon when
@@ -735,9 +626,10 @@ Actor Requirements
      No Outlook event SHALL be subscribed, and no mail state SHALL be kept
      beyond the set of Actors that showed the icon last. The tree SHALL be refreshed only when
      that set changes (``REQ_EXP_REACTIVECACHE`` AC-4).
-   * AC-6: An Actor node SHALL show at most one icon, by this priority: the mark of a recording
-     (red, ``REQ_REC_BUTTON`` AC-3), then the active session (green, ``REQ_ACTOR_ACTIVITY``
-     AC-7), then the unread-mail icon. Without any of them the node shows no icon.
+   * AC-6: An Actor node SHALL show at most one icon, by this priority: the activity
+     state of the chat other than Idle (``REQ_COM_STATE`` AC-5), then the mark of a
+     recording (red, ``REQ_REC_BUTTON`` AC-3), then the unread-mail icon. Without any
+     of them the node shows no icon.
    * AC-7: Each source keeps its own entry. When a higher-priority icon ends, the next one still
      present SHALL be shown at the next tree refresh, and the node SHALL NOT be left without an
      icon while a lower-priority icon still applies.
@@ -751,4 +643,4 @@ Actor Requirements
    * AC-11: While ``jarvis.outlook.enabled`` is ``false``, no Outlook call SHALL be made and no
      mail icon SHALL be shown (``REQ_OLK_ENABLE`` AC-2).
    * AC-12: The mail icon SHALL NOT alter any other Actor-node behavior (label, click command,
-     context menu, children), as ``REQ_ACTOR_ACTIVITY`` AC-9 requires for the activity indicator.
+     context menu, children).

@@ -32,15 +32,15 @@ MCP Server Test Data Specifications
       * - T-1 (Server starts)
         - Launch Extension Host with defaults
         - Status bar: ``Jarvis MCP: 31415``; log: ``[MCP] server started``
-      * - T-2 (List Actors)
-        - MCP call ``jarvis_listActors`` via curl
-        - ``{ actors: [...] }`` including ``TestTarget`` and ``TestSender``
-      * - T-3 (Send message)
-        - MCP call ``jarvis_sendMessage`` with ``session: "TestTarget"``, ``senderSession: "TestSender"``
-        - Message appears in Messages tree under ``TestTarget``; response confirms it was queued
-      * - T-4 (Receive message)
-        - MCP call ``jarvis_receiveMessage`` with ``destination: "TestTarget"``
-        - Message returned with fields; ``remaining: 0``; tree updated
+      * - T-2 (Engine tool)
+        - MCP call ``jarvis_listJobs`` via curl
+        - The registered heartbeat jobs are returned without an error
+      * - T-3 (Message tools absent)
+        - MCP ``tools/list``, then a call to ``jarvis_sendMessage``
+        - None of the four Agent Host message tools is listed; the call fails and queues nothing (the error text is recorded)
+      * - T-4 (Reminder tool)
+        - MCP call ``jarvis_listReminders``
+        - The pending reminders (possibly none) are returned without an error
       * - T-5 (Server disabled)
         - Launch with ``mcpEnabled = false``
         - No status bar item; port not listening
@@ -48,5 +48,5 @@ MCP Server Test Data Specifications
         - Launch with ``mcpPort = 9999``
         - Status bar: ``Jarvis MCP: 9999``; MCP calls on port 9999
       * - T-7 (Dual registration)
-        - Same tool via LM and MCP
-        - Both return identical Actor list
+        - Same engine tool (``jarvis_listJobs``) via LM and MCP
+        - Both return identical job lists

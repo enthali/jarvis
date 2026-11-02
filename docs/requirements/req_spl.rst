@@ -116,8 +116,8 @@ Syspilot Lifecycle Requirements
      ``"jarvis-syspilot"``).
    * AC-4: After queuing the message, the module SHALL call
      ``addAutoDelivery`` (idempotent) to ensure the actor is on the
-     auto-delivery list, so the message is picked up by the existing
-     auto-delivery poll loop (``REQ_MSG_AUTODELIVER_POLL``) without
+     auto-delivery list, so the message is announced by the automatic
+     delivery of the inbox (``SPEC_COM_INBOX``) without
      requiring the user to manually register the actor. This follows
      the same pattern established by the reminders feature.
    * AC-5: The message SHALL name ``.github/agents/syspilot.setup.agent.md``

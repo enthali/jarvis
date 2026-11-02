@@ -69,7 +69,7 @@ export class TouchTracker {
         const entityName = await getEntityNameForSessionId(event.sessionId);
         if (!entityName) {
             this._log?.debug(`[Touch] no entity match for session_id=${event.sessionId}`);
-            return; // AC-4, fail-open (same as REQ_HOOK_ACTIVITY AC-9)
+            return; // AC-4, fail-open
         }
         const owner = this._resolveOwner(entityName);
         if (!owner) { return; }

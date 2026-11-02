@@ -122,6 +122,28 @@
             "preLaunchTask": "compile all"
         },
         {
+            "name": "Run All except Syspilot (Core + PIM + Recorder + MCP + Flow + Kanban)",
+            "type": "extensionHost",
+            "request": "launch",
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/core",
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/pim",
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/recorder",
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/mcp",
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/flow",
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/kanban"
+            ],
+            "outFiles": [
+                "${workspaceFolder}/packages/core/out/**/*.js",
+                "${workspaceFolder}/packages/pim/out/**/*.js",
+                "${workspaceFolder}/packages/recorder/out/**/*.js",
+                "${workspaceFolder}/packages/mcp/out/**/*.js",
+                "${workspaceFolder}/packages/flow/out/**/*.js",
+                "${workspaceFolder}/packages/kanban/out/**/*.js"
+            ],
+            "preLaunchTask": "compile all except syspilot"
+        },
+        {
             "name": "Run Extension (monolith — retired, S4b)",
             "type": "extensionHost",
             "request": "launch",

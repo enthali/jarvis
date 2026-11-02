@@ -40,6 +40,11 @@
     "jarvis-core": "*",
     "yaml": "^2.7.0"
   },
+  "capabilities": {
+    "agentsWindow": {
+      "supported": true
+    }
+  },
   "contributes": {
     "configuration": {
       "title": "Jarvis Kanban",

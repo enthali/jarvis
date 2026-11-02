@@ -217,7 +217,7 @@ Configuration Design Specifications
 .. spec:: settings-cleanup: Full Configuration Manifest (package.json)
    :id: SPEC_CFG_MANIFEST
    :status: approved
-   :links: REQ_CFG_TOGGLES; REQ_CFG_GROUPS; REQ_CFG_MCPDEFAULTOFF; REQ_CFG_RENAMES; REQ_CFG_FOLDERPATHS; REQ_CFG_SCANINTERVAL; REQ_ACTOR_INITPROMPT; REQ_ACTOR_CREATE; REQ_MSG_NOTIFICATION_TEMPLATE; SPEC_MSG_NOTIFICATION_RESOLVE
+   :links: REQ_CFG_TOGGLES; REQ_CFG_GROUPS; REQ_CFG_MCPDEFAULTOFF; REQ_CFG_RENAMES; REQ_CFG_FOLDERPATHS; REQ_CFG_SCANINTERVAL; REQ_ACTOR_INITPROMPT; REQ_ACTOR_CREATE
 
    **Description:**
    The complete core ``contributes.configuration`` array in
@@ -280,14 +280,7 @@ Configuration Design Specifications
               "default": "",
               "editPresentation": "multilineText",
               "scope": "window",
-              "description": "Template for the initialization prompt sent to a new Actor chat session. Placeholders: ${name}, ${contextPath}. If empty, the built-in default is used."
-            },
-            "jarvis.messages.notificationTemplate": {
-              "type": "string",
-              "default": "",
-              "editPresentation": "multilineText",
-              "scope": "window",
-              "description": "Template for the auto-delivery notification stub. Placeholders: ${count}, ${destination}, ${sender}. If empty, the built-in English default is used. Scope: window."
+              "description": "Template for the start-up instruction sent to a new Actor chat. Placeholders: ${name}, ${contextPath}. If empty, the built-in default is used."
             }
           }
         },
@@ -364,29 +357,25 @@ Configuration Design Specifications
       ]
 
    .. note::
-      Both ``jarvis.agentSession.initPromptTemplate`` and
-      ``jarvis.messages.notificationTemplate`` ship with the full verbatim
-      template text as their ``"default"`` in ``package.json`` (not empty
+      Both ``jarvis.agentSession.initPromptTemplate`` ships with the full verbatim
+      template text as its ``"default"`` in ``package.json`` (not empty
       string), so users see and edit the default directly in the Settings UI.
       The ``"default": ""`` shown above is a documentation shorthand. An empty
-      or whitespace-only value falls back to the built-in constant —
-      ``DEFAULT_INIT_PROMPT`` respectively ``DEFAULT_NOTIFICATION``, both in
-      ``packages/core/src/engine/sessions/injectPrompt.ts`` (see
-      ``SPEC_ACTOR_INITPROMPT`` and
-      ``SPEC_MSG_NOTIFICATION_RESOLVE``).
+      or whitespace-only value falls back to the built-in constant,
+      ``DEFAULT_INIT_PROMPT`` in
+      ``packages/core/src/engine/sessions/actorStartupPrompt.ts`` (see
+      ``SPEC_ACTOR_INITPROMPT``).
 
       **The declared default governs display, never behaviour**
-      (notification-template-empty-fallback CR, GH #56). Clearing the text
+      (GH #56). Clearing the text
       field in the Settings UI persists an explicit ``""`` at User scope; a
       persisted ``""`` shadows the ``package.json`` default, so
       ``getConfiguration().get()`` returns ``''`` and the ``get(key, '')``
       fallback argument does not fire either (the key exists). Only "Reset
-      Setting" removes the key. Every consumer of these two settings
+      Setting" removes the key. Every consumer of the setting
       therefore MUST apply its own trim-based fallback to the built-in
       constant — shipping the text in ``package.json`` is not a substitute
-      (``REQ_MSG_NOTIFICATION_TEMPLATE`` AC-8). Before GH #56 the note above
-      claimed a notification-template constant existed in ``extension.ts``;
-      it never did, and the notification path had no fallback at all.
+      (``REQ_ACTOR_INITPROMPT`` AC-3).
 
    **Updates group:** ``jarvis.checkForUpdates`` has no natural home in the
    other groups, and the group title is already user-meaningful.

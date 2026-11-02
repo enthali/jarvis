@@ -23,7 +23,7 @@ Configuration User Stories
    :id: US_CFG_MSG
    :status: deprecated
    :priority: optional
-   :links: US_MSG_CHATQUEUE; US_CFG_FIXEDPATHS
+   :links: US_COM_SEND; US_CFG_FIXEDPATHS
 
    **Superseded by:** ``US_CFG_FIXEDPATHS`` (settings-cleanup CR, 2026-05-18;
    formally deprecated by the ``jarvis-messages-dir-grouping`` CR, GH #59).

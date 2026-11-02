@@ -279,8 +279,7 @@ Configuration Requirements
    * AC-6: The Actors group contains ``jarvis.actors.folder``,
      ``jarvis.actors.openSessionOnCreate``, ``jarvis.scanInterval`` and
      ``jarvis.actor.autoProvision``. The Prompt Templates group contains
-     ``jarvis.agentSession.initPromptTemplate`` and
-     ``jarvis.messages.notificationTemplate``.
+     ``jarvis.agentSession.initPromptTemplate``.
 
 
 .. req:: MCP Default Off

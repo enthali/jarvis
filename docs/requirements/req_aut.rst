@@ -300,7 +300,7 @@ Automation Requirements
    :id: REQ_AUT_HEARTBEAT_LOAD_VALIDATION
    :status: implemented
    :priority: optional
-   :links: US_AUT_HEARTBEAT_VALIDATION; REQ_AUT_JOBCONFIG; REQ_MSG_DEST_ERROR
+   :links: US_AUT_HEARTBEAT_VALIDATION; REQ_AUT_JOBCONFIG
 
    **Description:**
    The extension SHALL validate the ``destination`` field of every ``queue`` step
@@ -345,7 +345,7 @@ Automation Requirements
    :id: REQ_AUT_REGISTERJOB_VALIDATION
    :status: implemented
    :priority: optional
-   :links: US_AUT_HEARTBEAT_VALIDATION; REQ_AUT_JOBREG; REQ_MSG_DEST_ERROR
+   :links: US_AUT_HEARTBEAT_VALIDATION; REQ_AUT_JOBREG
 
    **Description:**
    The ``jarvis_registerJob`` LM/MCP tool SHALL reject any job that contains a
@@ -358,7 +358,7 @@ Automation Requirements
      ``jarvis_registerJob`` SHALL inspect all steps; for each step of type ``queue``,
      the ``destination`` value SHALL be validated against the valid destination set
    * AC-2: If any queue step has an invalid destination, the tool SHALL throw an
-     ``Error`` with a message satisfying ``REQ_MSG_DEST_ERROR`` (quoting the invalid
+     ``Error`` with a message satisfying ``US_COM_SENDER`` AC-2 (quoting the invalid
      destination value and listing valid destinations); the job SHALL NOT be written
      to ``heartbeat.yaml``
    * AC-3: If all queue-step destinations are valid (or the job has no queue steps),
@@ -399,17 +399,17 @@ Automation Requirements
    **Acceptance Criteria:**
 
    * AC-1: Heartbeat validation SHALL call the unified destination resolver
-     from ``src/sessionLookup.ts`` — the same function used by
-     ``SPEC_MSG_SENDTOSESSION``
+     from ``src/sessionLookup.ts`` — the same destination set that
+     ``jarvis_sendMessage`` uses (``SPEC_COM_TOOLS``)
    * AC-2: No new session-enumeration logic SHALL be introduced; if the resolver
-     changes (e.g. new filtering rules), both ``jarvis_sendToSession`` and heartbeat
-     validation automatically inherit the change
+     changes (e.g. new filtering rules), heartbeat
+     validation automatically inherits the change
    * AC-3: The valid destination set is the set of Actor names from kindless
      direct-child discovery under ``jarvis.actors.folder``
      (``REQ_ACTOR_ACTIVATION`` AC-3). Chat session titles are not part of it.
      This set is the canonical destination
      set for heartbeat validation and for ``jarvis_sendMessage`` destination
-     and sender validation (``REQ_MSG_SENDMESSAGE``, ``REQ_MSG_SENDER_ERROR``).
+     and sender validation (``SPEC_COM_TOOLS``).
      The resolver SHALL add no parallel destination enumeration.
 
 

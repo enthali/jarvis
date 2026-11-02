@@ -1,5 +1,26 @@
 # Release Notes
 
+## Unreleased - Agent Host Migration
+
+### Breaking Changes and Migration
+
+- **ahp-mvp**: Actor chats and announcements now use VS Code's Agent Host only. Existing chat-UI sessions are not the delivery path; without a connection announcements wait. Clicking an Actor finds or creates its Agent Host chat; Messages and Message Flow open an existing chat only. Delivery does not open tabs or take focus.
+- Update prompts, skills and instructions before release: `jarvis_sendMessage(session, text)` no longer accepts `senderSession`, and `jarvis_receiveMessage()` no longer accepts `destination`. The calling Actor chat supplies the sender and inbox. `jarvis_listActors()` returns names and short descriptions instead of path IDs. `jarvis_createActorSession(actor)` finds or creates a chat. Use these Agent Host tool names rather than the former package-prefixed messaging references; the references of other extension tools remain package-prefixed.
+- Removed: `jarvis_listChatSessions`, `jarvis_readMessage`, `jarvis_sendToSession`, `jarvis_injectPrompt`, **Jarvis: Inject Prompt**, and `jarvis.messages.notificationTemplate`. There is no general prompt-injection replacement. The four Agent Host tools are not exposed through MCP; external Actor wake-up scripts must move to heartbeat steps. Reminders and heartbeat message steps still write to the inbox.
+- With Actor auto-provisioning enabled, bundled instructions refresh through provisioning. Owners must update project-maintained instructions, skills and agents themselves; see the migration section in [Getting Started](user%20guides/getting-started.md).
+
+### Actor Chats
+
+- In the Agents window, tick **Created In > jarvis-core** to see Jarvis-created chats. **Mark done** archives a chat and makes it read-only; Jarvis restores it on opening or delivery. Only **Delete** removes it. A workspace below a repository root can show as **Worktree** without a Git worktree.
+- Activity comes from the Agent Host: Error (red cross), Waiting (blue question mark), Working (spinner), Idle (no activity icon). Activity takes priority over the recording mark, then the mail icon. Jarvis approves calls to its own four Agent Host tools.
+
+### Known Limits
+
+- Module tools reach an Actor chat only while it is open in a window running Jarvis, under references such as `jarvis_core_listJobs` and `jarvis_kanban_listKanbanItems`. Core, Kanban, PIM and Syspilot declare Agents window support; module tools and views or webviews there remain unverified live. The client serves the first workspace folder; cross-workspace routing and the same workspace in two windows are outside this MVP.
+- In the clean Windows Sandbox an Actor chat starts and shows Working, but a provisioned hook requiring `node` blocks tool calls when that command is absent. Complete hook removal is a separate mandatory next Change; it is not delivered here and no Node installation requirement is introduced.
+
+---
+
 ## v0.31.1 - Copilot CLI Tool Reference Fix + Extension Retirement
 
 *2026-10-24*

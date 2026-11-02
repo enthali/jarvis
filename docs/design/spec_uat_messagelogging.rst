@@ -16,9 +16,10 @@ Message Logging UAT Design Specifications
 
    * Uses the configured messages folder (``jarvis.messages.folder`` pointing to
      ``testdata/msg/`` or equivalent)
-   * Uses the ``jarvis_sendMessage`` LM tool via a Copilot chat session to
-     enqueue messages (``session: "TestTarget"``, ``senderSession:
-     "TestSender"``; Actor fixtures, ``SPEC_UAT_MSG_FILES``)
+   * Enqueues messages with the ``jarvis_sendMessage`` tool from the Copilot chat of
+     the Actor ``TestSender`` (``session: "TestTarget"``; the sender is the Actor of
+     the calling chat, never a parameter; Actor fixtures, ``SPEC_UAT_MSG_FILES``), or
+     with the ``t8-queue-message`` heartbeat job
    * ``message-log.json`` is created at runtime by the extension when logging is
      enabled — the tester deletes it between scenarios
 

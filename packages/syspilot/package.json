@@ -35,6 +35,11 @@
   "dependencies": {
     "jarvis-core": "*"
   },
+  "capabilities": {
+    "agentsWindow": {
+      "supported": true
+    }
+  },
   "contributes": {
     "configuration": {
       "title": "Jarvis Syspilot",

@@ -68,7 +68,7 @@ Actor Identity Change User Acceptance Tests
    :id: US_UAT_ACTOR_LISTTOOL
    :status: draft
    :priority: required
-   :links: US_ACTOR_LISTTOOL
+   :links: US_COM_FIND
 
    **As an** Actor, **I want** the Actor list to identify each Actor's own
    agent, **so that** I can address the right participant.

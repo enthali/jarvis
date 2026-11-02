@@ -49,19 +49,22 @@ package checks are outside User UAT.
      transcript is complete. Expect the mail icon on Test2 again at the next tree
      refresh; if the tree did not refresh by itself, click Refresh and expect the
      icon.
-   * T-8 (US_ACTOR_MAIL AC-4; US_ACTOR_ACTIVITY AC-1, AC-2): With Test2 unread and
-     its icon shown, open the Test2 chat from its node and send a prompt that
-     makes the agent run several tool calls, such as listing two folders and
-     summarizing each. While the turn runs, expect the green dot on Test2 and no
-     mail icon. When the turn ends, expect the mail icon back without a Refresh
-     click. If the turn ends before the green dot is seen, repeat with a longer
-     prompt; an unseen state is not a pass.
-   * T-9 (US_ACTOR_MAIL AC-4): With Test2 unread, start a long agent turn in the
-     Test2 chat as in T-8. While the turn runs, start a recording on Test2 and
-     expect the red dot only. End the recording in the transcript view while the
-     turn still runs; expect the green dot, not the mail icon, at the next tree
-     refresh. When the turn ends, expect the mail icon. If the turn ends before the
-     recording is ended, repeat with a longer turn.
+   * T-8 (US_ACTOR_MAIL AC-4; US_ACTOR_ACTIVITY AC-1, AC-2; REQ_COM_STATE AC-3,
+     AC-5): With Test2 unread and its icon shown, open the Test2 chat from its node
+     and send a prompt that makes the agent run several tool calls, such as listing
+     two folders and summarizing each. While the turn runs, expect the animated
+     spinner (Working) on Test2 and no mail icon. When the turn ends, expect the mail
+     icon back without a Refresh click. If the turn ends before the spinner is seen,
+     repeat with a longer prompt; an unseen state is not a pass. The state comes from
+     the Agent Host, so the chat must be one that Jarvis found by the name Test2.
+   * T-9 (US_ACTOR_MAIL AC-4; US_ACTOR_ACTIVITY AC-3): With Test2 unread, start a long
+     agent turn in the Test2 chat as in T-8. While the turn runs, start a recording on
+     Test2 and expect the spinner, not the red dot: the activity state is shown before
+     the recording mark. End the recording in the transcript view while the turn still
+     runs; expect the spinner still shown. When the turn ends, expect the mail icon.
+     Run once more with the recording still running when the turn ends: expect the red
+     dot, then the mail icon after the recording ends. If the turn ends before the
+     recording is started, repeat with a longer turn.
    * T-10 (US_ACTOR_MAIL AC-6): With Test2 unread and its icon shown, close
      Outlook by hand and click Refresh. Expect no mail icon on any Actor, no error
      notification, and one warning line about the Outlook read in the Jarvis log.

@@ -1,21 +1,22 @@
-Message Queue UAT Design Specifications
-=========================================
+Actor Communication UAT Design Specifications
+=============================================
 
 .. spec:: Message Queue Test Data Files
    :id: SPEC_UAT_MSG_FILES
-   :status: approved
-   :links: REQ_UAT_MSG_TESTDATA; SPEC_UAT_HEARTBEAT_FILES; SPEC_ACTOR_SCANNER
+   :status: draft
+   :links: REQ_UAT_MSG_TESTDATA; SPEC_UAT_HEARTBEAT_FILES; SPEC_ACTOR_SCANNER; SPEC_COM_TOOLS; SPEC_COM_STATE
 
    **Description:**
-   The T-8 queue step job in ``testdata/heartbeat/heartbeat.yaml`` (defined in
-   ``SPEC_UAT_HEARTBEAT_FILES``) provides the test data for manual verification
-   of the message queue feature.
+   The ``t8-queue-message`` job in ``testdata/heartbeat/heartbeat.yaml`` (defined in
+   ``SPEC_UAT_HEARTBEAT_FILES``) stores the test message for ``TestTarget``. The
+   scenarios T-1 to T-21 are in ``US_UAT_MSG``; this specification holds the test
+   data and the test means they need.
 
-   **Actor fixtures** (shared by the messaging UATs — message queue,
-   heartbeat queue steps, auto-delivery, reminders, notification template,
-   MCP server, message logging): only Actors are valid destinations and
-   senders (``REQ_AUT_HEARTBEAT_RESOLVER_REUSE`` AC-3), so the repo SHALL
-   contain every name these procedures address as an Actor folder under
+   **Actor fixtures** (shared by the messaging UATs: Actor communication,
+   heartbeat queue steps, auto-delivery, reminders, MCP server, message logging):
+   only Actors are valid destinations and senders
+   (``REQ_AUT_HEARTBEAT_RESOLVER_REUSE`` AC-3), so the repo SHALL contain every
+   name these procedures address as an Actor folder under
    ``testdata/.jarvis/actors/``:
 
    .. list-table::
@@ -31,60 +32,19 @@ Message Queue UAT Design Specifications
       * - ``TestSession/``
         - ``name: TestSession``, ``summary: UAT notification target``, ``agent: ""``
 
-   Each name SHALL be carried by exactly one Actor. The legacy
-   ``testdata/sessions-engine-test/TestSession/session.yaml`` SHALL NOT be
-   part of the test data; it is not an Actor and addresses nothing. As of
-   this design the three fixtures do not exist yet and the legacy file is
-   still present — both are implementation work of
-   ``retire-legacy-actor-kinds``. A destination's chat session is
-   the Actor's own chat (``SPEC_INJ_INJECT``); "no session exists" in a
-   procedure means no chat has been opened for that Actor yet.
+   Each name SHALL be carried by exactly one Actor. The chat of an Actor is the
+   session of the Agent Host whose title is the Actor name in the workspace folder
+   of the window (``REQ_COM_CHATNAME`` AC-2); "no chat exists" in a procedure means
+   that no session with that title exists in the workspace yet.
 
-   **Expected test outcomes (documented in test protocol):**
+   **Test means:** an Extension Development Host or a Windows Sandbox window of the
+   VS Code product that offers the Agent Host, on the ``testdata`` workspace, with
+   Copilot Chat signed in. The Sandbox in ``test-environments/windows-sandbox/`` is the
+   isolated environment. In a Sandbox without ``node`` on the path, the hook that
+   Jarvis provisions blocks every tool call (open finding of the hook-removal Change),
+   so T-2 to T-6, T-9, T-10, T-12, T-17 and T-18 are NOT RUN there and are not reported
+   as failed. The scenarios T-1, T-7, T-8, T-11, T-13 to T-16 and T-19 to T-21 need no
+   tool call inside the guest chat.
 
-   .. list-table::
-      :header-rows: 1
-      :widths: 15 45 40
-
-      * - Scenario
-        - Action
-        - Expected Result
-      * - T-1 (queue write)
-        - Run T-8 manual job
-        - ``messages.json`` contains entry with ``session="TestTarget"``
-      * - T-2 (notify new)
-        - No chat open for "TestTarget"; click send on the "TestTarget" group
-        - New chat opens, notification stub sent, messages remain in queue
-      * - T-3 (notify existing)
-        - "TestTarget" chat open (from T-2), run T-8, click send
-        - Existing tab focused, notification stub sent, messages remain in queue
-      * - T-4 (closed session)
-        - Close "TestTarget" tab, click send
-        - Session restored via UUID, notification stub sent, messages remain in queue
-      * - T-6 (retired — readMessage)
-        - Not run: ``jarvis_readMessage`` is hard-deprecated; its only expected behaviour is the error of T-12
-        - —
-      * - T-5 (delete)
-        - Click trash icon on a queued message
-        - Message removed from queue, tree refreshes
-      * - T-7 (sendMessage valid)
-        - Call ``jarvis_sendMessage`` with ``session: "TestTarget"``, ``senderSession: "TestSender"``
-        - Message queued, no deprecation warning, ``message-log.json`` sender = ``TestSender`` verbatim
-      * - T-8 (sendMessage missing sender)
-        - Call ``jarvis_sendMessage`` with ``senderSession`` omitted/empty
-        - Throws ``senderSession is required. Callers must explicitly provide their session name — do not rely on the active editor tab.``; no message appended
-      * - T-9 (sendMessage invalid sender)
-        - Call ``jarvis_sendMessage`` with an unknown ``senderSession``
-        - Throws ``Sender session "${senderSession}" does not exist. Valid senders: ${names}``; no message appended
-      * - T-10 (receiveMessage)
-        - Call ``jarvis_receiveMessage`` with destination "TestTarget"
-        - Oldest message returned and removed; remaining count correct; tree refreshes; no deprecation warning present
-      * - T-11 (deprecated sendToSession, hard)
-        - Call ``jarvis_sendToSession`` with any input
-        - Throws ``This tool is deprecated and no longer functional. Use jarvis_sendMessage instead.``; no message appended; no tree refresh
-      * - T-12 (deprecated readMessage, hard)
-        - Call ``jarvis_readMessage`` with any input
-        - Throws ``This tool is deprecated and no longer functional. Use jarvis_receiveMessage instead.``; no message popped; no tree refresh
-      * - T-13 (deprecated tools' discovery-time notice)
-        - Inspect ``jarvis_sendToSession``/``jarvis_readMessage`` descriptions in the tool picker
-        - Each description prefixed with its own ``[DEPRECATED AND DISABLED — use ... instead.]`` notice
+   **Results:** recorded in the test protocol of the Change, each scenario as NOT RUN,
+   PASS or FAIL with the reason for NOT RUN.

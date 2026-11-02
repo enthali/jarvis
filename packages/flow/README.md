@@ -9,7 +9,7 @@ An interactive D3 chord-diagram visualization of inter-agent message traffic, so
 - **Time lens**: a two-handle range slider indexed by message rank (newest = rank 1) narrows the diagram to a window of messages. Dragging a handle shows a tooltip with the message's timestamp. Leaving the start handle at rank 1 keeps the view live-tracking new messages; moving it anchors the window to a specific message instead
 - **+30** button loads another 30 older messages into the queue (30 → 60 → 90 → ...) so the lens can reach further back
 - Hover an edge for message count, time range, and a sample message
-- Click an actor node to open that actor's chat session
+- Click an Actor node to open its existing Agent Host chat; this does not create a missing chat (open the Actor from ACTORS for that)
 
 The diagram opens as an editor tab in the same fixed column used for entity docs (`context.md`, YAML config, agent files) — if you only have 2 editor columns open, the diagram and entity docs share that second column until you open a third.
 

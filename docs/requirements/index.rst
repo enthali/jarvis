@@ -15,12 +15,12 @@ Requirements describe **what** the system must do.
    req_cfg
    req_aut
    req_msg
+   req_com
    req_pim
    req_olk
    req_rec
    req_actor
    req_mod
-   req_inj
    req_eng
    req_hook
    req_flow

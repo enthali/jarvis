@@ -1,5 +1,5 @@
-// Implementation: SPEC_ACTOR_WHOAMI
-// Requirements: REQ_ACTOR_WHOAMI
+// Implementation: SPEC_ACTOR_WHOAMI, SPEC_COM_INJECT (agent description)
+// Requirements: REQ_ACTOR_WHOAMI, REQ_COM_CHATNAME AC-5
 
 import * as fs from 'fs';
 import * as path from 'path';
@@ -13,8 +13,6 @@ export type EnsureAgentResult =
 
 const LINE1_PREFIX = 'You act as Actor ';
 const LINE2_PREFIX = 'Your context memory is ';
-const MODE_COMMAND_TIMEOUT_MS = 3000;
-const MODE_COMMAND_POLL_MS = 100;
 
 let _log: vscode.LogOutputChannel | undefined;
 
@@ -51,6 +49,32 @@ function warnOnce(key: string, message: string): void {
     void vscode.window.showWarningMessage(message);
 }
 
+/** The summary of the Actor on one line; the agent host lists an agent file only when its description is not empty. */
+function descriptionOf(actor: { name: string; summary?: string }): string {
+    const oneLine = (actor.summary ?? '').replace(/\s+/g, ' ').trim();
+    return oneLine || `Actor ${actor.name}`;
+}
+
+/** Adds `description` to the front matter when it has none or an empty one (REQ_COM_CHATNAME AC-5); everything else stays. */
+function ensureDescription(content: string, description: string): string {
+    const eol = content.includes('\r\n') ? '\r\n' : '\n';
+    const line = `description: ${yamlString(description)}`;
+    const lines = content.split(eol);
+    const closeIdx = lines[0] === '---' ? lines.indexOf('---', 1) : -1;
+    if (closeIdx === -1) { return ['---', line, '---', ...lines].join(eol); }
+
+    const existing = lines.findIndex((l, i) => i > 0 && i < closeIdx && /^description:/.test(l));
+    if (existing !== -1) {
+        const value = lines[existing].slice('description:'.length).trim().replace(/^(["'])(.*)\1$/, '$2').trim();
+        if (value) { return content; }
+        lines[existing] = line;
+        return lines.join(eol);
+    }
+    const nameIdx = lines.findIndex((l, i) => i > 0 && i < closeIdx && /^name:/.test(l));
+    lines.splice(nameIdx === -1 ? closeIdx : nameIdx + 1, 0, line);
+    return lines.join(eol);
+}
+
 /** Replaces or inserts the two Jarvis lines directly after the front matter, keeping everything else. */
 function restoreLines(content: string, line1: string, line2: string): string {
     const eol = content.includes('\r\n') ? '\r\n' : '\n';
@@ -72,23 +96,13 @@ function restoreLines(content: string, line1: string, line2: string): string {
     return [...head, ...body].join(eol);
 }
 
-/** Polls for VS Code to register the new agent's mode command; a timeout is not an error (step 6 still returns ready). */
-async function waitForModeCommand(actorName: string): Promise<void> {
-    const cmdId = `workbench.action.chat.open${actorName}`;
-    const deadline = Date.now() + MODE_COMMAND_TIMEOUT_MS;
-    while (Date.now() < deadline) {
-        const available = await vscode.commands.getCommands(true);
-        if (available.includes(cmdId)) { return; }
-        await new Promise(resolve => setTimeout(resolve, MODE_COMMAND_POLL_MS));
-    }
-}
-
 /**
  * Precondition: actor.name resolved to exactly one Actor, or the Actor was
- * just created. Never throws; a failure is logged and returned.
+ * just created. The summary of the Actor becomes the description of its agent
+ * file. Never throws; a failure is logged and returned.
  */
 export async function ensureActorAgent(
-    actor: { name: string; folder: string }
+    actor: { name: string; folder: string; summary?: string }
 ): Promise<EnsureAgentResult> {
     const prior = _locks.get(actor.name) ?? Promise.resolve();
     const run = prior.catch(() => { /* a prior failure does not block this call */ }).then(() => _ensureActorAgent(actor));
@@ -101,7 +115,7 @@ export async function ensureActorAgent(
 }
 
 async function _ensureActorAgent(
-    actor: { name: string; folder: string }
+    actor: { name: string; folder: string; summary?: string }
 ): Promise<EnsureAgentResult> {
     const root = getWorkspaceRoot();
     if (!root) { return { status: 'skipped', reason: 'noWorkspace' }; }
@@ -125,7 +139,7 @@ async function _ensureActorAgent(
         const targetPath = path.isAbsolute(match.filePath) ? match.filePath : path.join(root, match.filePath);
         try {
             const current = await fs.promises.readFile(targetPath, 'utf8');
-            const restored = restoreLines(current, line1, line2);
+            const restored = restoreLines(ensureDescription(current, descriptionOf(actor)), line1, line2);
             if (restored !== current) {
                 await fs.promises.writeFile(targetPath, restored, 'utf8');
             }
@@ -147,13 +161,12 @@ async function _ensureActorAgent(
 
     try {
         await fs.promises.mkdir(agentsDir, { recursive: true });
-        const content = ['---', `name: ${yamlString(actor.name)}`, '---', line1, line2, ''].join('\n');
+        const content = ['---', `name: ${yamlString(actor.name)}`, `description: ${yamlString(descriptionOf(actor))}`, '---', line1, line2, ''].join('\n');
         await fs.promises.writeFile(targetPath, content, 'utf8');
     } catch (err) {
         _log?.warn(`[ACTOR] ensureActorAgent: failed to create "${targetPath}" for "${actor.name}": ${err}`);
         return { status: 'skipped', reason: 'writeFailed' };
     }
 
-    await waitForModeCommand(actor.name);
     return { status: 'ready', mode: actor.name };
 }

@@ -344,7 +344,7 @@ Developer Tooling Design Specifications
    2. ``new ActorScanner(configPaths.getActorsDir, () => actorTreeProvider.refresh())``,
       ``new ActorTreeProvider(...)``, ``createTreeView('jarvisActors', …)`` with
       the dynamic title (``SPEC_ACTOR_TREE``).
-   3. ``initInjectPrompt({ actors: actorScanner, … })`` (``SPEC_INJ_INJECT``).
+   3. The Jarvis AHP client, started without blocking the activation (``SPEC_COM_CLIENTMODULE``).
    4. ``actorScanner.rescan()`` and ``actorScanner.startTimer(jarvis.scanInterval)``
       (``SPEC_ACTOR_SCANNER``).
    5. Heartbeat block (if ``jarvis.heartbeat.enabled``):

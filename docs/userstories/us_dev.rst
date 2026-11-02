@@ -39,7 +39,7 @@ Developer Tooling User Stories
    :id: US_DEV_LOGGING
    :status: implemented
    :priority: mandatory
-   :links: US_EXP_SIDEBAR; US_AUT_HEARTBEAT; US_REL_SELFUPDATE; US_MSG_CHATQUEUE
+   :links: US_EXP_SIDEBAR; US_AUT_HEARTBEAT; US_REL_SELFUPDATE; US_COM_SEND
 
    **As a** Jarvis user and developer,
    **I want** structured log output from all Jarvis functional groups in a single

@@ -3,7 +3,7 @@ Actor Mail Marker Change User Acceptance Tests
 
 .. story:: Actor Mail Marker User Test
    :id: US_UAT_ACTOR_MAIL
-   :status: draft
+   :status: approved
    :priority: optional
    :links: US_ACTOR_MAIL; US_ACTOR_ACTIVITY; US_REC_CAPTURE
 
@@ -22,8 +22,8 @@ Actor Mail Marker Change User Acceptance Tests
    * AC-3: The icon changes only at a scan, the manual Refresh or the periodic
      scan. A change in Outlook between two scans is not shown before the next
      scan (T-2 to T-5, T-20).
-   * AC-4: A node shows one mark at a time: recording (red), then active session
-     (green), then unread mail. When a higher mark ends, the next one still
+   * AC-4: A node shows one mark at a time: activity state (error, waiting or working),
+     then recording (red), then unread mail. When a higher mark ends, the next one still
      present is shown (T-7 to T-9).
    * AC-5: No mail state survives an EDH restart; after the first scan the icon
      reflects Outlook (T-6).

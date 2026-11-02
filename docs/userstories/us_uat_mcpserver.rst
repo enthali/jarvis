@@ -29,26 +29,24 @@ MCP Server User Acceptance Tests
      Expected: Status bar shows ``Jarvis MCP: 31415``. Output Channel logs
      ``[MCP] server started on 127.0.0.1:31415``.
 
-   **T-2 — List Actors via MCP**
-     Setup: MCP server running (T-1). The Actors "TestTarget" and
-     "TestSender" exist.
-     Action: Use ``curl`` or an MCP client to call ``jarvis_listActors`` on
-     ``http://127.0.0.1:31415/mcp``.
-     Expected: Response is ``{ actors: [...] }`` and includes both Actors.
-
-   **T-3 — Send message via MCP**
+   **T-2 — Engine tool via MCP**
      Setup: MCP server running (T-1).
-     Action: Call ``jarvis_sendMessage`` via MCP with
-     ``{ "session": "TestTarget", "text": "Hello from MCP", "senderSession": "TestSender" }``.
-     Expected: Message appears in the Jarvis Messages tree view under
-     ``TestTarget (1)``. Response confirms the message was queued.
+     Action: Use ``curl`` or an MCP client to call ``jarvis_listJobs`` on
+     ``http://127.0.0.1:31415/mcp``.
+     Expected: The response lists the registered heartbeat jobs without an error.
 
-   **T-4 — Receive message via MCP**
-     Setup: T-3 completed (message in queue).
-     Action: Call ``jarvis_receiveMessage`` via MCP with
-     ``{ "destination": "TestTarget" }``.
-     Expected: Response contains the message with ``sender``, ``text``,
-     ``timestamp`` fields and ``remaining: 0``. Message disappears from tree.
+   **T-3 — Message tools are not offered via MCP**
+     Setup: MCP server running (T-1).
+     Action: List the tools through the MCP client (``tools/list``).
+     Expected: ``jarvis_sendMessage``, ``jarvis_receiveMessage``, ``jarvis_listActors``
+     and ``jarvis_createActorSession`` are not in the list (``US_MSG_MCPSERVER`` AC-7);
+     a call to ``jarvis_sendMessage`` fails and queues nothing (record the error text).
+
+   **T-4 — Reminder tool via MCP**
+     Setup: MCP server running (T-1).
+     Action: Call ``jarvis_listReminders`` via MCP.
+     Expected: The response lists the pending reminders (possibly none) without an
+     error.
 
    **T-5 — MCP server disabled**
      Setup: Set ``jarvis.mcpEnabled = false`` in settings.
@@ -64,7 +62,7 @@ MCP Server User Acceptance Tests
      port 9999.
 
    **T-7 — Dual registration (LM + MCP return same data)**
-     Setup: MCP server running. At least one Actor exists.
-     Action: Call ``jarvis_listActors`` via both the Chat tool picker (LM)
+     Setup: MCP server running. At least one heartbeat job exists.
+     Action: Call ``jarvis_listJobs`` via both the Chat tool picker (LM)
      and via MCP client on localhost.
-     Expected: Both return the same list of Actors.
+     Expected: Both return the same list of jobs.

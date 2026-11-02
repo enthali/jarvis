@@ -243,24 +243,20 @@ Engine Design Specifications
 
    **Rule per manifest entry:** ``toolReferenceName`` is
    ``jarvis_<package>_<former reference>``; ``modelDescription`` is
-   ``jarvis_<package>:``, a space, and the former description. A deprecated
-   tool reads ``jarvis_core: [DEPRECATED AND DISABLED — use jarvis_sendMessage
-   instead.] Queues ...``; the package comes first because every description
+   ``jarvis_<package>:``, a space, and the former description. Should a tool
+   carry a deprecation notice, the package comes first because every description
    gets the same label, and the notice follows it directly, still ahead of the
-   text that says what the tool did.
+   text that says what the tool did. No tool carries one since the Agent Host
+   path replaced the old message tools (``SPEC_COM_TOOLS``).
 
    **References after the change** (the ``name`` of each tool is unchanged):
 
    .. code-block:: text
 
-      core     jarvis_core_createActor        jarvis_core_sendToSession
-               jarvis_core_sendMessage        jarvis_core_listActors
-               jarvis_core_listChatSessions   jarvis_core_readMessage
-               jarvis_core_receiveMessage     jarvis_core_registerJob
+      core     jarvis_core_createActor        jarvis_core_registerJob
                jarvis_core_unregisterJob      jarvis_core_listJobs
                jarvis_core_listModels         jarvis_core_setReminder
                jarvis_core_listReminders      jarvis_core_cancelReminder
-               jarvis_core_injectPrompt
       kanban   jarvis_kanban_createKanbanBoard   jarvis_kanban_verifyKanbanSchema
                jarvis_kanban_openKanbanBoard     jarvis_kanban_updateKanbanItem
                jarvis_kanban_addKanbanItem       jarvis_kanban_deleteKanbanItem
@@ -270,7 +266,12 @@ Engine Design Specifications
       syspilot jarvis_syspilot_delaySyspilotUpdate
                jarvis_syspilot_SyspilotSkipThisVersion
 
-   **Why ``name`` stays:** the 28 registered names (core 15, kanban 9, pim 2,
+   **Message tools:** ``jarvis_sendMessage``, ``jarvis_receiveMessage``,
+   ``jarvis_listActors`` and ``jarvis_createActorSession`` have no manifest entry.
+   The Jarvis AHP client publishes them to Actor chats (``SPEC_COM_TOOLS``), so
+   they have no ``toolReferenceName`` and are not part of this table.
+
+   **Why ``name`` stays:** the 21 registered names (core 8, kanban 9, pim 2,
    syspilot 2) are pairwise different, and ``registerTool`` rejects a duplicate
    (``SPEC_ENG_REGISTER_TOOL`` AC-2). The collision lies in the references
    ``task`` and ``category``, not in the names. The MCP surface and the delivered
@@ -288,8 +289,7 @@ Engine Design Specifications
      ``packages/kanban``, ``packages/pim`` and ``packages/syspilot`` has the
      ``toolReferenceName`` listed above.
    * AC-2: Every such entry has a ``modelDescription`` that begins with
-     ``jarvis_<package>:`` and a space; for the two deprecated core tools the text
-     ``[DEPRECATED AND DISABLED —`` follows directly.
+     ``jarvis_<package>:`` and a space and has text after it.
    * AC-3: No two ``toolReferenceName`` values across these packages are equal.
    * AC-4: For every entry, ``name``, ``displayName``, ``icon``,
      ``canBeReferencedInPrompt``, ``tags``, ``when`` and ``inputSchema`` equal
@@ -385,7 +385,7 @@ Engine Design Specifications
 .. spec:: Platform Actor List API
    :id: SPEC_ENG_ACTORLIST
    :status: implemented
-   :links: REQ_ENG_ACTORLIST; SPEC_ACTOR_SCANNER; SPEC_ACTOR_LISTTOOL
+   :links: REQ_ENG_ACTORLIST; SPEC_ACTOR_SCANNER
 
    **Description:**
    ``JarvisCoreApi.listActors()`` publishes the Actor scanner's cache as
@@ -400,8 +400,8 @@ Engine Design Specifications
           }));
       }
 
-   The entry shape equals a ``jarvis_listActors`` entry
-   (``SPEC_ACTOR_LISTTOOL``).
+   The entry shape is that of the former ``jarvis_listActors`` tool; the tool of
+   the same name in ``SPEC_COM_TOOLS`` returns only name and summary.
 
    **Consumers:**
 
@@ -425,8 +425,8 @@ Engine Design Specifications
 
 .. spec:: Actor Node Mark API
    :id: SPEC_ENG_ACTORMARK
-   :status: draft
-   :links: REQ_ENG_ACTORMARK; SPEC_ACTOR_TREE; SPEC_ACTOR_ACTIVITY; SPEC_ACTOR_MAIL
+   :status: approved
+   :links: REQ_ENG_ACTORMARK; SPEC_ACTOR_TREE; SPEC_COM_STATE; SPEC_ACTOR_MAIL
 
    **Description:**
    ``JarvisCoreApi.markActor(actorId, icon)`` lets an add-on show an icon on one
@@ -463,13 +463,13 @@ Engine Design Specifications
      refreshes the tree. A second dispose changes nothing and refreshes nothing.
    * AC-2: Marks on the same id are separate entries. The node shows the most recent mark
      still set; when it is disposed, the next one still set shows, and when none is left the
-     node shows the activity indicator or the unread-mail icon that applies (``SPEC_ACTOR_TREE``
-     AC-6).
-   * AC-3: While a mark exists the node's ``iconPath`` is the mark's icon, ahead of the
-     activity indicator and the unread-mail icon (``SPEC_ACTOR_MAIL``); nothing else on the node
-     changes.
-   * AC-4: The mark does not touch the activity state (``SPEC_ACTOR_ACTIVITY``): once the
-     mark is gone the activity indicator shows again if the Actor is Active.
+     node shows the unread-mail icon that applies (``SPEC_ACTOR_TREE`` AC-6).
+   * AC-3: While a mark exists and the Actor is Idle the node's ``iconPath`` is the mark's
+     icon, ahead of the unread-mail icon (``SPEC_ACTOR_MAIL``); an activity state other than
+     Idle is shown instead of the mark. Nothing else on the node changes.
+   * AC-4: The mark does not touch the activity state (``SPEC_COM_STATE``,
+     ``REQ_COM_STATE``): while the Actor is not Idle the activity icon shows, and once it
+     is Idle again the mark shows again.
    * AC-5: ``markActor`` is additive: ``version`` stays ``2``, and an add-on checks that the
      member exists before calling it (``REQ_ENG_ACTORMARK`` AC-5).
 

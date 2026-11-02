@@ -31,6 +31,11 @@
   "dependencies": {
     "jarvis-core": "*"
   },
+  "capabilities": {
+    "agentsWindow": {
+      "supported": true
+    }
+  },
   "contributes": {
     "customEditors": [
       {
