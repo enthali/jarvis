@@ -45,6 +45,20 @@ Extension tools retain package-prefixed chat references, such as `#jarvis_core_l
 
 Core, Kanban, PIM and Syspilot declare Agents window support, but module tools and views or webviews there have not been verified live. Use an editor window running Jarvis for the documented module-tool path.
 
+## Upgrading from a hook-based version
+
+Jarvis no longer installs or listens for agent hooks and does not require an external `node` command for Actor tool calls. The hook-based **Recently Touched Files** category, its diff/remove/cleanup actions and its time-window setting are removed without replacement. Actor activity still comes from the Agent Host; recording and mail indicators are unchanged.
+
+On activation, Jarvis removes only these files from `.github/hooks/` in the first workspace folder, if present:
+
+- `jarvis-hooks.json`
+- `jarvis-bridge.mjs`
+- `jarvis-port`
+- `bridge.mjs`
+- `port`
+
+Automatic cleanup needs no setting, but covers only the first workspace folder and can fail. If any of the five listed legacy files remain in a project, including another workspace folder, remove them by hand from that project's `.github/hooks/`; keep the directory and all other files. A removal failure is logged and retried at the next activation; an absent file is normal. The old `.jarvis/state/touched-files/` data stays on disk but is no longer read. Existing values of `jarvis.hooks.autoInstall` and `jarvis.touchedFiles.windowDays` have no effect and can be removed from settings.
+
 ## Add-ons
 
 | Package | Purpose |
@@ -71,7 +85,5 @@ Core, Kanban, PIM and Syspilot declare Agents window support, but module tools a
 | `jarvis.scanInterval` | `2` | Background rescan interval in minutes (0 = disabled). |
 | `jarvis.reminders.enabled` | `true` | Enable reminders. |
 | `jarvis.gitignore.autoManage` | `true` | Maintain a marked region in the workspace `.gitignore` listing Jarvis transient runtime paths. Set to `false` to remove the region. |
-| `jarvis.hooks.autoInstall` | `true` | Install hook bridge files in `.github/hooks/`. Set to `false` to remove managed files and stop hook management. |
 | `jarvis.checkForUpdates` | `true` | Check GitHub for new Jarvis releases when the extension activates. |
 | `jarvis.releaseNotes.showOnUpdate` | `true` | Open the release notes the first time a newly installed Jarvis version runs. **Jarvis: Show Release Notes** works regardless. |
-| `jarvis.touchedFiles.windowDays` | `0` | Rolling window in days; only files touched within it appear in Recently Touched Files (0 = no limit). |

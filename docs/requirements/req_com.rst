@@ -212,13 +212,13 @@ Actor Communication Requirements
 
    **Description:**
    The Jarvis AHP Client SHALL take the state of each Actor chat directly from
-   the information of the Agent Host, and the ACTORS tree SHALL show it. The hook
-   events are not used for this (User, 2026-10-28).
+   the information of the Agent Host, and the ACTORS tree SHALL show it
+   (User, 2026-10-28).
 
    **Acceptance Criteria:**
 
    * AC-1: The state of a chat is the status that the Agent Host reports for
-     its session. No hook event and no mapping through session ids is used.
+     its session. No mapping through session ids is used.
    * AC-2: The client learns the state of all sessions when it connects, and each
      change afterwards without asking again. A change shows in the tree within
      two seconds.

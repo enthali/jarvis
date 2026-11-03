@@ -129,11 +129,7 @@
       { "command": "jarvis.copyPath", "title": "Copy Path" },
       { "command": "jarvis.copyFullPath", "title": "Copy Full Path" },
       { "command": "jarvis.copyFileName", "title": "Copy File Name" },
-      { "command": "jarvis.openMessageActorChat", "title": "Jarvis: Open Actor Chat" },
-      { "command": "jarvis.diffTouchedFile", "title": "Jarvis: Show Changes" },
-      { "command": "jarvis.removeTouchedFile", "title": "Jarvis: Remove Touched File", "icon": "$(trash)" },
-      { "command": "jarvis.removeTouchedFiles", "title": "Jarvis: Remove Touched Files", "icon": "$(trash)" },
-      { "command": "jarvis.cleanupTouchedFiles", "title": "Jarvis: Clean Up Touched Files", "icon": "$(clear-all)" }
+      { "command": "jarvis.openMessageActorChat", "title": "Jarvis: Open Actor Chat" }
     ],
     "menus": {
       "commandPalette": [
@@ -157,11 +153,7 @@
         { "command": "jarvis.copyPath", "when": "false" },
         { "command": "jarvis.copyFullPath", "when": "false" },
         { "command": "jarvis.copyFileName", "when": "false" },
-        { "command": "jarvis.openMessageActorChat", "when": "false" },
-        { "command": "jarvis.diffTouchedFile", "when": "false" },
-        { "command": "jarvis.removeTouchedFile", "when": "false" },
-        { "command": "jarvis.removeTouchedFiles", "when": "false" },
-        { "command": "jarvis.cleanupTouchedFiles", "when": "false" }
+        { "command": "jarvis.openMessageActorChat", "when": "false" }
       ],
       "view/title": [
         { "command": "jarvis.newActor", "when": "view == jarvisActors", "group": "navigation@1" },
@@ -187,17 +179,7 @@
         { "command": "jarvis.openActorFile", "when": "viewItem == jarvisActorFile", "group": "open" },
         { "command": "jarvis.copyPath", "when": "viewItem == jarvisActorFile", "group": "clipboard@1" },
         { "command": "jarvis.copyFullPath", "when": "viewItem == jarvisActorFile", "group": "clipboard@2" },
-        { "command": "jarvis.copyFileName", "when": "viewItem == jarvisActorFile", "group": "clipboard@3" },
-        { "command": "jarvis.openActorFile", "when": "viewItem == jarvisTouchedFile", "group": "open" },
-        { "command": "jarvis.revealInExplorer", "when": "viewItem == jarvisTouchedFile", "group": "context-actions" },
-        { "command": "jarvis.copyPath", "when": "viewItem == jarvisTouchedFile", "group": "clipboard@1" },
-        { "command": "jarvis.copyFullPath", "when": "viewItem == jarvisTouchedFile", "group": "clipboard@2" },
-        { "command": "jarvis.copyFileName", "when": "viewItem == jarvisTouchedFile", "group": "clipboard@3" },
-        { "command": "jarvis.diffTouchedFile", "when": "viewItem == jarvisTouchedFile", "group": "diff" },
-        { "command": "jarvis.removeTouchedFile", "when": "viewItem == jarvisTouchedFile", "group": "inline" },
-        { "command": "jarvis.removeTouchedFiles", "when": "viewItem == jarvisTouchedFileFolder", "group": "inline" },
-        { "command": "jarvis.removeTouchedFiles", "when": "viewItem == jarvisActorFileCategory:touched", "group": "inline@2" },
-        { "command": "jarvis.cleanupTouchedFiles", "when": "viewItem == jarvisActorFileCategory:touched", "group": "inline@1" }
+        { "command": "jarvis.copyFileName", "when": "viewItem == jarvisActorFile", "group": "clipboard@3" }
       ]
     },
     "configuration": [
@@ -270,23 +252,6 @@
         "properties": {
           "jarvis.checkForUpdates": { "type": "boolean", "default": true, "description": "Check for new Jarvis releases on GitHub when the extension activates." },
           "jarvis.releaseNotes.showOnUpdate": { "type": "boolean", "default": true, "scope": "application", "description": "Open the release notes in the editor the first time a newly installed Jarvis version runs. The command \"Jarvis: Show Release Notes\" works regardless of this setting." }
-        }
-      },
-      {
-        "title": "Hooks",
-        "properties": {
-          "jarvis.hooks.autoInstall": {
-            "type": "boolean",
-            "default": true,
-            "scope": "resource",
-            "description": "When true (default), Jarvis auto-installs hook bridge files in .github/hooks/. Set to false to remove managed files and stop hook management."
-          },
-          "jarvis.touchedFiles.windowDays": {
-            "type": "number",
-            "default": 0,
-            "minimum": 0,
-            "description": "(0 = no limit) Rolling window in days; only files touched within this window are shown. Changing this takes effect immediately."
-          }
         }
       }
     ],

@@ -182,7 +182,7 @@ Actor User Stories
 
    * AC-1: A session of an Actor knows the Actor's name and the
      workspace-relative path of its ``context.md`` from the first request
-     on, without a tool call and without agent hooks.
+     on, without a tool call.
    * AC-2: This also holds after the conversation was compacted. Whether the
      content of ``context.md`` is remembered afterwards is not part of this
      story; it remains subject to Copilot's compaction behaviour.
@@ -366,95 +366,3 @@ Actor User Stories
      (open the Actor's chat session) is unchanged. ``actor.yaml`` and
      ``context.md`` are opened from the Files category; the Actor node has no
      inline open buttons.
-
-
-.. story:: Recently Touched Files per Actor
-   :id: US_ACTOR_TOUCHEDFILES
-   :status: approved
-   :priority: optional
-   :links: US_ACTOR_FILES_TREE; US_ACTOR_TREE
-
-   *Context: this story answers "what files has the agent actually read or
-   written while working as this Actor" — visibility a user otherwise only
-   gets by manually checking git status or the file explorer. How Jarvis
-   learns about the agent's reads and writes is specified at L1/L2.
-   Every automatic rule here governs what is displayed, not what was
-   recorded: automatic rules are reversible, and every irreversible one is
-   asked for.*
-
-   **As a** Jarvis User,
-   **I want** each Actor node in the ACTORS tree to show a "Recently Touched
-   Files" subtree listing files the agent has read or written while working
-   in that Actor's bound session,
-   **so that** I can see at a glance what the agent actually touched,
-   without digging through transcripts or git status.
-
-   **Acceptance Criteria:**
-
-   * AC-1: A "Recently Touched Files" category node appears under each Actor
-     node, alongside the "Agent"/"Files" categories (US_ACTOR_FILES_TREE) —
-     a third, independent, collapsible category, not nested inside "Files".
-   * AC-2: The subtree is hierarchical and **workspace-root-relative** — not
-     scoped to the Actor's own folder, since the agent can touch files
-     anywhere in the workspace. Empty intermediate folder branches are pruned
-     (only branches that lead to at least one touched file are shown).
-   * AC-3: A file is added to the list the first time the agent reads or
-     writes it during a session bound to that Actor; the entry records
-     last-read and/or last-edited timestamps and is shown in a tooltip (no
-     separate child node per timestamp).
-   * AC-4: The list persists across VS Code reloads (stored outside the
-     Actor's own folder, so it never collides with or pollutes the "Files"
-     category from US_ACTOR_FILES_TREE).
-   * AC-5: Clicking a touched-file entry opens it the same way as the Actor's
-     own "Files" category entries (Markdown Preview for ``.md``, VS Code
-     preview-mode tab otherwise, Docs column).
-   * AC-6: A right-click diff view lets the user compare the touched file's
-     current content against its last-known-good (source control) version,
-     when available.
-   * AC-7: Right-click Copy Path / Copy Full Path / Reveal in Explorer are
-     available on every touched-file entry.
-   * AC-8: An inline trash icon removes entries from the list immediately.
-     It is available on a single entry, on a folder branch (removing every
-     entry below it), and on the "Recently Touched Files" category itself
-     (removing every entry recorded for that Actor). Removal always covers
-     everything recorded below the node it sits on, including entries not
-     currently displayed (no separate "dismissed" state; a file reappears if
-     touched again).
-   * AC-9: This is additive — it does not change the Actor node's behavior,
-     the "Agent"/"Files" categories, or the activity indicator
-     (US_ACTOR_ACTIVITY).
-   * AC-10: A file that is *known* not to exist is not shown — every action
-     the list offers (open, diff, reveal) assumes the file is there. It is
-     not removed: absence is a state, not an event. A file missing on one git
-     branch is back after switching to another, and its touch history is
-     still true. Where existence cannot be established, AC-15 applies
-     instead.
-   * AC-11: The list shows only files touched within a user-configurable
-     window, measured in days back from now against the most recent touch of
-     any kind (read or write). The window is a rolling period, not a
-     calendar-day boundary, so it does not cut off work in progress at
-     midnight. The default is 0, meaning no limit. A changed window takes
-     effect without restarting VS Code.
-   * AC-12: No entry is ever removed automatically. The window (AC-11) and
-     the existence check (AC-10) govern display only — widening the window,
-     or switching back to the branch that has the file, brings entries back
-     unchanged.
-   * AC-13: A dedicated action on the "Recently Touched Files" category
-     removes the entries whose files no longer exist, and afterwards reports
-     how many were removed — they accumulated unseen, so a silent run would
-     give the user nothing to go on. If every entry of an Actor is currently
-     hidden, the next file the agent touches brings back category and action
-     together.
-   * AC-14: No removal is permanent — any file the agent touches again
-     reappears in the list.
-   * AC-15: Uncertainty is not evidence of absence. Where Jarvis cannot
-     establish whether a file exists, the entry remains persisted and the
-     cleanup action (AC-13) does not remove it, but it is not shown. Display
-     requires a file Jarvis can address; removal requires proof that no file
-     exists. An undetermined entry remains dormant until a later touch
-     records enough information to resolve it. History recorded without its
-     root stays permanently undetermined and hidden rather than being
-     destroyed by a repair.
-   * AC-16: The list addresses files the way the editor addresses them. Open,
-     diff and reveal behave in a remote workspace — WSL, SSH, dev container —
-     exactly as they do locally.

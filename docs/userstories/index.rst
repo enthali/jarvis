@@ -21,7 +21,6 @@ User Stories or Stakeholder needs describe **why** functionality is needed from 
    us_rec
    us_actor
    us_mod
-   us_hook
    us_flow
    us_kan
    us_spl

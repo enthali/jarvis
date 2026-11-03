@@ -1,6 +1,6 @@
 # Release Notes
 
-## Unreleased - Agent Host Migration
+## Unreleased - Agent Host Migration, Hook Removal and MCP Opt-In
 
 ### Breaking Changes and Migration
 
@@ -8,6 +8,9 @@
 - Update prompts, skills and instructions before release: `jarvis_sendMessage(session, text)` no longer accepts `senderSession`, and `jarvis_receiveMessage()` no longer accepts `destination`. The calling Actor chat supplies the sender and inbox. `jarvis_listActors()` returns names and short descriptions instead of path IDs. `jarvis_createActorSession(actor)` finds or creates a chat. Use these Agent Host tool names rather than the former package-prefixed messaging references; the references of other extension tools remain package-prefixed.
 - Removed: `jarvis_listChatSessions`, `jarvis_readMessage`, `jarvis_sendToSession`, `jarvis_injectPrompt`, **Jarvis: Inject Prompt**, and `jarvis.messages.notificationTemplate`. There is no general prompt-injection replacement. The four Agent Host tools are not exposed through MCP; external Actor wake-up scripts must move to heartbeat steps. Reminders and heartbeat message steps still write to the inbox.
 - With Actor auto-provisioning enabled, bundled instructions refresh through provisioning. Owners must update project-maintained instructions, skills and agents themselves; see the migration section in [Getting Started](user%20guides/getting-started.md).
+- **hook-removal-mcp-default**: Removes all agent-hook functionality without replacement and without requiring external `node` for Actor tool calls. The hook-based **Recently Touched Files** category, its diff/remove/cleanup actions, and the settings `jarvis.hooks.autoInstall` and `jarvis.touchedFiles.windowDays` are removed. Stored values of those settings have no effect; Actor activity still comes from the Agent Host, and recording/mail indicators are unchanged.
+- On activation, Jarvis removes the five known legacy files from `.github/hooks/` of the first workspace folder: `jarvis-hooks.json`, `jarvis-bridge.mjs`, `jarvis-port`, `bridge.mjs`, and `port`. Automatic cleanup needs no setting, but covers only the first workspace folder and can fail. If any of these five legacy files remain in a project, including another workspace folder, remove them by hand from that project's `.github/hooks/`; keep the directory and all other files. Failures are logged and retried at the next activation. Old `.jarvis/state/touched-files/` data stays on disk but is no longer used. This cleanup addresses the old provisioned hooks that could block tool calls on machines without `node`; see the [Core guide](user%20guides/core.md).
+- **MCP is now disabled by default** (`jarvis.mcp.enabled: false`). Existing installations without an explicit value no longer start the server automatically after the upgrade. Set the value to `true` to opt in; existing explicit `true` or `false` settings remain effective. Node/npm remain build and packaging prerequisites, not an Actor tool-call requirement.
 
 ### Actor Chats
 
@@ -17,7 +20,6 @@
 ### Known Limits
 
 - Module tools reach an Actor chat only while it is open in a window running Jarvis, under references such as `jarvis_core_listJobs` and `jarvis_kanban_listKanbanItems`. Core, Kanban, PIM and Syspilot declare Agents window support; module tools and views or webviews there remain unverified live. The client serves the first workspace folder; cross-workspace routing and the same workspace in two windows are outside this MVP.
-- In the clean Windows Sandbox an Actor chat starts and shows Working, but a provisioned hook requiring `node` blocks tool calls when that command is absent. Complete hook removal is a separate mandatory next Change; it is not delivered here and no Node installation requirement is introduced.
 
 ---
 

@@ -8,7 +8,6 @@ import * as path from 'path';
 import { ThemeIcon, ThemeColor } from 'vscode';
 import { ActorScanner } from '../../packages/core/src/engine/actors/actorScanner';
 import { ActorTreeProvider } from '../../packages/core/src/engine/actors/actorTreeProvider';
-import { TouchStore } from '../../packages/core/src/engine/hooks/touchStore';
 import type { ActorActivityState } from '../../packages/core/src/engine/actors/actorActivity';
 
 const roots: string[] = [];
@@ -27,9 +26,7 @@ async function setup(active: boolean | ActorActivityState, mail: { isUnread: (id
     fs.writeFileSync(path.join(folder, 'actor.yaml'), 'name: "Solo"\nsummary: ""\nagent: ""\n');
     const scanner = new ActorScanner(() => root, () => {});
     await scanner.rescan();
-    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'jarvis-mark-state-'));
-    roots.push(stateDir);
-    const provider = new ActorTreeProvider(scanner, new TouchStore(stateDir), { state: () => typeof active === 'string' ? active : active ? 'working' : 'idle' }, mail);
+    const provider = new ActorTreeProvider(scanner, { state: () => typeof active === 'string' ? active : active ? 'working' : 'idle' }, mail);
     const node = { kind: 'actor' as const, id: scanner.actors[0].id };
     let refreshes = 0;
     provider.onDidChangeTreeData(() => { refreshes++; });

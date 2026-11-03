@@ -22,7 +22,6 @@ Design Specifications describe **how** requirements are fulfilled technically.
    spec_actor
    spec_eng
    spec_mod
-   spec_hook
    spec_flow
    spec_kan
    spec_spl

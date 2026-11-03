@@ -4,12 +4,12 @@ Actor Communication UAT Design Specifications
 .. spec:: Message Queue Test Data Files
    :id: SPEC_UAT_MSG_FILES
    :status: draft
-   :links: REQ_UAT_MSG_TESTDATA; SPEC_UAT_HEARTBEAT_FILES; SPEC_ACTOR_SCANNER; SPEC_COM_TOOLS; SPEC_COM_STATE
+   :links: REQ_UAT_MSG_TESTDATA; SPEC_UAT_HEARTBEAT_FILES; SPEC_ACTOR_SCANNER; SPEC_COM_TOOLS; SPEC_COM_STATE; SPEC_CFG_HOOKCLEANUP
 
    **Description:**
    The ``t8-queue-message`` job in ``testdata/heartbeat/heartbeat.yaml`` (defined in
    ``SPEC_UAT_HEARTBEAT_FILES``) stores the test message for ``TestTarget``. The
-   scenarios T-1 to T-21 are in ``US_UAT_MSG``; this specification holds the test
+   scenarios T-1 to T-22 are in ``US_UAT_MSG``; this specification holds the test
    data and the test means they need.
 
    **Actor fixtures** (shared by the messaging UATs: Actor communication,
@@ -40,11 +40,9 @@ Actor Communication UAT Design Specifications
    **Test means:** an Extension Development Host or a Windows Sandbox window of the
    VS Code product that offers the Agent Host, on the ``testdata`` workspace, with
    Copilot Chat signed in. The Sandbox in ``test-environments/windows-sandbox/`` is the
-   isolated environment. In a Sandbox without ``node`` on the path, the hook that
-   Jarvis provisions blocks every tool call (open finding of the hook-removal Change),
-   so T-2 to T-6, T-9, T-10, T-12, T-17 and T-18 are NOT RUN there and are not reported
-   as failed. The scenarios T-1, T-7, T-8, T-11, T-13 to T-16 and T-19 to T-21 need no
-   tool call inside the guest chat.
+   isolated environment. Jarvis no longer provisions agent hooks and removes legacy
+   hook files from ``.github/hooks/`` on activation (``REQ_CFG_HOOKCLEANUP``), so the
+   Sandbox needs no external ``node`` on ``PATH`` for Actor chats to call tools.
 
    **Results:** recorded in the test protocol of the Change, each scenario as NOT RUN,
    PASS or FAIL with the reason for NOT RUN.

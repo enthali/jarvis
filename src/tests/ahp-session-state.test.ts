@@ -12,7 +12,6 @@ import { SessionState } from '../../packages/core/src/engine/ahp/sessionState';
 import { ActorActivity, activityForStatus } from '../../packages/core/src/engine/actors/actorActivity';
 import { ActorScanner } from '../../packages/core/src/engine/actors/actorScanner';
 import { ActorTreeProvider } from '../../packages/core/src/engine/actors/actorTreeProvider';
-import { TouchStore } from '../../packages/core/src/engine/hooks/touchStore';
 
 const cleanups: (() => Promise<void> | void)[] = [];
 afterEach(async () => {
@@ -147,7 +146,7 @@ describe('REQ_COM_STATE AC-2, AC-6, AC-7, AC-8: client-to-tree state lifecycle',
         let treeRefreshes = 0;
         let treeProvider: ActorTreeProvider | undefined;
         const activity = new ActorActivity(workspace, () => scanner.actors.map(a => a.name), () => treeProvider?.refresh());
-        treeProvider = new ActorTreeProvider(scanner, new TouchStore(path.join(tmp, 'touch')), activity);
+        treeProvider = new ActorTreeProvider(scanner, activity);
         cleanups.push(() => treeProvider?.dispose());
         treeProvider.onDidChangeTreeData(() => { treeRefreshes++; });
         const node = { kind: 'actor' as const, id: scanner.actors[0].id };
@@ -219,7 +218,7 @@ describe('REQ_COM_STATE AC-2, AC-6, AC-7, AC-8: client-to-tree state lifecycle',
         await scanner.rescan();
         let treeProvider: ActorTreeProvider | undefined;
         const activity = new ActorActivity(workspace, () => scanner.actors.map(a => a.name), () => treeProvider?.refresh());
-        treeProvider = new ActorTreeProvider(scanner, new TouchStore(path.join(tmp, 'touch')), activity);
+        treeProvider = new ActorTreeProvider(scanner, activity);
         cleanups.push(() => treeProvider?.dispose());
         const node = { kind: 'actor' as const, id: scanner.actors[0].id };
 

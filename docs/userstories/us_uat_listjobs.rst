@@ -62,7 +62,8 @@ List-Jobs Tool User Acceptance Tests
      ISO-8601 string representing a time in the future.
 
    **T-5 — MCP call returns same data as LM call**
-     Setup: Extension running with MCP server enabled.
+     Setup: Extension running with MCP server enabled (``jarvis.mcp.enabled: true``,
+     since the default is ``false``).
      Action: Call ``jarvis_listJobs`` via the MCP interface (e.g. GitHub
      Copilot MCP tool invocation).
      Expected: The ``jobs`` array returned is identical in structure and

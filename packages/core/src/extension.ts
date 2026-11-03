@@ -19,11 +19,7 @@ import { createCancelReminderHandler, createListRemindersHandler, createSetRemin
 import { initSessionLookup, setSessionLookupLogger, getValidDestinations } from './engine/sessions/sessionLookup';
 import { DEFAULT_INIT_PROMPT } from './engine/sessions/actorStartupPrompt';
 import { checkForUpdates } from './engine/core/updateCheck';
-import { HookEngine } from './engine/hooks/hookEngine';
-import { HookIntake } from './engine/hooks/hookIntake';
-import { installHookConfig, uninstallHookConfig, getHooksDir } from './engine/hooks/hookConfig';
-import { TouchStore, ACTOR_TOUCH_KIND } from './engine/hooks/touchStore';
-import { TouchTracker } from './engine/hooks/touchTracker';
+import { removeLegacyHookFiles } from './engine/core/legacyHookFiles';
 import { applyGitignore, setIgnoreManagerLogger } from './engine/core/gitignoreManager';
 import { setAssetProvisioningLogger, provisionModuleAssets } from './engine/core/assetProvisioning';
 import { announceIfNewVersion, showReleaseNotes } from './engine/core/releaseNotes';
@@ -85,65 +81,11 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         enabled: actorProvisionEnabled,
     });
 
-    // Hook Engine (SPEC_HOOK_LOG, SPEC_HOOK_INTAKE, SPEC_HOOK_CONFIG)
-    const hookEngine = new HookEngine(log);
+    // Hook files of earlier versions (SPEC_CFG_HOOKCLEANUP): removed once per activation, never blocks it.
     const workspaceRoot = configPaths.getWorkspaceRoot();
-    const hookIntake = new HookIntake(hookEngine, workspaceRoot ? getHooksDir(workspaceRoot) : '');
-    let hookIntakeStarted = false;
-
-    // Touched-files persistence (SPEC_ACTOR_TOUCHEDFILES) — constructed early
-    // (only needs workspaceRoot) so it can be injected into the tree factory
-    // before any provider renders; TouchTracker is wired later.
-    const touchStore = new TouchStore(path.join(workspaceRoot ?? '', '.jarvis', 'state', 'touched-files'));
-
-    async function startHookIntake(): Promise<void> {
-        if (hookIntakeStarted) { return; }
-        try {
-            const workspaceRoot = configPaths.getWorkspaceRoot();
-            if (workspaceRoot) {
-                await installHookConfig(workspaceRoot, log);
-                await hookIntake.start();
-                hookIntakeStarted = true;
-                log.info(`[HookIntake] Started on port ${hookIntake.getPort()}`);
-            }
-        } catch (err) {
-            log.warn(`[HookIntake] Failed to start (best-effort): ${err}`);
-        }
+    if (workspaceRoot) {
+        removeLegacyHookFiles(workspaceRoot, log).catch(err => log.warn(`[CFG] Removal of old hook files failed: ${err instanceof Error ? err.message : err}`));
     }
-
-    async function stopHookIntake(): Promise<void> {
-        if (hookIntakeStarted) {
-            await hookIntake.stop();
-            hookIntakeStarted = false;
-            log.info('[HookIntake] Stopped');
-        }
-    }
-
-    // Start hook intake gated on autoInstall setting (SPEC_HOOK_AUTOINST)
-    const autoInstall = vscode.workspace.getConfiguration('jarvis.hooks').get<boolean>('autoInstall', true);
-    if (autoInstall) {
-        void startHookIntake();
-    } else {
-        // Teardown any leftover files from a previous activation
-        const wr = configPaths.getWorkspaceRoot();
-        if (wr) { void uninstallHookConfig(wr, log); }
-    }
-
-    // Configuration change listener for jarvis.hooks.autoInstall (SPEC_HOOK_AUTOINST AC-5)
-    const hookAutoInstallListener = vscode.workspace.onDidChangeConfiguration(async (e) => {
-        if (!e.affectsConfiguration('jarvis.hooks.autoInstall')) { return; }
-        const newValue = vscode.workspace.getConfiguration('jarvis.hooks').get<boolean>('autoInstall', true);
-        const wr = configPaths.getWorkspaceRoot();
-        if (newValue) {
-            // false → true: install + start
-            if (wr) { await startHookIntake(); }
-        } else {
-            // true → false: stop + teardown
-            await stopHookIntake();
-            if (wr) { await uninstallHookConfig(wr, log); }
-        }
-    });
-    context.subscriptions.push(hookAutoInstallListener);
 
     // Configuration change listener for jarvis.gitignore.autoManage (SPEC_CFG_IGNOREMANAGER AC-8)
     const gitignoreAutoManageListener = vscode.workspace.onDidChangeConfiguration(e => {
@@ -192,7 +134,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     const actorMail = new ActorMailState(actorScanner, log, () => actorTreeProvider?.refresh());
     context.subscriptions.push(actorMail);
 
-    actorTreeProvider = new ActorTreeProvider(actorScanner, touchStore, activity, actorMail);
+    actorTreeProvider = new ActorTreeProvider(actorScanner, activity, actorMail);
     const treeProvider = actorTreeProvider;
     engine.setMarker((id, icon) => treeProvider.mark(id, icon));
     // Jarvis AHP client and its message path (SPEC_COM_CLIENTMODULE, SPEC_COM_TOOLS, SPEC_COM_INBOX).
@@ -289,19 +231,6 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         actorsView.title = `${firstFolder.name} Actors`;
     }
     context.subscriptions.push(actorsView, actorTreeProvider);
-
-    // Touched-files tracking (SPEC_ACTOR_TOUCHEDFILES): single PostToolUse
-    // subscription. No local reference kept — the tracker self-registers on
-    // hookEngine and needs no further interaction from extension.ts.
-    new TouchTracker(
-        hookEngine, touchStore,
-        (entityName: string) => {
-            const lookup = actorScanner.resolveName(entityName);
-            return lookup.status === 'found' ? { name: lookup.actor.name, folder: lookup.actor.folder } : undefined;
-        },
-        () => actorTreeProvider?.refresh(),
-        log,
-    );
 
     // Heartbeat scheduler — created conditionally inside heartbeat block
     let scheduler: HeartbeatScheduler | undefined;
@@ -555,20 +484,13 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     type CopyPathNode =
         | ActorNode
         | { kind: 'actorFile'; filePath: string; label: string }
-        | { kind: 'actorFileFolder'; folderPath: string; label: string }
-        | { kind: 'touchedFileLeaf'; filePath: string; label: string }
-        | { kind: 'touchedFileFolder'; relFolderPath: string; label: string };
+        | { kind: 'actorFileFolder'; folderPath: string; label: string };
     function resolveCopyPaths(node: CopyPathNode): { folder: string; full: string } {
-        if (node.kind === 'actorFile' || node.kind === 'touchedFileLeaf') {
+        if (node.kind === 'actorFile') {
             return { folder: path.dirname(node.filePath), full: node.filePath };
         }
         if (node.kind === 'actorFileFolder') {
             return { folder: path.dirname(node.folderPath), full: node.folderPath };
-        }
-        if (node.kind === 'touchedFileFolder') {
-            const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
-            const full = path.join(workspaceRoot, node.relFolderPath);
-            return { folder: path.dirname(full), full };
         }
         // Actor root: node.id is the actor.yaml absolute path — the Actor's
         // own folder is its dirname; there is no separate "full path" for a
@@ -600,75 +522,6 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             await vscode.env.clipboard.writeText(path.basename(node.filePath));
         }
     );
-
-    // Show Changes / Remove for touched-file leaves (SPEC_ACTOR_TOUCHEDFILES)
-    const diffTouchedFileCommand = vscode.commands.registerCommand(
-        'jarvis.diffTouchedFile',
-        async (node: { filePath: string; resourceUri?: vscode.Uri }) => {
-            const uri = node.resourceUri ?? vscode.Uri.file(node.filePath);
-            await vscode.commands.executeCommand('git.openChange', uri);
-        }
-    );
-
-    const removeTouchedFileCommand = vscode.commands.registerCommand(
-        'jarvis.removeTouchedFile',
-        async (node: { filePath: string; actorName: string; resourceUri?: vscode.Uri; entry?: { rootUri?: string; relPath?: string } }) => {
-            // D-16: use canonical key (resourceUri string) for new records, fall back to relPath for legacy
-            let key: string;
-            if (node.resourceUri) {
-                key = node.resourceUri.toString(true);
-            } else {
-                key = path.relative(
-                    vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '', node.filePath
-                ).replace(/\\/g, '/');
-            }
-            await touchStore.removeEntry(ACTOR_TOUCH_KIND, node.actorName, key);
-            actorTreeProvider?.refresh();
-        }
-    );
-
-    // Remove all touched files under a folder or category (SPEC_ACTOR_TOUCHEDFILES)
-    const removeTouchedFilesCommand = vscode.commands.registerCommand(
-        'jarvis.removeTouchedFiles',
-        async (node: { kind: string; actorName: string; relFolderPath?: string; rootUri?: string }) => {
-            if (node.kind === 'touchedFileFolder') {
-                await touchStore.removeUnder(ACTOR_TOUCH_KIND, node.actorName, node.relFolderPath!, node.rootUri);
-            } else {
-                await touchStore.removeAll(ACTOR_TOUCH_KIND, node.actorName);
-            }
-            actorTreeProvider?.refresh();
-        }
-    );
-
-    // Clean up dead entries — D-15: snapshot + async probes + synchronous compare-delete
-    const cleanupTouchedFilesCommand = vscode.commands.registerCommand(
-        'jarvis.cleanupTouchedFiles',
-        async (node: { actorName: string }) => {
-            const { probeTouchEntry } = await import('./engine/actors/touchedFilesView');
-            const snapshot = await touchStore.getEntries(ACTOR_TOUCH_KIND, node.actorName);
-            const absentKeys: string[] = [];
-            await Promise.all(
-                Object.entries(snapshot).map(async ([key, entry]) => {
-                    const { result } = await probeTouchEntry(entry);
-                    if (result === 'absent') { absentKeys.push(key); }
-                })
-            );
-            const count = touchStore.removeEntriesIfUnchanged(ACTOR_TOUCH_KIND, node.actorName, snapshot, absentKeys);
-            void vscode.window.showInformationMessage(
-                count > 0
-                    ? `${node.actorName}: removed ${count} missing file(s).`
-                    : `${node.actorName}: nothing to clean up.`
-            );
-            actorTreeProvider?.refresh();
-        }
-    );
-
-    // Refresh on windowDays configuration change (SPEC_ACTOR_TOUCHEDFILES)
-    const touchedFilesConfigWatcher = vscode.workspace.onDidChangeConfiguration(e => {
-        if (e.affectsConfiguration('jarvis.touchedFiles.windowDays')) {
-            actorTreeProvider?.refresh();
-        }
-    });
 
     // --- Core LM tools ---
 
@@ -907,13 +760,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         copyPathCommand,
         copyFullPathCommand,
         copyFileNameCommand,
-        diffTouchedFileCommand,
-        removeTouchedFileCommand,
-        removeTouchedFilesCommand,
-        cleanupTouchedFilesCommand,
-        touchedFilesConfigWatcher,
         openActorSessionCommand,
-        { dispose: () => void stopHookIntake() },
         checkForUpdatesCommand,
         showReleaseNotesCommand,
         ...(createActorTool ? [createActorTool] : []),
@@ -946,7 +793,4 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
 export function deactivate() {
     // SPEC_COM_CLIENTMODULE: deactivate ends the AHP client (idempotent; the subscription disposal calls it too)
     ahpClient?.dispose();
-    // Stop hook intake on deactivate
-    // Note: this is best-effort; the extension host may terminate before this runs
-    // The actual stop is handled by the subscription disposal in activate()
 }

@@ -55,7 +55,7 @@ Actor Requirements
      manual ``actor.yaml`` edit. The ACTORS view still shows
      both folders, but every name-based function (message destination and
      sender validation, heartbeat destinations, agent file maintenance,
-     prompt injection, touched files, activity indicator, Kanban owner
+     prompt injection, activity indicator, Kanban owner
      resolution) SHALL refuse to act on the ambiguous name rather than pick
      one (``REQ_ACTOR_WHOAMI`` AC-5). When a message
      send is refused because its destination or sender name is ambiguous,
@@ -228,7 +228,7 @@ Actor Requirements
    Every Actor SHALL have exactly one chat agent of its own, identified by
    the Actor name. Jarvis SHALL keep the Actor's name and the location of its
    ``context.md`` in that agent, so that the Actor knows both in every
-   session without a tool call and without agent hooks. The requirement ID
+   session without a tool call. The requirement ID
    is kept for traceability from the former ``jarvis_whoAmI`` tool.
 
    **Acceptance Criteria:**
@@ -476,123 +476,6 @@ Actor Requirements
    * AC-10: The "Files" listing SHALL be recomputed on every expansion (no
      scanner cache) and refresh with the wider tree (periodic rescan or
      ``jarvis.rescan``); a dedicated file-system watcher is not required.
-
-.. req:: Recently Touched Files per Actor
-   :id: REQ_ACTOR_TOUCHEDFILES
-   :status: approved
-   :priority: optional
-   :links: US_ACTOR_TOUCHEDFILES; REQ_HOOK_ROUTE; REQ_ACTOR_FILES_TREE; REQ_ACTOR_SCHEMA
-
-   **Description:**
-   A touch tracker SHALL record, per Actor, which files the agent has read
-   or written, and each Actor node SHALL gain a third category child,
-   "Recently Touched Files", sibling to "Agent"/"Files"
-   (``REQ_ACTOR_FILES_TREE`` AC-2), listing those files as a persisted,
-   hierarchical tree. The signal source today is the Hook Engine's
-   ``PostToolUse`` event (``REQ_HOOK_ROUTE``); AC-1 to AC-5 describe that
-   source.
-
-   What is *recorded* and what is *displayed* are separate concerns
-   (AC-15 to AC-18): the recorded set only ever changes through a touch or
-   an explicit user action, while a display window and an existence check
-   decide what of it is shown.
-
-   **Acceptance Criteria:**
-
-   * AC-1: The touch tracker SHALL subscribe only to ``PostToolUse`` (not
-     ``PreToolUse``), so aborted or rejected tool calls are not counted.
-   * AC-2: Each ``PostToolUse`` event SHALL be classified by an explicit
-     allowlist keyed by ``tool_name`` (``TOUCH_RULES``):
-
-     a. ``read_file`` → **read**, path from ``tool_input.filePath``.
-     b. ``create_file``, ``replace_string_in_file`` → **write**, path from
-        ``tool_input.filePath``.
-     c. ``multi_replace_string_in_file`` → **write**, paths from
-        ``tool_input.replacements[].filePath`` (de-duplicated per file).
-     d. Any other ``tool_name`` SHALL be ignored — no path-sniffing
-        heuristics.
-   * AC-3: Tool success or failure SHALL NOT be tracked; ``tool_response``
-     carries no reliable success signal.
-   * AC-4: The event's ``session_id`` SHALL be resolved to an Actor name via
-     the existing session-to-Actor correlation. Events without a resolvable
-     Actor SHALL be ignored (fail-open).
-   * AC-5: Extracted absolute paths SHALL be relativized against the event's
-     ``cwd`` before being recorded or displayed.
-   * AC-6: Each Actor SHALL have a persisted touch list at
-     ``.jarvis/state/touched-files/actor-<name>.json`` (outside the Actor
-     folder). Each entry SHALL record the relative path plus last-read and/or
-     last-edited timestamp (ISO 8601 UTC); a write updates last-edited, a
-     read updates last-read. The file SHALL be updated on every touch.
-   * AC-6a: When file-touching tool calls overlap in time for the same
-     Actor, every touch SHALL be recorded; no concurrent or previously
-     persisted entry SHALL be lost.
-   * AC-7: The "Recently Touched Files" category
-     (``contextValue = 'jarvisActorFileCategory:touched'``, ``Collapsed``)
-     SHALL follow "Agent"/"Files" and be shown only when the Actor has at
-     least one recorded entry inside the display window (AC-15). Its
-     visibility SHALL NOT depend on the existence check (AC-16); it MAY
-     therefore be shown with no visible children, which is the state in
-     which AC-17 is needed.
-   * AC-8: Files SHALL be shown as a tree mirroring their
-     workspace-root-relative folders; intermediate folders that lead to no
-     touched file SHALL be pruned.
-   * AC-9: Clicking a touched-file leaf SHALL open it as in
-     ``REQ_ACTOR_FILES_TREE`` AC-6.
-   * AC-10: A touched-file leaf's tooltip SHALL show its last-read and/or
-     last-edited timestamp(s).
-   * AC-11: Right-click on a touched-file leaf SHALL show **Copy Path**,
-     **Copy Full Path**, and **Reveal in Explorer**.
-   * AC-12: Right-click on a touched-file leaf SHALL additionally show a
-     **diff** entry comparing the working-tree content with git ``HEAD``
-     via the Git extension's virtual document scheme. Outside a git
-     repository or for an untracked file the entry is shown as-is and
-     simply produces no diff.
-   * AC-13: An inline trash icon on a touched-file leaf, a folder node inside
-     the category, and the category node itself SHALL delete every entry
-     recorded below that node from the persisted list and refresh the tree
-     immediately — including entries hidden by AC-15 or AC-16. No
-     confirmation SHALL be shown; an entry reappears if touched again.
-     Entries whose root is undetermined under AC-19 SHALL be retained by
-     folder removal; the category-level removal MAY remove them.
-   * AC-14: This SHALL NOT alter the "Agent"/"Files" categories, the Actor
-     node's click or context-menu behavior, or the activity indicator
-     (``US_ACTOR_ACTIVITY``).
-   * AC-15: A setting ``jarvis.touchedFiles.windowDays`` (``number``, default
-     ``0``, minimum 0, Hooks settings group) SHALL restrict the displayed
-     list to entries whose most recent touch lies no more than ``n`` × 24
-     hours in the past — a rolling period, compared in UTC. ``0`` means no
-     limit.
-   * AC-15a: A change to ``jarvis.touchedFiles.windowDays`` SHALL take effect
-     without reloading the window.
-   * AC-16: A touched-file leaf SHALL NOT be shown when its file is
-     *determined* not to exist when its parent is expanded, and SHALL NOT be
-     removed from the persisted list. Determination SHALL use the
-     file-system authority that owns the entry's workspace folder, so that
-     it is correct for remote workspaces (WSL, SSH, dev container) and
-     virtual file systems. The entry SHALL reappear unchanged when the file
-     does (e.g. after switching back to a git branch that has it).
-   * AC-17: The category node SHALL offer a cleanup action, distinct from
-     AC-13, that removes every entry whose file is *determined* not to
-     exist — including entries outside the display window — using the same
-     determination as AC-16, and afterwards reports how many were removed.
-   * AC-18: No entry SHALL be removed without an explicit user action; there
-     SHALL be no activation-time or scheduled removal.
-   * AC-19: Where existence cannot be determined (resolution fails, the probe
-     reports anything other than "no such file", or the owning workspace
-     folder cannot be identified), the entry SHALL remain persisted, SHALL
-     NOT be removed by AC-17, and SHALL NOT be shown. A later touch MAY
-     supersede this state.
-   * AC-20: An entry SHALL carry enough information to identify the
-     workspace folder its path is relative to. Entries persisted without it
-     SHALL be undetermined under AC-19 rather than discarded or shown.
-   * AC-21: Opening, revealing and diffing a touched-file leaf SHALL address
-     the file through the resolution of AC-16, not by assuming a local
-     file-system path.
-   * AC-22: When an Actor's ``name`` is carried by more than one Actor
-     (``REQ_ACTOR_SCHEMA`` AC-7), no touch SHALL be recorded for that name
-     (AC-4) and neither Actor node SHALL show a "Recently Touched Files"
-     category; touches are attributed to neither folder. No notification is
-     shown.
 
 .. req:: Unread Mail Icon on Actor Nodes
    :id: REQ_ACTOR_MAIL

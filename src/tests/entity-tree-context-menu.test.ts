@@ -1,15 +1,14 @@
 /**
- * Unit tests for the Actor context menu (SPEC_ACTOR_CONTEXTMENU,
- * SPEC_ACTOR_TOUCHEDFILES), superseding the retired Session/Project/Event
- * entity context-menu shape (entity-tree-context-menu, ui-improvements CRs).
+ * Unit tests for the Actor context menu (SPEC_ACTOR_CONTEXTMENU), superseding
+ * the retired Session/Project/Event entity context-menu shape
+ * (entity-tree-context-menu, ui-improvements CRs).
  *
  * - jarvis.openContext / jarvis.openYamlFile remain fully retired.
  * - resolveCopyPaths() + jarvis.copyPath / jarvis.copyFullPath /
  *   jarvis.copyFileName commands registered in extension.ts.
- * - view/item/context bindings for jarvisActor / jarvisActorFile /
- *   jarvisTouchedFile / jarvisTouchedFileFolder /
- *   jarvisActorFileCategory:touched, with no entries for categories/folders
- *   that own no context menu (agent/files categories, actorFileFolder).
+ * - view/item/context bindings for jarvisActor / jarvisActorFile, with no
+ *   entries for categories/folders that own no context menu (agent/files
+ *   categories, actorFileFolder) and none for the removed touched-files nodes.
  */
 import { describe, it, expect } from 'vitest';
 import * as fs from 'fs';
@@ -38,11 +37,11 @@ describe('SPEC_ENT_OPENCONTEXT_CMD / SPEC_ENT_OPENYAML_CMD: fully retired', () =
 });
 
 describe('SPEC_ACTOR_CONTEXTMENU: resolveCopyPaths() + commands registered', () => {
-    it('resolveCopyPaths is defined and handles actorFile/touchedFileLeaf, actorFileFolder, touchedFileFolder, and the Actor root', () => {
+    it('resolveCopyPaths is defined and handles actorFile, actorFileFolder and the Actor root', () => {
         expect(extensionSrc).toContain('function resolveCopyPaths(node: CopyPathNode)');
-        expect(extensionSrc).toContain("node.kind === 'actorFile' || node.kind === 'touchedFileLeaf'");
+        expect(extensionSrc).toContain("node.kind === 'actorFile'");
         expect(extensionSrc).toContain("node.kind === 'actorFileFolder'");
-        expect(extensionSrc).toContain("node.kind === 'touchedFileFolder'");
+        expect(extensionSrc).not.toContain('touchedFile');
     });
 
     it('jarvis.copyPath, jarvis.copyFullPath, and jarvis.copyFileName are registered and use vscode.env.clipboard.writeText', () => {
@@ -63,8 +62,7 @@ describe('SPEC_ACTOR_CONTEXTMENU: resolveCopyPaths() behavior', () => {
     type ActorNode = { kind: 'actor'; id: string };
     type ActorFileNode = { kind: 'actorFile'; filePath: string; label: string };
     type ActorFileFolderNode = { kind: 'actorFileFolder'; folderPath: string; label: string };
-    type TouchedFileFolderNode = { kind: 'touchedFileFolder'; relFolderPath: string; label: string };
-    type CopyPathNode = ActorNode | ActorFileNode | ActorFileFolderNode | TouchedFileFolderNode;
+    type CopyPathNode = ActorNode | ActorFileNode | ActorFileFolderNode;
 
     // Mirrors the real implementation to confirm expected runtime behavior
     // (source-content assertions above confirm this matches extension.ts).
@@ -74,11 +72,6 @@ describe('SPEC_ACTOR_CONTEXTMENU: resolveCopyPaths() behavior', () => {
         }
         if (node.kind === 'actorFileFolder') {
             return { folder: path.dirname(node.folderPath), full: node.folderPath };
-        }
-        if (node.kind === 'touchedFileFolder') {
-            const workspaceRoot = path.join('workspace');
-            const full = path.join(workspaceRoot, node.relFolderPath);
-            return { folder: path.dirname(full), full };
         }
         const folder = path.dirname(node.id);
         return { folder, full: folder };
@@ -117,16 +110,10 @@ describe('SPEC_ACTOR_CONTEXTMENU: package.json menu bindings (core)', () => {
         expect(items).toContainEqual({ command: 'jarvis.copyFileName', when: 'viewItem == jarvisActorFile', group: 'clipboard@3' });
     });
 
-    it('jarvisTouchedFile has Open / diff / remove and the 3 copy commands', () => {
-        expect(items).toContainEqual({ command: 'jarvis.openActorFile', when: 'viewItem == jarvisTouchedFile', group: 'open' });
-        expect(items).toContainEqual({ command: 'jarvis.diffTouchedFile', when: 'viewItem == jarvisTouchedFile', group: 'diff' });
-        expect(items).toContainEqual({ command: 'jarvis.removeTouchedFile', when: 'viewItem == jarvisTouchedFile', group: 'inline' });
-    });
-
-    it('jarvisTouchedFileFolder and jarvisActorFileCategory:touched expose bulk removal/cleanup', () => {
-        expect(items).toContainEqual({ command: 'jarvis.removeTouchedFiles', when: 'viewItem == jarvisTouchedFileFolder', group: 'inline' });
-        expect(items).toContainEqual({ command: 'jarvis.removeTouchedFiles', when: 'viewItem == jarvisActorFileCategory:touched', group: 'inline@2' });
-        expect(items).toContainEqual({ command: 'jarvis.cleanupTouchedFiles', when: 'viewItem == jarvisActorFileCategory:touched', group: 'inline@1' });
+    it('no menu entry or command is left for the removed touched-files function', () => {
+        const raw = JSON.stringify(corePackageJson.contributes);
+        expect(raw).not.toMatch(/Touched/);
+        expect(raw).not.toContain('actorFileCategory:touched');
     });
 
     it('jarvis.copyPath / jarvis.copyFullPath / jarvis.copyFileName are hidden from the command palette', () => {

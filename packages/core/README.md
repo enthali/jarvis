@@ -49,7 +49,13 @@ Extension tools retain references such as `#jarvis_core_listJobs` and reach an A
 
 Activity icons come from the Agent Host: red cross for Error, blue question mark for Waiting, spinner for Working, none for Idle. Activity takes priority over the recording mark, then the mail icon.
 
-Known issue: the current provisioned hook blocks tool calls when `node` is absent from the path. Complete hook removal is a separate follow-up, not an added installation requirement. Full migration details are in the [Getting Started guide](../../docs/user%20guides/getting-started.md#updating-to-the-agent-host-path).
+## Upgrading from a Hook-Based Version
+
+Agent hooks and the hook-based **Recently Touched Files** category, its diff/remove/cleanup actions and the time-window setting are removed without replacement. Actor activity still comes from the Agent Host; recording and mail indicators are unchanged. Actor tool calls need no external `node` command; Node/npm are still used to build and package the extensions.
+
+On activation, Jarvis removes only `.github/hooks/jarvis-hooks.json`, `jarvis-bridge.mjs`, `jarvis-port`, `bridge.mjs` and `port` in that directory in the first workspace folder. No setting is needed. The directory, other files and old `.jarvis/state/touched-files/` data remain; that data is no longer read. Cleanup failures are logged and retried at the next activation. Existing `jarvis.hooks.autoInstall` and `jarvis.touchedFiles.windowDays` values are ignored.
+
+Full migration details are in the [Getting Started guide](../../docs/user%20guides/getting-started.md#updating-to-the-agent-host-path).
 
 ## Requirements
 

@@ -60,9 +60,6 @@ Thumbs.db
 # Workspace (machine-specific)
 #Jarvis.code-workspace
 
-# testdata hook engine bridge files
-testdata/.github/hooks/jarvis-*
-
 # testdata test-environment VS Code settings
 testdata/.vscode/settings.json
 

@@ -503,5 +503,4 @@ confirm** are assumptions that no run has checked yet.
    before the mark of a recording and before the mail icon (``SPEC_ACTOR_TREE``
    AC-6). While the client has no connection the extension passes no state.
 
-   **Replaces:** the ``ActivityTracker`` of the hook engine
-   (the hook based activity tracker). The hook events are not used for the state.
+   **Replaces:** the former ``ActivityTracker``; nothing else supplies the state.

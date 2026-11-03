@@ -5,7 +5,7 @@ Actor Communication User Acceptance Tests
    :id: US_UAT_MSG
    :status: draft
    :priority: optional
-   :links: US_COM_SEND; US_COM_SENDER; US_COM_FIND; US_COM_AUTHORITY; US_COM_DELIVERY; US_COM_NAME; US_ACTOR_ACTIVITY; US_ACTOR_ACTORS; US_AUT_HEARTBEAT
+   :links: US_COM_SEND; US_COM_SENDER; US_COM_FIND; US_COM_AUTHORITY; US_COM_DELIVERY; US_COM_NAME; US_ACTOR_ACTIVITY; US_ACTOR_ACTORS; US_CFG_WORKSPACEFILES; US_AUT_HEARTBEAT
 
    **As a** Jarvis Test Engineer,
    **I want** manual acceptance scenarios for the message path between Actor chats,
@@ -48,6 +48,11 @@ Actor Communication User Acceptance Tests
    * AC-15: Closing or restarting an Actor chat, delivering messages, or invoking Actor
      creation for an existing Actor never deletes, changes, migrates or renames that
      Actor's existing ``actor.yaml`` or ``context.md`` (T-21).
+   * AC-16: On activation in an upgraded workspace, Jarvis removes the five legacy hook
+     files from ``.github/hooks/`` while keeping other files and the directory, shows no
+     ``Recently Touched Files`` category even when leftover ``.jarvis/state/touched-files/``
+     data exists on disk, and lets an Actor chat call tools on a machine without external
+     ``node`` (T-22).
 
    **Test Scenarios:**
 
@@ -208,3 +213,18 @@ Actor Communication User Acceptance Tests
      chat, deliver a message, and invoke ``jarvis_createActor`` with ``name: "TestTarget"``.
      Expected: ``createActor`` reports ``created: false``; both ``actor.yaml`` and
      ``context.md`` remain byte-for-byte unchanged at their original paths.
+
+   **T-22 — Legacy hook files are removed on activation and tool calls work without node**
+     Setup: In the workspace (or the clean Windows Sandbox where ``node`` is not on
+     ``PATH``), create ``.github/hooks/jarvis-hooks.json``, ``jarvis-bridge.mjs``,
+     ``jarvis-port``, ``bridge.mjs`` and ``port``, plus a non-Jarvis file
+     ``custom-hook.json``, and create ``.jarvis/state/touched-files/TestTarget.json``.
+     Action: Launch or reload the window and wait for Jarvis Core activation; expand
+     ``TestTarget`` in the ACTORS tree; open the chat of ``TestSender`` and call
+     ``jarvis_listActors``; then reload the window once more.
+     Expected: Activation removes the five legacy files and logs one info line naming
+     them; ``.github/hooks/`` and ``custom-hook.json`` remain; the second reload on the
+     clean workspace logs no hook-cleanup line; ``.jarvis/state/touched-files/TestTarget.json``
+     stays on disk while the ``TestTarget`` tree node shows only ``Agent`` and ``Files``
+     (no ``Recently Touched Files`` category); and ``jarvis_listActors`` succeeds without
+     external ``node``.

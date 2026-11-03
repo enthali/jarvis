@@ -133,7 +133,7 @@ Message Queue Requirements
 
 .. req:: Embedded MCP Server
    :id: REQ_MSG_MCPSERVER
-   :status: implemented
+   :status: approved
    :priority: mandatory
    :links: US_MSG_MCPSERVER
 
@@ -144,7 +144,8 @@ Message Queue Requirements
    **Acceptance Criteria:**
 
    * AC-1: The extension SHALL start an HTTP/SSE MCP server on ``127.0.0.1``
-     during activation when ``jarvis.mcpEnabled`` is ``true``
+     during activation when ``jarvis.mcp.enabled`` is ``true`` (default ``false``,
+     ``REQ_CFG_MCPDEFAULTOFF``)
    * AC-2: The MCP server SHALL use the ``@modelcontextprotocol/sdk`` package
      with ``StreamableHTTPServerTransport``
    * AC-3: Each LM Tool SHALL be simultaneously registered as an MCP Tool with
@@ -156,8 +157,13 @@ Message Queue Requirements
      or any external interface
    * AC-7: A status bar item SHALL display ``Jarvis MCP: <port>`` when the
      server is running; the item SHALL be hidden when MCP is disabled
-   * AC-8: If ``jarvis.mcpEnabled`` is ``false``, the MCP server SHALL not
+   * AC-8: If ``jarvis.mcp.enabled`` is ``false``, the MCP server SHALL not
      start and the status bar item SHALL not be shown
+   * AC-9: The message tools of the Jarvis AHP client (``jarvis_sendMessage``,
+     ``jarvis_receiveMessage``, ``jarvis_listActors``,
+     ``jarvis_createActorSession``; ``SPEC_COM_TOOLS``) SHALL NOT be registered as
+     MCP tools; their sender comes from the calling chat, which an MCP client does
+     not have (``US_MSG_MCPSERVER`` AC-7)
 
 
 .. req:: Auto-Delivery Configuration Store

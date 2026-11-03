@@ -17,8 +17,8 @@ Messaging User Stories
 
    **Acceptance Criteria:**
 
-   * AC-1: The extension SHALL run an embedded MCP server on ``127.0.0.1`` using
-     HTTP/SSE transport when ``jarvis.mcpEnabled`` is ``true``
+   * AC-1: When I have enabled it, Jarvis runs an embedded MCP server. It is off
+     until I enable it (``REQ_CFG_MCPDEFAULTOFF``)
    * AC-2: Every LM Tool registered via ``vscode.lm.registerTool()`` SHALL
      simultaneously be exposed as an MCP Tool on the MCP server with the same
      name and input schema
@@ -26,15 +26,15 @@ Messaging User Stories
      (default ``31415``)
    * AC-4: A status bar item SHALL show ``Jarvis MCP: <port>`` when the MCP
      server is running and SHALL be hidden when MCP is disabled
-   * AC-5: The MCP server SHALL start during extension activation and stop
-     during deactivation
+   * AC-5: When enabled, the MCP server is available as soon as Jarvis is active
+     and ends with it; when disabled, nothing starts
    * AC-6: The MCP server SHALL only bind to ``127.0.0.1`` — no external
      network access
-   * AC-7: The message tools of ``US_COM_SEND`` and ``US_COM_FIND`` are not offered
-     through MCP: they are tools of the Agent Host client, and their sender comes
-     from the calling chat, which an external MCP client does not have
-     (``US_COM_SENDER``; User, 2026-10-29). External callers wake an Actor with a
-     heartbeat or reminder step, which writes to the inbox.
+   * AC-7: The tools for sending, receiving and finding messages between Actors
+     (``US_COM_SEND``, ``US_COM_FIND``) are not offered through MCP, because the
+     sender of a message must be the Actor whose chat sends it
+     (``US_COM_SENDER``; User, 2026-10-29). An external caller wakes an Actor with
+     a heartbeat job or a reminder.
 
 
 .. story:: Message Audit Log

@@ -28,7 +28,13 @@ Before the next release, update existing project-owned prompts, skills and agent
 
 With `jarvis.actor.autoProvision` enabled, provisioning refreshes the bundled Actor instructions; owners must update hand-maintained copies themselves. The package-prefixed references of other extension tools, such as `#jarvis_core_createActor` and `#jarvis_pim_task`, remain in use.
 
-Known limitation: on a machine without `node` in the path, the currently provisioned hook can fail and block every tool call. Hook removal is a separate, mandatory follow-up; this Change does not add a Node installation requirement or fix that failure.
+### Updating from a hook-based version
+
+Jarvis no longer uses agent hooks or requires an external `node` command for Actor tool calls. The hook-based **Recently Touched Files** category and its diff/remove/cleanup actions are removed without replacement; Actor activity still comes from the Agent Host.
+
+On activation, Jarvis cleans up its five known legacy files in `.github/hooks/` of the first workspace folder without an opt-in. Automatic cleanup covers only that folder and can fail. If any remain in a project, including another workspace folder, remove only `jarvis-hooks.json`, `jarvis-bridge.mjs`, `jarvis-port`, `bridge.mjs`, and `port` by hand from that project's `.github/hooks/`; keep the directory and all other files. Removal failures are logged and retried on the next activation. The old `.jarvis/state/touched-files/` data is retained but no longer used. Existing `jarvis.hooks.autoInstall` and `jarvis.touchedFiles.windowDays` settings have no effect. See the [Core guide](core.md) for the cleanup details.
+
+The MCP server is disabled by default, including after an upgrade when no explicit `jarvis.mcp.enabled` value is stored. To use it, set `jarvis.mcp.enabled` to `true`. Existing explicit `true` or `false` values still apply; see the [MCP guide](mcp.md).
 
 ### Updating to 0.31.1
 

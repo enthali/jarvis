@@ -406,7 +406,7 @@ Message Queue Design Specifications
 
 .. spec:: MCP Server Module
    :id: SPEC_MSG_MCPSERVER
-   :status: implemented
+   :status: approved
    :links: REQ_MSG_MCPSERVER
 
    **Description:**
@@ -562,7 +562,7 @@ Message Queue Design Specifications
 
       // After all registerDualTool() calls:
       const config = vscode.workspace.getConfiguration('jarvis');
-      const mcpEnabled = config.get<boolean>('mcpEnabled', true);
+      const mcpEnabled = config.get<boolean>('mcp.enabled', false);   // REQ_CFG_MCPDEFAULTOFF
       const mcpPort = config.get<number>('mcpPort', 31415);
 
       if (mcpEnabled) {
@@ -600,9 +600,9 @@ Message Queue Design Specifications
           "default": 31415,
           "description": "Port for MCP server (localhost only)."
         },
-        "jarvis.mcpEnabled": {
+        "jarvis.mcp.enabled": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "description": "Enable the embedded MCP server."
         }
       }
@@ -614,7 +614,7 @@ Message Queue Design Specifications
    * MCP handlers receive raw ``Record<string, unknown>`` and return plain
      objects — the MCP SDK serializes them to JSON
    * LM handlers continue to return ``LanguageModelToolResult`` as before
-   * The status bar item is only shown when ``mcpEnabled`` is true
+   * The status bar item is only shown when ``jarvis.mcp.enabled`` is true
    * Port changes require extension reload (no hot-reconfiguration)
 
 

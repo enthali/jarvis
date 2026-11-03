@@ -14,9 +14,14 @@ heartbeat step; see the [migration guide](../../docs/user%20guides/getting-start
 
 ## Configuration
 
+The server is off until `jarvis.mcp.enabled` is set to `true`. After an upgrade,
+installations without an explicit value no longer start it automatically.
+Existing explicit `true` or `false` values remain effective; installing the
+extension alone does not opt in.
+
 | Setting            | Default | Description                              |
 |--------------------|---------|------------------------------------------|
-| `jarvis.mcp.enabled` | `false` | Enable the embedded MCP server (localhost only). |
+| `jarvis.mcp.enabled` | `false` | Opt in to starting the embedded MCP server (localhost only). |
 | `jarvis.mcpPort`     | `31415` | Port for the embedded MCP server.        |
 
 ## Requirements

@@ -17,13 +17,17 @@ tasks. Actors are stored as `actor.yaml` files in configurable folders.
 
 New to Jarvis? Follow the [Getting Started guide](docs/user%20guides/getting-started.md).
 
-## Agent Host Migration (Unreleased)
+## Agent Host Migration and Hook Removal (Unreleased)
 
 Actor chats and message delivery now use VS Code's Agent Host, not the old chat UI. Click an Actor in ACTORS to open or create its chat. In the Agents window, enable **Created In > jarvis-core** to see chats created by Jarvis. **Mark done** archives a chat; Jarvis restores it on use. Only **Delete** removes it.
 
 Update project-owned prompts, skills and instructions before upgrading: use `jarvis_sendMessage(session, text)` without `senderSession`, and `jarvis_receiveMessage()` without `destination`. The sender and inbox come from the calling Actor chat. `jarvis_listActors()` returns names and descriptions; `jarvis_createActorSession(actor)` finds or creates a chat. These Agent Host tools replace the former package-prefixed messaging references and are not exposed through MCP. Prompt injection and its command are removed, as is `jarvis.messages.notificationTemplate`.
 
-See the [migration guide](docs/user%20guides/getting-started.md#updating-to-the-agent-host-path) for the removed tools and provisioned-instruction update. Module tools and views in the Agents window remain unverified; a provisioned hook currently blocks tool calls on machines without `node`. Hook removal is a separate follow-up, not part of this migration.
+See the [migration guide](docs/user%20guides/getting-started.md#updating-to-the-agent-host-path) for the removed tools and provisioned-instruction update. Module tools and views in the Agents window remain unverified.
+
+Jarvis removes agent hooks and the hook-based **Recently Touched Files** feature without replacement. On activation it cleans up the five known legacy hook files in the first workspace folder, leaving other files and old touched-files data untouched; see the [Core guide](docs/user%20guides/core.md). Actor tool calls need no external `node` command. Node/npm remain development and packaging prerequisites.
+
+The MCP server is now off by default. Existing installations without an explicit `jarvis.mcp.enabled` value no longer start it automatically; set the value to `true` to opt in. Explicit settings remain effective.
 
 ## Version 0.31.1
 
@@ -77,7 +81,7 @@ capability modules. Install only what you need.
 
 ### Jarvis MCP
 
-- Exposes tools in the Jarvis engine registry, including those contributed by installed modules, over MCP HTTP transport. The four Agent Host tools are not in that registry and are not exposed.
+- Opt-in MCP HTTP transport (`jarvis.mcp.enabled: true`) exposes tools in the Jarvis engine registry, including those contributed by installed modules. The four Agent Host tools are not in that registry and are not exposed.
 
 ### Jarvis Message Flow
 
@@ -96,10 +100,8 @@ capability modules. Install only what you need.
 |---------|-------------|---------|
 | `jarvis.scanInterval` | Background rescan interval in minutes (0 = disabled) | 2 |
 | `jarvis.heartbeatInterval` | Scheduler tick interval in seconds | 60 |
-| `jarvis.hooks.autoInstall` | Auto-install hook bridge files in `.github/hooks/`. Set to `false` to remove managed files and opt out of hook management. | `true` |
 | `jarvis.gitignore.autoManage` | Maintain a marked region in the workspace `.gitignore` listing Jarvis transient runtime paths. Set to `false` to remove the region. | `true` |
 | `jarvis.releaseNotes.showOnUpdate` | Open the release notes in the editor the first time a newly installed Jarvis version runs. | `true` |
-| `jarvis.touchedFiles.windowDays` | Rolling window in days — only files touched within this window are shown in Recently Touched Files (0 = no limit). | `0` |
 | `jarvis.actor.autoProvision` | Provision bundled Actor Kernel Copilot Instructions files into `.github/instructions/`. Set to `true` to install; set back to `false` to remove. | `false` |
 
 ## Installation
