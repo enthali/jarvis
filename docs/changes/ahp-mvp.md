@@ -307,7 +307,7 @@ Agents window, what is and is not shown. A read-only inspection of the session s
 **Owner:** Quality<br>
 **Status:** proceed
 
-**Current judgment:** Quality communicated `proceed` on 2026-11-02 after re-reviewing `133c69a`: the L0 Major, state-coverage and publication-log findings are resolved. Quality reports 744/744 with `--testTimeout 15000`, the repaired publication assertion passing in isolation, and clean strict Sphinx with zero warnings; the commit `c0308c8` named in Quality's reports does not resolve in the repository; the PM did not guess a replacement, and Quality's `proceed` stands as the test evidence. UAT T-17/T-18/T-21 is repaired and committed, but no manual Agent Host scenario has been run; none is recorded as PASS. Module tools and views/webviews in the Agents window remain NOT RUN. `REQ_COM_OPEN` AC-5 is covered by `open-actor-chat.test.ts`.
+**Current judgment:** Quality communicated `proceed` on 2026-11-02 after re-reviewing `133c69a`: the L0 Major, state-coverage and publication-log findings are resolved. Quality reports 744/744 with `--testTimeout 15000`, the repaired publication assertion passing in isolation, and clean strict Sphinx with zero warnings; the test commit is `c030c8b`; Quality's reports named it `c0308c8`, a typo that Quality confirmed on 2026-11-02. The runs had HEAD `c030c8b` plus the Tester's then-uncommitted, documentation-only edit of `us_uat_msgqueue.rst` (committed later as `5e841f2`); `src` and `packages` are identical to `5e841f2`, and the tests were not rerun after `5e841f2`. Quality's `proceed` stands as the test evidence. UAT T-17/T-18/T-21 is repaired and committed, but no manual Agent Host scenario has been run; none is recorded as PASS. Module tools and views/webviews in the Agents window remain NOT RUN. `REQ_COM_OPEN` AC-5 is covered by `open-actor-chat.test.ts`.
 
 ### Applied Review Methods
 
@@ -324,8 +324,8 @@ Quality executes the tests the change affects, and reviews the Developer's unit 
 
 | Test or run | Command and commit | Result |
 |---|---|---|
-| Full requirement-level suite | `npx vitest run --testTimeout 15000` @ reported `c0308c8` | Quality reports 744/744 across 65 files; the commit reference does not resolve in the repository and is recorded as reported. |
-| Publication assertion, isolated | `npx vitest run src/tests/ahp-message-path.test.ts -t "publishes the tools to the existing chats of the Actors of this workspace only"` @ reported `c0308c8` | Quality reports 1/1; Developer also reports 10/10 repeated runs. The commit reference does not resolve in the repository and is recorded as reported. |
+| Full requirement-level suite | `npx vitest run --testTimeout 15000` @ `c030c8b` plus the Tester's uncommitted documentation edit | pass: 744/744 across 65 files (Quality's report named `c0308c8`, a typo). |
+| Publication assertion, isolated | `npx vitest run src/tests/ahp-message-path.test.ts -t "publishes the tools to the existing chats of the Actors of this workspace only"` @ `c030c8b` | pass: 1/1 (Quality's report named `c0308c8`, a typo); Developer also reports 10/10 repeated runs. |
 | Clean strict Sphinx | `docs/build.ps1 -Clean` @ `5e841f2` and current Quality draft | pass: exit 0; build succeeded with 0 warnings |
 | Clean strict Sphinx | `docs/build.ps1 -Clean` @ `133c69a` | Quality reports pass, 0 warnings. |
 
