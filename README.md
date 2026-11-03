@@ -1,11 +1,14 @@
 # Jarvis — The Actor Harness
 
-Jarvis is a VS Code extension that turns chat **sessions** and agent
-**personas** into **actors** — persistent entities with their own identity,
-memory (`context.md`), inter-actor messaging, and scheduling. Jarvis itself is
-the harness, not the assistant: the actors it hosts do the work — the syspilot
-actors handle software engineering, and PIM provides Outlook categories and
-tasks. Actors are stored as `actor.yaml` files in configurable folders.
+Jarvis 0.32.0 is the first release with **Actors, messaging and Kanban in
+VS Code's Agents window**, alongside the editor experience. Several Actor chats
+can be open side by side. Tree markers, Flow, PIM and Recorder in the Agents
+window are on the roadmap; there is no plan yet.
+
+Jarvis turns chat sessions and agent personas into persistent **actors** with
+identity, memory (`context.md`), messaging and scheduling. It is the harness,
+not the assistant: the actors do the work. Actors are stored as `actor.yaml`
+files in configurable folders.
 
 > **Jarvis PIM: EXPERIMENTAL.** Email triage is not part of a Jarvis PIM
 > release; it remains in an externally maintained skill.
@@ -17,15 +20,15 @@ tasks. Actors are stored as `actor.yaml` files in configurable folders.
 
 New to Jarvis? Follow the [Getting Started guide](docs/user%20guides/getting-started.md).
 
-## Agent Host Migration and Hook Removal (Unreleased)
+## Version 0.32.0
 
 Actor chats and message delivery now use VS Code's Agent Host, not the old chat UI. Click an Actor in ACTORS to open or create its chat. In the Agents window, enable **Created In > jarvis-core** to see chats created by Jarvis. **Mark done** archives a chat; Jarvis restores it on use. Only **Delete** removes it.
 
 Update project-owned prompts, skills and instructions before upgrading: use `jarvis_sendMessage(session, text)` without `senderSession`, and `jarvis_receiveMessage()` without `destination`. The sender and inbox come from the calling Actor chat. `jarvis_listActors()` returns names and descriptions; `jarvis_createActorSession(actor)` finds or creates a chat. These Agent Host tools replace the former package-prefixed messaging references and are not exposed through MCP. Prompt injection and its command are removed, as is `jarvis.messages.notificationTemplate`.
 
-See the [migration guide](docs/user%20guides/getting-started.md#updating-to-the-agent-host-path) for the removed tools and provisioned-instruction update. Module tools and views in the Agents window remain unverified.
+See the [migration guide](docs/user%20guides/getting-started.md#updating-to-the-agent-host-path) for the removed tools and provisioned-instruction update, and the [Core guide](docs/user%20guides/core.md) for the observed Agents window behavior and full limitations. The same workspace in two windows is not tested and probably does not work; remote windows are not served.
 
-Jarvis removes agent hooks and the hook-based **Recently Touched Files** feature without replacement. On activation it cleans up the five known legacy hook files in the first workspace folder, leaving other files and old touched-files data untouched; see the [Core guide](docs/user%20guides/core.md). Actor tool calls need no external `node` command. Node/npm remain development and packaging prerequisites.
+Jarvis removes agent hooks and the hook-based **Recently Touched Files** feature without replacement in 0.32.0; Recently Touched Files is on the roadmap for a future version. On activation it cleans up the five known legacy hook files in the first workspace folder, leaving other files and old touched-files data untouched; see the [Core guide](docs/user%20guides/core.md). Actor tool calls need no external `node` command. Node/npm remain development and packaging prerequisites.
 
 The MCP server is now off by default. Existing installations without an explicit `jarvis.mcp.enabled` value no longer start it automatically; set the value to `true` to opt in. Explicit settings remain effective.
 
@@ -61,7 +64,7 @@ capability modules. Install only what you need.
 
 ### Jarvis Core
 
-- **Actors & sessions** — persistent entities with their own `context.md` memory and Agent Host chats. The ACTORS view shows direct child folders with `actor.yaml`; activity states (Error, Waiting, Working) take priority over the recording mark, then the unread-mail icon. See [Core getting started](packages/core/README.md#getting-started) for folders and chat behavior.
+- **Actors & sessions** — persistent entities with their own `context.md` memory and Agent Host chats. In the editor window, the ACTORS view shows direct child folders with `actor.yaml`; activity states (Error, Waiting, Working) take priority over the recording mark, then the unread-mail icon. See [Core getting started](packages/core/README.md#getting-started) for folders and chat behavior.
 - **Heartbeat scheduler** — cron-based jobs running scripts (Python, PowerShell), VS Code
   commands, or single-shot LLM agent steps. Each agent step must name `vendor` and `model`
   (the model ID); there is no default or fallback, so existing steps without both fail until

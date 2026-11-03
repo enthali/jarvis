@@ -57,7 +57,7 @@ Click **+** in the ACTORS view title bar or use the `#jarvis_core_createActor` t
 
 In the Agents window, tick **Created In > jarvis-core** to include Jarvis-created chats. **Mark done** archives a chat and makes it read-only; Jarvis restores it on opening or message delivery. Only **Delete** removes it. A workspace in a repository subfolder may be labelled **Worktree** without creating a Git worktree.
 
-For module tools such as `#jarvis_core_listJobs` or `#jarvis_kanban_listKanbanItems`, keep the Actor chat open in an editor window running Jarvis. Their availability, and the Jarvis views or webviews, in the Agents window remain unverified. See the [Core guide](core.md) for delivery controls, activity icons and workspace limits.
+Jarvis 0.32.0 supports Actor chats, messaging and Kanban in the Agents window. Flow, status-bar and tree features, the PIM mail notification and Recorder do not work there yet; a solution is on the roadmap, with no plan yet. Syspilot was not checked there. For other module tools, keep the Actor chat open in an editor window running Jarvis. See the [Core guide](core.md) for the observed results, delivery controls and full limitations.
 
 ## Where to go next
 
