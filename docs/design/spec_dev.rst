@@ -339,12 +339,12 @@ Developer Tooling Design Specifications
    **Boot sequence** (``src/extension.ts`` ``activate()``):
 
    1. ``vscode.window.createOutputChannel('Jarvis', { log: true })`` — shared
-      LogOutputChannel; ``initSessionLookup(...)``; path resolver; hook engine;
-      touch store.
+      LogOutputChannel; ``initSessionLookup(...)``; path resolver; the removal of
+      hook files left by earlier versions (``SPEC_CFG_HOOKCLEANUP``).
    2. ``new ActorScanner(configPaths.getActorsDir, () => actorTreeProvider.refresh())``,
       ``new ActorTreeProvider(...)``, ``createTreeView('jarvisActors', …)`` with
       the dynamic title (``SPEC_ACTOR_TREE``).
-   3. ``initInjectPrompt({ actors: actorScanner, … })`` (``SPEC_INJ_INJECT``).
+   3. The Jarvis AHP client, started without blocking the activation (``SPEC_COM_CLIENTMODULE``).
    4. ``actorScanner.rescan()`` and ``actorScanner.startTimer(jarvis.scanInterval)``
       (``SPEC_ACTOR_SCANNER``).
    5. Heartbeat block (if ``jarvis.heartbeat.enabled``):
@@ -353,8 +353,7 @@ Developer Tooling Design Specifications
    6. Messages and Reminders blocks (each behind its toggle).
    7. ``checkForUpdates(context, true, log)`` — automatic update check (if enabled).
    8. Register commands, Actor tools and the remaining LM tools; configuration
-      listeners (``jarvis.actors.folder``, ``jarvis.scanInterval``,
-      ``jarvis.touchedFiles.windowDays``, hooks, gitignore).
+      listeners (``jarvis.actors.folder``, ``jarvis.scanInterval``, gitignore).
    9. Push all disposables to ``context.subscriptions``; return the
       ``JarvisCoreApi`` (``SPEC_ENG_API``).
 
@@ -373,7 +372,7 @@ Developer Tooling Design Specifications
    * **Commands**: every ``registerCommand`` result in ``activate()``,
      including the Actor commands (``jarvis.newActor``,
      ``jarvis.openActorSession``, ``jarvis.openActorFile``, ``jarvis.rescan``,
-     context-menu and touched-files commands) — plus those created in
+     context-menu commands) — plus those created in
      ``activateHeartbeat``
    * **LM Tools**: every ``engine.registerTool`` result, including
      ``jarvis_createActor``, ``jarvis_listActors``

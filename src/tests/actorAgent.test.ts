@@ -110,7 +110,7 @@ describe('ensureActorAgent: restore path (exactly one agent discovered by identi
         const filePath = path.join(agentsDir(root), 'Existing Actor.agent.md');
         const actorFolder = path.join(root, 'Existing Actor');
         const content =
-            '---\nname: "Existing Actor"\n---\n' +
+            '---\nname: "Existing Actor"\ndescription: "Already described"\n---\n' +
             'You act as Actor Existing Actor\n' +
             `Your context memory is ${path.join('Existing Actor', 'context.md').split(path.sep).join('/')}` +
             '. Read it and the files it links if you did not do that already or after a compaction.\n';
@@ -202,9 +202,61 @@ describe('ensureActorAgent: line-ending and front-matter edge cases (AC-3)', () 
 
         expect(result).toEqual({ status: 'ready', mode: 'No Frontmatter' });
         const written = fs.readFileSync(filePath, 'utf8');
-        expect(written.startsWith('You act as Actor No Frontmatter\n')).toBe(true);
+        expect(written.startsWith('---\ndescription: "Actor No Frontmatter"\n---\nYou act as Actor No Frontmatter\n')).toBe(true);
         expect(written).toContain('# Just a heading');
         expect(written).toContain('Some body.');
+    });
+});
+
+describe('ensureActorAgent: description (REQ_COM_CHATNAME AC-5)', () => {
+    it('writes the Actor summary as the description of a new agent file', async () => {
+        const root = makeRoot();
+        await ensureActorAgent({ name: 'Described', folder: path.join(root, 'Described'), summary: 'Does the "things"' });
+        const written = fs.readFileSync(path.join(agentsDir(root), 'Described.agent.md'), 'utf8');
+        expect(written).toContain('name: "Described"\ndescription: "Does the \\"things\\""\n---');
+    }, 10_000);
+
+    it('falls back to a description with the name when the Actor has no summary', async () => {
+        const root = makeRoot();
+        await ensureActorAgent({ name: 'Bare', folder: path.join(root, 'Bare'), summary: '  ' });
+        expect(fs.readFileSync(path.join(agentsDir(root), 'Bare.agent.md'), 'utf8')).toContain('description: "Actor Bare"');
+    }, 10_000);
+
+    it('adds the description to an existing agent file that has none, after the name line', async () => {
+        const root = makeRoot();
+        fs.mkdirSync(agentsDir(root), { recursive: true });
+        const filePath = path.join(agentsDir(root), 'Old.agent.md');
+        fs.writeFileSync(filePath, '---\nname: "Old"\nmodel: x\n---\nBody.\n', 'utf8');
+        await ensureActorAgent({ name: 'Old', folder: path.join(root, 'Old'), summary: 'Old actor' });
+        const written = fs.readFileSync(filePath, 'utf8');
+        expect(written.startsWith('---\nname: "Old"\ndescription: "Old actor"\nmodel: x\n---\n')).toBe(true);
+        expect(written).toContain('Body.');
+    });
+
+    it('keeps a description that is there and replaces an empty one', async () => {
+        const root = makeRoot();
+        fs.mkdirSync(agentsDir(root), { recursive: true });
+        const kept = path.join(agentsDir(root), 'Kept.agent.md');
+        fs.writeFileSync(kept, '---\nname: "Kept"\ndescription: \'Mine\'\n---\nBody.\n', 'utf8');
+        const empty = path.join(agentsDir(root), 'Empty.agent.md');
+        fs.writeFileSync(empty, '---\nname: "Empty"\ndescription: ""\n---\nBody.\n', 'utf8');
+        await ensureActorAgent({ name: 'Kept', folder: path.join(root, 'Kept'), summary: 'Summary' });
+        await ensureActorAgent({ name: 'Empty', folder: path.join(root, 'Empty'), summary: 'Summary' });
+        expect(fs.readFileSync(kept, 'utf8')).toContain("description: 'Mine'");
+        expect(fs.readFileSync(kept, 'utf8')).not.toContain('Summary');
+        expect(fs.readFileSync(empty, 'utf8')).toContain('description: "Summary"');
+        expect(fs.readFileSync(empty, 'utf8').match(/description:/g)).toHaveLength(1);
+    });
+
+    it('keeps CRLF line endings when it adds the description', async () => {
+        const root = makeRoot();
+        fs.mkdirSync(agentsDir(root), { recursive: true });
+        const filePath = path.join(agentsDir(root), 'Crlf.agent.md');
+        fs.writeFileSync(filePath, '---\r\nname: "Crlf"\r\n---\r\nBody.\r\n', 'utf8');
+        await ensureActorAgent({ name: 'Crlf', folder: path.join(root, 'Crlf'), summary: 'S' });
+        const written = fs.readFileSync(filePath, 'utf8');
+        expect(written).toContain('name: "Crlf"\r\ndescription: "S"\r\n---');
+        expect(written).not.toMatch(/[^\r]\n/);
     });
 });
 

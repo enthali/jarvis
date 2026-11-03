@@ -2,7 +2,7 @@
   "name": "jarvis-kanban",
   "displayName": "Jarvis Kanban",
   "description": "Jarvis Kanban — convention-based kanban boards for actors, projects, and events",
-  "version": "0.31.1",
+  "version": "0.32.0",
   "publisher": "enthali",
   "icon": "resources/jarvis-128.png",
   "repository": {
@@ -39,6 +39,11 @@
     "ajv": "^8.17.0",
     "jarvis-core": "*",
     "yaml": "^2.7.0"
+  },
+  "capabilities": {
+    "agentsWindow": {
+      "supported": true
+    }
   },
   "contributes": {
     "configuration": {

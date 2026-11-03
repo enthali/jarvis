@@ -68,8 +68,9 @@ Message Flow Visualization UAT Requirements
      the current window, including the 0.05 opacity floor at the window's
      far edge, and that observing the render triggers no new
      extension-host round trip.
-   * AC-6: A test procedure verifies actor-node click opens the session's
-     chat at Main, including the close+reopen case.
+   * AC-6: A test procedure verifies actor-node click shows the Actor's existing chat
+     (open tab shown, closed tab opened in the first editor group) and creates none
+     when the Actor has no chat (``REQ_COM_OPEN`` AC-1, AC-7).
    * AC-7: A test procedure verifies actor-node click on an unresolvable
      name is a silent no-op.
    * AC-8: A test procedure verifies the diagram reflects a newly delivered

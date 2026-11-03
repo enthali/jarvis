@@ -1,5 +1,5 @@
-// Implementation: SPEC_ACTOR_LISTTOOL, SPEC_ACTOR_CREATETOOL
-// Requirements: REQ_ACTOR_LISTTOOL, REQ_ACTOR_CREATETOOL
+// Implementation: SPEC_ACTOR_CREATETOOL
+// Requirements: REQ_ACTOR_CREATETOOL
 
 import * as fs from 'fs';
 import * as path from 'path';
@@ -14,26 +14,6 @@ function toWorkspaceRelative(absPath: string): string {
     const root = getWorkspaceRoot();
     if (!root) { return absPath; }
     return path.relative(root, absPath).split(path.sep).join('/');
-}
-
-/** SPEC_ACTOR_LISTTOOL: pure projection of the Actor scanner, key `actors`. */
-export function createListActorsHandler(
-    actorScanner: ActorScanner,
-    log: Pick<vscode.LogOutputChannel, 'info'>,
-): (options: vscode.LanguageModelToolInvocationOptions<unknown>, token: vscode.CancellationToken) => Promise<vscode.LanguageModelToolResult> {
-    return async () => {
-        const actors = actorScanner.actors.map(actor => ({
-            name: actor.name,
-            summary: actor.summary,
-            agent: actor.name,
-            folder: actor.folder,
-            id: actor.id,
-        }));
-        log.info(`[ACTOR] listActors: ${actors.length} Actor(s)`);
-        return new vscode.LanguageModelToolResult([
-            new vscode.LanguageModelTextPart(JSON.stringify({ actors }))
-        ]);
-    };
 }
 
 export interface CreateActorHandlerDependencies {
@@ -78,7 +58,7 @@ export function createActorHandler(
         }
 
         const targetPath = await writeActorFiles(actorsFolder, { name, summary });
-        await ensureActorAgent({ name, folder: targetPath });
+        await ensureActorAgent({ name, folder: targetPath, summary });
 
         if (initialMessage) {
             deps.appendMessage(name, 'jarvis_createActor', initialMessage);

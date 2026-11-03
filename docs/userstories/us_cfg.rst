@@ -23,7 +23,7 @@ Configuration User Stories
    :id: US_CFG_MSG
    :status: deprecated
    :priority: optional
-   :links: US_MSG_CHATQUEUE; US_CFG_FIXEDPATHS
+   :links: US_COM_SEND; US_CFG_FIXEDPATHS
 
    **Superseded by:** ``US_CFG_FIXEDPATHS`` (settings-cleanup CR, 2026-05-18;
    formally deprecated by the ``jarvis-messages-dir-grouping`` CR, GH #59).
@@ -134,7 +134,7 @@ Configuration User Stories
 
 .. story:: Identifiable Jarvis-Owned Workspace Files
    :id: US_CFG_WORKSPACEFILES
-   :status: implemented
+   :status: approved
    :priority: required
    :links: US_CFG_FIXEDPATHS
 
@@ -145,14 +145,8 @@ Configuration User Stories
    without also losing control over my own files in the same directories, and
    without having to investigate each unfamiliar file that appears.
 
-   *Context: Jarvis writes generated files into* ``.github/hooks/`` *— a
-   directory pinned by GitHub Copilot and shared with any other tool's hook
-   contributions, as well as with hook files the project itself may want to
-   version. Two of the three files Jarvis writes there are named*
-   ``bridge.mjs`` *and* ``port`` *: names that identify neither their owner nor
-   their purpose. The only ignore pattern that reliably covers them today is
-   the whole directory, which is why this repository's own* ``.gitignore``
-   *excludes* ``.github/hooks/`` *entirely.*
+   *Context: Jarvis generates files into directories that other tools and the
+   project also use. The rules below apply to every such directory.*
 
    **Acceptance Criteria:**
 
@@ -166,12 +160,11 @@ Configuration User Stories
    * AC-3: Ignoring Jarvis's generated files SHALL NOT require ignoring files
      the user or another tool owns in the same directory. Directory-wide
      exclusion SHALL NOT be the only available remedy.
-   * AC-4: Upgrading Jarvis SHALL NOT leave generated files behind under names
-     a previous version used — no orphaned or duplicated artifacts accumulate
-     across upgrades.
+   * AC-4: Upgrading Jarvis SHALL NOT leave generated files behind that the new
+     version no longer uses — no orphaned or duplicated artifacts accumulate
+     across upgrades, and none of them keeps affecting my agent's work.
    * AC-5: An existing installation SHALL keep working across such an upgrade:
-     hooks continue to fire and no manual repair, reinstall, or workspace
-     reset is required.
+     no manual repair, reinstall, or workspace reset is required.
    * AC-6: The naming convention and the ignore pattern that follows from it
      SHALL be documented, so a user can apply them without reading Jarvis's
      source.
@@ -197,7 +190,7 @@ Configuration User Stories
    message-related, but neither their names nor their location says so. The
    consequence is visible in this repository's own* ``.gitignore``\ *, which
    has to enumerate the three files individually; adding a fourth message file
-   would silently leave it tracked.* ``state/touched-files/`` *already shows
+   would silently leave it tracked.* ``state/`` *already shows
    the grouped, well-named pattern this story generalises.*
 
    **Acceptance Criteria:**

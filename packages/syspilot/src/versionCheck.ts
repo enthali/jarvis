@@ -85,7 +85,7 @@ async function notifyActor(api: JarvisCoreApi, workspaceRoot: string, log: vscod
     api.sendMessage(ACTOR_NAME, 'jarvis-syspilot', UPDATE_NOTIFICATION_TEXT);
     log.info('[SPL] notifyActor: queued unified update notification');
     // SPEC_SPL_NOTIFY AC-4: idempotent, same pattern as the reminders feature
-    // (SPEC_MSG_REMINDERS_POLL) — mirrored locally rather than imported from
+    // (SPEC_MSG_REMINDERSLOOP) — mirrored locally rather than imported from
     // messageQueue.ts, since that module is internal to packages/core and not
     // reachable across the package boundary (same precedent as packages/flow's
     // local path resolution mirrors). Full union-write-remove cycle (SPEC_CFG_STATEMIGRATION).

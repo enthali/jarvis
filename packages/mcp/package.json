@@ -2,8 +2,12 @@
   "name": "jarvis-mcp",
   "displayName": "Jarvis MCP",
   "description": "Jarvis MCP Server — exposes all registered Jarvis tools over MCP HTTP transport",
-  "version": "0.31.1",
+  "version": "0.32.0",
   "publisher": "enthali",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/enthali/Jarvis.git"
+  },
   "license": "MIT",
   "icon": "resources/jarvis-128.png",
   "engines": {
@@ -39,8 +43,8 @@
         "properties": {
           "jarvis.mcp.enabled": {
             "type": "boolean",
-            "default": true,
-            "description": "Start the embedded MCP server when the Jarvis MCP extension is active. Disable to keep the extension installed but the server off."
+            "default": false,
+            "description": "Start the embedded MCP server when the Jarvis MCP extension is active. Off by default: set to true to start the server."
           },
           "jarvis.mcpPort": {
             "type": "number",

@@ -92,8 +92,8 @@ export function activate(context: vscode.ExtensionContext): void {
         return;
     }
 
-    // Start if enabled (default true — install = enable, but user can disable without uninstalling)
-    const enabled = vscode.workspace.getConfiguration('jarvis').get<boolean>('mcp.enabled', true);
+    // Start only when the User has enabled it (default false, REQ_CFG_MCPDEFAULTOFF)
+    const enabled = vscode.workspace.getConfiguration('jarvis').get<boolean>('mcp.enabled', false);
     if (enabled) {
         start(api, log).catch(err => {
             log.error(`[MCP] Failed to start: ${err instanceof Error ? err.message : String(err)}`);
@@ -104,7 +104,7 @@ export function activate(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
         vscode.workspace.onDidChangeConfiguration(async e => {
             if (e.affectsConfiguration('jarvis.mcp.enabled') || e.affectsConfiguration('jarvis.mcpPort')) {
-                const en = vscode.workspace.getConfiguration('jarvis').get<boolean>('mcp.enabled', true);
+                const en = vscode.workspace.getConfiguration('jarvis').get<boolean>('mcp.enabled', false);
                 if (en) {
                     await stop();
                     await start(api, log);

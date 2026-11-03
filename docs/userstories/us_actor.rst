@@ -11,24 +11,22 @@ Actor User Stories
    2. **Message addressability** — heartbeat jobs and reminders can send the
       Actor messages without an open chat session; message delivery, not the
       sender, determines whether notification is automatic or manual.
-   3. **Loose session binding** — the Actor is coupled to a chat session, but
-      the coupling is loose: the session can be swapped without losing the
-      Actor's identity or memory. The Actor outlives any single session.
+   3. **Loose chat binding** — the Actor is coupled to a chat, but
+      the coupling is loose: the chat can be swapped without losing the
+      Actor's identity or memory. The Actor outlives any single chat.
 
    The goal: **a persona that can adopt a role** — it manages its own
    context and can actively interact, without kind registration, multiple
    tree roots, or kind-specific filters.
 
-   The Actor lives under ``jarvis.actors.folder`` (default
-   ``.jarvis/actors/``) using the ``actor.yaml`` convention. The only
-   Actor-specific setting beyond the folder is
-   ``jarvis.actors.openSessionOnCreate`` (US_ACTOR_CREATE AC-6).
+   Where Actors are kept and how the chat of a new Actor opens on creation are
+   specified in ``US_ACTOR_TREE`` and ``US_ACTOR_CREATE`` (AC-6).
 
 .. story:: The Actor
   :id: US_ACTOR_ACTORS
   :status: approved
   :priority: mandatory
-  :links: US_EXP_SIDEBAR; US_MSG_CHATQUEUE; US_MSG_AUTODELIVERY; US_MSG_REMINDERS; US_AUT_HEARTBEAT
+  :links: US_EXP_SIDEBAR; US_COM_SEND; US_COM_DELIVERY; US_MSG_REMINDERS; US_AUT_HEARTBEAT
 
   **As a** Jarvis user,
   **I want** an Actor — a persona that can adopt a role — so that I can
@@ -44,58 +42,42 @@ Actor User Stories
    2. **Message addressability** — it can receive queued messages from a
       heartbeat job or reminder without an open chat session; the existing
       delivery preference governs whether notification is automatic or manual.
-   3. **Loose session binding** — it is coupled to a chat session for
-      interaction, but the coupling is loose: the session can be closed,
+   3. **Loose chat binding** — it is coupled to a chat for
+      interaction, but the coupling is loose: the chat can be closed,
       restarted, or swapped without losing the Actor's identity or
-      memory. The Actor outlives any single session.
+      memory. The Actor outlives any single chat.
 
    **Acceptance Criteria:**
 
    * AC-1: An Actor created by Jarvis (US_ACTOR_CREATE, US_ACTOR_CREATETOOL)
-     is stored as ``<actorsFolder>/<name>/actor.yaml`` (where
-     ``actorsFolder`` is ``jarvis.actors.folder``, default
-     ``.jarvis/actors/``). The folder name matches the input
-     Actor name. Manually placed direct child folders with ``actor.yaml``
-     remain discoverable even if their YAML names differ from their folder
-     names. Actor names are unique: Jarvis never creates a second Actor
-     with a name already in use. A duplicate can only arise from a manual
-     ``actor.yaml`` edit; it is a misconfiguration, Jarvis does not act on
-     that name, and sending a message to it fails with an error the user
-     sees. The ``actor.yaml`` file contains
-     ``name`` (required) and ``summary`` (optional). A legacy ``agent:``
-     field is ignored (AC-6).
-   * AC-2: The Actor's ``context.md`` is its persistent memory. It is
-     read and written by the Actor itself (via the agent running in its
-     session) and is never mutated by any other mechanism. The file is
-     never auto-migrated or auto-renamed.
-   * AC-3: A heartbeat job (``jarvis_registerJob``) or reminder
-     (``jarvis_setReminder``) addressed to the Actor queues a message without
-     requiring an open chat session. Neither sender activates a session or
-     overrides its delivery preference; the message-delivery mechanism alone
-     determines automatic versus manual notification. When the user or the
-     existing message-delivery workflow later opens the session, the Actor
-     can resume from its ``context.md``.
-   * AC-4: The Actor's chat session is a regular VS Code chat session.
-     Closing, restarting, or swapping the session does not destroy the
-     Actor; its identity (name, folder, ``context.md``) is fully
-     recoverable from the file system alone.
-   * AC-5: An Actor is discovered only as a direct child folder of
-     ``jarvis.actors.folder`` (US_ACTOR_TREE AC-2); deeper subfolders are
-     not scanned for Actors. Listing, the Actor's identity
-     (``US_ACTOR_WHOAMI``), and heartbeat/reminder destination resolution
-     all use this discovery.
-   * AC-6: Every Actor has exactly one chat agent of its own, named like
-     the Actor (``US_ACTOR_WHOAMI``). Jarvis creates it when it is missing,
-     for every Actor including those that existed before, without any
-     action by the user. The Actor's persona is not chosen in Jarvis: it is
-     referenced from the Actor's ``context.md``, and several Actors may
-     share one persona that way. A legacy ``agent:`` field in
-     ``actor.yaml`` is ignored.
-   * AC-7: When a new chat session is opened for an Actor, it receives an
-     initialization prompt naming the Actor and its ``context.md`` and asking
-     it to keep that memory lean and action-oriented; the session opens in
-     the Actor's own agent. The user can replace the prompt via
-     ``jarvis.agentSession.initPromptTemplate``.
+     has a name that is unique: Jarvis never creates a second Actor with a name
+     already in use. An Actor that I set up by hand is found as well. Two
+     Actors with the same
+     name are a misconfiguration: Jarvis does not act on that name, and a
+     message to it fails with an error that I see. An Actor has a name and
+     optionally a short description.
+   * AC-2: The Actor's memory is read and written by the Actor itself. Nothing
+     else changes it, and Jarvis never moves or renames it automatically.
+   * AC-3: A heartbeat job or a reminder addressed to the Actor queues a message
+     without requiring an open chat. Neither of them opens a chat or overrides
+     the Actor's delivery preference; the message delivery alone decides
+     between automatic and manual notification. When the user or the delivery
+     later opens the chat, the Actor can resume from its memory.
+   * AC-4: The Actor's chat is a regular chat.
+     Closing, restarting, or swapping the chat does not destroy the
+     Actor; its identity (name and memory) survives and can be recovered
+     without the chat.
+   * AC-5: My Actors are found as soon as I place them where Jarvis looks for
+     Actors; an Actor placed anywhere else is not found. Listing, the Actor's
+     identity (``US_ACTOR_WHOAMI``), and the destination of heartbeat jobs and
+     reminders all agree on which Actors exist.
+   * AC-6: Every Actor, including those that existed before, is recognisable in
+     its chat as that Actor and behaves as it, without any action by me
+     (``US_ACTOR_WHOAMI``). The persona it adopts is not chosen in Jarvis: the
+     Actor's memory refers to it, and several Actors may share one persona.
+   * AC-7: A new chat for an Actor starts informed: the Actor knows who it is and
+     where its memory is, and is asked to keep that memory lean and
+     action-oriented. I can change how a new chat is introduced.
 
 
 .. story:: Dedicated ACTORS Tree
@@ -200,7 +182,7 @@ Actor User Stories
 
    * AC-1: A session of an Actor knows the Actor's name and the
      workspace-relative path of its ``context.md`` from the first request
-     on, without a tool call and without agent hooks.
+     on, without a tool call.
    * AC-2: This also holds after the conversation was compacted. Whether the
      content of ``context.md`` is remembered afterwards is not part of this
      story; it remains subject to Copilot's compaction behaviour.
@@ -245,66 +227,40 @@ Actor User Stories
      US_ACTOR_CREATE AC-6.
 
 
-.. story:: List Actors Programmatically
-   :id: US_ACTOR_LISTTOOL
-   :status: approved
-   :priority: required
-   :links: US_ACTOR_ACTORS; US_ACTOR_TREE
-
-   **As an** Actor working in a chat session,
-   **I want** a tool that lists all Actors,
-   **so that** I can find the Actors I can message or coordinate with without
-   asking the user.
-
-   **Acceptance Criteria:**
-
-   * AC-1: ``jarvis_listActors`` is available as LM and MCP tool whenever
-     ``jarvis.actors.folder`` is resolvable (same condition as
-     US_ACTOR_TREE AC-8).
-   * AC-2: The tool returns every Actor shown in the ACTORS tree
-     (US_ACTOR_TREE AC-2), each with ``name``, ``summary``, ``agent``
-     (the Actor's own agent, named like the Actor), ``folder``, and ``id``
-     (absolute path of its ``actor.yaml``).
-   * AC-3: The tool requires no input parameters.
-   * AC-4: It is distinct from ``jarvis_listChatSessions``, which lists VS Code
-     chat tab titles.
-
-
 .. story:: Activity Indicator on Actor Nodes
    :id: US_ACTOR_ACTIVITY
-   :status: draft
+   :status: approved
    :priority: optional
    :links: US_ACTOR_TREE
 
    **As a** Jarvis User,
-   **I want** every Actor node in the ACTORS tree to show whether an agent is
-   currently working in that Actor's chat session,
+   **I want** every Actor node in the ACTORS tree to show whether the Actor is
+   working, waiting for me or in error,
    **so that** I can tell at a glance which Actors have something happening
    right now, without opening every chat tab to check.
 
    **Acceptance Criteria:**
 
-   * AC-1: The activity indicator has two states: **Active** while an agent turn is
-     running in the Actor's session, or **Inactive** otherwise. The other icons of an Actor
-     node are not activity states: the recording mark (``US_REC_CAPTURE`` AC-2) and the
-     unread-mail icon (``US_ACTOR_MAIL``) keep their own rules, and ``US_ACTOR_MAIL`` AC-4
-     orders them against this indicator.
-   * AC-2: An Actor becomes Active when agent activity starts in its session
-     (a session starts, a prompt is submitted, a tool runs, the session is
-     compacted, or a subagent runs), and Inactive when the agent turn ends.
-   * AC-3: An Actor with no observed activity yet (e.g. just after workspace
-     open) is Inactive.
-   * AC-4: There is no third "error" or "unknown" state and no timeout-based
-     transition — the indicator only changes on the activity in AC-2.
+   * AC-1: The indicator has four states: **Error**, **Waiting**, **Working** and
+     **Idle**. An Idle Actor shows no activity indicator.
+   * AC-2: An Actor is **Working** while its chat is processing a request. It is
+     **Waiting** while its chat needs a confirmation or an answer from me. It is
+     in **Error** when the last request of its chat ended with an error, until the
+     next request of that chat runs. Otherwise it is **Idle**.
+   * AC-3: When several states apply, Error is shown before Waiting, and
+     Waiting before Working. An Actor without a chat, or whose state is not
+     known, is Idle.
+   * AC-4: The other icons of an Actor node are not activity states: the
+     recording mark (``US_REC_CAPTURE`` AC-2) and the unread-mail icon
+     (``US_ACTOR_MAIL``) keep their own rules, and ``US_ACTOR_MAIL`` AC-4 orders
+     them against this indicator.
    * AC-5: The indicator is a visual cue only — it does not gate or block any
      Actor-node behavior (click-to-chat, context menu, file children).
-   * AC-6: Which runtime signals report this activity is specified at L1/L2;
-     replacing the signal source does not change this story.
 
 
 .. story:: Unread Mail Icon on Actor Nodes
    :id: US_ACTOR_MAIL
-   :status: draft
+   :status: approved
    :priority: optional
    :links: US_ACTOR_TREE; US_ACTOR_ACTIVITY; US_REC_CAPTURE
 
@@ -315,16 +271,16 @@ Actor User Stories
 
    **Acceptance Criteria:**
 
-   * AC-1: When Outlook integration is enabled in the settings, an Actor node shows a mail
-     icon in front of its name while the Outlook folder with the Actor's name, directly
+   * AC-1: When the mail integration is enabled, an Actor node shows a mail icon
+     in front of its name while the mail folder with the Actor's name, directly
      under my Inbox, holds at least one unread mail.
    * AC-2: An Actor without such a folder, or whose folder has no unread mail, shows no mail
      icon. A folder nested deeper in the Inbox does not count.
-   * AC-3: The state is read from Outlook on each scan of the ACTORS tree, that is on the
-     periodic background rescan and on the manual rescan. Between two scans the icon does not
-     change: there is no live update when mail is read or arrives.
-   * AC-4: An Actor node shows at most one icon at a time, by this priority: recording (red
-     dot) before active session (green dot) before unread mail (mail icon). When an icon of a
+   * AC-3: The icon is as current as the last refresh of the Actor list (the
+     regular and the manual refresh). It does not change live when mail arrives
+     or is read.
+   * AC-4: An Actor node shows at most one icon at a time, by this priority: activity state
+     (error, waiting or working) before recording (red dot) before unread mail (mail icon). When an icon of a
      higher priority ends, the next one still present is shown; when none is present, the node
      shows no icon.
    * AC-5: The feature only reads Outlook. It never marks mail as read or unread, never moves,
@@ -410,95 +366,3 @@ Actor User Stories
      (open the Actor's chat session) is unchanged. ``actor.yaml`` and
      ``context.md`` are opened from the Files category; the Actor node has no
      inline open buttons.
-
-
-.. story:: Recently Touched Files per Actor
-   :id: US_ACTOR_TOUCHEDFILES
-   :status: approved
-   :priority: optional
-   :links: US_ACTOR_FILES_TREE; US_ACTOR_TREE
-
-   *Context: this story answers "what files has the agent actually read or
-   written while working as this Actor" — visibility a user otherwise only
-   gets by manually checking git status or the file explorer. How Jarvis
-   learns about the agent's reads and writes is specified at L1/L2.
-   Every automatic rule here governs what is displayed, not what was
-   recorded: automatic rules are reversible, and every irreversible one is
-   asked for.*
-
-   **As a** Jarvis User,
-   **I want** each Actor node in the ACTORS tree to show a "Recently Touched
-   Files" subtree listing files the agent has read or written while working
-   in that Actor's bound session,
-   **so that** I can see at a glance what the agent actually touched,
-   without digging through transcripts or git status.
-
-   **Acceptance Criteria:**
-
-   * AC-1: A "Recently Touched Files" category node appears under each Actor
-     node, alongside the "Agent"/"Files" categories (US_ACTOR_FILES_TREE) —
-     a third, independent, collapsible category, not nested inside "Files".
-   * AC-2: The subtree is hierarchical and **workspace-root-relative** — not
-     scoped to the Actor's own folder, since the agent can touch files
-     anywhere in the workspace. Empty intermediate folder branches are pruned
-     (only branches that lead to at least one touched file are shown).
-   * AC-3: A file is added to the list the first time the agent reads or
-     writes it during a session bound to that Actor; the entry records
-     last-read and/or last-edited timestamps and is shown in a tooltip (no
-     separate child node per timestamp).
-   * AC-4: The list persists across VS Code reloads (stored outside the
-     Actor's own folder, so it never collides with or pollutes the "Files"
-     category from US_ACTOR_FILES_TREE).
-   * AC-5: Clicking a touched-file entry opens it the same way as the Actor's
-     own "Files" category entries (Markdown Preview for ``.md``, VS Code
-     preview-mode tab otherwise, Docs column).
-   * AC-6: A right-click diff view lets the user compare the touched file's
-     current content against its last-known-good (source control) version,
-     when available.
-   * AC-7: Right-click Copy Path / Copy Full Path / Reveal in Explorer are
-     available on every touched-file entry.
-   * AC-8: An inline trash icon removes entries from the list immediately.
-     It is available on a single entry, on a folder branch (removing every
-     entry below it), and on the "Recently Touched Files" category itself
-     (removing every entry recorded for that Actor). Removal always covers
-     everything recorded below the node it sits on, including entries not
-     currently displayed (no separate "dismissed" state; a file reappears if
-     touched again).
-   * AC-9: This is additive — it does not change the Actor node's behavior,
-     the "Agent"/"Files" categories, or the activity indicator
-     (US_ACTOR_ACTIVITY).
-   * AC-10: A file that is *known* not to exist is not shown — every action
-     the list offers (open, diff, reveal) assumes the file is there. It is
-     not removed: absence is a state, not an event. A file missing on one git
-     branch is back after switching to another, and its touch history is
-     still true. Where existence cannot be established, AC-15 applies
-     instead.
-   * AC-11: The list shows only files touched within a user-configurable
-     window, measured in days back from now against the most recent touch of
-     any kind (read or write). The window is a rolling period, not a
-     calendar-day boundary, so it does not cut off work in progress at
-     midnight. The default is 0, meaning no limit. A changed window takes
-     effect without restarting VS Code.
-   * AC-12: No entry is ever removed automatically. The window (AC-11) and
-     the existence check (AC-10) govern display only — widening the window,
-     or switching back to the branch that has the file, brings entries back
-     unchanged.
-   * AC-13: A dedicated action on the "Recently Touched Files" category
-     removes the entries whose files no longer exist, and afterwards reports
-     how many were removed — they accumulated unseen, so a silent run would
-     give the user nothing to go on. If every entry of an Actor is currently
-     hidden, the next file the agent touches brings back category and action
-     together.
-   * AC-14: No removal is permanent — any file the agent touches again
-     reappears in the list.
-   * AC-15: Uncertainty is not evidence of absence. Where Jarvis cannot
-     establish whether a file exists, the entry remains persisted and the
-     cleanup action (AC-13) does not remove it, but it is not shown. Display
-     requires a file Jarvis can address; removal requires proof that no file
-     exists. An undetermined entry remains dormant until a later touch
-     records enough information to resolve it. History recorded without its
-     root stays permanently undetermined and hidden rather than being
-     destroyed by a repair.
-   * AC-16: The list addresses files the way the editor addresses them. Open,
-     diff and reveal behave in a remote workspace — WSL, SSH, dev container —
-     exactly as they do locally.

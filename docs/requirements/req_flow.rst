@@ -227,8 +227,8 @@ Message Flow Visualization Requirements
      user manually moved it to), the command/button SHALL reveal/focus the
      existing panel rather than creating a second instance.
    * AC-4: The panel's content SHALL refresh by polling the audit log
-     every 5 seconds while the panel is visible — matching the existing
-     Auto-Delivery poll-loop cadence (``REQ_MSG_AUTODELIVER_POLL``); no
+     every 5 seconds while the panel is visible — matching the 5-second tick
+     of the extension's inbox and reminder loop; no
      file-watcher is introduced for v1, since delivery itself is not faster
      than this interval.
    * AC-5: Because a Webview Panel tab is not a chat tab (``lookupSessionUUID``
@@ -243,28 +243,27 @@ Message Flow Visualization Requirements
    :id: REQ_FLOW_ACTORCLICK
    :status: draft
    :priority: optional
-   :links: US_FLOW_CHORDVIEW; REQ_FLOW_WEBVIEWPANEL; REQ_MSG_EDITORPLACEMENT; REQ_MSG_SESSIONLOOKUP
+   :links: US_FLOW_CHORDVIEW; REQ_FLOW_WEBVIEWPANEL; REQ_COM_OPEN
 
    **Description:**
-   Clicking an actor/session node in the rendered diagram SHALL open that
-   actor's chat at the same **Main** target used elsewhere for actor
-   clicks, via the extension↔webview ``postMessage`` bridge (the webview's
-   rendering sandbox is not a technical barrier to this — the actual
-   editor-tab manipulation happens in the extension host, not in the
-   webview's DOM).
+   Clicking an actor/session node in the rendered diagram SHALL show that
+   actor's chat as the label click of an Actor group in the Messages view does
+   (``REQ_COM_OPEN`` AC-3, AC-7), via the extension↔webview ``postMessage``
+   bridge (the webview's rendering sandbox is not a technical barrier to this
+   — the chat is shown by the extension host, not in the webview's DOM).
 
    **Acceptance Criteria:**
 
    * AC-1: A click on a node SHALL post a message from the webview to the
      extension host identifying the clicked session/actor name.
-   * AC-2: On receipt, the extension host SHALL resolve and open/focus that
-     session's chat at Main (column 1) using the existing placement helper
-     (``REQ_MSG_EDITORPLACEMENT`` AC-1/AC-9, including its close+reopen
-     rule) — no new placement logic is introduced for this path.
+   * AC-2: On receipt, the extension host SHALL show that Actor's chat as
+     ``REQ_COM_OPEN`` AC-1 requires (a tab that is open is shown, otherwise the
+     chat opens in the first editor group) — no placement logic of the Flow
+     package is introduced for this path.
    * AC-3: If the clicked name does not resolve to any known session/actor
-     (e.g. stale data), the click SHALL be a silent no-op — consistent with
-     the no-op-on-miss precedent established for label clicks elsewhere
-     (``REQ_MSG_EDITORPLACEMENT`` AC-10).
+     (e.g. stale data), or the Actor has no chat, the click SHALL do nothing
+     — consistent with the label click in the Messages view (``REQ_COM_OPEN``
+     AC-3). While the client has no connection, ``REQ_COM_OPEN`` AC-5 applies.
 
 
 .. req:: Message Log Viewer Panel

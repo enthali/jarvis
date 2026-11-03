@@ -217,13 +217,13 @@ Configuration Design Specifications
 .. spec:: settings-cleanup: Full Configuration Manifest (package.json)
    :id: SPEC_CFG_MANIFEST
    :status: approved
-   :links: REQ_CFG_TOGGLES; REQ_CFG_GROUPS; REQ_CFG_MCPDEFAULTOFF; REQ_CFG_RENAMES; REQ_CFG_FOLDERPATHS; REQ_CFG_SCANINTERVAL; REQ_ACTOR_INITPROMPT; REQ_ACTOR_CREATE; REQ_MSG_NOTIFICATION_TEMPLATE; SPEC_MSG_NOTIFICATION_RESOLVE
+   :links: REQ_CFG_TOGGLES; REQ_CFG_GROUPS; REQ_CFG_MCPDEFAULTOFF; REQ_CFG_RENAMES; REQ_CFG_FOLDERPATHS; REQ_CFG_SCANINTERVAL; REQ_ACTOR_INITPROMPT; REQ_ACTOR_CREATE
 
    **Description:**
    The complete core ``contributes.configuration`` array in
-   ``packages/core/package.json``. Eight named groups in the order mandated by
+   ``packages/core/package.json``. Seven named groups in the order mandated by
    ``REQ_CFG_GROUPS``: Actors, Messages, Prompt Templates, Heartbeat,
-   Reminders, Gitignore, Updates, Hooks. Add-ons contribute their own groups
+   Reminders, Gitignore, Updates. Add-ons contribute their own groups
    in their own manifests: PIM ("PIM", "Outlook", ``SPEC_PIM_*``), recorder
    ("Jarvis Recorder"), MCP ("Jarvis MCP"), kanban ("Jarvis Kanban"),
    syspilot ("Jarvis Syspilot").
@@ -280,14 +280,7 @@ Configuration Design Specifications
               "default": "",
               "editPresentation": "multilineText",
               "scope": "window",
-              "description": "Template for the initialization prompt sent to a new Actor chat session. Placeholders: ${name}, ${contextPath}. If empty, the built-in default is used."
-            },
-            "jarvis.messages.notificationTemplate": {
-              "type": "string",
-              "default": "",
-              "editPresentation": "multilineText",
-              "scope": "window",
-              "description": "Template for the auto-delivery notification stub. Placeholders: ${count}, ${destination}, ${sender}. If empty, the built-in English default is used. Scope: window."
+              "description": "Template for the start-up instruction sent to a new Actor chat. Placeholders: ${name}, ${contextPath}. If empty, the built-in default is used."
             }
           }
         },
@@ -343,50 +336,29 @@ Configuration Design Specifications
               "description": "Open the release notes in the editor the first time a newly installed Jarvis version runs. The command \"Jarvis: Show Release Notes\" works regardless of this setting."
             }
           }
-        },
-        {
-          "title": "Hooks",
-          "properties": {
-            "jarvis.hooks.autoInstall": {
-              "type": "boolean",
-              "default": true,
-              "scope": "resource",
-              "description": "When true (default), Jarvis auto-installs hook bridge files in .github/hooks/. Set to false to remove managed files and stop hook management."
-            },
-            "jarvis.touchedFiles.windowDays": {
-              "type": "number",
-              "default": 0,
-              "minimum": 0,
-              "description": "(0 = no limit) Rolling window in days; only files touched within this window are shown. Changing this takes effect immediately."
-            }
-          }
         }
       ]
 
    .. note::
-      Both ``jarvis.agentSession.initPromptTemplate`` and
-      ``jarvis.messages.notificationTemplate`` ship with the full verbatim
-      template text as their ``"default"`` in ``package.json`` (not empty
+      Both ``jarvis.agentSession.initPromptTemplate`` ships with the full verbatim
+      template text as its ``"default"`` in ``package.json`` (not empty
       string), so users see and edit the default directly in the Settings UI.
       The ``"default": ""`` shown above is a documentation shorthand. An empty
-      or whitespace-only value falls back to the built-in constant —
-      ``DEFAULT_INIT_PROMPT`` respectively ``DEFAULT_NOTIFICATION``, both in
-      ``packages/core/src/engine/sessions/injectPrompt.ts`` (see
-      ``SPEC_ACTOR_INITPROMPT`` and
-      ``SPEC_MSG_NOTIFICATION_RESOLVE``).
+      or whitespace-only value falls back to the built-in constant,
+      ``DEFAULT_INIT_PROMPT`` in
+      ``packages/core/src/engine/sessions/actorStartupPrompt.ts`` (see
+      ``SPEC_ACTOR_INITPROMPT``).
 
       **The declared default governs display, never behaviour**
-      (notification-template-empty-fallback CR, GH #56). Clearing the text
+      (GH #56). Clearing the text
       field in the Settings UI persists an explicit ``""`` at User scope; a
       persisted ``""`` shadows the ``package.json`` default, so
       ``getConfiguration().get()`` returns ``''`` and the ``get(key, '')``
       fallback argument does not fire either (the key exists). Only "Reset
-      Setting" removes the key. Every consumer of these two settings
+      Setting" removes the key. Every consumer of the setting
       therefore MUST apply its own trim-based fallback to the built-in
       constant — shipping the text in ``package.json`` is not a substitute
-      (``REQ_MSG_NOTIFICATION_TEMPLATE`` AC-8). Before GH #56 the note above
-      claimed a notification-template constant existed in ``extension.ts``;
-      it never did, and the notification path had no fallback at all.
+      (``REQ_ACTOR_INITPROMPT`` AC-3).
 
    **Updates group:** ``jarvis.checkForUpdates`` has no natural home in the
    other groups, and the group title is already user-meaningful.
@@ -596,7 +568,8 @@ Configuration Design Specifications
         { rel: '.jarvis/heartbeat.yaml',     durability: 'transient' },
         { rel: '.jarvis/reminders.yaml',     durability: 'transient' },
         { rel: '.jarvis/syspilot-state.json', durability: 'transient' },
-        { rel: '.github/hooks/jarvis-*',     durability: 'transient' },
+        { rel: 'jarvis-*',                   durability: 'transient' },   // files Jarvis generates into shared directories (REQ_MOD_ACTORRULES AC-2)
+        { rel: '!packages/*/assets/**',      durability: 'transient' },   // the asset sources of this repository stay tracked
         { rel: '.jarvis/actors/',            durability: 'durable' },
       ];
 
@@ -779,8 +752,8 @@ Workspace File Layout & VCS Visibility
 
 .. spec:: Jarvis-Owned Workspace Files and Ignore Patterns
    :id: SPEC_CFG_WORKSPACEFILES
-   :status: implemented
-   :links: REQ_CFG_FILEPREFIX; REQ_CFG_FIXEDPATHS; REQ_CFG_MSGDIR; REQ_CFG_IGNOREPATTERNS; SPEC_HOOK_CONFIG
+   :status: approved
+   :links: REQ_CFG_FILEPREFIX; REQ_CFG_FIXEDPATHS; REQ_CFG_MSGDIR; REQ_CFG_IGNOREPATTERNS; REQ_CFG_HOOKCLEANUP
 
    **Description:**
    Jarvis writes generated files into the user's workspace. This section is the
@@ -801,11 +774,10 @@ Workspace File Layout & VCS Visibility
         - Exclusively Jarvis-owned
         - The directory itself
         - The transient paths within it *(GH #60 — see below)*
-      * - ``.github/hooks/``
-        - Shared — pinned by GitHub Copilot, open to other tools and to the
-          project's own hook files
+      * - Any directory Jarvis shares with another tool or the project
+        - Shared — open to other tools and to the project's own files
         - ``jarvis-`` filename prefix
-        - ``.github/hooks/jarvis-*``
+        - ``jarvis-*`` in that directory
 
    The mechanism follows from the ownership, not from preference. A directory
    Jarvis owns outright needs no per-file prefix inside it, because the
@@ -824,61 +796,15 @@ Workspace File Layout & VCS Visibility
    ``SPEC_CFG_PATHRESOLVER``'s ``WORKSPACE_PATHS``, and drives both this table
    and the maintained region (``SPEC_CFG_IGNOREMANAGER``).
 
-   **Generated files in** ``.github/hooks/``:
-
-   .. list-table::
-      :header-rows: 1
-      :widths: 30 45 25
-
-      * - File
-        - Role
-        - Lifecycle
-      * - ``jarvis-hooks.json``
-        - Hook event registration (SPEC_HOOK_CONFIG)
-        - Rewritten on each activation
-      * - ``jarvis-bridge.mjs``
-        - Event forwarder (SPEC_HOOK_BRIDGE)
-        - Rewritten on each activation
-      * - ``jarvis-port``
-        - Published listener port (SPEC_HOOK_INTAKE)
-        - Rewritten per activation, removed on deactivate
-
-   All three are **generated artifacts owned by the engine** — they are
-   re-written on activation to stay consistent with the engine version, and
-   carry no user-authored content. A consuming project therefore gains nothing
-   by tracking them, and tracking them produces churn on every activation.
-
-   **Recommended** ``.gitignore`` **entry for a consuming project:**
-
-   .. code-block:: text
-
-      # Jarvis-generated hook artifacts (regenerated on activation)
-      .github/hooks/jarvis-*
-
-   *(GH #60: from this change on, a consuming project no longer writes this
-   entry by hand \u2014 Jarvis maintains it, together with the transient*
-   ``.jarvis/`` *paths, inside a marked region;* ``SPEC_CFG_IGNOREMANAGER``\ *.
-   The entry is unchanged, only its author is.)*
-
-   **Why not ignore** ``.github/hooks/`` **wholesale.**
-   That is what this repository did before the ``jarvis-hook-file-prefix`` CR
-   (GH #58), and it is lossy in both directions: it hides hook files the
-   project itself may want to version, and it hides any other tool's
-   contributions to a directory GitHub Copilot pins and shares. Excluding a
-   shared directory to remove one tool's artifacts is a workaround for missing
-   attribution, not a layout decision. Once the artifacts are attributable by
-   name, the narrower pattern is strictly better and the directory stays
-   available to everyone.
-
    **Naming rule (the standing constraint).**
    Any file Jarvis generates into a directory it does not exclusively own is
    named with the ``jarvis-`` prefix (``REQ_CFG_FILEPREFIX`` AC-1). This binds
-   files added in future, which is the point: the convention was not absent
-   before GH #58 — ``jarvis-hooks.json`` already followed it — it was simply
-   not carried to the two files generated into the same directory later. A rule
-   that lives only in the filenames that happen to exist is re-broken by the
-   next file added; recording it here as a constraint on the *act of
-   generating* is what makes it hold.
+   files added in future, which is the point: a rule that lives only in the
+   filenames that happen to exist is re-broken by the next file added;
+   recording it here as a constraint on the *act of generating* is what makes
+   it hold. Jarvis generates no file into ``.github/hooks/`` any more; the files
+   that earlier versions generated there are removed
+   (``SPEC_CFG_HOOKCLEANUP``).
 
    **Scope note.** This section is written to serve the ``.jarvis/`` layout
    reorganisation (GH #59) as well. When that CR lands it extends the table
@@ -903,7 +829,7 @@ Workspace File Layout & VCS Visibility
         - —
         - durable — tracked
       * - ``.jarvis/state/``
-        - Engine-internal state (e.g. ``touched-files``)
+        - Engine-internal state (e.g. the release-notes marker)
         - —
         - transient — ignored
       * - ``.jarvis/logs/``
@@ -976,7 +902,8 @@ Workspace File Layout & VCS Visibility
       .jarvis/heartbeat.yaml
       .jarvis/reminders.yaml
       .jarvis/syspilot-state.json
-      .github/hooks/jarvis-*
+      jarvis-*
+      !packages/*/assets/**
       # END JARVIS MANAGED
 
    The ``testdata/`` entries stay **outside** the region and remain
@@ -991,6 +918,74 @@ Workspace File Layout & VCS Visibility
    *Note: as above, editing* ``.gitignore`` *to reach this state once is
    Developer scope. Keeping it in that state afterwards is Jarvis's job, which
    is the point of the change.*
+
+
+.. spec:: Removal of Hook Files Left by Earlier Versions
+   :id: SPEC_CFG_HOOKCLEANUP
+   :status: draft
+   :links: REQ_CFG_HOOKCLEANUP; REQ_CFG_FILEPREFIX; SPEC_CFG_WORKSPACEFILES
+
+   **Description:**
+   One function, ``removeLegacyHookFiles(workspaceRoot, log)`` in
+   ``packages/core/src/engine/core/legacyHookFiles.ts``, removes the hook files
+   that earlier versions generated. ``activate()`` calls it once for the first
+   workspace folder when there is one; the call is not awaited on the path of the
+   rest of the activation, and a rejection is caught and logged. It replaces the
+   self-install, the teardown and the cleanup of superseded names of the removed
+   hook specifications.
+
+   **The closed list** (relative to the workspace root):
+
+   .. code-block:: text
+
+      .github/hooks/jarvis-hooks.json
+      .github/hooks/jarvis-bridge.mjs
+      .github/hooks/jarvis-port
+      .github/hooks/bridge.mjs
+      .github/hooks/port
+
+   **Algorithm:**
+
+   1. For each name of the list, remove the file with ``fs.promises.unlink``. An
+      absent file (``ENOENT``) is the normal case and is ignored without a log
+      entry.
+   2. Any other error is logged once at warn level with the relative path and the
+      message; the loop continues with the next name. The function never throws.
+   3. When at least one file was removed, one info line names the removed files.
+      A workspace that is already clean logs nothing.
+   4. The directory ``.github/hooks/`` and every other file in it stay.
+
+   **The list is explicit, never a pattern.** No wildcard, no extension test and
+   no "looks like Jarvis" test: the prefix rule attributes only files that Jarvis
+   generates, and a heuristic deletion in a directory that other tools share costs
+   more than a stale file.
+
+   **Ignore region and settings:** ``WORKSPACE_PATHS`` (``SPEC_CFG_PATHRESOLVER``)
+   keeps the generic entry ``jarvis-*`` with its asset exception
+   ``!packages/*/assets/**``: it marks the files that Jarvis generates into shared
+   directories, for example the provisioned instruction files
+   (``REQ_MOD_ACTORRULES`` AC-2), and is not specific to hooks. The setting ``jarvis.hooks.autoInstall``
+   and the setting ``jarvis.touchedFiles.windowDays`` are removed from the
+   manifest; a value that a user still has stored is ignored and is not migrated.
+
+   **Left on disk:** the folder ``.jarvis/state/touched-files/`` of the removed
+   touched-files function. It is transient, small and covered by the managed
+   region through ``.jarvis/state/``; no function reads it any more.
+
+   **Retirement:** the list is migration debt for workspaces that ran an earlier
+   version. It can be retired when no such installation is supported; that is a
+   decision of the Project Manager.
+
+   **Acceptance Criteria:**
+
+   * AC-1: With all five files present, the function removes all five and logs one
+     info line.
+   * AC-2: With none present, it removes nothing and logs nothing.
+   * AC-3: Another file in ``.github/hooks/`` and the directory itself remain.
+   * AC-4: A removal that fails with an error other than ``ENOENT`` is logged, the
+     remaining names are still tried, and the function resolves.
+   * AC-5: The manifest has no ``jarvis.hooks.*`` setting, and ``extension.ts``
+     starts no listener and writes no hook file (``REQ_CFG_HOOKCLEANUP`` AC-6).
 
 
 .. spec:: Loss-Free Relocation of Message Runtime State
@@ -1110,8 +1105,7 @@ Workspace File Layout & VCS Visibility
    only by an explicit decision in a future Change Document naming the release
    from which the flat paths are no longer read
    (``REQ_CFG_STATEMIGRATION`` AC-8). Until then this code looks dead and is
-   not — the same construction, and the same reason, as ``SPEC_HOOK_MIGRATE``
-   (GH #58).
+   not.
 
 
 .. spec:: Managed .gitignore Region
@@ -1142,8 +1136,8 @@ Workspace File Layout & VCS Visibility
         }
       }
 
-   The setting is defined here rather than in ``SPEC_CFG_MANIFEST``, following
-   ``SPEC_HOOK_AUTOINST``. ``SPEC_CFG_MANIFEST`` is a snapshot of the manifest
+   The setting is defined here rather than in ``SPEC_CFG_MANIFEST``.
+   ``SPEC_CFG_MANIFEST`` is a snapshot of the manifest
    as of the ``settings-cleanup`` CR and has not tracked the monorepo split; see
    the note under *Group placement* below.
 
@@ -1278,7 +1272,7 @@ Workspace File Layout & VCS Visibility
    **Group placement.** The setting belongs in a ``Gitignore`` group in
    ``contributes.configuration``. ``REQ_CFG_GROUPS`` fixes the groups at eleven
    named titles in a fixed order and is ``:status: implemented``; the shipped
-   manifest already contributes ``Actors``, ``Prompt Templates`` and ``Hooks``
+   manifest already contributes ``Actors`` and ``Prompt Templates``
    and omits five groups that moved to other packages at the monorepo split.
    This design element does not assert conformance to ``REQ_CFG_GROUPS``,
    because it cannot: the requirement describes a manifest that no longer

@@ -8,7 +8,7 @@ import * as path from 'path';
 import { ThemeIcon, ThemeColor } from 'vscode';
 import { ActorScanner } from '../../packages/core/src/engine/actors/actorScanner';
 import { ActorTreeProvider } from '../../packages/core/src/engine/actors/actorTreeProvider';
-import { TouchStore } from '../../packages/core/src/engine/hooks/touchStore';
+import type { ActorActivityState } from '../../packages/core/src/engine/actors/actorActivity';
 
 const roots: string[] = [];
 
@@ -18,7 +18,7 @@ afterEach(() => {
     }
 });
 
-async function setup(active: boolean, mail: { isUnread: (id: string) => boolean } = { isUnread: () => false }) {
+async function setup(active: boolean | ActorActivityState, mail: { isUnread: (id: string) => boolean } = { isUnread: () => false }) {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'jarvis-mark-'));
     roots.push(root);
     const folder = path.join(root, 'Solo');
@@ -26,9 +26,7 @@ async function setup(active: boolean, mail: { isUnread: (id: string) => boolean 
     fs.writeFileSync(path.join(folder, 'actor.yaml'), 'name: "Solo"\nsummary: ""\nagent: ""\n');
     const scanner = new ActorScanner(() => root, () => {});
     await scanner.rescan();
-    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'jarvis-mark-state-'));
-    roots.push(stateDir);
-    const provider = new ActorTreeProvider(scanner, new TouchStore(stateDir), { isActive: () => active }, mail);
+    const provider = new ActorTreeProvider(scanner, { state: () => typeof active === 'string' ? active : active ? 'working' : 'idle' }, mail);
     const node = { kind: 'actor' as const, id: scanner.actors[0].id };
     let refreshes = 0;
     provider.onDidChangeTreeData(() => { refreshes++; });
@@ -39,10 +37,19 @@ const red = new ThemeIcon('circle-filled', new ThemeColor('charts.red'));
 const blue = new ThemeIcon('circle-filled', new ThemeColor('charts.blue'));
 
 describe('SPEC_ENG_ACTORMARK: ActorTreeProvider.mark', () => {
-    it('AC-3: the mark replaces the icon, ahead of the activity indicator', async () => {
+    it.each([['error', 'error', 'charts.red'], ['waiting', 'question', 'charts.blue']] as const)(
+        'shows %s ahead of a recording mark and mail', async (state, iconId, color) => {
+            const { provider, node } = await setup(state, { isUnread: () => true });
+            provider.mark(node.id, red);
+            const icon = provider.getTreeItem(node).iconPath as ThemeIcon;
+            expect(icon.id).toBe(iconId);
+            expect(icon.color?.id).toBe(color);
+        }
+    );
+    it('AC-3: the activity indicator takes precedence over the mark', async () => {
         const { provider, node } = await setup(true);
         provider.mark(node.id, red);
-        expect(provider.getTreeItem(node).iconPath).toBe(red);
+        expect((provider.getTreeItem(node).iconPath as ThemeIcon).id).toBe('loading~spin');
     });
 
     it('AC-1/AC-4: disposing removes the mark, refreshes, and the activity icon returns', async () => {
@@ -52,7 +59,7 @@ describe('SPEC_ENG_ACTORMARK: ActorTreeProvider.mark', () => {
         d.dispose();
         expect(refreshes()).toBe(before + 1);
         const icon = provider.getTreeItem(node).iconPath as ThemeIcon;
-        expect(icon.color?.id).toBe('charts.green');
+        expect(icon.id).toBe('loading~spin');
     });
 
     it('AC-4: an inactive Actor has no icon once the mark is gone', async () => {
@@ -112,7 +119,7 @@ describe('SPEC_ACTOR_MAIL: unread-mail icon on the Actor node (ActorTreeProvider
     it('AC-6: the activity icon takes precedence over the mail icon', async () => {
         const { provider, node } = await setup(true, unread);
         const icon = provider.getTreeItem(node).iconPath as ThemeIcon;
-        expect(icon.color?.id).toBe('charts.green');
+        expect(icon.id).toBe('loading~spin');
     });
 
     it('AC-6: a mark takes precedence over the mail icon', async () => {

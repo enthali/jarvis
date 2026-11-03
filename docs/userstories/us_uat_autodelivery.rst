@@ -3,155 +3,119 @@ Auto Delivery User Acceptance Tests
 
 .. story:: Auto Delivery Acceptance Tests
    :id: US_UAT_MSG_AUTODELIVERY
-   :status: approved
+   :status: draft
    :priority: optional
-   :links: US_MSG_AUTODELIVERY; US_MSG_EDITORPLACEMENT
+   :links: US_COM_DELIVERY; US_COM_AUTHORITY; US_COM_NAME
 
    **As a** Jarvis Test Engineer,
-   **I want** manual acceptance test scenarios for the auto-delivery feature,
-   including its Secondary-column placement and Focus-Snapshot/Restore
-   behavior,
-   so that I can verify end-to-end that messages are automatically sent to
-   registered sessions without manual intervention and without disrupting the
-   user's current focus.
+   **I want** manual acceptance test scenarios for automatic delivery,
+   **so that** I can verify that an Actor with automatic delivery is told that
+   messages wait, and that a delivery never opens a chat or moves the User's focus.
 
    **Acceptance Criteria:**
 
-   * AC-1: The Messages tree always shows an "Auto Delivery" group node, even
-     when no sessions are registered
-   * AC-2: Any session node in the manual root has a context menu entry
-     "Enable Direct Delivery"
-   * AC-3: Enabling direct delivery moves the session node into the "Auto
-     Delivery" group and persists the change to ``autodelivery.json``
-   * AC-4: Auto Delivery session nodes have a "Disable Direct Delivery" context
-     menu entry that moves them back to the manual root
-   * AC-5: The poll loop auto-delivers a queued message to a registered session
-     without the user pressing the Play button
-   * AC-6: An auto-delivered message is not re-delivered on subsequent ticks
-     (``notified`` flag prevents duplicates)
-   * AC-7: The manual Play button still works for sessions that are in the Auto
-     Delivery group
-   * AC-8: A delivery to a session with no currently-open chat tab opens it
-     at the Secondary placement target (the last existing editor-group
-     column) rather than creating a new column
-   * AC-8b: When exactly 1 editor-group column (Main only) is open, a
-     Secondary delivery SHALL split a new column 2 — it SHALL NOT collapse
-     into column 1 (Main)
-   * AC-9: Around a system-initiated (poll-loop) delivery, the user's
-     current focus — an editor tab or an integrated terminal — is
-     automatically restored immediately after the delivery completes
-   * AC-10: A test verifies that auto-delivery is NOT suppressed when the
-     target session's chat tab is the currently active/focused tab —
-     the focus gate has been removed (``remove-autodelivery-focus-gate`` CR)
+   * AC-1: The Messages tree always shows an "Auto Delivery" group node, even when no
+     Actor is registered (T-1).
+   * AC-2: A node in the manual root has the context menu entry "Enable Direct
+     Delivery"; enabling it moves the node into the "Auto Delivery" group and persists
+     the change to ``autodelivery.json`` (T-2, T-3, T-4).
+   * AC-3: A node in the "Auto Delivery" group has the entry "Disable Direct Delivery"
+     that moves it back and removes it from ``autodelivery.json`` (T-5, T-6).
+   * AC-4: A queued message for an Actor in the group is announced in its chat without
+     the User pressing Play (T-7).
+   * AC-5: An announced message is not announced again (T-8).
+   * AC-6: The Play button works for an Actor in the group and does not cause a second
+     announcement of the same messages (T-9).
+   * AC-7: A delivery opens no editor tab and adds no editor column (T-10).
+   * AC-8: A delivery leaves the focus where it was, in an editor and in the integrated
+     terminal (T-11, T-12).
+   * AC-9: A delivery to an Actor whose chat tab is open and focused is not suppressed
+     (T-13).
 
    **Test Scenarios:**
 
+   The inbox and the list of Actors with automatic delivery are the files
+   ``queue.json`` and ``autodelivery.json`` in ``<workspace>/.jarvis/messages/``. To
+   queue a message for ``TestTarget`` run the job ``t8-queue-message`` of
+   ``testdata/heartbeat/heartbeat.yaml``. A delivery is the announcement in the chat
+   of the Actor (``REQ_COM_NOTIFY``). The delay between the queued message and the
+   announcement is not specified; record what you observe. An unseen result is
+   recorded NOT RUN, not PASS.
+
    **T-1 — "Auto Delivery" group node always visible**
-     Setup: No sessions registered for auto-delivery.
-     Action: Open the Jarvis Explorer sidebar and expand the Messages view.
-     Expected: An "Auto Delivery" group node is visible (may show "0 sessions"
-     or be empty), distinct from the manual message root.
+     Setup: No Actor registered for automatic delivery (``autodelivery.json`` absent
+     or empty).
+     Action: Open the Jarvis Explorer and expand the Messages view.
+     Expected: An "Auto Delivery" group node is visible, distinct from the manual root.
 
-   **T-2 — "Enable Direct Delivery" context menu on manual session node**
-     Setup: At least one queued message exists for an Actor (e.g. the test
-     fixture "TestTarget"), so the session node appears under the manual root.
-     Action: Right-click the "TestTarget" session node.
-     Expected: Context menu contains the entry "Enable Direct Delivery".
+   **T-2 — "Enable Direct Delivery" on a manual node**
+     Setup: One message queued for ``TestTarget``, so the node is in the manual root.
+     Action: Right-click the ``TestTarget`` node.
+     Expected: The context menu contains "Enable Direct Delivery".
 
-   **T-3 — Enable Direct Delivery moves session to Auto Delivery group**
-     Setup: "TestTarget" session node visible in manual root (from T-2).
-     Action: Right-click "TestTarget" → "Enable Direct Delivery".
-     Expected: "TestTarget" node disappears from the manual root and reappears
-     inside the "Auto Delivery" group. Tree refreshes without requiring a manual
-     rescan.
+   **T-3 — Enable moves the node into the group**
+     Action: Choose "Enable Direct Delivery" on ``TestTarget``.
+     Expected: The node leaves the manual root and appears in the "Auto Delivery"
+     group without a manual rescan.
 
-   **T-4 — autodelivery.json created/updated on enable**
-     Setup: Before enabling, ``autodelivery.json`` either does not exist or does
-     not contain "TestTarget".
-     Action: Perform T-3 (enable auto-delivery for "TestTarget").
-     Expected: ``autodelivery.json`` in the extension storage folder is
-     created (if absent) or updated to include "TestTarget".
+   **T-4 — autodelivery.json is written**
+     Action: Open ``<workspace>/.jarvis/messages/autodelivery.json`` after T-3.
+     Expected: Valid JSON that lists ``TestTarget``.
 
-   **T-5 — "Disable Direct Delivery" context menu on Auto Delivery session node**
-     Setup: "TestTarget" is in the Auto Delivery group (from T-3/T-4).
-     Action: Right-click the "TestTarget" node inside the "Auto Delivery" group.
-     Expected: Context menu contains the entry "Disable Direct Delivery".
+   **T-5 — "Disable Direct Delivery" in the group**
+     Action: Right-click ``TestTarget`` inside the "Auto Delivery" group.
+     Expected: The context menu contains "Disable Direct Delivery".
 
-   **T-6 — Disable Direct Delivery moves session back to manual root**
-     Setup: "TestTarget" is in the Auto Delivery group.
-     Action: Right-click "TestTarget" → "Disable Direct Delivery".
-     Expected: "TestTarget" disappears from the "Auto Delivery" group and
-     reappears in the manual root (assuming messages are still queued for it).
-     ``autodelivery.json`` no longer lists "TestTarget".
+   **T-6 — Disable moves the node back**
+     Action: Choose "Disable Direct Delivery".
+     Expected: The node returns to the manual root while messages are queued;
+     ``autodelivery.json`` no longer lists ``TestTarget``.
 
-   **T-7 — Poll loop auto-delivers message without manual Play**
-     Setup: "TestTarget" is registered for auto-delivery. A chat session named
-     "TestTarget" is open. Queue a message for "TestTarget" (e.g. via a
-     heartbeat job or the ``jarvis_readMessage`` test helper).
-     Action: Wait up to 10 seconds (two poll ticks).
-     Expected: The message is delivered to the "TestTarget" chat session
-     automatically — no Play button click required. The "TestTarget" node in
-     the Auto Delivery group shows an updated (or cleared) message count.
+   **T-7 — Announcement without Play**
+     Setup: ``TestTarget`` is in the group; its chat exists and is idle.
+     Action: Run the ``t8-queue-message`` job. Do not press Play.
+     Expected: The chat of ``TestTarget`` shows the announcement (the number of waiting
+     messages and the request to receive them). The message text is not in the
+     announcement. The node shows the messages as announced or its count changes.
 
-   **T-8 — Auto-delivered message not re-delivered on next tick**
-     Setup: T-7 completed; the message was delivered.
-     Action: Wait another 10 seconds (two more poll ticks).
-     Expected: The message is NOT delivered a second time. No duplicate
-     notification appears in the "TestTarget" chat session.
+   **T-8 — No second announcement**
+     Setup: T-7 completed.
+     Action: Wait one minute without queuing anything.
+     Expected: No second announcement for the same message appears in the chat.
 
-   **T-9 — Manual Play button works for Auto Delivery session**
-     Setup: "TestTarget" is in the Auto Delivery group. A new message is queued.
-     Action: Click the Play (``$(play)``) button on the "TestTarget" node in
-     the Auto Delivery group before the next poll tick fires.
-     Expected: The message is delivered immediately, same as for a manual
-     session. No error is shown. The message is not delivered a second time by
-     the subsequent poll tick.
+   **T-9 — Play for a node in the group**
+     Setup: ``TestTarget`` is in the group; a new message is queued and announced.
+     Action: Press Play on the node.
+     Expected: The chat gets one announcement for all waiting messages; no error; a
+     later watcher pass adds no further announcement for them.
 
-   **T-10 — Secondary placement for delivery to a not-yet-open session**
-     Setup: 2 editor columns already open (e.g. an Actor chat in column 1, a
-     ``context.md`` in column 2). "TestTarget" is registered for auto-delivery
-     and its chat tab is **not** open in any column. Queue a message for it.
-     Action: Wait up to 10 s (two poll ticks).
-     Expected: A new tab for "TestTarget" opens in column 2 (the last
-     existing column at delivery time) — no third column is created.
+   **T-10 — A delivery opens nothing**
+     Setup: Two editor columns are open (an Actor chat in column 1, ``context.md`` in
+     column 2). The chat of ``TestTarget`` is not open in any column. ``TestTarget`` is
+     in the group.
+     Action: Run the ``t8-queue-message`` job and wait for the announcement.
+     Expected: No tab for ``TestTarget`` opens and no column is added; the announcement
+     is visible when the User opens the chat (click the node) or in the Agents window.
 
-   **T-11 — Focus-Snapshot/Restore: editor tab case**
-     Setup: "TestTarget" is registered for auto-delivery; its chat tab is
-     closed. An unrelated file (e.g. ``README.md``) is open and focused in
-     the editor. Queue a message for "TestTarget".
-     Action: Wait up to 10 s for the poll tick to deliver.
-     Expected: The "TestTarget" chat briefly opens/receives the message, then
-     focus automatically returns to the ``README.md`` tab — the user ends up
-     exactly where they were before the delivery, with no manual action.
+   **T-11 — Focus stays in the editor**
+     Setup: ``TestTarget`` in the group, its chat closed; ``README.md`` open and focused.
+     Action: Run the job and wait for the announcement.
+     Expected: ``README.md`` keeps the focus the whole time. NOT RUN if the focus cannot
+     be observed.
 
-   **T-12 — Focus-Snapshot/Restore: terminal case**
-     Setup: "TestTarget" is registered for auto-delivery; its chat tab is
-     closed. An integrated terminal panel is open and focused (not an
-     editor tab). Queue a message for "TestTarget".
-     Action: Wait up to 10 s for the poll tick to deliver.
-     Expected: After the delivery, focus automatically returns to the
-     integrated terminal (``terminal.show()``) — not to the newly-opened
-     "TestTarget" chat tab.
+   **T-12 — Focus stays in the terminal**
+     Setup: As T-11 with the integrated terminal focused instead of ``README.md``.
+     Expected: The terminal keeps the focus the whole time.
 
-   **T-14 — Secondary placement with only Main column open (split, not collapse)**
-     Setup: Exactly 1 editor-group column open, containing an Actor chat at
-     Main (column 1). No Docs column is open yet. "TestTarget" is registered
-     for auto-delivery and its chat tab is **not** open anywhere. Queue a
-     message for "TestTarget".
-     Action: Wait up to 10 s (two poll ticks).
-     Expected: A new column 2 is split off and "TestTarget"'s chat tab opens
-     there. The Main tab in column 1 is undisturbed — "TestTarget" does NOT
-     open inside column 1 alongside/replacing the Main tab. This is distinct
-     from T-10 (2+ columns already open, Secondary reuses the last one).
+   **T-13 — Delivery to a focused chat**
+     Setup: The chat tab of ``TestTarget`` is open and focused; ``TestTarget`` is in the
+     group.
+     Action: Run the job.
+     Expected: The announcement arrives in that chat; delivery is not suppressed
+     because the tab is focused; no error is shown.
 
-   **T-16 — Delivery fires even when target session tab is the active/focused tab**
-     Setup: "TestTarget" is registered for auto-delivery. "TestTarget"'s chat
-     tab is open **and currently focused** (it is the foreground active tab in
-     the editor). Queue a message for "TestTarget".
-     Action: Wait up to 10 s (two poll ticks).
-     Expected: The message is delivered to the "TestTarget" chat session even
-     though its tab is the currently focused tab — the poll loop does NOT skip
-     the delivery (the focus gate has been removed by this CR). Focus-Snapshot/
-     Restore still executes: focus returns to the "TestTarget" tab (which is
-     already focused), resulting in no perceptible focus change. No error or
-     suppression log entry appears.
+   **Retired:** the former placement scenarios (Secondary column, split of a second
+   column when only Main is open) and the focus snapshot and restore around a delivery
+   test behaviour that ``REQ_COM_OPEN`` AC-4 removed: a delivery moves no focus and
+   opens no tab. The model for documents and the diagram panel
+   (``REQ_MSG_EDITORPLACEMENT``) is not part of this set.

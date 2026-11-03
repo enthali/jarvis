@@ -133,7 +133,7 @@ export function deleteByDestination(filePath: string, destination: string): void
 }
 
 // Implementation: SPEC_MSG_QUEUESTORE
-// Requirements: REQ_MSG_READ
+// Requirements: REQ_COM_CAPABILITY
 export function popMessage(filePath: string, destination: string): { message: QueuedMessage | null; remaining: number } {
     const { entries: queue, legacyPresent } = unionReadQueue(filePath, getLegacyMessagesPath());
     const idx = queue.findIndex(m => m.destination === destination);

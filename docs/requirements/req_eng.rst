@@ -75,8 +75,7 @@ Engine Requirements
      ``task`` becomes ``jarvis_pim_task``.
    * AC-2: ``modelDescription`` SHALL begin with ``jarvis_<package>:`` and a
      space, followed by the description the tool had before.
-   * AC-3: A ``modelDescription`` that carries a deprecation notice
-     (``REQ_MSG_READ`` AC-6, ``REQ_MSG_SENDTOSESSION`` AC-6) SHALL carry the
+   * AC-3: A ``modelDescription`` that carries a deprecation notice SHALL carry the
      package first and the notice directly after it, so the notice stays at the
      start of the description text.
    * AC-4: The ``toolReferenceName`` values of all Jarvis packages SHALL be
@@ -115,7 +114,7 @@ Engine Requirements
    :id: REQ_ENG_ACTORLIST
    :status: implemented
    :priority: required
-   :links: US_ACTOR_LISTTOOL; REQ_ACTOR_LISTTOOL; REQ_ACTOR_SCHEMA
+   :links: US_COM_FIND; REQ_ACTOR_SCHEMA
 
    **Description:**
    The core SHALL expose a read-only ``JarvisCoreApi.listActors()`` method so
@@ -126,23 +125,24 @@ Engine Requirements
 
    * AC-1: A ``JarvisActor`` type is exposed on the public API surface with the
      shape ``{ name: string; summary: string; agent: string; folder: string;
-     id: string }`` — the same entry shape as ``jarvis_listActors``
-     (``REQ_ACTOR_LISTTOOL`` AC-2).
+     id: string }`` — the entry shape of the former ``jarvis_listActors``
+     tool, which the Jarvis AHP client replaces by ``jarvis_listActors`` of
+     ``SPEC_COM_TOOLS`` (name and summary only).
    * AC-2: ``listActors()`` returns one ``JarvisActor`` per Actor discovered per
      ``REQ_ACTOR_TREE`` AC-2, from the current Actor scan.
    * AC-3: The method performs no filesystem scan of its own — it is a
      read-only view of the existing scan state.
    * AC-4: A missing ``summary`` is returned as an empty string. ``agent`` is
-     the Actor name (``REQ_ACTOR_LISTTOOL`` AC-2).
+     the Actor name (``REQ_ACTOR_WHOAMI`` AC-1).
    * AC-5: ``listJarvisSessions()`` and the ``JarvisSession`` type SHALL be
      removed; existing add-on callers SHALL use ``listActors()``.
 
 
 .. req:: Actor Node Mark API
    :id: REQ_ENG_ACTORMARK
-   :status: implemented
+   :status: approved
    :priority: required
-   :links: US_REC_CAPTURE; REQ_ACTOR_TREE; REQ_ACTOR_ACTIVITY; REQ_ACTOR_MAIL; REQ_ENG_CONTRACT
+   :links: US_REC_CAPTURE; REQ_ACTOR_TREE; REQ_COM_STATE; REQ_ACTOR_MAIL; REQ_ENG_CONTRACT
 
    **Description:**
    The core SHALL expose a method on ``JarvisCoreApi`` with which an add-on marks one
@@ -155,11 +155,12 @@ Engine Requirements
    * AC-1: ``markActor(actorId, icon)`` SHALL be on the API surface and return a
      ``vscode.Disposable``; ``actorId`` is ``JarvisActor.id`` and ``icon`` a
      ``vscode.ThemeIcon``
-   * AC-2: While a mark is set, the Actor's node SHALL show the icon in place of its normal
-     icon, taking precedence over the activity indicator (``REQ_ACTOR_ACTIVITY`` AC-7) and
-     over the unread-mail icon (``REQ_ACTOR_MAIL``). Marks on the same Actor are kept as
+   * AC-2: While a mark is set and the Actor is Idle (``REQ_COM_STATE``), the Actor's node
+     SHALL show the icon in place of its normal icon, taking precedence over the unread-mail
+     icon (``REQ_ACTOR_MAIL``). An activity state other than Idle takes precedence over the
+     mark. Marks on the same Actor are kept as
      separate entries; the node SHALL show the most recently added mark that is still set.
-     When no mark is set, the node SHALL show the activity indicator or the unread-mail icon
+     When no mark is set, the node SHALL show the unread-mail icon
      that applies (``REQ_ACTOR_MAIL`` AC-6), or its normal icon.
    * AC-3: Disposing the returned ``Disposable`` SHALL remove exactly that mark and leave the
      other marks on the same Actor in place. Disposing it a second time SHALL change nothing.

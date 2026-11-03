@@ -134,13 +134,15 @@ Message Flow Visualization UAT Design Specifications
 
       * - T-7
 
-          Actor node click opens chat at Main
+          Actor node click shows the existing chat
 
-          *AC: REQ_FLOW_ACTORCLICK 1-2*
-        - With a session's chat editor open in a non-1 column and shown as
-          a node in the diagram, click that node.
-        - Tab closes and reopens fresh in column 1 (Main) — identical to an
-          entity-tree Actor click.
+          *AC: REQ_FLOW_ACTORCLICK 1-3*
+        - With an Actor's chat open in a column and the Actor shown as a node in the
+          diagram, click that node; repeat with the chat tab closed; then click the
+          node of an Actor that has no chat.
+        - The open tab is shown; the closed chat opens in the first editor group; an
+          Actor without a chat does nothing and no chat is created (``REQ_COM_OPEN``
+          AC-1, AC-7).
 
       * - T-8
 

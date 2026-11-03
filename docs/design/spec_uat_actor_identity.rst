@@ -10,8 +10,7 @@ Protocol. Use a disposable Extension Development Host (EDH) on
 ``summary: Existing actor`` and ``agent: OtherPersona``, and create its
 ``context.md`` with ``# LegacyIdentity``. Do not manually create an agent
 for it. Keep ``NewIdentity``, ``QuietIdentity`` and ``ToolIdentity`` unused.
-Use a workspace without agent hooks, as in the user's current VS Code setup.
-If the EDH cannot disable hooks or expose chat compaction, record that
+If the EDH cannot expose chat compaction for T-2, record that
 precondition as BLOCKED rather than claiming those properties were tested.
 Do not use ``jarvis_whoAmI`` to establish identity. Module integration,
 compilation, and package checks are outside User UAT.

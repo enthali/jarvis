@@ -46,7 +46,7 @@ The Project Manager initializes a change as one consistent version-controlled st
 1. Choose a lowercase, hyphenated change name.
 2. Create the local feature branch `feature/<change>` from `development`. Feature branches stay local; `development` and `main` are the shared branches.
 3. Copy the canonical template from `# Change Contract: {NAME}` through the end of this file to `docs/changes/<change>.md`.
-4. Select the agreed Operation Mode, remove the template note and the two non-applicable mode rules, replace the remaining placeholders, tailor the artifact set, and complete the header and `Intent And Outcome` section.
+4. Select the agreed Operation Mode and keep its definition with the specifics agreed with the User, remove the template note and the two non-applicable mode rules, replace the remaining placeholders, tailor the artifact set, and complete the header and `Intent And Outcome` section.
 5. Record evidence that the intent and outcome text is settled, and set its status to `approved`.
 6. Ask the User to set the User-owned `Contract release` gate to `approved`; only the User sets this gate.
 7. Commit the branch and initialized Change Contract.
@@ -61,7 +61,7 @@ The Project Manager initializes a change as one consistent version-controlled st
 **Current blocker:** none | {decision or action currently needed}<br>
 **Created:** {DATE}<br>
 **Related GitHub Issue(s):** {#n, …} — delete this line if not applicable<br>
-- **Operation Mode**:
+- **Operation Mode**: {select one of the following modes and agree its specifics for this change with the User}
 *(Template note - delete this line and the two non-applicable mode bullets once the mode is picked.)*
 
 - **user-guided** - every actor involves the user in its decision-making before proceeding.
@@ -70,12 +70,10 @@ The Project Manager initializes a change as one consistent version-controlled st
 
 ## Handover log
 
-Owned by: Project Manager
+Append one line as the last act before handing over, in the same commit that changes Current responsibility. The note says what you did and states facts that change the next owner's situation; evidence stays in your own section.
 
-Append one line as the last act before handing over to the next appropriate Actor in the development flow.
-
-| Date : Time | From | To | Note |
-|--|--|--|--|
+| Date | Time | From | To | Note |
+|---|---|---|---|---|
 
 ## Intent And Outcome
 
@@ -185,7 +183,7 @@ Append one line as the last act before handing over to the next appropriate Acto
 
 ### Test Execution
 
-Quality executes the tests the change affects, and reviews the Developer's unit tests for whether they exercise the specified behaviour of their unit.
+Quality executes the tests the change affects, and reviews the Developer's unit tests for whether they exercise the specified behaviour of their unit. When the change touches packages, manifests, READMEs or build files, Quality also runs the VSIX packaging of all packages (`test-environments/windows-sandbox/Build-Vsix.ps1`, without starting the Sandbox) and records it as its own row.
 
 | Test or run | Command and commit | Result |
 |---|---|---|
@@ -227,5 +225,6 @@ After Quality's `proceed`, the Project Manager presents the observable outcome. 
 - [ ] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
 - [ ] The feature branch is squash-integrated into `development`.
 - [ ] Current blocker is `none`.
+- [ ] Header Status is `closed`.
 
 **Final outcome:** {accepted result and integration commit}

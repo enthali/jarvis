@@ -5,7 +5,7 @@ MCP Server Test Data Requirements
    :id: REQ_UAT_MCPSERVER_TESTDATA
    :status: approved
    :priority: optional
-   :links: US_UAT_MCPSERVER; REQ_MSG_MCPSERVER; REQ_CFG_MCPPORT
+   :links: US_UAT_MCPSERVER; REQ_MSG_MCPSERVER; REQ_CFG_MCPPORT; REQ_CFG_MCPDEFAULTOFF
 
    **Description:**
    The repo SHALL contain documented expected outcomes for manual verification

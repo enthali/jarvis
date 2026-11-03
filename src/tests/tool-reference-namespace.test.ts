@@ -20,12 +20,6 @@ interface Tool {
 const EXPECTED: Record<string, Record<string, string>> = {
     core: {
         jarvis_createActor: 'jarvis_core_createActor',
-        jarvis_sendToSession: 'jarvis_core_sendToSession',
-        jarvis_sendMessage: 'jarvis_core_sendMessage',
-        jarvis_listActors: 'jarvis_core_listActors',
-        jarvis_listChatSessions: 'jarvis_core_listChatSessions',
-        jarvis_readMessage: 'jarvis_core_readMessage',
-        jarvis_receiveMessage: 'jarvis_core_receiveMessage',
         jarvis_registerJob: 'jarvis_core_registerJob',
         jarvis_unregisterJob: 'jarvis_core_unregisterJob',
         jarvis_listJobs: 'jarvis_core_listJobs',
@@ -33,7 +27,6 @@ const EXPECTED: Record<string, Record<string, string>> = {
         jarvis_setReminder: 'jarvis_core_setReminder',
         jarvis_listReminders: 'jarvis_core_listReminders',
         jarvis_cancelReminder: 'jarvis_core_cancelReminder',
-        jarvis_injectPrompt: 'jarvis_core_injectPrompt',
     },
     kanban: {
         jarvis_createKanbanBoard: 'jarvis_kanban_createKanbanBoard',
@@ -56,8 +49,8 @@ const EXPECTED: Record<string, Record<string, string>> = {
     },
 };
 
-// REQ_MSG_READ AC-6, REQ_MSG_SENDTOSESSION AC-6.
-const DEPRECATED = ['jarvis_readMessage', 'jarvis_sendToSession'];
+// No contributed tool is deprecated any more; the deprecated message tools were removed with the move to the Agent Host.
+const DEPRECATED: string[] = [];
 
 const tools = (pkg: string): Tool[] =>
     JSON.parse(fs.readFileSync(path.join(ROOT, 'packages', pkg, 'package.json'), 'utf8')).contributes.languageModelTools ?? [];
@@ -107,7 +100,7 @@ describe('REQ_ENG_TOOLREF / SPEC_ENG_TOOLREF: tool reference and description nam
 
     it('AC-3 (SPEC) / AC-4 (REQ): toolReferenceName values are unique across all four packages', () => {
         const refs = Object.keys(EXPECTED).flatMap(pkg => tools(pkg).map(t => t.toolReferenceName));
-        expect(refs.length).toBe(28);
+        expect(refs.length).toBe(21);
         expect(new Set(refs).size).toBe(refs.length);
     });
 

@@ -132,7 +132,7 @@ Configuration Requirements
 
 .. req:: MCP Server Configuration
    :id: REQ_CFG_MCPPORT
-   :status: implemented
+   :status: approved
    :priority: mandatory
    :links: US_MSG_MCPSERVER; REQ_MSG_MCPSERVER
 
@@ -143,8 +143,9 @@ Configuration Requirements
    **Acceptance Criteria:**
 
    * AC-1: ``jarvis.mcpPort`` SHALL accept a number with default ``31415``
-   * AC-2: ``jarvis.mcpEnabled`` SHALL accept a boolean with default ``true``
-   * AC-3: When ``jarvis.mcpEnabled`` is ``false``, the MCP server SHALL not
+   * AC-2: ``jarvis.mcp.enabled`` SHALL accept a boolean with default ``false``
+     (``REQ_CFG_MCPDEFAULTOFF`` AC-1)
+   * AC-3: When ``jarvis.mcp.enabled`` is ``false``, the MCP server SHALL not
      start during activation
    * AC-4: The port setting SHALL be read at activation time — runtime changes
      require extension reload
@@ -261,7 +262,7 @@ Configuration Requirements
    The core ``contributes.configuration`` array in ``packages/core/package.json``
    SHALL contain exactly the following groups in this order:
    Actors, Messages, Prompt Templates, Heartbeat, Reminders, Gitignore,
-   Updates, Hooks. Each add-on SHALL contribute its own settings in its own
+   Updates. Each add-on SHALL contribute its own settings in its own
    ``package.json`` groups: PIM ("PIM", "Outlook"), recorder ("Jarvis
    Recorder"), MCP ("Jarvis MCP"), kanban ("Jarvis Kanban"), syspilot
    ("Jarvis Syspilot").
@@ -270,7 +271,7 @@ Configuration Requirements
 
    * AC-1: The ``contributes.configuration`` value is a JSON array.
    * AC-2: Each core element has a distinct ``title`` matching one of the
-     eight core group names listed above; add-on groups appear only when the
+     seven core group names listed above; add-on groups appear only when the
      add-on is installed.
    * AC-3: The order of core groups matches the list above.
    * AC-4: Each setting appears in exactly one group.
@@ -279,13 +280,12 @@ Configuration Requirements
    * AC-6: The Actors group contains ``jarvis.actors.folder``,
      ``jarvis.actors.openSessionOnCreate``, ``jarvis.scanInterval`` and
      ``jarvis.actor.autoProvision``. The Prompt Templates group contains
-     ``jarvis.agentSession.initPromptTemplate`` and
-     ``jarvis.messages.notificationTemplate``.
+     ``jarvis.agentSession.initPromptTemplate``.
 
 
 .. req:: MCP Default Off
    :id: REQ_CFG_MCPDEFAULTOFF
-   :status: implemented
+   :status: approved
    :priority: required
    :links: US_CFG_FEATURETOGGLES
 
@@ -302,6 +302,12 @@ Configuration Requirements
      is ignored.
    * AC-3: When ``jarvis.mcp.enabled`` is ``false`` (the default), the MCP
      server SHALL NOT start during activation and no MCP tools are registered.
+   * AC-4: The default is the same everywhere it is stated or read: in the
+     manifest of the MCP extension, in the code that reads the setting when no
+     value is stored, and in every guide and settings reference.
+   * AC-5: An installation that has no explicit value for ``jarvis.mcp.enabled``
+     does not start the MCP server after it has been upgraded to a version that
+     follows this default; the release notes of that version say so.
 
 
 .. req:: Setting Key Renames for Group Consistency
@@ -353,48 +359,32 @@ Configuration Requirements
    attributable to Jarvis by name alone and coverable by a single ignore
    pattern.
 
-   The convention is **unenforced rather than missing**
-   (``jarvis-hook-file-prefix`` CR, GH #58). It is already applied to
-   ``.github/hooks/jarvis-hooks.json`` and repo-wide (``jarvis-core``,
-   ``jarvis-flow``, ``jarvis-pim``, ``jarvis-recorder``, ``jarvis-mcp``,
-   ``jarvis-128.png``, ``jarvis-actor.kernel.instructions.md``).
-   Two files generated later into the same directory — ``bridge.mjs`` and
-   ``port`` — did not inherit it. This requirement therefore states the rule
+   The convention already holds repo-wide (``jarvis-core``, ``jarvis-flow``,
+   ``jarvis-pim``, ``jarvis-recorder``, ``jarvis-mcp``, ``jarvis-128.png``,
+   ``jarvis-actor.kernel.instructions.md``). This requirement states the rule
    **prospectively**, binding files Jarvis adds in future, rather than
-   enumerating a one-time fix.
+   enumerating the files that exist today. Jarvis generates no file into
+   ``.github/hooks/`` any more; the files that earlier versions generated there
+   are removed (``REQ_CFG_HOOKCLEANUP``).
 
    **Applicability:** a directory is *not exclusively owned* when another tool
-   or the user may legitimately place files in it. ``.github/hooks/`` is such a
-   directory: it is pinned by GitHub Copilot and is not relocatable, other
-   tools contribute hook configurations there, and the project itself may want
-   to version its own hook files. ``.jarvis/`` is exclusively Jarvis-owned and
-   is therefore **out of scope** for the prefix — it is already selectively
-   ignorable as a unit (``REQ_CFG_FIXEDPATHS``).
+   or the user may legitimately place files in it, for example the
+   ``.github/`` subdirectories that GitHub Copilot reads. ``.jarvis/`` is
+   exclusively Jarvis-owned and is therefore **out of scope** for the prefix —
+   it is already selectively ignorable as a unit (``REQ_CFG_FIXEDPATHS``).
 
    **Acceptance Criteria:**
 
    * AC-1: Every file Jarvis generates into a directory it does not exclusively
      own SHALL have a name beginning with ``jarvis-``. This is a standing rule
      binding future generated files, not a list of the files that exist today.
-   * AC-2: The files Jarvis generates into ``.github/hooks/`` SHALL be exactly
-     ``jarvis-hooks.json``, ``jarvis-bridge.mjs``, and ``jarvis-port``.
-   * AC-3: The glob ``.github/hooks/jarvis-*`` SHALL match every file Jarvis
-     generates in that directory and SHALL NOT match any file Jarvis does not
-     generate — a user excluding Jarvis's artifacts therefore never has to
-     exclude their own (``US_CFG_WORKSPACEFILES`` AC-3).
-   * AC-4: No active Jarvis source, generated content, configuration, or
-     documentation SHALL reference ``bridge.mjs`` or ``port`` as current hook
-     filenames. Historic Change Documents under ``docs/changes/`` are exempt
-     (acceptable historic stranding).
-   * AC-5: The convention and the ignore pattern that follows from it SHALL be
+   * AC-2: The glob ``jarvis-*`` in such a directory covers every file Jarvis
+     generates there, so a user can exclude Jarvis's files without excluding the
+     directory (``US_CFG_WORKSPACEFILES`` AC-3).
+   * AC-3: The convention and the ignore pattern that follows from it SHALL be
      documented in the design specification, so a user can apply them without
      reading Jarvis's source (``US_CFG_WORKSPACEFILES`` AC-6).
-   * AC-6: This repository's own ``.gitignore`` SHALL exclude
-     ``.github/hooks/jarvis-*`` (and the ``testdata/`` equivalent) instead of
-     excluding ``.github/hooks/`` wholesale. Jarvis dogfoods itself, so this is
-     both the fix for a real defect in this repository and the working
-     demonstration that AC-3 holds.
-   * AC-7: This requirement binds the **act of generating** and nothing else.
+   * AC-4: This requirement binds the **act of generating** and nothing else.
      A file Jarvis generates into a shared directory carries the prefix; a file
      carrying the prefix is **not** thereby Jarvis-generated, transient, or
      disposable. The converse does not hold and SHALL NOT be relied upon:
@@ -408,53 +398,36 @@ Configuration Requirements
      (``REQ_CFG_IGNOREPATTERNS``).
 
 
-.. req:: Superseded Generated File Cleanup
-   :id: REQ_CFG_FILEMIGRATION
-   :status: implemented
+.. req:: Jarvis Hook Files of Earlier Versions Are Removed
+   :id: REQ_CFG_HOOKCLEANUP
+   :status: draft
    :priority: required
    :links: US_CFG_WORKSPACEFILES; REQ_CFG_FILEPREFIX
 
    **Description:**
-   When a Jarvis version supersedes the name of a file it generates, Jarvis
-   SHALL remove the file under its superseded name, and the installation SHALL
-   remain functional across the transition without any user action.
-
-   Renaming without cleanup would leave ``bridge.mjs`` and ``port`` behind in a
-   shared directory as unattributable orphans — reproducing precisely the
-   condition ``REQ_CFG_FILEPREFIX`` exists to remove, and doing so in every
-   workspace that upgrades rather than only in new ones.
-
-   **Superseded names (this CR):**
-
-   * ``.github/hooks/bridge.mjs`` → ``.github/hooks/jarvis-bridge.mjs``
-   * ``.github/hooks/port`` → ``.github/hooks/jarvis-port``
+   Earlier Jarvis versions generated hook files into ``.github/hooks/`` of the
+   workspace. Jarvis no longer has any hook functionality, so it SHALL remove
+   those files when it activates in a workspace. A hook file that is left
+   behind keeps calling a program that may not exist on the machine (``node``)
+   and can block every tool call of an Actor chat.
 
    **Acceptance Criteria:**
 
-   * AC-1: On activation with self-install enabled, Jarvis SHALL remove
-     ``.github/hooks/bridge.mjs`` and ``.github/hooks/port`` if present.
-   * AC-2: Cleanup SHALL be confined to names Jarvis itself previously
-     generated. No other file in the directory SHALL be touched, and the
-     directory itself SHALL NOT be removed (consistent with
-     ``REQ_HOOK_AUTOINST`` AC-7).
-   * AC-3: An upgraded installation SHALL remain functional throughout: after
-     activation the hook configuration SHALL reference only current filenames,
-     and at no point SHALL an installed hook configuration reference a file
-     that has been removed. Hooks continue to fire; no reinstall, workspace
-     reset, or manual repair is required.
-   * AC-4: Cleanup SHALL be best-effort — a failure to delete (file locked,
-     insufficient permissions) SHALL be logged and SHALL NOT abort activation
-     or prevent self-install from completing (consistent with
-     ``REQ_HOOK_AUTOINST`` AC-2 and the best-effort self-install contract).
-   * AC-5: Cleanup SHALL be idempotent: absent files are not an error, and
-     repeated activations produce neither repeated side effects nor repeated
-     log entries.
-   * AC-6: **Every** code path that removes Jarvis-managed hook files SHALL
-     cover superseded names as well as current ones — both the activation
-     cleanup above and the ``jarvis.hooks.autoInstall: false`` teardown
-     (``REQ_HOOK_AUTOINST`` AC-3). A removal path that handles only current
-     names would leave an upgraded workspace littered by exactly the files
-     this requirement exists to remove.
+   * AC-1: On activation Jarvis SHALL remove the following files from
+     ``.github/hooks/`` of the first workspace folder when they exist:
+     ``jarvis-hooks.json``, ``jarvis-bridge.mjs``, ``jarvis-port``, and the names
+     of still earlier versions, ``bridge.mjs`` and ``port``. The list is closed.
+   * AC-2: Jarvis SHALL remove exactly these files. It SHALL NOT remove any
+     other file in the directory, and it SHALL NOT remove the directory, because
+     other tools and the project own files there.
+   * AC-3: No user action and no setting is needed. The former setting
+     ``jarvis.hooks.autoInstall`` has no effect, whatever its value.
+   * AC-4: A file that cannot be removed (locked, no permission) is logged and
+     does not abort activation; the next activation tries again.
+   * AC-5: Removal is idempotent and quiet: an absent file is not an error, and
+     a workspace that is already clean produces no log entry.
+   * AC-6: Jarvis SHALL NOT write, register or listen for agent hooks, in any
+     workspace.
 
 
 .. req:: Message Runtime Files Grouped in .jarvis/messages/
@@ -564,16 +537,16 @@ Configuration Requirements
    :id: REQ_CFG_STATEMIGRATION
    :status: implemented
    :priority: required
-   :links: US_CFG_RUNTIMELAYOUT; US_CFG_WORKSPACEFILES; REQ_CFG_MSGDIR; REQ_CFG_FILEMIGRATION
+   :links: US_CFG_RUNTIMELAYOUT; US_CFG_WORKSPACEFILES; REQ_CFG_MSGDIR
 
    **Description:**
    When Jarvis relocates a runtime file that holds pending user data, no data
    SHALL be lost or duplicated, and the transition SHALL require no action from
    the user.
 
-   ``REQ_CFG_FILEMIGRATION`` governs the neighbouring case: *generated* files,
-   which Jarvis can simply delete and rewrite because it is their sole author.
-   The three message files are different in kind — they hold state the user is
+   *Generated* files, which Jarvis can simply delete and rewrite because it is
+   their sole author, need no such mechanism. The three message files are
+   different in kind — they hold state the user is
    waiting on. A dropped entry here is an undelivered message, and it is
    undelivered silently.
 
@@ -723,7 +696,7 @@ Configuration Requirements
      activate normally (``US_CFG_AUTOGITIGNORE`` AC-7).
    * AC-9: Maintenance SHALL be best-effort: a read or write failure SHALL be
      logged and SHALL NOT abort activation, consistent with the self-install
-     contract (``REQ_HOOK_AUTOINST`` AC-2, ``REQ_CFG_FILEMIGRATION`` AC-4).
+     contract (``REQ_CFG_HOOKCLEANUP`` AC-4).
    * AC-10: Exactly one Jarvis extension SHALL perform this maintenance. Jarvis
      ships as several independently installed extensions that activate in the
      same workspace in no guaranteed order (``US_CFG_RUNTIMELAYOUT`` AC-5); if
@@ -739,7 +712,7 @@ Configuration Requirements
    :id: REQ_CFG_IGNOREAUTOMANAGE
    :status: implemented
    :priority: required
-   :links: US_CFG_AUTOGITIGNORE; REQ_CFG_IGNOREBLOCK; REQ_CFG_FILEMIGRATION
+   :links: US_CFG_AUTOGITIGNORE; REQ_CFG_IGNOREBLOCK
 
    **Description:**
    Jarvis SHALL provide a ``jarvis.gitignore.autoManage`` setting (boolean,
@@ -748,10 +721,8 @@ Configuration Requirements
    previously wrote.
 
    Opting out of a managed artefact has to remove the artefact, not merely stop
-   updating it. ``REQ_CFG_FILEMIGRATION`` AC-6 established this for hook files
-   after a removal path that handled only current names left upgraded
-   workspaces littered; a region left behind here would be worse, because it
-   sits in a version-controlled file, still names the setting that no longer
+   updating it. A region left behind would be worse than a stray file, because
+   it sits in a version-controlled file, still names the setting that no longer
    maintains it, and still hides files.
 
    **Acceptance Criteria:**
@@ -766,12 +737,11 @@ Configuration Requirements
    * AC-5: When changed from ``false`` to ``true``, maintenance SHALL resume on
      the next activation.
    * AC-6: The setting SHALL be workspace-scoped, so each workspace can opt in
-     or out independently (consistent with ``REQ_HOOK_AUTOINST`` AC-6).
+     or out independently.
    * AC-7: Removal SHALL NOT delete the ``.gitignore`` file itself, even when
      the region was its only content and Jarvis created the file. An empty file
      is not orphaned managed state, whereas deleting a file Jarvis cannot prove
-     it created is unrecoverable for the user (consistent with
-     ``REQ_HOOK_AUTOINST`` AC-7, which forbids removing the shared directory).
+     it created is unrecoverable for the user.
    * AC-8: Removal SHALL be idempotent and best-effort — an absent region is
      not an error, and a failure to write SHALL be logged without aborting
      activation.

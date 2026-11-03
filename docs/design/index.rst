@@ -15,14 +15,13 @@ Design Specifications describe **how** requirements are fulfilled technically.
    spec_cfg
    spec_aut
    spec_msg
+   spec_com
    spec_pim
    spec_olk
    spec_rec
    spec_actor
    spec_eng
    spec_mod
-   spec_inj
-   spec_hook
    spec_flow
    spec_kan
    spec_spl

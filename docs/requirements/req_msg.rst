@@ -5,7 +5,7 @@ Message Queue Requirements
    :id: REQ_MSG_QUEUE
    :status: implemented
    :priority: optional
-   :links: US_MSG_CHATQUEUE; REQ_AUT_JOBEXEC; REQ_CFG_FIXEDPATHS
+   :links: US_COM_SEND; REQ_AUT_JOBEXEC; REQ_CFG_FIXEDPATHS
 
    **Description:**
    The extension SHALL maintain a persistent JSON file as a message queue for
@@ -28,7 +28,7 @@ Message Queue Requirements
    :id: REQ_MSG_EXPLORER
    :status: implemented
    :priority: optional
-   :links: US_MSG_CHATQUEUE; REQ_EXP_TREEVIEW; REQ_MSG_EDITORPLACEMENT
+   :links: US_COM_SEND; REQ_EXP_TREEVIEW; REQ_MSG_EDITORPLACEMENT
 
    **Description:**
    The Messages tree view SHALL display queued messages grouped by target session
@@ -51,46 +51,11 @@ Message Queue Requirements
      (AC-1) independent of this click binding, same pattern as
      ``REQ_ACTOR_TREE`` AC-10 for Actor nodes.
 
-.. req:: Send Messages to Chat Session
-   :id: REQ_MSG_SEND
-   :status: draft
-   :priority: optional
-   :links: US_MSG_CHATQUEUE; REQ_MSG_SESSIONLOOKUP; REQ_MSG_QUEUE; REQ_ACTOR_INITPROMPT; REQ_MSG_EDITORPLACEMENT; REQ_INJ_PRIMITIVE
-
-   **Description:**
-   The extension SHALL provide a command to notify a VS Code Chat session about
-   pending messages in its inbox.
-
-   **Acceptance Criteria:**
-
-   * AC-1: A send action SHALL be available on each session group node in the
-     Messages tree view
-   * AC-2: Session resolution, editor focus, mode-priming, session spawning
-     (including rename and init prompt), and prompt submission SHALL be
-     delegated to ``REQ_INJ_PRIMITIVE``
-   * AC-3: The extension SHALL submit a single notification stub informing the
-     session about the number of pending messages and instructing it to read
-     them via the ``jarvis_receiveMessage`` tool (the stub text is governed by
-     ``REQ_MSG_NOTIFICATION_TEMPLATE`` AC-7)
-   * AC-4: Messages SHALL remain in the queue after notification — the session
-     is responsible for consuming them via ``REQ_MSG_READ``
-   * AC-5: The Messages tree view SHALL refresh after send completes
-   * AC-6: The target session SHALL be focused at the Main placement target
-     (``REQ_MSG_EDITORPLACEMENT`` AC-1/AC-5/AC-9) — the same target used for
-     an Actor tree click, since this command is a user-initiated action.  The
-     placement is passed to ``REQ_INJ_PRIMITIVE``.
-   * AC-7: (**notification-agent-mode-reset CR, GH #54**) Notifying a session
-     that is already open SHALL NOT change that session's agent mode. An actor
-     running in a custom persona mode SHALL still be in that mode after the
-     notification stub has been submitted — both for this command and for the
-     auto-delivery path (``REQ_MSG_AUTODELIVER_POLL``). Delegated to
-     ``REQ_INJ_PRIMITIVE`` AC-8.
-
 .. req:: Delete Individual Message
    :id: REQ_MSG_DELETE
    :status: implemented
    :priority: optional
-   :links: US_MSG_CHATQUEUE; REQ_MSG_QUEUE
+   :links: US_COM_SEND; REQ_MSG_QUEUE
 
    **Description:**
    The extension SHALL allow the user to delete a single queued message from the
@@ -106,7 +71,7 @@ Message Queue Requirements
    :id: REQ_MSG_SESSIONLOOKUP
    :status: approved
    :priority: optional
-   :links: US_MSG_CHATQUEUE; US_MSG_REMOTECOMPAT
+   :links: US_COM_SEND
 
    **Description:**
    The extension SHALL resolve a chat session name to a VS Code Chat session UUID
@@ -151,7 +116,7 @@ Message Queue Requirements
    :id: REQ_MSG_SESSIONFILTER
    :status: implemented
    :priority: optional
-   :links: US_MSG_OPENSESSION; US_MSG_LISTSESSIONS; REQ_MSG_SESSIONLOOKUP
+   :links: US_COM_NAME; US_COM_FIND; REQ_MSG_SESSIONLOOKUP
 
    **Description:**
    The extension SHALL provide a shared filtering rule that excludes unnamed
@@ -162,109 +127,13 @@ Message Queue Requirements
    * AC-1: A session is considered "named" if its title is a non-empty string
    * AC-2: Sessions with an empty or missing title SHALL be excluded from the
      results of any session enumeration feature
-   * AC-3: The filter SHALL be applied consistently by both the Open Session
-     command (``REQ_MSG_OPENSESSION``) and the List Sessions LM Tool
-     (``REQ_MSG_LISTSESSIONS``)
-
-
-.. req:: Open Chat Session Command
-   :id: REQ_MSG_OPENSESSION
-   :status: implemented
-   :priority: optional
-   :links: US_MSG_OPENSESSION; REQ_MSG_SESSIONLOOKUP; REQ_MSG_SESSIONFILTER
-
-   **Description:**
-   The extension SHALL provide a command that lets the user browse and open a
-   named chat session via a QuickPick dialog.
-
-   **Acceptance Criteria:**
-
-   * AC-1: A VS Code command ``jarvis.openSession`` SHALL open a QuickPick
-     listing all named sessions in the current workspace
-   * AC-2: The session list SHALL be filtered by ``REQ_MSG_SESSIONFILTER``
-   * AC-3: Selecting a session SHALL open it in the editor via
-     ``vscode.open(Uri.parse('vscode-chat-session://local/<b64uuid>'))``
-     where the UUID is obtained from ``REQ_MSG_SESSIONLOOKUP``
-   * AC-4: If no named sessions exist, the extension SHALL show an informational
-     notification and not open the QuickPick
-   * AC-5: If the selected session can no longer be resolved at open time, the
-     extension SHALL show an informational notification
-
-
-.. req:: List Chat Sessions LM Tool
-   :id: REQ_MSG_LISTSESSIONS
-   :status: draft
-   :priority: optional
-   :links: US_MSG_LISTSESSIONS; REQ_MSG_SESSIONLOOKUP; REQ_MSG_SESSIONFILTER
-
-   **Description:**
-   The extension SHALL register a Language Model Tool that returns the list of
-   named VS Code chat sessions (tab titles) in the current workspace.
-
-   **Acceptance Criteria:**
-
-   * AC-1: A Language Model Tool named ``jarvis_listChatSessions`` SHALL be
-     registered via ``vscode.lm.registerTool`` with
-     ``canBeReferencedInPrompt: true``; Actors are listed by
-     ``jarvis_listActors`` (``REQ_ACTOR_LISTTOOL``)
-   * AC-2: The tool SHALL return the list of session titles (strings) from the
-     current workspace's ``state.vscdb``
-   * AC-3: The returned list SHALL be filtered by ``REQ_MSG_SESSIONFILTER``
-   * AC-4: If no named sessions exist, the tool SHALL return an empty list
-
-
-.. req:: Read Message LM Tool
-   :id: REQ_MSG_READ
-   :status: deprecated
-   :priority: mandatory
-   :links: US_MSG_CHATQUEUE; REQ_MSG_QUEUE
-
-   **Deprecated by:** ``REQ_MSG_RECEIVEMESSAGE`` (message-api-rename CR).
-   **Hard deprecation (PM design pivot, 2026-07-03):** soft deprecation (tool
-   stays functional, returns a warning) was tried first and observed to fail
-   in practice — agents kept calling the deprecated tool and ignored the
-   warning. The tool now SHALL remain **registered** (so callers still get a
-   discoverable, named error) but SHALL be **functionally inert**: every
-   invocation ends in an error and no message is ever popped from the queue.
-   Full removal of the registration itself remains GH Issue #13 (separate
-   future change, earliest 2026-09-30).
-
-   **Description:**
-   The extension SHALL keep ``jarvis_readMessage`` registered as a Language
-   Model Tool for discoverability, but every invocation SHALL immediately
-   fail with a deprecation error — no queue pop, no tree refresh, no other
-   side effect of any kind.
-
-   **Acceptance Criteria:**
-
-   * AC-1: A Language Model Tool named ``jarvis_readMessage`` SHALL remain
-     registered via ``vscode.lm.registerTool`` with
-     ``canBeReferencedInPrompt: true``
-   * AC-2: The tool SHALL continue to accept its existing ``destination``
-     parameter unchanged at the schema level, so existing callers do not fail
-     schema validation before reaching the handler
-   * AC-3: Every invocation, regardless of input, SHALL throw an error
-     (not return the previous ``{ message, remaining }`` payload) with the
-     exact text::
-
-        This tool is deprecated and no longer functional. Use jarvis_receiveMessage instead.
-
-   * AC-4: No message SHALL ever be popped from the queue by this tool —
-     there is no valid input that produces a side effect
-   * AC-5: The queue-pop behaviour, ``{ message, remaining }`` response shape,
-     and Messages-tree refresh (former AC-3 through AC-6) are SUPERSEDED and
-     no longer apply — the handler short-circuits to the error in AC-3 before
-     any of that logic would run
-   * AC-6: The tool's ``modelDescription`` SHALL carry
-     ``"[DEPRECATED AND DISABLED — use jarvis_receiveMessage instead.]"``
-     directly after the package prefix ``jarvis_core:``
-     (``REQ_ENG_TOOLREF`` AC-3), so the deprecation is visible at
-     tool-discovery time, before any invocation attempt
+   * AC-3: The filter SHALL be applied consistently by every feature that
+     enumerates sessions
 
 
 .. req:: Embedded MCP Server
    :id: REQ_MSG_MCPSERVER
-   :status: implemented
+   :status: approved
    :priority: mandatory
    :links: US_MSG_MCPSERVER
 
@@ -275,7 +144,8 @@ Message Queue Requirements
    **Acceptance Criteria:**
 
    * AC-1: The extension SHALL start an HTTP/SSE MCP server on ``127.0.0.1``
-     during activation when ``jarvis.mcpEnabled`` is ``true``
+     during activation when ``jarvis.mcp.enabled`` is ``true`` (default ``false``,
+     ``REQ_CFG_MCPDEFAULTOFF``)
    * AC-2: The MCP server SHALL use the ``@modelcontextprotocol/sdk`` package
      with ``StreamableHTTPServerTransport``
    * AC-3: Each LM Tool SHALL be simultaneously registered as an MCP Tool with
@@ -287,15 +157,20 @@ Message Queue Requirements
      or any external interface
    * AC-7: A status bar item SHALL display ``Jarvis MCP: <port>`` when the
      server is running; the item SHALL be hidden when MCP is disabled
-   * AC-8: If ``jarvis.mcpEnabled`` is ``false``, the MCP server SHALL not
+   * AC-8: If ``jarvis.mcp.enabled`` is ``false``, the MCP server SHALL not
      start and the status bar item SHALL not be shown
+   * AC-9: The message tools of the Jarvis AHP client (``jarvis_sendMessage``,
+     ``jarvis_receiveMessage``, ``jarvis_listActors``,
+     ``jarvis_createActorSession``; ``SPEC_COM_TOOLS``) SHALL NOT be registered as
+     MCP tools; their sender comes from the calling chat, which an MCP client does
+     not have (``US_MSG_MCPSERVER`` AC-7)
 
 
 .. req:: Auto-Delivery Configuration Store
   :id: REQ_MSG_AUTODELIVER_CONFIG
   :status: approved
   :priority: optional
-  :links: US_MSG_AUTODELIVERY; REQ_MSG_QUEUE; REQ_CFG_FIXEDPATHS
+  :links: US_COM_DELIVERY; REQ_MSG_QUEUE; REQ_CFG_FIXEDPATHS
 
    **Description:**
    The extension SHALL maintain a persistent JSON file at
@@ -323,74 +198,11 @@ Message Queue Requirements
      remains eligible for manual notification of its queued messages.
 
 
-.. req:: Auto-Delivery Poll Loop
-   :id: REQ_MSG_AUTODELIVER_POLL
-   :status: draft
-   :priority: optional
-   :links: US_MSG_AUTODELIVERY; REQ_MSG_AUTODELIVER_CONFIG; REQ_MSG_AUTODELIVER_TAG; REQ_MSG_SEND; REQ_ACTOR_INITPROMPT; REQ_MSG_EDITORPLACEMENT; REQ_MSG_FOCUSRESTORE; REQ_INJ_PRIMITIVE
-
-   **Description:**
-   The extension SHALL run a background poll loop that automatically sends
-   notifications for sessions listed in ``autodelivery.json``. Each
-   notification is a system-initiated delivery: it SHALL apply the
-   Editor-Group Placement Model (``REQ_MSG_EDITORPLACEMENT``) and be wrapped
-   in Focus-Snapshot/Restore (``REQ_MSG_FOCUSRESTORE``). (The active-use
-   opt-out check was removed by the ``remove-autodelivery-focus-gate`` CR —
-   see ``REQ_MSG_AUTODELIVERY_OPTOUT`` (retired) for rationale.)
-
-   **Acceptance Criteria:**
-
-   * AC-1: A ``setInterval`` timer with a 5 000 ms period SHALL be started during
-     extension activation
-   * AC-2: On each tick the loop SHALL read the current queue and
-     auto-delivery files
-   * AC-3: For each session in the auto-delivery list, if at least one message
-     exists with ``notified !== true``, the loop SHALL deliver the
-     notification by delegating session resolution, editor focus,
-     mode-priming, session spawning (including rename and init prompt), and
-     prompt submission to ``REQ_INJ_PRIMITIVE``, using the Secondary placement
-     target (``REQ_MSG_EDITORPLACEMENT`` AC-3/AC-4), wrapped in a
-     Focus-Snapshot/Restore cycle (``REQ_MSG_FOCUSRESTORE``).  The loop does
-     **not** invoke ``jarvis.sendMessages`` (``REQ_MSG_SEND``), which remains a
-     separate, manually-triggered command.
-   * AC-4: After notification the loop SHALL set ``notified: true`` on all
-     messages that were just notified for that session and persist the queue.
-     (**notification-template-empty-fallback CR, GH #56**) This flag is set
-     unconditionally after the AC-3 delivery action returns; it records "a
-     delivery was attempted", not "a delivery was confirmed". That is only safe
-     because the submitted text is non-empty by construction
-     (``REQ_MSG_NOTIFICATION_TEMPLATE`` AC-10), so the flag can no longer be
-     set for a delivery that silently submitted nothing. Gating the flag on
-     *confirmed* delivery is deliberately NOT required here: without a bounded
-     retry/backoff/dead-letter design it would turn every delivery failure into
-     an unbounded re-injection loop — a worse failure mode than the drop it
-     replaces. That gating remains a separate design question.
-   * AC-5: The loop SHALL process at most one session per tick (first-found order)
-   * AC-6: The timer SHALL be stopped (``clearInterval``) when the extension is
-     deactivated
-   * AC-7: Errors in a single tick SHALL be caught, logged as warnings, and SHALL
-     NOT stop the poll loop
-   * AC-8: In the new-session branch (no UUID found): mode-priming, chat
-     editor creation, rename, and init-prompt injection are delegated to
-     ``REQ_INJ_PRIMITIVE``. The init prompt follows
-     ``REQ_ACTOR_INITPROMPT`` (AC-5) and is sent **before** the notification
-     stub.
-   * AC-9: The Focus-Snapshot (``REQ_MSG_FOCUSRESTORE`` AC-1/AC-2) SHALL be
-     taken once per tick, immediately before AC-3's delivery action; the
-     Focus-Restore (``REQ_MSG_FOCUSRESTORE`` AC-3) SHALL run immediately
-     after that delivery action's promise resolves, before the tick ends.
-   * AC-10: (``agent-mode-reset-race`` CR) AC-5 and AC-9 bound the work of a
-     single tick; they do not prevent two ticks from overlapping, since the
-     interval period is independent of the asynchronous tick body's duration.
-     Non-overlap SHALL be guaranteed separately by
-     ``REQ_MSG_DELIVERY_REENTRANCY``.
-
-
 .. req:: Notified Flag on Queued Message
    :id: REQ_MSG_AUTODELIVER_TAG
    :status: implemented
    :priority: optional
-   :links: US_MSG_AUTODELIVERY; REQ_MSG_QUEUE
+   :links: US_COM_DELIVERY; REQ_MSG_QUEUE
 
    **Description:**
    The ``QueuedMessage`` data type SHALL support an optional ``notified`` boolean
@@ -413,7 +225,7 @@ Message Queue Requirements
    :id: REQ_MSG_AUTODELIVER_TREE
    :status: implemented
    :priority: optional
-   :links: US_MSG_AUTODELIVERY; REQ_MSG_AUTODELIVER_CONFIG; REQ_MSG_EXPLORER
+   :links: US_COM_DELIVERY; REQ_MSG_AUTODELIVER_CONFIG; REQ_MSG_EXPLORER
 
    **Description:**
    The Messages tree view SHALL be restructured to show manual and auto-delivery
@@ -442,7 +254,7 @@ Message Queue Requirements
    :id: REQ_MSG_AUTODELIVER_CMDS
    :status: implemented
    :priority: optional
-   :links: US_MSG_AUTODELIVERY; REQ_MSG_AUTODELIVER_CONFIG; REQ_MSG_AUTODELIVER_TREE
+   :links: US_COM_DELIVERY; REQ_MSG_AUTODELIVER_CONFIG; REQ_MSG_AUTODELIVER_TREE
 
    **Description:**
    The extension SHALL provide commands to move sessions between the manual
@@ -511,7 +323,7 @@ Message Queue Requirements
    :id: REQ_MSG_EDITORPLACEMENT
    :status: approved
    :priority: mandatory
-   :links: US_MSG_EDITORPLACEMENT; US_MSG_STABLESESSION; REQ_MSG_PINNED; REQ_MSG_SEND; REQ_FLOW_WEBVIEWPANEL
+   :links: US_MSG_EDITORPLACEMENT; US_COM_NAME; REQ_FLOW_WEBVIEWPANEL
 
    **Description:**
    The extension SHALL place chat and Actor-file editor tabs into one of
@@ -520,6 +332,16 @@ Message Queue Requirements
    (``vscode.window.tabGroups``). No new persisted state, YAML flag, or
    runtime map is introduced; every placement decision is computed fresh
    from "does a tab already exist, and where."
+
+   **Note (ahp-mvp):**
+   Since the Agent Host path, the chat parts of this model are replaced by
+   ``REQ_COM_OPEN``: a click opens or shows the chat in the first editor group
+   (AC-1, AC-5, AC-9, AC-12 and AC-13 no longer apply to chats), the Play button
+   and the automatic announcement open nothing (``REQ_COM_OPEN`` AC-4), and
+   there is no focus snapshot. The code of the Main and Secondary helpers is
+   removed. What other features still use is the rule for documents and the
+   diagram panel (the Content column, AC-2, AC-3 and AC-11). Whether this model
+   is rewritten for documents only or retired is open and not part of the MVP.
 
    **Acceptance Criteria:**
 
@@ -575,28 +397,11 @@ Message Queue Requirements
      known Actor file path — arbitrary files the user opens manually are
      entirely outside this system's contract and are never moved, closed,
      or reused as a placement target.
-   * AC-9: The manual Play-button send command (``jarvis.sendMessages``,
-     ``REQ_MSG_SEND``) SHALL target Main (column 1, fixed) — the same
-     target as an Actor tree click (AC-1) — including the Main-target
-     close+reopen rule (AC-5) when the tab is open elsewhere. Rationale:
-     the Play button is an active, user-initiated action, so the result
-     SHALL land where the user is looking; only background automation
-     (Auto-Delivery's poll loop) uses Secondary (AC-3).
-   * AC-10 (``ui-improvements`` CR): Clicking a session/actor group node's
-     label in the Messages tree (``SessionGroupNode``, the row itself —
-     not the inline Play button) SHALL open that session's chat at Main
-     (column 1, fixed) — the same target and close+reopen rule as AC-1/AC-9
-     — **only when a live chat session already exists** for that
-     destination (resolvable via ``REQ_MSG_SESSIONLOOKUP``). If no session
-     exists yet (the destination has only queued messages and no session
-     has ever been opened for it), the click SHALL be a silent no-op — it
-     SHALL NOT create a new session, unlike AC-1/AC-9's existing-or-create
-     behavior. Rationale: a label click is a lower-intent, exploratory
-     action, unlike explicitly clicking "Play" to send, so silently
-     creating a new chat session would be a surprising side effect.
-     Previously ``SessionGroupNode`` had no click command at all (label
-     click only expanded/collapsed the node's message children); this AC
-     adds one without changing the expand/collapse behavior itself.
+   * AC-9: (Superseded by ``REQ_COM_OPEN`` AC-4.) The manual Play-button command
+     (``jarvis.sendMessages``) opens no chat.
+   * AC-10 (``ui-improvements`` CR): (Superseded by ``REQ_COM_OPEN`` AC-3.)
+     Clicking the label of an Actor group in the Messages tree shows the chat of
+     that Actor when it exists and does nothing when it does not.
    * AC-11 (``message-flow-diagram`` CR): The message-flow diagram Webview
      Panel (``REQ_FLOW_WEBVIEWPANEL``) SHALL also target the Content column
      (AC-2) as a fixed target, coexisting with any already-open Actor-file
@@ -632,263 +437,14 @@ Message Queue Requirements
      AC works around that limitation entirely with already-proven
      mechanisms instead of waiting for one).
    * AC-13 (``project-actor-click-placement-fix`` CR): The relocate step in
-     AC-12 SHALL run after the initialization prompt (``REQ_INJ_PRIMITIVE``
-     AC-4) has been submitted, not before — reordering the sequence
+     AC-12 SHALL run after the initialization prompt (removed with the
+     injection primitive) has been submitted, not before — reordering the sequence
      (relocating first) risks disrupting the "currently focused chat"
      target that the rename and init-prompt commands depend on. If the
      session's UUID unexpectedly still fails to resolve at this point (rename
      propagation edge case), the relocate step SHALL be a silent no-op
      rather than an error — the session remains usable, just not
      guaranteed-repositioned in that rare case.
-
-
-.. req:: Focus-Snapshot and Restore
-   :id: REQ_MSG_FOCUSRESTORE
-   :status: approved
-   :priority: mandatory
-   :links: US_MSG_EDITORPLACEMENT; REQ_MSG_EDITORPLACEMENT; REQ_MSG_SESSIONLOOKUP
-
-   **Description:**
-   Before any system-initiated delivery (Auto-Delivery poll tick), the
-   extension SHALL snapshot the user's current focus (an editor tab or an
-   integrated terminal) and automatically restore it immediately after the
-   delivery completes — eliminating the "where did I land?" disorientation
-   that a focus-jumping delivery would otherwise cause.
-
-   **Acceptance Criteria:**
-
-   * AC-1: Immediately before a system-initiated delivery action, the
-     extension SHALL capture a snapshot of the currently active focus:
-     either the active editor tab (with its view column) or the active
-     integrated terminal, whichever currently holds focus.
-   * AC-2: For a chat-editor tab, since ``tab.input`` does not expose a
-     ``.uri`` (unlike normal file tabs), the snapshot SHALL resolve the
-     tab's identity via ``lookupSessionUUID(tab.label)`` — the same
-     mechanism already used for Main/Secondary placement (``REQ_MSG_EDITORPLACEMENT``).
-   * AC-3: Immediately after the delivery action's promise resolves (no
-     artificial delay — see Design rationale below), the extension SHALL
-     restore the snapshotted focus: re-open/focus the captured chat tab via
-     ``vscode.open(uri, { viewColumn, preserveFocus: false })``, or
-     re-focus the captured terminal via ``terminal.show()``.
-   * AC-4: If no focus can be captured (e.g. no active editor or terminal),
-     the extension SHALL skip both snapshot and restore without error.
-   * AC-5: Restore timing SHALL NOT include any artificial delay (e.g.
-     ``setTimeout``) beyond awaiting the delivery action's own promise —
-     an earlier spike revision with an artificial 800 ms pause measured
-     839 ms snapshot-to-restore and up to 23 leaked keystrokes during
-     active typing; removing the artificial pause reduced this to ~520 ms
-     and 0-1 leaked keystrokes.
-   * AC-6: **Accepted limitation**: within the ~520 ms disrupt+restore
-     window, a keystroke typed at the exact moment of the focus shift MAY
-     be misrouted to the wrong window (an OS-level input-routing property,
-     not fixable by restore speed alone). This is accepted as a v1
-     limitation because the delivery mechanism injects into a VS Code Chat
-     query — consumed by an LLM, which tolerates a stray/misplaced
-     character trivially, unlike a rigid format (file path, command, code).
-     A fully focus-free injection mechanism (e.g. AHP) would eliminate this
-     but currently only covers CLI sessions, not this Editor-tab substrate.
-
-
-.. req:: Auto-Delivery Active-Use Opt-Out
-   :id: REQ_MSG_AUTODELIVERY_OPTOUT
-   :status: deprecated
-   :priority: required
-   :links: US_MSG_AUTODELIVERY_OPTOUT; REQ_MSG_AUTODELIVER_POLL
-
-   **Retired (``remove-autodelivery-focus-gate`` CR):** The focus gate
-   conflicts with parallel-pipeline dispatch — see
-   ``US_MSG_AUTODELIVERY_OPTOUT`` (retired) for full rationale. The
-   ``isSessionActiveTab`` check, its ACs, and the skip-and-retry behavior
-   are all removed from the codebase; ``SPEC_MSG_AUTODELIVERY_OPTOUT`` is
-   retired correspondingly. Explicit per-session delivery control remains
-   via the enable/disable auto-delivery toggle
-   (``REQ_MSG_AUTODELIVER_TAG``).
-
-   **Historical Acceptance Criteria (no longer enforced):**
-
-   * ~~AC-1: On each poll tick, before delivering to a given session, the
-     poll loop SHALL check whether that session's chat tab is the currently
-     active (focused) editor tab.~~
-   * ~~AC-2: If the target session's tab is the currently active tab, the
-     poll loop SHALL skip delivery for that session on this tick.~~
-   * ~~AC-3: This check SHALL use no new persisted state.~~
-   * ~~AC-4: The opt-out check SHALL NOT affect the manual
-     ``jarvis.sendMessages`` command.~~
-   * ~~AC-5: If the skip causes a session to never be delivered while
-     continuously active, this is accepted.~~
-
-
-.. req:: Pinned Resource Open Helper
-   :id: REQ_MSG_PINNED
-   :status: implemented
-   :priority: optional
-   :links: US_MSG_STABLESESSION; US_MSG_CHATQUEUE; REQ_MSG_SESSIONLOOKUP; REQ_MSG_EDITORPLACEMENT
-
-   **Description:**
-   The extension SHALL open any ``vscode-chat-session://`` URI in a pinned
-   (non-preview) editor tab so that VS Code does not silently reuse a transient
-   editor slot. The helper SHALL accept an optional target view column,
-   supplied by callers per the placement model (``REQ_MSG_EDITORPLACEMENT``).
-
-   **Acceptance Criteria:**
-
-   * AC-1: ``vscode.commands.executeCommand('vscode.open', uri, { preview: false })``
-     SHALL be used for all chat session URI opens — both when focusing an
-     existing session and when falling back to a new session URI
-   * AC-2: The ``{ preview: false }`` option SHALL be passed as the third argument
-     to every ``vscode.open`` call for chat URIs
-   * AC-3: The helper SHALL be used consistently by all commands that open chat
-     sessions: ``jarvis.sendMessages``, ``jarvis.openSession``, and
-     ``jarvis.openActorSession``
-   * AC-4: The helper SHALL accept an optional ``viewColumn`` parameter,
-     included in the options object passed to ``vscode.open`` alongside
-     ``preview: false`` (e.g. ``{ preview: false, viewColumn }``), so
-     callers can direct the open to a specific placement target per
-     ``REQ_MSG_EDITORPLACEMENT``. When omitted, the existing behavior
-     (VS Code's default column resolution) is unchanged — this AC is
-     additive, not a breaking change to existing callers.
-
-
-.. req:: New Chat Editor Helper
-   :id: REQ_MSG_OPENCHAT
-   :status: implemented
-   :priority: optional
-   :links: US_MSG_STABLESESSION; REQ_MSG_PINNED
-
-   **Description:**
-   The extension SHALL open a new VS Code Chat editor using the stable
-   ``workbench.action.openChat`` internal command, with a URI-based fallback for
-   older VS Code builds.
-
-   **Acceptance Criteria:**
-
-   * AC-1: The primary mechanism SHALL be
-     ``vscode.commands.executeCommand('workbench.action.openChat')``
-   * AC-2: If ``workbench.action.openChat`` throws, the extension SHALL fall back
-     to ``vscode.open(Uri.parse('vscode-chat-session://local/new'), { preview: false })``
-     via the pinned-open helper (``REQ_MSG_PINNED``)
-   * AC-3: Fallback attempts SHALL be logged at ``warn`` level on the Jarvis
-     output channel with the caught error message and a ``[MSG]`` tag
-   * AC-4: ``workbench.action.openChat`` is a VS Code internal command with no
-     public stability guarantee — the try/catch fallback is mandatory
-
-
-.. req:: Agent-Mode Target Verification
-   :id: REQ_MSG_MODETARGET
-   :status: approved
-   :priority: mandatory
-   :links: US_MSG_MODETARGET; REQ_MSG_OPENCHAT
-
-   **Description:**
-   The per-mode command ``workbench.action.chat.open<ModeName>`` applies to
-   whichever chat editor is focused when it runs; it carries no session
-   identity (``SPEC_MSG_OPENCHAT``). Every code path that invokes it SHALL
-   therefore confirm that the focused editor is the intended session
-   immediately before invocation, and SHALL abandon the mode change when that
-   confirmation fails.
-
-   The verification SHALL be a check of observed state, not a delay. A timing
-   delay cannot establish that the correct editor is focused; it can only
-   reduce how often the wrong one is, while suppressing the evidence that it
-   still happens.
-
-   **Acceptance Criteria:**
-
-   * AC-1: The mode-application helper SHALL take the intended session name as
-     a parameter that governs behaviour — not solely as a logging label.
-   * AC-2: Immediately before executing the per-mode command, the helper SHALL
-     compare the active chat editor tab's identity against the intended session
-     name.
-   * AC-3: On mismatch, the helper SHALL NOT execute the command, SHALL return
-     without error, and SHALL log a warning naming both the intended session
-     and the tab that was focused instead.
-   * AC-4: On mismatch the target session's mode SHALL remain unchanged, and no
-     other session's mode SHALL be modified.
-   * AC-5: The success log entry SHALL be emitted only on the path where AC-2's
-     comparison succeeded and the command was executed. A mode application that
-     was skipped SHALL NOT produce a success entry.
-   * AC-6: When no chat editor is active at all, the helper SHALL treat this as
-     a mismatch per AC-3 (skip, warn) rather than executing the command.
-   * AC-7: Skipping a mode application SHALL NOT abort the surrounding delivery:
-     the session SHALL still open and receive its message
-     (``US_MSG_MODETARGET`` AC-6).
-   * AC-8: The existing command-registry probe (skip when
-     ``workbench.action.chat.open<ModeName>`` is not registered) SHALL be
-     retained — it guards a different failure (mode not yet registered) and is
-     not superseded by target verification.
-
-
-.. req:: Delivery Poll Loop Re-Entrancy Guard
-   :id: REQ_MSG_DELIVERY_REENTRANCY
-   :status: approved
-   :priority: mandatory
-   :links: US_MSG_MODETARGET; REQ_MSG_AUTODELIVER_POLL
-
-   **Description:**
-   The auto-delivery poll loop SHALL NOT begin a new delivery while a previous
-   delivery is still in progress. ``REQ_MSG_AUTODELIVER_POLL`` AC-5 and AC-9
-   constrain what happens *within* one tick; neither prevents two ticks from
-   overlapping, because the interval period is independent of how long the
-   asynchronous tick body takes.
-
-   Overlapping deliveries interleave their focus snapshot/disrupt/restore
-   sequences, which is one way the target-verification precondition in
-   ``REQ_MSG_MODETARGET`` comes to be violated.
-
-   **Acceptance Criteria:**
-
-   * AC-1: While a delivery started by a previous tick has not completed, a new
-     tick SHALL NOT start another delivery.
-   * AC-2: A tick that is skipped for this reason SHALL be a no-op, not an
-     error, and SHALL NOT consume or mark any message.
-   * AC-3: The guard SHALL be released when the delivery completes, including
-     when it completes by throwing — a failed delivery SHALL NOT leave the loop
-     permanently blocked.
-   * AC-4: Skipped ticks SHALL be observable in the log at a level that does not
-     flood normal operation.
-   * AC-5: Reminder processing in the same tick body SHALL remain unaffected by
-     the delivery guard — reminders do not manipulate focus and SHALL continue
-     to run on every tick.
-   * AC-6: The guard SHALL NOT introduce any new configuration setting or
-     persisted state.
-
-
-.. req:: Agent Chat Prompt Helper
-   :id: REQ_MSG_SENDPROMPT
-   :status: implemented
-   :priority: optional
-   :links: US_MSG_STABLESESSION; REQ_MSG_OPENCHAT
-
-   **Description:**
-   The extension SHALL submit a query to the currently focused VS Code Chat input
-   in agent mode, using a two-level fallback strategy to tolerate VS Code API
-   differences across builds.
-
-   **Acceptance Criteria:**
-
-   * AC-1: The extension SHALL first attempt to focus the chat input via
-     ``workbench.action.chat.focusInput`` (best-effort; failures are silently
-     swallowed)
-   * AC-2: The primary submission mechanism for the **mode-setting** variant
-     (AC-6) SHALL be ``workbench.action.chat.openAgent`` with
-     ``{ query, isPartialQuery: false }``
-   * AC-3: If ``workbench.action.chat.openAgent`` throws, the extension SHALL
-     fall back to ``workbench.action.chat.open`` with
-     ``{ query, isPartialQuery: false, mode: 'agent' }``
-   * AC-4: Fallback attempts SHALL be logged at ``warn`` level on the Jarvis
-     output channel with the caught error message and a ``[MSG]`` tag
-   * AC-5: Both ``workbench.action.chat.openAgent`` and
-     ``workbench.action.chat.open`` are VS Code internal commands with no public
-     stability guarantee — the try/catch fallback is mandatory
-   * AC-6: (**notification-agent-mode-reset CR, GH #54**) The helper SHALL offer
-     a **mode-preserving** submission variant that submits the query without
-     altering the target chat session's agent mode. It SHALL NOT use any command
-     that carries a bound mode (the ``workbench.action.chat.open<ModeName>``
-     family, of which ``workbench.action.chat.openAgent`` is a member — see
-     ``REQ_MSG_OPENCHAT`` and GH #25). Its fallback path SHALL likewise request
-     no mode.
-   * AC-7: The choice of variant SHALL be made by the caller. The helper SHALL
-     NOT infer it from global editor or session state.
 
 
 .. req:: Reminder Persistence Store
@@ -929,7 +485,7 @@ Message Queue Requirements
   :id: REQ_MSG_REMINDERS_DELIVER
   :status: draft
   :priority: optional
-  :links: US_MSG_REMINDERS; REQ_MSG_REMINDERS_PERSIST; REQ_MSG_AUTODELIVER_POLL; REQ_MSG_QUEUE; REQ_MSG_AUTODELIVER_CONFIG
+  :links: US_MSG_REMINDERS; REQ_MSG_REMINDERS_PERSIST; REQ_COM_NOTIFY; REQ_MSG_QUEUE; REQ_MSG_AUTODELIVER_CONFIG
 
   **Description:**
   The existing 5-second poll loop SHALL be extended to check for due reminders
@@ -986,84 +542,6 @@ Message Queue Requirements
      ``contributes.languageModelTools`` with appropriate ``inputSchema``
 
 
-.. req:: Notification Template Setting
-   :id: REQ_MSG_NOTIFICATION_TEMPLATE
-   :status: draft
-   :priority: optional
-   :links: US_MSG_NOTIFICATION_TEMPLATE; REQ_MSG_SEND; REQ_MSG_AUTODELIVER_POLL; REQ_INJ_PRIMITIVE
-
-   **Description:**
-   The extension SHALL expose a configurable string setting for the auto-delivery
-   notification stub text, with a built-in English default and support for
-   placeholder substitution.
-
-   **Setting:**
-
-   * Name: ``jarvis.messages.notificationTemplate``
-   * Type: ``string``
-   * Default: the built-in English notification text (verbatim below); ``package.json`` ships the full text so users see it in the Settings UI; an empty or whitespace-only value falls back to the built-in default
-   * Scope: ``window``
-   * Group: Messages
-
-   **Built-in default text (verbatim):**
-
-   .. code-block:: text
-
-      [Jarvis Message Service] You have ${count} new message(s) in your inbox.
-      Sender(s): ${sender}
-      Read them with the jarvis_receiveMessage tool (destination: "${destination}") until remaining = 0.
-
-   **Acceptance Criteria:**
-
-   * AC-1: When ``jarvis.messages.notificationTemplate`` is empty or whitespace,
-     the built-in default text above SHALL be used as the notification stub
-   * AC-2: When the setting contains a non-empty string, that string SHALL be
-     used as the template instead of the built-in default
-   * AC-3: Before submission, the template SHALL have ``${count}`` replaced with
-     the number of pending messages, ``${destination}`` replaced with the
-     target session name, and ``${sender}`` replaced with the
-     comma-separated distinct sender names from the pending message batch
-     (``msg-notify-sender-id`` CR, GH #40). For messages from non-actor
-     sources (e.g. heartbeat jobs), the sender field already contains an
-     appropriate label (e.g. ``"Heartbeat"``) — no special-casing is needed
-     at the template level.
-   * AC-4: Unknown placeholder tokens (i.e. ``${...}`` patterns not listed above)
-     SHALL be left as-is in the final text — no error is raised
-   * AC-5: The substitution SHALL be applied by a shared private helper
-     ``applyTemplate(template, vars)`` in ``src/extension.ts`` so that both the
-     deliver-now command and the auto-delivery poll loop use identical logic
-   * AC-6: The setting SHALL be read from VS Code configuration on each delivery
-     call — no caching — so changes take effect without an extension restart
-   * AC-7: (message-api-rename CR) The built-in default text SHALL reference
-     ``jarvis_receiveMessage`` (the canonical tool) rather than the deprecated
-     ``jarvis_readMessage`` — this is a one-time default-text update; the
-     setting's substitution logic (AC-1 through AC-6) is otherwise unaffected.
-     Users with a customized (non-default) template are unaffected — the
-     built-in default only changes for users who have never overridden it.
-   * AC-8: (**notification-template-empty-fallback CR, GH #56**) The AC-1
-     fallback SHALL be enforced in extension code and SHALL NOT rely on the
-     ``"default"`` declared in ``package.json``. VS Code's Settings UI persists
-     an explicit empty string at User scope as soon as the text field is
-     cleared, and a persisted ``""`` shadows the declared default —
-     ``getConfiguration().get()`` then returns ``''``, not the declared text.
-     The declared default therefore governs only what the user *sees*, never
-     what the delivery paths *use*.
-   * AC-9: (**GH #56**) The built-in default text SHALL exist exactly once in
-     the codebase as a named constant, symmetric to ``DEFAULT_INIT_PROMPT``
-     (``REQ_ACTOR_INITPROMPT`` AC-3), and both delivery paths SHALL obtain
-     the resolved notification text through one shared resolution helper. No
-     delivery path may re-implement the empty/whitespace fallback locally.
-   * AC-10: (**GH #56**) The notification text handed to ``REQ_INJ_PRIMITIVE``
-     by either delivery path SHALL be non-empty by construction. The primitive's
-     documented "empty text means open/focus only" contract
-     (``REQ_INJ_PRIMITIVE`` AC-7) SHALL therefore never be triggered by a
-     notification delivery. If the resolved text is nevertheless empty or
-     whitespace-only (only reachable if the built-in constant itself were
-     empty — a code defect), the resolution helper SHALL log a warning naming
-     the destination, and SHALL NOT return silently as if the notification were
-     well-formed.
-
-
 .. req:: Reminders Tree View
    :id: REQ_MSG_REMINDERS_VIEW
    :status: draft
@@ -1091,206 +569,3 @@ Message Queue Requirements
      deliver)
 
 
-.. req:: Send-to-Session LM / MCP Tool
-   :id: REQ_MSG_SENDTOSESSION
-   :status: deprecated
-   :priority: mandatory
-   :links: US_MSG_SAFE_SEND; REQ_MSG_QUEUE; REQ_MSG_SESSIONLOOKUP; REQ_MSG_SESSIONFILTER
-
-   **Deprecated by:** ``REQ_MSG_SENDMESSAGE`` (message-api-rename CR). **Hard
-   deprecation (PM design pivot, 2026-07-03):** soft deprecation (tool stays
-   functional, returns a warning) was tried first and observed to fail in
-   practice — agents kept calling the deprecated tool and ignored the
-   warning. The tool now SHALL remain **registered** (so callers still get a
-   discoverable, named error) but SHALL be **functionally inert**: every
-   invocation ends in an error and no message is ever queued. Full removal of
-   the registration itself remains GH Issue #13 (separate future change,
-   earliest 2026-09-30).
-
-   **Description:**
-   The extension SHALL keep ``jarvis_sendToSession`` registered as a
-   Language Model Tool (and corresponding MCP Tool) for discoverability, but
-   every invocation SHALL immediately fail with a deprecation error — no
-   destination validation, no queueing, no other side effect of any kind.
-
-   **Acceptance Criteria:**
-
-   * AC-1: A Language Model Tool named ``jarvis_sendToSession`` SHALL remain
-     registered via ``vscode.lm.registerTool`` (dual-registered as an MCP tool
-     via ``registerDualTool``) with ``canBeReferencedInPrompt: true``
-   * AC-2: The tool SHALL continue to accept its existing three input
-     parameters (``session``, ``text``, ``senderSession``) unchanged at the
-     schema level, so existing callers do not fail schema validation before
-     reaching the handler
-   * AC-3: Every invocation, regardless of input, SHALL throw an error
-     (not return a success response) with the exact text::
-
-        This tool is deprecated and no longer functional. Use jarvis_sendMessage instead.
-
-   * AC-4: No message SHALL ever be appended to the queue by this tool —
-     there is no valid input that produces a side effect
-   * AC-5: Destination validation, sender resolution (active-tab fallback),
-     and all other previously-specified behaviour (former AC-3 through AC-7b)
-     are SUPERSEDED and no longer apply — the handler short-circuits to the
-     error in AC-3 before any of that logic would run
-   * AC-6: The tool's ``modelDescription`` SHALL carry
-     ``"[DEPRECATED AND DISABLED — use jarvis_sendMessage instead.]"``
-     directly after the package prefix ``jarvis_core:``
-     (``REQ_ENG_TOOLREF`` AC-3), so the deprecation is visible at
-     tool-discovery time, before any invocation attempt
-
-
-.. req:: Destination Validation Error Contract
-   :id: REQ_MSG_DEST_ERROR
-   :status: implemented
-   :priority: mandatory
-   :links: US_MSG_SAFE_SEND; REQ_MSG_SENDTOSESSION; REQ_MSG_SESSIONFILTER
-
-   **Description:**
-   The error thrown by ``jarvis_sendToSession`` when the destination session
-   does not exist SHALL be self-contained enough for the calling agent to
-   correct the invocation immediately.
-
-   **Acceptance Criteria:**
-
-   * AC-1: The error message SHALL state that the supplied destination does
-     not exist, quoting the supplied name verbatim
-   * AC-2: The error message SHALL list all currently valid destination names
-     in a deterministic, human-readable order (alphabetically sorted)
-   * AC-3: If the valid destination set is empty (no Actors in the
-     workspace), the error message SHALL indicate this explicitly rather than
-     showing an empty list
-   * AC-4: The error message template SHALL be::
-
-        Destination session "${session}" does not exist.
-        Valid destinations: ${names}
-
-     where ``${session}`` is replaced by the supplied (invalid) name,
-     and ``${names}`` is replaced by the alphabetically sorted list of Actor
-     names joined with ``", "``; if the set is empty
-     ``${names}`` is replaced by the literal string ``"(none)"``
-   * AC-5: The error SHALL be raised as a JavaScript ``Error`` object so that
-     both the VS Code LM tool invocation and the MCP handler surface the
-     message text to the caller unchanged
-
-
-.. req:: Send Message LM / MCP Tool (Canonical)
-   :id: REQ_MSG_SENDMESSAGE
-   :status: draft
-   :priority: mandatory
-   :links: US_MSG_SAFE_SEND; US_MSG_SENDER_REQUIRED; REQ_MSG_QUEUE; REQ_MSG_SESSIONLOOKUP; REQ_MSG_SESSIONFILTER; REQ_AUT_HEARTBEAT_RESOLVER_REUSE
-
-   **Description:**
-   The extension SHALL register a Language Model Tool (and corresponding MCP
-   Tool) named ``jarvis_sendMessage`` that queues a text message for delivery
-   to an Actor. This is the canonical replacement for the
-   now hard-deprecated ``jarvis_sendToSession`` (``REQ_MSG_SENDTOSESSION``):
-   it performs the destination validation ``jarvis_sendToSession`` used to
-   perform (before its handler was short-circuited to an unconditional
-   error), but additionally **requires** and validates ``senderSession`` —
-   there is no active-tab fallback.
-
-   **Acceptance Criteria:**
-
-   * AC-1: A Language Model Tool named ``jarvis_sendMessage`` SHALL be
-     registered via ``vscode.lm.registerTool`` (dual-registered as an MCP tool
-     via ``registerDualTool``) with ``canBeReferencedInPrompt: true``
-   * AC-2: The tool SHALL accept three input parameters: ``session`` (string,
-     required — the name of the target Actor), ``text`` (string, required — the
-     message body), and ``senderSession`` (string, **required** — name of the
-     sending Actor)
-   * AC-3: Before appending to the queue, the tool SHALL verify that
-     ``session`` is a member of the **valid destination set** defined by
-     ``REQ_AUT_HEARTBEAT_RESOLVER_REUSE`` AC-3
-   * AC-4: If ``session`` is not in the valid destination set, the tool SHALL
-     throw an error (not return a success response); no message SHALL be
-     appended to the queue; the error message SHALL satisfy
-     ``REQ_MSG_DEST_ERROR``
-   * AC-5: If ``senderSession`` is missing or an empty string, the tool SHALL
-     throw an error (not return a success response); no message SHALL be
-     appended to the queue; the error message SHALL satisfy
-     ``REQ_MSG_SENDER_ERROR`` (missing case)
-   * AC-6: If ``senderSession`` is present but is not a member of the valid
-     destination set (``REQ_AUT_HEARTBEAT_RESOLVER_REUSE`` AC-3 — same set used
-     for ``session``), the tool SHALL throw an error (not return a success
-     response); no message SHALL be appended to the queue; the error message
-     SHALL satisfy ``REQ_MSG_SENDER_ERROR`` (invalid case)
-   * AC-7: If both ``session`` and ``senderSession`` are valid, the tool SHALL
-     append the message to the queue via ``appendMessage`` using the supplied
-     ``senderSession`` verbatim as the ``sender`` field, and return a success
-     response; all existing queuing behaviour (auto-delivery, audit log, tree
-     refresh) SHALL be unaffected
-   * AC-8: The validation order SHALL be: destination first (AC-3/AC-4), then
-     sender (AC-5/AC-6) — a request with both an invalid destination and a
-     missing/invalid sender SHALL fail with the destination error
-
-
-.. req:: Receive Message LM / MCP Tool (Canonical)
-   :id: REQ_MSG_RECEIVEMESSAGE
-   :status: draft
-   :priority: mandatory
-   :links: US_MSG_CHATQUEUE; REQ_MSG_QUEUE
-
-   **Description:**
-   The extension SHALL register a Language Model Tool (and corresponding MCP
-   Tool) named ``jarvis_receiveMessage`` that pops the oldest queued message
-   for a given destination session. This is the canonical replacement for the
-   deprecated ``jarvis_readMessage`` (``REQ_MSG_READ``) — a rename only, with
-   no functional change.
-
-   **Acceptance Criteria:**
-
-   * AC-1: A Language Model Tool named ``jarvis_receiveMessage`` SHALL be
-     registered via ``vscode.lm.registerTool`` (dual-registered as an MCP tool
-     via ``registerDualTool``) with ``canBeReferencedInPrompt: true``
-   * AC-2: The tool SHALL accept a ``destination`` parameter (string)
-     identifying the target session name
-   * AC-3: The tool SHALL return a JSON object with ``message`` (containing
-     ``sender``, ``text``, ``timestamp``, or ``null`` if no messages) and
-     ``remaining`` (number of messages still queued for that destination)
-   * AC-4: The tool SHALL remove the returned message from the queue file
-     (pop-oldest semantics)
-   * AC-5: If no messages exist for the destination, the tool SHALL return
-     ``{ message: null, remaining: 0 }``
-   * AC-6: The Messages tree view SHALL refresh after each read
-   * AC-7: Behaviour SHALL be identical to ``REQ_MSG_READ`` in every respect
-     other than the tool name — no new parameters, no new response fields, no
-     deprecation warning (this is the canonical, non-deprecated tool)
-
-
-.. req:: Sender Validation Error Contract
-   :id: REQ_MSG_SENDER_ERROR
-   :status: draft
-   :priority: mandatory
-   :links: US_MSG_SENDER_REQUIRED; REQ_MSG_SENDMESSAGE; REQ_MSG_SESSIONFILTER
-
-   **Description:**
-   The error thrown by ``jarvis_sendMessage`` when ``senderSession`` is missing
-   or invalid SHALL be self-contained enough for the calling agent to correct
-   the invocation immediately, mirroring ``REQ_MSG_DEST_ERROR``'s contract for
-   the destination side.
-
-   **Acceptance Criteria:**
-
-   * AC-1: If ``senderSession`` is missing or an empty string, the error
-     message SHALL be exactly::
-
-        senderSession is required. Callers must explicitly provide their
-        session name — do not rely on the active editor tab.
-
-   * AC-2: If ``senderSession`` is present but not a member of the valid
-     destination set, the error message SHALL be::
-
-        Sender session "${senderSession}" does not exist.
-        Valid senders: ${names}
-
-     where ``${senderSession}`` is replaced by the supplied (invalid) name,
-     and ``${names}`` is replaced by the alphabetically sorted list of Actor
-     names joined with ``", "``; if the set is empty
-     ``${names}`` is replaced by the literal string ``"(none)"``
-   * AC-3: The valid destination set used for sender validation SHALL be the
-     canonical set of ``REQ_AUT_HEARTBEAT_RESOLVER_REUSE`` AC-3 — no separate
-     sender-specific set is introduced
-   * AC-4: The error SHALL be raised as a JavaScript ``Error`` object so that
-     both the VS Code LM tool invocation and the MCP handler surface the
-     message text to the caller unchanged

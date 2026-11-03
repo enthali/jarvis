@@ -1,5 +1,38 @@
 # Release Notes
 
+## v0.32.0 - Agent Host Migration, Hook Removal and MCP Opt-In
+
+*2026-11-03*
+
+### Highlights
+
+- Jarvis 0.32.0 is the first release that supports the Agents window: Actors, messaging and Kanban work there, and several Actor chats can be open side by side. Jarvis now runs entirely on VS Code's Agent Host and works in the editor and in the Agents window. Tree markers, Flow, PIM and the Recorder in the Agents window are on the roadmap.
+
+### Breaking Changes and Migration
+
+- **ahp-mvp**: Actor chats and announcements now use VS Code's Agent Host only. Existing chat-UI sessions are not the delivery path; without a connection announcements wait. Clicking an Actor finds or creates its Agent Host chat; Messages and Message Flow open an existing chat only. Delivery does not open tabs or take focus.
+- Update prompts, skills and instructions before upgrading: `jarvis_sendMessage(session, text)` no longer accepts `senderSession`, and `jarvis_receiveMessage()` no longer accepts `destination`. The calling Actor chat supplies the sender and inbox. `jarvis_listActors()` returns names and short descriptions instead of path IDs. `jarvis_createActorSession(actor)` finds or creates a chat. Use these Agent Host tool names rather than the former package-prefixed messaging references; the references of other extension tools remain package-prefixed.
+- Removed: `jarvis_listChatSessions`, `jarvis_readMessage`, `jarvis_sendToSession`, `jarvis_injectPrompt`, **Jarvis: Inject Prompt**, and `jarvis.messages.notificationTemplate`. There is no general prompt-injection replacement. The four Agent Host tools are not exposed through MCP; external Actor wake-up scripts must move to heartbeat steps. Reminders and heartbeat message steps still write to the inbox.
+- With Actor auto-provisioning enabled, bundled instructions refresh through provisioning. Owners must update project-maintained instructions, skills and agents themselves; see the migration section in [Getting Started](user%20guides/getting-started.md).
+- **hook-removal-mcp-default**: Removes all agent-hook functionality without replacement and without requiring external `node` for Actor tool calls. The hook-based **Recently Touched Files** category, its diff/remove/cleanup actions, and the settings `jarvis.hooks.autoInstall` and `jarvis.touchedFiles.windowDays` are removed. Stored values of those settings have no effect; Actor activity still comes from the Agent Host, and recording/mail indicators are unchanged.
+- On activation, Jarvis removes the five known legacy files from `.github/hooks/` of the first workspace folder: `jarvis-hooks.json`, `jarvis-bridge.mjs`, `jarvis-port`, `bridge.mjs`, and `port`. Automatic cleanup needs no setting, but covers only the first workspace folder and can fail. If any of these five legacy files remain in a project, including another workspace folder, remove them by hand from that project's `.github/hooks/`; keep the directory and all other files. Failures are logged and retried at the next activation. Old `.jarvis/state/touched-files/` data stays on disk but is no longer used, and so does a leftover `chat.hookFilesLocations` entry in a workspace's `.vscode/settings.json`; it is harmless. This cleanup addresses the old provisioned hooks that could block tool calls on machines without `node`; see the [Core guide](user%20guides/core.md).
+- **MCP is now disabled by default** (`jarvis.mcp.enabled: false`). Existing installations without an explicit value no longer start the server automatically after the upgrade. Set the value to `true` to opt in; existing explicit `true` or `false` settings remain effective. Node/npm remain build and packaging prerequisites, not an Actor tool-call requirement.
+
+### Actor Chats
+
+- In the Agents window, tick **Created In > jarvis-core** to see Jarvis-created chats. **Mark done** archives a chat and makes it read-only; Jarvis restores it on opening or delivery. Only **Delete** removes it. A workspace below a repository root can show as **Worktree** without a Git worktree.
+- Activity comes from the Agent Host: Error (red cross), Waiting (blue question mark), Working (spinner), Idle (no activity icon). Activity takes priority over the recording mark, then the mail icon. Jarvis approves calls to its own four Agent Host tools.
+
+### Known Limits
+
+- Jarvis needs an available, authenticated VS Code Agent Host; there is no fallback to the old chat UI. It was developed and checked on VS Code 1.143.1 and 1.144.0. A remote window (WSL, SSH, Dev Tunnels) is not served.
+- Module tools reach an Actor chat only while it is open in a window running Jarvis, under references such as `jarvis_core_listJobs` and `jarvis_kanban_listKanbanItems`. The client serves the first workspace folder; cross-workspace routing is outside this MVP. The same workspace open in two windows is not tested and probably does not work.
+- Agents window, as observed in the Windows Sandbox on 2026-11-03: Actor chats and the Kanban board work. Flow (message view and log) cannot be opened there yet. Everything Jarvis offers through the status bar or a tree does not work there: the activity and mail markers in the ACTORS tree, the PIM mail notification in the tree, and the Recorder, which has no UI that can be triggered from the Agents window. A solution is on the roadmap; there is no plan yet. Syspilot was not checked there.
+- The Recently Touched Files function is removed in this release and is on the roadmap for a future version.
+- Not run in the validation of the included changes: the manual Agent Host scenarios and the upgrade of a workspace that still holds old hook files (`US_UAT_MSG` T-22).
+
+---
+
 ## v0.31.1 - Copilot CLI Tool Reference Fix + Extension Retirement
 
 *2026-10-24*

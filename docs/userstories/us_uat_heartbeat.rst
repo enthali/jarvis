@@ -5,7 +5,7 @@ Heartbeat User Acceptance Tests
    :id: US_UAT_HEARTBEAT
    :status: implemented
    :priority: optional
-   :links: US_AUT_HEARTBEAT; US_CFG_HEARTBEAT; US_MSG_CHATQUEUE
+   :links: US_AUT_HEARTBEAT; US_CFG_HEARTBEAT; US_COM_SEND
 
    **As a** Jarvis Test Engineer,
    **I want** a set of manual acceptance test scripts for the heartbeat scheduler,

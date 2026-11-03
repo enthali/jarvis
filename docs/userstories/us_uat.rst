@@ -13,7 +13,6 @@ checks belong in unit tests. Each file corresponds to one feature or change.
 
    us_uat_heartbeat
    us_uat_msgqueue
-   us_uat_sessiontools
    us_uat_selfupdate
    us_uat_mcpserver
    us_uat_outlookcategories
@@ -23,11 +22,9 @@ checks belong in unit tests. Each file corresponds to one feature or change.
    us_uat_heartbeat_pause
    us_uat_listjobs
    us_uat_reminders
-   us_uat_agent_prompt_tuning
    us_uat_skill_provisioning
    us_uat_flow
    us_uat_kanban_skill
-   us_uat_msg_modetarget
    us_uat_kanban_mgmt
    us_uat_kanban_update_valid
    us_uat_mod_actorrules

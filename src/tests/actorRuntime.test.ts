@@ -7,7 +7,7 @@ import * as vscodeMock from 'vscode';
 import { LanguageModelTextPart } from './__mocks__/vscode';
 import { ActorScanner } from '../../packages/core/src/engine/actors/actorScanner';
 import { getValidDestinations, combineValidDestinations } from '../../packages/core/src/engine/sessions/sessionLookup';
-import { createListActorsHandler, createActorHandler } from '../../packages/core/src/engine/actors/actorRuntime';
+import { createActorHandler } from '../../packages/core/src/engine/actors/actorRuntime';
 
 const roots: string[] = [];
 
@@ -28,35 +28,6 @@ function writeActor(root: string, relativeFolder: string, name: string): void {
     fs.mkdirSync(folder, { recursive: true });
     fs.writeFileSync(path.join(folder, 'actor.yaml'), `name: ${name}\n`);
 }
-
-describe('SPEC_ACTOR_LISTTOOL: createListActorsHandler', () => {
-    it('returns actors with name, summary, agent, folder, id — direct children only', async () => {
-        const root = makeRoot();
-        writeActor(root, 'Direct Folder', 'Direct Actor');
-        writeActor(root, 'archive/Nested Folder', 'Nested Actor');
-        const actorScanner = new ActorScanner(() => root, () => {});
-        await actorScanner.rescan();
-
-        const log = { info: vi.fn() };
-        const handler = createListActorsHandler(actorScanner, log);
-        const result = await handler(
-            {} as vscode.LanguageModelToolInvocationOptions<unknown>,
-            {} as vscode.CancellationToken,
-        );
-        const payload = JSON.parse((result.content[0] as LanguageModelTextPart).value);
-
-        expect(payload.actors).toEqual([
-            {
-                name: 'Direct Actor',
-                summary: '',
-                agent: 'Direct Actor',
-                folder: path.join(root, 'Direct Folder'),
-                id: path.join(root, 'Direct Folder', 'actor.yaml'),
-            },
-        ]);
-        expect(log.info).toHaveBeenCalledWith('[ACTOR] listActors: 1 Actor(s)');
-    });
-});
 
 describe('REQ_AUT_HEARTBEAT_RESOLVER_REUSE AC-3: Actor-only destination validation', () => {
     it('lists every unambiguous Actor name and excludes duplicates', async () => {

@@ -5,7 +5,7 @@ Explorer User Stories
    :id: US_EXP_SIDEBAR
    :status: approved
    :priority: mandatory
-   :links: US_MSG_CHATQUEUE; US_AUT_HEARTBEAT; US_CFG_FEATURETOGGLES
+   :links: US_COM_SEND; US_AUT_HEARTBEAT; US_CFG_FEATURETOGGLES
 
    **As a** Jarvis User,
    **I want** a dedicated Jarvis sidebar in VS Code that hosts the Jarvis views,

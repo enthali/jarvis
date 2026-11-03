@@ -5,7 +5,7 @@ Message Flow Visualization User Stories
    :id: US_FLOW_CHORDVIEW
    :status: draft
    :priority: optional
-   :links: US_EXP_SIDEBAR; US_MSG_CHATQUEUE; US_MSG_EDITORPLACEMENT
+   :links: US_EXP_SIDEBAR; US_COM_SEND; US_MSG_EDITORPLACEMENT
 
    **As a** Jarvis User,
    **I want** an interactive diagram of inter-agent message flow (who sent
@@ -49,7 +49,7 @@ Message Flow Visualization User Stories
    :id: US_FLOW_LOGVIEWER
    :status: draft
    :priority: optional
-   :links: US_MSG_CHATQUEUE; US_EXP_SIDEBAR; US_FLOW_CHORDVIEW
+   :links: US_COM_SEND; US_EXP_SIDEBAR; US_FLOW_CHORDVIEW
 
    **As a** Jarvis User,
    **I want** a scrollable, newest-first viewer for the persistent message

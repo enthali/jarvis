@@ -63,18 +63,10 @@ Theme Abbreviations
      - Engine contract (core API for add-ons: tool injection, tool registry,
        Actor list; **plumbing, not user-facing — no US level**)
      - ``REQ_ENG_CONTRACT``, ``SPEC_ENG_API``
-   * - ``HOOK``
-     - Hook Engine (agent lifecycle hook intake, dispatch foundation in jarvis-core)
-     - ``US_HOOK_OBSERVE``, ``REQ_HOOK_INTAKE``, ``SPEC_HOOK_PROXY``
    * - ``FLOW``
      - Message Flow Visualization (separate add-on module, D3 chord diagram of
        inter-agent message flow, Webview Panel editor tab)
      - ``US_FLOW_CHORDVIEW``, ``REQ_FLOW_WEBVIEWPANEL``, ``SPEC_FLOW_CHORDRENDER``
-   * - ``INJ``
-     - Prompt Injection (the foundational primitive for all session
-       communication, including init prompts, message delivery,
-       slash-commands, and programmatic agent interaction)
-     - ``US_INJ_INJECT``, ``REQ_INJ_PRIMITIVE``, ``SPEC_INJ_INJECT``
    * - ``SPL``
      - Syspilot Lifecycle (version detection, update handoff to syspilot Setup
        Agent, suspend/skip state management)

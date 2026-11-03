@@ -1,16 +1,35 @@
 # Jarvis Core
 
-Jarvis Core (`enthali.jarvis-core`) is the harness: it turns chat sessions and agent personas into actors and provides messaging, reminders, the heartbeat scheduler, and the engine that the other packages build on. Requires VS Code 1.95.0 or later.
+Jarvis Core 0.32.0 (`enthali.jarvis-core`) is the harness: it turns chat sessions and agent personas into actors and provides messaging, reminders, the heartbeat scheduler, and the engine that the other packages build on. This is the first release with Agents window support for Actors, messaging and Kanban. Requires VS Code 1.95.0 or later (manifest minimum); Actor chats additionally require an available, authenticated Agent Host.
 
 ## Actors
 
 An actor is a persistent persona with its own `context.md` memory and agent file. Actors are folders with an `actor.yaml` file; the ACTORS view shows direct child folders only, nested folders are not scanned. Jarvis creates or repairs the agent file with the actor name and memory path when needed. To move or remove an actor, use the file system; there is no Jarvis archive feature.
 
-`jarvis_listActors` returns the absolute `actor.yaml` path as `id`.
+`jarvis_listActors()` returns Actor names and short descriptions from the workspace's `actor.yaml` files.
+
+### Actor chats
+
+Jarvis uses VS Code's Agent Host for Actor chats. Click an Actor in ACTORS or choose **Open** to find its chat or create one. An existing editor tab is reused; otherwise the chat opens as a pinned tab in the first editor group. Clicking an Actor group in Messages or a node in Message Flow opens an existing chat only. Delivering a message never opens a tab or takes focus.
+
+In the Agents window, enable **Created In > jarvis-core** in the session filter to show chats created by Jarvis. **Mark done** archives a chat and makes it read-only; Jarvis restores it when opening it or delivering an announcement. Only **Delete** removes the chat. A workspace below a repository root can appear as **Worktree** without a Git worktree having been created.
+
+In the editor window, the ACTORS view takes activity from the Agent Host: a red circle with a cross means Error, a blue question mark means Waiting, and an animated spinner means Working. Idle has no activity icon. Activity takes priority over the recording mark, which takes priority over the mail icon. A failed turn stays in Error until the next turn; cancelling a turn returns to Idle.
 
 ## Messaging
 
-Actors and sessions pass messages through a queue. The receiving session is notified and reads its messages with `jarvis_receiveMessage`. With logging enabled, every queued message is also appended to `.jarvis/message-log.json`.
+Actors pass messages through a persistent inbox. An announcement tells the receiving Actor how many messages wait; their content is returned only by `jarvis_receiveMessage()`, not inserted as a prompt. Enable **Direct Delivery** for automatic announcements, or use the play action in Messages to announce waiting messages manually. A missing Actor chat is created for delivery. Without an Agent Host connection, announcements wait; opening a chat shows an information message instead of falling back to the old chat UI. With logging enabled, every queued message is also appended to `.jarvis/message-log.json`.
+
+The Agent Host client provides these tools to Actor chats and approves calls addressed to its own tools:
+
+| Tool call | Result |
+|-----------|--------|
+| `jarvis_sendMessage(session, text)` | Queue a message for the named Actor. The caller's Actor is the sender; there is no `senderSession` input. |
+| `jarvis_receiveMessage()` | Return and remove the oldest message from the calling Actor's inbox, with sender, time and `remaining`. Call until `remaining` is `0`; there is no `destination` input. |
+| `jarvis_listActors()` | List workspace Actors with names and short descriptions. |
+| `jarvis_createActorSession(actor)` | Find or create the named Actor's chat and return its session address. |
+
+The sender and inbox are bound to the calling Actor chat, not supplied by the model. The client serves the window's first workspace folder; cross-workspace routing is outside this MVP. The same workspace open in two windows is not tested and probably does not work. These four tools are not exposed through MCP.
 
 ## Reminders
 
@@ -20,13 +39,38 @@ Set cron-based or one-off reminders that appear as VS Code notifications.
 
 Cron-based background jobs that run scripts (Python, PowerShell), VS Code commands, or single-shot language-model agent steps, with a live status view in the activity bar. Each agent step names both `vendor` and `model` (the model ID); there is no default or fallback. Use **Jarvis: List Language Models** or `jarvis_listModels` to see the pairs VS Code currently offers.
 
-## Prompt injection
-
-Send text or a slash command (for example `/compact`) to a named actor's session with the `jarvis_injectPrompt` tool or the **Jarvis: Inject Prompt** command. Jarvis starts the session if none exists.
-
 ## Language model tools
 
-Core provides tools such as `#jarvis_core_listActors`, `#jarvis_core_listModels`, `#jarvis_core_sendMessage`, `#jarvis_core_receiveMessage`, `#jarvis_core_createActor`, and `#jarvis_core_injectPrompt`. Installed packages add their own tools.
+Extension tools retain package-prefixed chat references, such as `#jarvis_core_listModels`, `#jarvis_core_createActor`, and `#jarvis_core_listJobs`. They are separate from the four Agent Host tools above. Installed packages add their own tools, for example `#jarvis_kanban_listKanbanItems`. These module tools reach an Actor chat only while it is open in a window running Jarvis.
+
+## Agents window and known limits in 0.32.0
+
+In the Windows Sandbox on 2026-11-03, the User observed that Actor chats, messaging and the Kanban board work in the Agents window, with several Actor chats open side by side.
+
+- Jarvis needs an available, authenticated Agent Host; there is no fallback to the old chat UI. Development and checks covered VS Code 1.143.1 and 1.144.0, not every version allowed by the manifest minimum.
+- The client serves its window's first workspace folder. Remote windows (WSL, SSH, Dev Tunnels) are not served, and cross-workspace routing is outside this MVP. The same workspace in two windows is not tested and probably does not work.
+- Enable **Created In > jarvis-core** to see Jarvis-created chats in the Agents window.
+- Flow, including the message view and log, cannot be opened from the Agents window yet.
+- Jarvis features offered through the status bar or a tree do not work there: ACTORS activity/mail markers, the PIM mail notification in the tree, and Recorder, which has no UI that can be triggered there. A solution is on the roadmap; there is no plan yet. These editor-window features are not removed from Jarvis.
+- Syspilot was not checked in the Agents window.
+- Project-owned prompts, skills and agents must use the changed message-tool inputs above; remove `senderSession` and `destination` from send and receive calls.
+- Recently Touched Files is removed in 0.32.0 and is on the roadmap for a future version. Old `.jarvis/state/touched-files/` data and any old `chat.hookFilesLocations` entry in `.vscode/settings.json` remain on disk.
+- The MCP server stays off unless `jarvis.mcp.enabled` is explicitly `true`, including after an upgrade without a stored setting.
+- The manual Agent Host scenarios and upgrade cleanup of a project still containing old hook files (`US_UAT_MSG` T-22) were not run in validation of the included changes. The observed Sandbox results do not turn those procedures into test passes.
+
+## Upgrading from a hook-based version
+
+Jarvis no longer installs or listens for agent hooks and does not require an external `node` command for Actor tool calls. The hook-based **Recently Touched Files** category, its diff/remove/cleanup actions and its time-window setting are removed without replacement in 0.32.0; the function is on the roadmap for a future version. Actor activity still comes from the Agent Host; recording and mail indicators in the editor window are unchanged.
+
+On activation, Jarvis removes only these files from `.github/hooks/` in the first workspace folder, if present:
+
+- `jarvis-hooks.json`
+- `jarvis-bridge.mjs`
+- `jarvis-port`
+- `bridge.mjs`
+- `port`
+
+Automatic cleanup needs no setting, but covers only the first workspace folder and can fail. If any of the five listed legacy files remain in a project, including another workspace folder, remove them by hand from that project's `.github/hooks/`; keep the directory and all other files. A removal failure is logged and retried at the next activation; an absent file is normal. The old `.jarvis/state/touched-files/` data stays on disk but is no longer read. Existing values of `jarvis.hooks.autoInstall` and `jarvis.touchedFiles.windowDays` have no effect and can be removed from settings.
 
 ## Add-ons
 
@@ -49,13 +93,10 @@ Core provides tools such as `#jarvis_core_listActors`, `#jarvis_core_listModels`
 | `jarvis.agentSession.initPromptTemplate` | built-in prompt | Template for the initialization prompt sent to a new agent chat session. Leave empty to use the built-in default. |
 | `jarvis.messages.enabled` | `true` | Enable the Messages feature. |
 | `jarvis.messages.logging` | `true` | Append every queued message to `.jarvis/message-log.json`. |
-| `jarvis.messages.notificationTemplate` | built-in text | Template for the notification a session receives when messages arrive. Placeholders: `${count}`, `${destination}`, `${sender}`. If empty, the built-in English default is used. |
 | `jarvis.heartbeat.enabled` | `true` | Enable the heartbeat scheduler. |
 | `jarvis.heartbeatInterval` | `60` | Heartbeat scheduler tick interval in seconds. |
 | `jarvis.scanInterval` | `2` | Background rescan interval in minutes (0 = disabled). |
 | `jarvis.reminders.enabled` | `true` | Enable reminders. |
 | `jarvis.gitignore.autoManage` | `true` | Maintain a marked region in the workspace `.gitignore` listing Jarvis transient runtime paths. Set to `false` to remove the region. |
-| `jarvis.hooks.autoInstall` | `true` | Install hook bridge files in `.github/hooks/`. Set to `false` to remove managed files and stop hook management. |
 | `jarvis.checkForUpdates` | `true` | Check GitHub for new Jarvis releases when the extension activates. |
 | `jarvis.releaseNotes.showOnUpdate` | `true` | Open the release notes the first time a newly installed Jarvis version runs. **Jarvis: Show Release Notes** works regardless. |
-| `jarvis.touchedFiles.windowDays` | `0` | Rolling window in days; only files touched within it appear in Recently Touched Files (0 = no limit). |

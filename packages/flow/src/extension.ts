@@ -10,7 +10,7 @@ import { requeueWithMigration, QueuedMessageCopy } from './requeueService';
 const FLOW_VIEWTYPE = 'jarvisMessageFlow';
 const LOGVIEWER_VIEWTYPE = 'jarvisMessageLog';
 const DOCS_COLUMN = vscode.ViewColumn.Two; // aka "Content" column (SPEC_MSG_EDITORPLACEMENT)
-const POLL_MS = 5000; // matches REQ_MSG_AUTODELIVER_POLL (SPEC_FLOW_WEBVIEW AC-2)
+const POLL_MS = 5000; // SPEC_FLOW_WEBVIEW AC-2
 
 /** <workspaceRoot>/.jarvis/messages/log.json — current path (SPEC_CFG_PATHRESOLVER GH #59). */
 function resolveMessageLogPath(): string | undefined {
@@ -68,15 +68,11 @@ async function handleRequeue(
 }
 
 /**
- * Actor-node click bridge (SPEC_FLOW_ACTORCLICK). Reuses the already-registered
- * 'jarvis.openMessageSession' command unmodified (AC-1) — that handler already
- * wraps lookupSessionUUID + openAtMain (SPEC_MSG_EDITORPLACEMENT) and is a
- * silent no-op when no session resolves (AC-2). Invoking it by id via
- * executeCommand needs no new engine API surface (AC-3) and no duplicated
- * copy of core's session-lookup/placement logic in this package.
+ * Actor-node click bridge (SPEC_FLOW_ACTORCLICK): the Messages-group click command of core
+ * (SPEC_COM_OPEN) shows the Actor's chat and does nothing when there is none.
  */
 async function handleActorClick(name: string): Promise<void> {
-    await vscode.commands.executeCommand('jarvis.openMessageSession', { destination: name });
+    await vscode.commands.executeCommand('jarvis.openMessageActorChat', { destination: name });
 }
 
 function renderHtml(webview: vscode.Webview, extensionUri: vscode.Uri): string {

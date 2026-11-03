@@ -674,8 +674,7 @@ Release Design Specifications
    No new settings group is introduced, so ``REQ_CFG_GROUPS`` is neither
    extended nor contradicted here. That requirement and ``SPEC_CFG_MANIFEST``
    are both stale and were escalated by GH #60; this element defines its own
-   contributions rather than amending that snapshot, following the
-   ``SPEC_HOOK_AUTOINST`` precedent.
+   contributions rather than amending that snapshot.
 
    **Marker file:**
 

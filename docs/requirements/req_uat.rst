@@ -13,7 +13,6 @@ deterministic checks belong in unit tests.
 
    req_uat_heartbeat
    req_uat_msgqueue
-   req_uat_sessiontools
    req_uat_selfupdate
    req_uat_mcpserver
    req_uat_outlookcategories
@@ -23,11 +22,9 @@ deterministic checks belong in unit tests.
    req_uat_heartbeat_pause
    req_uat_listjobs
    req_uat_reminders
-   req_uat_agent_prompt_tuning
    req_uat_skill_provisioning
    req_uat_flow
    req_uat_kanban_skill
-   req_uat_msg_modetarget
    req_uat_kanban_mgmt
    req_uat_kanban_update_valid
    req_uat_mod_actorrules

@@ -85,7 +85,7 @@ Recording User Stories
    :id: US_REC_DISPATCH
    :status: implemented
    :priority: mandatory
-   :links: US_REC_TRANSCRIPT; US_MSG_AUTODELIVERY
+   :links: US_REC_TRANSCRIPT; US_COM_DELIVERY
 
    **As a** Jarvis user,
    **I want** the Actor I recorded for to be told when its transcript is complete,

@@ -35,11 +35,8 @@ function matchesWhen(whenClause: string, viewItem: string): boolean {
 const filesNodeValues = [
     'jarvisActorFileCategory:agent',
     'jarvisActorFileCategory:files',
-    'jarvisActorFileCategory:touched',
     'jarvisActorFile',
     'jarvisActorFileFolder',
-    'jarvisTouchedFileFolder',
-    'jarvisTouchedFile',
 ];
 
 describe('REQ_KAN_UX AC-6: Add Kanban Board menu entry on actor nodes only', () => {
@@ -48,10 +45,10 @@ describe('REQ_KAN_UX AC-6: Add Kanban Board menu entry on actor nodes only', () 
         expect(() => matchesWhen(clause, 'jarvisActor')).not.toThrow();
     });
 
-    it('control: the seven Files-node contextValues are still produced by actorTreeProvider.ts', () => {
-        expect(treeSrc).toMatch(/category:\s*'agent'\s*\|\s*'files'\s*\|\s*'touched'\s*;/);
+    it('control: the four Files-node contextValues are still produced by actorTreeProvider.ts', () => {
+        expect(treeSrc).toMatch(/category:\s*'agent'\s*\|\s*'files'\s*;/);
         expect(treeSrc).toContain('jarvisActorFileCategory:${element.category}');
-        for (const literal of ["'jarvisActorFile'", "'jarvisActorFileFolder'", "'jarvisTouchedFileFolder'", "'jarvisTouchedFile'"]) {
+        for (const literal of ["'jarvisActorFile'", "'jarvisActorFileFolder'"]) {
             expect(treeSrc).toContain(literal);
         }
     });

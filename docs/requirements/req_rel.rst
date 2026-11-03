@@ -495,11 +495,11 @@ Release Requirements
 
    **Why a setting exists at all:**
    Every automatic activation-time behaviour in Jarvis has one —
-   ``jarvis.checkForUpdates``, ``jarvis.hooks.autoInstall``,
-   ``jarvis.gitignore.autoManage``. This is the only one of the four that puts
+   ``jarvis.checkForUpdates`` and ``jarvis.gitignore.autoManage``. This is the
+   only one of the three that puts
    something in front of the user unasked: the others raise a notification, or
    change files quietly. An editor tab that opens by itself is the kind of
-   thing a user wants a switch for. It is also the cheapest of the four to make
+   thing a user wants a switch for. It is also the cheapest of the three to make
    optional, because ``REQ_REL_NOTESCOMMAND`` keeps the capability: switching it
    off removes an interruption, not a feature.
 

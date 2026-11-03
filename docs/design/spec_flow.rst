@@ -145,7 +145,7 @@ Message Flow Visualization Design Specifications
    * AC-1: ``jarvis.openMessageFlow`` creates the panel on first call and
      reveals the existing instance (``panel.reveal(DOCS_COLUMN)``) on
      subsequent calls — exactly one panel instance ever exists.
-   * AC-2: Poll interval is 5000 ms, matching ``REQ_MSG_AUTODELIVER_POLL``;
+   * AC-2: Poll interval is 5000 ms, matching the 5-second tick of the extension's inbox and reminder loop;
      polling is skipped while ``panel.visible`` is false (backgrounded tab)
      to avoid needless work.
    * AC-3: The title-bar button contribution (``package.json`` ``menus``,
@@ -364,45 +364,39 @@ Message Flow Visualization Design Specifications
 .. spec:: Actor Node Click Bridge
    :id: SPEC_FLOW_ACTORCLICK
    :status: draft
-   :links: REQ_FLOW_ACTORCLICK; SPEC_FLOW_CHORDRENDER; SPEC_MSG_EDITORPLACEMENT
+   :links: REQ_FLOW_ACTORCLICK; SPEC_FLOW_CHORDRENDER; SPEC_COM_OPEN
 
    **Description:**
    A ``click`` listener on each node arc in ``chord.ts`` posts
    ``{ type: 'actorClick', name }`` to the extension host (``vscode.postMessage``,
    the standard webview→host channel). The host-side handler
    (``SPEC_FLOW_WEBVIEW``'s ``onDidReceiveMessage``) invokes the
-   already-registered ``jarvis.openMessageSession`` command by id
-   (``SPEC_MSG_EDITORPLACEMENT``) rather than calling ``lookupSessionUUID``/
-   ``openAtMain`` directly — those are not reachable via ``JarvisCoreApi``'s
-   exports (``openAtMain`` is a private closure in core's ``extension.ts``;
-   ``lookupSessionUUID`` is re-exported from ``engine/index.ts`` only as a
-   type, not a value). Invoking the command achieves the same reuse (no
-   Flow-specific placement/lookup logic) without requiring any change to
-   ``JarvisCoreApi`` or duplicating core's session-lookup/placement logic
-   in the Flow package (found necessary during implementation, Dev
-   Engineer commit ``2d18c43``):
+   already-registered ``jarvis.openMessageActorChat`` command by id
+   (``SPEC_COM_OPEN``). The Agent Host client lives in core and is not reachable
+   via ``JarvisCoreApi``, so the command gives the Flow package the same
+   behaviour without any lookup or placement logic of its own and without a
+   change to ``JarvisCoreApi``:
 
    .. code-block:: typescript
 
       async function handleActorClick(name: string): Promise<void> {
-        // jarvis.openMessageSession accepts any object shaped like
+        // jarvis.openMessageActorChat accepts any object shaped like
         // SessionGroupNode (SPEC_MSG_TREEPROVIDER) — only `.destination`
-        // is read. It resolves the live session itself and is a silent
-        // no-op if none exists (REQ_FLOW_ACTORCLICK AC-3) — the same
-        // command already bound to a Messages-tree group-node click.
-        await vscode.commands.executeCommand('jarvis.openMessageSession', { destination: name });
+        // is read. It finds the chat itself and does nothing if none
+        // exists (REQ_FLOW_ACTORCLICK AC-3) — the same command that is
+        // bound to a Messages-tree group-node click.
+        await vscode.commands.executeCommand('jarvis.openMessageActorChat', { destination: name });
       }
 
    **Acceptance Criteria:**
 
-   * AC-1: ``handleActorClick`` reuses the existing ``jarvis.openMessageSession``
-     command unmodified — no Flow-specific placement branch is introduced
-     in ``SPEC_MSG_EDITORPLACEMENT``, and no new engine API/export is added
-     to ``JarvisCoreApi`` for this CR.
-   * AC-2: A click on a node with no resolvable session is a silent no-op
-     — no error, no notification — since ``jarvis.openMessageSession``
-     itself already implements that behavior (``SPEC_MSG_EDITORPLACEMENT``).
-   * AC-3: The Flow package invokes ``jarvis.openMessageSession`` via
+   * AC-1: ``handleActorClick`` reuses the existing ``jarvis.openMessageActorChat``
+     command unmodified — no Flow-specific placement or lookup logic is
+     introduced, and no new engine API/export is added to ``JarvisCoreApi``.
+   * AC-2: A click on a node whose Actor has no chat does nothing — no error,
+     no notification — since ``jarvis.openMessageActorChat`` itself implements
+     that behavior (``SPEC_COM_OPEN``).
+   * AC-3: The Flow package invokes ``jarvis.openMessageActorChat`` via
      ``vscode.commands.executeCommand`` (a cross-extension command call,
      available regardless of which extension registered the command) —
      no dependency on ``JarvisCoreApi``'s exports for this interaction,

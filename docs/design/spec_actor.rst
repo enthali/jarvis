@@ -3,10 +3,7 @@ Actor Design Specifications
 
 .. note::
   The Actor is the only kind of persistent participant in Jarvis. Its code
-  lives in ``packages/core/src/engine/actors/``; the two hook-driven signal
-  consumers (touched files, activity) live in
-  ``packages/core/src/engine/hooks/`` because they are replaced as a unit
-  once another signal source supplies the same events. There is no kind
+  lives in ``packages/core/src/engine/actors/``. There is no kind
   registry, no generic tree factory and no decorator API: the ACTORS view is
   one provider that renders Actor nodes and all of their children.
 
@@ -121,16 +118,15 @@ Actor Design Specifications
    ``unknown`` for none and ``ambiguous`` with every match for more than one;
    it never picks one of several. The duplicate entries stay in ``actors``
    so the view shows both folders, but no name-based function acts on them.
-   Every core consumer resolves names through it: ``injectPrompt``
-   (``SPEC_INJ_INJECT``), the
-   touched-files tracker and display (``SPEC_ACTOR_TOUCHEDFILES``), the
-   activity tracker (``SPEC_ACTOR_ACTIVITY``), ``jarvis_sendMessage``
-   (``SPEC_MSG_SENDMESSAGE``), ``JarvisCoreApi.sendMessage``
+   Every core consumer resolves names through it: the client path of the
+   chat (``resolveActorForChat``, ``SPEC_COM_BINDING``), the
+   Actor state (``SPEC_COM_STATE``), ``jarvis_sendMessage``
+   (``SPEC_COM_TOOLS``), ``JarvisCoreApi.sendMessage``
    (``SPEC_ENG_API``), the creation check (``SPEC_ACTOR_CREATE``: any
    result other than ``unknown`` blocks creation) and
    ``getValidDestinations()``. Among the ambiguous-name refusals, only a
    refused message send shows the user an error notification naming the
-   name and its folders; activity, touched files, prompt
+   name and its folders; activity, prompt
    injection, agent file maintenance and Kanban owner resolution refuse
    silently (``REQ_ACTOR_SCHEMA`` AC-7). Agent file maintenance
    (``SPEC_ACTOR_WHOAMI``) refuses by precondition: its callers
@@ -223,21 +219,20 @@ Actor Design Specifications
 
 .. spec:: ACTORS Tree Provider
    :id: SPEC_ACTOR_TREE
-   :status: draft
-   :links: REQ_ACTOR_TREE; REQ_EXP_TREEVIEW; SPEC_ACTOR_SCANNER; SPEC_ACTOR_FILES; SPEC_ACTOR_TOUCHEDFILES; SPEC_ACTOR_ACTIVITY; SPEC_ACTOR_OPENSESSION; SPEC_ENG_ACTORMARK; SPEC_ACTOR_MAIL
+   :status: approved
+   :links: REQ_ACTOR_TREE; REQ_EXP_TREEVIEW; SPEC_ACTOR_SCANNER; SPEC_ACTOR_FILES; SPEC_COM_STATE; SPEC_COM_OPEN; SPEC_ENG_ACTORMARK; SPEC_ACTOR_MAIL
 
    **Description:**
    ``ActorTreeProvider`` (``engine/actors/actorTreeProvider.ts``) is the
    ``TreeDataProvider`` of the ``jarvisActors`` view. It renders Actor nodes
    from ``ActorScanner`` and delegates their children to the file-children
-   and touched-files logic (``SPEC_ACTOR_FILES``,
-   ``SPEC_ACTOR_TOUCHEDFILES``). It sets the activity icon itself
-   (``SPEC_ACTOR_ACTIVITY``) and holds the icon marks of add-ons
-   (``SPEC_ENG_ACTORMARK``), which take precedence. It draws the unread-mail icon
-   (``SPEC_ACTOR_MAIL``) below the activity indicator.
+   logic (``SPEC_ACTOR_FILES``). It sets the activity icon itself
+   (``SPEC_COM_STATE``) and holds the icon marks of add-ons
+   (``SPEC_ENG_ACTORMARK``), which show only while the Actor is Idle. It draws the
+   unread-mail icon (``SPEC_ACTOR_MAIL``) below the marks.
 
    **Node union** (provider-local; the variants below are defined in
-   ``SPEC_ACTOR_FILES`` and ``SPEC_ACTOR_TOUCHEDFILES``):
+   ``SPEC_ACTOR_FILES``):
 
    .. code-block:: typescript
 
@@ -245,8 +240,7 @@ Actor Design Specifications
 
       type ActorTreeNode =
           | ActorNode
-          | ActorFileCategoryNode | ActorFileNode | ActorFileFolderNode
-          | TouchedFileFolderNode | TouchedFileLeafNode;
+          | ActorFileCategoryNode | ActorFileNode | ActorFileFolderNode;
 
    **Actor node rendering:**
 
@@ -257,11 +251,12 @@ Actor Design Specifications
       item.tooltip = actor?.summary ?? '';
       item.contextValue = 'jarvisActor';
       item.command = { command: 'jarvis.openActorSession', title: 'Open', arguments: [node] };
+      const state = states.get(node.id) ?? 'idle';    // passed by the extension, SPEC_COM_STATE
       const mark = marks.get(node.id)?.at(-1);         // SPEC_ENG_ACTORMARK: most recent mark still set
-      if (mark) {
+      if (state !== 'idle') {
+          item.iconPath = stateIcon(state);            // SPEC_COM_STATE Tree
+      } else if (mark) {
           item.iconPath = mark.icon;
-      } else if (actor && activity.isActive(actor.name)) {
-          item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('charts.green'));
       } else if (actor && mail.isUnread(actor.id)) {   // SPEC_ACTOR_MAIL
           item.iconPath = new vscode.ThemeIcon('mail');
       }
@@ -278,10 +273,8 @@ Actor Design Specifications
       if (first) { actorsView.title = `${first.name} Actors`; }  // AC-1
 
    **Refresh API:** ``refresh()`` fires ``onDidChangeTreeData(undefined)``.
-   It is called by the scanner's ``onDidChange``, by the activity tracker on
-   a state flip, by the touch tracker after a recorded touch, by the
-   touched-files commands, on a change of
-   ``jarvis.touchedFiles.windowDays``, and by the mail state (``SPEC_ACTOR_MAIL``) when the set
+   It is called by the scanner's ``onDidChange``, by the state listener when the
+   state of an Actor changes (``SPEC_COM_STATE``), and by the mail state (``SPEC_ACTOR_MAIL``) when the set
    of Actors showing the mail icon changes. With one view there is nothing to
    refresh selectively.
 
@@ -308,15 +301,15 @@ Actor Design Specifications
      root level.
    * AC-5: The provider is the only ``TreeDataProvider`` for Actors; no
      generic tree factory or decorator registry exists.
-   * AC-6: An Actor node shows the first icon that applies, in this order: the most recent
-     mark (``SPEC_ENG_ACTORMARK``), the green activity indicator while Active, the unread-mail
-     icon (``SPEC_ACTOR_MAIL``). Without any of them the node has no icon (``REQ_ACTOR_MAIL``
-     AC-6).
+   * AC-6: An Actor node shows the first icon that applies, in this order: the activity state
+     other than Idle (``REQ_COM_STATE``), the most recent mark (``SPEC_ENG_ACTORMARK``), the
+     unread-mail icon (``SPEC_ACTOR_MAIL``). Without any of them the node has no icon
+     (``REQ_ACTOR_MAIL`` AC-6).
 
 
 .. spec:: Actor File Children
    :id: SPEC_ACTOR_FILES
-   :status: implemented
+   :status: approved
    :links: REQ_ACTOR_FILES_TREE; SPEC_ACTOR_TREE; SPEC_ACTOR_AGENT_DISCOVERY; SPEC_MSG_EDITORPLACEMENT
 
    **Description:**
@@ -330,7 +323,7 @@ Actor Design Specifications
 
       interface ActorFileCategoryNode {
           kind: 'actorFileCategory';
-          category: 'agent' | 'files' | 'touched';
+          category: 'agent' | 'files';
           actorId: string;      // owning ActorEntry.id — re-resolved on expansion
       }
       interface ActorFileNode {
@@ -354,7 +347,6 @@ Actor Design Specifications
               nodes.push({ kind: 'actorFileCategory', category: 'agent', actorId: actor.id });
           }
           nodes.push({ kind: 'actorFileCategory', category: 'files', actorId: actor.id });
-          // "touched" category: SPEC_ACTOR_TOUCHEDFILES
           return nodes;
       }
 
@@ -431,15 +423,12 @@ Actor Design Specifications
         });
 
    ``DOCS_COLUMN`` and ``openAtDocs`` are the Docs-column helpers of
-   ``SPEC_MSG_EDITORPLACEMENT`` (``REQ_ACTOR_FILES_TREE`` AC-6). The same
-   command opens touched-file leaves, which carry ``resourceUri``
-   (``SPEC_ACTOR_TOUCHEDFILES``).
+   ``SPEC_MSG_EDITORPLACEMENT`` (``REQ_ACTOR_FILES_TREE`` AC-6).
 
    **Acceptance Criteria:**
 
    * AC-1: An Actor node's children are "Agent" (only when the Actor's own
-     agent is found by the Actor name) followed by "Files"; the touched-files
-     category follows them (``SPEC_ACTOR_TOUCHEDFILES``).
+     agent is found by the Actor name) followed by "Files".
    * AC-2: "Files" and every subfolder are listed by ``readdir`` on each
      expansion, alphabetically, hidden entries included.
    * AC-3: Agent resolution calls ``discoverAgentModes()`` on each
@@ -449,284 +438,6 @@ Actor Design Specifications
      ``.md`` as Markdown Preview in the Docs column, other files in preview
      mode in the Docs column; a missing file shows a warning and creates
      nothing.
-
-
-.. spec:: Recently Touched Files per Actor
-   :id: SPEC_ACTOR_TOUCHEDFILES
-   :status: approved
-   :links: REQ_ACTOR_TOUCHEDFILES; SPEC_ACTOR_FILES; SPEC_ACTOR_TREE; SPEC_ACTOR_CONTEXTMENU; SPEC_HOOK_ROUTE
-
-   **Description:**
-   ``TouchTracker`` (``engine/hooks/touchTracker.ts``) records file touches
-   from ``PostToolUse`` hook events per Actor. ``TouchStore``
-   (``engine/hooks/touchStore.ts``) persists them. ``ActorTreeProvider``
-   renders them as the third category, "Recently Touched Files".
-
-   **Classification** (``REQ_ACTOR_TOUCHEDFILES`` AC-1 to AC-3):
-
-   .. code-block:: typescript
-
-      const TOUCH_RULES: Record<string, { kind: 'read' | 'write'; extract: (i: any) => string[] }> = {
-          read_file:                    { kind: 'read',  extract: i => [i.filePath] },
-          create_file:                  { kind: 'write', extract: i => [i.filePath] },
-          replace_string_in_file:       { kind: 'write', extract: i => [i.filePath] },
-          multi_replace_string_in_file: { kind: 'write', extract: i => (i.replacements ?? []).map((r: any) => r.filePath) },
-      };
-      // any other tool_name is ignored
-
-   **Tracker:** one ``hookEngine.on('PostToolUse', …)`` subscription
-   (``SPEC_HOOK_ROUTE``). For each event:
-
-   1. Ignore it when ``sessionId``, a matching rule, or ``payload.cwd`` is
-      missing.
-   2. Resolve ``sessionId`` to a chat title via
-      ``getEntityNameForSessionId()`` (``sessionLookup.ts``), then to an
-      Actor via ``actorScanner.resolveName(title)``. Ignore the event unless
-      the result is ``found`` (``REQ_ACTOR_TOUCHEDFILES`` AC-4).
-   3. De-duplicate the extracted paths and resolve each with
-      ``resolveRecordedTouch(path, cwd, workspaceFolders)``: resolve against
-      ``cwd``, pick the longest ``file``-scheme workspace folder that
-      contains the result (checked with ``path.relative``, never a string
-      prefix), and return ``{ recordKey, rootUri, relPath }`` where
-      ``recordKey`` is the canonical resource URI and ``relPath`` is
-      forward-slash separated. A path under no workspace folder is not
-      recorded (``REQ_ACTOR_TOUCHEDFILES`` AC-5, AC-20).
-   4. ``touchStore.recordTouches(actor.name, touches, rule.kind)``, then
-      ``actorTreeProvider.refresh()``.
-
-   **Store:** one JSON file per Actor at
-   ``<workspaceRoot>/.jarvis/state/touched-files/actor-<name>.json``
-   (``REQ_ACTOR_TOUCHEDFILES`` AC-6). The kind prefix is fixed to ``actor``;
-   the former storage-kind disambiguation (``resolveTouchStorageKind``) is
-   removed because only one kind exists.
-
-   .. code-block:: typescript
-
-      interface TouchEntry { lastRead?: string; lastEdited?: string; rootUri?: string; relPath?: string }
-      interface TouchFile  { files: Record<string, TouchEntry> }   // key = recordKey
-
-      class TouchStore {
-          recordTouches(actorName: string, touches: RecordedTouch[], kind: 'read' | 'write'): void;
-          getEntries(actorName: string): Record<string, TouchEntry>;
-          removeEntry(actorName: string, recordKey: string): void;
-          removeUnder(actorName: string, rootUri: string, relFolderPath: string): void;
-          removeAll(actorName: string): void;                       // deletes the file
-          removeEntriesIfUnchanged(actorName: string,
-              snapshot: Record<string, TouchEntry>, absentKeys: readonly string[]): number;
-      }
-
-   Every mutating method reads, mutates and writes the file with
-   synchronous ``fs`` calls and no ``await`` in between, so overlapping
-   ``PostToolUse`` handlers cannot interleave and lose entries
-   (``REQ_ACTOR_TOUCHEDFILES`` AC-6a). ``messageQueue.ts`` uses the same
-   pattern for the same read-modify-write shape. A missing or corrupt file
-   reads as empty.
-
-   **Display filters** — both are applied at the category, never per node:
-
-   * ``withinWindow(entries, days)``: keeps an entry whose later timestamp
-     lies within ``days × 24 h`` of now; ``days <= 0`` keeps everything
-     (``REQ_ACTOR_TOUCHEDFILES`` AC-15). ``days`` is read from
-     ``jarvis.touchedFiles.windowDays`` on each use.
-   * ``probeTouchEntry(recordKey, entry)``: returns ``present``, ``absent``
-     or ``unknown``. It requires ``rootUri`` to equal an open workspace
-     folder, joins ``relPath`` with ``Uri.joinPath``, checks the result
-     against ``recordKey`` and its owning folder, then calls
-     ``vscode.workspace.fs.stat``. Only ``FileSystemError.FileNotFound`` is
-     ``absent``; missing metadata and every other failure are ``unknown``
-     (``REQ_ACTOR_TOUCHEDFILES`` AC-16, AC-19 to AC-21). Using
-     ``workspace.fs`` makes the probe correct for remote and virtual
-     workspaces.
-
-   **Category and tree:**
-
-   * The category node (``category: 'touched'``) is added after "Files"
-     when ``scanner.resolveName(actor.name)`` is ``found`` and
-     ``withinWindow(getEntries(name))`` is non-empty. For an ambiguous name
-     neither Actor node gets the category, so no touch is attributed to
-     either folder (``REQ_ACTOR_TOUCHEDFILES`` AC-22). This decision
-     never probes the file system, because it runs for every Actor on every
-     refresh (``REQ_ACTOR_TOUCHEDFILES`` AC-7).
-   * On expansion, entries are filtered by ``withinWindow`` and then by the
-     probe (``present`` only). The filtered list is carried on the folder
-     nodes, so expanding a folder costs no further probes.
-   * The hierarchy is built from ``relPath`` segments: one folder node per
-     distinct ``(rootUri, folder path)``, one leaf per file, sorted
-     case-insensitively. A folder node exists only for a path in the
-     filtered list, so empty branches never appear
-     (``REQ_ACTOR_TOUCHEDFILES`` AC-8). With more than one workspace folder,
-     the top level groups by root and shows the root's name.
-
-   .. code-block:: typescript
-
-      interface TouchedFileFolderNode {
-          kind: 'touchedFileFolder'; actorName: string;
-          rootUri: string; relFolderPath: string; label: string;
-          entries: ResolvedTouchEntry[];
-      }
-      interface TouchedFileLeafNode {
-          kind: 'touchedFileLeaf'; actorName: string;
-          recordKey: string; resourceUri: vscode.Uri;
-          filePath: string;      // display/copy text only, never used for I/O
-          label: string; entry: TouchEntry;
-      }
-
-   .. list-table::
-      :header-rows: 1
-      :widths: 30 20 50
-
-      * - Node
-        - State
-        - ``contextValue`` / other
-      * - category ``touched``
-        - Collapsed
-        - ``jarvisActorFileCategory:touched``; label "Recently Touched Files"
-      * - ``touchedFileFolder``
-        - Collapsed
-        - ``jarvisTouchedFileFolder``; tooltip = ``relFolderPath``
-      * - ``touchedFileLeaf``
-        - None
-        - ``jarvisTouchedFile``; tooltip = last edited / last read; command ``jarvis.openActorFile``
-
-   **Commands** (``extension.ts``; all hidden from the Command Palette):
-
-   .. code-block:: typescript
-
-      // Show Changes — delegates to the Git extension; no fallback (AC-12)
-      'jarvis.diffTouchedFile':    (n: TouchedFileLeafNode) => executeCommand('git.openChange', n.resourceUri)
-      // inline trash on a leaf (AC-13)
-      'jarvis.removeTouchedFile':  (n) => { touchStore.removeEntry(n.actorName, n.recordKey); refresh(); }
-      // inline trash on a folder or the category (AC-13), no confirmation
-      'jarvis.removeTouchedFiles': (n) => { n.kind === 'touchedFileFolder'
-                                              ? touchStore.removeUnder(n.actorName, n.rootUri, n.relFolderPath)
-                                              : touchStore.removeAll(n.actorName); refresh(); }
-      // category cleanup (AC-17): snapshot → probe all (ignoring the window) → remove unchanged absent
-      'jarvis.cleanupTouchedFiles': async (n) => {
-          const snapshot = touchStore.getEntries(n.actorName);
-          const absent = (await Promise.all(Object.entries(snapshot).map(
-              async ([k, e]) => [k, (await probeTouchEntry(k, e)).state] as const)))
-              .filter(([, s]) => s === 'absent').map(([k]) => k);
-          const removed = touchStore.removeEntriesIfUnchanged(n.actorName, snapshot, absent);
-          showInformationMessage(`${n.actorName}: removed ${removed} touched-file entr${removed === 1 ? 'y' : 'ies'} with no file on disk.`);
-          refresh();
-      }
-
-   The probes run outside the synchronous section;
-   ``removeEntriesIfUnchanged`` deletes a candidate only if its stored value
-   still equals the snapshot, so a touch during the probes protects the
-   entry. The cleanup reports the count even when it is zero, because the
-   entries it targets are hidden (``REQ_ACTOR_TOUCHEDFILES`` AC-17).
-   Legacy entries without ``rootUri``/``relPath`` stay ``unknown``: hidden,
-   persisted, never guessed or migrated, removable only by the
-   category-level trash (AC-19, AC-20).
-
-   **package.json (core):**
-
-   * ``contributes.commands``: ``jarvis.diffTouchedFile`` ("Jarvis: Show
-     Changes"), ``jarvis.removeTouchedFile`` / ``jarvis.removeTouchedFiles``
-     (``$(trash)``), ``jarvis.cleanupTouchedFiles`` (``$(clear-all)``).
-   * ``view/item/context``: ``jarvis.removeTouchedFile`` inline on
-     ``jarvisTouchedFile``; ``jarvis.removeTouchedFiles`` inline on
-     ``jarvisTouchedFileFolder`` and (``inline@2``) on
-     ``jarvisActorFileCategory:touched``; ``jarvis.cleanupTouchedFiles``
-     ``inline@1`` on ``jarvisActorFileCategory:touched``;
-     ``jarvis.diffTouchedFile`` in group ``diff`` on ``jarvisTouchedFile``.
-     Open, Copy and Reveal entries: ``SPEC_ACTOR_CONTEXTMENU``.
-   * ``contributes.configuration`` (Hooks group):
-     ``jarvis.touchedFiles.windowDays`` — ``number``, default ``0``,
-     minimum ``0``.
-
-   **Wiring:** ``onDidChangeConfiguration`` for
-   ``jarvis.touchedFiles.windowDays`` calls ``actorTreeProvider.refresh()``
-   (``REQ_ACTOR_TOUCHEDFILES`` AC-15a). No other code path removes entries:
-   there is no timer and no activation-time sweep (AC-18).
-
-   **Acceptance Criteria:**
-
-   * AC-1: The tracker subscribes to ``PostToolUse`` only and classifies by
-     ``TOUCH_RULES``; unknown tools are ignored.
-   * AC-2: An event is recorded only for exactly one matching Actor.
-   * AC-3: Records are keyed by canonical resource URI and store ``rootUri``
-     and ``relPath``; a path outside every workspace folder is not recorded.
-   * AC-4: The store file is ``actor-<name>.json``; all mutations are
-     synchronous read-mutate-write turns.
-   * AC-5: Category visibility depends on the window only; leaf visibility
-     depends on the window and on a ``present`` probe.
-   * AC-6: Probing uses ``vscode.workspace.fs.stat``; only ``FileNotFound``
-     counts as absent.
-   * AC-7: Leaf, folder and category removal and the cleanup behave as in
-     the Commands block; cleanup ignores the window and reports its count.
-   * AC-8: Opening, revealing and diffing a leaf use its ``resourceUri``.
-   * AC-9: An Actor whose name does not resolve to ``found`` shows no
-     "Recently Touched Files" category, whatever its store contains.
-
-
-.. spec:: Actor Activity Indicator
-   :id: SPEC_ACTOR_ACTIVITY
-   :status: draft
-   :links: REQ_ACTOR_ACTIVITY; SPEC_ACTOR_TREE; SPEC_ACTOR_SCANNER; SPEC_HOOK_ROUTE; SPEC_HOOK_INTAKE
-
-   **Description:**
-   ``ActivityTracker`` (``engine/hooks/activityTracker.ts``) keeps an
-   in-memory set of active Actor names from hook lifecycle events.
-   ``ActorTreeProvider`` asks it for each Actor node (``SPEC_ACTOR_TREE``).
-   The former ``ActivityDecorator`` and its registration through the
-   decorator API are removed.
-
-   .. code-block:: typescript
-
-      const ACTIVE_EVENTS = new Set([
-          'SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse',
-          'PreCompact', 'SubagentStart', 'SubagentStop',
-      ]);
-
-      export class ActivityTracker {
-          constructor(hookEngine: HookEngine, scanner: ActorScanner, onChange: () => void);
-          isActive(actorName: string): boolean;
-      }
-
-   **Algorithm** (one ``hookEngine.on`` subscription per event in
-   ``ACTIVE_EVENTS`` plus ``Stop``):
-
-   1. Ignore events without ``sessionId`` (``REQ_ACTOR_ACTIVITY`` AC-6).
-   2. Resolve ``sessionId`` to the chat title via
-      ``getEntityNameForSessionId()`` (reverse of ``lookupSessionUUID()``,
-      same ``getAllSessions()`` source), then the title with
-      ``scanner.resolveName(title)``. Ignore the event unless the result is
-      ``found``: a title of no Actor (AC-5, AC-6) and a title carried by
-      several Actors (AC-10) change nothing and show no notification.
-   3. ``Stop`` removes the name from the set; every other event adds it.
-   4. Call ``onChange()`` only when membership actually flipped, so a burst
-      of tool events in one turn causes one refresh.
-
-   ``isActive(actorName)`` returns ``false`` outright when
-   ``scanner.resolveName(actorName)`` is not ``found``, even if the name is
-   still in the set from before a duplicate appeared: a manual
-   ``actor.yaml`` edit can make a name ambiguous between one hook event and
-   the next tree refresh, and the query, not only the event path, is what
-   ``REQ_ACTOR_ACTIVITY`` AC-10 requires to stay silent about it. The
-   membership set is otherwise unpruned; a name that becomes unique again
-   resumes showing its old state without a new hook event.
-
-   ``onChange`` is wired to ``actorTreeProvider.refresh()``. While Active,
-   the node's ``iconPath`` is a green ``circle-filled`` ``ThemeIcon``;
-   while Inactive it sets no icon (``REQ_ACTOR_ACTIVITY`` AC-7). There is no timeout and no third
-   state (AC-4).
-
-   **Acceptance Criteria:**
-
-   * AC-1: The seven events in ``ACTIVE_EVENTS`` mark an Actor Active;
-     ``Stop`` marks it Inactive; an Actor never seen is Inactive.
-   * AC-2: Events without ``sessionId``, or whose title does not resolve to
-     ``found``, change nothing and raise no error or notification.
-   * AC-2a: ``isActive(actorName)`` is ``false`` whenever
-     ``scanner.resolveName(actorName)`` is not ``found``, regardless of
-     what the event-driven set holds.
-   * AC-3: A refresh is triggered only on a state flip.
-   * AC-4: The activity indicator is set by ``ActorTreeProvider`` alone; no decorator
-     API exists. The other influences on the icon are the mark of ``SPEC_ENG_ACTORMARK``,
-     which takes precedence while it is set, and the unread-mail icon of ``SPEC_ACTOR_MAIL``,
-     which applies only while the Actor is not Active.
 
 
 .. spec:: Unread Mail Icon Source
@@ -831,10 +542,10 @@ Actor Design Specifications
 .. spec:: Actor Context Menus
    :id: SPEC_ACTOR_CONTEXTMENU
    :status: approved
-   :links: REQ_ACTOR_CONTEXTACTIONS; REQ_ACTOR_FILES_TREE; REQ_ACTOR_TOUCHEDFILES; SPEC_ACTOR_TREE; SPEC_ACTOR_FILES; SPEC_ACTOR_OPENSESSION
+   :links: REQ_ACTOR_CONTEXTACTIONS; REQ_ACTOR_FILES_TREE; SPEC_ACTOR_TREE; SPEC_ACTOR_FILES; SPEC_COM_OPEN
 
    **Description:**
-   Right-click menus on Actor nodes, file children and touched-file leaves.
+   Right-click menus on Actor nodes and file children.
    All commands are registered in ``extension.ts`` and hidden from the
    Command Palette (``"when": "false"``).
 
@@ -852,16 +563,14 @@ Actor Design Specifications
       function copyPaths(n): { folder: string; full: string } {
           switch (n.kind) {
             case 'actor':           { const f = scanner.getActor(n.id)!.folder; return { folder: f, full: f }; }
-            case 'actorFile':
-            case 'touchedFileLeaf': return { folder: path.dirname(n.filePath), full: n.filePath };
+            case 'actorFile':       return { folder: path.dirname(n.filePath), full: n.filePath };
           }
       }
       'jarvis.copyPath':     (n) => clipboard.writeText(copyPaths(n).folder)
       'jarvis.copyFullPath': (n) => clipboard.writeText(copyPaths(n).full)
-      'jarvis.copyFileName': (n: ActorFileNode | TouchedFileLeafNode) => clipboard.writeText(path.basename(n.filePath))
+      'jarvis.copyFileName': (n: ActorFileNode) => clipboard.writeText(path.basename(n.filePath))
 
-   ``uriOf(n)`` is the Actor folder for an Actor node and ``resourceUri``
-   for a touched-file leaf (``SPEC_ACTOR_TOUCHEDFILES``). Copy Path and Copy
+   ``uriOf(n)`` is the Actor folder for an Actor node. Copy Path and Copy
    Full Path deliberately both give the folder for an Actor node, which has
    no file name (``REQ_ACTOR_CONTEXTACTIONS`` AC-3).
 
@@ -880,14 +589,10 @@ Actor Design Specifications
       * - ``jarvisActorFile``
         - ``jarvis.openActorFile``
         - ``jarvis.copyPath``, ``jarvis.copyFullPath``, ``jarvis.copyFileName``
-      * - ``jarvisTouchedFile``
-        - ``jarvis.openActorFile``; ``jarvis.revealInExplorer``
-        - ``jarvis.copyPath``, ``jarvis.copyFullPath``, ``jarvis.copyFileName``
 
    Titles: "Open", "Reveal in Explorer", "Reveal in File Explorer", "Open in
    Terminal", "Copy Path", "Copy Full Path", "Copy File Name". Categories and
-   folders have no context menu; the touched-files inline actions are in
-   ``SPEC_ACTOR_TOUCHEDFILES``.
+   folders have no context menu.
 
    **Acceptance Criteria:**
 
@@ -900,7 +605,7 @@ Actor Design Specifications
 .. spec:: Actor Creation
    :id: SPEC_ACTOR_CREATE
    :status: implemented
-   :links: REQ_ACTOR_CREATE; REQ_ACTOR_CREATETOOL; REQ_ACTOR_SCHEMA; SPEC_ACTOR_SCANNER; SPEC_ACTOR_WHOAMI; SPEC_ACTOR_OPENSESSION
+   :links: REQ_ACTOR_CREATE; REQ_ACTOR_CREATETOOL; REQ_ACTOR_SCHEMA; SPEC_ACTOR_SCANNER; SPEC_ACTOR_WHOAMI; SPEC_COM_OPEN
 
    **Description:**
    ``engine/actors/actorCreation.ts`` owns everything that touches the file
@@ -993,7 +698,7 @@ Actor Design Specifications
 .. spec:: jarvis_createActor Tool
    :id: SPEC_ACTOR_CREATETOOL
    :status: approved
-   :links: REQ_ACTOR_CREATETOOL; SPEC_ACTOR_CREATE; SPEC_ACTOR_WHOAMI; SPEC_ACTOR_OPENSESSION; SPEC_ENG_REGISTER_TOOL; SPEC_MSG_DUALREGISTRATION; SPEC_MSG_QUEUESTORE; REQ_ENG_TOOLREF
+   :links: REQ_ACTOR_CREATETOOL; SPEC_ACTOR_CREATE; SPEC_ACTOR_WHOAMI; SPEC_COM_OPEN; SPEC_ENG_REGISTER_TOOL; SPEC_MSG_DUALREGISTRATION; SPEC_MSG_QUEUESTORE; REQ_ENG_TOOLREF
 
    **Description:**
    ``jarvis_createActor`` is registered with ``engine.registerTool()``
@@ -1061,54 +766,19 @@ Actor Design Specifications
      has no effect.
 
 
-.. spec:: jarvis_listActors Tool
-   :id: SPEC_ACTOR_LISTTOOL
-   :status: approved
-   :links: REQ_ACTOR_LISTTOOL; SPEC_ACTOR_SCANNER; SPEC_ENG_REGISTER_TOOL; SPEC_ENG_ACTORLIST; REQ_ENG_TOOLREF
-
-   **Description:**
-   ``jarvis_listActors`` is registered with ``engine.registerTool()``
-   whenever the actors folder is resolvable, with no feature gate. The
-   handler (``createListActorsHandler`` in ``actorRuntime.ts``) returns the
-   same projection as ``JarvisCoreApi.listActors()`` (``SPEC_ENG_ACTORLIST``).
-
-   .. code-block:: typescript
-
-      const actors = actorScanner.actors.map(a => ({
-          name: a.name, summary: a.summary, agent: a.name, folder: a.folder, id: a.id,
-      }));
-      return JSON.stringify({ actors });
-
-   ``agent`` is the Actor's own agent, identified by the Actor name
-   (``SPEC_ACTOR_WHOAMI``), so it always equals ``name``.
-
-   **package.json ``languageModelTools``:** name ``jarvis_listActors``,
-   ``toolReferenceName`` ``jarvis_core_listActors``, empty ``inputSchema``,
-   ``modelDescription`` "jarvis_core: Lists all Jarvis Actors (name, summary, agent,
-   folder, id). Distinct from jarvis_listChatSessions, which lists VS Code
-   chat tab titles."
-
-   **Acceptance Criteria:**
-
-   * AC-1: The response is ``{ "actors": [...] }`` with exactly the five
-     fields per entry.
-   * AC-2: Entries come from ``ActorScanner`` only.
-
-
 .. spec:: Actor Identity via Own Agent
    :id: SPEC_ACTOR_WHOAMI
-   :status: implemented
-   :links: REQ_ACTOR_WHOAMI; REQ_ACTOR_BINDING; SPEC_ACTOR_AGENT_DISCOVERY; SPEC_ACTOR_SCANNER; SPEC_ACTOR_CREATE; SPEC_INJ_INJECT
+   :status: approved
+   :links: REQ_ACTOR_WHOAMI; REQ_ACTOR_BINDING; SPEC_ACTOR_AGENT_DISCOVERY; SPEC_ACTOR_SCANNER; SPEC_ACTOR_CREATE
 
    **Description:**
    ``engine/actors/actorAgent.ts`` owns the Actor's agent file. Its one
    function ``ensureActorAgent`` makes the file exist and carry the two
    Jarvis lines, and nothing else in Jarvis writes an agent file. The spec ID
    is kept for traceability from the former ``jarvis_whoAmI`` tool, which is
-   removed together with its handler, its ``package.json`` contribution and
-   the hook correlation buffer in ``extension.ts``. The agent body reaches
+   removed together with its handler and its ``package.json`` contribution. The agent body reaches
    every request of the session, so the Actor knows its name and the
-   location of its ``context.md`` without a tool call and without hooks
+   location of its ``context.md`` without a tool call
    (``REQ_ACTOR_WHOAMI``).
 
    **Signature:**
@@ -1130,11 +800,10 @@ Actor Design Specifications
 
    **Callers** (``REQ_ACTOR_WHOAMI`` AC-4), and only these:
 
-   * ``injectPrompt`` step 1b (``SPEC_INJ_INJECT``). Every open of an Actor
-     session, every delivery and the injection tool and command reach the
-     Actor through ``injectPrompt``, so one call there covers
-     ``jarvis.openActorSession``, ``jarvis.sendMessages`` and the
-     auto-delivery poll loop.
+   * ``resolveActorForChat`` in ``extension.ts`` (``SPEC_COM_BINDING``). It runs
+     before the client creates the chat of an Actor, opens it or delivers into
+     it, so one call there covers ``jarvis.openActorSession``,
+     ``jarvis.sendMessages`` and the automatic announcement.
    * ``jarvis.newActor`` (``SPEC_ACTOR_CREATE`` step 5).
    * ``createActorHandler`` for ``jarvis_createActor``
      (``SPEC_ACTOR_CREATETOOL`` step 5).
@@ -1166,15 +835,12 @@ Actor Design Specifications
       ``Your context memory is ``, otherwise inserted. The line ending of
       the file (``\n`` or ``\r\n``) is kept. The file is written only when
       the result differs from the content read.
-   5. **Create.** Create the folder when needed and write the file below.
-      Then wait until VS Code has registered the mode command
-      ``workbench.action.chat.open<Actor name>``, polling
-      ``vscode.commands.getCommands(true)`` every 100 ms for at most 3 s,
-      because VS Code learns of a new agent file asynchronously. On timeout
-      the result is still ``ready``; ``reapplyAgentMode`` skips with a
-      logged warning when the command is not registered yet
-      (``SPEC_MSG_OPENCHAT``), and the next open applies the mode. A write
-      error is logged and returns ``skipped`` (``writeFailed``).
+   5. **Create.** Create the folder when needed and write the file below. The
+      front matter carries a ``description``, the summary of the Actor on one
+      line, because the Agent Host lists an agent file only when it has one
+      (``REQ_COM_CHATNAME`` AC-5); an existing file gets a ``description``
+      when it has none. A write error is logged and returns ``skipped``
+      (``writeFailed``).
    6. Return ``{ status: 'ready', mode: <Actor name> }``.
 
    **File content** (steps 4 and 5; ``<rel>`` is the workspace-relative path
@@ -1203,8 +869,7 @@ Actor Design Specifications
    without its own agent.`` (``duplicateAgent``).
 
    **Removed with ``jarvis_whoAmI``:** the tool registration, its
-   ``languageModelTools`` entry (``toolReferenceName`` ``whoAmI``), the
-   ``PreToolUse`` correlation buffer and its freshness window. The delivered
+   ``languageModelTools`` entry (``toolReferenceName`` ``whoAmI``). The delivered
    ``jarvis-actor.kernel.instructions.md`` (``SPEC_MOD_ACTORRULES``) has no
    identity section: the Actor's agent already carries its name and the
    path of its ``context.md``, so section ``## 0. Identity`` is removed.
@@ -1225,7 +890,7 @@ Actor Design Specifications
    * AC-4: The check runs only at the three callers: not at extension
      startup and not in a rescan.
    * AC-5: A caller reaches it only after the Actor name resolved to exactly
-     one Actor (``injectPrompt`` step 1) or after creation checked that no
+     one Actor (``resolveActorForChat``) or after creation checked that no
      Actor of that name exists (``SPEC_ACTOR_CREATE`` step 2); an ambiguous
      name therefore never gets an agent created or changed.
    * AC-6: A file named ``<Actor name>.agent.md`` that is not the Actor's
@@ -1282,48 +947,17 @@ Actor Design Specifications
    * AC-4: The module offers no picker; ``pickAgentMode`` does not exist.
 
 
-.. spec:: Open Actor Session Command
-   :id: SPEC_ACTOR_OPENSESSION
-   :status: approved
-   :links: REQ_ACTOR_OPENSESSION; SPEC_INJ_INJECT; SPEC_ACTOR_TREE; SPEC_MSG_EDITORPLACEMENT
-
-   **Description:**
-   ``jarvis.openActorSession`` opens an Actor's chat. It owns no session
-   logic: it resolves the Actor and delegates to ``injectPrompt`` with an
-   empty payload and Main placement (``SPEC_INJ_INJECT``). The primitive
-   focuses an existing session or spawns, mode-primes, renames and
-   initializes a new one, then relocates it to column 1.
-
-   .. code-block:: typescript
-
-      vscode.commands.registerCommand('jarvis.openActorSession', async (node: ActorNode) => {
-          const actor = actorScanner.getActor(node.id);
-          if (!actor) { return; }
-          await injectPrompt(actor.name, '', { placement: 'main' });
-      });
-
-   **package.json (core):** ``contributes.commands`` entry
-   ``jarvis.openActorSession`` (title "Open"), hidden from the Command
-   Palette. It is bound as the Actor node's click command
-   (``SPEC_ACTOR_TREE``) and as the "Open" context-menu entry
-   (``SPEC_ACTOR_CONTEXTMENU``).
-
-   **Acceptance Criteria:**
-
-   * AC-1: The handler calls ``injectPrompt(name, '', { placement: 'main' })``
-     and nothing else that opens, renames or prompts a chat.
-   * AC-2: An unknown node id is a silent no-op.
-
-
 .. spec:: Actor Session Initialization Prompt
    :id: SPEC_ACTOR_INITPROMPT
-   :status: implemented
-   :links: REQ_ACTOR_INITPROMPT; SPEC_INJ_INJECT; SPEC_MSG_NOTIFICATION_RESOLVE; SPEC_ACTOR_WHOAMI
+   :status: approved
+   :links: REQ_ACTOR_INITPROMPT; SPEC_ACTOR_WHOAMI
 
    **Description:**
-   The init prompt is composed in exactly one place: the new-session branch
-   of ``injectPrompt`` (``engine/sessions/injectPrompt.ts``,
-   ``SPEC_INJ_INJECT``). No caller composes or sends it.
+   The start-up instruction is composed in one place: ``startupTextFor`` in
+   ``extension.ts``, which the client calls when it creates the chat of an Actor
+   (``SPEC_COM_BINDING`` Creating the chat). ``DEFAULT_INIT_PROMPT`` lives in
+   ``engine/sessions/actorStartupPrompt.ts``. No other caller composes or sends
+   it.
 
    .. code-block:: typescript
 
@@ -1334,14 +968,12 @@ Actor Design Specifications
           name: actor.name,
           contextPath: path.join(actor.folder, 'context.md'),            // absolute
       });
-      await sendPromptToFocusedAgentChat(prompt);
 
    ``applyTemplate`` replaces ``${key}`` for known keys and leaves every
    other placeholder as-is, so an old template using ``${kind}`` shows it
    literally (``REQ_ACTOR_INITPROMPT`` AC-2).
 
-   **``DEFAULT_INIT_PROMPT``** (single constant in ``injectPrompt.ts``,
-   co-located with ``DEFAULT_NOTIFICATION``, ``SPEC_MSG_NOTIFICATION_RESOLVE``):
+   **``DEFAULT_INIT_PROMPT``** (single constant in ``actorStartupPrompt.ts``):
 
    .. code-block:: text
 
@@ -1357,12 +989,10 @@ Actor Design Specifications
       - Before writing, ask: "Will this still matter in 2 weeks?" If no, skip.
       - When a topic grows past ~5 bullets, move it to a dedicated file beside `context.md` and leave a one-line summary with a relative link in `context.md`.
 
-   **Mode priming** (``REQ_ACTOR_INITPROMPT`` AC-6, AC-7): when
-   ``ensureActorAgent`` returned ``ready`` (``SPEC_INJ_INJECT`` step 1b), the
-   new-session branch runs
-   ``workbench.action.chat.open { mode: <Actor name> }`` and waits 300 ms
-   before ``openNewChatEditor()``; a failure is logged and the default mode
-   applies. With a ``skipped`` result no mode is passed.
+   **Agent of the chat** (``REQ_ACTOR_INITPROMPT`` AC-6): ``ensureActorAgent``
+   runs first (``SPEC_ACTOR_WHOAMI``); the agent is carried by each text that the
+   client writes into the chat (``SPEC_COM_INJECT``). With a ``skipped`` result
+   no agent is passed.
 
    **package.json (core), Prompt Templates group:**
    ``jarvis.agentSession.initPromptTemplate`` — ``string``, scope
@@ -1372,6 +1002,5 @@ Actor Design Specifications
 
    * AC-1: Only ``${name}`` and ``${contextPath}`` are substituted.
    * AC-2: A blank setting falls back to ``DEFAULT_INIT_PROMPT``.
-   * AC-3: The prompt is sent only by the new-session branch of
-     ``injectPrompt``; the unused option ``skipInitPrompt`` is removed from
-     ``InjectPromptOptions``.
+   * AC-3: The prompt is sent only when the client creates the chat of an
+     Actor, once per chat (``SPEC_COM_BINDING``).

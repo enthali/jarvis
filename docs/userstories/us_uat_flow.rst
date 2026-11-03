@@ -5,7 +5,7 @@ Message Flow Visualization User Acceptance Tests
    :id: US_UAT_FLOW
    :status: draft
    :priority: optional
-   :links: US_FLOW_CHORDVIEW; US_MSG_EDITORPLACEMENT
+   :links: US_FLOW_CHORDVIEW; US_COM_NAME
 
    **As a** Jarvis Test Engineer,
    **I want** a set of manual acceptance test scenarios for the message-flow
@@ -44,9 +44,9 @@ Message Flow Visualization User Acceptance Tests
      diagram's original (pre-lens) default (``flow-time-lens`` CR;
      supersedes this AC's original "Fog of Time" single-slider wording —
      the day-based fade slider no longer exists).
-   * AC-6: A test verifies that clicking an actor/session node opens that
-     session's chat at Main (column 1), using the same close+reopen
-     behavior as an ACTORS-tree click.
+   * AC-6: A test verifies that clicking an Actor node shows that Actor's existing
+     chat, as a click on the Actor label in the Messages view does, and creates no
+     chat when the Actor has none (``REQ_COM_OPEN`` AC-7).
    * AC-7: A test verifies that clicking a node whose name does not resolve
      to any known session is a silent no-op — no error, no notification.
    * AC-8: A test verifies the diagram reflects a newly queued/delivered
@@ -126,13 +126,20 @@ Message Flow Visualization User Acceptance Tests
      observing the render (no additional Output Channel log entries or
      log-file reads).
 
-   **T-7 — Actor node click opens chat at Main**
-     Setup: A session with an existing chat editor open in a non-1 column;
-     diagram open with that session as a node.
-     Action: Click the node for that session.
-     Expected: The tab closes and reopens fresh in column 1 (Main) —
-     identical to an ACTORS-tree click (``REQ_MSG_EDITORPLACEMENT``
-     AC-1/AC-5).
+   **T-7 — Actor node click shows the existing chat**
+     Setup: An Actor with an existing chat (``TestTarget``); diagram open with that
+     Actor as a node. Run the case twice: once with the chat tab open in a column,
+     once with the chat tab closed.
+     Action: Click the node.
+     Expected: With the tab open, that tab is shown. With the tab closed, the chat opens
+     in the first editor group (``REQ_COM_OPEN`` AC-1). No second chat is created.
+
+   **T-7b — Actor node click without a chat does nothing**
+     Setup: An Actor that has no chat yet (``Test2`` after its chat was deleted); the
+     diagram shows it as a node.
+     Action: Click the node.
+     Expected: Nothing happens and no chat is created (``REQ_COM_OPEN`` AC-7; the ACTORS
+     tree is the way to create one).
 
    **T-8 — Actor node click with unresolvable name is a silent no-op**
      Setup: ``message-log.json`` contains an entry for a sender/destination

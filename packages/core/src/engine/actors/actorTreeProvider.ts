@@ -1,14 +1,10 @@
-// Implementation: SPEC_ACTOR_TREE, SPEC_ACTOR_FILES, SPEC_ACTOR_TOUCHEDFILES, SPEC_ACTOR_ACTIVITY, SPEC_ENG_ACTORMARK, SPEC_ACTOR_MAIL
-// Requirements: REQ_ACTOR_TREE, REQ_ACTOR_FILES_TREE, REQ_ACTOR_TOUCHEDFILES, REQ_ACTOR_ACTIVITY, REQ_ENG_ACTORMARK, REQ_ACTOR_MAIL
+// Implementation: SPEC_ACTOR_TREE, SPEC_ACTOR_FILES, SPEC_COM_STATE, SPEC_ENG_ACTORMARK, SPEC_ACTOR_MAIL
+// Requirements: REQ_ACTOR_TREE, REQ_ACTOR_FILES_TREE, REQ_COM_STATE, REQ_ENG_ACTORMARK, REQ_ACTOR_MAIL
 
 import * as vscode from 'vscode';
 import { ActorScanner, ActorEntry } from './actorScanner';
 import { resolveAgentFile, listFolder, ActorFileNode, ActorFileFolderNode } from './actorFiles';
-import {
-    readWindowDays, withinWindow, probeEntries, buildTouchedFileChildren,
-    TouchedFileFolderNode, TouchedFileLeafNode,
-} from './touchedFilesView';
-import { TouchStore, ACTOR_TOUCH_KIND } from '../hooks/touchStore';
+import type { ActorActivityState } from './actorActivity';
 
 export interface ActorNode {
     kind: 'actor';
@@ -17,7 +13,7 @@ export interface ActorNode {
 
 export interface ActorFileCategoryNode {
     kind: 'actorFileCategory';
-    category: 'agent' | 'files' | 'touched';
+    category: 'agent' | 'files';
     actorId: string;
     actorName: string;
     actorFolder: string;
@@ -27,12 +23,10 @@ export type ActorTreeNode =
     | ActorNode
     | ActorFileCategoryNode
     | ActorFileNode
-    | ActorFileFolderNode
-    | TouchedFileFolderNode
-    | TouchedFileLeafNode;
+    | ActorFileFolderNode;
 
 export interface ActivityLike {
-    isActive(name: string): boolean;
+    state(name: string): ActorActivityState;
 }
 
 /** Unread-mail state of Actors (SPEC_ACTOR_MAIL); ActorMailState implements it. */
@@ -49,7 +43,6 @@ export class ActorTreeProvider implements vscode.TreeDataProvider<ActorTreeNode>
 
     constructor(
         private readonly _scanner: ActorScanner,
-        private readonly _touchStore: TouchStore,
         private readonly _activity: ActivityLike,
         // Optional so that callers without mail state (tests) draw no mail icon.
         private readonly _mail: MailLike = { isUnread: () => false },
@@ -101,16 +94,10 @@ export class ActorTreeProvider implements vscode.TreeDataProvider<ActorTreeNode>
             if (element.category === 'files') {
                 return listFolder(element.actorFolder);
             }
-            // 'touched'
-            return this._touchedChildren(element.actorName, '');
+            return [];
         }
         if (element.kind === 'actorFileFolder') {
             return listFolder(element.folderPath);
-        }
-        if (element.kind === 'touchedFileFolder') {
-            const probed = await probeEntries(element.entries);
-            const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
-            return buildTouchedFileChildren(probed, element.relFolderPath, workspaceRoot, element.actorName);
         }
         return [];
     }
@@ -122,22 +109,7 @@ export class ActorTreeProvider implements vscode.TreeDataProvider<ActorTreeNode>
             categories.push({ kind: 'actorFileCategory', category: 'agent', actorId: actor.id, actorName: actor.name, actorFolder: actor.folder });
         }
         categories.push({ kind: 'actorFileCategory', category: 'files', actorId: actor.id, actorName: actor.name, actorFolder: actor.folder });
-
-        const raw = await this._touchStore.getEntries(ACTOR_TOUCH_KIND, actor.name);
-        const windowed = withinWindow(raw, readWindowDays());
-        // REQ_ACTOR_TOUCHEDFILES AC-22: no attribution for an ambiguous name.
-        if (this._scanner.resolveName(actor.name).status === 'found' && Object.keys(windowed).length > 0) {
-            categories.push({ kind: 'actorFileCategory', category: 'touched', actorId: actor.id, actorName: actor.name, actorFolder: actor.folder });
-        }
         return categories;
-    }
-
-    private async _touchedChildren(actorName: string, underFolder: string): Promise<(TouchedFileFolderNode | TouchedFileLeafNode)[]> {
-        const raw = await this._touchStore.getEntries(ACTOR_TOUCH_KIND, actorName);
-        const windowed = withinWindow(raw, readWindowDays());
-        const probed = await probeEntries(windowed);
-        const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
-        return buildTouchedFileChildren(probed, underFolder, workspaceRoot, actorName);
     }
 
     getTreeItem(element: ActorTreeNode): vscode.TreeItem {
@@ -149,17 +121,22 @@ export class ActorTreeProvider implements vscode.TreeDataProvider<ActorTreeNode>
             item.command = { command: 'jarvis.openActorSession', title: 'Open Actor Session', arguments: [element] };
             const marks = this._marks.get(element.id);
             const mark = marks?.[marks.length - 1];
-            if (mark) {
+            const state = actor ? this._activity.state(actor.name) : 'idle';
+            if (state === 'error') {
+                item.iconPath = new vscode.ThemeIcon('error', new vscode.ThemeColor('charts.red'));
+            } else if (state === 'waiting') {
+                item.iconPath = new vscode.ThemeIcon('question', new vscode.ThemeColor('charts.blue'));
+            } else if (state === 'working') {
+                item.iconPath = new vscode.ThemeIcon('loading~spin');
+            } else if (mark) {
                 item.iconPath = mark.icon;
-            } else if (actor && this._activity.isActive(actor.name)) {
-                item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('charts.green'));
             } else if (actor && this._mail.isUnread(actor.id)) {
                 item.iconPath = new vscode.ThemeIcon('mail');
             }
             return item;
         }
         if (element.kind === 'actorFileCategory') {
-            const label = element.category === 'agent' ? 'Agent' : element.category === 'files' ? 'Files' : 'Recently Touched Files';
+            const label = element.category === 'agent' ? 'Agent' : 'Files';
             const item = new vscode.TreeItem(label, vscode.TreeItemCollapsibleState.Collapsed);
             item.contextValue = `jarvisActorFileCategory:${element.category}`;
             return item;
@@ -171,22 +148,10 @@ export class ActorTreeProvider implements vscode.TreeDataProvider<ActorTreeNode>
             item.command = { command: 'jarvis.openActorFile', title: 'Open File', arguments: [element] };
             return item;
         }
-        if (element.kind === 'actorFileFolder') {
-            const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.Collapsed);
-            item.resourceUri = vscode.Uri.file(element.folderPath);
-            item.contextValue = 'jarvisActorFileFolder';
-            return item;
-        }
-        if (element.kind === 'touchedFileFolder') {
-            const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.Collapsed);
-            item.contextValue = 'jarvisTouchedFileFolder';
-            return item;
-        }
-        // touchedFileLeaf
-        const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.None);
-        item.resourceUri = element.resourceUri ?? vscode.Uri.file(element.filePath);
-        item.contextValue = 'jarvisTouchedFile';
-        item.command = { command: 'jarvis.openActorFile', title: 'Open File', arguments: [element] };
+        // actorFileFolder
+        const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.Collapsed);
+        item.resourceUri = vscode.Uri.file(element.folderPath);
+        item.contextValue = 'jarvisActorFileFolder';
         return item;
     }
 }
