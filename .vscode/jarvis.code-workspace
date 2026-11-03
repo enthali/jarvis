@@ -29,5 +29,6 @@
 		"cSpell.words": [
 			"sysPilot"
 		],
+		"powershell.cwd": "jarvis",
 	}
 }
