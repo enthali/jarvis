@@ -1,0 +1,18 @@
+flowchart LR
+    subgraph Client["Your laptop - client"]
+        UI["VS Code Agents window<br/>Chat and session controls"]
+        Browser["Integrated browser<br/>App preview"]
+    end
+    subgraph Remote["Remote development machine - stays running"]
+        Host["Agent Host<br/>Harness and sessions"]
+        Tools["File edits and commands"]
+        Repo["Project files"]
+        Server["Dev server<br/>localhost:3000 on this machine"]
+        Host --> Tools
+        Tools --> Repo
+        Tools --> Server
+    end
+    Model["AI model service<br/>Separate from host location"]
+    UI <-->|"AHP over WebSocket<br/>via SSH or authenticated tunnel"| Host
+    Host <-->|"Model requests and responses"| Model
+    Browser <-->|"1.145 remote browser proxy"| Server
