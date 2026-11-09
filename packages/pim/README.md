@@ -9,12 +9,14 @@ Adds a **Categories** view to the Jarvis sidebar and a custom Task Editor for `.
 
 ## Features
 
-- **Categories** view — manage Outlook categories (requires `jarvis.pim.showCategories` and `jarvis.outlook.enabled`)
+- **Categories** view — manage Outlook categories (hidden by default; requires `jarvis.pim.showCategories` and `jarvis.outlook.enabled` set to `true`)
 - **Task Editor** — custom editor for `.jarvis-task` files
 
 ## Configuration
 
-Enable the Categories view with `jarvis.pim.showCategories` and `jarvis.outlook.enabled`.
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `jarvis.pim.showCategories` | `false` | Show the Categories view in the Jarvis sidebar. The view also requires `jarvis.outlook.enabled`. |
 
 ## Requirements
 

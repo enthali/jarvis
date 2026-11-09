@@ -132,6 +132,9 @@ Outlook Categories UAT Design Specifications
       * - T-19 (no providers)
         - ``outlookEnabled=false``, ``showCategories=true``
         - "no categories" placeholder shown
+      * - T-52 (hidden by default)
+        - ``showCategories`` unset, ``outlook.enabled=true``; then set ``showCategories=true``
+        - Not visible while unset; appears after the change; Settings UI default unchecked
 
 
 .. spec:: Outlook COM Bridge Test Procedures

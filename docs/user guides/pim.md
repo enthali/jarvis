@@ -7,7 +7,7 @@ Jarvis PIM (`enthali.jarvis-pim`) is the Personal Information Manager: Outlook-b
 
 ## Categories
 
-A **Categories** view in the Jarvis sidebar manages Outlook categories. It needs `jarvis.pim.showCategories` and `jarvis.outlook.enabled`.
+A **Categories** view in the Jarvis sidebar manages Outlook categories. It is hidden by default. To show it, set both `jarvis.pim.showCategories` and `jarvis.outlook.enabled` to `true`. If you relied on the view being visible with only Outlook enabled, set `jarvis.pim.showCategories` to `true`.
 
 ## Tasks
 
@@ -17,6 +17,6 @@ A custom Task Editor opens `.jarvis-task` files.
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `jarvis.pim.showCategories` | `true` | Show the Categories view in the Jarvis sidebar. |
+| `jarvis.pim.showCategories` | `false` | Show the Categories view in the Jarvis sidebar. The view also requires `jarvis.outlook.enabled`. |
 | `jarvis.outlook.enabled` | `false` | Enable Outlook COM integration (Windows with Outlook Classic). When disabled, no Outlook COM calls are made. |
 | `jarvis.outlook.tasks.enabled` | `true` | Enable the Outlook Tasks integration. Effective only when `jarvis.outlook.enabled` is `true`. |

@@ -409,7 +409,7 @@ PIM Design Specifications
 
 .. spec:: CategoryTreeProvider
    :id: SPEC_PIM_CATVIEW
-   :status: implemented
+   :status: approved
    :links: REQ_PIM_CATVIEW; SPEC_PIM_SERVICE
 
    **Description:**
@@ -547,7 +547,7 @@ PIM Design Specifications
         "properties": {
           "jarvis.pim.showCategories": {
             "type": "boolean",
-            "default": true,
+            "default": false,
             "description": "Show the Categories view in the Jarvis sidebar."
           }
         }

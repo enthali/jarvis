@@ -119,7 +119,7 @@
         "properties": {
           "jarvis.pim.showCategories": {
             "type": "boolean",
-            "default": true,
+            "default": false,
             "description": "Show the Categories view in the Jarvis sidebar."
           }
         }

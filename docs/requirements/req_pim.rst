@@ -116,7 +116,7 @@ PIM Requirements
 
 .. req:: Categories Sidebar Tree View
    :id: REQ_PIM_CATVIEW
-   :status: implemented
+   :status: approved
    :priority: optional
    :links: US_PIM_CATVIEW; REQ_PIM_SERVICE; REQ_EXP_TREEVIEW
 
@@ -133,7 +133,7 @@ PIM Requirements
    * AC-3: A refresh button (``$(refresh)``) in the title bar SHALL trigger an
      immediate cache refresh
    * AC-4: The view SHALL be controlled by ``jarvis.pim.showCategories``
-     (default: ``true``)
+     (default: ``false``)
    * AC-5: When no providers are configured, the view SHALL display
      "no categories"
    * AC-6: The ``when``-clause SHALL be:

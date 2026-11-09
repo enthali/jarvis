@@ -185,6 +185,16 @@ Outlook Categories User Acceptance Tests
      Action: Open the Jarvis sidebar; expand Categories.
      Expected: A "no categories" placeholder message is shown.
 
+   **T-52 — View hidden by default**
+     Setup: Remove ``jarvis.pim.showCategories`` from user, workspace and
+     folder settings (setting unset); ``jarvis.outlook.enabled`` = ``true``;
+     reload window.
+     Action: Open the Jarvis sidebar; then set ``jarvis.pim.showCategories``
+     to ``true``.
+     Expected: Before the change "Categories" is not visible; after the change
+     it appears. The Settings UI shows the default of
+     ``jarvis.pim.showCategories`` as unchecked.
+
 
 .. story:: Outlook COM Bridge Acceptance Tests
    :id: US_UAT_COMBRIDGE
