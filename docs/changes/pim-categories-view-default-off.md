@@ -203,4 +203,4 @@ After Quality's `proceed`, the Project Manager presents the observable outcome. 
 - [x] Current blocker is `none`.
 - [x] Header Status is `closed`.
 
-**Final outcome:** Accepted by the User on 2026-11-09. The default of `jarvis.pim.showCategories` is `false`; view, commands and tools are unchanged. Integrated into `development` as one squash commit (hash in the follow-up record); branch `feature/pim-categories-view-default-off` retained. Open for Release: migration note in `releasenotes.md`. Non-blocking observations for the Architect: `when` clause in `REQ_PIM_CATVIEW` AC-6 and `SPEC_PIM_CATVIEW` differs from the manifest; T-13/T-19 key name; T-19 versus `when`.
+**Final outcome:** Accepted by the User on 2026-11-09. The default of `jarvis.pim.showCategories` is `false`; view, commands and tools are unchanged. Integrated into `development` as one squash commit (`ada1b57`); branch `feature/pim-categories-view-default-off` retained. Open for Release: migration note in `releasenotes.md`. Non-blocking observations for the Architect: `when` clause in `REQ_PIM_CATVIEW` AC-6 and `SPEC_PIM_CATVIEW` differs from the manifest; T-13/T-19 key name; T-19 versus `when`.
