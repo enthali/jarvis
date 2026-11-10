@@ -1,6 +1,6 @@
 # Change Contract: outlook-categories-setting
 
-**Status:** accepted<br>
+**Status:** closed<br>
 **Current responsibility:** Project Manager<br>
 **Current blocker:** none<br>
 **Created:** 2026-11-09<br>
@@ -23,6 +23,7 @@ Append one line as the last act before handing over, in the same commit that cha
 | 2026-11-09 | 16:05 | Quality | Project Manager | Re-check done: F-1 fixed (`SPEC_OLK_SETTINGS`/`SPEC_OLK_TASKENABLE` name the "Outlook" group; the one remaining "PIM" group mention is the removal statement), code unchanged since eedc812, strict docs build passes; judgment `proceed` @ 3b9d78c, Open Findings None. T-52 to T-54 are NOT RUN and are the User validation; release note with the migration hint is open for Release. |
 | 2026-11-09 | 15:38 | Project Manager | User | Quality handoff at becfe6a verified and acknowledged. Presenting the verified outcome and T-52 to T-54 for live validation; no acceptance or integration yet. Clarified the Observable Outcome: the old key is not declared or used, but removal and migration statements may name it. Release migration note remains open. |
 | 2026-11-10 | 13:58 | User | Project Manager | User accepted the presented outcome and validation request with "passt"; responsibility returns to the Project Manager for integration and closure. No per-step test observations were supplied. |
+| 2026-11-10 | - | Project Manager | none | Squash-integrated into `development` at 3e0139e and verified that its tree matches the accepted feature branch; feature branch retained. Contract closed; migration note remains for Release. |
 
 ## Intent And Outcome
 **Owner:** Project Manager<br>
@@ -43,7 +44,7 @@ Changes: the new setting and the removal of `jarvis.pim.showCategories` in the m
 
 Stays unchanged: the Categories view content, the Refresh, Rename and Delete Category commands, the tool `jarvis_pim_category`, the `categories` field of the task tool, `jarvis.outlook.enabled` and `jarvis.outlook.tasks.enabled`. Removing the whole category feature stays with backlog #23.
 
-Open for the Architect, to decide and record openly: which behaviour the tools `jarvis_pim_category` and the task editor show while the new setting is off (the provider list is then empty); whether the old setting needs a migration or only a release note. Release must add a migration note: users who had `jarvis.pim.showCategories` on set `jarvis.outlook.categories.enabled` to `true`.
+Resolved by the Architect and approved by the User (see Product Specification D2/D3): while the new setting is off, `jarvis_pim_category` returns the no-provider error and the task editor offers no category choices; the task `categories` field stays unchanged. There is no automatic migration because the old switch governed only the view, whereas the new switch also enables the provider. Release must add a migration note: users who had `jarvis.pim.showCategories` on set `jarvis.outlook.categories.enabled` to `true`.
 
 ### Observable Outcome
 
@@ -60,7 +61,7 @@ Open for the Architect, to decide and record openly: which behaviour the tools `
 |---|---|---|---|---|
 | Intent and outcome | yes | Project Manager | Goal, value, scope, and observable outcome are explicit and approved | approved |
 | Contract release | yes | User | User authorized the start in chat with the Project Manager on 2026-11-09: "mode autonomous, contract los schicken" | approved |
-| Version control | yes | Project Manager | Local branch `feature/outlook-categories-setting`; squash-integrated into `development` at closure; the branch is retained | active |
+| Version control | yes | Project Manager | Squash-integrated into `development` at `3e0139e`; tree equality with accepted branch verified; local branch `feature/outlook-categories-setting` retained | merged |
 | Product specification | yes | Architect | Changed specification artifacts are linked and checked | approved (see Product Specification) |
 | Infrastructure impact | yes: the Sandbox script and the two workspace files set `jarvis.pim.showCategories` explicitly | Admin | Affected infrastructure artifacts are updated, or none is affected | done (see Infrastructure Impact) |
 | Documentation impact | yes | Technical Writer | Affected user-facing documents are updated | done (see Documentation Impact) |
@@ -68,7 +69,7 @@ Open for the Architect, to decide and record openly: which behaviour the tools `
 | Test design | yes | Tester | Requirement-level tests and validation procedures trace to the changed specification | done (see Test Design) |
 | Quality review and test execution | yes | Quality | Current judgment is `proceed` and `Open Findings` is `None` | done: `proceed` @ 3b9d78c, Open Findings None (see Quality Review) |
 | User validation | yes | User | User accepted the presented outcome in chat on 2026-11-10: "passt" (see User Validation) | accepted |
-| Closure | yes | Project Manager | Final outcome and integration state are recorded | pending |
+| Closure | yes | Project Manager | User acceptance and integration at `3e0139e` recorded below; migration note tracked for Release | closed |
 
 ## Product Specification
 
@@ -221,15 +222,15 @@ After Quality's `proceed`, the Project Manager presents the observable outcome. 
 ## Closure
 
 **Owner:** Project Manager<br>
-**Status:** pending
+**Status:** closed
 
-- [ ] Every included artifact or gate has terminal status and completion evidence.
-- [ ] Intent and outcome are `approved`.
-- [ ] Quality has recorded `proceed`.
-- [ ] Open Findings contains `None`.
-- [ ] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
-- [ ] The feature branch is squash-integrated into `development`.
-- [ ] Current blocker is `none`.
-- [ ] Header Status is `closed`.
+- [x] Every included artifact or gate has terminal status and completion evidence.
+- [x] Intent and outcome are `approved`.
+- [x] Quality has recorded `proceed`.
+- [x] Open Findings contains `None`.
+- [x] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
+- [x] The feature branch is squash-integrated into `development`.
+- [x] Current blocker is `none`.
+- [x] Header Status is `closed`.
 
-**Final outcome:** {accepted result and integration commit}
+**Final outcome:** User accepted the outcome on 2026-11-10 ("passt"). `jarvis.outlook.categories.enabled` (default `false`, Outlook group) replaces `jarvis.pim.showCategories` and governs both provider and view under the Outlook master switch. Squash-integrated into `development` at `3e0139e`; the integrated tree matches the accepted feature branch, which is retained. Quality's verification remains applicable because integration introduced no code changes. Open for Release: the migration note supersedes the predecessor Change's hint; users explicitly enable `jarvis.outlook.categories.enabled`, with no automatic migration. Non-blocking O-1 (old master-switch name in the task tool error) remains deferred.
