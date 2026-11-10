@@ -1,25 +1,40 @@
 /**
- * REQ_PIM_CATVIEW AC-4 / SPEC_PIM_CATVIEW: jarvis.pim.showCategories defaults to false in the manifest;
- * the Categories view stays gated by showCategories and outlook.enabled.
+ * REQ_OLK_CATENABLE / SPEC_OLK_CATENABLE: jarvis.outlook.categories.enabled (default false, "Outlook" group)
+ * gates the Categories view together with jarvis.outlook.enabled; jarvis.pim.showCategories and the "PIM"
+ * settings group are gone. SPEC_PIM_CATTOOL: the no-provider error names both settings.
  */
 import { describe, expect, it } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const manifest = JSON.parse(
-    fs.readFileSync(path.resolve(__dirname, '..', '..', 'packages', 'pim', 'package.json'), 'utf-8'));
+const pimDir = path.resolve(__dirname, '..', '..', 'packages', 'pim');
+const manifest = JSON.parse(fs.readFileSync(path.join(pimDir, 'package.json'), 'utf-8'));
+const extensionSrc = fs.readFileSync(path.join(pimDir, 'src', 'extension.ts'), 'utf-8');
 
-describe('REQ_PIM_CATVIEW: the Categories view is off by default', () => {
-    it('AC-4: the manifest declares jarvis.pim.showCategories as boolean with default false', () => {
-        const props = manifest.contributes.configuration.flatMap((c: any) => Object.entries(c.properties));
-        const setting = (props.find(([k]: [string, unknown]) => k === 'jarvis.pim.showCategories') as any)[1];
+describe('SPEC_OLK_CATENABLE: the Categories integration is off by default', () => {
+    it('the "Outlook" group declares jarvis.outlook.categories.enabled as boolean with default false', () => {
+        const group = manifest.contributes.configuration.find((c: any) => c.title === 'Outlook');
+        const setting = group.properties['jarvis.outlook.categories.enabled'];
         expect(setting.type).toBe('boolean');
         expect(setting.default).toBe(false);
     });
 
-    it('the view when clause still requires showCategories and outlook.enabled', () => {
-        const views = Object.values(manifest.contributes.views).flat() as { when?: string }[];
-        const when = views.map(v => v.when ?? '').find(w => w.includes('jarvis.pim.showCategories'));
-        expect(when).toBe('config.jarvis.pim.showCategories == true && config.jarvis.outlook.enabled == true');
+    it('jarvis.pim.showCategories and the "PIM" settings group are not contributed', () => {
+        expect(manifest.contributes.configuration.some((c: any) => c.title === 'PIM')).toBe(false);
+        expect(JSON.stringify(manifest.contributes)).not.toContain('jarvis.pim.showCategories');
+    });
+
+    it('the view when clause requires jarvis.outlook.enabled and jarvis.outlook.categories.enabled', () => {
+        const views = Object.values(manifest.contributes.views).flat() as { id: string; when?: string }[];
+        const view = views.find(v => v.id === 'jarvisCategories');
+        expect(view?.when).toBe('config.jarvis.outlook.enabled == true && config.jarvis.outlook.categories.enabled == true');
+    });
+
+    it('the provider is added only when the master switch and the categories setting are both true', () => {
+        expect(extensionSrc).toMatch(/if \(cfg\.get<boolean>\('outlook\.enabled', false\)\) \{\s+if \(cfg\.get<boolean>\('outlook\.categories\.enabled', false\)\) \{\s+categoryService\.addProvider\(new OutlookCategoryProvider\(log\)\)/);
+    });
+
+    it('the category tool error names both settings', () => {
+        expect(extensionSrc).toContain('No category providers configured. Enable jarvis.outlook.enabled and jarvis.outlook.categories.enabled.');
     });
 });

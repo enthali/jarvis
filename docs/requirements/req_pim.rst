@@ -86,7 +86,7 @@ PIM Requirements
 
 .. req:: Category Management Tool (LM/MCP)
    :id: REQ_PIM_CATTOOL
-   :status: implemented
+   :status: approved
    :priority: mandatory
    :links: US_PIM_CATTOOL; REQ_PIM_SERVICE; REQ_MSG_MCPSERVER
 
@@ -110,15 +110,17 @@ PIM Requirements
      responsibility
    * AC-8: The tool SHALL be registered via ``registerDualTool()`` for
      simultaneous LM and MCP availability
-   * AC-9: When no category providers are configured, the tool SHALL return
-     an informational error message
+   * AC-9: When no category providers are configured (this includes
+     ``jarvis.outlook.categories.enabled`` being ``false``), the tool SHALL
+     return an informational error message that names the settings
+     ``jarvis.outlook.enabled`` and ``jarvis.outlook.categories.enabled``
 
 
 .. req:: Categories Sidebar Tree View
    :id: REQ_PIM_CATVIEW
    :status: approved
    :priority: optional
-   :links: US_PIM_CATVIEW; REQ_PIM_SERVICE; REQ_EXP_TREEVIEW
+   :links: US_PIM_CATVIEW; REQ_PIM_SERVICE; REQ_EXP_TREEVIEW; REQ_OLK_CATENABLE
 
    **Description:**
    The extension SHALL provide a "Categories" tree view in the Jarvis sidebar
@@ -127,17 +129,19 @@ PIM Requirements
    **Acceptance Criteria:**
 
    * AC-1: A "Categories" tree view SHALL appear in the Jarvis sidebar as the
-     5th section when ``jarvis.pim.showCategories`` is ``true``
+     5th section while ``jarvis.outlook.enabled`` and
+     ``jarvis.outlook.categories.enabled`` are both ``true``
    * AC-2: Each category SHALL be displayed as a leaf node with its name and
      source tag
    * AC-3: A refresh button (``$(refresh)``) in the title bar SHALL trigger an
      immediate cache refresh
-   * AC-4: The view SHALL be controlled by ``jarvis.pim.showCategories``
-     (default: ``false``)
+   * AC-4: The view SHALL be controlled by ``jarvis.outlook.categories.enabled``
+     (default: ``false``) under the master switch ``jarvis.outlook.enabled``
+     (``REQ_OLK_CATENABLE``)
    * AC-5: When no providers are configured, the view SHALL display
      "no categories"
    * AC-6: The ``when``-clause SHALL be:
-     ``config.jarvis.pim.showCategories == true``
+     ``config.jarvis.outlook.enabled == true && config.jarvis.outlook.categories.enabled == true``
    * AC-7: A context menu on category nodes (``contextValue: jarvisCategory``)
      SHALL offer "Rename Category" — opening an input box pre-filled with
      the current name, then renaming via ``CategoryService``

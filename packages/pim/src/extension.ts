@@ -30,11 +30,13 @@ export function activate(context: vscode.ExtensionContext): void {
     const categoryService = new CategoryService(log);
     const categoryTreeProvider = new CategoryTreeProvider(categoryService);
 
-    const outlookEnabled = vscode.workspace.getConfiguration('jarvis').get<boolean>('outlook.enabled', false);
-    if (outlookEnabled) {
-        categoryService.addProvider(new OutlookCategoryProvider(log));
+    const cfg = vscode.workspace.getConfiguration('jarvis');
+    if (cfg.get<boolean>('outlook.enabled', false)) {
+        if (cfg.get<boolean>('outlook.categories.enabled', false)) {
+            categoryService.addProvider(new OutlookCategoryProvider(log));
+        }
         try {
-            if (vscode.workspace.getConfiguration('jarvis').get('outlook.tasks.enabled') === true) {
+            if (cfg.get('outlook.tasks.enabled') === true) {
                 taskService.addProvider(new OutlookTaskProvider(log));
                 log.info('[PIM] OutlookTaskProvider registered');
             }
@@ -111,7 +113,7 @@ export function activate(context: vscode.ExtensionContext): void {
         async (options, _token) => {
             if (!categoryService.hasProviders()) {
                 return new vscode.LanguageModelToolResult([
-                    new vscode.LanguageModelTextPart('No category providers configured. Enable a PIM provider (e.g. jarvis.outlookEnabled).')
+                    new vscode.LanguageModelTextPart('No category providers configured. Enable jarvis.outlook.enabled and jarvis.outlook.categories.enabled.')
                 ]);
             }
             const { action, name, filter, provider, oldName, newName } = options.input as {

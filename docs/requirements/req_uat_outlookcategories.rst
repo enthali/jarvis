@@ -15,10 +15,11 @@ Outlook Categories UAT Requirements
 
    * AC-1: No new test data files required — tests use a live Outlook instance
      with manually created categories
-   * AC-2: Expected outcomes for each test scenario (T-1 through T-5 from
-     ``US_UAT_CATEGORIES``) SHALL be documented in the test protocol
-   * AC-3: Test preconditions specify that ``jarvis.outlookEnabled`` and a
-     running Outlook Classic instance are required for provider tests
+   * AC-2: Expected outcomes for each test scenario (T-1 through T-5 and T-53
+     from ``US_UAT_CATEGORIES``) SHALL be documented in the test protocol
+   * AC-3: Test preconditions specify that ``jarvis.outlook.enabled``,
+     ``jarvis.outlook.categories.enabled`` and a running Outlook Classic
+     instance are required for provider tests
 
 
 .. req:: Category Tool Test Data
@@ -39,7 +40,7 @@ Outlook Categories UAT Requirements
      ``US_UAT_CATTOOL``) SHALL be documented in the test protocol
    * AC-3: Test preconditions specify Outlook is required for write operations
      (set, delete, rename); the no-provider error test (T-11) requires
-     ``outlookEnabled=false``
+     ``jarvis.outlook.enabled=false`` or ``jarvis.outlook.categories.enabled=false``
 
 
 .. req:: Categories View Test Data
@@ -58,7 +59,7 @@ Outlook Categories UAT Requirements
      in the Extension Development Host
    * AC-2: Expected outcomes for each test scenario (T-13 through T-19 from
      ``US_UAT_CATVIEW``) SHALL be documented in the test protocol
-   * AC-3: Test preconditions specify that ``jarvis.pim.showCategories`` must be
+   * AC-3: Test preconditions specify that ``jarvis.outlook.categories.enabled`` must be
      toggled for visibility tests and that Outlook must be running for context
      menu action verification
 

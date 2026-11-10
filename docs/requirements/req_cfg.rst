@@ -263,7 +263,7 @@ Configuration Requirements
    SHALL contain exactly the following groups in this order:
    Actors, Messages, Prompt Templates, Heartbeat, Reminders, Gitignore,
    Updates. Each add-on SHALL contribute its own settings in its own
-   ``package.json`` groups: PIM ("PIM", "Outlook"), recorder ("Jarvis
+   ``package.json`` groups: PIM ("Outlook"), recorder ("Jarvis
    Recorder"), MCP ("Jarvis MCP"), kanban ("Jarvis Kanban"), syspilot
    ("Jarvis Syspilot").
 

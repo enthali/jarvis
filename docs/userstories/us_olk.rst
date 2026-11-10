@@ -3,7 +3,7 @@ Outlook User Stories
 
 .. story:: Outlook COM Integration (PIM Provider)
    :id: US_OLK_COMBRIDGE
-   :status: implemented
+   :status: approved
    :priority: mandatory
    :links: US_PIM_CATEGORIES
 
@@ -22,8 +22,12 @@ Outlook User Stories
    * AC-3: A colour heuristic assigns category colours: names containing "Project" →
      blue, names containing "Event" → pink, otherwise no colour
    * AC-4: A setting ``jarvis.outlookEnabled`` (default: ``false``) controls whether
-     the Outlook COM provider is instantiated; when disabled, no COM calls are made
+     the Outlook COM integration is active; when disabled, no COM calls are made
+     and no Outlook provider is instantiated
    * AC-5: Changing ``jarvis.outlookEnabled`` requires a window reload
+   * AC-6: The Outlook category provider and the Categories view are off by
+     default; the user turns them on deliberately, separately from the Outlook
+     tasks, and they work only while the Outlook integration is on
 
 
 .. story:: Outlook Tasks Integration (COM Bridge)

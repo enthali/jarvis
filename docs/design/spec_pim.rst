@@ -279,7 +279,7 @@ PIM Design Specifications
             return new vscode.LanguageModelToolResult([
               new vscode.LanguageModelTextPart(
                 'No category providers configured. '
-                + 'Enable a PIM provider (e.g. jarvis.outlookEnabled).'
+                + 'Enable jarvis.outlook.enabled and jarvis.outlook.categories.enabled.'
               )
             ]);
           }
@@ -328,7 +328,7 @@ PIM Design Specifications
         // MCP handler
         async (args) => {
           if (!categoryService || !categoryService.hasProviders()) {
-            return { error: 'No category providers configured.' };
+            return { error: 'No category providers configured. Enable jarvis.outlook.enabled and jarvis.outlook.categories.enabled.' };
           }
           const action = args.action as string;
           const name = args.name as string | undefined;
@@ -410,7 +410,7 @@ PIM Design Specifications
 .. spec:: CategoryTreeProvider
    :id: SPEC_PIM_CATVIEW
    :status: approved
-   :links: REQ_PIM_CATVIEW; SPEC_PIM_SERVICE
+   :links: REQ_PIM_CATVIEW; SPEC_PIM_SERVICE; SPEC_OLK_CATENABLE
 
    **Description:**
    File ``src/pim/CategoryTreeProvider.ts`` implements
@@ -513,7 +513,7 @@ PIM Design Specifications
         {
           "id": "jarvisCategories",
           "name": "Categories",
-          "when": "config.jarvis.pim.showCategories == true"
+          "when": "config.jarvis.outlook.enabled == true && config.jarvis.outlook.categories.enabled == true"
         }
 
    * ``contributes.commands``: ``jarvis.refreshCategories``
@@ -538,20 +538,10 @@ PIM Design Specifications
      - ``jarvis.deleteCategory`` hidden (``when: "false"``)
    * ``activationEvents``: add ``onView:jarvisCategories``
 
-   **Settings (package.json — "PIM" group, combined with Outlook settings):**
-
-   .. code-block:: json
-
-      {
-        "title": "PIM",
-        "properties": {
-          "jarvis.pim.showCategories": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show the Categories view in the Jarvis sidebar."
-          }
-        }
-      }
+   **Settings:** the Categories view has no setting of its own. It is gated by
+   ``jarvis.outlook.categories.enabled`` in the "Outlook" configuration group
+   (``SPEC_OLK_CATENABLE``). The former setting ``jarvis.pim.showCategories``
+   and the "PIM" configuration group that held it no longer exist.
 
 
 .. spec:: ITaskProvider Interface + Task Model

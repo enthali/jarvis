@@ -15,7 +15,8 @@ Outlook Categories User Acceptance Tests
    **Acceptance Criteria:**
 
    * AC-1: Test scenarios verify that ``CategoryService`` registers the Outlook
-     provider when ``jarvis.outlookEnabled`` is ``true``
+     provider when ``jarvis.outlook.enabled`` and
+     ``jarvis.outlook.categories.enabled`` are ``true``
    * AC-2: Test scenarios verify that the category cache returns categories
      after initial load
    * AC-3: Test scenarios verify that cache refresh via heartbeat updates the
@@ -23,11 +24,14 @@ Outlook Categories User Acceptance Tests
    * AC-4: Test scenarios verify that categories carry the correct ``source`` tag
    * AC-5: Test scenarios verify that with no providers configured, the service
      returns an empty list
+   * AC-6: Test scenarios verify that with ``jarvis.outlook.enabled`` on and
+     ``jarvis.outlook.categories.enabled`` off, no provider is registered
 
    **Test Scenarios:**
 
-   **T-1 — Provider registered when outlookEnabled=true**
-     Setup: Set ``jarvis.outlookEnabled`` to ``true``; reload window.
+   **T-1 — Provider registered when both toggles are on**
+     Setup: Set ``jarvis.outlook.enabled`` and
+     ``jarvis.outlook.categories.enabled`` to ``true``; reload window.
      Action: Open Output Channel "Jarvis"; search for provider registration log.
      Expected: Log shows ``OutlookCategoryProvider`` registered with
      ``CategoryService``; ``hasProviders()`` is true.
@@ -39,8 +43,9 @@ Outlook Categories User Acceptance Tests
      zero providers.
 
    **T-3 — Cache populated on first access**
-     Setup: ``jarvis.outlookEnabled`` = ``true``; Outlook running with at least
-     two categories.
+     Setup: ``jarvis.outlook.enabled`` = ``true``;
+     ``jarvis.outlook.categories.enabled`` = ``true``; Outlook running with at
+     least two categories.
      Action: Use ``jarvis_category`` tool with ``action: "get"``.
      Expected: Categories returned with ``name``, ``color``, and
      ``source: "outlook"`` for each entry.
@@ -55,6 +60,14 @@ Outlook Categories User Acceptance Tests
      Setup: Categories cached; add a new category directly in Outlook.
      Action: Click the refresh button in the Categories sidebar view.
      Expected: New category appears in the tree immediately.
+
+   **T-53 — No provider when the categories toggle is off**
+     Setup: ``jarvis.outlook.enabled`` = ``true``;
+     ``jarvis.outlook.categories.enabled`` = ``false`` (default); reload window.
+     Action: Open Output Channel "Jarvis"; check provider registration logs;
+     open the Jarvis sidebar.
+     Expected: No ``OutlookCategoryProvider`` registration is logged;
+     ``CategoryService`` reports zero providers; no "Categories" view is shown.
 
 
 .. story:: Category Tool Acceptance Tests
@@ -78,7 +91,9 @@ Outlook Categories User Acceptance Tests
    **Test Scenarios:**
 
    **T-6 — get returns all categories**
-     Setup: ``jarvis.outlookEnabled`` = ``true``; Outlook running with categories.
+     Setup: ``jarvis.outlook.enabled`` = ``true``;
+     ``jarvis.outlook.categories.enabled`` = ``true``; Outlook running with
+     categories.
      Action: In Chat, invoke ``jarvis_category`` with ``action: "get"``.
      Expected: Tool returns a list of all Outlook categories with name, color,
      and source.
@@ -111,10 +126,12 @@ Outlook Categories User Acceptance Tests
      "UAT-Test-Renamed" (old name gone); color preserved.
 
    **T-11 — Tool error when no providers**
-     Setup: Set ``jarvis.outlookEnabled`` to ``false``; reload window.
+     Setup: Set ``jarvis.outlook.enabled`` to ``false``, or leave
+     ``jarvis.outlook.categories.enabled`` at ``false``; reload window.
      Action: Invoke ``jarvis_category`` with ``action: "get"``.
      Expected: Tool returns an error message indicating no PIM providers
-     are available.
+     are available and naming ``jarvis.outlook.enabled`` and
+     ``jarvis.outlook.categories.enabled``.
 
    **T-12 — Tool available via MCP server**
      Setup: MCP client connected to Jarvis MCP server.
@@ -136,28 +153,31 @@ Outlook Categories User Acceptance Tests
    **Acceptance Criteria:**
 
    * AC-1: Test scenarios verify the view appears/hides based on
-     ``jarvis.pim.showCategories``
+     ``jarvis.outlook.categories.enabled`` under ``jarvis.outlook.enabled``
    * AC-2: Test scenarios verify category nodes display name and source
    * AC-3: Test scenarios verify context menu Rename action
    * AC-4: Test scenarios verify context menu Delete action
-   * AC-5: Test scenarios verify "no categories" placeholder when no providers
+   * AC-5: Test scenarios verify the "no categories" placeholder when Outlook
+     holds no categories
 
    **Test Scenarios:**
 
-   **T-13 — View visible when showCategories=true**
-     Setup: Set ``jarvis.pim.showCategories`` to ``true``; ``jarvis.outlookEnabled``
-     = ``true``; reload window.
+   **T-13 — View visible when both toggles are on**
+     Setup: Set ``jarvis.outlook.categories.enabled`` to ``true``;
+     ``jarvis.outlook.enabled`` = ``true``; reload window.
      Action: Open the Jarvis sidebar.
      Expected: "Categories" section appears as the 5th view; category nodes
      are listed alphabetically.
 
-   **T-14 — View hidden when showCategories=false**
-     Setup: Set ``jarvis.pim.showCategories`` to ``false``.
+   **T-14 — View hidden when the categories toggle is off**
+     Setup: Set ``jarvis.outlook.categories.enabled`` to ``false``;
+     ``jarvis.outlook.enabled`` = ``true``.
      Action: Open the Jarvis sidebar.
      Expected: "Categories" section is not visible.
 
    **T-15 — Category nodes show name and source**
-     Setup: ``showCategories`` = ``true``; Outlook provider active with categories.
+     Setup: ``jarvis.outlook.categories.enabled`` = ``true``; Outlook provider
+     active with categories.
      Action: Expand the Categories view.
      Expected: Each node shows the category name; description or tooltip includes
      ``source: outlook``.
@@ -179,21 +199,34 @@ Outlook Categories User Acceptance Tests
      Expected: Confirmation dialog appears; confirm; category disappears from tree;
      category removed from Outlook.
 
-   **T-19 — No-providers placeholder**
-     Setup: ``jarvis.outlookEnabled`` = ``false``; ``jarvis.pim.showCategories``
-     = ``true``; reload window.
+   **T-19 — No-categories placeholder**
+     Setup: ``jarvis.outlook.enabled`` = ``true``;
+     ``jarvis.outlook.categories.enabled`` = ``true``; Outlook holds no
+     categories; reload window.
      Action: Open the Jarvis sidebar; expand Categories.
      Expected: A "no categories" placeholder message is shown.
 
    **T-52 — View hidden by default**
-     Setup: Remove ``jarvis.pim.showCategories`` from user, workspace and
-     folder settings (setting unset); ``jarvis.outlook.enabled`` = ``true``;
+     Setup: Remove ``jarvis.outlook.categories.enabled`` from user, workspace
+     and folder settings (setting unset); ``jarvis.outlook.enabled`` = ``true``;
      reload window.
-     Action: Open the Jarvis sidebar; then set ``jarvis.pim.showCategories``
-     to ``true``.
+     Action: Open the Jarvis sidebar; then set
+     ``jarvis.outlook.categories.enabled`` to ``true`` and reload the window.
      Expected: Before the change "Categories" is not visible; after the change
-     it appears. The Settings UI shows the default of
-     ``jarvis.pim.showCategories`` as unchecked.
+     it appears. The Settings UI shows ``jarvis.outlook.categories.enabled`` in
+     the Outlook group, next to the Tasks setting, with the default unchecked;
+     ``jarvis.pim.showCategories`` is not offered.
+
+   **T-54 — Master switch off overrides the categories toggle**
+     Setup: ``jarvis.outlook.enabled`` = ``false``;
+     ``jarvis.outlook.categories.enabled`` = ``true``; reload window.
+     Action: Open the Jarvis sidebar; open Output Channel "Jarvis"; invoke
+     ``jarvis_pim_category`` with ``action: "get"``.
+     Expected: No "Categories" view; no Outlook COM or ``powershell`` activity
+     is logged; the tool returns the no-provider error naming
+     ``jarvis.outlook.enabled`` and ``jarvis.outlook.categories.enabled``.
+     A leftover ``jarvis.pim.showCategories`` entry in user settings has no
+     effect.
 
 
 .. story:: Outlook COM Bridge Acceptance Tests

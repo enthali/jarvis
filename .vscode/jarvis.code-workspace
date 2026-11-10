@@ -8,7 +8,7 @@
 		}
 	],
 	"settings": {
-		"jarvis.pim.showCategories": false,
+		"jarvis.outlook.categories.enabled": false,
 		"jarvis.outlook.tasks.enabled": false,
 		"jarvis.projects.enabled": false,
 		"jarvis.mcp.enabled": true,
