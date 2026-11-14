@@ -224,7 +224,7 @@ Configuration Design Specifications
    ``packages/core/package.json``. Seven named groups in the order mandated by
    ``REQ_CFG_GROUPS``: Actors, Messages, Prompt Templates, Heartbeat,
    Reminders, Gitignore, Updates. Add-ons contribute their own groups
-   in their own manifests: PIM ("PIM", "Outlook", ``SPEC_PIM_*``), recorder
+   in their own manifests: PIM ("Outlook", ``SPEC_PIM_*``), recorder
    ("Jarvis Recorder"), MCP ("Jarvis MCP"), kanban ("Jarvis Kanban"),
    syspilot ("Jarvis Syspilot").
 
@@ -644,7 +644,7 @@ Configuration Design Specifications
 
 .. spec:: settings-cleanup: Feature Toggle Guards in activate()
    :id: SPEC_CFG_TOGGLEGUARDS
-   :status: implemented
+   :status: approved
    :links: REQ_CFG_TOGGLES
 
    **Description:**
@@ -702,12 +702,12 @@ Configuration Design Specifications
      hides views and menu items even before the next reload.
    * The PIM feature (Categories, Tasks) and Outlook / Recording features are
      not governed by this spec's toggle guards; they retain their existing
-     ``jarvis.pim.showCategories`` and ``jarvis.recording.enabled`` guards.
+     ``jarvis.outlook.categories.enabled`` and ``jarvis.recording.enabled`` guards.
 
 
 .. spec:: settings-cleanup: View Gating via when-clauses
    :id: SPEC_CFG_VIEWGATING
-   :status: implemented
+   :status: approved
    :links: REQ_CFG_TOGGLES
 
    **Description:**
@@ -732,7 +732,7 @@ Configuration Design Specifications
       * - ``jarvisHeartbeat``
         - ``config.jarvis.heartbeat.enabled == true``
       * - ``jarvisCategories``
-        - ``config.jarvis.pim.showCategories == true && config.jarvis.outlook.enabled == true`` *(Categories currently has only Outlook as backend; gating on Outlook hides the view when no backend is available)*
+        - ``config.jarvis.outlook.enabled == true && config.jarvis.outlook.categories.enabled == true`` *(Categories has only Outlook as backend; see SPEC_OLK_CATENABLE)*
 
    **``contributes.menus`` items to update:**
 

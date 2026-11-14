@@ -106,3 +106,36 @@ Outlook Requirements
      no task provider SHALL be instantiated
    * AC-4: All ``when``-clauses referencing the tasks feature SHALL use the
      explicit form ``config.jarvis.outlook.tasks.enabled == true``
+
+
+.. req:: Categories Feature Sub-Toggle
+   :id: REQ_OLK_CATENABLE
+   :status: approved
+   :priority: mandatory
+   :links: US_OLK_COMBRIDGE; US_PIM_CATVIEW; REQ_OLK_ENABLE; REQ_CFG_SETTINGSGROUPS
+
+   **Description:**
+   The extension SHALL provide a boolean setting
+   ``jarvis.outlook.categories.enabled`` that controls whether the Outlook
+   category provider is instantiated and whether the Categories view is shown,
+   in the same way ``jarvis.outlook.tasks.enabled`` controls the task provider.
+   It replaces the setting ``jarvis.pim.showCategories``, which SHALL no longer
+   exist.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``jarvis.outlook.categories.enabled`` SHALL be a boolean setting with
+     default ``false``, declared in the "Outlook" settings group
+   * AC-2: The categories feature SHALL only be active when BOTH
+     ``jarvis.outlook.enabled === true`` AND
+     ``jarvis.outlook.categories.enabled === true``
+   * AC-3: When either toggle is ``false``, no category COM calls SHALL be made,
+     no Outlook category provider SHALL be instantiated and the Categories view
+     SHALL NOT be shown
+   * AC-4: All ``when``-clauses referencing the categories feature SHALL use the
+     explicit form ``config.jarvis.outlook.categories.enabled == true``
+   * AC-5: Changing ``jarvis.outlook.categories.enabled`` SHALL require a window
+     reload to take effect for the provider (same behaviour as
+     ``REQ_OLK_ENABLE``)
+   * AC-6: The setting ``jarvis.pim.showCategories`` SHALL NOT be declared in
+     any manifest; no automatic migration of a previous value SHALL take place

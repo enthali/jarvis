@@ -9,12 +9,16 @@ Adds a **Categories** view to the Jarvis sidebar and a custom Task Editor for `.
 
 ## Features
 
-- **Categories** view — manage Outlook categories (requires `jarvis.pim.showCategories` and `jarvis.outlook.enabled`)
+- **Categories** view — manage Outlook categories (off by default; requires `jarvis.outlook.enabled` and `jarvis.outlook.categories.enabled` set to `true`)
 - **Task Editor** — custom editor for `.jarvis-task` files
 
 ## Configuration
 
-Enable the Categories view with `jarvis.pim.showCategories` and `jarvis.outlook.enabled`.
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `jarvis.outlook.enabled` | `false` | Enable Outlook COM integration (Windows with Outlook Classic). When disabled, no Outlook COM calls are made. |
+| `jarvis.outlook.categories.enabled` | `false` | Enable the Outlook Categories integration (category provider and Categories view). Effective only when `jarvis.outlook.enabled` is `true`. |
+| `jarvis.outlook.tasks.enabled` | `true` | Enable the Outlook Tasks integration. Effective only when `jarvis.outlook.enabled` is `true`. |
 
 ## Requirements
 

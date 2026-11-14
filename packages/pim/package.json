@@ -58,7 +58,7 @@
         {
           "id": "jarvisCategories",
           "name": "Categories",
-          "when": "config.jarvis.pim.showCategories == true && config.jarvis.outlook.enabled == true"
+          "when": "config.jarvis.outlook.enabled == true && config.jarvis.outlook.categories.enabled == true"
         }
       ]
     },
@@ -115,22 +115,17 @@
     },
     "configuration": [
       {
-        "title": "PIM",
-        "properties": {
-          "jarvis.pim.showCategories": {
-            "type": "boolean",
-            "default": true,
-            "description": "Show the Categories view in the Jarvis sidebar."
-          }
-        }
-      },
-      {
         "title": "Outlook",
         "properties": {
           "jarvis.outlook.enabled": {
             "type": "boolean",
             "default": false,
             "description": "Enable Outlook COM integration (Windows + Outlook Classic). When disabled, no Outlook COM calls are made."
+          },
+          "jarvis.outlook.categories.enabled": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable the Outlook Categories integration (category provider and Categories view). Only effective when jarvis.outlook.enabled is true."
           },
           "jarvis.outlook.tasks.enabled": {
             "type": "boolean",

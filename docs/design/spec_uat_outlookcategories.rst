@@ -25,11 +25,14 @@ Outlook Categories UAT Design Specifications
         - Action
         - Expected Result
       * - T-1 (provider registered)
-        - Set ``outlookEnabled=true``, reload window
+        - Set ``outlook.enabled=true`` and ``outlook.categories.enabled=true``, reload window
         - Output Channel logs provider registration; ``hasProviders()`` is true
       * - T-2 (no providers)
         - Set ``outlookEnabled=false``, reload window
         - No provider registered; zero providers
+      * - T-53 (categories toggle off)
+        - ``outlook.enabled=true``, ``outlook.categories.enabled=false``, reload window
+        - No provider registered; zero providers; no Categories view
       * - T-3 (cache populated)
         - ``jarvis_category get``
         - Categories returned with name, color, source: "outlook"
@@ -81,8 +84,8 @@ Outlook Categories UAT Design Specifications
         - ``jarvis_category action:rename oldName/newName``
         - Renamed in Outlook; color preserved; old name gone
       * - T-11 (no providers)
-        - ``outlookEnabled=false``, ``jarvis_category action:get``
-        - Error: no PIM providers available
+        - ``outlook.enabled=false`` or ``outlook.categories.enabled=false``, ``jarvis_category action:get``
+        - Error: no PIM providers available, naming both settings
       * - T-12 (MCP)
         - Call ``jarvis_category`` via MCP client
         - Same results as LM tool invocation
@@ -112,10 +115,10 @@ Outlook Categories UAT Design Specifications
         - Action
         - Expected Result
       * - T-13 (view visible)
-        - ``showCategories=true``, open sidebar
+        - ``outlook.enabled=true``, ``outlook.categories.enabled=true``, open sidebar
         - "Categories" appears as 5th view; nodes listed alphabetically
       * - T-14 (view hidden)
-        - ``showCategories=false``
+        - ``outlook.categories.enabled=false``
         - "Categories" section not visible in sidebar
       * - T-15 (node details)
         - Expand Categories view
@@ -129,10 +132,15 @@ Outlook Categories UAT Design Specifications
       * - T-18 (delete via context menu)
         - Right-click → Delete Category → confirm
         - Category removed from tree and Outlook
-      * - T-19 (no providers)
-        - ``outlookEnabled=false``, ``showCategories=true``
+      * - T-19 (no categories)
+        - both toggles on, Outlook holds no categories
         - "no categories" placeholder shown
-
+      * - T-52 (hidden by default)
+        - ``outlook.categories.enabled`` unset, ``outlook.enabled=true``; then set it to ``true`` and reload
+        - Not visible while unset; appears after the change; Settings UI shows it in the Outlook group, default unchecked; ``pim.showCategories`` not offered
+              * - T-54 (master switch off)
+                - ``outlook.enabled=false``, ``outlook.categories.enabled=true``; reload; open sidebar; call ``jarvis_pim_category`` get
+                - No Categories view; no COM activity; no-provider error names both settings; leftover ``pim.showCategories`` has no effect
 
 .. spec:: Outlook COM Bridge Test Procedures
    :id: SPEC_UAT_COMBRIDGE_FILES
