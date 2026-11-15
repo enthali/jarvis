@@ -26,7 +26,7 @@ Before the next release, update existing project-owned prompts, skills and agent
 
 `jarvis_createActorSession(actor)` finds or creates an Actor chat and returns its session address. These four Agent Host tools are not MCP tools. External scripts that previously woke an Actor through MCP messaging must move that work to a heartbeat step. Reminders and heartbeat message steps still write to the inbox.
 
-With `jarvis.actor.autoProvision` enabled, provisioning refreshes the bundled Actor instructions; owners must update hand-maintained copies themselves. The package-prefixed references of other extension tools, such as `#jarvis_core_createActor` and `#jarvis_pim_task`, remain in use.
+With `jarvis.actor.autoProvision` enabled (the default), provisioning refreshes the bundled Actor instructions; owners must update hand-maintained copies themselves. The package-prefixed references of other extension tools, such as `#jarvis_core_createActor` and `#jarvis_pim_task`, remain in use.
 
 ### Updating from a hook-based version
 
@@ -35,6 +35,12 @@ Jarvis no longer uses agent hooks or requires an external `node` command for Act
 On activation, Jarvis cleans up its five known legacy files in `.github/hooks/` of the first workspace folder without an opt-in. Automatic cleanup covers only that folder and can fail. If any remain in a project, including another workspace folder, remove only `jarvis-hooks.json`, `jarvis-bridge.mjs`, `jarvis-port`, `bridge.mjs`, and `port` by hand from that project's `.github/hooks/`; keep the directory and all other files. Removal failures are logged and retried on the next activation. The old `.jarvis/state/touched-files/` data is retained but no longer used. Existing `jarvis.hooks.autoInstall` and `jarvis.touchedFiles.windowDays` settings have no effect. See the [Core guide](core.md) for the cleanup details.
 
 The MCP server is disabled by default, including after an upgrade when no explicit `jarvis.mcp.enabled` value is stored. To use it, set `jarvis.mcp.enabled` to `true`. Existing explicit `true` or `false` values still apply; see the [MCP guide](mcp.md).
+
+### Updating with Actor instructions on by default
+
+`jarvis.actor.autoProvision` now defaults to `true`. On the first activation after upgrade, a workspace with no explicit setting receives the three bundled files `jarvis-actor.kernel.instructions.md`, `jarvis-actor.memory.instructions.md` and `jarvis-actor.authoring.instructions.md` in `.github/instructions/`. An explicit `false` stays an opt-out, and Jarvis then removes the files it provisioned.
+
+If a workspace still holds the earlier hyphenated copies (`jarvis-actor-kernel.instructions.md` and siblings), both sets apply (`applyTo: "**"`) and the same rules run twice. Jarvis does not delete files it did not write, so remove the hyphenated copies by hand. `.github/instructions/` is git-ignored, so they are unversioned: save any local edits before removing them, because they cannot be recovered afterwards.
 
 ### Updating to 0.31.1
 

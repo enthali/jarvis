@@ -74,7 +74,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     applyGitignore();
 
     // Actor instructions provisioning (SPEC_MOD_ACTORRULES)
-    const actorProvisionEnabled = vscode.workspace.getConfiguration('jarvis.actor').get<boolean>('autoProvision', false);
+    const actorProvisionEnabled = vscode.workspace.getConfiguration('jarvis.actor').get<boolean>('autoProvision', true);
     void provisionModuleAssets(context, {
         namespace: 'jarvis-actor',
         instructionsSourceDir: context.asAbsolutePath('assets/instructions'),

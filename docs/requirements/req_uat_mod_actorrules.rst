@@ -19,7 +19,9 @@ Actor Kernel Instructions Delivery UAT Requirements
      with at minimum ``packages/core`` active.
    * AC-2: A workspace folder is open in the EDH during all scenarios.
    * AC-3: Before T-1, confirm ``.github/instructions/`` contains no
-     ``jarvis-actor.*`` files; if it does, remove them to start clean.
+     ``jarvis-actor.*`` files (remove them to start clean) and that
+     ``jarvis.actor.autoProvision`` is not set at any scope, so the default
+     (``true``) applies.
    * AC-4: For T-3 (idempotency), the tester records last-modified timestamps
      of the three provisioned files before reloading the window, and compares
      after reload.
@@ -32,8 +34,10 @@ Actor Kernel Instructions Delivery UAT Requirements
      separator after ``jarvis-actor``) in ``.github/instructions/`` before the
      opt-out step; confirms it is still present after opt-out.
    * AC-7: Migration note (out of test scope): the old hyphenated files must be
-     manually removed by the user who opts in to avoid running two copies of the
-     same rules simultaneously (``REQ_MOD_ACTORRULES_MIGRATE`` AC-2). The
+     manually removed by the user, since with the default now ``true`` every
+     upgraded workspace receives the new files and would otherwise run two
+     copies of the same rules simultaneously (``REQ_MOD_ACTORRULES_MIGRATE``
+     AC-2). The
      scenarios document this limitation but do not test the removal step itself.
    * AC-8: Step-by-step outcomes for T-1..T-6 are documented in the test
      protocol for this CR.

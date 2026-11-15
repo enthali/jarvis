@@ -252,8 +252,8 @@ Configuration Design Specifications
             },
             "jarvis.actor.autoProvision": {
               "type": "boolean",
-              "default": false,
-              "description": "Automatically provision bundled actor instruction files into the workspace on activation. Default false — enable in workspaces that use Jarvis actors."
+              "default": true,
+              "description": "Automatically provision bundled actor instruction files into the workspace on activation. Default true — set to false in workspaces that do not use Jarvis actors to remove them."
             }
           }
         },

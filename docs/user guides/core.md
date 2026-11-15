@@ -89,7 +89,7 @@ Automatic cleanup needs no setting, but covers only the first workspace folder a
 |---------|---------|-------------|
 | `jarvis.actors.folder` | `.jarvis/actors` | Workspace-relative or absolute folder containing new actor folders. |
 | `jarvis.actors.openSessionOnCreate` | `true` | Open the new actor's chat right after creating it. Turn off to keep your current chat in focus, for example when creating several actors in a row. |
-| `jarvis.actor.autoProvision` | `false` | Provision the bundled actor instruction files into the workspace on activation. Enable in workspaces that use Jarvis actors; set back to `false` to remove them. |
+| `jarvis.actor.autoProvision` | `true` | Provision the bundled actor instruction files into the workspace on activation. Set to `false` in workspaces that do not use Jarvis actors; Jarvis then removes the files it provisioned. |
 | `jarvis.agentSession.initPromptTemplate` | built-in prompt | Template for the initialization prompt sent to a new agent chat session. Leave empty to use the built-in default. |
 | `jarvis.messages.enabled` | `true` | Enable the Messages feature. |
 | `jarvis.messages.logging` | `true` | Append every queued message to `.jarvis/message-log.json`. |

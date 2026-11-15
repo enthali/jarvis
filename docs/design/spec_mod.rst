@@ -491,7 +491,7 @@ Modular Delivery Design Specifications
 
       const actorRules = vscode.workspace
           .getConfiguration('jarvis.actor')
-          .get<boolean>('autoProvision', false);   // default false — REQ_MOD_ACTORRULES AC-3
+          .get<boolean>('autoProvision', true);   // default true — REQ_MOD_ACTORRULES AC-3
       void provisionModuleAssets(context, {
           namespace: 'jarvis-actor',
           instructionsSourceDir: context.asAbsolutePath('assets/instructions'),
@@ -539,17 +539,18 @@ Modular Delivery Design Specifications
 
       "jarvis.actor.autoProvision": {
         "type": "boolean",
-        "default": false,
-        "description": "Install the Jarvis actor rule files (kernel, memory, authoring) into .github/instructions/. Off by default — enable in workspaces that run Jarvis actors."
+        "default": true,
+        "description": "Install the Jarvis actor rule files (kernel, memory, authoring) into .github/instructions/. On by default — set to false in workspaces that do not run Jarvis actors to remove them."
       }
 
    **Acceptance Criteria:**
 
-   * AC-1: With ``jarvis.actor.autoProvision`` unset, activation writes nothing
-     into ``.github/instructions/``.
-   * AC-2: With it ``true``, the three files appear with content byte-identical
-     to the bundled sources.
-   * AC-3: Setting it back to ``false`` removes exactly those three files and
+   * AC-1: With ``jarvis.actor.autoProvision`` unset, activation writes the
+     three files into ``.github/instructions/``; with it explicitly ``false``,
+     activation writes nothing there.
+   * AC-2: With it ``true`` or unset, the three files appear with content
+     byte-identical to the bundled sources.
+   * AC-3: Setting it to ``false`` removes exactly those three files and
      leaves every other file in the directory untouched — including
      ``mermaid.instructions.md``, which is owned by the MermaidChart extension
      and appears in no Jarvis manifest.

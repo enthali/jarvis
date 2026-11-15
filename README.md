@@ -72,7 +72,7 @@ capability modules. Install only what you need.
   currently offered to Jarvis by VS Code.
 - **Messaging, reminders & LM tools** — an inter-actor inbox with automatic or manual delivery announcements, reminders, and the four Agent Host tools described above. Extension tools remain available under package-prefixed references such as `#jarvis_core_listModels`, `#jarvis_core_createActor`, and `#jarvis_kanban_openKanbanBoard` while the chat is open in a window running Jarvis.
 - **Module asset provisioning** — `provisionModuleAssets(context, config)` lets any add-on self-install its own bundled Copilot Skills/Instructions into the workspace's `.github/skills/` and `.github/instructions/` on activation; namespaced, idempotent, and orphan-safe, without touching user-authored or other modules' files
-- **Actor kernel instructions** — core ships three bundled Copilot Instructions files (`jarvis-actor.kernel`, `jarvis-actor.memory`, `jarvis-actor.authoring`) that teach AI assistants the Jarvis actor behavioral contract; opt-in via `jarvis.actor.autoProvision: true`
+- **Actor kernel instructions** — core ships three bundled Copilot Instructions files (`jarvis-actor.kernel`, `jarvis-actor.memory`, `jarvis-actor.authoring`) that teach AI assistants the Jarvis actor behavioral contract; provisioned by default, opt out via `jarvis.actor.autoProvision: false`
 
 ### Jarvis PIM
 
@@ -105,7 +105,7 @@ capability modules. Install only what you need.
 | `jarvis.heartbeatInterval` | Scheduler tick interval in seconds | 60 |
 | `jarvis.gitignore.autoManage` | Maintain a marked region in the workspace `.gitignore` listing Jarvis transient runtime paths. Set to `false` to remove the region. | `true` |
 | `jarvis.releaseNotes.showOnUpdate` | Open the release notes in the editor the first time a newly installed Jarvis version runs. | `true` |
-| `jarvis.actor.autoProvision` | Provision bundled Actor Kernel Copilot Instructions files into `.github/instructions/`. Set to `true` to install; set back to `false` to remove. | `false` |
+| `jarvis.actor.autoProvision` | Provision bundled Actor Kernel Copilot Instructions files into `.github/instructions/`. Installed by default; set to `false` to remove them. | `true` |
 
 ## Installation
 
