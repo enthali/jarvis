@@ -1,6 +1,6 @@
 # Change Contract: actor-instructions-opt-out
 
-**Status:** accepted<br>
+**Status:** closed<br>
 **Current responsibility:** Project Manager<br>
 **Current blocker:** none<br>
 **Created:** 2026-11-14<br>
@@ -49,7 +49,7 @@ The contributed setting and runtime fallback default to true; tests prove defaul
 |---|---|---|---|---|
 | Intent and outcome | yes | Project Manager | Goal, value, scope, and observable outcome are explicit and approved | approved |
 | Contract release | yes | User | User authorization to start the change; set by the User only | approved |
-| Version control | yes | Project Manager | Local branch `feature/actor-instructions-opt-out`; squash-integrated into `development` at closure; the branch is retained | active |
+| Version control | yes | Project Manager | Local branch `feature/actor-instructions-opt-out`; squash-integrated into `development` at `4c32046d`; the branch is retained | merged |
 | Product specification | yes | Architect | Changed specification artifacts are linked and checked | complete |
 | Infrastructure impact | not applicable: no build, CI, workflow, or test-tooling changes | Admin | No infrastructure artifacts changed | not applicable |
 | Documentation impact | yes | Technical Writer | Affected user-facing documents are updated | complete |
@@ -174,15 +174,15 @@ After Quality's `proceed`, the Project Manager presents the observable outcome. 
 ## Closure
 
 **Owner:** Project Manager<br>
-**Status:** pending | closed
+**Status:** closed
 
 - [x] Every included artifact or gate has terminal status and completion evidence.
 - [x] Intent and outcome are `approved`.
 - [x] Quality has recorded `proceed`.
 - [x] Open Findings contains `None`.
 - [x] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
-- [ ] The feature branch is squash-integrated into `development`.
+- [x] The feature branch is squash-integrated into `development`.
 - [x] Current blocker is `none`.
-- [ ] Header Status is `closed`.
+- [x] Header Status is `closed`.
 
-**Final outcome:** User accepted the default-on Actor instruction provisioning and validated opt-out in the EDH. Integration into `development` is pending.
+**Final outcome:** User accepted the default-on Actor instruction provisioning and validated opt-out in the EDH; squash-integrated into `development` at `4c32046d`. The feature branch is retained.
