@@ -1,6 +1,6 @@
 # Change Contract: retire-jarvis-syspilot
 
-**Status:** active<br>
+**Status:** closed<br>
 **Current responsibility:** Project Manager<br>
 **Current blocker:** none<br>
 **Created:** 2026-11-15<br>
@@ -50,7 +50,7 @@ No active package or release workflow builds or publishes jarvis-syspilot; activ
 |---|---|---|---|---|
 | Intent and outcome | yes | Project Manager | Goal, value, scope, and observable outcome are explicit and approved | approved |
 | Contract release | yes | User | User authorization to start the change; set by the User only | approved |
-| Version control | yes | Project Manager | Local branch `feature/retire-jarvis-syspilot`; squash-integrated into `development` at closure; the branch is retained | active |
+| Version control | yes | Project Manager | Local branch `feature/retire-jarvis-syspilot`; squash-integrated into `development` at `1999480f`; the branch is retained | merged |
 | Product specification | yes | Architect | Changed specification artifacts are linked and checked | complete |
 | Infrastructure impact | yes | Admin | Affected infrastructure artifacts are updated, or none is affected | complete |
 | Documentation impact | yes | Technical Writer | Affected user-facing documents are updated | complete |
@@ -192,15 +192,15 @@ After Quality's `proceed`, the Project Manager presents the observable outcome. 
 ## Closure
 
 **Owner:** Project Manager<br>
-**Status:** pending | closed
+**Status:** closed
 
 - [x] Every included artifact or gate has terminal status and completion evidence.
 - [x] Intent and outcome are `approved`.
 - [x] Quality has recorded `proceed`.
 - [x] Open Findings contains `None`.
 - [x] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
-- [ ] The feature branch is squash-integrated into `development`.
+- [x] The feature branch is squash-integrated into `development`.
 - [x] Current blocker is `none`.
-- [ ] Header Status is `closed`.
+- [x] Header Status is `closed`.
 
-**Final outcome:** User accepted the automated retirement evidence; integration into `development` is pending. Marketplace delisting and release notes are deferred to a later Release Contract.
+**Final outcome:** User accepted the automated retirement evidence; the Syspilot package and active integration were removed and squash-integrated into `development` at `1999480f`. The feature branch is retained. Marketplace delisting and release notes are deferred to a later Release Contract.
