@@ -135,8 +135,11 @@ Modular Delivery User Stories
    * AC-1: Jarvis PIM is identified as ``EXPERIMENTAL``, and users are told that
      email triage is not provided by Jarvis PIM; it remains in an externally
      maintained skill that is not part of a Jarvis PIM release.
-   * AC-2: Jarvis Syspilot is identified as ``EXPERIMENTAL — DO NOT USE``, with
-     the upcoming syspilot 0.10 incompatibility stated as the reason.
+   * AC-2: The Jarvis Syspilot extension is retired: its package is removed
+     from the repository, and no future Syspilot VSIX is built, released on
+     GitHub, or published to the Marketplace. The User unpublishes the
+     Marketplace listing in a later Release Contract; existing installations
+     are not removed.
    * AC-3: The Jarvis Suite is no longer supported: its package is removed from
      the repository, and no future Suite VSIX is built, released on GitHub, or
      published to the Marketplace. The User unpublishes the Marketplace listing;

@@ -130,7 +130,6 @@ export async function checkForUpdates(
             'enthali.jarvis-mcp':      `jarvis-mcp-${newVersion}.vsix`,
             'enthali.jarvis-flow':     `jarvis-flow-${newVersion}.vsix`,
             'enthali.jarvis-kanban':   `jarvis-kanban-${newVersion}.vsix`,
-            'enthali.jarvis-syspilot': `jarvis-syspilot-${newVersion}.vsix`,
         };
 
         const installedIds = vscode.extensions.all

@@ -63,7 +63,7 @@ Click **+** in the ACTORS view title bar or use the `#jarvis_core_createActor` t
 
 In the Agents window, tick **Created In > jarvis-core** to include Jarvis-created chats. **Mark done** archives a chat and makes it read-only; Jarvis restores it on opening or message delivery. Only **Delete** removes it. A workspace in a repository subfolder may be labelled **Worktree** without creating a Git worktree.
 
-Jarvis 0.32.0 supports Actor chats, messaging and Kanban in the Agents window. Flow, status-bar and tree features, the PIM mail notification and Recorder do not work there yet; a solution is on the roadmap, with no plan yet. Syspilot was not checked there. For other module tools, keep the Actor chat open in an editor window running Jarvis. See the [Core guide](core.md) for the observed results, delivery controls and full limitations.
+Jarvis 0.32.0 supports Actor chats, messaging and Kanban in the Agents window. Flow, status-bar and tree features, the PIM mail notification and Recorder do not work there yet; a solution is on the roadmap, with no plan yet. For other module tools, keep the Actor chat open in an editor window running Jarvis. See the [Core guide](core.md) for the observed results, delivery controls and full limitations.
 
 ## Where to go next
 
@@ -75,5 +75,4 @@ Each package has its own guide:
 - [MCP](mcp.md) — Jarvis tools for external MCP clients
 - [Message Flow](flow.md) — message traffic visualization
 - [Kanban](kanban.md) — kanban boards for actors
-- [Syspilot](syspilot.md) — syspilot install and update hand-off
 - [Migration Shim](core-gh.md) — deprecated package

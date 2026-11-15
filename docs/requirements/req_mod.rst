@@ -34,7 +34,7 @@ Modular Delivery Requirements
    :links: US_MOD_INSTALL; SPEC_MOD_ADDON_ONBOARDING
 
    **Description:**
-   PIM, the recorder, MCP, the message-flow diagram, and syspilot SHALL each
+   PIM, the recorder, MCP, the message-flow diagram, and kanban SHALL each
    be packaged as a separate extension that depends on the core via
    ``extensionDependencies: ["enthali.jarvis"]`` (or ``"enthali.jarvis-core"``) and
    cannot activate without it. When a new add-on is introduced, the onboarding
@@ -57,9 +57,9 @@ Modular Delivery Requirements
    * AC-6 (``message-flow-diagram`` CR): ``enthali.jarvis-flow`` is a separate
      extension declaring ``extensionDependencies: ["enthali.jarvis"]`` — see
      ``REQ_FLOW_PACKAGE``.
-   * AC-7 (``jarvis-syspilot`` CR): ``enthali.jarvis-syspilot`` is a separate
-     extension declaring ``extensionDependencies: ["enthali.jarvis-core"]`` —
-     see ``REQ_SPL_PACKAGE``.
+   * AC-7 (``retire-jarvis-syspilot`` CR): ``enthali.jarvis-syspilot`` is
+     retired and is no longer an add-on of this repository
+     (``REQ_MOD_READINESS`` AC-2).
    * AC-8 (``module-skill-provisioning`` CR): A module that bundles Copilot Skill
      or Instructions assets SHALL call ``provisionModuleAssets`` during
      ``activate()``; idempotency and orphan cleanup are handled by the helper
@@ -349,7 +349,7 @@ Modular Delivery Requirements
 
    **Description:**
    Jarvis SHALL accurately disclose the maturity and capability boundaries of
-   PIM and Syspilot, and the Marketplace availability of the deprecated Suite,
+   PIM, and the availability of the retired Suite and Syspilot extensions,
    across the root README and the affected extension pages and Marketplace
    descriptions.
 
@@ -358,10 +358,14 @@ Modular Delivery Requirements
    * AC-1: PIM documentation and its Marketplace description identify PIM as
      ``EXPERIMENTAL`` and state that email triage is not part of a Jarvis PIM
      release; it remains in an externally maintained skill.
-   * AC-2: Syspilot documentation and its Marketplace description identify it
-     as ``EXPERIMENTAL — DO NOT USE`` and state that the upcoming syspilot 0.10
-     release will break compatibility.
-   * AC-3: The root README prominently states both maturity warnings and the
+   * AC-2: The Syspilot extension (``enthali.jarvis-syspilot``) is retired: its
+     package is removed from the repository, and no future Syspilot VSIX is
+     built, released on GitHub, or published to the Marketplace. The User
+     unpublishes the Marketplace listing in a later Release Contract; the
+     extension ID and statistics remain, and existing installations are not
+     removed. Previously published GitHub assets and permanent removal of the
+     extension ID are not changed by this requirement.
+   * AC-3: The root README prominently states the PIM maturity warning and the
      PIM email-triage limitation.
    * AC-4: The Suite package is removed from the repository and future release
      workflows do not build, upload, or publish a Suite VSIX. The User

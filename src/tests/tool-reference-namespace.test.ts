@@ -1,5 +1,5 @@
 // REQ_ENG_TOOLREF AC-1..AC-6, SPEC_ENG_TOOLREF AC-1..AC-5, US_MOD_TOOLREF AC-1..AC-4.
-// Black-box checks over the four package manifests and maintained documents; expected values come from the spec table.
+// Black-box checks over the three package manifests and maintained documents; expected values come from the spec table.
 import { describe, it, expect } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -42,10 +42,6 @@ const EXPECTED: Record<string, Record<string, string>> = {
     pim: {
         jarvis_pim_category: 'jarvis_pim_category',
         jarvis_pim_task: 'jarvis_pim_task',
-    },
-    syspilot: {
-        jarvis_delaySyspilotUpdate: 'jarvis_syspilot_delaySyspilotUpdate',
-        jarvis_SyspilotSkipThisVersion: 'jarvis_syspilot_SyspilotSkipThisVersion',
     },
 };
 
@@ -98,9 +94,9 @@ describe('REQ_ENG_TOOLREF / SPEC_ENG_TOOLREF: tool reference and description nam
         });
     }
 
-    it('AC-3 (SPEC) / AC-4 (REQ): toolReferenceName values are unique across all four packages', () => {
+    it('AC-3 (SPEC) / AC-4 (REQ): toolReferenceName values are unique     across all three packages', () => {
         const refs = Object.keys(EXPECTED).flatMap(pkg => tools(pkg).map(t => t.toolReferenceName));
-        expect(refs.length).toBe(21);
+            expect(refs.length).toBe(19);
         expect(new Set(refs).size).toBe(refs.length);
     });
 

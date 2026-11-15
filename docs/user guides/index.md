@@ -11,7 +11,6 @@ User-facing documentation for Jarvis. Start with [Getting Started](getting-start
 | [MCP](mcp.md) | Jarvis tools for external MCP clients |
 | [Message Flow](flow.md) | Message traffic visualization |
 | [Kanban](kanban.md) | Kanban boards for actors |
-| [Syspilot](syspilot.md) | syspilot install and update hand-off |
 | [Migration Shim](core-gh.md) | Deprecated, moves users to Jarvis Core |
 
 ```{toctree}
@@ -24,6 +23,5 @@ recorder
 mcp
 flow
 kanban
-syspilot
 core-gh
 ```

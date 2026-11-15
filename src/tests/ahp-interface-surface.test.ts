@@ -20,7 +20,7 @@ const ROOT = path.resolve(__dirname, '../..');
 const read = (rel: string) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 const manifest = (pkg: string) => JSON.parse(read(`packages/${pkg}/package.json`));
 
-const PACKAGES = ['core', 'kanban', 'pim', 'syspilot', 'recorder', 'mcp', 'flow'];
+const PACKAGES = ['core', 'kanban', 'pim', 'recorder', 'mcp', 'flow'];
 const contributedToolNames = () =>
     PACKAGES.flatMap(p => (manifest(p).contributes?.languageModelTools ?? []).map((t: { name: string }) => t.name));
 const contributedCommands = (pkg: string): string[] =>

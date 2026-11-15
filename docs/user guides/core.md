@@ -52,7 +52,6 @@ In the Windows Sandbox on 2026-11-03, the User observed that Actor chats, messag
 - Enable **Created In > jarvis-core** to see Jarvis-created chats in the Agents window.
 - Flow, including the message view and log, cannot be opened from the Agents window yet.
 - Jarvis features offered through the status bar or a tree do not work there: ACTORS activity/mail markers, the PIM mail notification in the tree, and Recorder, which has no UI that can be triggered there. A solution is on the roadmap; there is no plan yet. These editor-window features are not removed from Jarvis.
-- Syspilot was not checked in the Agents window.
 - Project-owned prompts, skills and agents must use the changed message-tool inputs above; remove `senderSession` and `destination` from send and receive calls.
 - Recently Touched Files is removed in 0.32.0 and is on the roadmap for a future version. Old `.jarvis/state/touched-files/` data and any old `chat.hookFilesLocations` entry in `.vscode/settings.json` remain on disk.
 - The MCP server stays off unless `jarvis.mcp.enabled` is explicitly `true`, including after an upgrade without a stored setting.
@@ -81,7 +80,6 @@ Automatic cleanup needs no setting, but covers only the first workspace folder a
 | [MCP](mcp.md) | Jarvis tools for external MCP clients |
 | [Message Flow](flow.md) | Visualization of message traffic |
 | [Kanban](kanban.md) | Kanban boards for actors |
-| [Syspilot](syspilot.md) | syspilot install and update hand-off |
 
 ## Configuration
 

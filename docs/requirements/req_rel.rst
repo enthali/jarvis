@@ -237,7 +237,6 @@ Release Requirements
    ``enthali.jarvis-mcp``          ``jarvis-mcp-{version}.vsix``
    ``enthali.jarvis-flow``         ``jarvis-flow-{version}.vsix``
     ``enthali.jarvis-kanban``       ``jarvis-kanban-{version}.vsix``
-   ``enthali.jarvis-syspilot``     ``jarvis-syspilot-{version}.vsix``
    =============================== ======================================
 
    **Acceptance Criteria:**
@@ -362,8 +361,6 @@ Release Requirements
    change to resolve — in a project. A marker held once per machine would let
    the first project the user happens to open absorb the announcement for all
    the others, which is where ``US_REL_WHATSNEW`` AC-6 now puts the boundary.
-   ``.jarvis/syspilot-state.json`` already keeps a version marker per workspace
-   for the same kind of reason, and this marker sits beside it.
 
    **Why per-workspace does not mean shared:**
    A marker that is committed suppresses the notes for everyone who pulls it —

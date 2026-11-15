@@ -13,8 +13,9 @@ files in configurable folders.
 > **Jarvis PIM: EXPERIMENTAL.** Email triage is not part of a Jarvis PIM
 > release; it remains in an externally maintained skill.
 >
-> **Jarvis Syspilot: EXPERIMENTAL — DO NOT USE.** The upcoming syspilot 0.10
-> release will break compatibility.
+> **Jarvis Syspilot is retired.** Jarvis no longer develops, builds or ships
+> `jarvis-syspilot`. An installed copy is neither updated nor removed by Jarvis;
+> uninstall it in VS Code. The syspilot framework itself is not affected.
 
 ## Getting Started
 
@@ -39,7 +40,7 @@ Chat tool references now use their package namespace, for example
 `#jarvis_core_createActor` and `#jarvis_pim_task`. Update existing prompts to use
 the new references; registered tool IDs and MCP tool names are unchanged.
 
-The release includes the PIM and Syspilot readiness warnings above and removes
+The release included the PIM and Syspilot readiness warnings and removes
 the deprecated Jarvis Suite from the repository and future distribution.
 Existing Suite installations are not removed and receive no further Suite updates;
 install individual extensions instead. Historical release assets remain available.

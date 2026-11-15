@@ -7,7 +7,7 @@ const ROOT = path.resolve(__dirname, '../..');
 const manifest = (pkg: string) => JSON.parse(fs.readFileSync(path.join(ROOT, 'packages', pkg, 'package.json'), 'utf8'));
 
 describe('Agents window: packages that contribute Actor tools may run there', () => {
-    it.each(['core', 'kanban', 'pim', 'syspilot'])('%s sets capabilities.agentsWindow.supported', pkg => {
+    it.each(['core', 'kanban', 'pim'])('%s sets capabilities.agentsWindow.supported', pkg => {
         expect(manifest(pkg).capabilities?.agentsWindow?.supported).toBe(true);
     });
 

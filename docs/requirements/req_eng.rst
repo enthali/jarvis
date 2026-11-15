@@ -59,7 +59,7 @@ Engine Requirements
    Every entry of ``contributes.languageModelTools`` in a Jarvis package SHALL
    name its owning package in its ``toolReferenceName`` and at the start of its
    ``modelDescription``. The package is the suffix of the extension id
-   ``enthali.jarvis-<package>``: ``core``, ``kanban``, ``pim`` and ``syspilot``
+   ``enthali.jarvis-<package>``: ``core``, ``kanban`` and ``pim``
    today. The tool ``name`` is governed by ``REQ_ENG_TOOLNS`` and does not
    change.
 
@@ -118,7 +118,7 @@ Engine Requirements
 
    **Description:**
    The core SHALL expose a read-only ``JarvisCoreApi.listActors()`` method so
-   add-on packages (e.g. ``kanban``, ``syspilot``) can enumerate Actors
+   add-on packages (e.g. ``kanban``) can enumerate Actors
    without their own scan. It replaces ``listJarvisSessions()``.
 
    **Acceptance Criteria:**

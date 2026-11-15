@@ -30,7 +30,7 @@ export class JarvisEngine implements JarvisCoreApi {
         this._scheduler = scheduler;
     }
 
-    /** Wire the message queue path resolver + reload callback (SPEC_SPL_NOTIFY). */
+    /** Wire the message queue path resolver + reload callback (SPEC_ENG_API AC-8). */
     setMessaging(resolveMessagesPath: () => string, onMessageQueued: () => void): void {
         this._resolveMessagesPath = resolveMessagesPath;
         this._onMessageQueued = onMessageQueued;
@@ -121,7 +121,7 @@ export class JarvisEngine implements JarvisCoreApi {
         return entry.handler(options, token);
     }
 
-    // --- Cross-actor messaging API (SPEC_SPL_NOTIFY, SPEC_ENG_API AC-8) ---
+    // --- Cross-actor messaging API (SPEC_ENG_API AC-8) ---
 
     sendMessage(destination: string, sender: string, text: string): void {
         if (!this._resolveMessagesPath) {
