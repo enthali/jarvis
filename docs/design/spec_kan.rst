@@ -682,6 +682,11 @@ Kanban Design Specifications
    * AC-12: (``kanban-update-validation`` CR) Validation is reached through the
      shared ``validateItemValues`` helper — the tool holds no validation logic
      of its own (``REQ_KAN_WRITEVALID`` AC-6).
+   * AC-13: (``kanban-tool-validation`` CR) The ``languageModelTools`` input schema
+     types the values of ``changes`` as ``anyOf`` a string and an array of
+     strings, and its description says that ``labels`` takes an array. A
+     ``labels`` array is accepted and written; a non-array or non-string-entry
+     ``labels`` is rejected by the helper (``REQ_KAN_UPDATE`` AC-11).
 
    **Guarding test — ``src/tests/kanban-comment-preservation.test.ts``**
    (``kanban-update-validation`` CR):
@@ -890,10 +895,14 @@ Kanban Design Specifications
 
    **Rules** (``REQ_KAN_WRITEVALID``):
 
-   1. ``id`` present in ``values`` → error; ids are assigned, never supplied.
+   1. ``id`` present in ``values``, or inside the ``fields`` map of
+      ``jarvis_addKanbanItem`` → error ``Cannot supply "id" — ids are
+      auto-assigned.``; ids are assigned, never supplied.
    2. Built-in keys ``name``, ``status``, ``labels``, ``notes`` are always
       permitted. ``status`` is additionally checked against the ``status``
-      field's options.
+      field's options. ``labels``, when present, must be an array whose entries
+      are all strings, else error ``Invalid labels: must be an array of strings.``
+      (``REQ_KAN_WRITEVALID`` AC-7).
    3. Any other key must name a declared field, else error listing the declared
       field names.
    4. A value under a ``single_select`` field must be one of that field's
@@ -926,7 +935,11 @@ Kanban Design Specifications
 
    **Note on the ``id`` guard:** on the ``addKanbanItem`` path a top-level ``id``
    is read into ``values`` and rejected here; an ``id`` inside ``fields`` is
-   rejected earlier by the tool's built-in-key check. ``updateKanbanItem``'s
+   composed into ``values`` the same way and rejected here with the same error.
+   The tool's separate built-in-key check on ``fields`` covers ``name``,
+   ``status``, ``labels`` and ``notes`` only: its message ("must be set as a
+   top-level parameter") is true for those and false for ``id``, which has no
+   top-level parameter (``kanban-tool-validation`` CR). ``updateKanbanItem``'s
    ``changes`` may contain ``id`` and reaches the guard the same way. The guard
    is the mechanism enforcing ``REQ_KAN_UPDATE`` AC-9.
 
@@ -941,6 +954,9 @@ Kanban Design Specifications
    * AC-5: A supplied ``id`` yields an error.
    * AC-6: The helper performs no I/O and mutates nothing — it inspects and
      reports only.
+   * AC-7: (``kanban-tool-validation`` CR) A ``labels`` value that is not an array
+     of strings yields an error; ``id`` inside ``fields`` yields the same error as
+     a top-level ``id`` (rule 1).
 
 
 .. spec:: jarvis_addKanbanItem Tool
@@ -1001,6 +1017,10 @@ Kanban Design Specifications
    * AC-5: Comments and formatting elsewhere in the file are preserved.
    * AC-6: The open panel refreshes after the write.
    * AC-7: Registers with ``toolReferenceName: "jarvis_kanban_addKanbanItem"``.
+   * AC-8: (``kanban-tool-validation`` CR) ``id`` supplied inside ``fields`` returns
+     ``Cannot supply "id" — ids are auto-assigned.`` and writes nothing; the
+     ``fields`` built-in-key message names only ``name``, ``status``, ``labels``,
+     ``notes`` (``REQ_KAN_ADD`` AC-4).
 
 
 .. spec:: jarvis_deleteKanbanItem Tool
@@ -1096,9 +1116,12 @@ Kanban Design Specifications
       * ``details: true``: the item as parsed, notes and declared-field values
         included, with ``labels`` as in the bullet below. No other key is added
         or removed.
-      * ``labels`` in both shapes is the item's list, or ``[]`` when the card has
-        no ``labels`` value or the value is not a list; such a card carries no
-        label and matches no label filter. The label filter of step 5 matches whole
+      * ``labels`` in both shapes is the string entries of the item's list, in
+        stored order, or ``[]`` when the card has no ``labels`` value or the value
+        is not a list; such a card carries no label and matches no label filter.
+        Entries that are not strings are dropped silently, the same entries
+        ``SPEC_KAN_FILTERVALUES`` step 5 ignores, so both tools see one label set
+        per card. The label filter of step 5 matches whole
         labels only: a requested label matches a card label only when the two
         strings are equal, never as part of a label (no substring match).
 
@@ -1117,6 +1140,14 @@ Kanban Design Specifications
    dominate a response; declared-field values grow with the board's field count.
    ``details: true`` returns them for the matching items (AC-8). No tool reads one
    item by ``id``, so this option is the only tool way to get them.
+
+   **Why non-string label entries are dropped, not reported:** the entries come
+   from a hand-edited board that ``jarvis_verifyKanbanSchema`` already rejects
+   structurally (``kanban.schema.json``: ``labels`` is an array of strings), so
+   verify is where the data is reported and a read tool stays usable on a board
+   with one bad card. Passing them through would give list and filter-values two
+   different label sets for the same card, and a caller could not filter by a
+   label that list displays (user decision, ``kanban-tool-validation`` CR).
 
    **Why the default keeps ``status`` and ``labels``:** a caller needs them to
    recognise the relevant items in an unfiltered list and to choose a filter
@@ -1140,7 +1171,7 @@ Kanban Design Specifications
    * AC-7: Registers with ``toolReferenceName: "jarvis_kanban_listKanbanItems"``.
    * AC-8: With ``details: true``, each returned object carries every field the
      card has, as stored, including ``notes`` and declared-field values, and
-     ``labels`` as a list (``[]`` when the card has none) (``REQ_KAN_LIST`` AC-9).
+     ``labels`` as a list of strings (``[]`` when the card has none) (``REQ_KAN_LIST`` AC-9).
    * AC-9: ``details`` absent or ``false`` returns the projection; ``true`` returns
      the full items; any other value, ``null`` included, returns
      ``{ error: "details must be true or false" }`` and no items, and the board is
@@ -1157,6 +1188,10 @@ Kanban Design Specifications
      status and/or labels filter. Returns a compact projection (id, name, status,
      labels) per item; details: true returns the full items, notes included.
      ownerName is required." (``REQ_KAN_MODULE`` AC-9).
+   * AC-12: (``kanban-tool-validation`` CR) A card whose ``labels`` holds non-string
+     entries returns only its string entries in ``labels``, in both shapes, and
+     those entries are the ones ``jarvis_listKanbanFilterValues`` counts for that
+     card (``REQ_KAN_LIST`` AC-11).
 
 
 .. spec:: jarvis_listKanbanFilterValues Tool

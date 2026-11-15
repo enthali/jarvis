@@ -185,9 +185,35 @@ describe('REQ_KAN_ADD and REQ_KAN_WRITEVALID: jarvis_addKanbanItem (T-1..T-6)', 
         });
     });
 
-    it('T-6a: a builtin key given inside fields is rejected and the board is unchanged', async () => {
+    it('T-6a: id given inside fields is rejected with the auto-assigned message and the board is unchanged', async () => {
         await expectRejected('jarvis_addKanbanItem', { name: 'Grab Id', fields: { id: '999' } }, {
-            error: '"id" must be set as a top-level parameter, not via fields.',
+            error: 'Cannot supply "id" — ids are auto-assigned.',
+        });
+    });
+
+    it('T-6a2: the fields built-in-key message still applies to name, status, labels and notes', async () => {
+        await expectRejected('jarvis_addKanbanItem', { name: 'Dup', fields: { notes: 'x' } }, {
+            error: '"notes" must be set as a top-level parameter, not via fields.',
+        });
+    });
+
+    it('T-6c (REQ_KAN_WRITEVALID AC-7): labels must be an array of strings, on add and on update', async () => {
+        const bad = { error: 'Invalid labels: must be an array of strings.' };
+        await expectRejected('jarvis_addKanbanItem', { name: 'L', labels: 'urgent' }, bad);
+        await expectRejected('jarvis_addKanbanItem', { name: 'L', labels: ['a', 5] }, bad);
+        await expectRejected('jarvis_updateKanbanItem', { itemId: 1, changes: { labels: 'urgent' } }, bad);
+        await expectRejected('jarvis_updateKanbanItem', { itemId: 1, changes: { labels: ['a', null] } }, bad);
+    });
+
+    it('T-6d (REQ_KAN_UPDATE AC-11): update writes a labels array; the published schema allows string or array values', async () => {
+        const result = await call('jarvis_updateKanbanItem', { itemId: 1, changes: { labels: ['a', 'b'], status: 'Done' } });
+        expect(result).toEqual({ path: boardPath, updated: true, itemId: 1 });
+        expect(parsedBoard().items.find(i => i.id === 1)).toMatchObject({ labels: ['a', 'b'], status: 'Done' });
+
+        const manifest = JSON.parse(fs.readFileSync(path.join(repoRoot, 'packages', 'kanban', 'package.json'), 'utf-8'));
+        const tool = manifest.contributes.languageModelTools.find((t: { name: string }) => t.name === 'jarvis_updateKanbanItem');
+        expect(tool.inputSchema.properties.changes.additionalProperties).toEqual({
+            anyOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }],
         });
     });
 

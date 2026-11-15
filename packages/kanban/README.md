@@ -18,8 +18,8 @@ Boards are discovered automatically via convention:
 | `jarvis_createKanbanBoard` | Creates a new kanban board with a skeleton template |
 | `jarvis_verifyKanbanSchema` | Validates a board against the JSON Schema and semantic rules |
 | `jarvis_openKanbanBoard` | Opens a board in the interactive webview renderer |
-| `jarvis_updateKanbanItem` | Updates an existing item by its stable integer ID; live-refreshes any open board webview |
-| `jarvis_addKanbanItem` | Adds a new item with validated field values; auto-assigns next stable ID |
+| `jarvis_updateKanbanItem` | Updates an existing item by its stable integer ID; live-refreshes any open board webview; values are strings, except `labels`, which takes an array of strings |
+| `jarvis_addKanbanItem` | Adds a new item with validated field values; auto-assigns next stable ID, so a supplied `id` is rejected |
 | `jarvis_deleteKanbanItem` | Removes an item by its stable ID |
 | `jarvis_listKanbanItems` | Lists items, optionally filtered by status or labels; a compact projection (`id`, `name`, `status`, `labels`) by default, `details: true` returns the full items |
 | `jarvis_listKanbanFilterValues` | Lists the status values (columns, empty ones included) and the labels of a board with the number of cards for each, to build list filters |

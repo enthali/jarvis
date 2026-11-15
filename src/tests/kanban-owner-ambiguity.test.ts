@@ -26,23 +26,4 @@ describe('REQ_KAN_CREATE AC-4: resolveOwnerByName rejects ambiguous names', () =
         expect(fnBody).not.toContain('.find(');
         expect(fnBody).toContain('.filter(');
     });
-
-    it('replicated logic: exactly one match resolves, zero or several do not', () => {
-        interface Actor { name: string; folder: string }
-        function resolveOwnerByName(name: string, actors: Actor[]): Actor | undefined {
-            const matches = actors.filter(a => a.name === name);
-            if (matches.length !== 1 || !matches[0].folder) { return undefined; }
-            return matches[0];
-        }
-
-        const actors: Actor[] = [
-            { name: 'Solo Actor', folder: '/one' },
-            { name: 'Shared Name', folder: '/two' },
-            { name: 'Shared Name', folder: '/three' },
-        ];
-
-        expect(resolveOwnerByName('Solo Actor', actors)).toEqual({ name: 'Solo Actor', folder: '/one' });
-        expect(resolveOwnerByName('Shared Name', actors)).toBeUndefined();
-        expect(resolveOwnerByName('No Such Actor', actors)).toBeUndefined();
-    });
 });

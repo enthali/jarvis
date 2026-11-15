@@ -24,7 +24,7 @@ export function detailsError(details: unknown): string | undefined {
 }
 
 function labelsOf(item: Record<string, unknown>): string[] {
-    return Array.isArray(item.labels) ? (item.labels as string[]) : [];
+    return Array.isArray(item.labels) ? item.labels.filter((l): l is string => typeof l === 'string') : [];
 }
 
 /** SPEC_KAN_LIST steps 4 to 6: status validation, filtering, shaping. */

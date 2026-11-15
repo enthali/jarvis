@@ -301,6 +301,10 @@ Kanban Requirements
    * AC-10: (``kanban-update-validation`` CR) Validation SHALL complete before
      the document is mutated, so a rejected update leaves the board file
      byte-identical (``REQ_KAN_WRITEVALID``, ``SPEC_KAN_WRITEVALID`` AC-6).
+   * AC-11: (``kanban-tool-validation`` CR) The tool's published input schema
+     SHALL let a caller supply ``labels`` in ``changes`` as an array of strings
+     and every other key as a string. A schema that types every value as a string
+     makes the valid ``labels`` value impossible to send through the tool.
 
 
 .. req:: Kanban File Open
@@ -401,11 +405,16 @@ Kanban Requirements
      tools" SHALL reach these rules through the one shared helper
      (``SPEC_KAN_WRITEVALID``), not through its own copy. A second
      implementation would be free to diverge without failing any AC of its own.
+   * AC-7: (``kanban-tool-validation`` CR) A ``labels`` value written by an
+     applicable tool SHALL be an array of strings, else the tool SHALL return an
+     error naming ``labels`` and the expected shape and write nothing. The board
+     schema already requires this shape (``kanban.schema.json``); checking it at
+     the write stops a board that verify rejects from being produced.
 
 
 .. req:: jarvis_addKanbanItem Tool
    :id: REQ_KAN_ADD
-   :status: implemented
+   :status: approved
    :priority: required
    :links: US_KAN_TOOLS; REQ_KAN_SCHEMA; REQ_KAN_WRITEVALID; REQ_ACTOR_WHOAMI
 
@@ -428,7 +437,10 @@ Kanban Requirements
      ``nextId`` is absent, it SHALL be derived as ``max(existing ids) + 1``
      (or ``1`` on an empty board) per ``REQ_KAN_SCHEMA`` AC-7, and written.
    * AC-4: A caller-supplied ``id`` SHALL be rejected
-     (``REQ_KAN_WRITEVALID`` AC-4) — ids are assigned, never chosen.
+     (``REQ_KAN_WRITEVALID`` AC-4) — ids are assigned, never chosen. The error
+     SHALL say that ids are auto-assigned, whether ``id`` arrives as a top-level
+     parameter or inside ``fields``; it SHALL NOT direct the caller to supply
+     ``id`` as a top-level parameter (``kanban-tool-validation`` CR).
    * AC-5: When ``status`` is omitted, it SHALL default to the first declared
      option of the ``status`` field.
    * AC-6: All provided values SHALL be validated per ``REQ_KAN_WRITEVALID``.
@@ -466,7 +478,7 @@ Kanban Requirements
 
 .. req:: jarvis_listKanbanItems Tool
    :id: REQ_KAN_LIST
-   :status: implemented
+   :status: approved
    :priority: required
    :links: US_KAN_QUERY; REQ_ACTOR_WHOAMI
 
@@ -508,6 +520,11 @@ Kanban Requirements
    * AC-10: ``details`` SHALL change only what each item carries: which items
      match, ``count`` and the response shape of AC-8 are the same with and
      without it, and the filters of AC-2 and AC-6 behave the same.
+   * AC-11: (``kanban-tool-validation`` CR) ``labels`` of a returned item, in both
+     shapes, SHALL hold only the string entries of the card's ``labels`` list;
+     entries that are not strings SHALL be omitted without an error. The labels
+     returned for a card are the labels ``jarvis_listKanbanFilterValues`` counts
+     for it, so every label a result shows can be used as a filter.
 
 
 .. req:: jarvis_listKanbanFilterValues Tool

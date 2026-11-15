@@ -168,7 +168,7 @@
           "required": ["itemId", "changes", "ownerName"],
           "properties": {
             "itemId": { "type": "integer", "description": "The ID of the item to update." },
-            "changes": { "type": "object", "description": "Key-value pairs of fields to update. The 'id' field cannot be changed.", "additionalProperties": { "type": "string" } },
+            "changes": { "type": "object", "description": "Key-value pairs of fields to update. Values are strings; 'labels' takes an array of strings. The 'id' field cannot be changed.", "additionalProperties": { "anyOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }] } },
             "boardName": { "type": "string", "description": "Board file name (without .kanban.yaml suffix). Omit for default 'kanban.yaml'." },
             "ownerName": { "type": "string", "description": "Name of the owning actor/project/event (required)." }
           }
