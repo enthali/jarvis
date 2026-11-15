@@ -1,6 +1,6 @@
 # Change Contract: kanban-tool-validation
 
-**Status:** accepted<br>
+**Status:** closed<br>
 **Current responsibility:** Project Manager<br>
 **Current blocker:** none<br>
 **Created:** 2026-11-15<br>
@@ -48,7 +48,7 @@ The specification states the K63 invalid-label behavior; tool schemas and errors
 |---|---|---|---|---|
 | Intent and outcome | yes | Project Manager | Goal, value, scope, and observable outcome are explicit and approved | approved |
 | Contract release | yes | User | User authorization to start the change; set by the User only | approved |
-| Version control | yes | Project Manager | Local branch `feature/kanban-tool-validation`; squash-integrated into `development` at closure; the branch is retained | active |
+| Version control | yes | Project Manager | Local branch `feature/kanban-tool-validation`; squash-integrated into `development` at `4132d5cf`; the branch is retained | merged |
 | Product specification | yes | Architect | Changed specification artifacts are linked and checked | complete |
 | Infrastructure impact | not applicable: no build, CI, workflow, or test-tooling changes | Admin | No infrastructure artifacts changed | not applicable |
 | Documentation impact | yes | Technical Writer | Affected user-facing documents are updated | complete |
@@ -177,15 +177,15 @@ After Quality's `proceed`, the Project Manager presents the observable outcome a
 ## Closure
 
 **Owner:** Project Manager<br>
-**Status:** pending | closed
+**Status:** closed
 
 - [x] Every included artifact or gate has terminal status and completion evidence.
 - [x] Intent and outcome are `approved`.
 - [x] Quality has recorded `proceed`.
 - [x] Open Findings contains `None`.
 - [x] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
-- [ ] The feature branch is squash-integrated into `development`.
+- [x] The feature branch is squash-integrated into `development`.
 - [x] Current blocker is `none`.
-- [ ] Header Status is `closed`.
+- [x] Header Status is `closed`.
 
-**Final outcome:** User accepted the change based on automated evidence; integration into `development` is pending.
+**Final outcome:** User accepted the change based on automated evidence; K14, K17, K62 and K63 were squash-integrated into `development` at `4132d5cf`. The feature branch is retained.
