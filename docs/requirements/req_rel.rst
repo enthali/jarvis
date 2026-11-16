@@ -586,6 +586,10 @@ Release Requirements
    * AC-8: Every publishable extension's ``package.json`` MUST include an ``icon``
      field referencing a 128×128 PNG relative to the package root. The PNG SHALL
      be generated from the single-source SVG via the icon generation script.
+   * AC-9 (``vscode-minimum-1-144`` CR): Every publishable extension's
+     ``package.json`` declares ``engines.vscode`` as ``^1.144.0``, the minimum
+     VS Code version of Jarvis. Core's AHP client needs the Agent Host of that
+     version, and every add-on depends on core, so one minimum holds for all.
 
 
 .. req:: Activity Bar Icon Alignment

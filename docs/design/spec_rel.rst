@@ -985,6 +985,10 @@ Release Design Specifications
      pointing to ``resources/jarvis-128.png`` (128×128 PNG). The PNG is generated
      from ``resources/jarvis.svg`` via ``scripts/generate-icons.mjs``. The
      ``resources/`` directory is NOT excluded by ``.vscodeignore``.
+   * AC-9 (``vscode-minimum-1-144`` CR): Every publishable extension's
+     ``package.json`` has ``"engines": { "vscode": "^1.144.0" }``. The
+     repository root manifest and the workspace entries in ``package-lock.json``
+     carry the same value, so the lockfile does not contradict the manifests.
 
    **Rationale:**
    Without bundling, ``vsce`` in an npm-workspaces monorepo either fails (``../../``

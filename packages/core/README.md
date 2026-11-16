@@ -66,7 +66,7 @@ The MCP server is off by default in 0.32.0, including for upgrades without an ex
 
 ## Requirements
 
-- VS Code 1.95.0 or later (manifest minimum); Actor chats additionally require Agent Host support. Live evidence covers Windows on 1.143.1 and clean Actor startup on 1.144.0, not older versions.
+- VS Code 1.144.0 or later; Actor chats additionally require Agent Host support. Live evidence covers Windows on 1.143.1 and clean Actor startup on 1.144.0.
 
 ## Source & Issues
 

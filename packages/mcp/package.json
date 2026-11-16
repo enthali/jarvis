@@ -11,7 +11,7 @@
   "license": "MIT",
   "icon": "resources/jarvis-128.png",
   "engines": {
-    "vscode": "^1.95.0"
+    "vscode": "^1.144.0"
   },
   "main": "./out/extension.js",
   "extensionDependencies": [

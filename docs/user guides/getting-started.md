@@ -4,11 +4,11 @@ Jarvis turns chat sessions into **actors**: persistent entities with their own m
 
 ## 1. Install
 
-Install **Jarvis Core** (`enthali.jarvis-core`) from the VS Code Marketplace, or install the `.vsix` from [GitHub Releases](https://github.com/enthali/Jarvis/releases) with **Extensions → ... → Install from VSIX...**. VS Code 1.95.0 or later is required.
+Install **Jarvis Core** (`enthali.jarvis-core`) from the VS Code Marketplace, or install the `.vsix` from [GitHub Releases](https://github.com/enthali/Jarvis/releases) with **Extensions → ... → Install from VSIX...**. VS Code 1.144.0 or later is required.
 
 The other packages are optional add-ons that need Jarvis Core. Install only what you need; see the [Core guide](core.md) for the list.
 
-Actor chats also require an available VS Code Agent Host and an authenticated agent. Jarvis no longer uses the old chat UI as a fallback. The Agent Host path has been exercised on Windows with VS Code 1.143.1 and, for clean Actor startup, 1.144.0; the manifest's minimum version alone does not establish Agent Host compatibility.
+Actor chats also require an available VS Code Agent Host and an authenticated agent. Jarvis no longer uses the old chat UI as a fallback. The Agent Host path has been exercised on Windows with VS Code 1.143.1 and, for clean Actor startup, 1.144.0, the declared minimum.
 
 ### Updating to the Agent Host path
 

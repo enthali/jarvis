@@ -1,6 +1,6 @@
 # Jarvis Core
 
-Jarvis Core 0.33.0 (`enthali.jarvis-core`) is the harness: it turns chat sessions and agent personas into actors and provides messaging, reminders, the heartbeat scheduler, and the engine that the other packages build on. Agents window support for Actors, messaging and Kanban arrived in 0.32.0. Requires VS Code 1.95.0 or later (manifest minimum); Actor chats additionally require an available, authenticated Agent Host.
+Jarvis Core 0.33.0 (`enthali.jarvis-core`) is the harness: it turns chat sessions and agent personas into actors and provides messaging, reminders, the heartbeat scheduler, and the engine that the other packages build on. Agents window support for Actors, messaging and Kanban arrived in 0.32.0. Requires VS Code 1.144.0 or later; Actor chats additionally require an available, authenticated Agent Host.
 
 ## Actors
 
@@ -47,7 +47,7 @@ Extension tools retain package-prefixed chat references, such as `#jarvis_core_l
 
 In the Windows Sandbox on 2026-11-03, the User observed that Actor chats, messaging and the Kanban board work in the Agents window, with several Actor chats open side by side.
 
-- Jarvis needs an available, authenticated Agent Host; there is no fallback to the old chat UI. Development and checks covered VS Code 1.143.1 and 1.144.0, not every version allowed by the manifest minimum.
+- Jarvis needs an available, authenticated Agent Host; there is no fallback to the old chat UI. Development and checks covered VS Code 1.143.1 and 1.144.0; 1.144.0 is the minimum Jarvis declares.
 - The client serves its window's first workspace folder. Remote windows (WSL, SSH, Dev Tunnels) are not served, and cross-workspace routing is outside this MVP. The same workspace in two windows is not tested and probably does not work.
 - Enable **Created In > jarvis-core** to see Jarvis-created chats in the Agents window.
 - Flow, including the message view and log, cannot be opened from the Agents window yet.
