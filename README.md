@@ -1,6 +1,6 @@
 # Jarvis — The Actor Harness
 
-Jarvis 0.32.0 is the first release with **Actors, messaging and Kanban in
+Jarvis 0.33.0 builds on 0.32.0, the first release with **Actors, messaging and Kanban in
 VS Code's Agents window**, alongside the editor experience. Several Actor chats
 can be open side by side. Tree markers, Flow, PIM and Recorder in the Agents
 window are on the roadmap; there is no plan yet.
@@ -20,6 +20,15 @@ files in configurable folders.
 ## Getting Started
 
 New to Jarvis? Follow the [Getting Started guide](docs/user%20guides/getting-started.md).
+
+## Version 0.33.0
+
+Changed defaults and one retirement; see the [release notes](docs/releasenotes.md).
+
+- **Actor instructions are now provisioned by default.** `jarvis.actor.autoProvision` defaults to `true`, so workspaces without an explicit setting receive the three bundled Actor instruction files on the first activation after upgrade. Set it to `false` to opt out; Jarvis then removes the files it provisioned. Old hyphenated copies (`jarvis-actor-kernel.instructions.md` and siblings) are not removed and would run the same rules twice; save any local edits and delete them by hand, see the [migration note](docs/user%20guides/getting-started.md#updating-with-actor-instructions-on-by-default).
+- **Categories are opt-in.** `jarvis.outlook.categories.enabled` replaces `jarvis.pim.showCategories` and defaults to `false`; the old setting is not migrated. See the [PIM guide](docs/user%20guides/pim.md).
+- **Kanban tools** reject a supplied `id` with an accurate message and require `labels` to be an array of strings; list results leave out non-string labels. See the [Kanban guide](docs/user%20guides/kanban.md).
+- **Jarvis Syspilot is retired** (notice above); uninstall an installed copy manually.
 
 ## Version 0.32.0
 

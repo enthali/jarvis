@@ -1,6 +1,6 @@
 # Jarvis — Personal Assistant for VS Code
 
-Jarvis Core 0.32.0 is the actor harness for Visual Studio Code. This is the first release with Actors, messaging and Kanban in the Agents window, where several Actor chats can be open side by side, as well as in the editor. Actor definitions, memory and scheduling live in folders you control.
+Jarvis Core 0.33.0 is the actor harness for Visual Studio Code. Since 0.32.0 it supports Actors, messaging and Kanban in the Agents window, where several Actor chats can be open side by side, as well as in the editor. Actor definitions, memory and scheduling live in folders you control.
 
 ## Features
 
