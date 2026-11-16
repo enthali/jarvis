@@ -1,5 +1,19 @@
 # Release Notes
 
+## v0.33.0 - Changed Defaults and Syspilot Retirement
+
+*2026-11-16*
+
+### Changes and Migration
+
+- **pim-categories-view-default-off**: The Categories view is no longer shown by default.
+- **outlook-categories-setting**: `jarvis.outlook.categories.enabled` replaces `jarvis.pim.showCategories`, defaults to `false`, and controls the Categories provider and view when `jarvis.outlook.enabled` is also enabled. The old setting is not migrated; enable the new setting to use Categories.
+- **actor-instructions-opt-out**: `jarvis.actor.autoProvision` now defaults to `true`, so bundled Actor instructions are provisioned on activation even in workspaces that had not opted in. Set it to `false` to opt out and remove the provisioned files; explicit existing settings remain effective.
+- **kanban-tool-validation**: Kanban write tools validate IDs and require `labels` to be an array of strings. List results omit non-string labels, making malformed board data safer to consume.
+- **retire-jarvis-syspilot**: The deprecated experimental extension is no longer built or shipped. Existing installations are not updated or removed by Jarvis; uninstall `enthali.jarvis-syspilot` manually. The Syspilot framework is unaffected.
+
+---
+
 ## v0.32.0 - Agent Host Migration, Hook Removal and MCP Opt-In
 
 *2026-11-03*
