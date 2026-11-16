@@ -46,8 +46,6 @@ jobs:
         run: cd packages/flow && npx vsce package --no-dependencies
       - name: Package enthali.jarvis-kanban
         run: cd packages/kanban && npx vsce package --no-dependencies
-      - name: Package enthali.jarvis-syspilot
-        run: cd packages/syspilot && npx vsce package --no-dependencies
 
       # ── GitHub Release — all VSIXs ───────────────────────────────────────────
       - name: Create GitHub Release
@@ -61,7 +59,6 @@ jobs:
             packages/mcp/*.vsix
             packages/flow/*.vsix
             packages/kanban/*.vsix
-            packages/syspilot/*.vsix
           generate_release_notes: true
           # softprops/action-gh-release is idempotent: if a release for this
           # tag already exists (e.g. manually created by the Release Engineer
@@ -95,8 +92,4 @@ jobs:
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: npx vsce publish --packagePath packages/kanban/jarvis-kanban-*.vsix --no-dependencies
-      - name: Publish enthali.jarvis-syspilot to Marketplace
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: npx vsce publish --packagePath packages/syspilot/jarvis-syspilot-*.vsix --no-dependencies
 

@@ -1,6 +1,6 @@
 # Jarvis — Personal Assistant for VS Code
 
-Jarvis Core 0.32.0 is the actor harness for Visual Studio Code. This is the first release with Actors, messaging and Kanban in the Agents window, where several Actor chats can be open side by side, as well as in the editor. Actor definitions, memory and scheduling live in folders you control.
+Jarvis Core 0.33.0 is the actor harness for Visual Studio Code. Since 0.32.0 it supports Actors, messaging and Kanban in the Agents window, where several Actor chats can be open side by side, as well as in the editor. Actor definitions, memory and scheduling live in folders you control.
 
 ## Features
 
@@ -19,7 +19,6 @@ Jarvis Core 0.32.0 is the actor harness for Visual Studio Code. This is the firs
 | [Jarvis MCP](https://marketplace.visualstudio.com/items?itemName=enthali.jarvis-mcp) | Model Context Protocol server exposing Jarvis tools to AI agents |
 | [Jarvis Message Flow](https://marketplace.visualstudio.com/items?itemName=enthali.jarvis-flow) | Interactive D3 chord-diagram visualization of inter-agent message traffic |
 | [Jarvis Kanban](https://marketplace.visualstudio.com/items?itemName=enthali.jarvis-kanban) | Convention-based kanban boards — read-only webview renderer with chat-driven updates |
-| [Jarvis Syspilot](https://marketplace.visualstudio.com/items?itemName=enthali.jarvis-syspilot) | syspilot install/update lifecycle detection and actor-guided setup |
 
 ## Getting Started
 
@@ -51,7 +50,7 @@ In the editor window, activity icons come from the Agent Host: red cross for Err
 
 ## Agents Window in 0.32.0
 
-The User observed Actor chats, messaging and the Kanban board working in the Windows Sandbox on 2026-11-03. Flow (message view and log) cannot be opened there yet. Jarvis features offered through the status bar or a tree do not work there: ACTORS activity/mail markers, the PIM mail notification in the tree, and Recorder, which has no UI that can be triggered there. Tree markers, Flow, PIM and Recorder support there is on the roadmap; there is no plan yet. Syspilot was not checked in the Agents window.
+The User observed Actor chats, messaging and the Kanban board working in the Windows Sandbox on 2026-11-03. Flow (message view and log) cannot be opened there yet. Jarvis features offered through the status bar or a tree do not work there: ACTORS activity/mail markers, the PIM mail notification in the tree, and Recorder, which has no UI that can be triggered there. Tree markers, Flow, PIM and Recorder support there is on the roadmap; there is no plan yet.
 
 The manual Agent Host scenarios and upgrade cleanup with old hook files (`US_UAT_MSG` T-22) were not run in validation of the included changes. See the [Core guide](../../docs/user%20guides/core.md) for the full limitations.
 

@@ -224,7 +224,7 @@ try {
         'jarvis.actors.openSessionOnCreate' = $true
         'jarvis.messages.enabled' = $true
         'jarvis.kanban.autoProvision' = $true
-        'jarvis.pim.showCategories' = $true
+        'jarvis.outlook.categories.enabled' = $true
         'jarvis.outlook.enabled' = $true
     }
     $settingsJson = $workspaceSettings | ConvertTo-Json -Depth 4

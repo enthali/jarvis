@@ -20,10 +20,10 @@ Supply `ownerName` explicitly for every kanban tool; it is not inferred from the
 | `jarvis_createKanbanBoard` | Create a board with a skeleton template. |
 | `jarvis_verifyKanbanSchema` | Validate a board against the JSON Schema and semantic rules. |
 | `jarvis_openKanbanBoard` | Open a board in the webview. |
-| `jarvis_addKanbanItem` | Add an item with validated field values; the next stable ID is assigned automatically. |
-| `jarvis_updateKanbanItem` | Update an item by its stable ID; an open board refreshes live. |
+| `jarvis_addKanbanItem` | Add an item with validated field values; the next stable ID is assigned automatically, so supplying an `id` (also inside `fields`) is rejected. `labels` must be an array of strings. |
+| `jarvis_updateKanbanItem` | Update an item by its stable ID; an open board refreshes live. Values are strings, except `labels`, which takes an array of strings. |
 | `jarvis_deleteKanbanItem` | Remove an item by its stable ID. |
-| `jarvis_listKanbanItems` | List items, optionally filtered by status or labels. Compact by default (`id`, `name`, `status`, `labels`); `details: true` returns full items. |
+| `jarvis_listKanbanItems` | List items, optionally filtered by status or labels. Compact by default (`id`, `name`, `status`, `labels`); `details: true` returns full items. Non-string label entries in a board file are left out of the result. |
 | `jarvis_listKanbanFilterValues` | List the status values (empty columns included) and labels with their card counts, for building filters. |
 | `jarvis_updateKanbanFields` | Add or update field definitions (add or rename options, add fields). |
 

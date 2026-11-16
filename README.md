@@ -1,6 +1,6 @@
 # Jarvis — The Actor Harness
 
-Jarvis 0.32.0 is the first release with **Actors, messaging and Kanban in
+Jarvis 0.33.0 builds on 0.32.0, the first release with **Actors, messaging and Kanban in
 VS Code's Agents window**, alongside the editor experience. Several Actor chats
 can be open side by side. Tree markers, Flow, PIM and Recorder in the Agents
 window are on the roadmap; there is no plan yet.
@@ -13,12 +13,22 @@ files in configurable folders.
 > **Jarvis PIM: EXPERIMENTAL.** Email triage is not part of a Jarvis PIM
 > release; it remains in an externally maintained skill.
 >
-> **Jarvis Syspilot: EXPERIMENTAL — DO NOT USE.** The upcoming syspilot 0.10
-> release will break compatibility.
+> **Jarvis Syspilot is retired.** Jarvis no longer develops, builds or ships
+> `jarvis-syspilot`. An installed copy is neither updated nor removed by Jarvis;
+> uninstall it in VS Code. The syspilot framework itself is not affected.
 
 ## Getting Started
 
 New to Jarvis? Follow the [Getting Started guide](docs/user%20guides/getting-started.md).
+
+## Version 0.33.0
+
+Changed defaults and one retirement; see the [release notes](docs/releasenotes.md).
+
+- **Actor instructions are now provisioned by default.** `jarvis.actor.autoProvision` defaults to `true`, so workspaces without an explicit setting receive the three bundled Actor instruction files on the first activation after upgrade. Set it to `false` to opt out; Jarvis then removes the files it provisioned. Old hyphenated copies (`jarvis-actor-kernel.instructions.md` and siblings) are not removed and would run the same rules twice; save any local edits and delete them by hand, see the [migration note](docs/user%20guides/getting-started.md#updating-with-actor-instructions-on-by-default).
+- **Categories are opt-in.** `jarvis.outlook.categories.enabled` replaces `jarvis.pim.showCategories` and defaults to `false`; the old setting is not migrated. See the [PIM guide](docs/user%20guides/pim.md).
+- **Kanban tools** reject a supplied `id` with an accurate message and require `labels` to be an array of strings; list results leave out non-string labels. See the [Kanban guide](docs/user%20guides/kanban.md).
+- **Jarvis Syspilot is retired** (notice above); uninstall an installed copy manually.
 
 ## Version 0.32.0
 
@@ -39,7 +49,7 @@ Chat tool references now use their package namespace, for example
 `#jarvis_core_createActor` and `#jarvis_pim_task`. Update existing prompts to use
 the new references; registered tool IDs and MCP tool names are unchanged.
 
-The release includes the PIM and Syspilot readiness warnings above and removes
+The release included the PIM and Syspilot readiness warnings and removes
 the deprecated Jarvis Suite from the repository and future distribution.
 Existing Suite installations are not removed and receive no further Suite updates;
 install individual extensions instead. Historical release assets remain available.
@@ -72,7 +82,7 @@ capability modules. Install only what you need.
   currently offered to Jarvis by VS Code.
 - **Messaging, reminders & LM tools** — an inter-actor inbox with automatic or manual delivery announcements, reminders, and the four Agent Host tools described above. Extension tools remain available under package-prefixed references such as `#jarvis_core_listModels`, `#jarvis_core_createActor`, and `#jarvis_kanban_openKanbanBoard` while the chat is open in a window running Jarvis.
 - **Module asset provisioning** — `provisionModuleAssets(context, config)` lets any add-on self-install its own bundled Copilot Skills/Instructions into the workspace's `.github/skills/` and `.github/instructions/` on activation; namespaced, idempotent, and orphan-safe, without touching user-authored or other modules' files
-- **Actor kernel instructions** — core ships three bundled Copilot Instructions files (`jarvis-actor.kernel`, `jarvis-actor.memory`, `jarvis-actor.authoring`) that teach AI assistants the Jarvis actor behavioral contract; opt-in via `jarvis.actor.autoProvision: true`
+- **Actor kernel instructions** — core ships three bundled Copilot Instructions files (`jarvis-actor.kernel`, `jarvis-actor.memory`, `jarvis-actor.authoring`) that teach AI assistants the Jarvis actor behavioral contract; provisioned by default, opt out via `jarvis.actor.autoProvision: false`
 
 ### Jarvis PIM
 
@@ -105,7 +115,7 @@ capability modules. Install only what you need.
 | `jarvis.heartbeatInterval` | Scheduler tick interval in seconds | 60 |
 | `jarvis.gitignore.autoManage` | Maintain a marked region in the workspace `.gitignore` listing Jarvis transient runtime paths. Set to `false` to remove the region. | `true` |
 | `jarvis.releaseNotes.showOnUpdate` | Open the release notes in the editor the first time a newly installed Jarvis version runs. | `true` |
-| `jarvis.actor.autoProvision` | Provision bundled Actor Kernel Copilot Instructions files into `.github/instructions/`. Set to `true` to install; set back to `false` to remove. | `false` |
+| `jarvis.actor.autoProvision` | Provision bundled Actor Kernel Copilot Instructions files into `.github/instructions/`. Installed by default; set to `false` to remove them. | `true` |
 
 ## Installation
 

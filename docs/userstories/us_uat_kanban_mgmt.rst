@@ -53,3 +53,9 @@ Kanban Management Tools Acceptance Tests
      status values with their card counts (empty ones included) and the labels in use
      with their counts, with no card content, and the errors for an unknown owner, a
      board without a status field and undeclared values (T-25..T-27).
+   * AC-14: A test verifies that a caller-supplied ``id`` is refused with the
+     "ids are auto-assigned" message at top level and inside ``fields`` (T-6), that
+     a ``labels`` value that is not an array of strings is refused on add and update
+     and a valid array is written by update (T-28), and that list returns only the
+     string entries of a card's ``labels``, in both shapes, matching the filter
+     values (T-29).

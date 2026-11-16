@@ -12,16 +12,10 @@ const exists = (rel: string) => fs.existsSync(path.join(ROOT, rel));
 const unquote = (s: string) => s.replace(/^>\s?/gm, '');
 
 describe('REQ_MOD_READINESS: maturity and capability disclosure', () => {
-    it('AC-1: root README marks PIM EXPERIMENTAL and states email triage is not a PIM release capability', () => {
+    it('AC-3: root README marks PIM EXPERIMENTAL and states email triage is not a PIM release capability', () => {
         const readme = unquote(read('README.md'));
         expect(readme).toMatch(/Jarvis PIM: EXPERIMENTAL/);
         expect(readme).toMatch(/Email triage is not part of a Jarvis PIM\s+release/);
-    });
-
-    it('AC-2: root README marks Syspilot EXPERIMENTAL — DO NOT USE with the syspilot 0.10 reason', () => {
-        const readme = unquote(read('README.md'));
-        expect(readme).toMatch(/Jarvis Syspilot: EXPERIMENTAL — DO NOT USE/);
-        expect(readme).toMatch(/syspilot 0\.10\s+release will break compatibility/);
     });
 
     it('AC-1: PIM extension page and Marketplace description carry the warning and triage boundary', () => {
@@ -33,13 +27,8 @@ describe('REQ_MOD_READINESS: maturity and capability disclosure', () => {
         expect(pkg.description).toMatch(/Email triage is not part of a Jarvis PIM release/);
     });
 
-    it('AC-2: Syspilot extension page and Marketplace description carry the warning and 0.10 break', () => {
-        const page = unquote(read('docs/user guides/syspilot.md'));
-        expect(page).toMatch(/EXPERIMENTAL — DO NOT USE/);
-        expect(page).toMatch(/syspilot 0\.10 release will\s+break compatibility/);
-        const pkg = JSON.parse(read('packages/syspilot/package.json'));
-        expect(pkg.description).toMatch(/EXPERIMENTAL — DO NOT USE/);
-        expect(pkg.description).toMatch(/syspilot 0\.10 release will break compatibility/);
+    it('AC-2: the Syspilot package is removed from the repository', () => {
+        expect(exists('packages/syspilot')).toBe(false);
     });
 });
 

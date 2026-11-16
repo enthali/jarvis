@@ -34,7 +34,7 @@ Modular Delivery Requirements
    :links: US_MOD_INSTALL; SPEC_MOD_ADDON_ONBOARDING
 
    **Description:**
-   PIM, the recorder, MCP, the message-flow diagram, and syspilot SHALL each
+   PIM, the recorder, MCP, the message-flow diagram, and kanban SHALL each
    be packaged as a separate extension that depends on the core via
    ``extensionDependencies: ["enthali.jarvis"]`` (or ``"enthali.jarvis-core"``) and
    cannot activate without it. When a new add-on is introduced, the onboarding
@@ -57,9 +57,9 @@ Modular Delivery Requirements
    * AC-6 (``message-flow-diagram`` CR): ``enthali.jarvis-flow`` is a separate
      extension declaring ``extensionDependencies: ["enthali.jarvis"]`` — see
      ``REQ_FLOW_PACKAGE``.
-   * AC-7 (``jarvis-syspilot`` CR): ``enthali.jarvis-syspilot`` is a separate
-     extension declaring ``extensionDependencies: ["enthali.jarvis-core"]`` —
-     see ``REQ_SPL_PACKAGE``.
+   * AC-7 (``retire-jarvis-syspilot`` CR): ``enthali.jarvis-syspilot`` is
+     retired and is no longer an add-on of this repository
+     (``REQ_MOD_READINESS`` AC-2).
    * AC-8 (``module-skill-provisioning`` CR): A module that bundles Copilot Skill
      or Instructions assets SHALL call ``provisionModuleAssets`` during
      ``activate()``; idempotency and orphan cleanup are handled by the helper
@@ -216,20 +216,22 @@ Modular Delivery Requirements
      provision several namespaces (``actor-kernel-instructions-delivery`` CR:
      ``packages/core`` ships the ``jarvis-actor`` set and may later ship
      others), and a per-module name could then govern two unrelated asset sets.
-   * AC-4a: (``actor-kernel-instructions-delivery`` CR) The setting's **default
-     SHALL reflect whether the assets are required for the module to function**,
-     not a fixed value:
+   * AC-4a: The setting's **default is the module's decision, not a fixed
+     value**:
 
      - Required — the module cannot be used correctly without them — default
        ``true``, and the module MAY omit the setting entirely and never pass
        ``enabled: false``. Example: without the kanban skill an agent does not
        know how to read or write ``kanban.yaml``.
-     - Not required — the assets serve a usage mode the workspace may not be in
-       — default ``false``, so a workspace receives nothing it did not ask for.
-       Example: the ``jarvis-actor`` rule set is meaningless in a workspace that
-       runs no actors.
-
-     This supersedes the flat "default ``true``" previously stated in AC-4.
+     - Optional but delivered by default — the assets serve a usage mode some
+       workspaces are not in, yet users should receive them without
+       per-workspace setup — default ``true`` with the setting as the opt-out.
+       Example: the ``jarvis-actor`` rule set (``actor-instructions-opt-out``
+       CR; it was default ``false`` before, which required every actor
+       workspace to opt in).
+     - Optional and delivered only on request — default ``false``, so a
+       workspace receives nothing it did not ask for. No module uses this
+       today.
    * AC-5: The core helper SHALL NOT read any configuration setting itself — the
      calling module supplies the value. This keeps ``REQ_MOD_ZEROTRACE`` intact:
      no setting for an uninstalled module exists anywhere.
@@ -276,10 +278,12 @@ Modular Delivery Requirements
      product-generated rather than user source. Both conventions are satisfied
      by the single shape ``jarvis-<namespace-tail>.<topic>.instructions.md``.
    * AC-3: ``packages/core`` SHALL contribute
-     ``jarvis.actor.autoProvision`` (boolean, **default** ``false``) per
-     ``REQ_MOD_SKILL_OPTOUT`` AC-4/AC-4a, and pass it as ``enabled``.
-     Default ``false`` because the rules govern actor operation, which is a
-     usage mode many workspaces are not in (``US_MOD_ACTORRULES`` AC-3).
+     ``jarvis.actor.autoProvision`` (boolean, **default** ``true``) per
+     ``REQ_MOD_SKILL_OPTOUT`` AC-4/AC-4a, and pass it as ``enabled``. The
+     runtime fallback when the setting is unread SHALL equal the contributed
+     default. Default ``true`` so users receive the rules without per-workspace
+     setup; workspaces that do not run actors opt out by setting ``false``
+     (``US_MOD_ACTORRULES`` AC-3).
    * AC-4: Core's ``activate()`` SHALL call ``provisionModuleAssets`` with
      ``instructionsSourceDir`` only — this set ships no skills.
    * AC-5: With the setting ``false``, no file SHALL be written into the
@@ -325,13 +329,16 @@ Modular Delivery Requirements
      files it did not write. That would void the guarantee in
      ``REQ_MOD_SKILL_ORPHAN`` AC-3, which is the property protecting every
      user-authored file in ``.github/instructions/``.
-   * AC-4: Workspaces that never opted in are unaffected — with
-     ``jarvis.actor.autoProvision`` defaulting to ``false``, no new file is
-     written and no collision arises.
+   * AC-4: Workspaces that set ``jarvis.actor.autoProvision`` to ``false`` are
+     unaffected — no new file is written and no collision arises. With the
+     default ``true``, the new files are written on the first activation after
+     upgrade, so a workspace still holding pre-convention files runs both
+     copies from that moment. The migration note SHALL therefore reach users
+     with the release (release notes), not only those who opt in.
    * AC-5: (**Data-loss note**) ``.github/instructions/`` is git-ignored, so the
      existing files are unversioned. Any local edit to them is unrecoverable
      once superseded. The migration note SHALL say so, so a user who customised
-     a copy can rescue it before opting in.
+     a copy can rescue it before upgrading.
 
 
 .. req:: Extension Readiness and Availability Disclosure
@@ -342,7 +349,7 @@ Modular Delivery Requirements
 
    **Description:**
    Jarvis SHALL accurately disclose the maturity and capability boundaries of
-   PIM and Syspilot, and the Marketplace availability of the deprecated Suite,
+   PIM, and the availability of the retired Suite and Syspilot extensions,
    across the root README and the affected extension pages and Marketplace
    descriptions.
 
@@ -351,10 +358,14 @@ Modular Delivery Requirements
    * AC-1: PIM documentation and its Marketplace description identify PIM as
      ``EXPERIMENTAL`` and state that email triage is not part of a Jarvis PIM
      release; it remains in an externally maintained skill.
-   * AC-2: Syspilot documentation and its Marketplace description identify it
-     as ``EXPERIMENTAL — DO NOT USE`` and state that the upcoming syspilot 0.10
-     release will break compatibility.
-   * AC-3: The root README prominently states both maturity warnings and the
+   * AC-2: The Syspilot extension (``enthali.jarvis-syspilot``) is retired: its
+     package is removed from the repository, and no future Syspilot VSIX is
+     built, released on GitHub, or published to the Marketplace. The User
+     unpublishes the Marketplace listing in a later Release Contract; the
+     extension ID and statistics remain, and existing installations are not
+     removed. Previously published GitHub assets and permanent removal of the
+     extension ID are not changed by this requirement.
+   * AC-3: The root README prominently states the PIM maturity warning and the
      PIM email-triage limitation.
    * AC-4: The Suite package is removed from the repository and future release
      workflows do not build, upload, or publish a Suite VSIX. The User

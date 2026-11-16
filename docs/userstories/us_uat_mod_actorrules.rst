@@ -10,19 +10,20 @@ Actor Kernel Instructions Delivery Acceptance Tests
    **As a** Jarvis Test Engineer,
    **I want** acceptance scenarios for the actor-kernel-instructions-delivery CR,
    **so that** I can verify that the three ``jarvis-actor.*`` instruction files
-   are provisioned into ``.github/instructions/`` only when the user opts in,
-   are removed on opt-out, leave user-authored files untouched, and do not touch
+   are provisioned into ``.github/instructions/`` by default,
+   are removed when the user opts out with ``jarvis.actor.autoProvision`` set
+   to ``false``, leave user-authored files untouched, and do not touch
    pre-convention hyphenated files that predate the manifest.
 
    Module integration (compile/package/CI) is out of UAT scope.
 
    **Acceptance Criteria:**
 
-   * AC-1: A test verifies that with ``jarvis.actor.autoProvision`` at its
-     default (``false``), no ``jarvis-actor.*`` file is written to
+   * AC-1: A test verifies that with ``jarvis.actor.autoProvision`` unset
+     (default ``true``), the three ``jarvis-actor.*`` files are written to
      ``.github/instructions/`` on core activation (T-1).
-   * AC-2: A test verifies that with the setting set to ``true``, the three
-     files appear with the correct names (T-2).
+   * AC-2: A test verifies that setting ``false`` and then ``true`` again
+     restores the three files with the correct names (T-2).
    * AC-3: A test verifies idempotency: a second activation with unchanged
      content produces no file writes (T-3).
    * AC-4: A test verifies that setting ``jarvis.actor.autoProvision`` back to

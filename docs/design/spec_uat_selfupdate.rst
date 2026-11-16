@@ -76,7 +76,7 @@ Self-Update UAT Design Specifications
         - (any)
         - Graceful handling, no crash
       * - T-10
-        - syspilot VSIX in idToVsix map
-        - syspilot installed
-        - ``jarvis-syspilot-{version}.vsix`` downloaded; no
+        - Unmapped extension left alone
+        - unmapped extension installed
+        - Not updated, not removed; no
           "unknown extension" error

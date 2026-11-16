@@ -38,12 +38,13 @@ Kanban Management Tools UAT Requirements
      kanban webview panel refreshes after a successful write — the tester
      leaves ``jarvis_openKanbanBoard`` open before the tool call and
      confirms the panel updates without a manual reload.
-   * AC-7: Each of T-1..T-27 is verified by an automated test, by a manual
+   * AC-7: Each of T-1..T-29 is verified by an automated test, by a manual
      Extension Development Host scenario, or by both. Manual: T-1 (end-to-end,
      with the delete of T-7 and the field add folded in; the webview re-render is
      checked by hand) and T-21 (provisioned skill). Automated, existing tests:
      T-10..T-14, T-22..T-26, T-27 steps 1 to 5 and 7, and the content of T-21.
      Automated, new handler tests: the add part of T-1, T-2..T-9, T-15..T-20,
-     T-27 step 6, and rule 6 of SPEC_KAN_WRITEVALID (a top-level key on add). The
+     T-27 step 6, T-28, and rule 6 of SPEC_KAN_WRITEVALID (a top-level key on add).
+     T-29 is an automated handler test. The
      test protocol for this CR names the test for each automated ID and documents
      the steps of each manual scenario.

@@ -161,6 +161,9 @@ function validateItemValues(
     const builtins = new Set(['name', 'status', 'labels', 'notes']);
     for (const [key, value] of Object.entries(values)) {
         if (builtins.has(key)) {
+            if (key === 'labels' && !(Array.isArray(value) && value.every(l => typeof l === 'string'))) {
+                return 'Invalid labels: must be an array of strings.';
+            }
             if (key === 'status' && typeof value === 'string') {
                 const statusEntry = fieldMap.get('status');
                 if (statusEntry?.options && !statusEntry.options.has(value)) {
@@ -566,7 +569,7 @@ export function activate(context: vscode.ExtensionContext): void {
         'jarvis_updateKanbanItem',
         'Updates fields on an existing kanban board item by ID.',
         async (options, token) => {
-            const input = options.input as { itemId: number; changes: Record<string, string>; boardName?: string; ownerName?: string };
+            const input = options.input as { itemId: number; changes: Record<string, string | string[]>; boardName?: string; ownerName?: string };
             const ownerResult = await resolveOwner(input.ownerName, api, token);
             if ('error' in ownerResult) {
                 return new vscode.LanguageModelToolResult([
@@ -700,7 +703,8 @@ export function activate(context: vscode.ExtensionContext): void {
             }
 
             // Reject builtin property names in input.fields
-            const builtinProps = new Set(['id', 'name', 'status', 'labels', 'notes']);
+            // id is left to validateItemValues, which owns its error (SPEC_KAN_WRITEVALID rule 1).
+            const builtinProps = new Set(['name', 'status', 'labels', 'notes']);
             if (input.fields) {
                 for (const key of Object.keys(input.fields)) {
                     if (builtinProps.has(key)) {

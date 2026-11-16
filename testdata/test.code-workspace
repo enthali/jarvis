@@ -8,7 +8,7 @@
 		"jarvis.heartbeatInterval": 15,
 		"jarvis.scanInterval": 1,
 		"jarvis.mcpPort": 31420,
-		"jarvis.pim.showCategories": true,
+		"jarvis.outlook.categories.enabled": true,
 		"jarvis.recording.enabled": true,
 		"jarvis.outlook.tasks.enabled": true,
 		"jarvis.outlook.enabled": true,

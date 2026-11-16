@@ -103,13 +103,17 @@ Kanban Management Tools UAT Design Specifications
 
       * - T-6
 
-          ADD: caller-supplied id rejected
+          ADD: caller-supplied id rejected, at top level and inside fields
 
-          *AC: REQ_KAN_WRITEVALID AC-4; REQ_KAN_ADD AC-4*
-        - Call ``jarvis_addKanbanItem`` with ``name: "Grab Id"``,
-          ``id: 999``.
-        - Response contains ``{ error: ... }`` refusing the caller-supplied
-          id. No item appended. File unchanged.
+          *AC: REQ_KAN_WRITEVALID AC-4; REQ_KAN_ADD AC-4; SPEC_KAN_ADD AC-8*
+        - Step 1: call ``jarvis_addKanbanItem`` with ``name: "Grab Id"``,
+          ``id: 999``. Step 2: call it with ``name: "Grab Id"`` and
+          ``fields: { id: "999" }``.
+        - Both steps respond ``{ error: "Cannot supply \"id\" — ids are
+          auto-assigned." }`` — the same message; step 2 must **not** say that
+          ``id`` must be set as a top-level parameter. No item appended. File
+          unchanged. Adversarial: ``fields: { notes: "x" }`` still gets the
+          top-level-parameter message.
 
    **Expected Outcomes — DELETE (T-7..T-9):**
 
@@ -435,3 +439,35 @@ Kanban Management Tools UAT Design Specifications
           (Archived is not listed); verify reports ``Value "Archived" is not a defined
           status option.`` as an error. The file size is unchanged after each overview
           call.
+
+      * - T-28
+
+          WRITEVALID and UPDATE: labels must be an array of strings; a valid array is
+          accepted and sendable
+
+          *AC: REQ_KAN_WRITEVALID AC-7; REQ_KAN_UPDATE AC-11*
+        - Note the file size. Call ``jarvis_addKanbanItem`` with ``name: "L"`` and
+          ``labels: "urgent"``, then with ``labels: ["a", 5]``. Call
+          ``jarvis_updateKanbanItem`` with ``itemId: 1`` and
+          ``changes: { labels: "urgent" }``, then ``{ labels: ["a", null] }``. Then call
+          update with ``changes: { labels: ["a", "b"], status: "Done" }``. Read the
+          input schema of ``jarvis_updateKanbanItem`` in ``packages/kanban/package.json``.
+        - The four rejected calls respond ``{ error: "Invalid labels: must be an array
+          of strings." }``; file size unchanged, no item appended, ``nextId`` unchanged.
+          The last call responds ``{ path, updated: true, itemId: 1 }``; item 1 has
+          ``labels: [a, b]`` and ``status: Done``. The schema lets each ``changes``
+          value be a string or an array of strings.
+
+      * - T-29
+
+          LIST: non-string label entries dropped silently, in both shapes
+
+          *AC: REQ_KAN_LIST AC-11; SPEC_KAN_LIST AC-12; REQ_KAN_FILTERVALUES AC-8*
+        - Variant board: item 1 with ``labels: [urgent, 5, ~, {k: v}, later]``, item 2
+          with the scalar ``labels: urgent``. Call ``jarvis_listKanbanItems`` without
+          and with ``details: true``; call ``jarvis_listKanbanFilterValues``; call list
+          with ``labels: ["later"]``.
+        - Both list shapes return ``labels: [urgent, later]`` for item 1 (stored order,
+          no error, no warning) and ``labels: []`` for item 2. Filter values reports
+          ``later`` 1 and ``urgent`` 1 — the same set the list shows. The ``later``
+          filter matches item 1, ``count: 1``. The file is unchanged.

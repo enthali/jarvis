@@ -61,7 +61,7 @@ PIM User Stories
 
 .. story:: Categories Sidebar View
    :id: US_PIM_CATVIEW
-   :status: implemented
+   :status: approved
    :priority: optional
    :links: US_PIM_CATEGORIES; US_EXP_SIDEBAR
 
@@ -72,12 +72,12 @@ PIM User Stories
 
    **Acceptance Criteria:**
 
-   * AC-1: A "Categories" tree view appears in the Jarvis sidebar when
-     ``jarvis.pim.showCategories`` is ``true``
+   * AC-1: A "Categories" tree view appears in the Jarvis sidebar while the
+     Outlook integration and its categories feature are both turned on
    * AC-2: Each category is shown as a leaf node with its name and source tag
    * AC-3: A refresh button in the title bar triggers an immediate cache refresh
-   * AC-4: The view is controlled by ``jarvis.pim.showCategories``
-     (default: ``true``)
+   * AC-4: The view is hidden by default; the user turns it on by turning on
+     the categories feature of the Outlook integration
    * AC-5: When no providers are configured, the view shows "no categories"
    * AC-6: Right-clicking a category node offers "Rename Category" — shows an
      input box pre-filled with the current name, then renames via

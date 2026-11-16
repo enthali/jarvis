@@ -26,7 +26,7 @@ Before the next release, update existing project-owned prompts, skills and agent
 
 `jarvis_createActorSession(actor)` finds or creates an Actor chat and returns its session address. These four Agent Host tools are not MCP tools. External scripts that previously woke an Actor through MCP messaging must move that work to a heartbeat step. Reminders and heartbeat message steps still write to the inbox.
 
-With `jarvis.actor.autoProvision` enabled, provisioning refreshes the bundled Actor instructions; owners must update hand-maintained copies themselves. The package-prefixed references of other extension tools, such as `#jarvis_core_createActor` and `#jarvis_pim_task`, remain in use.
+With `jarvis.actor.autoProvision` enabled (the default), provisioning refreshes the bundled Actor instructions; owners must update hand-maintained copies themselves. The package-prefixed references of other extension tools, such as `#jarvis_core_createActor` and `#jarvis_pim_task`, remain in use.
 
 ### Updating from a hook-based version
 
@@ -35,6 +35,12 @@ Jarvis no longer uses agent hooks or requires an external `node` command for Act
 On activation, Jarvis cleans up its five known legacy files in `.github/hooks/` of the first workspace folder without an opt-in. Automatic cleanup covers only that folder and can fail. If any remain in a project, including another workspace folder, remove only `jarvis-hooks.json`, `jarvis-bridge.mjs`, `jarvis-port`, `bridge.mjs`, and `port` by hand from that project's `.github/hooks/`; keep the directory and all other files. Removal failures are logged and retried on the next activation. The old `.jarvis/state/touched-files/` data is retained but no longer used. Existing `jarvis.hooks.autoInstall` and `jarvis.touchedFiles.windowDays` settings have no effect. See the [Core guide](core.md) for the cleanup details.
 
 The MCP server is disabled by default, including after an upgrade when no explicit `jarvis.mcp.enabled` value is stored. To use it, set `jarvis.mcp.enabled` to `true`. Existing explicit `true` or `false` values still apply; see the [MCP guide](mcp.md).
+
+### Updating with Actor instructions on by default
+
+`jarvis.actor.autoProvision` now defaults to `true`. On the first activation after upgrade, a workspace with no explicit setting receives the three bundled files `jarvis-actor.kernel.instructions.md`, `jarvis-actor.memory.instructions.md` and `jarvis-actor.authoring.instructions.md` in `.github/instructions/`. An explicit `false` stays an opt-out, and Jarvis then removes the files it provisioned.
+
+If a workspace still holds the earlier hyphenated copies (`jarvis-actor-kernel.instructions.md` and siblings), both sets apply (`applyTo: "**"`) and the same rules run twice. Jarvis does not delete files it did not write, so remove the hyphenated copies by hand. `.github/instructions/` is git-ignored, so they are unversioned: save any local edits before removing them, because they cannot be recovered afterwards.
 
 ### Updating to 0.31.1
 
@@ -57,7 +63,7 @@ Click **+** in the ACTORS view title bar or use the `#jarvis_core_createActor` t
 
 In the Agents window, tick **Created In > jarvis-core** to include Jarvis-created chats. **Mark done** archives a chat and makes it read-only; Jarvis restores it on opening or message delivery. Only **Delete** removes it. A workspace in a repository subfolder may be labelled **Worktree** without creating a Git worktree.
 
-Jarvis 0.32.0 supports Actor chats, messaging and Kanban in the Agents window. Flow, status-bar and tree features, the PIM mail notification and Recorder do not work there yet; a solution is on the roadmap, with no plan yet. Syspilot was not checked there. For other module tools, keep the Actor chat open in an editor window running Jarvis. See the [Core guide](core.md) for the observed results, delivery controls and full limitations.
+Jarvis supports Actor chats, messaging and Kanban in the Agents window since 0.32.0. Flow, status-bar and tree features, the PIM mail notification and Recorder do not work there yet; a solution is on the roadmap, with no plan yet. For other module tools, keep the Actor chat open in an editor window running Jarvis. See the [Core guide](core.md) for the observed results, delivery controls and full limitations.
 
 ## Where to go next
 
@@ -69,5 +75,4 @@ Each package has its own guide:
 - [MCP](mcp.md) — Jarvis tools for external MCP clients
 - [Message Flow](flow.md) — message traffic visualization
 - [Kanban](kanban.md) — kanban boards for actors
-- [Syspilot](syspilot.md) — syspilot install and update hand-off
 - [Migration Shim](core-gh.md) — deprecated package

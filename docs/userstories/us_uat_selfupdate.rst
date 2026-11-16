@@ -20,12 +20,10 @@ Self-Update User Acceptance Tests
    * AC-3: At least one test verifies the "Download & Install" flow completes
    * AC-4: At least one test verifies ``jarvis.checkForUpdates = false`` suppresses
      the automatic check
-   * AC-5: At least one test verifies that ``enthali.jarvis-syspilot`` resolves
-     to the correct VSIX asset (``jarvis-syspilot-{version}.vsix``) when
-     "Download & Install" runs (T-10).
-   * AC-6: At least one test verifies that ``enthali.jarvis-syspilot`` resolves
-     to the correct VSIX asset (``jarvis-syspilot-{version}.vsix``) when
-     "Download & Install" runs (T-10).
+   * AC-5: At least one test verifies that an installed extension ID that is
+     not in the ``idToVsix`` mapping (for example the retired
+     ``enthali.jarvis-syspilot``) receives no update and is not removed
+     (``REQ_REL_UPDATEINSTALL`` AC-1) (T-10).
 
    **Test Scenarios:**
 
@@ -86,16 +84,11 @@ Self-Update User Acceptance Tests
      Expected: The command completes without crash. Behaviour is graceful
      (silent or brief warning — no stack trace shown to user).
 
-   **T-10 — syspilot resolves in idToVsix map (``syspilot-release-readiness`` CR)**
-     Setup: Ensure ``enthali.jarvis-syspilot`` is installed alongside the core
-     (check via VS Code Extensions panel: ``enthali.jarvis-syspilot`` present).
-     Trigger an update notification (simulate outdated version per T-1 setup).
-     Action: Inspect the "Download & Install" flow. Either (a) watch the
-     Output Channel during the install or (b) inspect
-     ``packages/core/src/engine/core/updateCheck.ts`` to verify the
-     ``idToVsix`` map contains the entry
-     ``'enthali.jarvis-syspilot': \`jarvis-syspilot-\${newVersion}.vsix\``.
-     Expected: The syspilot VSIX is included in the download batch alongside
-     other installed ``enthali.jarvis*`` extensions. No "unknown extension"
-     error in the Output Channel. The downloaded filename matches
-     ``jarvis-syspilot-{version}.vsix``.
+   **T-10 — Unmapped extension is neither updated nor removed (``retire-jarvis-syspilot`` CR)**
+     Setup: Have an installed extension whose ID is not in the ``idToVsix`` map
+     (for example a still-installed ``enthali.jarvis-syspilot``) alongside the
+     core. Trigger an update notification (simulate outdated version per T-1).
+     Action: Click "Download & Install".
+     Expected: The mapped extensions are updated; the unmapped one is neither
+     updated nor removed, and no "unknown extension" error appears in the
+     Output Channel.

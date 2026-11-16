@@ -1,6 +1,6 @@
 # Jarvis Core
 
-Jarvis Core 0.32.0 (`enthali.jarvis-core`) is the harness: it turns chat sessions and agent personas into actors and provides messaging, reminders, the heartbeat scheduler, and the engine that the other packages build on. This is the first release with Agents window support for Actors, messaging and Kanban. Requires VS Code 1.95.0 or later (manifest minimum); Actor chats additionally require an available, authenticated Agent Host.
+Jarvis Core 0.33.0 (`enthali.jarvis-core`) is the harness: it turns chat sessions and agent personas into actors and provides messaging, reminders, the heartbeat scheduler, and the engine that the other packages build on. Agents window support for Actors, messaging and Kanban arrived in 0.32.0. Requires VS Code 1.95.0 or later (manifest minimum); Actor chats additionally require an available, authenticated Agent Host.
 
 ## Actors
 
@@ -52,7 +52,6 @@ In the Windows Sandbox on 2026-11-03, the User observed that Actor chats, messag
 - Enable **Created In > jarvis-core** to see Jarvis-created chats in the Agents window.
 - Flow, including the message view and log, cannot be opened from the Agents window yet.
 - Jarvis features offered through the status bar or a tree do not work there: ACTORS activity/mail markers, the PIM mail notification in the tree, and Recorder, which has no UI that can be triggered there. A solution is on the roadmap; there is no plan yet. These editor-window features are not removed from Jarvis.
-- Syspilot was not checked in the Agents window.
 - Project-owned prompts, skills and agents must use the changed message-tool inputs above; remove `senderSession` and `destination` from send and receive calls.
 - Recently Touched Files is removed in 0.32.0 and is on the roadmap for a future version. Old `.jarvis/state/touched-files/` data and any old `chat.hookFilesLocations` entry in `.vscode/settings.json` remain on disk.
 - The MCP server stays off unless `jarvis.mcp.enabled` is explicitly `true`, including after an upgrade without a stored setting.
@@ -81,7 +80,6 @@ Automatic cleanup needs no setting, but covers only the first workspace folder a
 | [MCP](mcp.md) | Jarvis tools for external MCP clients |
 | [Message Flow](flow.md) | Visualization of message traffic |
 | [Kanban](kanban.md) | Kanban boards for actors |
-| [Syspilot](syspilot.md) | syspilot install and update hand-off |
 
 ## Configuration
 
@@ -89,7 +87,7 @@ Automatic cleanup needs no setting, but covers only the first workspace folder a
 |---------|---------|-------------|
 | `jarvis.actors.folder` | `.jarvis/actors` | Workspace-relative or absolute folder containing new actor folders. |
 | `jarvis.actors.openSessionOnCreate` | `true` | Open the new actor's chat right after creating it. Turn off to keep your current chat in focus, for example when creating several actors in a row. |
-| `jarvis.actor.autoProvision` | `false` | Provision the bundled actor instruction files into the workspace on activation. Enable in workspaces that use Jarvis actors; set back to `false` to remove them. |
+| `jarvis.actor.autoProvision` | `true` | Provision the bundled actor instruction files into the workspace on activation. Set to `false` in workspaces that do not use Jarvis actors; Jarvis then removes the files it provisioned. |
 | `jarvis.agentSession.initPromptTemplate` | built-in prompt | Template for the initialization prompt sent to a new agent chat session. Leave empty to use the built-in default. |
 | `jarvis.messages.enabled` | `true` | Enable the Messages feature. |
 | `jarvis.messages.logging` | `true` | Append every queued message to `.jarvis/message-log.json`. |

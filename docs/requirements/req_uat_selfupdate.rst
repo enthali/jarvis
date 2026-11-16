@@ -20,7 +20,7 @@ Self-Update UAT Requirements
    * AC-3: At least one scenario verifies that ``jarvis.checkForUpdates = false``
      suppresses the automatic check but not the manual command
    * AC-4: At least one scenario verifies silent failure on network error
-   * AC-5 (``syspilot-release-readiness`` CR): At least one scenario verifies
-     that ``enthali.jarvis-syspilot`` is mapped to the correct VSIX filename
-     in the ``idToVsix`` lookup used by "Download & Install"
-     (``REQ_REL_UPDATEINSTALL``).
+   * AC-5 (``retire-jarvis-syspilot`` CR): At least one scenario verifies
+     that an installed extension ID not in the ``idToVsix`` lookup used by
+     "Download & Install" is neither updated nor removed
+     (``REQ_REL_UPDATEINSTALL`` AC-1).

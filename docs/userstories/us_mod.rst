@@ -109,13 +109,13 @@ Modular Delivery User Stories
 
    * AC-1: The three actor rule files are delivered by the Jarvis extension
      itself; no manual copying between repositories is required.
-   * AC-2: Updating the extension updates the rules, so all workspaces that opt
-     in converge on one version.
-   * AC-3: **Nothing is written into a workspace unless the user opts in.** A
-     workspace that does not run actors receives none of these files by default
-     — a customer project stays free of them.
-   * AC-4: Opting out again removes the files the extension installed, and
-     leaves anything it did not install untouched.
+   * AC-2: Updating the extension updates the rules, so all workspaces that
+     receive them converge on one version.
+   * AC-3: The rules arrive in a workspace by default, without any per-workspace
+     setup. A user whose workspace does not run actors can opt out, and that
+     workspace then holds none of these files.
+   * AC-4: Opting out removes the files the extension installed, and leaves
+     anything it did not install untouched.
    * AC-5: The rules are recognisable as product-managed rather than
      hand-authored, so nobody edits the workspace copy expecting it to survive.
 
@@ -135,8 +135,11 @@ Modular Delivery User Stories
    * AC-1: Jarvis PIM is identified as ``EXPERIMENTAL``, and users are told that
      email triage is not provided by Jarvis PIM; it remains in an externally
      maintained skill that is not part of a Jarvis PIM release.
-   * AC-2: Jarvis Syspilot is identified as ``EXPERIMENTAL — DO NOT USE``, with
-     the upcoming syspilot 0.10 incompatibility stated as the reason.
+   * AC-2: The Jarvis Syspilot extension is retired: its package is removed
+     from the repository, and no future Syspilot VSIX is built, released on
+     GitHub, or published to the Marketplace. The User unpublishes the
+     Marketplace listing in a later Release Contract; existing installations
+     are not removed.
    * AC-3: The Jarvis Suite is no longer supported: its package is removed from
      the repository, and no future Suite VSIX is built, released on GitHub, or
      published to the Marketplace. The User unpublishes the Marketplace listing;

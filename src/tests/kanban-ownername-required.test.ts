@@ -28,28 +28,6 @@ describe('REQ_KAN_CREATE AC-3 / SPEC_KAN_CREATE AC-5: resolveOwner requires owne
         expect(fnBody).not.toContain('jarvis_whoAmI');
     });
 
-    it('replicated logic: missing/empty ownerName, unknown name, and a resolvable name', () => {
-        interface Actor { name: string; folder: string }
-        function resolveOwnerByName(name: string, actors: Actor[]): Actor | undefined {
-            const matches = actors.filter(a => a.name === name);
-            if (matches.length !== 1 || !matches[0].folder) { return undefined; }
-            return matches[0];
-        }
-        function resolveOwner(ownerName: string | undefined, actors: Actor[]): Actor | { error: string } {
-            if (!ownerName) { return { error: 'ownerName required' }; }
-            const owner = resolveOwnerByName(ownerName, actors);
-            if (!owner) { return { error: 'actor unknown' }; }
-            return owner;
-        }
-
-        const actors: Actor[] = [{ name: 'Solo Actor', folder: '/one' }];
-
-        expect(resolveOwner(undefined, actors)).toEqual({ error: 'ownerName required' });
-        expect(resolveOwner('', actors)).toEqual({ error: 'ownerName required' });
-        expect(resolveOwner('No Such Actor', actors)).toEqual({ error: 'actor unknown' });
-        expect(resolveOwner('Solo Actor', actors)).toEqual({ name: 'Solo Actor', folder: '/one' });
-    });
-
     it('no jarvis_whoAmI reference anywhere in the kanban extension source', () => {
         expect(kanbanSrc).not.toContain('jarvis_whoAmI');
     });

@@ -263,9 +263,8 @@ Configuration Requirements
    SHALL contain exactly the following groups in this order:
    Actors, Messages, Prompt Templates, Heartbeat, Reminders, Gitignore,
    Updates. Each add-on SHALL contribute its own settings in its own
-   ``package.json`` groups: PIM ("PIM", "Outlook"), recorder ("Jarvis
-   Recorder"), MCP ("Jarvis MCP"), kanban ("Jarvis Kanban"), syspilot
-   ("Jarvis Syspilot").
+   ``package.json`` groups: PIM ("Outlook"), recorder ("Jarvis
+   Recorder"), MCP ("Jarvis MCP"), kanban ("Jarvis Kanban").
 
    **Acceptance Criteria:**
 
@@ -550,7 +549,7 @@ Configuration Requirements
    waiting on. A dropped entry here is an undelivered message, and it is
    undelivered silently.
 
-   **Concurrency premise.** ``core``, ``flow`` and ``syspilot`` ship as separate
+   **Concurrency premise.** ``core`` and ``flow`` ship as separate
    VS Code extensions. They activate in no guaranteed order, and — because a
    user updates extensions independently — they may run at different versions
    for an unbounded period. Any migration mechanism SHALL be correct under both

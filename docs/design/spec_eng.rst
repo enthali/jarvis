@@ -116,17 +116,17 @@ Engine Design Specifications
            */
           listJobs(): HeartbeatJob[];
 
-          // --- Messaging (SPEC_SPL_NOTIFY) ---
+          // --- Messaging ---
 
           /**
            * Append a message to the Jarvis message queue. Only the sender is
-           * not validated: internal/module senders (e.g. jarvis-syspilot,
-           * heartbeat internals) need not be registered Actors. The
+           * not validated: internal/module senders (e.g. heartbeat internals)
+           * need not be registered Actors. The
            * destination is resolved with ActorScanner.resolveName: an
            * ambiguous name shows an error notification and throws, nothing
            * is queued (REQ_ACTOR_SCHEMA AC-7); an unknown name is queued
            * unchanged. Delivered by the auto-delivery poll loop like any
-           * other queued message. (jarvis-syspilot CR, GH #39)
+           * other queued message.
            */
           sendMessage(destination: string, sender: string, text: string): void;
 
@@ -153,7 +153,7 @@ Engine Design Specifications
      ``JarvisCoreApi``.
    * AC-2: ``version`` is the literal ``2``. Every add-on activates only when
      it reads ``version === 2`` and logs an error otherwise (PIM, kanban,
-     syspilot, MCP, recorder, flow). This AC is the sole normative statement
+     MCP, recorder, flow). This AC is the sole normative statement
      of the guard; an add-on's own package spec (``SPEC_MOD_*_PKG``) MAY
      restate it as its own AC when the guard is otherwise easy to lose track
      of (e.g. ``SPEC_MOD_FLOW_PKG`` AC-5, added after Flow's guard was found
@@ -179,13 +179,12 @@ Engine Design Specifications
      ``Disposable`` (see ``SPEC_ENG_HEARTBEAT_JOBAPI``).
    * AC-8: ``sendMessage(destination, sender, text)`` appends a message to the
      queue file (same as ``appendMessage`` internally). It skips sender-name
-     validation only, for module-internal senders (e.g. ``jarvis-syspilot``)
+     validation only, for module-internal senders
      that are not registered Actors. The destination is resolved with
      ``ActorScanner.resolveName``: an ambiguous destination shows an error
      notification and throws without queuing (``REQ_ACTOR_SCHEMA`` AC-7); an
      unknown destination is queued unchanged. The message is picked up by
-     the auto-delivery poll loop like any other queued message
-     (``jarvis-syspilot`` CR, GH #39).
+     the auto-delivery poll loop like any other queued message.
    * AC-9 (``module-skill-provisioning`` CR): ``provisionModuleAssets(context,
      config)`` provisions the calling module's bundled Copilot assets into the
      workspace and returns when the write and cleanup phases are complete. It
@@ -263,30 +262,25 @@ Engine Design Specifications
                jarvis_kanban_listKanbanItems     jarvis_kanban_listKanbanFilterValues
                jarvis_kanban_updateKanbanFields
       pim      jarvis_pim_category            jarvis_pim_task
-      syspilot jarvis_syspilot_delaySyspilotUpdate
-               jarvis_syspilot_SyspilotSkipThisVersion
 
    **Message tools:** ``jarvis_sendMessage``, ``jarvis_receiveMessage``,
    ``jarvis_listActors`` and ``jarvis_createActorSession`` have no manifest entry.
    The Jarvis AHP client publishes them to Actor chats (``SPEC_COM_TOOLS``), so
    they have no ``toolReferenceName`` and are not part of this table.
 
-   **Why ``name`` stays:** the 21 registered names (core 8, kanban 9, pim 2,
-   syspilot 2) are pairwise different, and ``registerTool`` rejects a duplicate
+   **Why ``name`` stays:** the 19 registered names (core 8, kanban 9, pim 2) are pairwise different, and ``registerTool`` rejects a duplicate
    (``SPEC_ENG_REGISTER_TOOL`` AC-2). The collision lies in the references
    ``task`` and ``category``, not in the names. The MCP surface and the delivered
    kernel instructions address tools by ``name``, so keeping it breaks neither.
 
    **Compatibility:** a prompt or saved prompt file that uses a former ``#``
    reference no longer resolves it. Tool identifiers and the MCP exposure are
-   unaffected. The only agent file in the repository that lists tools
-   (``testdata/.github/agents/syspilot.setup.agent.md``) names extension ids,
-   not references, so it is unaffected as well.
+   unaffected.
 
    **Acceptance Criteria:**
 
    * AC-1: Every ``languageModelTools`` entry of ``packages/core``,
-     ``packages/kanban``, ``packages/pim`` and ``packages/syspilot`` has the
+     ``packages/kanban`` and ``packages/pim`` has the
      ``toolReferenceName`` listed above.
    * AC-2: Every such entry has a ``modelDescription`` that begins with
      ``jarvis_<package>:`` and a space and has text after it.
@@ -409,8 +403,6 @@ Engine Design Specifications
      owner resolution requires exactly one entry with the given ``name``
      (``SPEC_KAN_CREATE`` step 1). Duplicates are returned as they are, so
      the add-on applies the unique-name rule itself.
-   * ``syspilot``: ``versionCheck.ts`` tests whether the syspilot Actor
-     exists via ``listActors().some(a => a.name === ACTOR_NAME)``.
 
    **Acceptance Criteria:**
 

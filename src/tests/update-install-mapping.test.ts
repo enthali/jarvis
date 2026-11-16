@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Readable } from 'stream';
 
 const VERSION = '99.0.0';
-const assetNames = ['core', 'syspilot', 'suite'].map(n => `jarvis-${n}-${VERSION}.vsix`);
+const assetNames = ['core', 'pim', 'suite', 'syspilot'].map(n => `jarvis-${n}-${VERSION}.vsix`);
 
 let installedIds: string[] = [];
 const downloadedUrls: string[] = [];
@@ -66,14 +66,14 @@ describe('REQ_REL_UPDATEINSTALL: installed extension mapping', () => {
             'workbench.extensions.installExtension', expect.anything());
     });
 
-    it('AC-1: an installed Suite is not updated, other matches are unaffected', async () => {
-        installedIds = ['enthali.jarvis-suite', 'enthali.jarvis-syspilot'];
+    it('AC-1: an installed Suite or Syspilot is not updated, other matches are unaffected', async () => {
+        installedIds = ['enthali.jarvis-suite', 'enthali.jarvis-syspilot', 'enthali.jarvis-pim'];
         await checkForUpdates(context, true);
-        expect(downloadedUrls).toEqual([`https://example.test/jarvis-syspilot-${VERSION}.vsix`]);
+        expect(downloadedUrls).toEqual([`https://example.test/jarvis-pim-${VERSION}.vsix`]);
     });
 
-    it('AC-1: with only the Suite installed nothing is downloaded or uninstalled; the release page opens', async () => {
-        installedIds = ['enthali.jarvis-suite'];
+    it('AC-1: with only retired extensions installed nothing is downloaded or uninstalled; the release page opens', async () => {
+        installedIds = ['enthali.jarvis-suite', 'enthali.jarvis-syspilot'];
         await checkForUpdates(context, true);
         expect(downloadedUrls).toEqual([]);
         expect(mockExecuteCommand).not.toHaveBeenCalledWith(

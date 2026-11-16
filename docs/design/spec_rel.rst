@@ -392,7 +392,7 @@ Release Design Specifications
 
   The sequence is ``npm ci``, compile and bundle core, package ``enthali.jarvis-core``,
   build and package the legacy ``enthali.jarvis`` migration shim, then package the
-  supported add-ons (PIM, Recorder, MCP, Flow, Kanban, Syspilot), each with its
+  supported add-ons (PIM, Recorder, MCP, Flow, Kanban), each with its
   own ``vscode:prepublish``. The GitHub Release uploads those VSIXs; Marketplace
   publication covers core and supported add-ons only, not the legacy shim or
   retired Suite.
@@ -565,7 +565,6 @@ Release Design Specifications
       ``enthali.jarvis-recorder``     ``jarvis-recorder-{version}.vsix``
       ``enthali.jarvis-mcp``          ``jarvis-mcp-{version}.vsix``
       ``enthali.jarvis-flow``         ``jarvis-flow-{version}.vsix``
-      ``enthali.jarvis-syspilot``     ``jarvis-syspilot-{version}.vsix``
       =============================== ======================================
 
    2. Collect installed ``enthali.jarvis*`` extension IDs via

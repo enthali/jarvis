@@ -117,22 +117,23 @@ Outlook Design Specifications
 
 .. spec:: Outlook Settings and Activation Guard
    :id: SPEC_OLK_SETTINGS
-   :status: implemented
+   :status: approved
    :links: REQ_OLK_ENABLE; REQ_CFG_SETTINGSGROUPS; SPEC_CFG_SETTINGSGROUPS
 
    **Description:**
-   Add ``jarvis.outlookEnabled`` to the ``"PIM"`` configuration group in
-   ``package.json`` (merged with ``jarvis.pim.showCategories`` — see
-   ``SPEC_PIM_CATVIEW``) and wire the activation guard in ``extension.ts``.
+   Add ``jarvis.outlook.enabled`` to the ``"Outlook"`` configuration group in
+   ``package.json`` and wire the activation guard in ``extension.ts``. The
+   category provider is additionally gated by the categories sub-toggle
+   (``SPEC_OLK_CATENABLE``).
 
-   **package.json addition** (property inside the shared "PIM" configuration object):
+   **package.json addition** (property inside the "Outlook" configuration object):
 
    .. code-block:: json
 
       {
-        "title": "PIM",
+        "title": "Outlook",
         "properties": {
-          "jarvis.outlookEnabled": {
+          "jarvis.outlook.enabled": {
             "type": "boolean",
             "default": false,
             "description": "Enable Outlook COM integration (Windows + Outlook Classic). When disabled, no Outlook COM calls are made."
@@ -151,12 +152,12 @@ Outlook Design Specifications
           'jarvisCategories', categoryTreeProvider
       );
 
-      // Outlook provider: conditionally add
-      const outlookEnabled = vscode.workspace
-          .getConfiguration('jarvis')
-          .get<boolean>('outlookEnabled', false);
+      // Outlook provider: conditionally add (master switch AND categories
+      // sub-toggle, see SPEC_OLK_CATENABLE)
+      const cfg = vscode.workspace.getConfiguration('jarvis');
 
-      if (outlookEnabled) {
+      if (cfg.get<boolean>('outlook.enabled', false)
+          && cfg.get<boolean>('outlook.categories.enabled', false)) {
           categoryService.addProvider(new OutlookCategoryProvider(log));
       }
 
@@ -183,8 +184,6 @@ Outlook Design Specifications
      ``OutlookCategoryProvider`` is instantiated once during activation
    * The ``CategoryService`` and ``CategoryTreeProvider`` are always
      instantiated (PIM layer) — only the provider registration is conditional
-   * Both ``jarvis.outlookEnabled`` and ``jarvis.pim.showCategories`` are
-     combined in the single ``"PIM"`` settings group (see ``SPEC_PIM_CATVIEW``)
 
 
 .. spec:: OutlookTaskProvider (COM Bridge)
@@ -292,7 +291,7 @@ Outlook Design Specifications
 
 .. spec:: Tasks Sub-Toggle Setting
    :id: SPEC_OLK_TASKENABLE
-   :status: implemented
+   :status: approved
    :links: REQ_OLK_TASKENABLE; SPEC_EXP_EXTENSION
 
    **Description:**
@@ -312,7 +311,7 @@ Outlook Design Specifications
         }
       ]
 
-   The tasks setting stays in the existing "PIM" configuration group:
+   The tasks setting lives in the "Outlook" configuration group:
 
    .. code-block:: json
 
@@ -322,7 +321,7 @@ Outlook Design Specifications
           "jarvis.outlook.tasks.enabled": {
             "type": "boolean",
             "default": true,
-            "description": "Enable the Outlook Tasks integration. Only effective when jarvis.outlookEnabled is true."
+            "description": "Enable the Outlook Tasks integration. Only effective when jarvis.outlook.enabled is true."
           }
         }
       }
@@ -350,3 +349,72 @@ Outlook Design Specifications
      instantiation without the master switch
    * Changing either setting requires a window reload (same behaviour as
      ``REQ_OLK_ENABLE``)
+
+
+.. spec:: Categories Sub-Toggle Setting
+   :id: SPEC_OLK_CATENABLE
+   :status: approved
+   :links: REQ_OLK_CATENABLE; REQ_PIM_CATVIEW; SPEC_OLK_SETTINGS; SPEC_OLK_TASKENABLE
+
+   **Description:**
+   Adds ``jarvis.outlook.categories.enabled`` to the "Outlook" configuration
+   group next to ``jarvis.outlook.tasks.enabled``, removes
+   ``jarvis.pim.showCategories``, and gates the Outlook category provider and
+   the Categories view with it. The setting keys are those of the shipped
+   manifest (``jarvis.outlook.enabled``); the older spelling
+   ``jarvis.outlookEnabled`` in neighbouring specifications is a known naming
+   drift outside this specification.
+
+   **package.json delta (``contributes.configuration``):** the "PIM" group
+   with ``jarvis.pim.showCategories`` is removed; the "Outlook" group gains:
+
+   .. code-block:: json
+
+      "jarvis.outlook.categories.enabled": {
+        "type": "boolean",
+        "default": false,
+        "description": "Enable the Outlook Categories integration (category provider and Categories view). Only effective when jarvis.outlook.enabled is true."
+      }
+
+   **View gating (``contributes.views.jarvis-explorer``, ``jarvisCategories``):**
+
+   .. code-block:: json
+
+      "when": "config.jarvis.outlook.enabled == true && config.jarvis.outlook.categories.enabled == true"
+
+   **Instantiation guard (``packages/pim/src/extension.ts``):**
+
+   .. code-block:: typescript
+
+      const cfg = vscode.workspace.getConfiguration('jarvis');
+      if (cfg.get<boolean>('outlook.enabled', false)) {
+          if (cfg.get<boolean>('outlook.categories.enabled', false)) {
+              categoryService.addProvider(new OutlookCategoryProvider(log));
+          }
+          // tasks guard unchanged (SPEC_OLK_TASKENABLE)
+      }
+
+   **Behaviour while the setting is off (decision of the Architect):**
+
+   * ``CategoryService`` and ``CategoryTreeProvider`` stay instantiated, the
+     provider list is empty
+   * The tool ``jarvis_pim_category`` returns the informational error of
+     ``REQ_PIM_CATTOOL`` AC-9, which names the two settings
+   * The task editor shows no category choices (``hasProviders()`` is false);
+     tasks keep their ``categories`` field and the task tool still reads and
+     writes it, because that field belongs to the task and not to the category
+     provider
+   * No migration code: a value of ``jarvis.pim.showCategories`` left in a
+     user's settings is ignored, and users who had it on set the new setting to
+     ``true``. The release note carries this hint. Reason: the old setting only
+     governed the view (the provider was registered with the master switch), so
+     a mapping would silently switch on the provider too, and the feature as a
+     whole is under review (backlog #23)
+
+   **Design notes:**
+
+   * A change of the setting requires a window reload for the provider (the
+     provider is instantiated once during activation); the ``when`` clause
+     reacts at once, so the view disappears before the reload
+   * The master switch ``jarvis.outlook.enabled`` precedes the sub-toggle, as
+     for tasks

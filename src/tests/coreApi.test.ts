@@ -98,7 +98,7 @@ describe('SPEC_ENG_TOOLREGISTRY: JarvisEngine tool introspection/invocation', ()
     });
 });
 
-describe('SPEC_SPL_NOTIFY / SPEC_ENG_API AC-8: JarvisEngine.sendMessage', () => {
+describe('SPEC_ENG_API AC-8: JarvisEngine.sendMessage', () => {
     it('throws when messaging is not wired', () => {
         const { engine } = makeEngine();
         expect(() => engine.sendMessage('dest', 'sender', 'text')).toThrow(/Messaging is not available/);
@@ -122,7 +122,7 @@ describe('SPEC_SPL_NOTIFY / SPEC_ENG_API AC-8: JarvisEngine.sendMessage', () => 
         const onQueued = vi.fn();
         engine.setMessaging(() => queuePath, onQueued);
 
-        expect(() => engine.sendMessage('No Such Actor', 'jarvis-syspilot', 'text')).not.toThrow();
+        expect(() => engine.sendMessage('No Such Actor', 'jarvis-pim', 'text')).not.toThrow();
         expect(onQueued).toHaveBeenCalledOnce();
         expect(fs.existsSync(queuePath)).toBe(true);
     });
@@ -134,7 +134,7 @@ describe('SPEC_SPL_NOTIFY / SPEC_ENG_API AC-8: JarvisEngine.sendMessage', () => 
         const queuePath = path.join(dir, 'messages.json');
         engine.setMessaging(() => queuePath, () => {});
 
-        expect(() => engine.sendMessage('S', 'jarvis-syspilot', 'text')).not.toThrow();
+        expect(() => engine.sendMessage('S', 'jarvis-pim', 'text')).not.toThrow();
     });
 });
 

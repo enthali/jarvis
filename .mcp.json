@@ -8,10 +8,6 @@
                                                     "url":  "http://localhost:31420",
                                                     "type":  "http"
                                                 },
-                       "jarvis-syspilot-llm-tools":  {
-                                                         "url":  "http://localhost:31413",
-                                                         "type":  "http"
-                                                     },
                        "jarvis-devhost-llm-tools":  {
                                                         "url":  "http://localhost:31421",
                                                         "type":  "http"

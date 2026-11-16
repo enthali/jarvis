@@ -32,28 +32,33 @@ Actor Kernel Instructions Delivery UAT Design Specifications
 
       * - T-1
 
-          Default off: no files provisioned without opt-in
+          Default on: three files provisioned without any setting
 
-          *AC: REQ_MOD_ACTORRULES AC-3*
+          *AC: REQ_MOD_ACTORRULES AC-1, AC-2, AC-3, AC-4*
         - Confirm ``.github/instructions/`` contains no
           ``jarvis-actor.*`` files. Open VS Code Settings; confirm
-          ``jarvis.actor.autoProvision`` is absent or ``false``.
+          ``jarvis.actor.autoProvision`` is not set at any scope (user,
+          workspace, folder) and that its displayed default is ``true``.
           Reload VS Code window; wait for core to activate.
-        - No ``jarvis-actor.kernel.instructions.md``,
-          ``jarvis-actor.memory.instructions.md``, or
-          ``jarvis-actor.authoring.instructions.md`` appear in
-          ``.github/instructions/``. Output Channel shows no write
-          activity for the ``jarvis-actor`` namespace. No activation
-          error.
+        - All three files are present in ``.github/instructions/``:
+
+          - ``jarvis-actor.kernel.instructions.md``
+          - ``jarvis-actor.memory.instructions.md``
+          - ``jarvis-actor.authoring.instructions.md``
+
+          Each filename begins with ``jarvis-actor.`` (dot separator,
+          satisfying both the namespace rule and the product
+          ``jarvis-*`` convention). No activation error.
 
       * - T-2
 
-          Opt-in: three files provisioned with correct names
+          Explicit opt-in and re-enable after opt-out
 
-          *AC: REQ_MOD_ACTORRULES AC-1, AC-2, AC-4*
-        - Open VS Code Settings; set
-          ``jarvis.actor.autoProvision`` to ``true``.
-          Reload VS Code window; wait for core to activate.
+          *AC: REQ_MOD_ACTORRULES AC-1, AC-2, AC-3*
+        - Set ``jarvis.actor.autoProvision`` to ``false``; reload
+          window; confirm the three files are gone. Then set the
+          setting to ``true``; reload window; wait for core to
+          activate.
         - All three files present in ``.github/instructions/``:
 
           - ``jarvis-actor.kernel.instructions.md``

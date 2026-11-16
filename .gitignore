@@ -32,7 +32,6 @@ docs/_build/
 .jarvis/state/
 .jarvis/heartbeat.yaml
 .jarvis/reminders.yaml
-.jarvis/syspilot-state.json
 jarvis-*
 !packages/*/assets/**
 # END JARVIS MANAGED
@@ -45,7 +44,6 @@ jarvis-*
 testdata/.jarvis/messages/
 testdata/.jarvis/heartbeat.yaml
 testdata/.jarvis/state/
-testdata/.jarvis/syspilot-state.json
 
 # Extension Development Host isolated extensions (launch.json --extensions-dir)
 .vscode-test/

@@ -7,10 +7,10 @@ Modular Delivery Design Specifications
   :links: REQ_MOD_CORE; REQ_MOD_ADDONS; REQ_MOD_READINESS
 
    **Description:**
-   The repository is an npm-workspaces monorepo producing five extension
-   packages plus shared internals (``message-flow-diagram`` CR added
-   ``packages/flow`` as the fourth; ``jarvis-syspilot`` CR added
-   ``packages/syspilot`` as the fifth). Internal module seams created before
+   The repository is an npm-workspaces monorepo producing the extension
+   packages listed below plus shared internals (``message-flow-diagram`` CR added
+   ``packages/flow``; ``retire-jarvis-syspilot`` CR removed
+   ``packages/syspilot``). Internal module seams created before
    the physical split match the future package boundaries, so no throwaway
    structure is needed.
 
@@ -25,7 +25,6 @@ Modular Delivery Design Specifications
         recorder/    -> enthali.jarvis-recorder
         mcp/         -> enthali.jarvis-mcp
         flow/        -> enthali.jarvis-flow
-        syspilot/    -> enthali.jarvis-syspilot
 
    **Acceptance Criteria:**
 
@@ -178,12 +177,14 @@ Modular Delivery Design Specifications
    * AC-1: PIM is prominently marked ``EXPERIMENTAL``; its materials do not
      imply that Jarvis PIM provides email triage or includes the external
      email-triage skill in a PIM release.
-   * AC-2: Syspilot is prominently marked ``EXPERIMENTAL — DO NOT USE`` and
-     explains the incompatibility expected with the upcoming syspilot 0.10
-     release.
-   * AC-3: The root README communicates both warnings and the PIM limitation;
-     the PIM and Syspilot extension pages and Marketplace descriptions carry
-     their respective warnings.
+   * AC-2: The Syspilot package is removed from the repository, and future
+     release workflows neither package it nor upload or publish a Syspilot
+     VSIX. The User unpublishes the Marketplace listing in a later Release
+     Contract; the existing extension ID and statistics remain. Existing
+     installations and historical GitHub release assets are not removed by
+     this change.
+   * AC-3: The root README communicates the PIM warning and the PIM limitation;
+     the PIM extension page and Marketplace description carry the warning.
    * AC-4: The Suite package is removed from the repository, and future release
      workflows neither package it nor upload or publish a Suite VSIX. The User
      unpublishes the Marketplace listing; the existing extension ID and
@@ -264,34 +265,6 @@ Modular Delivery Design Specifications
      ``registerTool`` — it is purely a consumer of the registry.
 
 
-.. spec:: Syspilot Package
-   :id: SPEC_MOD_SPL_PKG
-   :status: draft
-   :links: REQ_MOD_ADDONS; REQ_MOD_ZEROTRACE; SPEC_SPL_PACKAGE; SPEC_REL_PKGCONTRACT
-
-   **Description:**
-   ``packages/syspilot`` builds ``enthali.jarvis-syspilot`` with
-   ``extensionDependencies: ["enthali.jarvis-core"]``. On activation it obtains
-   the core API, performs a startup version check against the pinned upstream
-   syspilot release tag, and registers commands and LM tools for suspend/skip
-   management. It uses the Actor framework via
-   ``invokeTool('jarvis_createActor', ...)`` and ``listActors()``
-   (``SPEC_ENG_ACTORLIST``).
-
-   See ``SPEC_SPL_PACKAGE`` and related ``SPEC_SPL_*`` specs for the full
-   feature design.
-
-   **Acceptance Criteria:**
-
-   * AC-1: Manifest declares ``extensionDependencies: ["enthali.jarvis-core"]``.
-   * AC-2: ``contributes.commands`` includes ``jarvis.syspilotUpdate``,
-     ``jarvis.delaySyspilotUpdate``, and ``jarvis.SyspilotSkipThisVersion``.
-   * AC-3: ``contributes.configuration`` includes ``jarvis.syspilot.releaseTag``
-     (string, default ``"main"``).
-   * AC-4: When not installed, no syspilot-related commands, settings, or tools
-     appear anywhere (per ``REQ_MOD_ZEROTRACE``).
-
-
 .. spec:: Add-on Onboarding Checklist
    :id: SPEC_MOD_ADDON_ONBOARDING
    :status: draft
@@ -302,8 +275,7 @@ Modular Delivery Design Specifications
    the following registration points SHALL be verified before the design phase
    is closed. This checklist exists because previous releases shipped with
    incomplete add-on wiring (e.g. ``jarvis-flow`` was once missing from the
-   self-update VSIX mapping; ``jarvis-syspilot`` was missing from the CI
-   release pipeline).
+   self-update VSIX mapping).
 
    **Checklist items:**
 
@@ -341,7 +313,7 @@ Modular Delivery Design Specifications
    **Acceptance Criteria:**
 
    * AC-1: Every item in the checklist above is satisfied for all
-     currently shipped add-ons (pim, recorder, mcp, flow, syspilot).
+     currently shipped add-ons (pim, recorder, mcp, flow).
    * AC-2: The checklist is referenced from ``REQ_MOD_ADDONS`` via
      ``:links:`` so it is discoverable in the traceability graph.
 
@@ -491,7 +463,7 @@ Modular Delivery Design Specifications
 
       const actorRules = vscode.workspace
           .getConfiguration('jarvis.actor')
-          .get<boolean>('autoProvision', false);   // default false — REQ_MOD_ACTORRULES AC-3
+          .get<boolean>('autoProvision', true);   // default true — REQ_MOD_ACTORRULES AC-3
       void provisionModuleAssets(context, {
           namespace: 'jarvis-actor',
           instructionsSourceDir: context.asAbsolutePath('assets/instructions'),
@@ -539,17 +511,18 @@ Modular Delivery Design Specifications
 
       "jarvis.actor.autoProvision": {
         "type": "boolean",
-        "default": false,
-        "description": "Install the Jarvis actor rule files (kernel, memory, authoring) into .github/instructions/. Off by default — enable in workspaces that run Jarvis actors."
+        "default": true,
+        "description": "Install the Jarvis actor rule files (kernel, memory, authoring) into .github/instructions/. On by default — set to false in workspaces that do not run Jarvis actors to remove them."
       }
 
    **Acceptance Criteria:**
 
-   * AC-1: With ``jarvis.actor.autoProvision`` unset, activation writes nothing
-     into ``.github/instructions/``.
-   * AC-2: With it ``true``, the three files appear with content byte-identical
-     to the bundled sources.
-   * AC-3: Setting it back to ``false`` removes exactly those three files and
+   * AC-1: With ``jarvis.actor.autoProvision`` unset, activation writes the
+     three files into ``.github/instructions/``; with it explicitly ``false``,
+     activation writes nothing there.
+   * AC-2: With it ``true`` or unset, the three files appear with content
+     byte-identical to the bundled sources.
+   * AC-3: Setting it to ``false`` removes exactly those three files and
      leaves every other file in the directory untouched — including
      ``mermaid.instructions.md``, which is owned by the MermaidChart extension
      and appears in no Jarvis manifest.

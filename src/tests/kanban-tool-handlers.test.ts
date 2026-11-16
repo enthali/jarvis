@@ -251,3 +251,33 @@ describe('jarvis_listKanbanFilterValues: the real handler (SPEC_KAN_FILTERVALUES
         expect(fs.readdirSync(path.dirname(file))).toEqual(['kanban.yaml']);
     });
 });
+
+describe('kanban-tool-validation: non-string labels in list projection (REQ_KAN_LIST AC-11, SPEC_KAN_LIST AC-12)', () => {
+    const board = 'title: L\nfields:\n  - name: status\n    type: single_select\n    options:\n      - name: A\nitems:\n'
+        + '  - id: 1\n    name: Mixed\n    status: A\n    labels:\n      - urgent\n      - 5\n      - ~\n      - {k: v}\n      - later\n'
+        + '  - id: 2\n    name: Scalar\n    status: A\n    labels: urgent\n';
+
+    it('both shapes return only the string entries in stored order, and filter-values counts the same set', async () => {
+        writeBoard('Mixed', board);
+        const compact = await call('jarvis_listKanbanItems', { ownerName: 'Mixed' });
+        const full = await call('jarvis_listKanbanItems', { ownerName: 'Mixed', details: true });
+        expect(compact.items?.[0].labels).toEqual(['urgent', 'later']);
+        expect(full.items?.[0].labels).toEqual(['urgent', 'later']);
+        expect(compact.items?.[1].labels).toEqual([]);
+        expect((await call('jarvis_listKanbanFilterValues', { ownerName: 'Mixed' })).labels)
+            .toEqual([{ name: 'later', count: 1 }, { name: 'urgent', count: 1 }]);
+        expect((await call('jarvis_listKanbanItems', { ownerName: 'Mixed', labels: ['later'] })).count).toBe(1);
+    });
+});
+
+describe('kanban-tool-validation: owner resolution through the real handler (K62, REQ_KAN_CREATE AC-3, AC-4)', () => {
+    it('missing or empty ownerName, unknown name and an ambiguous name are all refused; one match resolves', async () => {
+        writeBoard('Solo', sample);
+        actors.push({ name: 'Twin', folder: path.join(tmp, 'Twin1') }, { name: 'Twin', folder: path.join(tmp, 'Twin2') });
+        expect(await call('jarvis_listKanbanItems', {})).toEqual({ error: 'ownerName required' });
+        expect(await call('jarvis_listKanbanItems', { ownerName: '' })).toEqual({ error: 'ownerName required' });
+        expect(await call('jarvis_listKanbanItems', { ownerName: 'No Such Actor' })).toEqual({ error: 'actor unknown' });
+        expect(await call('jarvis_listKanbanItems', { ownerName: 'Twin' })).toEqual({ error: 'actor unknown' });
+        expect((await call('jarvis_listKanbanItems', { ownerName: 'Solo' })).count).toBe(4);
+    });
+});
