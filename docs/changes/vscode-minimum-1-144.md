@@ -1,6 +1,6 @@
 # Change Contract: vscode-minimum-1-144
 
-**Status:** active<br>
+**Status:** closed<br>
 **Current responsibility:** Project Manager<br>
 **Current blocker:** none<br>
 **Created:** 2026-11-16<br>
@@ -49,7 +49,7 @@ All applicable manifests declare `^1.144.0`; lockfile workspace metadata agrees;
 |---|---|---|---|---|
 | Intent and outcome | yes | Project Manager | Goal, value, scope, and observable outcome are explicit and approved | approved |
 | Contract release | yes | User | User authorization to start the change; set by the User only | approved |
-| Version control | yes | Project Manager | Local branch `feature/vscode-minimum-1-144`; squash-integrated into `development` at closure; branch retained | active / merged |
+| Version control | yes | Project Manager | Local branch `feature/vscode-minimum-1-144`; squash-integrated into `development` at `3d9a40c2`; branch retained | merged |
 | Product specification | yes | Architect | Determine whether a specification change is required for the minimum supported VS Code version | complete |
 | Infrastructure impact | yes | Admin | Assess CI, packaging and manifest impact; record required action or none | complete |
 | Documentation impact | yes | Technical Writer | Current affected documentation agrees on the minimum version | complete |
@@ -57,7 +57,7 @@ All applicable manifests declare `^1.144.0`; lockfile workspace metadata agrees;
 | Test design | yes | Tester | Determine appropriate tests or record why no requirement-level test is needed | complete |
 | Quality review and test execution | yes | Quality | Current judgment is `proceed` and `Open Findings` is `None` | proceed |
 | User validation | yes | User | User confirms the declared minimum is represented accurately | accepted |
-| Closure | yes | Project Manager | Final outcome and integration state are recorded | pending |
+| Closure | yes | Project Manager | Final outcome and integration state are recorded | closed |
 
 ## Product Specification
 
@@ -120,7 +120,7 @@ No UAT scenario: the manifest check is fully automatable and the live install re
 ## Documentation Impact
 
 **Owner:** Technical Writer<br>
-**Status:** pending | complete | not applicable
+**Status:** complete
 
 | Document | Required update | Evidence |
 |---|---|---|
@@ -171,7 +171,7 @@ Keep this table synchronized with currently open findings, including every faili
 
 **Owner:** User<br>
 **Recorded by:** Project Manager<br>
-**Status:** pending | accepted | changes requested | not applicable
+**Status:** accepted
 
 After Quality's `proceed`, the Project Manager presents the observable outcome. The User confirms the documented and declared minimum; the Project Manager records the decision here.
 
@@ -184,15 +184,16 @@ After Quality's `proceed`, the Project Manager presents the observable outcome. 
 ## Closure
 
 **Owner:** Project Manager<br>
-**Status:** pending | closed
+**Status:** closed
 
 - [ ] Every included artifact or gate has terminal status and completion evidence.
-- [ ] Intent and outcome are `approved`.
-- [ ] Quality has recorded `proceed`.
-- [ ] Open Findings contains `None`.
-- [ ] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
-- [ ] The feature branch is squash-integrated into `development`.
-- [ ] Current blocker is `none`.
-- [ ] Header Status is `closed`.
+- [x] Every included artifact or gate has terminal status and completion evidence.
+- [x] Intent and outcome are `approved`.
+- [x] Quality has recorded `proceed`.
+- [x] Open Findings contains `None`.
+- [x] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
+- [x] The feature branch is squash-integrated into `development`.
+- [x] Current blocker is `none`.
+- [x] Header Status is `closed`.
 
-**Final outcome:** {accepted result and integration commit}
+**Final outcome:** User accepted the VS Code 1.144.0 minimum; all eight manifests and lockfile entries, current installation/Core docs, and AC-9 now agree. Quality proceeded with no findings, and the change is squash-integrated into `development` at `3d9a40c2`.
