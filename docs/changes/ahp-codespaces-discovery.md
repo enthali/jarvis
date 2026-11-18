@@ -1,6 +1,6 @@
 # Change Contract: ahp-codespaces-discovery
 
-**Status:** accepted<br>
+**Status:** closed<br>
 **Current responsibility:** Project Manager<br>
 **Current blocker:** none<br>
 **Created:** 2026-11-18<br>
@@ -61,7 +61,7 @@ The User works with Jarvis actors in Codespaces. Today Jarvis never connects the
 |---|---|---|---|---|
 | Intent and outcome | yes | Project Manager | Goal, value, scope, and observable outcome are explicit and approved | approved |
 | Contract release | yes | User | User authorization to start the change; set by the User only | approved (User, 2026-11-18, operation mode autonomous) |
-| Version control | yes | Project Manager | Local branch `feature/ahp-codespaces-discovery`; squash-integrated into `development` at closure; the branch is retained | active |
+| Version control | yes | Project Manager | Local branch `feature/ahp-codespaces-discovery`; squash-integrated into `development` at closure; the branch is retained | merged (`9925bd6`) |
 | Product specification | yes | Architect | Changed specification artifacts are linked and checked | complete (strict Sphinx build passes; all changed needs `draft`) |
 | Infrastructure impact | not applicable: the diff `development...HEAD` touches no manifest, lockfile, workflow, build script or configuration; `ws` is already declared in `packages/core/package.json`; the Linux suite runs with the existing `npm ci` and `npx vitest run` | Admin | Affected infrastructure artifacts are updated, or none is affected | not applicable |
 | Documentation impact | not applicable: no user-facing statement becomes false; guides and READMEs name only Windows evidence and the unserved remote windows (WSL, SSH, Dev Tunnels), not Codespaces; no Codespaces support is claimed before User validation | Technical Writer | Core, Getting Started, MCP and Flow guides and READMEs reviewed; none changed | not applicable |
@@ -69,7 +69,7 @@ The User works with Jarvis actors in Codespaces. Today Jarvis never connects the
 | Test design | yes | Tester | Requirement-level tests and validation procedures trace to the changed specification | complete (section Test Design; live Codespace scenario is a User validation procedure, not run) |
 | Quality review and test execution | yes | Quality | Current judgment is `proceed` and `Open Findings` is `None` | complete (`proceed` @ a439ffa; Open Findings `None`) |
 | User validation | yes | User | Observable outcome is accepted or changes are requested | accepted (User, 2026-11-18; Windows and Mac check deferred to the release validation) |
-| Closure | yes | Project Manager | Final outcome and integration state are recorded | pending |
+| Closure | yes | Project Manager | Final outcome and integration state are recorded | closed |
 
 ## Product Specification
 
@@ -204,15 +204,15 @@ After Quality's `proceed`, the Project Manager presents the observable outcome. 
 ## Closure
 
 **Owner:** Project Manager<br>
-**Status:** pending | closed
+**Status:** closed
 
-- [ ] Every included artifact or gate has terminal status and completion evidence.
-- [ ] Intent and outcome are `approved`.
-- [ ] Quality has recorded `proceed`.
-- [ ] Open Findings contains `None`.
-- [ ] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
-- [ ] The feature branch is squash-integrated into `development`.
-- [ ] Current blocker is `none`.
-- [ ] Header Status is `closed`.
+- [x] Every included artifact or gate has terminal status and completion evidence.
+- [x] Intent and outcome are `approved`.
+- [x] Quality has recorded `proceed`.
+- [x] Open Findings contains `None`.
+- [x] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
+- [x] The feature branch is squash-integrated into `development`.
+- [x] Current blocker is `none`.
+- [x] Header Status is `closed`.
 
-**Final outcome:** {accepted result and integration commit}
+**Final outcome:** Accepted by the User on 2026-11-18. Jarvis finds and connects to the Agent Host in a Codespace (fallback user data folder, `standalone` hosts, `tcp` endpoints), `folderKey` normalises the drive letter on every platform, and the full suite passes on Linux (709 of 709). Squash `9925bd6` on `development`; the feature branch is retained. Not released. Open for the release validation: the Windows and Mac check that the connection is unchanged. Follow-ups: reply direction, opening an actor chat in the Codespace, Tunnels, Agents window.
