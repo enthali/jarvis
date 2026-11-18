@@ -1,8 +1,8 @@
 # Change Contract: uat-status-model-cleanup
 
-**Status:** accepted<br>
+**Status:** closed<br>
 **Current responsibility:** Project Manager<br>
-**Current blocker:** Integration awaits a passing Needs check on the accepted Contract.<br>
+**Current blocker:** none<br>
 **Created:** 2026-11-17<br>
 - **Operation Mode**: autonomous — artifact owners decide within approved scope; the Architect resolves ontology, status-semantics, and migration-scope decisions interactively with the User and pauses specification completion until answered.
 
@@ -66,7 +66,7 @@ The approved specification records the UAT artifact model, status semantics and 
 |---|---|---|---|---|
 | Intent and outcome | yes | Project Manager | Goal, value, scope, and observable outcome are explicit and approved | approved |
 | Contract release | yes | User | User explicitly approved Contract release via the approval form on 2026-11-17; set by the User only | approved |
-| Version control | yes | Project Manager | Local branch `feature/uat-status-model-cleanup`; squash-integrated into `development` at closure; the branch is retained | active |
+| Version control | yes | Project Manager | Needs check passed at `16a458c9`; squash-integrated into `development` at `6e8352c0`; the feature branch is retained | merged |
 | Product specification | yes | Architect | Changed specification artifacts are linked and checked | complete |
 | Infrastructure impact | yes | Admin | Affected infrastructure artifacts are updated, or none is affected | complete |
 | Documentation impact | yes | Technical Writer | Affected user-facing documents are updated | complete |
@@ -74,7 +74,7 @@ The approved specification records the UAT artifact model, status semantics and 
 | Test design | yes | Tester | Requirement-level tests and validation procedures trace to the changed specification | complete |
 | Quality review and test execution | yes | Quality | Current judgment is `proceed` and `Open Findings` is `None` | proceed |
 | User validation | yes | User | User confirmed Phase-1 scenarios 1 and 3 passed; see User Validation. | accepted |
-| Closure | yes | Project Manager | Final outcome and integration state are recorded | pending |
+| Closure | yes | Project Manager | Final outcome and integration state are recorded | closed |
 
 ## Product Specification
 
@@ -294,15 +294,15 @@ On 2026-11-18, the User confirmed that Phase-1 scenarios 1 and 3 worked. Scenari
 ## Closure
 
 **Owner:** Project Manager<br>
-**Status:** pending | closed
+**Status:** closed
 
-- [ ] Every included artifact or gate has terminal status and completion evidence.
-- [ ] Intent and outcome are `approved`.
-- [ ] Quality has recorded `proceed`.
-- [ ] Open Findings contains `None`.
-- [ ] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
-- [ ] The feature branch is squash-integrated into `development`.
-- [ ] Current blocker is `none`.
-- [ ] Header Status is `closed`.
+- [x] Every included artifact or gate has terminal status and completion evidence.
+- [x] Intent and outcome are `approved`.
+- [x] Quality has recorded `proceed`.
+- [x] Open Findings contains `None`.
+- [x] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
+- [x] The feature branch is squash-integrated into `development`.
+- [x] Current blocker is `none`.
+- [x] Header Status is `closed`.
 
-**Final outcome:** {accepted result and integration commit}
+**Final outcome:** On 2026-11-18, the User accepted Actor Phase-1 scenarios 1 and 3 and the new integration rule. Quality accepted the technical evidence for scenario 2. The remaining 35 journeys are `approved` and unexecuted. `python scripts/check_contract_needs.py` passed at `16a458c9` before squash integration into local `development` at `6e8352c0`.
