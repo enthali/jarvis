@@ -24,7 +24,6 @@ Design Specifications describe **how** requirements are fulfilled technically.
    spec_mod
    spec_flow
    spec_kan
-   spec_uat
 
 All Specifications
 ------------------

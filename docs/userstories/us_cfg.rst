@@ -4,6 +4,7 @@ Configuration User Stories
 .. story:: Heartbeat Config File Location
    :id: US_CFG_HEARTBEAT
    :status: implemented
+   :tracked_by: MOD_CONFIG
    :priority: optional
    :links: US_AUT_HEARTBEAT
 
@@ -22,6 +23,7 @@ Configuration User Stories
 .. story:: Message Queue Storage Location
    :id: US_CFG_MSG
    :status: deprecated
+   :tracked_by: MOD_CONFIG
    :priority: optional
    :links: US_COM_SEND; US_CFG_FIXEDPATHS
 
@@ -50,6 +52,7 @@ Configuration User Stories
 .. story:: Grouped Settings Categories
    :id: US_CFG_SETTINGSGROUPS
    :status: deprecated
+   :tracked_by: MOD_CONFIG
    :priority: mandatory
    :links: US_CFG_HEARTBEAT; US_CFG_MSG
 
@@ -78,6 +81,7 @@ Configuration User Stories
 .. story:: Per-Feature Enable Toggles
    :id: US_CFG_FEATURETOGGLES
    :status: approved
+   :tracked_by: MOD_CONFIG
    :priority: required
 
    **As a** Jarvis user,
@@ -107,6 +111,7 @@ Configuration User Stories
 .. story:: Fixed Runtime File Paths
    :id: US_CFG_FIXEDPATHS
    :status: implemented
+   :tracked_by: MOD_CONFIG
    :priority: required
 
    **As a** Jarvis user,
@@ -135,6 +140,7 @@ Configuration User Stories
 .. story:: Identifiable Jarvis-Owned Workspace Files
    :id: US_CFG_WORKSPACEFILES
    :status: approved
+   :tracked_by: MOD_CONFIG
    :priority: required
    :links: US_CFG_FIXEDPATHS
 
@@ -173,6 +179,7 @@ Configuration User Stories
 .. story:: Comprehensible Runtime File Layout
    :id: US_CFG_RUNTIMELAYOUT
    :status: implemented
+   :tracked_by: MOD_CONFIG
    :priority: required
    :links: US_CFG_FIXEDPATHS; US_CFG_WORKSPACEFILES
 
@@ -220,6 +227,7 @@ Configuration User Stories
 .. story:: Automatically Maintained Ignore Entries
    :id: US_CFG_AUTOGITIGNORE
    :status: implemented
+   :tracked_by: MOD_CONFIG
    :priority: required
    :links: US_CFG_WORKSPACEFILES; US_CFG_RUNTIMELAYOUT
 
@@ -272,6 +280,7 @@ Configuration User Stories
 .. story:: Grouped Settings Organization
    :id: US_CFG_GROUPS
    :status: approved
+   :tracked_by: MOD_CONFIG
    :priority: required
 
    **As a** Jarvis user,

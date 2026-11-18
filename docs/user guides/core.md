@@ -55,7 +55,7 @@ In the Windows Sandbox on 2026-11-03, the User observed that Actor chats, messag
 - Project-owned prompts, skills and agents must use the changed message-tool inputs above; remove `senderSession` and `destination` from send and receive calls.
 - Recently Touched Files is removed in 0.32.0 and is on the roadmap for a future version. Old `.jarvis/state/touched-files/` data and any old `chat.hookFilesLocations` entry in `.vscode/settings.json` remain on disk.
 - The MCP server stays off unless `jarvis.mcp.enabled` is explicitly `true`, including after an upgrade without a stored setting.
-- The manual Agent Host scenarios and upgrade cleanup of a project still containing old hook files (`US_UAT_MSG` T-22) were not run in validation of the included changes. The observed Sandbox results do not turn those procedures into test passes.
+- The manual Agent Host scenarios and upgrade cleanup of a project still containing old hook files were not run in validation of the included changes. The observed Sandbox results do not turn those procedures into test passes.
 
 ## Upgrading from a hook-based version
 

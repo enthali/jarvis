@@ -30,14 +30,16 @@ The Contract names artifacts by role; the project ontology defines how each role
 
 | Contract artifact | Realized in Jarvis today | Owner |
 |---|---|---|
-| Product specification | `story`, `req`, `spec` Needs in `docs/userstories/`, `docs/requirements/`, `docs/design/`, connected by `:links:` | Architect |
+| Product specification | `root`, `mod`, `story`, `req`, `spec` Needs in `docs/product/`, `docs/userstories/`, `docs/requirements/`, `docs/design/`; every `story` is `tracked_by` one `mod`, every `mod` by `ROOT_JARVIS`; `req` and `spec` connect to the story by the untyped `:links:` | Architect |
 | Requirement-level test (system test) | Vitest test files in `src/tests/`; the test title names the REQ or SPEC ID it verifies | Tester |
-| Validation test | Test procedure for a User Story, executed by the User | Tester |
+| Validation test | `ac` Needs in `docs/acceptance/`, each `:validates:` a feature story; the Tester or Quality executes the scenario and records it for `verified` | Tester |
 | User-facing documentation | Documents listed in the Technical Writer's document map | Technical Writer |
 
-Quality's review methods read the Needs graph. With untyped `:links:`, Quality records the resulting analysis limits in its `Applied Review Methods` table.
+Quality's review methods read the Needs graph. The untyped `:links:` between story, requirement and spec remain; Quality records the resulting analysis limits in its `Applied Review Methods` table. To scope a change, start the impact analysis at the `MOD_*` Need the change belongs to.
 
-The Jarvis ontology lives in `docs/jarvis-ontology.toml`. The syspilot skill scripts (impact, MECE, trace) take it through `--ontology docs/jarvis-ontology.toml`.
+The User's validation is recorded only in the Contract's `User Validation` section, never as a Need status; Needs end at `verified`. The `Validation` rows name every changed `US_*` and `AC_*` ID the User judged, because the Needs check compares them before integration (`REQ_REL_NEEDSCHECK`).
+
+The Jarvis ontology lives in `docs/Jarvis Ontology/ontology.toml`, with its reference in `docs/Jarvis Ontology/ontology.md`. The syspilot skill scripts (impact, MECE, trace) default to `.syspilot/ontology.toml`, which Jarvis does not have; pass `--ontology "docs/Jarvis Ontology/ontology.toml"` and, with `--no-build`, a built `docs/_build/html/needs_id/`.
 
 ## Change Contract Initialization
 
@@ -209,7 +211,7 @@ After Quality's `proceed`, the Project Manager presents the observable outcome. 
 
 | Validation | Observation | Date |
 |---|---|---|
-| {procedure or US ID} | {what the User observed} | {date} |
+| {procedure; every changed `US_*` and `AC_*` ID the User judged} | {what the User observed} | {date} |
 
 **Decision:** {accepted | changes requested | explicit User delegation from the artifact row}
 

@@ -52,7 +52,7 @@ In the editor window, activity icons come from the Agent Host: red cross for Err
 
 The User observed Actor chats, messaging and the Kanban board working in the Windows Sandbox on 2026-11-03. Flow (message view and log) cannot be opened there yet. Jarvis features offered through the status bar or a tree do not work there: ACTORS activity/mail markers, the PIM mail notification in the tree, and Recorder, which has no UI that can be triggered there. Tree markers, Flow, PIM and Recorder support there is on the roadmap; there is no plan yet.
 
-The manual Agent Host scenarios and upgrade cleanup with old hook files (`US_UAT_MSG` T-22) were not run in validation of the included changes. See the [Core guide](../../docs/user%20guides/core.md) for the full limitations.
+The manual Agent Host scenarios and upgrade cleanup with old hook files were not run in validation of the included changes. See the [Core guide](../../docs/user%20guides/core.md) for the full limitations.
 
 ## Upgrading from a Hook-Based Version
 

@@ -723,3 +723,43 @@ Release Requirements
    * AC-2: The shim release remains downloadable from GitHub Releases so existing
      ``enthali.jarvis`` users continue to receive it via the self-update check
      (REQ_REL_UPDATECHECK) and are migrated.
+
+
+.. req:: Contract Needs Check Before Integration
+   :id: REQ_REL_NEEDSCHECK
+   :status: verified
+   :priority: mandatory
+   :links: US_REL_GITWORKFLOW
+
+   **Description:**
+   A check SHALL compare the Needs a feature branch changed with the branch's Change
+   Contract, so that the specification and the User's validation are demonstrably complete
+   before the branch is integrated. User validation is recorded only in the Contract; the
+   check is what ties it back to the Needs.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The check takes the Change Contract and a base ref. Without a Contract path it
+     uses ``docs/changes/<name>.md`` for the branch ``feature/<name>``; without a base ref it
+     uses ``development``.
+   * AC-2: The changed Needs are those whose ID is new, or whose status or content differs,
+     between the merge base with the base ref and the branch head. A Need that no longer
+     exists is not a changed Need, and neither is a Need whose links alone changed.
+   * AC-3: Every changed Need of type ``story``, ``req`` or ``spec`` has the status
+     ``implemented``, ``verified`` or ``deprecated``. A changed ``ac`` has the status
+     ``approved``, ``verified`` or ``deprecated``: an ``ac`` is defined before it is run, so
+     ``approved`` is a complete state for a criterion the Contract does not execute.
+   * AC-4: Every changed ``story`` that is not ``deprecated`` is named in the User
+     validation section of the Contract.
+   * AC-5: A changed ``ac`` that is not ``deprecated`` has the status ``verified`` if it is
+     named in the User validation section or in the Test Execution subsection of the
+     Contract, and ``approved`` otherwise. Naming an ``ac`` states that the Contract
+     executed it; ``verified`` records that the result is on file.
+   * AC-6: When any changed ``story`` or ``ac`` is named in the User validation section,
+     that section's status line is ``accepted`` or ``explicit User delegation``, optionally
+     preceded by ``not applicable:``. A status line that opens with anything else, such as
+     ``pending`` or ``changes requested``, does not satisfy this criterion.
+   * AC-7: The check exits with 0 when AC-3 to AC-6 hold. Otherwise it exits non-zero and
+     names each violating Need ID with the violated criterion.
+   * AC-8: The check reads only the repository: the built Needs data of the two commits and
+     the Contract file. It starts no network access.

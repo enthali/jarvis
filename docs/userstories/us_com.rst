@@ -4,6 +4,7 @@ Actor Communication User Stories
 .. story:: Actors Send and Receive Messages
    :id: US_COM_SEND
    :status: approved
+   :tracked_by: MOD_MESSAGING
    :priority: mandatory
 
    **As an** Actor,
@@ -28,6 +29,7 @@ Actor Communication User Stories
 .. story:: Messages Name Their Sender and Fail Visibly When Misaddressed
    :id: US_COM_SENDER
    :status: approved
+   :tracked_by: MOD_MESSAGING
    :priority: mandatory
 
    **As an** Actor or the User,
@@ -47,6 +49,7 @@ Actor Communication User Stories
 .. story:: Actors Find Other Actors
    :id: US_COM_FIND
    :status: approved
+   :tracked_by: MOD_MESSAGING
    :priority: required
 
    **As an** Actor,
@@ -62,6 +65,7 @@ Actor Communication User Stories
 .. story:: Messages Cannot Pose as the User
    :id: US_COM_AUTHORITY
    :status: approved
+   :tracked_by: MOD_MESSAGING
    :priority: mandatory
 
    **As the** User,
@@ -82,6 +86,7 @@ Actor Communication User Stories
 .. story:: The User Controls Whether Messages Make Actors Act
    :id: US_COM_DELIVERY
    :status: approved
+   :tracked_by: MOD_MESSAGING
    :priority: required
 
    **As the** User,
@@ -101,6 +106,7 @@ Actor Communication User Stories
 .. story:: The User Can Follow Every Delivery and Review the History
    :id: US_COM_HISTORY
    :status: approved
+   :tracked_by: MOD_MESSAGING
    :priority: optional
 
    **As the** User,
@@ -124,6 +130,7 @@ Actor Communication User Stories
 .. story:: An Actor's Chat Is Recognisable
    :id: US_COM_NAME
    :status: approved
+   :tracked_by: MOD_MESSAGING
    :priority: required
 
    **As the** User,

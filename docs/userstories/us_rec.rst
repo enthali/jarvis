@@ -4,6 +4,7 @@ Recording User Stories
 .. story:: Record a Meeting for an Actor
    :id: US_REC_CAPTURE
    :status: approved
+   :tracked_by: MOD_RECORDER
    :priority: mandatory
    :links: US_ACTOR_TREE; US_REC_ENABLE
 
@@ -23,6 +24,7 @@ Recording User Stories
 .. story:: Enable / Disable Recording Feature
    :id: US_REC_ENABLE
    :status: implemented
+   :tracked_by: MOD_RECORDER
    :priority: mandatory
    :links: US_REC_CAPTURE
 
@@ -41,6 +43,7 @@ Recording User Stories
 .. story:: Meeting Transcript Right After the Meeting
    :id: US_REC_TRANSCRIPT
    :status: approved
+   :tracked_by: MOD_RECORDER
    :priority: mandatory
    :links: US_ACTOR_FILES_TREE
 
@@ -63,6 +66,7 @@ Recording User Stories
 .. story:: Watch the Transcript While the Meeting Runs
    :id: US_REC_LIVEVIEW
    :status: approved
+   :tracked_by: MOD_RECORDER
    :priority: mandatory
    :links: US_REC_CAPTURE; US_REC_TRANSCRIPT; US_REC_DISPATCH; US_MSG_EDITORPLACEMENT
 
@@ -84,6 +88,7 @@ Recording User Stories
 .. story:: Notify the Actor of a New Transcript
    :id: US_REC_DISPATCH
    :status: implemented
+   :tracked_by: MOD_RECORDER
    :priority: mandatory
    :links: US_REC_TRANSCRIPT; US_COM_DELIVERY
 

@@ -4,6 +4,7 @@ Release User Stories
 .. story:: Documentation Publishing
    :id: US_REL_DOCS
    :status: implemented
+   :tracked_by: MOD_DISTRIBUTION
    :priority: mandatory
 
    **As a** Jarvis Developer,
@@ -21,6 +22,7 @@ Release User Stories
 .. story:: Extension Release
    :id: US_REL_RELEASE
    :status: implemented
+   :tracked_by: MOD_DISTRIBUTION
    :priority: mandatory
 
    **As a** Jarvis Developer,
@@ -38,6 +40,7 @@ Release User Stories
 .. story:: Semantic Versioning
    :id: US_REL_VERSION
    :status: implemented
+   :tracked_by: MOD_DISTRIBUTION
    :priority: mandatory
 
    **As a** Jarvis Developer,
@@ -53,7 +56,8 @@ Release User Stories
 
 .. story:: Git Branch & Merge Workflow
    :id: US_REL_GITWORKFLOW
-   :status: implemented
+   :status: verified
+   :tracked_by: MOD_DEV
    :priority: mandatory
    :links: US_DEV_CONVENTIONS
 
@@ -69,11 +73,17 @@ Release User Stories
    * AC-3: Feature branches are kept locally after merge but NOT pushed to origin
    * AC-4: All changes including hotfixes go through the syspilot Change process — no direct commits to `main`
    * AC-5: The Release Agent documents and follows the merge strategy
+   * AC-6: Before a feature branch is integrated, the Change Contract is checked against the
+     specification: every Need the branch changed has reached the status its type requires,
+     every changed story is named in the Contract's User validation, and every changed
+     acceptance criterion the Contract executed is verified and named there or in Quality's
+     Test Execution.
 
 
 .. story:: Self-Update Check
    :id: US_REL_SELFUPDATE
    :status: implemented
+   :tracked_by: MOD_DISTRIBUTION
    :priority: optional
    :links: US_REL_RELEASE; US_REL_VERSION
 
@@ -104,6 +114,7 @@ Release User Stories
 .. story:: See What Changed After an Update
    :id: US_REL_WHATSNEW
    :status: implemented
+   :tracked_by: MOD_DISTRIBUTION
    :priority: required
    :links: US_REL_RELEASE; US_REL_SELFUPDATE
 
@@ -167,6 +178,7 @@ Release User Stories
 .. story:: VS Code Marketplace Discoverability
    :id: US_REL_MARKETPLACE
    :status: draft
+   :tracked_by: MOD_DISTRIBUTION
    :priority: mandatory
 
    *Context: Complements US_REL_RELEASE (GitHub Releases) by adding a second
@@ -190,6 +202,7 @@ Release User Stories
 .. story:: Extension Package Contract
    :id: US_REL_PKGCONTRACT
    :status: implemented
+   :tracked_by: MOD_DISTRIBUTION
    :priority: mandatory
 
    *Context: Complements US_REL_RELEASE (GitHub Releases) and US_REL_MARKETPLACE
@@ -214,6 +227,7 @@ Release User Stories
 .. story:: Legacy Extension Retirement
    :id: US_REL_RETIRELEGACY
    :status: draft
+   :tracked_by: MOD_DISTRIBUTION
    :priority: mandatory
    :links: US_REL_SELFUPDATE
 

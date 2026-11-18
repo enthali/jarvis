@@ -4,6 +4,7 @@ Modular Delivery User Stories
 .. story:: Install Only the Capabilities I Need
    :id: US_MOD_INSTALL
    :status: approved
+   :tracked_by: MOD_DISTRIBUTION
    :priority: required
 
    **As a** Jarvis user,
@@ -44,6 +45,7 @@ Modular Delivery User Stories
 .. story:: Module Copilot Asset Self-Provisioning
    :id: US_MOD_SKILL_PROVISION
    :status: approved
+   :tracked_by: MOD_DISTRIBUTION
    :priority: required
    :links: US_MOD_INSTALL
 
@@ -83,6 +85,7 @@ Modular Delivery User Stories
 .. story:: Actor Behavioural Rules Delivered With the Product
    :id: US_MOD_ACTORRULES
    :status: approved
+   :tracked_by: MOD_DISTRIBUTION
    :priority: required
    :links: US_MOD_SKILL_PROVISION; US_ACTOR_ACTORS
 
@@ -123,6 +126,7 @@ Modular Delivery User Stories
 .. story:: Know the Readiness of Jarvis Extensions
   :id: US_MOD_READINESS
   :status: approved
+  :tracked_by: MOD_DISTRIBUTION
   :priority: required
   :links: US_MOD_INSTALL; US_REL_MARKETPLACE
 
@@ -151,6 +155,7 @@ Modular Delivery User Stories
 .. story:: Tell Jarvis Tools Apart From Other Tools
    :id: US_MOD_TOOLREF
    :status: approved
+   :tracked_by: MOD_DISTRIBUTION
    :priority: required
    :links: US_MOD_INSTALL
 

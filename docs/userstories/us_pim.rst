@@ -4,6 +4,7 @@ PIM User Stories
 .. story:: Category Sync via Exchangeable Providers
    :id: US_PIM_CATEGORIES
    :status: implemented
+   :tracked_by: MOD_PIM
    :priority: mandatory
    :links: US_AUT_HEARTBEAT
 
@@ -29,6 +30,7 @@ PIM User Stories
 .. story:: Category Management Tool (LM/MCP)
    :id: US_PIM_CATTOOL
    :status: implemented
+   :tracked_by: MOD_PIM
    :priority: mandatory
    :links: US_PIM_CATEGORIES; US_MSG_MCPSERVER
 
@@ -62,6 +64,7 @@ PIM User Stories
 .. story:: Categories Sidebar View
    :id: US_PIM_CATVIEW
    :status: approved
+   :tracked_by: MOD_PIM
    :priority: optional
    :links: US_PIM_CATEGORIES; US_EXP_SIDEBAR
 
@@ -89,6 +92,7 @@ PIM User Stories
 .. story:: Task Sync via Exchangeable Task Providers
    :id: US_PIM_TASKS
    :status: approved
+   :tracked_by: MOD_PIM
    :priority: mandatory
    :links: US_AUT_HEARTBEAT; US_PIM_CATEGORIES
 

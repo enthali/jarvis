@@ -25,6 +25,7 @@ Actor User Stories
 .. story:: The Actor
   :id: US_ACTOR_ACTORS
   :status: approved
+  :tracked_by: MOD_ACTOR
   :priority: mandatory
   :links: US_EXP_SIDEBAR; US_COM_SEND; US_COM_DELIVERY; US_MSG_REMINDERS; US_AUT_HEARTBEAT
 
@@ -83,6 +84,7 @@ Actor User Stories
 .. story:: Dedicated ACTORS Tree
    :id: US_ACTOR_TREE
    :status: approved
+   :tracked_by: MOD_ACTOR
    :priority: mandatory
    :links: US_EXP_SIDEBAR; US_ACTOR_ACTORS
 
@@ -133,6 +135,7 @@ Actor User Stories
 .. story:: Create an Actor from the ACTORS Tree
    :id: US_ACTOR_CREATE
    :status: approved
+   :tracked_by: MOD_ACTOR
    :priority: mandatory
    :links: US_ACTOR_TREE; US_ACTOR_ACTORS
 
@@ -169,6 +172,7 @@ Actor User Stories
 .. story:: Actor Identity
    :id: US_ACTOR_WHOAMI
    :status: approved
+   :tracked_by: MOD_ACTOR
    :priority: required
    :links: US_ACTOR_ACTORS
 
@@ -196,6 +200,7 @@ Actor User Stories
 .. story:: Programmatic Actor Creation
    :id: US_ACTOR_CREATETOOL
    :status: approved
+   :tracked_by: MOD_ACTOR
    :priority: required
    :links: US_ACTOR_ACTORS; US_ACTOR_CREATE
 
@@ -230,6 +235,7 @@ Actor User Stories
 .. story:: Activity Indicator on Actor Nodes
    :id: US_ACTOR_ACTIVITY
    :status: approved
+   :tracked_by: MOD_ACTOR
    :priority: optional
    :links: US_ACTOR_TREE
 
@@ -261,6 +267,7 @@ Actor User Stories
 .. story:: Unread Mail Icon on Actor Nodes
    :id: US_ACTOR_MAIL
    :status: approved
+   :tracked_by: MOD_ACTOR
    :priority: optional
    :links: US_ACTOR_TREE; US_ACTOR_ACTIVITY; US_REC_CAPTURE
 
@@ -293,6 +300,7 @@ Actor User Stories
 .. story:: Context Actions on Actor Nodes
    :id: US_ACTOR_CONTEXTACTIONS
    :status: approved
+   :tracked_by: MOD_ACTOR
    :priority: optional
    :links: US_ACTOR_TREE
 
@@ -316,6 +324,7 @@ Actor User Stories
 .. story:: Actor File Children in the ACTORS Tree
    :id: US_ACTOR_FILES_TREE
    :status: approved
+   :tracked_by: MOD_ACTOR
    :priority: mandatory
    :links: US_ACTOR_TREE; US_ACTOR_ACTORS
 

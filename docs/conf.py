@@ -47,11 +47,15 @@ html_title = 'Jarvis'
 # -- Sphinx-Needs Configuration ----------------------------------------------
 # https://sphinx-needs.readthedocs.io/
 # The ontology (types, fields, statuses, build options) lives in
-# docs/jarvis-ontology.toml — the single source for Sphinx and the syspilot skills.
+# docs/Jarvis Ontology/ontology.toml — the single source for Sphinx and the syspilot skills.
 # Implementation: SPEC_REL_SPHINXCOMPAT
 # Requirements: REQ_REL_SPHINXCOMPAT
 
-needs_from_toml = "jarvis-ontology.toml"
+needs_from_toml = "Jarvis Ontology/ontology.toml"
+
+# The extra links of the ontology trigger sphinx-needs' deprecation notice for
+# needs_extra_links; the TOML route has no other spelling yet.
+suppress_warnings = ["needs.deprecated"]
 
 # -- MyST Parser Configuration -----------------------------------------------
 # https://myst-parser.readthedocs.io/

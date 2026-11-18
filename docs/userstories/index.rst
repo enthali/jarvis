@@ -23,7 +23,6 @@ User Stories or Stakeholder needs describe **why** functionality is needed from 
    us_mod
    us_flow
    us_kan
-   us_uat
 
 All User Stories
 ----------------
