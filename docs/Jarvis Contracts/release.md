@@ -205,4 +205,5 @@ Publish only when Release Verification is `proceed` and Open Findings is `None`.
 - [ ] Publication evidence is recorded.
 - [ ] `development` contains the back-merge of `main`.
 - [ ] Current blocker is `none`.
+- [ ] The Project Manager ran the `syspilot.contract-statistics` skill after validation and the record exists in `.syspilot/stats/`.
 - [ ] Header Status is `closed`.

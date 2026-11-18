@@ -26,6 +26,9 @@ out/
 # docs build artifacts
 docs/_build/
 
+# Contract statistics records (syspilot.contract-statistics)
+.syspilot/stats/
+
 # BEGIN JARVIS MANAGED (see jarvis.gitignore.autoManage)
 .jarvis/logs/
 .jarvis/messages/
