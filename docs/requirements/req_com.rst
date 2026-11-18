@@ -27,7 +27,7 @@ Actor Communication Requirements
 
 .. req:: Jarvis AHP Client Records What the Agent Host Offers
    :id: REQ_COM_AGENTHOST
-   :status: approved
+   :status: verified
    :priority: required
    :links: US_COM_SEND; REQ_COM_CLIENT; REQ_COM_LOG
    :rationale: First step of the AHP change. The recorded information is needed to specify creating chats, injecting messages and the later steps; the step has no user-visible behaviour of its own.
@@ -52,6 +52,9 @@ Actor Communication Requirements
      same entry for every attempt.
    * AC-5: When the Agent Host has restarted, the client finds it again and
      connects to it.
+   * AC-6: The client finds and connects to the Agent Host also when VS Code
+     runs as a VS Code Server (a remote window, for example in a GitHub
+     Codespace). The behaviour on the desktop does not change.
 
 .. req:: Jarvis AHP Client Logging
    :id: REQ_COM_LOG

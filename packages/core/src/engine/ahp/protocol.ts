@@ -64,7 +64,7 @@ export function folderKey(folder: string): string {
         try { p = decodeURIComponent(new URL(p).pathname); } catch { p = p.replace(/^file:\/\//i, ''); }
         p = p.replace(/^\/([A-Za-z]:)/, '$1');
     }
-    p = p.replace(/\\/g, '/').replace(/\/+$/, '');
+    p = p.replace(/\\/g, '/').replace(/\/+$/, '').replace(/^[A-Za-z]:/, d => d.toLowerCase());
     return process.platform === 'linux' ? p : p.toLowerCase();
 }
 

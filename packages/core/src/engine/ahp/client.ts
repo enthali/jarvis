@@ -7,7 +7,7 @@
 
 import { randomUUID } from 'crypto';
 import { AhpConnection, AhpRpcError } from './connection';
-import { scanRegistry, isPidAlive, type AgentHostEntry } from './registry';
+import { scanRegistry, isPidAlive, describeEndpoint, type AgentHostEntry, type RegistryScan } from './registry';
 import {
     MessagePath, type ActorChat, type ActorChatRequest, type ActorChatSummary, type MessagePathOptions,
 } from './messagePath';
@@ -19,6 +19,8 @@ export type { AhpLog, AhpSeverity };
 export interface AhpClientOptions {
     /** User data folder of the VS Code instance; the Agent Host registry lives below it. */
     userDataDir: string;
+    /** Further user data folders searched in order when `userDataDir` has no live entry (VS Code Server keeps its registry in the desktop folder). */
+    fallbackUserDataDirs?: string[];
     log: AhpLog;
     clientName?: string;
     clientVersion?: string;
@@ -124,7 +126,8 @@ export class AhpClient {
     private async run(): Promise<void> {
         const base = this.options.retryBaseDelayMs ?? 1_000;
         const max = this.options.retryMaxDelayMs ?? 8_000;
-        this.log('info', `client started, user data folder ${this.options.userDataDir}`);
+        const fallbacks = this.registryDirs().slice(1);
+        this.log('info', `client started, user data folder ${this.options.userDataDir}${fallbacks.length ? ` (fallback ${fallbacks.join(', ')})` : ''}`);
 
         // The client does not give up: a chat that is opened later finds a connected client (REQ_COM_AGENTHOST AC-4).
         // Only the first failure and each change of its reason are logged, not every attempt.
@@ -158,7 +161,7 @@ export class AhpClient {
     }
 
     private async attempt(): Promise<{ connected: true; closed: Promise<string> } | { connected: false; reason: string }> {
-        const scan = scanRegistry(this.options.userDataDir, this.options.isPidAlive ?? isPidAlive);
+        const scan = this.scan();
         if (!scan.entry) { return { connected: false, reason: scan.reason ?? 'no entry' }; }
 
         // Newest first. A pid of an ended host can be reused by another process, so a stale entry may look live.
@@ -172,8 +175,23 @@ export class AhpClient {
         return { connected: false, reason: reasons.join('; ') };
     }
 
+    private registryDirs(): string[] {
+        return [...new Set([this.options.userDataDir, ...(this.options.fallbackUserDataDirs ?? [])])];
+    }
+
+    /** The first registry folder with a live entry; otherwise the reasons of all folders. */
+    private scan(): RegistryScan {
+        const misses: RegistryScan[] = [];
+        for (const dir of this.registryDirs()) {
+            const scan = scanRegistry(dir, this.options.isPidAlive ?? isPidAlive);
+            if (scan.entry) { return scan; }
+            misses.push(scan);
+        }
+        return { ...misses[0], reason: misses.map(m => m.reason).join('; ') };
+    }
+
     private async connectTo(entry: AgentHostEntry, entriesDir: string, counts: { files: number; live: number }): Promise<{ connected: true; closed: Promise<string> } | { connected: false; reason: string }> {
-        this.log('info', `registry ${entriesDir}: ${counts.files} file(s), ${counts.live} live editor entr${counts.live === 1 ? 'y' : 'ies'}; trying pid ${entry.pid}, instance ${entry.instanceId}, registry protocol ${entry.protocolVersion}`);
+        this.log('info', `registry ${entriesDir}: ${counts.files} file(s), ${counts.live} live entr${counts.live === 1 ? 'y' : 'ies'}; trying ${entry.type} pid ${entry.pid}, instance ${entry.instanceId}, ${describeEndpoint(entry)}, registry protocol ${entry.protocolVersion}`);
 
         let conn: AhpConnection;
         try {
@@ -183,7 +201,7 @@ export class AhpClient {
                 onNotification: (method, params) => this.onNotification(method, params),
             });
         } catch (err) {
-            return { connected: false, reason: `cannot connect to ${entry.endpoint.path}: ${err instanceof Error ? err.message : err}` };
+            return { connected: false, reason: `cannot connect to ${describeEndpoint(entry)}: ${err instanceof Error ? err.message : err}` };
         }
         if (this.disposed) { conn.close(); return { connected: false, reason: 'disposed' }; }
         this.connection = conn;

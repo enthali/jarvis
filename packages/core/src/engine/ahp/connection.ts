@@ -2,8 +2,9 @@
 // No `vscode` import: this folder must stay movable into a process of its own.
 //
 // Hand-rolled JSON-RPC client on `ws`: the official SDK is ESM-only and the core compiles to CommonJS.
-// The Agent Host listens on a named pipe (Windows) or Unix socket, so the HTTP upgrade of `ws` is routed
-// through an agent that hands back that socket (FI-2026-09-13).
+// The desktop Agent Host listens on a named pipe (Windows) or Unix socket, so the HTTP upgrade of `ws` is routed
+// through an agent that hands back that socket (FI-2026-09-13). VS Code Server (remote, Codespaces) starts
+// a `standalone` host on a loopback TCP port instead, reached directly.
 
 import * as http from 'http';
 import * as net from 'net';
@@ -51,18 +52,27 @@ export class AhpConnection {
         const connectTimeoutMs = options.connectTimeoutMs ?? 15_000;
         const requestTimeoutMs = options.requestTimeoutMs ?? 30_000;
         return new Promise((resolve, reject) => {
-            const agent = new http.Agent();
-            (agent as unknown as { createConnection: unknown }).createConnection =
-                (_opts: unknown, cb: (err: Error | null, sock: net.Socket) => void) => {
-                    const sock = net.createConnection(entry.endpoint.path);
-                    sock.on('connect', () => cb(null, sock));
-                    sock.on('error', err => cb(err, sock));
-                    return sock;
-                };
-            const ws = new WebSocket(`ws://localhost/?tkn=${encodeURIComponent(entry.connectionToken)}`, {
-                agent,
-                handshakeTimeout: connectTimeoutMs,
-            });
+            const endpoint = entry.endpoint;
+            const tkn = encodeURIComponent(entry.connectionToken);
+            let ws: WebSocket;
+            if (endpoint.type === 'tcp') {
+                ws = new WebSocket(`ws://${endpoint.host.includes(':') ? `[${endpoint.host}]` : endpoint.host}:${endpoint.port}/?tkn=${tkn}`, {
+                    handshakeTimeout: connectTimeoutMs,
+                });
+            } else {
+                const agent = new http.Agent();
+                (agent as unknown as { createConnection: unknown }).createConnection =
+                    (_opts: unknown, cb: (err: Error | null, sock: net.Socket) => void) => {
+                        const sock = net.createConnection(endpoint.path);
+                        sock.on('connect', () => cb(null, sock));
+                        sock.on('error', err => cb(err, sock));
+                        return sock;
+                    };
+                ws = new WebSocket(`ws://localhost/?tkn=${tkn}`, {
+                    agent,
+                    handshakeTimeout: connectTimeoutMs,
+                });
+            }
             const fail = (err: Error): void => { ws.removeAllListeners(); ws.on('error', () => undefined); ws.terminate(); reject(err); };
             ws.once('open', () => {
                 ws.removeAllListeners('error');

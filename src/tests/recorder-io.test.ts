@@ -140,9 +140,10 @@ describe('PowerShellCapture (SPEC_REC_CAPTURE)', () => {
     });
 
     it('pickShell prefers pwsh when it is on PATH, otherwise powershell', () => {
-        const sep = path.delimiter;
-        expect(pickShell({ PATH: `C:\\a${sep}C:\\b` }, p => p === path.join('C:\\b', 'pwsh.exe'))).toBe('pwsh');
-        expect(pickShell({ PATH: `C:\\a${sep}C:\\b` }, () => false)).toBe('powershell');
+        // Folders without a drive letter: the PATH delimiter is ':' on Linux.
+        const env = { PATH: ['a', 'b'].join(path.delimiter) };
+        expect(pickShell(env, p => p === path.join('b', 'pwsh.exe'))).toBe('pwsh');
+        expect(pickShell(env, () => false)).toBe('powershell');
     });
 });
 

@@ -31,7 +31,7 @@ import { actorNameProblem, existingActorFolder, writeActorFiles } from './engine
 import { ensureActorAgent, setActorAgentLogger } from './engine/actors/actorAgent';
 import { createActorHandler } from './engine/actors/actorRuntime';
 import { registerJarvisYamlSchemaContributor } from './engine/core/yamlSchemaContributor';
-import { AhpClient, userDataDirFromGlobalStorage } from './engine/ahp';
+import { AhpClient, userDataDirFromGlobalStorage, desktopUserDataDir } from './engine/ahp';
 import { createActorMessageTools } from './engine/sessions/actorMessageTools';
 import { createAnnouncer } from './engine/sessions/actorAnnouncements';
 import { openActorChat } from './engine/sessions/openActorChat';
@@ -154,11 +154,24 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
         return { name: actor.name, startupText: startupTextFor(actor) };
     }
 
+    // VS Code Server (remote, Codespaces) keeps the Agent Host registry in the desktop user data folder
+    // of its product, not below its own server data folder (FI-2026-11-18).
+    function desktopRegistryDirs(): string[] {
+        let nameShort: string | undefined;
+        try {
+            nameShort = JSON.parse(fs.readFileSync(path.join(vscode.env.appRoot, 'product.json'), 'utf8')).nameShort;
+        } catch { /* fall back to the application name */ }
+        nameShort ??= vscode.env.appName.includes('Insiders') ? 'Code - Insiders' : 'Code';
+        const dir = desktopUserDataDir(nameShort);
+        return dir ? [dir] : [];
+    }
+
     const userDataDir = userDataDirFromGlobalStorage(context.globalStorageUri.fsPath);
     const ahpWorkspace = configPaths.getWorkspaceRoot();
     if (userDataDir) {
         ahpClient = new AhpClient({
             userDataDir,
+            fallbackUserDataDirs: desktopRegistryDirs(),
             clientVersion: context.extension.packageJSON.version,
             log: (severity, text) => log[severity](`[AHP] ${text}`),
             messagePath: ahpWorkspace ? {

@@ -11,7 +11,7 @@ confirm** are assumptions that no run has checked yet.
 
 .. spec:: Jarvis AHP Client Module
    :id: SPEC_COM_CLIENTMODULE
-   :status: approved
+   :status: verified
    :links: REQ_COM_CLIENT; SPEC_COM_AHPDISCOVERY; SPEC_COM_LOGGING
 
    **Description:**
@@ -31,8 +31,17 @@ confirm** are assumptions that no run has checked yet.
      trailing ``profiles/<id>`` of a non-default profile. The Agent Host
      registry lives in that folder (``SPEC_COM_AHPDISCOVERY``). Verified for the
      default profile on Windows. **To confirm:** non-default profiles, and
-     remote windows (WSL, SSH), whose folder holds no registry entry; there the
-     client keeps looking (``SPEC_COM_AHPDISCOVERY`` Retry).
+     remote windows other than the Codespace (WSL, SSH), whose folder holds no
+     registry entry; there the fallback folders apply, else the client keeps
+     looking (``SPEC_COM_AHPDISCOVERY`` Retry).
+   * ``fallbackUserDataDirs``: further user data folders to search when
+     ``userDataDir`` holds no live entry (``SPEC_COM_AHPDISCOVERY`` step 1). The
+     extension passes the user data folder of the desktop product, which a VS
+     Code Server uses for its registry. It is derived like the server does:
+     ``VSCODE_PORTABLE`` (``user-data``), else ``VSCODE_APPDATA``, else the
+     application data folder of the platform (Linux ``$XDG_CONFIG_HOME`` or
+     ``~/.config``), each with the ``nameShort`` of the product (``Code``,
+     ``Code - Insiders``) from ``product.json`` of the application.
    * ``log``: a function taking severity and text (``SPEC_COM_LOGGING``).
 
    **Interface in step 1:** ``start()`` and ``dispose()``.
@@ -65,7 +74,7 @@ confirm** are assumptions that no run has checked yet.
 
 .. spec:: Agent Host Discovery and Recording
    :id: SPEC_COM_AHPDISCOVERY
-   :status: approved
+   :status: verified
    :links: REQ_COM_AGENTHOST; SPEC_COM_CLIENTMODULE
 
    **Description:**
@@ -74,20 +83,30 @@ confirm** are assumptions that no run has checked yet.
    **Finding the host:**
 
    1. Read the endpoint registry of the VS Code instance:
-      ``<userDataDir>\agent-host\local-endpoint\entries\*.json`` (default
+      ``<userDataDir>/agent-host/local-endpoint/entries/*.json`` (default
       folder on Windows ``%APPDATA%\Code``). Source: ``FI-2026-10-27``, from the
       VS Code sources; the Windows default folder was verified in
-      ``FI-2026-09-13``. **To confirm:** the path by a run on macOS and Linux.
+      ``FI-2026-09-13``. **To confirm:** the path by a run on macOS.
+      When the folder holds no live entry, the client reads the registries of
+      the fallback folders in order (``REQ_COM_AGENTHOST`` AC-6): a VS Code
+      Server keeps its registry in the user data folder of the desktop product,
+      not below its own server data folder, and the storage folder of the
+      extension points to the latter (``FI-2026-11-18``). The extension passes
+      ``fallbackUserDataDirs`` as an argument (``SPEC_COM_CLIENTMODULE``).
    2. Keep the entries that can be read, have ``schemaVersion`` 2, ``type``
-      ``editor``, an endpoint of type ``socket`` and a pid that answers
-      ``process.kill(pid, 0)``. A pid that answers is no proof of a live Agent
+      ``editor`` or ``standalone``, an endpoint of type ``socket`` (path) or
+      ``tcp`` (host and port) and a pid that answers ``process.kill(pid, 0)``.
+      A pid that answers is no proof of a live Agent
       Host: the registry keeps the entries of ended hosts, and a pid can be
       reused (on 2026-10-27 pid 6544 of an old entry belonged to
-      ``conhost.exe``). Hosts of type ``standalone`` are not part of this step.
+      ``conhost.exe``). A VS Code Server starts a ``standalone`` host with a
+      ``tcp`` endpoint on ``127.0.0.1`` (``FI-2026-11-18``). An ``editor`` entry
+      is preferred to a ``standalone`` one.
    3. Several entries can remain. Try them from the most recently written to the
-      oldest until one connects.
+      oldest until one connects, ``editor`` entries first.
    4. Connect to the endpoint of the entry with its connection token (a
-      WebSocket over the pipe or socket) and send ``initialize``. The client
+      WebSocket over the pipe or socket, or over ``ws://host:port/?tkn=<token>``
+      for ``tcp``) and send ``initialize``. The client
       offers the protocol version of the entry, ``1.0.0`` and ``0.9.0``, and
       logs a warning when the negotiated version differs from the one in the
       entry. It subscribes to the root state ``ahp-root://`` with the request,
@@ -360,7 +379,7 @@ confirm** are assumptions that no run has checked yet.
 
 .. spec:: Actor Session Binding
    :id: SPEC_COM_BINDING
-   :status: approved
+   :status: verified
    :links: REQ_COM_CHATNAME; US_COM_NAME; US_COM_SENDER; SPEC_COM_TOOLS; SPEC_COM_INJECT; SPEC_COM_CLIENTMODULE
 
    **Description:**
@@ -376,7 +395,9 @@ confirm** are assumptions that no run has checked yet.
    1. Take the sessions of the Agent Host whose title is exactly the name of the
       Actor and whose working folder is the workspace of the window. The working
       folders are the ``workingDirectories`` of the session summary; they are
-      compared after normalising drive case and ``%3A`` (``FI-2026-10-28``). The folder keeps an Actor of
+      compared after normalising the ``file:`` spelling, the ``%3A`` and the case of a
+      drive letter on every platform (``FI-2026-10-28``); the rest of the path is
+      case-insensitive only where the file system is (not on Linux). The folder keeps an Actor of
       another workspace with the same name apart. When several remain, take the
       one modified last and log a warning, because titles are not unique.
    2. When none remains, create the chat as described below.

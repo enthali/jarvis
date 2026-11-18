@@ -207,6 +207,7 @@ describe('SPEC_COM_BINDING: working folders', () => {
         expect(folderKey('C:\\Work\\Jarvis')).toBe(folderKey('file:///c%3A/Work/Jarvis'));
         expect(folderKey('file:///c%3A/Work/Jarvis/')).toBe(folderKey('file:///C:/Work/Jarvis'));
         expect(folderKey('file:///c%3A/Work/Other')).not.toBe(folderKey('C:\\Work\\Jarvis'));
+        expect(folderKey('c:/Work/Jarvis')).toBe(folderKey('C:/Work/Jarvis'));
         expect(sessionHasFolder({ workingDirectories: [hostSpelling(WORKSPACE)] }, WORKSPACE)).toBe(true);
         expect(sessionHasFolder({ workingDirectories: [] }, WORKSPACE)).toBe(false);
         expect(sessionHasFolder({}, WORKSPACE)).toBe(false);
