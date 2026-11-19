@@ -50,7 +50,7 @@ In GitHub Codespaces, Agent Host discovery and sending from an Actor chat with `
 
 In the editor window, activity icons come from the Agent Host: red cross for Error, blue question mark for Waiting, spinner for Working, none for Idle. Activity takes priority over the recording mark, then the mail icon.
 
-## Agents Window in 0.32.0
+## Agents Window and Known Limits
 
 The User observed Actor chats, messaging and the Kanban board working in the Windows Sandbox on 2026-11-03. Flow (message view and log) cannot be opened there yet. Jarvis features offered through the status bar or a tree do not work there: ACTORS activity/mail markers, the PIM mail notification in the tree, and Recorder, which has no UI that can be triggered there. Tree markers, Flow, PIM and Recorder support there is on the roadmap; there is no plan yet.
 
@@ -64,7 +64,7 @@ On activation, Jarvis removes only `.github/hooks/jarvis-hooks.json`, `jarvis-br
 
 Full migration details are in the [Getting Started guide](../../docs/user%20guides/getting-started.md#updating-to-the-agent-host-path).
 
-The MCP server is off by default in 0.32.0, including for upgrades without an explicit setting. Set `jarvis.mcp.enabled` to `true` to opt in.
+The MCP server is off by default since 0.32.0, including for upgrades without an explicit setting. Set `jarvis.mcp.enabled` to `true` to opt in.
 
 ## Requirements
 
