@@ -4,6 +4,7 @@ Outlook User Stories
 .. story:: Outlook COM Integration (PIM Provider)
    :id: US_OLK_COMBRIDGE
    :status: approved
+   :tracked_by: MOD_PIM
    :priority: mandatory
    :links: US_PIM_CATEGORIES
 
@@ -33,6 +34,7 @@ Outlook User Stories
 .. story:: Outlook Tasks Integration (COM Bridge)
    :id: US_OLK_TASKS
    :status: approved
+   :tracked_by: MOD_PIM
    :priority: mandatory
    :links: US_PIM_TASKS; US_OLK_COMBRIDGE
 

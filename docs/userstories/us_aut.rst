@@ -4,6 +4,7 @@ Automation User Stories
 .. story:: Scheduled and Manual Automation Jobs
    :id: US_AUT_HEARTBEAT
    :status: approved
+   :tracked_by: MOD_AUTOMATION
    :priority: optional
    :links: US_CFG_HEARTBEAT
 
@@ -60,6 +61,7 @@ Automation User Stories
 .. story:: Choose the Language Model of an Agent Step
    :id: US_AUT_AGENTMODEL
    :status: approved
+   :tracked_by: MOD_AUTOMATION
    :priority: optional
    :links: US_AUT_HEARTBEAT
 
@@ -91,6 +93,7 @@ Automation User Stories
 .. story:: Queue Step Destination Validation
    :id: US_AUT_HEARTBEAT_VALIDATION
    :status: draft
+   :tracked_by: MOD_AUTOMATION
    :priority: optional
    :links: US_AUT_HEARTBEAT
 

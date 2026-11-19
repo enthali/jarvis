@@ -13,10 +13,23 @@ requirements engineering and traceability.
    user guides/index
 
 .. toctree::
+   :maxdepth: 1
+   :caption: Product Structure
+
+   product/index
+   Jarvis Ontology <Jarvis Ontology/ontology>
+
+.. toctree::
    :maxdepth: 2
    :caption: User Stories
 
    userstories/index
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Acceptance Criteria
+
+   acceptance/index
 
 .. toctree::
    :maxdepth: 2

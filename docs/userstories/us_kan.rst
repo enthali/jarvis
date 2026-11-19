@@ -4,6 +4,7 @@ Kanban User Stories
 .. story:: Kanban Board from YAML
    :id: US_KAN_BOARD
    :status: draft
+   :tracked_by: MOD_KANBAN
    :priority: required
 
    **As a** Jarvis user or agent,
@@ -33,6 +34,7 @@ Kanban User Stories
 .. story:: Convention-Based Board Discovery
    :id: US_KAN_DISCOVER
    :status: approved
+   :tracked_by: MOD_KANBAN
    :priority: required
 
    **As a** Jarvis user,
@@ -56,6 +58,7 @@ Kanban User Stories
 .. story:: Kanban Board Tools
    :id: US_KAN_TOOLS
    :status: draft
+   :tracked_by: MOD_KANBAN
    :priority: required
    :links: US_ACTOR_WHOAMI
 
@@ -95,6 +98,7 @@ Kanban User Stories
 .. story:: Query a Board Without Reading All of It
    :id: US_KAN_QUERY
    :status: approved
+   :tracked_by: MOD_KANBAN
    :priority: required
    :links: US_KAN_TOOLS
 
@@ -134,6 +138,7 @@ Kanban User Stories
 .. story:: Kanban Skill and Instructions Content
    :id: US_KAN_SKILL
    :status: approved
+   :tracked_by: MOD_KANBAN
    :priority: required
    :links: US_KAN_TOOLS; US_MOD_SKILL_PROVISION; US_ACTOR_WHOAMI
 
@@ -175,6 +180,7 @@ Kanban User Stories
 .. story:: Named Freeform Text Fields
    :id: US_KAN_TEXTFIELD
    :status: approved
+   :tracked_by: MOD_KANBAN
    :priority: required
    :links: US_KAN_BOARD
 

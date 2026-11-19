@@ -4,6 +4,7 @@ Explorer User Stories
 .. story:: Jarvis Explorer Sidebar
    :id: US_EXP_SIDEBAR
    :status: approved
+   :tracked_by: MOD_ACTOR
    :priority: mandatory
    :links: US_COM_SEND; US_AUT_HEARTBEAT; US_CFG_FEATURETOGGLES
 
@@ -27,6 +28,7 @@ Explorer User Stories
 .. story:: Open Source File from Tree Node
    :id: US_EXP_OPENFILE
    :status: implemented
+   :tracked_by: MOD_ACTOR
    :priority: optional
    :links: US_EXP_SIDEBAR
 

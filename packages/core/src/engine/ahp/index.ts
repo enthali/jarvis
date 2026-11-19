@@ -5,4 +5,4 @@ export { MessagePath, NotConnectedError, announcementText } from './messagePath'
 export type {
     ActorChat, ActorChatRequest, ActorChatSummary, AhpToolSpec, MessagePathOptions, ToolCallContext, ToolResult,
 } from './messagePath';
-export { userDataDirFromGlobalStorage } from './registry';
+export { userDataDirFromGlobalStorage, desktopUserDataDir } from './registry';

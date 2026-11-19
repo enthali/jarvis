@@ -217,6 +217,14 @@ describe('REQ_KAN_ADD and REQ_KAN_WRITEVALID: jarvis_addKanbanItem (T-1..T-6)', 
         });
     });
 
+    it('T-6e (REQ_KAN_UPDATE AC-9, AC-10): id inside changes is rejected, not silently ignored, and the board is unchanged', async () => {
+        const result = await call('jarvis_updateKanbanItem', { itemId: 1, changes: { id: '99', status: 'Done' } });
+        expect(result).toHaveProperty('error');
+        expect(String(result.error)).toMatch(/id/);
+        expect(result).not.toHaveProperty('updated');
+        await expectRejected('jarvis_updateKanbanItem', { itemId: 1, changes: { id: '99' } }, result);
+    });
+
     it('T-6b: a top-level id is rejected, not silently dropped', async () => {
         await expectRejected('jarvis_addKanbanItem', { name: 'Grab Id', id: 999 }, {
             error: 'Cannot supply "id" — ids are auto-assigned.',

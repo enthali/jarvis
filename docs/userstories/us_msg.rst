@@ -4,6 +4,7 @@ Messaging User Stories
 .. story:: MCP Server for External Tool Access
    :id: US_MSG_MCPSERVER
    :status: approved
+   :tracked_by: MOD_MESSAGING
    :priority: mandatory
    :links: US_COM_SEND; US_COM_FIND
 
@@ -40,6 +41,7 @@ Messaging User Stories
 .. story:: Message Audit Log
    :id: US_MSG_LOGGING
    :status: implemented
+   :tracked_by: MOD_MESSAGING
    :priority: optional
    :links: US_COM_SEND
 
@@ -64,6 +66,7 @@ Messaging User Stories
 .. story:: Predictable Editor-Group Placement with Focus Restore
    :id: US_MSG_EDITORPLACEMENT
    :status: approved
+   :tracked_by: MOD_MESSAGING
    :priority: mandatory
    :links: US_COM_NAME; US_COM_DELIVERY; US_ACTOR_TREE; US_ACTOR_FILES_TREE
 
@@ -102,6 +105,7 @@ Messaging User Stories
 .. story:: Time-Scheduled Reminders
   :id: US_MSG_REMINDERS
   :status: draft
+  :tracked_by: MOD_AUTOMATION
   :priority: optional
   :links: US_COM_SEND; US_COM_DELIVERY
 

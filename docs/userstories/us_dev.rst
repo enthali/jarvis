@@ -4,6 +4,7 @@ Developer Tooling User Stories
 .. story:: Manual Extension Testing
    :id: US_DEV_MANUALTEST
    :status: implemented
+   :tracked_by: MOD_DEV
    :priority: mandatory
 
    **As a** Jarvis Developer,
@@ -22,6 +23,7 @@ Developer Tooling User Stories
 .. story:: Developer Conventions Documentation
    :id: US_DEV_CONVENTIONS
    :status: implemented
+   :tracked_by: MOD_DEV
    :priority: mandatory
 
    **As a** Jarvis Developer,
@@ -38,6 +40,7 @@ Developer Tooling User Stories
 .. story:: Structured Logging
    :id: US_DEV_LOGGING
    :status: implemented
+   :tracked_by: MOD_DEV
    :priority: mandatory
    :links: US_EXP_SIDEBAR; US_AUT_HEARTBEAT; US_REL_SELFUPDATE; US_COM_SEND
 

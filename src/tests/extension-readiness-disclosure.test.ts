@@ -4,6 +4,7 @@
 import { describe, it, expect } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
+import { execFileSync } from 'child_process';
 
 const ROOT = path.resolve(__dirname, '../..');
 const read = (rel: string) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
@@ -28,7 +29,9 @@ describe('REQ_MOD_READINESS: maturity and capability disclosure', () => {
     });
 
     it('AC-2: the Syspilot package is removed from the repository', () => {
-        expect(exists('packages/syspilot')).toBe(false);
+        // Tracked files only: an ignored leftover folder (node_modules, out) in a working tree is not part of the repository.
+        const tracked = execFileSync('git', ['ls-files', 'packages/syspilot'], { cwd: ROOT, encoding: 'utf8' });
+        expect(tracked.trim()).toBe('');
     });
 });
 

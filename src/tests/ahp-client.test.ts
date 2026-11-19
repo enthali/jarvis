@@ -8,12 +8,14 @@ import * as os from 'os';
 import * as path from 'path';
 import { WebSocketServer } from 'ws';
 import { AhpClient, userDataDirFromGlobalStorage } from '../../packages/core/src/engine/ahp';
-import { scanRegistry, registryEntriesDir, type AgentHostEntry } from '../../packages/core/src/engine/ahp/registry';
+import { scanRegistry, registryEntriesDir, desktopUserDataDir, type AgentHostEntry } from '../../packages/core/src/engine/ahp/registry';
 
 type Handler = (method: string, params: any) => unknown;
 
 interface FakeHost {
     path: string;
+    /** Set when the host listens on loopback TCP (VS Code Server) instead of a pipe. */
+    port?: number;
     token: string;
     received: { method: string; params: any }[];
     clients: () => number;
@@ -53,7 +55,7 @@ const defaultHandler: Handler = (method, params) => {
 };
 
 let hostCounter = 0;
-async function startFakeHost(handler: Handler = defaultHandler, token = `tok-${Math.random().toString(36).slice(2)}`): Promise<FakeHost> {
+async function startFakeHost(handler: Handler = defaultHandler, token = `tok-${Math.random().toString(36).slice(2)}`, tcp = false): Promise<FakeHost> {
     const name = `jarvis-ahp-test-${process.pid}-${Date.now()}-${hostCounter++}`;
     const pipe = process.platform === 'win32' ? `\\\\.\\pipe\\${name}` : path.join(os.tmpdir(), `${name}.sock`);
     const received: FakeHost['received'] = [];
@@ -77,9 +79,11 @@ async function startFakeHost(handler: Handler = defaultHandler, token = `tok-${M
             }
         });
     });
-    await new Promise<void>(resolve => server.listen(pipe, resolve));
+    if (tcp) { await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve)); }
+    else { await new Promise<void>(resolve => server.listen(pipe, resolve)); }
     const host: FakeHost = {
         path: pipe,
+        port: tcp ? (server.address() as { port: number }).port : undefined,
         token,
         received,
         clients: () => wss.clients.size,
@@ -138,18 +142,19 @@ async function until(cond: () => boolean, what: string, ms = 4000): Promise<void
 const has = (lines: string[], text: string): boolean => lines.some(l => l.includes(text));
 
 describe('SPEC_COM_AHPDISCOVERY: registry scan', () => {
-    it('keeps the live editor entry and drops dead, standalone, other-schema, TCP and unreadable ones', () => {
+    it('keeps live editor, standalone and TCP entries, editor first, and drops dead, other-schema, other-endpoint and unreadable ones', () => {
         const ud = makeUserData();
         const host = { path: '\\\\.\\pipe\\x', token: 't' } as FakeHost;
-        writeEntry(ud, 'live', entryFor(host, { pid: 1, instanceId: 'live' }));
+        writeEntry(ud, 'live', entryFor(host, { pid: 1, instanceId: 'live' }), new Date(Date.now() - 60_000));
         writeEntry(ud, 'dead', entryFor(host, { pid: 2, instanceId: 'dead' }));
-        writeEntry(ud, 'standalone', entryFor(host, { pid: 1, type: 'standalone', instanceId: 'sa' }));
+        writeEntry(ud, 'standalone', entryFor(host, { pid: 1, type: 'standalone', instanceId: 'sa', endpoint: { type: 'tcp', host: '127.0.0.1', port: 1 } }));
         writeEntry(ud, 'v1', entryFor(host, { pid: 1, schemaVersion: 1, instanceId: 'v1' }));
-        writeEntry(ud, 'tcp', entryFor(host, { pid: 1, endpoint: { type: 'tcp', path: '127.0.0.1:1' }, instanceId: 'tcp' }));
+        writeEntry(ud, 'badtcp', entryFor(host, { pid: 1, endpoint: { type: 'tcp', path: '127.0.0.1:1' } as never, instanceId: 'badtcp' }));
         writeEntry(ud, 'broken', '{ not json');
         const scan = scanRegistry(ud, pid => pid === 1);
         expect(scan.entry?.instanceId).toBe('live');
-        expect(scan.counts).toMatchObject({ files: 6, live: 1, deadPid: 1, notEditor: 1, otherSchema: 1, notSocket: 1, unreadable: 1 });
+        expect(scan.candidates.map(c => c.instanceId)).toEqual(['live', 'sa']);
+        expect(scan.counts).toMatchObject({ files: 6, live: 2, deadPid: 1, otherType: 0, otherSchema: 1, otherEndpoint: 1, unreadable: 1 });
     });
 
     it('takes the more recently written entry when two are live', () => {
@@ -168,9 +173,45 @@ describe('SPEC_COM_AHPDISCOVERY: registry scan', () => {
         const before = fs.readFileSync(file, 'utf8');
         const scan = scanRegistry(ud, () => false);
         expect(scan.entry).toBeUndefined();
-        expect(scan.reason).toMatch(/no live editor entry among 1 file/);
+        expect(scan.reason).toMatch(/no live entry among 1 file/);
         expect(fs.readFileSync(file, 'utf8')).toBe(before);
         expect(fs.readdirSync(registryEntriesDir(ud))).toEqual(['dead.json']);
+    });
+});
+
+describe('SPEC_COM_AHPDISCOVERY: VS Code Server (remote, Codespaces)', () => {
+    it('finds a standalone TCP host in a fallback user data folder and connects to it', async () => {
+        const host = await startFakeHost(defaultHandler, undefined, true);
+        const own = makeUserData();
+        const desktop = makeUserData();
+        writeEntry(desktop, 'sa', entryFor(host, { type: 'standalone', endpoint: { type: 'tcp', host: '127.0.0.1', port: host.port! } }));
+        const { client, lines } = makeClient(own, { fallbackUserDataDirs: [desktop] });
+        client.start();
+        await until(() => client.isConnected(), 'connected over tcp');
+        expect(has(lines, `trying standalone pid 1001, instance inst, tcp 127.0.0.1:${host.port}`)).toBe(true);
+        expect(lines.join('\n')).not.toContain(host.token);
+    });
+
+    it('names the reasons of every folder when none has a live entry', async () => {
+        const own = makeUserData();
+        const desktop = makeUserData();
+        const { client, lines } = makeClient(own, { fallbackUserDataDirs: [desktop] });
+        client.start();
+        await until(() => has(lines, 'no connection to the Agent Host yet'), 'miss logged');
+        const miss = lines.find(l => l.includes('no connection to the Agent Host yet'))!;
+        expect(miss).toContain(registryEntriesDir(own));
+        expect(miss).toContain(registryEntriesDir(desktop));
+    });
+
+    it.each([
+        ['linux', { XDG_CONFIG_HOME: '/x/cfg' }, '/x/cfg/Code'],
+        ['linux', {}, '/h/.config/Code'],
+        ['darwin', {}, '/h/Library/Application Support/Code'],
+        ['linux', { VSCODE_APPDATA: '/app' }, '/app/Code'],
+        ['linux', { VSCODE_PORTABLE: '/p' }, '/p/user-data'],
+    ] as const)('desktop user data folder on %s with %j is %s', (platform, env, expected) => {
+        if (process.platform === 'win32') { return; }
+        expect(desktopUserDataDir('Code', env as NodeJS.ProcessEnv, platform, '/h')).toBe(expected);
     });
 });
 
@@ -390,7 +431,7 @@ describe('SPEC_COM_AHPDISCOVERY: retry and restart (REQ_COM_AGENTHOST AC-4/AC-5)
         await new Promise(r => setTimeout(r, 400));
         const reasons = lines.filter(l => l.includes('keeps looking'));
         expect(reasons).toHaveLength(1);
-        expect(reasons[0]).toContain('no live editor entry among 1 file');
+        expect(reasons[0]).toContain('no live entry among 1 file');
         expect(lines.some(l => l.startsWith('error') || l.includes('giving up'))).toBe(false);
     });
 

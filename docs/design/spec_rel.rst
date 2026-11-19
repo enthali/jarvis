@@ -985,6 +985,10 @@ Release Design Specifications
      pointing to ``resources/jarvis-128.png`` (128×128 PNG). The PNG is generated
      from ``resources/jarvis.svg`` via ``scripts/generate-icons.mjs``. The
      ``resources/`` directory is NOT excluded by ``.vscodeignore``.
+   * AC-9 (``vscode-minimum-1-144`` CR): Every publishable extension's
+     ``package.json`` has ``"engines": { "vscode": "^1.144.0" }``. The
+     repository root manifest and the workspace entries in ``package-lock.json``
+     carry the same value, so the lockfile does not contradict the manifests.
 
    **Rationale:**
    Without bundling, ``vsce`` in an npm-workspaces monorepo either fails (``../../``
@@ -1220,3 +1224,49 @@ Release Design Specifications
      Marketplace listing and the GitHub Releases page.
    * AC-3: Because activation re-runs on every startup, the migration is retried until
      it succeeds.
+
+
+.. spec:: Contract Needs Check Script
+   :id: SPEC_REL_NEEDSCHECK
+   :status: verified
+   :links: REQ_REL_NEEDSCHECK
+
+   **Description:**
+   A Python script ``scripts/check_contract_needs.py`` implements the check. It builds the
+   documentation of two commits, reads their ``needs.json`` output, and evaluates the
+   Contract.
+
+   Procedure:
+
+   1. Resolve the base ref (default ``development``) and the merge base with the branch head.
+      Resolve the Contract path from the branch name ``feature/<name>`` when none is given.
+   2. Build the documentation at the merge base in a temporary git worktree and at the
+      head, each with ``sphinx-build -b needs``, and load both ``needs.json`` files.
+   3. A Need is changed when its ID is missing from the base data or its ``status`` or
+      ``content`` differs; links are not compared.
+   4. Parse the Contract: the User Validation section (its status line and the ``Validation``
+      table cells) and the ``Test Execution`` subsection of Quality Review, collecting every
+      ``US_*`` and ``AC_*`` ID each one mentions. The status line counts as satisfied when it
+      opens with ``accepted`` or ``explicit User delegation``, after an optional
+      ``not applicable:``; the same words open a ``Status:`` or ``Decision:`` line of the
+      section.
+   5. For each changed Need apply the status rule of its type. A non-deprecated ``story``
+      must be named in User Validation. A non-deprecated ``ac`` must be ``verified`` when
+      named in User Validation or Test Execution and ``approved`` otherwise. When User
+      Validation names a changed Need, its status line must be satisfied. Print one line
+      per violation as ``<ID>: <rule>``; exit 1 if any exist, else 0.
+
+   The script is run by the Project Manager as the last gate before the squash integration
+   into ``development``; whether CI also runs it is decided with Admin when the workflow is
+   changed. The statuses it requires are defined in the Jarvis Ontology.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``--contract`` and ``--base`` override the two defaults of REQ_REL_NEEDSCHECK AC-1.
+   * AC-2: Both builds use the same ontology file of the head, so a status vocabulary change
+     is not itself reported as a content change.
+   * AC-3: The script contains no network call and changes no file of the repository; the
+     worktree and build output live in a temporary directory that is removed on exit.
+   * AC-4: A unit test per rule of REQ_REL_NEEDSCHECK AC-3 to AC-7 feeds the script two
+     small ``needs.json`` fixtures and a Contract fixture and asserts the exit code and the
+     named IDs.

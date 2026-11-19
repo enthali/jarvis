@@ -26,6 +26,9 @@ out/
 # docs build artifacts
 docs/_build/
 
+# Contract statistics records (syspilot.contract-statistics)
+.syspilot/stats/
+
 # BEGIN JARVIS MANAGED (see jarvis.gitignore.autoManage)
 .jarvis/logs/
 .jarvis/messages/
@@ -35,9 +38,6 @@ docs/_build/
 jarvis-*
 !packages/*/assets/**
 # END JARVIS MANAGED
-
-# Project ontology (Admin); listed after the managed block so it survives the jarvis-* rule
-!docs/jarvis-ontology.toml
 
 # testdata workspace runtime/scratch state (Dev Host manual testing,
 # not automated-test fixtures - those live under testdata/heartbeat/)

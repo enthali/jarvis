@@ -67,9 +67,11 @@ Theme Abbreviations
      - Message Flow Visualization (separate add-on module, D3 chord diagram of
        inter-agent message flow, Webview Panel editor tab)
      - ``US_FLOW_CHORDVIEW``, ``REQ_FLOW_WEBVIEWPANEL``, ``SPEC_FLOW_CHORDRENDER``
-   * - ``UAT``
-     - User Acceptance Tests
-     - ``US_UAT_SAMPLEDATA``, ``REQ_UAT_VALID_SAMPLES``
+   * - ``AC``
+     - Acceptance Criteria (type ``ac``): ``AC_<AREA>_<NAME>``, where the area is the
+       theme of the story the criterion validates; ``MOD_`` modules and ``ROOT_JARVIS``
+       form the product structure
+     - ``AC_ACTOR_PHASE1_MEMORY``, ``MOD_PIM``
 
 New themes can be added as the project grows. Keep them short (2–5 chars) and consistent.
 
@@ -101,6 +103,12 @@ File Naming
    * - ``docs/design/``
      - Design Specs by theme
      - ``spec_<theme>.rst``
+   * - ``docs/acceptance/``
+     - Acceptance Criteria by feature
+     - ``ac_<feature>.rst``
+   * - ``docs/product/``
+     - Root and modules
+     - ``index.rst``
    * - ``docs/changes/``
      - Change Documents
      - ``<short-name>.md``

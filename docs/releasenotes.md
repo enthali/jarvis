@@ -1,5 +1,23 @@
 # Release Notes
 
+## v0.34.0 - Codespaces Discovery and Platform Support
+
+*2026-11-19*
+
+### Changes
+
+- **vscode-minimum-1-144**: Jarvis now requires VS Code 1.144.0 or later. Update VS Code before installing this release.
+- **uat-status-model-cleanup**: The product acceptance model now groups checks into journeys and checks Needs status before integration, making validation evidence and outstanding acceptance work explicit.
+- **ahp-codespaces-discovery**: Jarvis can discover the VS Code Server Agent Host in GitHub Codespaces, enabling Actor messaging there. Discovery now supports standalone hosts and TCP endpoints and normalizes drive letters across platforms.
+- **platform-neutrality-audit**: Heartbeat `powershell` steps try `pwsh`, then `powershell` if `pwsh` is unavailable, and report a clear error if neither is found. Platform prerequisites are documented in the Core guide and acceptance journeys.
+
+### Validation Limits
+
+- Windows Agent Host connection and messaging were checked in a Sandbox. In Codespaces, the User exercised an installed discovery prototype; the finalized source was compared with it, but was not separately deployed end-to-end in that validation. macOS, WSL and SSH remain unverified.
+- The live Heartbeat PowerShell acceptance run has not yet been executed; system tests cover the fallback with an injected spawner. Acceptance journeys other than the Actor Phase-1 scenarios are approved, not executed.
+
+---
+
 ## v0.33.0 - Changed Defaults and Syspilot Retirement
 
 *2026-11-16*

@@ -2,6 +2,7 @@
 // No `vscode` import: this folder must stay movable into a process of its own.
 
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 
 /** One file of the Agent Host endpoint registry of a VS Code instance. */
@@ -10,7 +11,8 @@ export interface AgentHostEntry {
     type: string;
     pid: number;
     instanceId: string;
-    endpoint: { type: string; path: string };
+    /** `socket`: named pipe / Unix socket (desktop). `tcp`: loopback port (VS Code Server, e.g. Codespaces). */
+    endpoint: { type: 'socket'; path: string } | { type: 'tcp'; host: string; port: number };
     connectionToken: string;
     protocolVersion: string;
 }
@@ -23,7 +25,7 @@ export interface RegistryScan {
     entriesDir: string;
     /** Why no entry was chosen; set exactly when `entry` is undefined. */
     reason?: string;
-    counts: { files: number; unreadable: number; deadPid: number; notEditor: number; notSocket: number; otherSchema: number; live: number };
+    counts: { files: number; unreadable: number; deadPid: number; otherType: number; otherEndpoint: number; otherSchema: number; live: number };
 }
 
 export function registryEntriesDir(userDataDir: string): string {
@@ -40,14 +42,27 @@ export function isPidAlive(pid: number): boolean {
     }
 }
 
+/** Describes the endpoint for log lines. */
+export function describeEndpoint(entry: AgentHostEntry): string {
+    return entry.endpoint.type === 'tcp' ? `tcp ${entry.endpoint.host}:${entry.endpoint.port}` : entry.endpoint.path;
+}
+
+function validEndpoint(ep: unknown): boolean {
+    const e = ep as { type?: unknown; path?: unknown; host?: unknown; port?: unknown } | undefined;
+    if (e?.type === 'socket') { return typeof e.path === 'string'; }
+    if (e?.type === 'tcp') { return typeof e.host === 'string' && typeof e.port === 'number'; }
+    return false;
+}
+
 /**
- * Reads the registry and returns the live `editor` entry (SPEC_COM_AHPDISCOVERY steps 1-3).
+ * Reads the registry and returns the live entry to use (SPEC_COM_AHPDISCOVERY steps 1-3).
+ * An `editor` host (desktop) is preferred over a `standalone` one (VS Code Server starts one per machine).
  * Entries of ended hosts stay in the folder, so most files are dropped.
  * Never writes: the registry belongs to VS Code.
  */
 export function scanRegistry(userDataDir: string, alive: (pid: number) => boolean = isPidAlive): RegistryScan {
     const entriesDir = registryEntriesDir(userDataDir);
-    const counts = { files: 0, unreadable: 0, deadPid: 0, notEditor: 0, notSocket: 0, otherSchema: 0, live: 0 };
+    const counts = { files: 0, unreadable: 0, deadPid: 0, otherType: 0, otherEndpoint: 0, otherSchema: 0, live: 0 };
 
     let names: string[];
     try {
@@ -73,8 +88,8 @@ export function scanRegistry(userDataDir: string, alive: (pid: number) => boolea
         }
         if (entry.schemaVersion !== 2) { counts.otherSchema++; continue; }
         if (typeof entry.pid !== 'number' || !alive(entry.pid)) { counts.deadPid++; continue; }
-        if (entry.type !== 'editor') { counts.notEditor++; continue; }
-        if (entry.endpoint?.type !== 'socket' || typeof entry.endpoint.path !== 'string') { counts.notSocket++; continue; }
+        if (entry.type !== 'editor' && entry.type !== 'standalone') { counts.otherType++; continue; }
+        if (!validEndpoint(entry.endpoint)) { counts.otherEndpoint++; continue; }
         if (typeof entry.connectionToken !== 'string' || typeof entry.protocolVersion !== 'string') { counts.unreadable++; continue; }
         candidates.push({ entry, mtimeMs });
     }
@@ -86,11 +101,12 @@ export function scanRegistry(userDataDir: string, alive: (pid: number) => boolea
             entriesDir,
             candidates: [],
             counts,
-            reason: `no live editor entry among ${c.files} file(s) (dead pid ${c.deadPid}, not editor ${c.notEditor}, not socket ${c.notSocket}, other schema ${c.otherSchema}, unreadable ${c.unreadable})`,
+            reason: `no live entry among ${c.files} file(s) (dead pid ${c.deadPid}, other type ${c.otherType}, other endpoint ${c.otherEndpoint}, other schema ${c.otherSchema}, unreadable ${c.unreadable})`,
         };
     }
-    // At most one is live per VS Code instance, except briefly during a restart: take the newest.
-    candidates.sort((a, b) => b.mtimeMs - a.mtimeMs);
+    // At most one is live per VS Code instance, except briefly during a restart: take the newest, editor first.
+    const rank = (e: AgentHostEntry): number => (e.type === 'editor' ? 0 : 1);
+    candidates.sort((a, b) => rank(a.entry) - rank(b.entry) || b.mtimeMs - a.mtimeMs);
     return { entry: candidates[0].entry, candidates: candidates.map(c => c.entry), entriesDir, counts };
 }
 
@@ -111,4 +127,25 @@ export function userDataDirFromGlobalStorage(globalStoragePath: string): string 
     if (before[before.length - 1] !== 'User') { return undefined; }
     const userData = before.slice(0, -1).join(path.sep);
     return userData === '' ? path.sep : userData;
+}
+
+/**
+ * The user data folder of the desktop VS Code with the given product `nameShort` (`Code`, `Code - Insiders`).
+ * VS Code Server (remote, Codespaces) keeps its Agent Host registry there, not below its own `--server-data-dir`.
+ * Mirrors the server's rule: VSCODE_PORTABLE, VSCODE_APPDATA, else the platform's app-data folder.
+ */
+export function desktopUserDataDir(
+    nameShort: string,
+    env: NodeJS.ProcessEnv = process.env,
+    platform: NodeJS.Platform = process.platform,
+    home: string = os.homedir(),
+): string | undefined {
+    if (env.VSCODE_PORTABLE) { return path.join(env.VSCODE_PORTABLE, 'user-data'); }
+    if (env.VSCODE_APPDATA) { return path.join(env.VSCODE_APPDATA, nameShort); }
+    switch (platform) {
+        case 'win32': return path.join(env.APPDATA ?? path.join(env.USERPROFILE ?? home, 'AppData', 'Roaming'), nameShort);
+        case 'darwin': return path.join(home, 'Library', 'Application Support', nameShort);
+        case 'linux': return path.join(env.XDG_CONFIG_HOME || path.join(home, '.config'), nameShort);
+        default: return undefined;
+    }
 }

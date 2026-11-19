@@ -1,0 +1,179 @@
+[syspilot]
+schema_version = "2.0"
+description = "Jarvis ontology - sphinx-needs reads [needs] via needs_from_toml; the [syspilot] schema version labels the baseline."
+
+# Descriptive only: endpoint types of each link, for the skills and the reference page.
+# They constrain and validate nothing; the enforcing rules are [needs.warnings] and
+# [[needs.schema_definitions.schemas]] below.
+[[syspilot.diagram_edges]]
+link = "tracked_by"
+from = "mod"
+to = "root"
+
+[[syspilot.diagram_edges]]
+link = "tracked_by"
+from = "story"
+to = "mod"
+
+[[syspilot.diagram_edges]]
+link = "relates_to"
+from = "story"
+to = "story"
+
+[[syspilot.diagram_edges]]
+link = "validates"
+from = "ac"
+to = "story"
+
+[needs]
+
+id_required = true
+build_json = true
+build_json_per_id = true
+flow_engine = "graphviz"
+
+[needs.flow_configs.needflow]
+engine = "dot"
+format = "svg"
+
+# Graph Root - WHERE the graph starts. Exactly one instance: the Jarvis VS Code
+# extension as a product. Impact analysis starts here and descends through the modules.
+[[needs.types]]
+directive = "root"
+title = "Graph Root"
+prefix = "ROOT_"
+color = "#4A4A4A"
+style = "node"
+
+# Module - WHICH capability of the product. Every Story belongs to exactly one.
+[[needs.types]]
+directive = "mod"
+title = "Module"
+prefix = "MOD_"
+color = "#9AA5B1"
+style = "node"
+
+# User Stories - WHY (stakeholder perspective)
+[[needs.types]]
+directive = "story"
+title = "User Story"
+prefix = "US_"
+color = "#E8D5B7"
+style = "node"
+
+# Requirements - WHAT (system behavior)
+[[needs.types]]
+directive = "req"
+title = "Requirement"
+prefix = "REQ_"
+color = "#BFD8D2"
+style = "node"
+
+# Design Specifications - HOW (technical approach)
+[[needs.types]]
+directive = "spec"
+title = "Design Specification"
+prefix = "SPEC_"
+color = "#FEDCD2"
+style = "node"
+
+# Acceptance Criterion - did we build the right thing. A manual scenario judged by a
+# human, one per Given/When/Then, linked to the Story it validates.
+[[needs.types]]
+directive = "ac"
+title = "Acceptance Criterion"
+prefix = "AC_"
+color = "#A8E6CF"
+style = "node"
+
+[[needs.types]]
+directive = "impl"
+title = "Implementation"
+prefix = "IMPL_"
+color = "#DF744A"
+style = "node"
+
+[[needs.types]]
+directive = "test"
+title = "Test Case"
+prefix = "TEST_"
+color = "#DCB239"
+style = "node"
+
+[needs.fields.priority]
+nullable = true
+
+[needs.fields.rationale]
+nullable = true
+
+[needs.fields.acceptance_criteria]
+nullable = true
+
+[needs.fields.status.schema]
+enum = ["draft", "open", "approved", "implemented", "verified", "deprecated"]
+
+# Tree membership, always child -> parent: module -> root, story -> module.
+[[needs.extra_links]]
+option = "tracked_by"
+incoming = "tracks"
+outgoing = "tracked_by"
+
+# Story -> story. A functional dependency stated once, on the dependent story; the
+# incoming side shows the reverse. Used sparingly, so the module tree stays the main path.
+[[needs.extra_links]]
+option = "relates_to"
+incoming = "is related from"
+outgoing = "relates_to"
+
+# AC -> story. The criterion shows that the story's intent is satisfied.
+[[needs.extra_links]]
+option = "validates"
+incoming = "is validated by"
+outgoing = "validates"
+
+# Mandatory link obligations: a Need matching a filter below is reported as a warning
+# that names the Need and the warning key, so the strict build fails. The checks
+# establish that the minimum links exist, not that they are semantically right.
+[needs.warnings]
+module_lacks_root = "type == 'mod' and not tracked_by"
+story_lacks_module = "type == 'story' and not tracked_by"
+ac_lacks_validates = "type == 'ac' and not validates"
+
+# Endpoint types and multiplicity. A filter above sees one Need, so presence is checked
+# there; these schemas fix the type at each end of a link and allow one parent per Need.
+# A violation is reported as a warning, which fails the strict build.
+[[needs.schema_definitions.schemas]]
+id = "tracked_by_from_module_or_story"
+message = "tracked_by may only leave a mod or a story"
+select = { required = ["tracked_by"], properties = { tracked_by = { minItems = 1 } } }
+validate = { local = { properties = { type = { enum = ["mod", "story"] } } } }
+
+[[needs.schema_definitions.schemas]]
+id = "module_tracked_by_one_root"
+message = "a module is tracked_by exactly one root"
+select = { properties = { type = { const = "mod" } } }
+validate = { local = { properties = { tracked_by = { maxItems = 1 } } }, network = { tracked_by = { items = { local = { properties = { type = { const = "root" } } } } } } }
+
+[[needs.schema_definitions.schemas]]
+id = "story_tracked_by_one_module"
+message = "a story is tracked_by exactly one module"
+select = { properties = { type = { const = "story" } } }
+validate = { local = { properties = { tracked_by = { maxItems = 1 } } }, network = { tracked_by = { items = { local = { properties = { type = { const = "mod" } } } } } } }
+
+[[needs.schema_definitions.schemas]]
+id = "relates_to_between_stories"
+message = "relates_to may only connect stories"
+select = { required = ["relates_to"], properties = { relates_to = { minItems = 1 } } }
+validate = { local = { properties = { type = { const = "story" } } }, network = { relates_to = { items = { local = { properties = { type = { const = "story" } } } } } } }
+
+[[needs.schema_definitions.schemas]]
+id = "validates_from_ac"
+message = "validates may only leave an ac"
+select = { required = ["validates"], properties = { validates = { minItems = 1 } } }
+validate = { local = { properties = { type = { const = "ac" } } } }
+
+[[needs.schema_definitions.schemas]]
+id = "validates_to_story"
+message = "validates must reach a story"
+select = { properties = { type = { const = "ac" } } }
+validate = { network = { validates = { items = { local = { properties = { type = { const = "story" } } } } } } }

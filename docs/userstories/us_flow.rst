@@ -4,6 +4,7 @@ Message Flow Visualization User Stories
 .. story:: Message Flow Chord Diagram
    :id: US_FLOW_CHORDVIEW
    :status: draft
+   :tracked_by: MOD_FLOW
    :priority: optional
    :links: US_EXP_SIDEBAR; US_COM_SEND; US_MSG_EDITORPLACEMENT
 
@@ -48,6 +49,7 @@ Message Flow Visualization User Stories
 .. story:: Message Log Viewer
    :id: US_FLOW_LOGVIEWER
    :status: draft
+   :tracked_by: MOD_FLOW
    :priority: optional
    :links: US_COM_SEND; US_EXP_SIDEBAR; US_FLOW_CHORDVIEW
 

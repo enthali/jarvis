@@ -23,6 +23,7 @@ describe('resolveUserDataPath', () => {
     const globalStorageUri = { fsPath: '/home/user/.vscode-server/data/User/globalStorage/enthali.jarvis' } as any;
     const expectedFallback = path.resolve(globalStorageUri.fsPath, '../..');
     const originalUsername = process.env.USERNAME;
+    const originalUser = process.env.USER;
 
     afterEach(() => {
         mockedReadFileSync.mockReset();
@@ -30,6 +31,11 @@ describe('resolveUserDataPath', () => {
             delete process.env.USERNAME;
         } else {
             process.env.USERNAME = originalUsername;
+        }
+        if (originalUser === undefined) {
+            delete process.env.USER;
+        } else {
+            process.env.USER = originalUser;
         }
     });
 
@@ -60,6 +66,7 @@ describe('resolveUserDataPath', () => {
     it('returns fallback path when WSL2 detected but USERNAME is undefined', () => {
         mockedReadFileSync.mockReturnValue('Linux version 5.15.90.1-microsoft-standard-WSL2');
         delete process.env.USERNAME;
+        delete process.env.USER;
 
         const result = resolveUserDataPath(globalStorageUri);
         expect(result).toBe(expectedFallback);

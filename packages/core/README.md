@@ -1,6 +1,6 @@
 # Jarvis — Personal Assistant for VS Code
 
-Jarvis Core 0.33.0 is the actor harness for Visual Studio Code. Since 0.32.0 it supports Actors, messaging and Kanban in the Agents window, where several Actor chats can be open side by side, as well as in the editor. Actor definitions, memory and scheduling live in folders you control.
+Jarvis Core 0.34.0 is the actor harness for Visual Studio Code. Since 0.32.0 it supports Actors, messaging and Kanban in the Agents window, where several Actor chats can be open side by side, as well as in the editor. Actor definitions, memory and scheduling live in folders you control.
 
 ## Features
 
@@ -44,15 +44,17 @@ The Jarvis client publishes and approves its own four tools:
 
 Remove `senderSession` and `destination` from send and receive calls in existing instructions and skills. These tools are not exposed through MCP. The old session-list, read-message, send-to-session and prompt-injection tools, the Inject Prompt command and `jarvis.messages.notificationTemplate` are removed. Provisioning refreshes bundled instructions when enabled; project-owned copies require manual updates.
 
-Extension tools retain references such as `#jarvis_core_listJobs` and reach an Actor chat while it is open in a window running Jarvis. The client serves the first workspace folder only; cross-workspace routing is outside this MVP. Remote windows (WSL, SSH, Dev Tunnels) are not served. The same workspace in two windows is not tested and probably does not work. While disconnected, announcements wait.
+Extension tools retain references such as `#jarvis_core_listJobs` and reach an Actor chat while it is open in a window running Jarvis. The client serves the first workspace folder only; cross-workspace routing is outside this MVP. The same workspace in two windows is not tested and probably does not work. While disconnected, announcements wait.
+
+In GitHub Codespaces, the User exercised an installed discovery prototype, and Agent Host discovery, Actor messaging and opening Actor chats worked (2026-11-19); the finalized code was compared with it but not separately deployed end-to-end. Replies, Dev Tunnels and the Agents window connected to a Codespace were outside that validation. On Windows, the connection and a message exchange were checked in the Windows Sandbox (VS Code 1.144.0, 2026-11-19). macOS, WSL and SSH were not verified.
 
 In the editor window, activity icons come from the Agent Host: red cross for Error, blue question mark for Waiting, spinner for Working, none for Idle. Activity takes priority over the recording mark, then the mail icon.
 
-## Agents Window in 0.32.0
+## Agents Window and Known Limits
 
 The User observed Actor chats, messaging and the Kanban board working in the Windows Sandbox on 2026-11-03. Flow (message view and log) cannot be opened there yet. Jarvis features offered through the status bar or a tree do not work there: ACTORS activity/mail markers, the PIM mail notification in the tree, and Recorder, which has no UI that can be triggered there. Tree markers, Flow, PIM and Recorder support there is on the roadmap; there is no plan yet.
 
-The manual Agent Host scenarios and upgrade cleanup with old hook files (`US_UAT_MSG` T-22) were not run in validation of the included changes. See the [Core guide](../../docs/user%20guides/core.md) for the full limitations.
+The manual Agent Host scenarios and upgrade cleanup with old hook files were not run in the validation of 0.32.0, and no later run is recorded. See the [Core guide](../../docs/user%20guides/core.md) for the full limitations.
 
 ## Upgrading from a Hook-Based Version
 
@@ -62,11 +64,11 @@ On activation, Jarvis removes only `.github/hooks/jarvis-hooks.json`, `jarvis-br
 
 Full migration details are in the [Getting Started guide](../../docs/user%20guides/getting-started.md#updating-to-the-agent-host-path).
 
-The MCP server is off by default in 0.32.0, including for upgrades without an explicit setting. Set `jarvis.mcp.enabled` to `true` to opt in.
+The MCP server is off by default since 0.32.0, including for upgrades without an explicit setting. Set `jarvis.mcp.enabled` to `true` to opt in.
 
 ## Requirements
 
-- VS Code 1.95.0 or later (manifest minimum); Actor chats additionally require Agent Host support. Live evidence covers Windows on 1.143.1 and clean Actor startup on 1.144.0, not older versions.
+- VS Code 1.144.0 or later; Actor chats additionally require Agent Host support. Live evidence covers Windows on 1.143.1 and clean Actor startup on 1.144.0.
 
 ## Source & Issues
 
