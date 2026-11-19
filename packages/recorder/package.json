@@ -2,7 +2,7 @@
   "name": "jarvis-recorder",
   "displayName": "Jarvis Recorder",
   "description": "Jarvis Recorder — records a meeting from microphone and speaker output, transcribes it locally and hands the transcript to an Actor (Windows only)",
-  "version": "0.33.0",
+  "version": "0.34.0",
   "publisher": "enthali",
   "repository": {
     "type": "git",
