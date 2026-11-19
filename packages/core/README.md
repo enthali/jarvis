@@ -1,6 +1,6 @@
 # Jarvis — Personal Assistant for VS Code
 
-Jarvis Core 0.33.0 is the actor harness for Visual Studio Code. Since 0.32.0 it supports Actors, messaging and Kanban in the Agents window, where several Actor chats can be open side by side, as well as in the editor. Actor definitions, memory and scheduling live in folders you control.
+Jarvis Core 0.34.0 is the actor harness for Visual Studio Code. Since 0.32.0 it supports Actors, messaging and Kanban in the Agents window, where several Actor chats can be open side by side, as well as in the editor. Actor definitions, memory and scheduling live in folders you control.
 
 ## Features
 
@@ -46,7 +46,7 @@ Remove `senderSession` and `destination` from send and receive calls in existing
 
 Extension tools retain references such as `#jarvis_core_listJobs` and reach an Actor chat while it is open in a window running Jarvis. The client serves the first workspace folder only; cross-workspace routing is outside this MVP. The same workspace in two windows is not tested and probably does not work. While disconnected, announcements wait.
 
-In GitHub Codespaces, Agent Host discovery and sending from an Actor chat with `jarvis_sendMessage` were verified. This does not cover replies, opening Actor chats, Dev Tunnels or the Agents window connected to a Codespace. WSL and SSH were not verified; Windows and macOS live connection checks for the discovery change are not yet run; they are deferred to a future release validation.
+In GitHub Codespaces, Agent Host discovery and Actor messaging worked with an installed discovery prototype that the User exercised; the finalized code was compared with it but not separately deployed end-to-end. Replies, opening Actor chats, Dev Tunnels and the Agents window connected to a Codespace were outside that validation. On Windows, the connection and a message exchange were checked in the Windows Sandbox (VS Code 1.144.0, 2026-11-19). macOS, WSL and SSH were not verified.
 
 In the editor window, activity icons come from the Agent Host: red cross for Error, blue question mark for Waiting, spinner for Working, none for Idle. Activity takes priority over the recording mark, then the mail icon.
 

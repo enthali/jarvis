@@ -1,6 +1,6 @@
 # Jarvis — The Actor Harness
 
-Jarvis 0.33.0 builds on 0.32.0, the first release with **Actors, messaging and Kanban in
+Jarvis 0.34.0 builds on 0.32.0, the first release with **Actors, messaging and Kanban in
 VS Code's Agents window**, alongside the editor experience. Several Actor chats
 can be open side by side. Tree markers, Flow, PIM and Recorder in the Agents
 window are on the roadmap; there is no plan yet.
@@ -20,6 +20,13 @@ files in configurable folders.
 ## Getting Started
 
 New to Jarvis? Follow the [Getting Started guide](docs/user%20guides/getting-started.md).
+
+## Version 0.34.0
+
+Jarvis now requires **VS Code 1.144.0 or later**; update VS Code before installing. See the [release notes](docs/releasenotes.md).
+
+- **Codespaces.** Jarvis can find the VS Code Server Agent Host in a GitHub Codespace, so Actor messaging can work there. The finalized code was not separately deployed end-to-end in a Codespace; macOS, WSL and SSH are not verified. The [Core guide](docs/user%20guides/core.md#agent-host-environments-and-known-limits) lists what was checked.
+- **Heartbeat `powershell` steps** try `pwsh`, then `powershell`, and report an error if neither is found.
 
 ## Version 0.33.0
 

@@ -1,6 +1,6 @@
 # Jarvis Core
 
-Jarvis Core 0.33.0 (`enthali.jarvis-core`) is the harness: it turns chat sessions and agent personas into actors and provides messaging, reminders, the heartbeat scheduler, and the engine that the other packages build on. Agents window support for Actors, messaging and Kanban arrived in 0.32.0. Requires VS Code 1.144.0 or later; Actor chats additionally require an available, authenticated Agent Host.
+Jarvis Core 0.34.0 (`enthali.jarvis-core`) is the harness: it turns chat sessions and agent personas into actors and provides messaging, reminders, the heartbeat scheduler, and the engine that the other packages build on. Agents window support for Actors, messaging and Kanban arrived in 0.32.0. Requires VS Code 1.144.0 or later; Actor chats additionally require an available, authenticated Agent Host.
 
 ## Actors
 
@@ -51,7 +51,7 @@ Extension tools retain package-prefixed chat references, such as `#jarvis_core_l
 In the Windows Sandbox on 2026-11-03, the User observed that Actor chats, messaging and the Kanban board work in the Agents window, with several Actor chats open side by side.
 
 - Jarvis needs an available, authenticated Agent Host; there is no fallback to the old chat UI. Development and checks covered VS Code 1.143.1 and 1.144.0.
-- In GitHub Codespaces, Jarvis finds and connects to the VS Code Server Agent Host. Sending a message from an Actor chat with `jarvis_sendMessage` was verified. Replies, opening Actor chats, Dev Tunnels and the Agents window connected to a Codespace were outside that validation. WSL and SSH were not verified, and the Windows and macOS live connection checks for this discovery change are not yet run; they are deferred to a future release validation.
+- In GitHub Codespaces, Jarvis finds and connects to the VS Code Server Agent Host. The User exercised an installed discovery prototype there and Actor messaging worked; the finalized code was compared with that prototype but not separately deployed end-to-end. Replies, opening Actor chats, Dev Tunnels and the Agents window connected to a Codespace were outside that validation. On Windows, the Agent Host connection and a message exchange between two Actors were checked in the Windows Sandbox (VS Code 1.144.0, 2026-11-19). macOS, WSL and SSH were not verified.
 - The client serves its window's first workspace folder. Cross-workspace routing is outside this MVP. The same workspace in two windows is not tested and probably does not work.
 - Enable **Created In > jarvis-core** to see Jarvis-created chats in the Agents window.
 - Flow, including the message view and log, cannot be opened from the Agents window yet.

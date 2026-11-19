@@ -10,7 +10,7 @@ The other packages are optional add-ons that need Jarvis Core. Install only what
 
 Actor chats also require an available VS Code Agent Host and an authenticated agent. Jarvis no longer uses the old chat UI as a fallback. The Agent Host path has been exercised on Windows with VS Code 1.143.1 and, for clean Actor startup, 1.144.0.
 
-In GitHub Codespaces, Jarvis can find the VS Code Server Agent Host and send messages from an Actor chat. See the [Core guide](core.md) for what was and was not verified in Codespaces.
+In GitHub Codespaces, Jarvis can find the VS Code Server Agent Host, and Actor messaging worked there with a discovery prototype. See the [Core guide](core.md) for what was and was not verified in Codespaces.
 
 ### Updating to the Agent Host path
 
