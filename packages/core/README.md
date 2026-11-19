@@ -46,7 +46,7 @@ Remove `senderSession` and `destination` from send and receive calls in existing
 
 Extension tools retain references such as `#jarvis_core_listJobs` and reach an Actor chat while it is open in a window running Jarvis. The client serves the first workspace folder only; cross-workspace routing is outside this MVP. The same workspace in two windows is not tested and probably does not work. While disconnected, announcements wait.
 
-In GitHub Codespaces, Agent Host discovery and sending from an Actor chat with `jarvis_sendMessage` were verified. This does not cover replies, opening Actor chats, Dev Tunnels or the Agents window connected to a Codespace. WSL and SSH were not verified; Windows and macOS checks for the discovery change are deferred to release validation.
+In GitHub Codespaces, Agent Host discovery and sending from an Actor chat with `jarvis_sendMessage` were verified. This does not cover replies, opening Actor chats, Dev Tunnels or the Agents window connected to a Codespace. WSL and SSH were not verified; Windows and macOS live connection checks for the discovery change are not yet run; they are deferred to a future release validation.
 
 In the editor window, activity icons come from the Agent Host: red cross for Error, blue question mark for Waiting, spinner for Working, none for Idle. Activity takes priority over the recording mark, then the mail icon.
 
@@ -54,7 +54,7 @@ In the editor window, activity icons come from the Agent Host: red cross for Err
 
 The User observed Actor chats, messaging and the Kanban board working in the Windows Sandbox on 2026-11-03. Flow (message view and log) cannot be opened there yet. Jarvis features offered through the status bar or a tree do not work there: ACTORS activity/mail markers, the PIM mail notification in the tree, and Recorder, which has no UI that can be triggered there. Tree markers, Flow, PIM and Recorder support there is on the roadmap; there is no plan yet.
 
-The manual Agent Host scenarios and upgrade cleanup with old hook files were not run in validation of the included changes. See the [Core guide](../../docs/user%20guides/core.md) for the full limitations.
+The manual Agent Host scenarios and upgrade cleanup with old hook files were not run in the validation of 0.32.0, and no later run is recorded. See the [Core guide](../../docs/user%20guides/core.md) for the full limitations.
 
 ## Upgrading from a Hook-Based Version
 

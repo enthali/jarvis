@@ -51,7 +51,7 @@ Extension tools retain package-prefixed chat references, such as `#jarvis_core_l
 In the Windows Sandbox on 2026-11-03, the User observed that Actor chats, messaging and the Kanban board work in the Agents window, with several Actor chats open side by side.
 
 - Jarvis needs an available, authenticated Agent Host; there is no fallback to the old chat UI. Development and checks covered VS Code 1.143.1 and 1.144.0.
-- In GitHub Codespaces, Jarvis finds and connects to the VS Code Server Agent Host. Sending a message from an Actor chat with `jarvis_sendMessage` was verified. Replies, opening Actor chats, Dev Tunnels and the Agents window connected to a Codespace were outside that validation. WSL and SSH were not verified, and the Windows and macOS checks for this discovery change are deferred to release validation.
+- In GitHub Codespaces, Jarvis finds and connects to the VS Code Server Agent Host. Sending a message from an Actor chat with `jarvis_sendMessage` was verified. Replies, opening Actor chats, Dev Tunnels and the Agents window connected to a Codespace were outside that validation. WSL and SSH were not verified, and the Windows and macOS live connection checks for this discovery change are not yet run; they are deferred to a future release validation.
 - The client serves its window's first workspace folder. Cross-workspace routing is outside this MVP. The same workspace in two windows is not tested and probably does not work.
 - Enable **Created In > jarvis-core** to see Jarvis-created chats in the Agents window.
 - Flow, including the message view and log, cannot be opened from the Agents window yet.
@@ -59,7 +59,7 @@ In the Windows Sandbox on 2026-11-03, the User observed that Actor chats, messag
 - Project-owned prompts, skills and agents must use the changed message-tool inputs above; remove `senderSession` and `destination` from send and receive calls.
 - Recently Touched Files is removed in 0.32.0 and is on the roadmap for a future version. Old `.jarvis/state/touched-files/` data and any old `chat.hookFilesLocations` entry in `.vscode/settings.json` remain on disk.
 - The MCP server stays off unless `jarvis.mcp.enabled` is explicitly `true`, including after an upgrade without a stored setting.
-- The manual Agent Host scenarios and upgrade cleanup of a project still containing old hook files were not run in validation of the included changes. The observed Sandbox results do not turn those procedures into test passes.
+- The manual Agent Host scenarios and upgrade cleanup of a project still containing old hook files were not run in the validation of 0.32.0, and no later run is recorded. The observed Sandbox results do not turn those procedures into test passes.
 
 ## Upgrading from a hook-based version
 
