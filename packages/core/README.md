@@ -46,7 +46,7 @@ Remove `senderSession` and `destination` from send and receive calls in existing
 
 Extension tools retain references such as `#jarvis_core_listJobs` and reach an Actor chat while it is open in a window running Jarvis. The client serves the first workspace folder only; cross-workspace routing is outside this MVP. The same workspace in two windows is not tested and probably does not work. While disconnected, announcements wait.
 
-In GitHub Codespaces, Agent Host discovery and Actor messaging worked with an installed discovery prototype that the User exercised; the finalized code was compared with it but not separately deployed end-to-end. Replies, opening Actor chats, Dev Tunnels and the Agents window connected to a Codespace were outside that validation. On Windows, the connection and a message exchange were checked in the Windows Sandbox (VS Code 1.144.0, 2026-11-19). macOS, WSL and SSH were not verified.
+In GitHub Codespaces, the User exercised an installed discovery prototype, and Agent Host discovery, Actor messaging and opening Actor chats worked (2026-11-19); the finalized code was compared with it but not separately deployed end-to-end. Replies, Dev Tunnels and the Agents window connected to a Codespace were outside that validation. On Windows, the connection and a message exchange were checked in the Windows Sandbox (VS Code 1.144.0, 2026-11-19). macOS, WSL and SSH were not verified.
 
 In the editor window, activity icons come from the Agent Host: red cross for Error, blue question mark for Waiting, spinner for Working, none for Idle. Activity takes priority over the recording mark, then the mail icon.
 
