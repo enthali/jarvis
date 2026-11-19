@@ -6,8 +6,10 @@ of the Automation module, executed by the User in an Extension Development Host
 as four journeys. Each journey is one sitting in which the criteria are walked
 through in order.
 
-**Setup:** the heartbeat reads ``<workspace root>/.jarvis/heartbeat.yaml`` and
-resolves the ``prompt``, ``run`` and ``outputFile`` paths of its steps relative
+**Setup:** In the environment running the Extension Development Host, make
+sure ``pwsh`` or ``powershell`` is on ``PATH`` and a Python interpreter is
+available to Jarvis. The heartbeat reads ``<workspace root>/.jarvis/heartbeat.yaml``
+and resolves the ``prompt``, ``run`` and ``outputFile`` paths of its steps relative
 to the ``.jarvis`` folder. The tester copies ``heartbeat.yaml``, ``prompts/`` and
 ``scripts/`` from ``testdata/heartbeat/`` into ``<workspace root>/.jarvis/``
 (``testdata/.jarvis/`` when the workspace is ``testdata/``) and reloads the

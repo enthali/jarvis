@@ -1,3 +1,13 @@
+<#
+.SYNOPSIS
+Builds the VSIX files that the Windows Sandbox test installs (core, pim, recorder, mcp, flow, kanban).
+
+.DESCRIPTION
+Sandbox tool, called by Start-Sandbox.ps1, which reads the build-manifest.json written here.
+It is not the packaging step of the Change Contract: Quality packages with the platform-neutral recipe
+in docs/Jarvis Contracts/change.md. enthali.jarvis (core-gh) is built by release.yml, not by this script.
+Windows only (PowerShell, node.exe, npm.cmd).
+#>
 [CmdletBinding()]
 param(
     [string]$OutputDirectory

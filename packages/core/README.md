@@ -44,7 +44,9 @@ The Jarvis client publishes and approves its own four tools:
 
 Remove `senderSession` and `destination` from send and receive calls in existing instructions and skills. These tools are not exposed through MCP. The old session-list, read-message, send-to-session and prompt-injection tools, the Inject Prompt command and `jarvis.messages.notificationTemplate` are removed. Provisioning refreshes bundled instructions when enabled; project-owned copies require manual updates.
 
-Extension tools retain references such as `#jarvis_core_listJobs` and reach an Actor chat while it is open in a window running Jarvis. The client serves the first workspace folder only; cross-workspace routing is outside this MVP. Remote windows (WSL, SSH, Dev Tunnels) are not served. The same workspace in two windows is not tested and probably does not work. While disconnected, announcements wait.
+Extension tools retain references such as `#jarvis_core_listJobs` and reach an Actor chat while it is open in a window running Jarvis. The client serves the first workspace folder only; cross-workspace routing is outside this MVP. The same workspace in two windows is not tested and probably does not work. While disconnected, announcements wait.
+
+In GitHub Codespaces, Agent Host discovery and sending from an Actor chat with `jarvis_sendMessage` were verified. This does not cover replies, opening Actor chats, Dev Tunnels or the Agents window connected to a Codespace. WSL and SSH were not verified; Windows and macOS checks for the discovery change are deferred to release validation.
 
 In the editor window, activity icons come from the Agent Host: red cross for Error, blue question mark for Waiting, spinner for Working, none for Idle. Activity takes priority over the recording mark, then the mail icon.
 

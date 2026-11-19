@@ -39,16 +39,20 @@ Set cron-based or one-off reminders that appear as VS Code notifications.
 
 Cron-based background jobs that run scripts (Python, PowerShell), VS Code commands, or single-shot language-model agent steps, with a live status view in the activity bar. Each agent step names both `vendor` and `model` (the model ID); there is no default or fallback. Use **Jarvis: List Language Models** or `jarvis_listModels` to see the pairs VS Code currently offers.
 
+- **PowerShell steps** need PowerShell in the environment where Jarvis runs, including inside the Codespace if Jarvis runs there. Jarvis tries `pwsh`, then `powershell` if `pwsh` is not found, and reports an error if neither is found.
+- **Python steps** need a Python interpreter in that environment. Jarvis uses `python.defaultInterpreterPath` if set; otherwise it checks `.venv` and then `venv` in the first workspace folder (`Scripts/python.exe` on Windows, `bin/python` elsewhere). If neither exists, it runs `python` from `PATH`.
+
 ## Language model tools
 
 Extension tools retain package-prefixed chat references, such as `#jarvis_core_listModels`, `#jarvis_core_createActor`, and `#jarvis_core_listJobs`. They are separate from the four Agent Host tools above. Installed packages add their own tools, for example `#jarvis_kanban_listKanbanItems`. These module tools reach an Actor chat only while it is open in a window running Jarvis.
 
-## Agents window and known limits in 0.32.0
+## Agent Host environments and known limits
 
 In the Windows Sandbox on 2026-11-03, the User observed that Actor chats, messaging and the Kanban board work in the Agents window, with several Actor chats open side by side.
 
 - Jarvis needs an available, authenticated Agent Host; there is no fallback to the old chat UI. Development and checks covered VS Code 1.143.1 and 1.144.0; 1.144.0 is the minimum Jarvis declares.
-- The client serves its window's first workspace folder. Remote windows (WSL, SSH, Dev Tunnels) are not served, and cross-workspace routing is outside this MVP. The same workspace in two windows is not tested and probably does not work.
+- In GitHub Codespaces, Jarvis finds and connects to the VS Code Server Agent Host. Sending a message from an Actor chat with `jarvis_sendMessage` was verified. Replies, opening Actor chats, Dev Tunnels and the Agents window connected to a Codespace were outside that validation. WSL and SSH were not verified, and the Windows and macOS checks for this discovery change are deferred to release validation.
+- The client serves its window's first workspace folder. Cross-workspace routing is outside this MVP. The same workspace in two windows is not tested and probably does not work.
 - Enable **Created In > jarvis-core** to see Jarvis-created chats in the Agents window.
 - Flow, including the message view and log, cannot be opened from the Agents window yet.
 - Jarvis features offered through the status bar or a tree do not work there: ACTORS activity/mail markers, the PIM mail notification in the tree, and Recorder, which has no UI that can be triggered there. A solution is on the roadmap; there is no plan yet. These editor-window features are not removed from Jarvis.

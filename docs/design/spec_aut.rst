@@ -138,7 +138,7 @@ Automation Design Specifications
 
 .. spec:: Job Step Executor
    :id: SPEC_AUT_EXECUTOR
-   :status: implemented
+   :status: verified
    :links: REQ_AUT_JOBEXEC; REQ_AUT_OUTPUT; REQ_AUT_STEP_OUTPUT_VARS
 
    **Description:**
@@ -214,8 +214,13 @@ Automation Design Specifications
      stdout/stderr appended to Output Channel line-by-line; resolve on ``close`` event;
      non-zero exit code →
      ``{ success: false, stepType: 'python', error: \`exit \${code}\` }``
-   - ``powershell``: same ``child_process.spawn`` pattern with ``pwsh`` (fallback
-     ``powershell``) as the executable
+   - ``powershell``: same ``child_process.spawn`` pattern. The executable is
+     ``pwsh``; when it cannot be started (spawn error ``ENOENT``), the step runs
+     with ``powershell`` instead. When neither can be started, the step fails
+     with ``{ success: false, stepType: 'powershell', error }`` whose message
+     names both executables and says that PowerShell must be installed
+     (``REQ_AUT_JOBEXEC`` AC-2). The process start is injectable so that a test
+     can run the step without PowerShell installed.
    - ``command``: ``await vscode.commands.executeCommand(step.run)`` wrapped in
      try/catch; thrown exception → ``{ success: false, stepType: 'command', error: message }``.
      If the command is not registered (``getCommands()``), soft-skip with

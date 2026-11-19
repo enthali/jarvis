@@ -48,12 +48,13 @@ export interface HeartbeatJob {
     enabled?: boolean;
 }
 
-interface ExecResult {
+export interface ExecResult {
     success: boolean;
     stepType?: HeartbeatStep['type'];
     error?: string;
     output?: string;  // captured stdout (scripts) or response text (agent)
     stderr?: string;  // captured stderr (script steps only)
+    code?: string;    // spawn error code (e.g. ENOENT), set only when the process could not start
 }
 
 // ---------------------------------------------------------------------------
@@ -161,10 +162,11 @@ function spawnStep(
     executable: string,
     args: string[],
     outputChannel: vscode.LogOutputChannel,
-    stepType: HeartbeatStep['type']
+    stepType: HeartbeatStep['type'],
+    spawnFn: typeof cp.spawn = cp.spawn
 ): Promise<ExecResult> {
     return new Promise(resolve => {
-        const proc = cp.spawn(executable, args, { shell: false });
+        const proc = spawnFn(executable, args, { shell: false });
         // Stderr tail capture (heartbeat-venv-autodetect CR, REQ_AUT_OUTPUT AC-5):
         // bounded ring buffer of the last 3 stderr lines, folded into
         // ExecResult.error on non-zero exit. Full stream still logged in
@@ -197,10 +199,27 @@ function spawnStep(
                 resolve({ success: true, output: stdoutFull, stderr: stderrFull });
             }
         });
-        proc.on('error', (err: Error) => {
-            resolve({ success: false, stepType, error: err.message });
+        proc.on('error', (err: NodeJS.ErrnoException) => {
+            resolve({ success: false, stepType, error: err.message, code: err.code });
         });
     });
+}
+
+/** pwsh first; Windows PowerShell when pwsh cannot be started; a clear error when neither can (SPEC_AUT_EXECUTOR, REQ_AUT_JOBEXEC AC-2). */
+export async function runPowerShellStep(
+    scriptPath: string,
+    outputChannel: vscode.LogOutputChannel,
+    spawnFn: typeof cp.spawn = cp.spawn
+): Promise<ExecResult> {
+    const args = ['-NonInteractive', '-File', scriptPath];
+    let result = await spawnStep('pwsh', args, outputChannel, 'powershell', spawnFn);
+    if (result.code === 'ENOENT') {
+        result = await spawnStep('powershell', args, outputChannel, 'powershell', spawnFn);
+    }
+    if (result.code === 'ENOENT') {
+        return { success: false, stepType: 'powershell', error: 'PowerShell not found: neither "pwsh" nor "powershell" can be started. Install PowerShell to run powershell steps.' };
+    }
+    return result;
 }
 
 function resolveScriptPath(run: string, configDir: string): string {
@@ -418,7 +437,7 @@ async function runStep(
     }
 
     if (step.type === 'powershell') {
-        return spawnStep('pwsh', ['-NonInteractive', '-File', resolveScriptPath(step.run!, configDir)], outputChannel, 'powershell');
+        return runPowerShellStep(resolveScriptPath(step.run!, configDir), outputChannel);
     }
 
     // command

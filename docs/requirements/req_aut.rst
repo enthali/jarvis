@@ -57,7 +57,7 @@ Automation Requirements
 
 .. req:: Job Step Execution
    :id: REQ_AUT_JOBEXEC
-   :status: approved
+   :status: verified
    :priority: optional
    :links: US_AUT_HEARTBEAT; REQ_AUT_OUTPUT; REQ_MSG_QUEUE; REQ_AUT_JOBCONFIG
 
@@ -75,7 +75,9 @@ Automation Requirements
         in order: ``.venv/Scripts/python.exe`` (Windows) / ``.venv/bin/python`` (POSIX),
         then ``venv/Scripts/python.exe`` / ``venv/bin/python``
      3. Bare ``python`` on ``PATH`` (last-resort fallback)
-   * AC-2: Steps of type ``powershell`` SHALL be executed via a PowerShell process
+   * AC-2: Steps of type ``powershell`` SHALL be executed via a PowerShell process on every
+     platform where PowerShell is installed. When no PowerShell is installed, the step
+     fails with a message that names the missing PowerShell.
    * AC-3: Steps of type ``command`` SHALL be executed via
      ``vscode.commands.executeCommand``
    * AC-4: If a step exits with a non-zero exit code or throws an unhandled exception,

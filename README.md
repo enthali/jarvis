@@ -86,7 +86,7 @@ capability modules. Install only what you need.
 
 ### Jarvis PIM
 
-- **Categories & tasks** — Outlook-backed category and task integration
+- **Categories & tasks** — Outlook-backed category and task integration on Windows with Outlook Classic
 
 ### Jarvis Recorder
 
