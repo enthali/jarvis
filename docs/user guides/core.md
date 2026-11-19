@@ -50,7 +50,7 @@ Extension tools retain package-prefixed chat references, such as `#jarvis_core_l
 
 In the Windows Sandbox on 2026-11-03, the User observed that Actor chats, messaging and the Kanban board work in the Agents window, with several Actor chats open side by side.
 
-- Jarvis needs an available, authenticated Agent Host; there is no fallback to the old chat UI. Development and checks covered VS Code 1.143.1 and 1.144.0; 1.144.0 is the minimum Jarvis declares.
+- Jarvis needs an available, authenticated Agent Host; there is no fallback to the old chat UI. Development and checks covered VS Code 1.143.1 and 1.144.0.
 - In GitHub Codespaces, Jarvis finds and connects to the VS Code Server Agent Host. Sending a message from an Actor chat with `jarvis_sendMessage` was verified. Replies, opening Actor chats, Dev Tunnels and the Agents window connected to a Codespace were outside that validation. WSL and SSH were not verified, and the Windows and macOS checks for this discovery change are deferred to release validation.
 - The client serves its window's first workspace folder. Cross-workspace routing is outside this MVP. The same workspace in two windows is not tested and probably does not work.
 - Enable **Created In > jarvis-core** to see Jarvis-created chats in the Agents window.
