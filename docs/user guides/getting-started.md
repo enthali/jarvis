@@ -57,7 +57,7 @@ Open the Jarvis view in the activity bar. Jarvis scans its folders and fills the
 
 ## 3. Check where actors live
 
-Actors are folders with an `actor.yaml` file. New actors are created in `.jarvis/actors` in your workspace. To use another folder, change `jarvis.actors.folder` under **Settings → Extensions → Jarvis**. Only direct child folders that contain an `actor.yaml` appear in the ACTORS view.
+Actors are folders with an `actor.yaml` file. By default, new actors are created in `.jarvis/actors` in your workspace, and the `#jarvis_core_createActor` tool uses the same folder. To use another folder, change `jarvis.actors.folder` under **Settings → Extensions → Jarvis**; new actors then go there. Only direct child folders that contain an `actor.yaml` appear in the ACTORS view.
 
 ## 4. Create your first actor
 

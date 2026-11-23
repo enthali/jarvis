@@ -14,7 +14,7 @@ Release Design Specifications
 
 .. spec:: Extension Packaging Setup
    :id: SPEC_REL_VSCEPKG
-   :status: draft
+   :status: implemented
    :links: REQ_REL_VSCEPKG
 
    **Description:**
@@ -34,33 +34,19 @@ Release Design Specifications
    * Entry point: ``src/extension.ts``
    * Output: ``out/extension.js`` (CommonJS, platform ``node``, target ``node20``)
    * Externals: ``vscode`` (always provided by the host)
-   * Inlined: ``cron-parser``, ``js-yaml``, ``sql.js`` (all third-party runtime deps)
+   * Inlined: ``cron-parser``, ``js-yaml`` (all third-party runtime deps)
    * Source maps: enabled
    * Minification: optional (``--minify`` flag)
    * Watch mode: optional (``--watch`` flag)
-   * WASM handling: after the build, copies
-     ``<repo-root>/node_modules/sql.js/dist/sql-wasm.wasm`` to ``out/sql-wasm.wasm``
+   * No other file is copied next to the bundle: the Core bundle carries no
+     WebAssembly file (``sql.js`` and ``sql-wasm.wasm`` are removed by the
+     ``retire-legacy-session-lookup`` CR)
 
-   **2. ``sql.js`` WASM runtime resolution**
+   **2. Dev host resolution**
 
-   ``sql.js`` requires a WebAssembly binary (``sql-wasm.wasm``) at runtime.
-   esbuild cannot bundle ``.wasm`` files, so ``build.js`` copies the WASM next to
-   the output bundle.  The source code (``engine/sessionLookup.ts``) uses a
-   conditional ``locateFile`` override:
-
-   .. code-block:: typescript
-
-      const bundledWasm = path.join(__dirname, 'sql-wasm.wasm');
-      const SQL = fs.existsSync(bundledWasm)
-          ? await initSqlJs({ locateFile: (file: string) => path.join(__dirname, file) })
-          : await initSqlJs();
-
-   * **Packaged extension** (``out/extension.js``): ``__dirname`` resolves to
-     ``out/``, the copied WASM is found → ``locateFile`` override used.
-   * **Dev host (F5)**: the code runs from ``out/`` compiled by ``tsc`` where no
-     WASM copy exists → ``fs.existsSync`` returns false → ``initSqlJs()`` default
-     resolution (from ``node_modules/sql.js/dist/``) is used.  Dev host is
-     unaffected.
+   The bundle is the only artefact the packaged extension needs at runtime. The
+   dev host (F5) runs the code compiled by ``tsc`` from ``out/`` and needs no
+   copy step.
 
    **3. ``packages/core/package.json`` scripts**
 
@@ -91,7 +77,7 @@ Release Design Specifications
 
    Includes in the VSIX:
 
-   * ``out/`` — bundled extension + WASM
+   * ``out/`` — bundled extension
    * ``resources/`` — icons, assets
    * ``schemas/`` — JSON schemas
    * ``package.json``, ``README.md``
@@ -113,6 +99,8 @@ Release Design Specifications
    * AC-4: All 148 tests still pass after the build change
    * AC-5: F5 (Run Core) launches the extension without bundling errors (dev host
      unaffected)
+   * AC-6: The Core VSIX contains no ``.wasm`` file, and ``packages/core`` declares
+     no ``sql.js`` dependency
 
 
 .. spec:: Docs GitHub Actions Workflow

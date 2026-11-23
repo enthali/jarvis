@@ -69,66 +69,27 @@ Message Queue Requirements
 
 .. req:: Session UUID Lookup via state.vscdb
    :id: REQ_MSG_SESSIONLOOKUP
-   :status: approved
+   :status: deprecated
    :priority: optional
    :links: US_COM_SEND
 
-   **Description:**
-   The extension SHALL resolve a chat session name to a VS Code Chat session UUID
-   by querying the local ``state.vscdb`` SQLite database.
-
-   **Acceptance Criteria:**
-
-   * AC-1: The extension SHALL read
-     ``ItemTable[key='chat.ChatSessionStore.index']`` from ``state.vscdb`` to
-     obtain a mapping of session titles to UUIDs
-   * AC-2: The lookup SHALL be a live database read each time — no caching
-   * AC-3: If the session name is not found, the lookup SHALL return ``undefined``
-     — callers decide the fallback behavior (e.g. open new chat, show notification)
-   * AC-4: If multiple sessions share the same name, the extension SHALL use the
-     first match and show a warning notification to the user
-   * AC-5: The extension SHALL use ``sql.js`` (pure JS/WASM) to read the database
-     file
-   * AC-6: The lookup SHALL be workspace-scoped — the extension SHALL read from
-     ``workspaceStorage/<hash>/state.vscdb`` (derived from ``context.storageUri``)
-     rather than the global ``state.vscdb``, so only sessions belonging to the
-     current VS Code window are visible
-   * AC-7: The ``state.vscdb`` path SHALL be derived using
-     ``context.globalStorageUri`` (always a local path) to remain correct in
-     Remote and Devcontainer environments where ``context.storageUri.fsPath`` may
-     point to a remote filesystem
-   * AC-8: When ``state.vscdb`` is not found at the resolved path, the extension
-     SHALL emit a warning via the Jarvis log channel and return an empty list
-   * AC-9: When the extension runs in a standard (non-remote) workspace, the
-     existing session lookup behavior SHALL be unaffected
-   * AC-10: When the extension host runs in a **WSL2** environment, the module
-     SHALL detect WSL2 by reading ``/proc/version`` and checking for the string
-     ``"microsoft"`` (case-insensitive). It SHALL derive the Windows user data
-     path as ``/mnt/c/Users/<USERNAME>/AppData/Roaming/Code/User`` where
-     ``<USERNAME>`` is taken from the ``USERNAME`` environment variable. The
-     workspace hash extraction is unchanged.
-   * AC-11: ``lookupSessionUUID('My Session')`` SHALL return the correct UUID
-     when VS Code is running in WSL2 remote mode with the workspace on the
-     Linux filesystem
+   **Retired by:** ``retire-legacy-session-lookup`` CR. Since the Agent Host
+   path no Jarvis feature resolves a chat title to a session UUID by reading
+   the ``state.vscdb`` SQLite database (``REQ_COM_OPEN`` finds or creates the
+   chat of an Actor through the Agent Host), and no code calls the lookup.
+   The criteria are removed so that nobody builds on them.
 
 
 .. req:: Named Session Filter
    :id: REQ_MSG_SESSIONFILTER
-   :status: implemented
+   :status: deprecated
    :priority: optional
    :links: US_COM_NAME; US_COM_FIND; REQ_MSG_SESSIONLOOKUP
 
-   **Description:**
-   The extension SHALL provide a shared filtering rule that excludes unnamed
-   sessions from user-facing session lists.
-
-   **Acceptance Criteria:**
-
-   * AC-1: A session is considered "named" if its title is a non-empty string
-   * AC-2: Sessions with an empty or missing title SHALL be excluded from the
-     results of any session enumeration feature
-   * AC-3: The filter SHALL be applied consistently by every feature that
-     enumerates sessions
+   **Retired by:** ``retire-legacy-session-lookup`` CR. The filter applied to
+   the chat titles read from ``state.vscdb`` (``REQ_MSG_SESSIONLOOKUP``);
+   destinations are Actor names now (``REQ_AUT_HEARTBEAT_RESOLVER_REUSE``
+   AC-3), so there are no unnamed sessions to exclude.
 
 
 .. req:: Embedded MCP Server
@@ -321,7 +282,7 @@ Message Queue Requirements
 
 .. req:: Editor-Group Placement Model
    :id: REQ_MSG_EDITORPLACEMENT
-   :status: approved
+   :status: implemented
    :priority: mandatory
    :links: US_MSG_EDITORPLACEMENT; US_COM_NAME; REQ_FLOW_WEBVIEWPANEL
 
@@ -342,6 +303,9 @@ Message Queue Requirements
    removed. What other features still use is the rule for documents and the
    diagram panel (the Content column, AC-2, AC-3 and AC-11). Whether this model
    is rewritten for documents only or retired is open and not part of the MVP.
+   The session UUID lookup that AC-8, AC-11 and AC-12 once relied on is retired
+   (``retire-legacy-session-lookup`` CR); the chat-related parts of those
+   criteria describe removed behaviour.
 
    **Acceptance Criteria:**
 
@@ -393,8 +357,8 @@ Message Queue Requirements
      Secondary has its own stable last-existing column, reused for all
      subsequent Secondary placements.
    * AC-8: The placement logic SHALL only act on tabs whose label matches a
-     known Actor session name (via ``REQ_MSG_SESSIONLOOKUP``) or a
-     known Actor file path — arbitrary files the user opens manually are
+     known Actor session name or a known Actor file path — arbitrary files the
+     user opens manually are
      entirely outside this system's contract and are never moved, closed,
      or reused as a placement target.
    * AC-9: (Superseded by ``REQ_COM_OPEN`` AC-4.) The manual Play-button command
@@ -406,8 +370,8 @@ Message Queue Requirements
      Panel (``REQ_FLOW_WEBVIEWPANEL``) SHALL also target the Content column
      (AC-2) as a fixed target, coexisting with any already-open Actor-file
      tab as a separate tab within the same column rather than replacing it.
-     Because a Webview Panel tab exposes neither ``lookupSessionUUID``
-     resolution (not a chat tab) nor a ``.uri`` (not a plain file tab), the
+     Because a Webview Panel tab exposes no ``.uri`` (it is not a plain file
+     tab) and is not a chat tab, the
      Secondary-column resolution helper (``resolveSecondaryColumn``) SHALL
      recognize and exclude it (via its VS Code ``viewType``) from any group-
      count logic used to compute the dynamic Secondary target, so that
@@ -424,9 +388,7 @@ Message Queue Requirements
      a chat — both funnel through the shared ``injectPrompt()``
      helper), the extension SHALL perform a **follow-up relocate step**
      after the new session is created, renamed, and initialized: resolve
-     the now-existing session's UUID (``REQ_MSG_SESSIONLOOKUP`` —
-     guaranteed to resolve, since the rename to the Actor's name has just
-     completed) and apply the identical Main-target close+reopen mechanism
+     the now-existing session's UUID and apply the identical Main-target close+reopen mechanism
      already used for the existing-session branch (AC-5). This makes
      Main-column placement deterministic for freshly created sessions too,
      regardless of which column VS Code happened to create the new chat

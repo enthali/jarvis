@@ -166,12 +166,11 @@ Message Queue Design Specifications
 
    * ``SessionGroupNode`` → collapsible, label = ``"${destination} (${count})"``,
      contextValue = ``'messageSession'`` (enables send button).
-     **``ui-improvements`` CR**: ``item.command`` is now set, invoking a new
-     handler that resolves ``element.destination`` via
-     ``lookupSessionUUID()`` and opens the chat at Main via ``openAtMain``
-     (``SPEC_MSG_EDITORPLACEMENT``, same helper already used by
-     ``jarvis.openActorSession`` and ``jarvis.sendMessages``) — previously
-     no command was set (label click only expanded/collapsed).
+     **``ui-improvements`` CR**: ``item.command`` is set to
+     ``jarvis.openMessageActorChat``, which shows the chat of the Actor when it
+     exists (``REQ_COM_OPEN`` AC-3, ``SPEC_COM_OPEN``). The former handler that
+     resolved the destination to a session UUID is removed
+     (``retire-legacy-session-lookup`` CR).
    * ``MessageLeafNode`` → non-collapsible, label = truncated text (max 80 chars),
      contextValue = ``'messageItem'`` (enables trash button)
    * ``EmptyNode`` → non-collapsible, label = ``"nothing to deliver"``
@@ -191,217 +190,18 @@ Message Queue Design Specifications
 
 .. spec:: Session UUID Resolver
    :id: SPEC_MSG_SESSIONLOOKUP
-   :status: implemented
+   :status: deprecated
    :links: REQ_MSG_SESSIONLOOKUP
 
-   **Description:**
-   Module ``src/sessionLookup.ts`` resolves a chat session title to a UUID by
-   querying the **workspace-scoped** ``state.vscdb`` SQLite database. Uses
-   ``sql.js`` (pure JavaScript/WASM — no native compilation needed for Electron).
-
-   **Dependency (package.json):**
-
-   .. code-block:: json
-
-      {
-        "dependencies": {
-          "sql.js": "^1.14.1"
-        }
-      }
-
-   **Workspace-scoped state.vscdb location:**
-
-   The global ``state.vscdb`` contains sessions from **all** VS Code windows.
-   To get only sessions belonging to the current workspace, the module uses the
-   workspace-local ``state.vscdb`` located alongside the extension storage.
-
-   ``context.storageUri`` points to
-   ``workspaceStorage/<hash>/<extensionId>/``. The workspace-scoped
-   ``state.vscdb`` lives in the parent directory: ``workspaceStorage/<hash>/state.vscdb``.
-
-   In **Remote / Devcontainer** environments ``context.storageUri.fsPath`` may
-   resolve to a remote filesystem path, making a direct ``path.dirname()``
-   derivation invalid on the local machine. The fix uses
-   ``context.globalStorageUri`` — which always resolves to a local path — to
-   anchor the ``userDataPath``, then reconstructs the workspace storage path
-   from there.
-
-   ``context.globalStorageUri`` points to
-   ``<userDataPath>/globalStorage/<extensionId>/``. Two levels up yields the
-   VS Code User Data folder. The workspace hash is extracted as
-   ``path.basename(path.dirname(storageUri.fsPath))``, which is stable even
-   when ``storageUri`` is a remote URI because only the last path segment (the
-   hash) is used.
-
-   **WSL2 path resolution:**
-
-   In **WSL2 remote** mode the extension host runs on Linux, so
-   ``globalStorageUri.fsPath`` resolves to the WSL2 path (e.g.
-   ``/home/<user>/.vscode-server/data/User/globalStorage/...``). However,
-   VS Code's ``state.vscdb`` lives on the **Windows host** and is accessible
-   from WSL2 at ``/mnt/c/Users/<USERNAME>/AppData/Roaming/Code/User/workspaceStorage/<hash>/state.vscdb``.
-
-   The ``resolveUserDataPath(globalStorageUri)`` helper handles this:
-
-   1. **Detect WSL2** — read ``/proc/version`` synchronously; if it contains
-      ``"microsoft"`` (case-insensitive), the environment is WSL2.
-   2. **WSL2 branch** — derive the Windows username from the environment
-      variables with a fallback chain: ``process.env.USERNAME ?? process.env.USER ?? 'unknown'``.
-      Construct the user data path as ``/mnt/c/Users/<username>/AppData/Roaming/Code/User``.
-      If both ``USERNAME`` and ``USER`` are unset, fall back to the non-WSL2
-      logic (using ``globalStorageUri``) instead of throwing.
-   3. **Non-WSL2 branch** — use the existing logic:
-      ``path.resolve(globalStorageUri.fsPath, '../..')``.
-
-   The workspace hash extraction (``path.basename(path.dirname(storageUri.fsPath))``)
-   is unchanged — it is the same hash on both sides.
-
-   .. code-block:: typescript
-
-      let _stateVscdbPath: string | undefined;
-
-      function isWSL2(): boolean {
-        try {
-          const version = fs.readFileSync('/proc/version', 'utf-8');
-          return /microsoft/i.test(version);
-        } catch {
-          return false;
-        }
-      }
-
-      function resolveUserDataPath(globalStorageUri: vscode.Uri): string {
-        if (isWSL2()) {
-          const username = process.env.USERNAME ?? process.env.USER ?? 'unknown';
-          if (username !== 'unknown') {
-            return `/mnt/c/Users/${username}/AppData/Roaming/Code/User`;
-          }
-          // Both USERNAME and USER unset — fall back to non-WSL2 logic
-        }
-        return path.resolve(globalStorageUri.fsPath, '../..');
-      }
-
-      function initSessionLookup(storageUri: vscode.Uri, globalStorageUri: vscode.Uri): void {
-        const hash = path.basename(path.dirname(storageUri.fsPath));
-        const userDataPath = resolveUserDataPath(globalStorageUri);
-        _stateVscdbPath = path.join(userDataPath, 'workspaceStorage', hash, 'state.vscdb');
-      }
-
-   ``initSessionLookup`` is called once during ``activate()`` with both
-   ``context.storageUri`` and ``context.globalStorageUri``.
-
-   **SessionStore structure:**
-
-   The ``chat.ChatSessionStore.index`` value in ``state.vscdb`` is a JSON object
-   with the following structure:
-
-   .. code-block:: typescript
-
-      interface SessionStoreEntry {
-        sessionId: string;
-        title: string;
-      }
-
-      interface SessionStore {
-        version: number;
-        entries: { [id: string]: SessionStoreEntry };
-      }
-
-   **Public API:**
-
-   .. code-block:: typescript
-
-      interface SessionInfo {
-        title: string;
-        sessionId: string;
-      }
-
-      function setSessionLookupLogger(log: vscode.LogOutputChannel): void
-
-      async function getAllSessions(): Promise<SessionInfo[]> {
-        const dbPath = getStateVscdbPath();
-        if (!fs.existsSync(dbPath)) {
-          _log?.warn('[sessionLookup] state.vscdb not found at: ' + dbPath);
-          return [];
-        }
-        const SQL = await initSqlJs();
-        const fileBuffer = fs.readFileSync(dbPath);
-        const db = new SQL.Database(fileBuffer);
-        try {
-          const result = db.exec(
-            "SELECT value FROM ItemTable WHERE key = 'chat.ChatSessionStore.index'"
-          );
-          if (result.length === 0 || result[0].values.length === 0) return [];
-          const store: SessionStore = JSON.parse(result[0].values[0][0] as string);
-          return Object.values(store.entries).map(entry => ({
-            title: entry.title,
-            sessionId: entry.sessionId,
-          }));
-        } finally {
-          db.close();
-        }
-      }
-
-      async function lookupSessionUUID(
-        sessionName: string
-      ): Promise<string | undefined> {
-        const all = await getAllSessions();
-        const matches = all.filter(s => s.title === sessionName);
-        if (matches.length === 0) return undefined;
-        if (matches.length > 1) {
-          vscode.window.showWarningMessage(
-            `Jarvis: multiple chat sessions named "${sessionName}" — using first match`
-          );
-        }
-        return matches[0].sessionId;
-      }
-
-   **Design decisions:**
-
-   * **Workspace-scoped, not global** — ``state.vscdb`` from
-     ``workspaceStorage/<hash>/`` contains only sessions for the current VS Code
-     window, avoiding cross-instance confusion
-   * **``initSessionLookup(storageUri, globalStorageUri)``** — called once at
-     activation; derives the DB path using ``globalStorageUri`` (always a local
-     path) to be compatible with Remote and Devcontainer environments where
-     ``storageUri.fsPath`` may point to a remote filesystem
-   * **Remote/Devcontainer compatibility** — ``globalStorageUri.fsPath`` is
-     always a local path; two levels up yields ``userDataPath``; the workspace
-     hash is extracted from ``storageUri.fsPath`` (basename of parent of
-     extensionId segment) and used to reconstruct the local path
-   * **WSL2 compatibility** — in WSL2 the extension host runs on Linux but
-     ``state.vscdb`` lives on the Windows host. ``resolveUserDataPath()``
-     detects WSL2 via ``/proc/version`` containing ``"microsoft"``
-     (case-insensitive) and constructs the path as
-     ``/mnt/c/Users/<username>/AppData/Roaming/Code/User`` using the
-     ``USERNAME`` environment variable with a fallback chain
-     ``USERNAME ?? USER ?? 'unknown'``. If both are unset, it falls back to
-     the non-WSL2 logic instead of throwing. ``APPDATA`` is not available in
-     this environment, hence the fallback chain.
-   * **Live read, no caching** — the DB is small and the read is fast; caching
-     would introduce staleness bugs when sessions are renamed or deleted
-   * **``sql.js``** — pure JavaScript/WASM SQLite implementation. Does not
-     require native compilation or ``@electron/rebuild``. Replaces
-     ``better-sqlite3`` which crashed in Electron due to native C++ ABI mismatch
-   * **Async API** — ``sql.js`` initialization is async (``initSqlJs()``),
-     so ``lookupSessionUUID`` and ``getAllSessions`` return Promises
-   * **Warning on missing DB** — if ``state.vscdb`` is not found at the
-     resolved path, a warning is emitted via the Jarvis log channel and an empty
-     list is returned; callers are not expected to handle this case specially
-   * **Named session filter** — a shared helper
-     ``filterNamedSessions(sessions)`` returns only sessions where
-     ``s.title && s.title !== 'New Chat'``.  Used by
-     the heartbeat destination check.
-     Defined in ``sessionLookup.ts`` to satisfy ``REQ_MSG_SESSIONFILTER``.
-
-   **Shared filter helper (REQ_MSG_SESSIONFILTER):**
-
-   .. code-block:: typescript
-
-      export function filterNamedSessions(
-        sessions: SessionInfo[]
-      ): SessionInfo[] {
-        return sessions.filter(s => s.title && s.title !== 'New Chat');
-      }
+   **Retired by:** ``retire-legacy-session-lookup`` CR. The module read the
+   chat titles of the workspace from the ``state.vscdb`` SQLite database
+   (through ``sql.js``, with a WSL2 branch for the database path) to resolve a
+   title to a session UUID. The Agent Host path replaced it
+   (``SPEC_COM_OPEN``), nothing calls it, and the ``sql.js`` dependency and its
+   WebAssembly file are removed from the Core bundle (``SPEC_REL_VSCEPKG``).
+   What ``src/sessionLookup.ts`` keeps is the destination set of
+   ``getValidDestinations`` and ``combineValidDestinations``
+   (``SPEC_AUT_HEARTBEAT_RESOLVER_REUSE``).
 
 
 .. spec:: MCP Server Module
@@ -977,8 +777,8 @@ Message Queue Design Specifications
 
 .. spec:: Editor-Group Placement Helper
    :id: SPEC_MSG_EDITORPLACEMENT
-   :status: approved
-   :links: REQ_MSG_EDITORPLACEMENT; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_TREEPROVIDER
+   :status: implemented
+   :links: REQ_MSG_EDITORPLACEMENT; SPEC_MSG_TREEPROVIDER
 
    **Description:**
    A set of helper functions in ``extension.ts`` computing the three
@@ -994,7 +794,9 @@ Message Queue Design Specifications
    ``REQ_MSG_EDITORPLACEMENT``). The Main and Secondary targets, the
    existing-tab lookup by label and the Messages tree group-node click below
    describe the removed behaviour; the Docs target remains in use by other
-   features.
+   features. The session UUID lookup that the existing-tab lookup and the
+   Messages tree group-node click below relied on is retired as well
+   (``retire-legacy-session-lookup`` CR).
 
    **Column constants:**
 
@@ -1020,7 +822,7 @@ Message Queue Design Specifications
           // stack as tabs within the same group once 3+ columns exist.
           //
           // message-flow-diagram CR: the diagram Webview Panel is not a
-          // chat tab (no lookupSessionUUID match) or a plain file tab (no
+          // chat tab or a plain file tab (no
           // .uri) — it is identified by viewType instead. It intentionally
           // is NOT excluded from tabGroups.all.length here: it occupies
           // column 2 (same as Docs/Content), so a workspace with only
@@ -1038,8 +840,8 @@ Message Queue Design Specifications
 
    .. code-block:: typescript
 
-      /** Finds an already-open tab for a chat session, by resolving the
-       *  tab's label via lookupSessionUUID (chat tabs expose no .uri). */
+      /** Finds an already-open tab for a chat session, by its label
+       *  (chat tabs expose no .uri). */
       function findSessionTab(sessionName: string): vscode.Tab | undefined {
           for (const group of vscode.window.tabGroups.all) {
               for (const tab of group.tabs) {
@@ -1115,47 +917,23 @@ Message Queue Design Specifications
      special-case handling needed; the close/reuse logic works transparently
      across window boundaries.
    * These helpers only ever act on tabs whose label matches a known session
-     name (via ``lookupSessionUUID``) or a known Actor file path — any file
+     name or a known Actor file path — any file
      the user opens manually is entirely outside this contract.
    * ``openAtMain``/``openAtDocs``/``openAtSecondary`` replace ad-hoc
      ``vscode.open(uri, { preview: false })`` calls at their respective call
      sites (``SPEC_ACTOR_FILES``, ``SPEC_MSG_TREEPROVIDER``) — see each
      spec's updated handler.
 
-   **New call site (``ui-improvements`` CR): Messages tree group-node click**
+   **Retired call site (``ui-improvements`` CR): Messages tree group-node click**
 
-   ``SessionGroupNode``'s ``TreeItem.command`` (previously unset,
-   ``SPEC_MSG_TREEPROVIDER``) is bound to a new command that opens the
-   session's chat at Main, mirroring ``jarvis.openActorSession``'s and
-   ``jarvis.sendMessages``'s existing-session branches:
-
-   .. code-block:: typescript
-
-      vscode.commands.registerCommand(
-        'jarvis.openMessageSession',
-        async (node: SessionGroupNode) => {
-          const uuid = await lookupSessionUUID(node.destination);
-          if (!uuid) { return; } // no live session yet — nothing to open
-          const b64 = Buffer.from(uuid).toString('base64');
-          const uri = vscode.Uri.parse(`vscode-chat-session://local/${b64}`);
-          await openAtMain(uri, node.destination); // REQ_MSG_EDITORPLACEMENT AC-10
-        }
-      );
-
-   Registered in ``TreeItem.command`` (``SPEC_MSG_TREEPROVIDER``'s
-   ``getTreeItem()``), not via a ``view/item/context`` menu entry — same
-   pattern as the ACTORS tree's click-to-chat binding
-   (``SPEC_ACTOR_TREE``), not a right-click action.
-
-   **Design note:** if no session UUID resolves (the destination has no
-   live chat session yet — e.g. all messages are still queued and no
-   session has ever been opened for that destination), the handler is a
-   silent no-op rather than creating a new session. This differs
-   deliberately from ``jarvis.openActorSession``/``jarvis.sendMessages``,
-   which both create a fresh session on miss — a label click in the
-   Messages tree is a lower-intent, exploratory action (unlike explicitly
-   clicking "Play" to send), so silently doing nothing is preferred over
-   surprising the user with a brand-new chat session.
+   The command ``jarvis.openMessageSession`` that opened the chat of a
+   ``SessionGroupNode`` at Main through ``lookupSessionUUID`` and
+   ``openAtMain`` no longer exists. The group-node click is
+   ``jarvis.openMessageActorChat`` (``SPEC_MSG_TREEPROVIDER``,
+   ``REQ_COM_OPEN`` AC-3); a click on a destination without a chat does
+   nothing, deliberately: a label click is a lower-intent, exploratory action
+   (unlike explicitly clicking "Play" to send), so it does not surprise the
+   user with a brand-new chat.
 
 
 .. spec:: Reminder Store Module

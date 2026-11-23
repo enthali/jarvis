@@ -55,7 +55,6 @@
   "dependencies": {
     "cron-parser": "^5.5.0",
     "js-yaml": "^4.1.1",
-    "sql.js": "^1.14.1",
     "ws": "^8.22.0"
   },
   "capabilities": {
@@ -259,7 +258,7 @@
       {
         "name": "jarvis_createActor",
         "displayName": "Create Actor",
-        "modelDescription": "jarvis_core: Creates a new Jarvis Actor folder with actor.yaml and context.md under <workspace>/.jarvis/actors/<name>/. Idempotent.",
+        "modelDescription": "jarvis_core: Creates a new Jarvis Actor folder with actor.yaml and context.md under the configured jarvis.actors.folder (default .jarvis/actors), as <folder>/<name>/. Idempotent.",
         "canBeReferencedInPrompt": true, "toolReferenceName": "jarvis_core_createActor", "icon": "$(add)", "tags": ["jarvis"],
         "inputSchema": { "type": "object", "required": ["name"], "properties": { "name": { "type": "string" }, "summary": { "type": "string" }, "initialMessage": { "type": "string" } } }
       },

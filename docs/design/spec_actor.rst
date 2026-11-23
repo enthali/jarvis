@@ -697,7 +697,7 @@ Actor Design Specifications
 
 .. spec:: jarvis_createActor Tool
    :id: SPEC_ACTOR_CREATETOOL
-   :status: approved
+   :status: implemented
    :links: REQ_ACTOR_CREATETOOL; SPEC_ACTOR_CREATE; SPEC_ACTOR_WHOAMI; SPEC_COM_OPEN; SPEC_ENG_REGISTER_TOOL; SPEC_MSG_DUALREGISTRATION; SPEC_MSG_QUEUESTORE; REQ_ENG_TOOLREF
 
    **Description:**
@@ -740,7 +740,7 @@ Actor Design Specifications
         "toolReferenceName": "jarvis_core_createActor",
         "canBeReferencedInPrompt": true,
         "icon": "$(add)",
-        "modelDescription": "jarvis_core: Creates a Jarvis Actor (actor.yaml and context.md) under the configured actors folder. Returns created: false without changes when an Actor with that name or folder already exists.",
+        "modelDescription": "jarvis_core: Creates a Jarvis Actor (actor.yaml and context.md) in a new folder under the configured actors folder (setting jarvis.actors.folder, default .jarvis/actors). Returns created: false without changes when an Actor with that name or folder already exists.",
         "inputSchema": {
           "type": "object",
           "required": ["name"],
@@ -764,6 +764,11 @@ Actor Design Specifications
    * AC-5: The input schema has no ``agent`` property; a caller that passes
      one anyway (e.g. through ``invokeTool``) is not rejected and the value
      has no effect.
+   * AC-6: The ``modelDescription`` places the new Actor under the configured
+     actors folder, names the setting ``jarvis.actors.folder`` and its default
+     ``.jarvis/actors``, and states no fixed
+     ``<workspace>/.jarvis/actors/<name>/`` path (``REQ_ACTOR_CREATETOOL``
+     AC-2: the folder follows the setting).
 
 
 .. spec:: Actor Identity via Own Agent

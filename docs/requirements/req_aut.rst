@@ -389,9 +389,9 @@ Automation Requirements
 
 .. req:: Shared Resolver for Heartbeat Destination Validation
    :id: REQ_AUT_HEARTBEAT_RESOLVER_REUSE
-   :status: draft
+   :status: implemented
    :priority: optional
-   :links: US_AUT_HEARTBEAT_VALIDATION; REQ_MSG_SESSIONLOOKUP; REQ_MSG_SESSIONFILTER
+   :links: US_AUT_HEARTBEAT_VALIDATION
 
    **Description:**
    The valid destination set for heartbeat queue-step validation SHALL be derived

@@ -4,4 +4,3 @@ build.js
 **/*.map
 **/*.d.ts
 node_modules/**
-!out/sql-wasm.wasm

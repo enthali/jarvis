@@ -1300,15 +1300,17 @@ Automation Design Specifications
 
 .. spec:: Shared Resolver Reuse for Heartbeat Validation
    :id: SPEC_AUT_HEARTBEAT_RESOLVER_REUSE
-   :status: draft
-   :links: REQ_AUT_HEARTBEAT_RESOLVER_REUSE; SPEC_COM_TOOLS; SPEC_MSG_SESSIONLOOKUP
+   :status: implemented
+   :links: REQ_AUT_HEARTBEAT_RESOLVER_REUSE; SPEC_COM_TOOLS
 
    **Description:**
    All heartbeat destination validation sites (load-time, fire-time,
    ``jarvis_registerJob`` tool) reuse the shared ``getValidDestinations()``
    function from ``src/sessionLookup.ts``, the destination set that
    ``jarvis_sendMessage`` uses (``SPEC_COM_TOOLS``).  No parallel session-enumeration logic is
-   introduced.
+   introduced. After the ``retire-legacy-session-lookup`` CR the module holds
+   only the destination helpers ``getValidDestinations`` and
+   ``combineValidDestinations``; its file name is kept.
 
    **Import in ``heartbeat.ts`` (updated):**
 
@@ -1317,13 +1319,13 @@ Automation Design Specifications
       import { getValidDestinations } from './sessionLookup';
 
    **Import in ``extension.ts`` (updated):**
-   ``getValidDestinations`` replaces direct ``getAllSessions`` +
-   ``filterNamedSessions`` usage in the sendToSession handler.
+   ``getValidDestinations`` is the only import from ``./sessionLookup``;
+   nothing initialises the module or sets a logger on it.
 
    **Valid destination set definition:**
    The names of ``actorScanner.actors`` that resolve uniquely, as returned
    by ``getValidDestinations(actorScanner)`` (``SPEC_ACTOR_SCANNER``). The
-   resolver no longer reads chat session titles from ``state.vscdb``.
+   resolver reads no chat session titles and no ``state.vscdb``.
 
    **Consistency guarantee:** any future change to the resolver propagates
    automatically to all validation sites (``sendToSession``, heartbeat load,

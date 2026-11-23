@@ -202,7 +202,7 @@ Message Flow Visualization Requirements
 
 .. req:: Message Flow Webview Panel
    :id: REQ_FLOW_WEBVIEWPANEL
-   :status: draft
+   :status: implemented
    :priority: optional
    :links: US_FLOW_CHORDVIEW; REQ_FLOW_CHORDVIEW; REQ_MSG_EDITORPLACEMENT; REQ_EXP_TREEVIEW
 
@@ -231,8 +231,8 @@ Message Flow Visualization Requirements
      of the extension's inbox and reminder loop; no
      file-watcher is introduced for v1, since delivery itself is not faster
      than this interval.
-   * AC-5: Because a Webview Panel tab is not a chat tab (``lookupSessionUUID``
-     does not resolve it) and not a plain file tab (no ``.uri``), it SHALL
+   * AC-5: Because a Webview Panel tab is not a chat tab and not a plain file
+     tab (no ``.uri``), it SHALL
      be identified by its VS Code ``viewType`` when the placement logic
      needs to recognize it (e.g. to avoid it being miscounted as an
      additional distinct column when resolving the Secondary target — see

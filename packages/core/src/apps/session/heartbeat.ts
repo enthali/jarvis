@@ -20,7 +20,7 @@ import * as yaml from 'js-yaml';
 import { appendMessage } from '../../engine/sessions/messageQueue';
 import { MessageTreeProvider } from './messageTreeProvider';
 import { HeartbeatTreeProvider, JobNode } from './heartbeatTreeProvider';
-import { getAllSessions, filterNamedSessions, getValidDestinations } from '../../engine/sessions/sessionLookup';
+import { getValidDestinations } from '../../engine/sessions/sessionLookup';
 
 // ---------------------------------------------------------------------------
 // Types (SPEC_AUT_JOBSCHEMA)
