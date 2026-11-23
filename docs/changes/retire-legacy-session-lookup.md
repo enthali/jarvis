@@ -1,6 +1,6 @@
 # Change Contract: retire-legacy-session-lookup
 
-**Status:** active<br>
+**Status:** closed<br>
 **Current responsibility:** Project Manager<br>
 **Current blocker:** none<br>
 **Created:** 2026-11-23<br>
@@ -60,7 +60,7 @@ Retiring unused SQLite session-store lookup removes platform-fragile desktop/WSL
 |---|---|---|---|---|
 | Intent and outcome | yes | Project Manager | Goal, value, scope, and observable outcome are explicit and approved | approved |
 | Contract release | yes | User | User authorization to start the change; set by the User only | approved (2026-11-23 21:52 CET) |
-| Version control | yes | Project Manager | Local branch `feature/retire-legacy-session-lookup`; squash-integrated into `development` at closure; the branch is retained | active |
+| Version control | yes | Project Manager | Local branch `feature/retire-legacy-session-lookup`; squash-integrated into `development` at closure; the branch is retained | merged (`5e39dca7`) |
 | Product specification | yes | Architect | Changed specification artifacts are linked and checked | complete |
 | Infrastructure impact | yes | Admin | Affected infrastructure artifacts (`package.json`, `package-lock.json`, `build.js`, `.vscodeignore`) are updated or reviewed | complete |
 | Documentation impact | yes | Technical Writer | Affected user-facing documents are updated, or none is affected | complete |
@@ -68,7 +68,7 @@ Retiring unused SQLite session-store lookup removes platform-fragile desktop/WSL
 | Test design | yes | Tester | Requirement-level tests and validation procedures trace to the changed specification | complete |
 | Quality review and test execution | yes | Quality | Current judgment is `proceed` and `Open Findings` is `None` | complete |
 | User validation | yes | User | Observable outcome is accepted or changes are requested | accepted (2026-11-24 00:54 CET) |
-| Closure | yes | Project Manager | Final outcome and integration state are recorded | pending |
+| Closure | yes | Project Manager | Final outcome and integration state are recorded | closed |
 
 ## Product Specification
 
@@ -221,16 +221,16 @@ After Quality's `proceed`, the Project Manager presents the observable outcome. 
 ## Closure
 
 **Owner:** Project Manager<br>
-**Status:** pending
+**Status:** closed
 
-- [ ] Every included artifact or gate has terminal status and completion evidence.
-- [ ] Intent and outcome are `approved`.
-- [ ] Quality has recorded `proceed`.
-- [ ] Open Findings contains `None`.
-- [ ] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
-- [ ] The feature branch is squash-integrated into `development`.
-- [ ] Current blocker is `none`.
-- [ ] The Project Manager ran the `syspilot.contract-statistics` skill after validation and the record exists in `.syspilot/stats/`.
-- [ ] Header Status is `closed`.
+- [x] Every included artifact or gate has terminal status and completion evidence.
+- [x] Intent and outcome are `approved`.
+- [x] Quality has recorded `proceed`.
+- [x] Open Findings contains `None`.
+- [x] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
+- [x] The feature branch is squash-integrated into `development`.
+- [x] Current blocker is `none`.
+- [x] The Project Manager ran the `syspilot.contract-statistics` skill after validation and the record exists in `.syspilot/stats/`.
+- [x] Header Status is `closed`.
 
-**Final outcome:** {accepted result and integration commit}
+**Final outcome:** Accepted by the User on 2026-11-24 on automated verification and clean-tree VSIX inspection. Retires the dead pre-AHP `state.vscdb`/WSL2 session lookup (`REQ_MSG_SESSIONLOOKUP`, `REQ_MSG_SESSIONFILTER`, `SPEC_MSG_SESSIONLOOKUP` deprecated; `getValidDestinations` and `combineValidDestinations` retained in `sessionLookup.ts`), drops `sql.js` and `sql-wasm.wasm` from Core and the workspacemanifests/lockfile (K75), and aligns the `jarvis_createActor` tool description and Getting Started guide with `jarvis.actors.folder` (K64). Squash-integrated into `development` as `5e39dca7`; feature branch `feature/retire-legacy-session-lookup` retained; statistics recorded in `.syspilot/stats/retire-legacy-session-lookup-stat.md`. Not released.
