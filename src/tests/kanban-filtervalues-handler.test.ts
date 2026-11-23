@@ -132,7 +132,7 @@ describe('REQ_KAN_FILTERVALUES AC-2: path key of the success result', () => {
     it('AC-2: the result has exactly path, statuses and labels; path is the default board file', async () => {
         writeBoard(alphaDir, 'kanban.yaml', board([{ id: 1, name: 'A', status: 'Todo', labels: ['ui'] }]));
         const result = await call('jarvis_listKanbanFilterValues', { ownerName: 'Alpha' });
-        expect(Object.keys(result).sort()).toEqual(['labels', 'path', 'statuses']);
+        expect(Object.keys(result).sort()).toEqual(['fields', 'labels', 'path', 'statuses']);
         expect(result.path).toBe(path.join(alphaDir, 'kanban.yaml'));
     });
 
@@ -179,7 +179,7 @@ describe('REQ_KAN_FILTERVALUES AC-6: no card content, size scales with values no
         const text = JSON.stringify(result);
         expect(text).not.toContain('Secret card name');
         expect(text).not.toContain('secret note text');
-        expect(Object.keys(result).sort()).toEqual(['labels', 'path', 'statuses']);
+        expect(Object.keys(result).sort()).toEqual(['fields', 'labels', 'path', 'statuses']);
         for (const entry of [...(result.statuses as Entry[]), ...(result.labels as Entry[])]) {
             expect(Object.keys(entry).sort()).toEqual(['count', 'name']);
         }

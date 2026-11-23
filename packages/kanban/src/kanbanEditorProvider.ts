@@ -44,6 +44,20 @@ function renderHtml(webview: vscode.Webview, extensionUri: vscode.Uri): string {
 </html>`;
 }
 
+// Re-read functions of the open editors per board file (SPEC_KAN_REFRESH step 2); a set, because one file can be open in several editors.
+const refreshers = new Map<string, Set<() => void>>();
+
+/** SPEC_KAN_REFRESH step 4: re-reads the board of every editor open on `uri` and no other board. */
+export function refreshKanbanEditors(uri: vscode.Uri): void {
+    for (const refresh of [...(refreshers.get(uri.toString()) ?? [])]) { refresh(); }
+}
+
+/** The board file of the active tab when it is a kanban custom editor (SPEC_KAN_REFRESH step 3). */
+export function activeKanbanEditorUri(): vscode.Uri | undefined {
+    const input = vscode.window.tabGroups.activeTabGroup.activeTab?.input;
+    return input instanceof vscode.TabInputCustom && input.viewType === 'jarvis.kanbanEditor' ? input.uri : undefined;
+}
+
 export class KanbanEditorProvider implements vscode.CustomReadonlyEditorProvider {
     constructor(
         private readonly context: vscode.ExtensionContext,
@@ -78,6 +92,10 @@ export class KanbanEditorProvider implements vscode.CustomReadonlyEditorProvider
         // Initial data push
         postBoardData();
 
+        const key = document.uri.toString();
+        if (!refreshers.has(key)) { refreshers.set(key, new Set()); }
+        refreshers.get(key)!.add(postBoardData);
+
         // File watching — re-post on save or fs change
         const saveListener = vscode.workspace.onDidSaveTextDocument(doc => {
             if (doc.uri.fsPath === filePath) {
@@ -91,6 +109,9 @@ export class KanbanEditorProvider implements vscode.CustomReadonlyEditorProvider
         fsWatcher.onDidChange(() => postBoardData());
 
         webviewPanel.onDidDispose(() => {
+            const set = refreshers.get(key);
+            set?.delete(postBoardData);
+            if (set?.size === 0) { refreshers.delete(key); }
             saveListener.dispose();
             fsWatcher.dispose();
         });

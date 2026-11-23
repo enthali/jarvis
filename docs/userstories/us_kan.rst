@@ -3,7 +3,7 @@ Kanban User Stories
 
 .. story:: Kanban Board from YAML
    :id: US_KAN_BOARD
-   :status: draft
+   :status: implemented
    :tracked_by: MOD_KANBAN
    :priority: required
 
@@ -29,6 +29,44 @@ Kanban User Stories
      a tool-driven change produces a diff limited to what actually changed —
      so I can mix hand editing and tool use without losing context or reading
      noisy diffs.
+   * AC-7: When the board on screen may be out of date, I can bring it up to
+     date with what the file contains right now, in one step, instead of
+     closing and reopening it.
+
+
+.. story:: Group a Large Board into Lanes
+   :id: US_KAN_LANES
+   :status: implemented
+   :tracked_by: MOD_KANBAN
+   :priority: required
+   :links: US_KAN_BOARD
+
+   **As a** Jarvis user looking at a board with many cards,
+   **I want** to group its cards into horizontal lanes by a field of the board or
+   by label,
+   **so that** I can scan a long board by category instead of reading long flat
+   columns.
+
+   **Context:**
+   Boards of 30 or more cards, such as a project backlog, make every column long.
+   Grouping is a way of looking at the board, not a change to it: the board file
+   stays what the user and the tools made it (``US_KAN_BOARD`` AC-5).
+
+   **Acceptance Criteria:**
+
+   * AC-1: I can group the cards by any single-select field of the board other
+     than ``status``, or by label; until I choose, the cards are not grouped.
+   * AC-2: Inside every group I still see the status columns, so a card's group
+     and its state are visible together.
+   * AC-3: A card with several labels appears in the group of each of its labels,
+     and the total of each column still counts that card once.
+   * AC-4: A card that has no value for the chosen field, or no label, is still
+     shown, in a group of its own.
+   * AC-5: I can collapse a group and expand it again, to look at part of the
+     board.
+   * AC-6: My choice of grouping and the groups I collapsed stay as they are for
+     as long as the board stays open, also when the board is refreshed or
+     updated; a board I open again starts without grouping.
 
 
 .. story:: Convention-Based Board Discovery
@@ -97,7 +135,7 @@ Kanban User Stories
 
 .. story:: Query a Board Without Reading All of It
    :id: US_KAN_QUERY
-   :status: approved
+   :status: implemented
    :tracked_by: MOD_KANBAN
    :priority: required
    :links: US_KAN_TOOLS
@@ -130,9 +168,15 @@ Kanban User Stories
    * AC-6: When I need the full contents of the items I have narrowed down, I can
      ask for them explicitly; I then get the full contents of the matching items
      only, never of the rest of the board, and never without asking.
-   * AC-7: I can ask a board which status values (its columns) and which labels it
-     has, with the number of cards for each, so that I can build a filter without
-     reading the board or listing its items.
+   * AC-7: I can ask a board which status values (its columns), which values its
+     other selection fields offer, and which labels it has, with the number of
+     cards for each, so that I can build a filter without reading the board or
+     listing its items.
+   * AC-8: Items can also be narrowed by the value of a field the board declares,
+     for example the priority: a selection field matches the option I name, a
+     text field matches the cards whose text contains the words I give. This
+     combines with the narrowing of AC-1, so that I do not have to list a whole
+     status to find the items of one priority.
 
 
 .. story:: Kanban Skill and Instructions Content

@@ -69,3 +69,8 @@ passes the ``ownerName`` of the Actor that makes it.
       **Then** the Actor reports the statuses in their declared order with their
       card counts (Backlog 2, In Progress 1, Done 1) and the label ``urgent`` with
       2 cards, and shows no card content.
+
+   3. **When** the tester asks the Actor which items have the priority High, and which
+      priority values the board offers
+      **Then** the first answer holds items 1 and 4 only, and the second lists the
+      options Low, Medium and High with the card counts 1, 1 and 2.

@@ -130,7 +130,7 @@ describe('jarvis_listKanbanFilterValues: the real handler (SPEC_KAN_FILTERVALUES
     it('sample board: declared order with counts, labels once, no card content', async () => {
         const file = writeBoard('Sample', sample);
         const r = await call('jarvis_listKanbanFilterValues', { ownerName: 'Sample' });
-        expect(Object.keys(r).sort()).toEqual(['labels', 'path', 'statuses']);
+        expect(Object.keys(r).sort()).toEqual(['fields', 'labels', 'path', 'statuses']);
         expect(r.path).toBe(file);
         expect(r.statuses).toEqual(SAMPLE_STATUSES);
         expect(r.labels).toEqual([{ name: 'urgent', count: 2 }]);
@@ -279,5 +279,88 @@ describe('kanban-tool-validation: owner resolution through the real handler (K62
         expect(await call('jarvis_listKanbanItems', { ownerName: 'No Such Actor' })).toEqual({ error: 'actor unknown' });
         expect(await call('jarvis_listKanbanItems', { ownerName: 'Twin' })).toEqual({ error: 'actor unknown' });
         expect((await call('jarvis_listKanbanItems', { ownerName: 'Solo' })).count).toBe(4);
+    });
+});
+
+describe('kanban-swimlanes-and-filters: fields filter through the real handlers (REQ_KAN_LIST AC-12..AC-14, REQ_KAN_FILTERVALUES AC-9, AC-10)', () => {
+    const FIELDS = ['title: F', 'fields:', '  - name: status', '    type: single_select', '    options:', '      - name: Todo', '      - name: Done',
+        '  - name: priority', '    type: single_select', '    options:', '      - name: High', '      - name: Low',
+        '  - name: team', '    type: single_select', '    options:', '      - name: Core', '      - name: Edge', '      - name: Idle',
+        '  - name: rationale', '    type: text', 'items:'];
+    const board = FIELDS.concat([
+        '  - { id: 1, name: A, status: Todo, priority: High, team: Core, rationale: "Caused by Cache", labels: [x] }',
+        '  - { id: 2, name: B, status: Done, priority: High, team: Edge }',
+        '  - { id: 3, name: C, status: Todo, priority: Low, team: Core, rationale: "cache again", labels: [x, y] }',
+        '  - { id: 4, name: D, status: Todo }',
+        '  - { id: 5, name: E, status: Ghost, priority: Low, team: Edge }',
+        '  - { id: 6, name: F, status: Done, priority: Mystery, team: Core }',
+    ]).join('\n') + '\n';
+    const ids = (r: Json): unknown[] => (r.items ?? []).map(i => i.id);
+
+    it('matches single_select exactly, text by part ignoring case, entries AND-combined with status and labels; a miss is an empty list', async () => {
+        const file = writeBoard('Fields', board);
+        const before = sha256(file);
+        expect(ids(await call('jarvis_listKanbanItems', { ownerName: 'Fields', fields: { priority: 'High' } }))).toEqual([1, 2]);
+        const wrongCase = String((await call('jarvis_listKanbanItems', { ownerName: 'Fields', fields: { priority: 'high' } })).error);
+        expect(wrongCase).toContain('High');
+        expect(wrongCase).toContain('Low');
+        expect(ids(await call('jarvis_listKanbanItems', { ownerName: 'Fields', fields: { rationale: 'CACHE' } }))).toEqual([1, 3]);
+        expect(ids(await call('jarvis_listKanbanItems', { ownerName: 'Fields', fields: { priority: 'Low', team: 'Core' } }))).toEqual([3]);
+        expect(ids(await call('jarvis_listKanbanItems', { ownerName: 'Fields', status: 'Todo', labels: ['x'], fields: { team: 'Core', rationale: 'again' } }))).toEqual([3]);
+        expect(await call('jarvis_listKanbanItems', { ownerName: 'Fields', fields: { team: 'Idle' } })).toMatchObject({ count: 0, items: [] });
+        expect(ids(await call('jarvis_listKanbanItems', { ownerName: 'Fields', fields: {} }))).toEqual([1, 2, 3, 4, 5, 6]);
+        expect(sha256(file)).toBe(before);
+    });
+
+    it('an item without a value for a text field does not match; details change nothing about the matches', async () => {
+        const compact = await call('jarvis_listKanbanItems', { ownerName: 'Fields', fields: { rationale: 'a' } });
+        const full = await call('jarvis_listKanbanItems', { ownerName: 'Fields', fields: { rationale: 'a' }, details: true });
+        expect(ids(compact)).toEqual([1, 3]);
+        expect(ids(full)).toEqual([1, 3]);
+        expect(full.count).toBe(compact.count);
+        expect(full.items?.[0].rationale).toBe('Caused by Cache');
+    });
+
+    it('invalid filters are errors that name the key and the accepted fields, never an empty list', async () => {
+        const bad = async (fields: unknown): Promise<string> => String((await call('jarvis_listKanbanItems', { ownerName: 'Fields', fields })).error);
+        for (const f of ['priority', 7, true, ['priority'], null]) { expect(await bad(f), JSON.stringify(f)).toMatch(/fields/i); }
+        for (const key of ['status', 'nope', 'title', 'id']) {
+            const msg = await bad({ [key]: 'x' });
+            expect(msg, key).toContain(key);
+            expect(msg, key).toMatch(/priority/);
+            expect(msg, key).toMatch(/rationale/);
+        }
+        expect(await bad({ priority: 3 })).toContain('priority');
+        expect(await bad({ priority: null })).toContain('priority');
+        const option = await bad({ priority: 'Urgent' });
+        expect(option).toContain('High');
+        expect(option).toContain('Low');
+        expect(await bad({ rationale: '' })).toContain('rationale');
+        expect(await bad({ priority: 'High ', })).toContain('High');
+    });
+
+    it('filterValues lists every other single_select field with all options in declared order, no text field, one set of cards', async () => {
+        const r = await call('jarvis_listKanbanFilterValues', { ownerName: 'Fields' });
+        expect(r.fields).toEqual([
+            { name: 'priority', options: [{ name: 'High', count: 2 }, { name: 'Low', count: 1 }] },
+            { name: 'team', options: [{ name: 'Core', count: 3 }, { name: 'Edge', count: 1 }, { name: 'Idle', count: 0 }] },
+        ]);
+        const statuses = r.statuses as Array<{ name: string; count: number }>;
+        expect(statuses.reduce((n, s) => n + s.count, 0)).toBe(5);
+    });
+
+    it('a board with only a status field returns fields: []', async () => {
+        writeBoard('OnlyStatus', ['title: S', 'fields:', '  - name: status', '    type: single_select', '    options:', '      - name: A', 'items:', '  - { id: 1, name: x, status: A }'].join('\n') + '\n');
+        expect((await call('jarvis_listKanbanFilterValues', { ownerName: 'OnlyStatus' })).fields).toEqual([]);
+    });
+
+    it('a name copied from filterValues matches in the list filter (REQ_KAN_FILTERVALUES AC-5)', async () => {
+        const r = await call('jarvis_listKanbanFilterValues', { ownerName: 'Fields' });
+        for (const f of r.fields as Array<{ name: string; options: Array<{ name: string; count: number }> }>) {
+            for (const o of f.options) {
+                const listed = await call('jarvis_listKanbanItems', { ownerName: 'Fields', fields: { [f.name]: o.name } });
+                expect(listed.error, `${f.name}=${o.name}`).toBeUndefined();
+            }
+        }
     });
 });

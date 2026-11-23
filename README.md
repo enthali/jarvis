@@ -111,8 +111,8 @@ capability modules. Install only what you need.
 ### Jarvis Kanban
 
 - **Convention-based discovery** — place a `kanban.yaml` (or `<name>.kanban.yaml`) in an Actor folder; a board button appears automatically in the explorer tree
-- **Read-only webview renderer** — GitHub-Projects-shaped schema (`fields[]` + `items[]`; `status` field drives columns); open via tree button or Command Palette **Jarvis: Open Kanban Board**
-- **LM tools** — `jarvis_createKanbanBoard(boardName?, ownerName?)` creates the YAML file; `jarvis_verifyKanbanSchema(boardName?, ownerName?)` validates it; `jarvis_openKanbanBoard(boardName?, ownerName?)` opens the webview; `jarvis_updateKanbanItem(itemId, changes, boardName?, ownerName?)` updates an existing item by its stable integer ID; `jarvis_addKanbanItem`, `jarvis_deleteKanbanItem`, `jarvis_listKanbanItems` (compact by default; `details: true` returns full cards), `jarvis_listKanbanFilterValues` (status values and labels with card counts, for building filters), and `jarvis_updateKanbanFields` provide full board management (add, delete, query, and update field definitions)
+- **Read-only webview renderer** — GitHub-Projects-shaped schema (`fields[]` + `items[]`; `status` field drives columns); open via tree button or Command Palette **Jarvis: Open Kanban Board**; read-only swimlanes by field or label, and a Refresh button in the editor title bar
+- **LM tools** — `jarvis_createKanbanBoard(boardName?, ownerName?)` creates the YAML file; `jarvis_verifyKanbanSchema(boardName?, ownerName?)` validates it; `jarvis_openKanbanBoard(boardName?, ownerName?)` opens the webview; `jarvis_updateKanbanItem(itemId, changes, boardName?, ownerName?)` updates an existing item by its stable integer ID; `jarvis_addKanbanItem`, `jarvis_deleteKanbanItem`, `jarvis_listKanbanItems` (compact by default; `details: true` returns full cards; filters by status, labels and declared fields), `jarvis_listKanbanFilterValues` (status values, single-select field options and labels with card counts, for building filters), and `jarvis_updateKanbanFields` provide full board management (add, delete, query, and update field definitions)
 
 ## Configuration
 

@@ -11,6 +11,10 @@ Boards are discovered automatically via convention:
 - `kanban.yaml` — default board
 - `*.kanban.yaml` — named boards
 
+The board view is read-only. Its header offers read-only swimlanes (by another
+`single_select` field or by labels), and a board opened as an editor tab has a
+**Refresh Kanban Board** button in its title bar.
+
 ## Tools
 
 | Tool | Description |
@@ -21,9 +25,9 @@ Boards are discovered automatically via convention:
 | `jarvis_updateKanbanItem` | Updates an existing item by its stable integer ID; live-refreshes any open board webview; values are strings, except `labels`, which takes an array of strings |
 | `jarvis_addKanbanItem` | Adds a new item with validated field values; auto-assigns next stable ID, so a supplied `id` is rejected |
 | `jarvis_deleteKanbanItem` | Removes an item by its stable ID |
-| `jarvis_listKanbanItems` | Lists items, optionally filtered by status or labels; a compact projection (`id`, `name`, `status`, `labels`) by default, `details: true` returns the full items |
-| `jarvis_listKanbanFilterValues` | Lists the status values (columns, empty ones included) and the labels of a board with the number of cards for each, to build list filters |
-| `jarvis_updateKanbanFields` | Adds or updates field definitions (add options, rename options, add new fields) |
+| `jarvis_listKanbanItems` | Lists items, optionally filtered by status, labels or declared fields (`fields`: `single_select` exact option, `text` case-insensitive part of the text); a compact projection (`id`, `name`, `status`, `labels`) by default, `details: true` returns the full items |
+| `jarvis_listKanbanFilterValues` | Lists the status values (columns, empty ones included), the options of the other `single_select` fields and the labels of a board with the number of cards for each, to build list filters |
+| `jarvis_updateKanbanFields` | Adds or removes field definitions or options; a field or option still used by items is not removed |
 
 Supply `ownerName` explicitly for every Kanban tool; it is not inferred from the calling session.
 

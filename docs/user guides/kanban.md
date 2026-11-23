@@ -9,6 +9,13 @@ Jarvis Kanban (`enthali.jarvis-kanban`) adds kanban boards to actors. A board is
 
 A board button appears in the explorer tree next to the actor. Open a board from there or with **Jarvis: Open Kanban Board** in the Command Palette.
 
+### Working in the board view
+
+The board view is read-only: nothing you do in it changes the file.
+
+- **Refresh.** In a board opened as an editor tab, the **Refresh Kanban Board** button in the editor title bar, next to **Open as Text**, reads the file again at once. The board normally follows its file by itself; use Refresh when a tab has missed an update. Your filter text, swimlane choice and collapsed lanes stay as they are.
+- **Swimlanes.** The selector in the board header groups the cards into horizontal lanes across the status columns. Choose `None` (the default), any other `single_select` field (one lane per option, plus `Uncategorized` for cards without a valid value), or `Labels` (one lane per label in alphabetical order, plus `Unlabelled`). A card with several labels appears in each of its label lanes; the column totals still count each card once. Lanes can be collapsed. The choice lasts while the tab is open and starts at `None` again when you reopen it.
+
 A board file has three top-level keys: `title`, `fields` (exactly one field named `status`), and `items`. The `status` field is a `single_select`; its options are the board's columns. Each item has a stable integer `id` that is never reused, a `name`, and a `status` that matches an option of the `status` field. Other fields are `single_select` (with `options`) or `text`. Undeclared field keys on items are allowed but produce a validator warning. The full definition is in `schemas/kanban.schema.json`.
 
 ## Tools
@@ -23,9 +30,9 @@ Supply `ownerName` explicitly for every kanban tool; it is not inferred from the
 | `jarvis_addKanbanItem` | Add an item with validated field values; the next stable ID is assigned automatically, so supplying an `id` (also inside `fields`) is rejected. `labels` must be an array of strings. |
 | `jarvis_updateKanbanItem` | Update an item by its stable ID; an open board refreshes live. Values are strings, except `labels`, which takes an array of strings. |
 | `jarvis_deleteKanbanItem` | Remove an item by its stable ID. |
-| `jarvis_listKanbanItems` | List items, optionally filtered by status or labels. Compact by default (`id`, `name`, `status`, `labels`); `details: true` returns full items. Non-string label entries in a board file are left out of the result. |
-| `jarvis_listKanbanFilterValues` | List the status values (empty columns included) and labels with their card counts, for building filters. |
-| `jarvis_updateKanbanFields` | Add or update field definitions (add or rename options, add fields). |
+| `jarvis_listKanbanItems` | List items, optionally filtered by status, labels or declared fields. `fields` takes `{ fieldName: value }` for declared fields other than `status`: a `single_select` field must match one of its options exactly, a `text` field matches a part of the text ignoring case, and an item must match every entry; an unknown field or option returns an error, not an empty list. Compact by default (`id`, `name`, `status`, `labels`); `details: true` returns full items. Non-string label entries in a board file are left out of the result. |
+| `jarvis_listKanbanFilterValues` | List the status values (empty columns included), the options of the other `single_select` fields and the labels, each with its card count, for building filters. |
+| `jarvis_updateKanbanFields` | Add or remove field definitions or options; a field or option still used by items is not removed. |
 
 ## Agent instructions
 

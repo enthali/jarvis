@@ -48,6 +48,50 @@ const defaultColors = [
 let currentBoard: BoardData | undefined;
 let filterText = '';
 
+// Lane state (SPEC_KAN_LANES): kept by the open page only, never sent anywhere.
+type LaneBy = { kind: 'none' } | { kind: 'field'; field: string } | { kind: 'labels' };
+let laneBy: LaneBy = { kind: 'none' };
+let collapsed = new Set<string>();
+
+interface Lane { id: string; name: string; cards: BoardItem[] }
+
+function stringLabels(item: BoardItem): string[] {
+    return Array.isArray(item.labels) ? [...new Set(item.labels.filter((l): l is string => typeof l === 'string'))] : [];
+}
+
+function compareCodePoints(a: string, b: string): number {
+    const x = Array.from(a);
+    const y = Array.from(b);
+    const n = Math.min(x.length, y.length);
+    for (let i = 0; i < n; i++) {
+        const d = x[i].codePointAt(0)! - y[i].codePointAt(0)!;
+        if (d !== 0) { return d; }
+    }
+    return x.length - y.length;
+}
+
+/** SPEC_KAN_LANES step 3: option lanes are always drawn; label, Uncategorized and Unlabelled lanes only while they hold a card. */
+function buildLanes(board: BoardData, shown: BoardItem[]): Lane[] {
+    if (laneBy.kind === 'field') {
+        const by = laneBy.field;
+        const field = board.fields.find(f => f.name === by)!;
+        const options = (field.options ?? []).map(o => o.name);
+        const lanes: Lane[] = options.map(name => ({
+            id: 'option:' + name,
+            name,
+            cards: shown.filter(i => i[field.name] === name),
+        }));
+        const rest = shown.filter(i => typeof i[field.name] !== 'string' || !options.includes(i[field.name] as string));
+        if (rest.length > 0) { lanes.push({ id: 'uncategorized', name: 'Uncategorized', cards: rest }); }
+        return lanes;
+    }
+    const names = [...new Set(shown.flatMap(stringLabels))].sort(compareCodePoints);
+    const lanes: Lane[] = names.map(name => ({ id: 'label:' + name, name, cards: shown.filter(i => stringLabels(i).includes(name)) }));
+    const rest = shown.filter(i => stringLabels(i).length === 0);
+    if (rest.length > 0) { lanes.push({ id: 'unlabelled', name: 'Unlabelled', cards: rest }); }
+    return lanes;
+}
+
 function matchesFilter(item: BoardItem, _board: BoardData): boolean {
     const q = filterText.trim().toLowerCase();
     if (!q) { return true; }
@@ -76,6 +120,18 @@ function renderBoard(board: BoardData): void {
 
     const otherFields = board.fields.filter(f => f.name !== 'status');
 
+    // A selected field the board no longer declares falls back to None (SPEC_KAN_LANES step 1).
+    const laneFields = board.fields.filter(f => f.type === 'single_select' && f.name !== 'status');
+    if (laneBy.kind === 'field' && !laneFields.some(f => f.name === (laneBy as { field: string }).field)) {
+        laneBy = { kind: 'none' };
+    }
+    const laneValue = laneBy.kind === 'field' ? 'field:' + laneBy.field : laneBy.kind;
+    const laneChoices = [
+        ['none', 'None'],
+        ...laneFields.map(f => ['field:' + f.name, f.name]),
+        ['labels', 'Labels'],
+    ];
+
     // Filter bar
     let html = `
     <div style="padding:8px 16px;border-bottom:1px solid var(--vscode-panel-border);display:flex;align-items:center;gap:8px;">
@@ -85,9 +141,18 @@ function renderBoard(board: BoardData): void {
             style="flex:1;max-width:400px;padding:3px 8px;font-size:12px;
             background:var(--vscode-input-background);color:var(--vscode-input-foreground);
             border:1px solid var(--vscode-input-border);border-radius:3px;outline:none;">
+        <label style="font-size:12px;display:flex;align-items:center;gap:4px;">Lanes
+            <select id="kanban-lanes" style="font-size:12px;background:var(--vscode-dropdown-background);
+                color:var(--vscode-dropdown-foreground);border:1px solid var(--vscode-dropdown-border);">
+                ${laneChoices.map(([v, label]) => `<option value="${escapeHtml(v)}"${v === laneValue ? ' selected' : ''}>${escapeHtml(label)}</option>`).join('')}
+            </select>
+        </label>
     </div>
     `;
 
+    if (laneBy.kind !== 'none') {
+        html += renderLanes(board, statusField.options, otherFields);
+    } else {
     // Columns container
     html += '<div style="display:flex;gap:12px;padding:12px 16px;overflow-x:auto;height:calc(100% - 50px);">';
 
@@ -120,7 +185,23 @@ function renderBoard(board: BoardData): void {
     }
 
     html += '</div>';
+    }
     root.innerHTML = html;
+
+    const laneSelect = document.getElementById('kanban-lanes') as HTMLSelectElement;
+    laneSelect.addEventListener('change', () => {
+        const v = laneSelect.value;
+        laneBy = v === 'none' ? { kind: 'none' } : v === 'labels' ? { kind: 'labels' } : { kind: 'field', field: v.slice('field:'.length) };
+        collapsed = new Set();
+        if (currentBoard) { renderBoard(currentBoard); }
+    });
+    root.querySelectorAll<HTMLElement>('[data-lane]').forEach(el => {
+        el.addEventListener('click', () => {
+            const id = el.dataset.lane!;
+            if (collapsed.has(id)) { collapsed.delete(id); } else { collapsed.add(id); }
+            if (currentBoard) { renderBoard(currentBoard); }
+        });
+    });
 
     // Attach filter listener
     const filterInput = document.getElementById('kanban-filter') as HTMLInputElement;
@@ -133,6 +214,53 @@ function renderBoard(board: BoardData): void {
         filterInput.focus();
         filterInput.setSelectionRange(filterInput.value.length, filterInput.value.length);
     }
+}
+
+/** SPEC_KAN_LANES step 4: one header row of columns, then every lane with one cell per column. */
+function renderLanes(board: BoardData, options: FieldOption[], otherFields: FieldDef[]): string {
+    const shown = board.items.filter(item => options.some(o => o.name === item.status) && matchesFilter(item, board));
+    const lanes = buildLanes(board, shown);
+    const grid = `display:grid;grid-template-columns:repeat(${options.length},minmax(250px,1fr));gap:12px;`;
+
+    let html = '<div style="padding:12px 16px;overflow:auto;height:calc(100% - 50px);">';
+    html += `<div style="${grid}margin-bottom:8px;">`;
+    options.forEach((option, i) => {
+        const color = option.color || defaultColors[i % defaultColors.length];
+        const total = shown.filter(item => item.status === option.name).length;
+        html += `
+        <div style="padding:8px 12px;font-weight:bold;font-size:13px;display:flex;justify-content:space-between;
+            background:var(--vscode-sideBar-background);border-radius:6px 6px 0 0;border-bottom:3px solid ${escapeHtml(color)};">
+            <span>${escapeHtml(option.name)}</span>
+            <span style="opacity:0.7;font-size:11px;">${total}</span>
+        </div>`;
+    });
+    html += '</div>';
+
+    for (const lane of lanes) {
+        const isCollapsed = collapsed.has(lane.id);
+        html += `
+        <div style="margin-bottom:12px;">
+            <div data-lane="${escapeHtml(lane.id)}" style="cursor:pointer;font-weight:bold;font-size:13px;padding:4px 0;
+                border-bottom:1px solid var(--vscode-panel-border);">
+                ${isCollapsed ? '▸' : '▾'} ${escapeHtml(lane.name)} <span style="opacity:0.7;font-size:11px;font-weight:normal;">(${lane.cards.length})</span>
+            </div>`;
+        if (!isCollapsed) {
+            html += `<div style="${grid}padding-top:6px;">`;
+            for (const option of options) {
+                const cell = lane.cards.filter(item => item.status === option.name);
+                html += '<div style="background:var(--vscode-sideBar-background);border-radius:6px;padding:6px;">';
+                if (cell.length === 0) {
+                    html += '<div style="padding:12px;text-align:center;opacity:0.5;font-size:12px;">No items</div>';
+                } else {
+                    for (const item of cell) { html += renderCard(item, otherFields); }
+                }
+                html += '</div>';
+            }
+            html += '</div>';
+        }
+        html += '</div>';
+    }
+    return html + '</div>';
 }
 
 function renderCard(item: BoardItem, otherFields: FieldDef[]): string {

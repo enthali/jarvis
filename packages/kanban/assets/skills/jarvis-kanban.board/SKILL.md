@@ -11,8 +11,8 @@ description: "Jarvis Kanban Board — convention-based kanban boards for actors,
 | `jarvis_createKanbanBoard` | Create a new board for an Actor |
 | `jarvis_openKanbanBoard` | Open a board in the webview renderer |
 | `jarvis_verifyKanbanSchema` | Validate structure and semantics |
-| `jarvis_listKanbanItems` | Query items by status/labels; compact projection, `details: true` for the full items |
-| `jarvis_listKanbanFilterValues` | Status values (columns) and labels with card counts, for building filters |
+| `jarvis_listKanbanItems` | Query items by status/labels/declared fields; compact projection, `details: true` for the full items |
+| `jarvis_listKanbanFilterValues` | Status values (columns), options of the other single-select fields and labels with card counts, for building filters |
 | `jarvis_addKanbanItem` | Add a new item (auto-assigns id) |
 | `jarvis_updateKanbanItem` | Update fields on an existing item by ID |
 | `jarvis_deleteKanbanItem` | Delete an item by ID (id is never reused) |
@@ -104,7 +104,7 @@ items:
 2. **Add items** — `jarvis_addKanbanItem` (id is auto-assigned, never supply it)
 3. **Edit items** — `jarvis_updateKanbanItem` to change field values
 4. **Delete items** — `jarvis_deleteKanbanItem` (deleted ids are never reused)
-5. **List/filter** — `jarvis_listKanbanFilterValues` first, to learn the status values (columns, empty ones included) and the labels of the board with their card counts and build a filter; then `jarvis_listKanbanItems` with that filter to inspect the board, ahead of reading the file. The result is a compact projection by default — `id`, `name`, `status`, `labels` — and `details: true` returns the full contents (every field, notes included) of the matching items only
+5. **List/filter** — `jarvis_listKanbanFilterValues` first, to learn the status values (columns, empty ones included), the options of the other `single_select` fields and the labels of the board with their card counts and build a filter; then `jarvis_listKanbanItems` with that filter to inspect the board, ahead of reading the file. `fields` narrows by declared fields other than `status`, as `{ fieldName: value }`: a `single_select` value must be a declared option and matches exactly, a `text` value matches as a case-insensitive part of the text, and an item must match every entry; an unknown field or option returns an error, not an empty list. The result is a compact projection by default — `id`, `name`, `status`, `labels` — and `details: true` returns the full contents (every field, notes included) of the matching items only
 6. **Manage fields** — `jarvis_updateKanbanFields` to add/remove fields or options
 7. **Verify** — `jarvis_verifyKanbanSchema` — read both `errors` and `warnings`
 8. **View** — `jarvis_openKanbanBoard` to render in the webview

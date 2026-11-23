@@ -6,7 +6,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import type { JarvisCoreApi } from 'jarvis-core';
 import { openKanbanPanel, refreshKanbanPanel } from './kanbanPanel';
-import { KanbanEditorProvider } from './kanbanEditorProvider';
+import { KanbanEditorProvider, refreshKanbanEditors, activeKanbanEditorUri } from './kanbanEditorProvider';
 import { BoardData, detailsError, filterValues, selectItems } from './boardQuery';
 
 // ── Board index ────────────────────────────────────────────────────────
@@ -422,6 +422,15 @@ export function activate(context: vscode.ExtensionContext): void {
             if (target) {
                 vscode.commands.executeCommand('vscode.openWith', target, 'default');
             }
+        }
+    ));
+
+    // Refresh command (SPEC_KAN_REFRESH): the Uri comes from the title bar; the Command Palette falls back to the active tab.
+    context.subscriptions.push(vscode.commands.registerCommand(
+        'jarvis.refreshKanbanBoard',
+        (arg?: vscode.Uri) => {
+            const target = arg instanceof vscode.Uri ? arg : activeKanbanEditorUri();
+            if (target) { refreshKanbanEditors(target); }
         }
     ));
 
@@ -857,9 +866,9 @@ export function activate(context: vscode.ExtensionContext): void {
     // Tool: jarvis_listKanbanItems (SPEC_KAN_LIST)
     context.subscriptions.push(api.registerTool(
         'jarvis_listKanbanItems',
-        'Lists kanban board items, optionally filtered by status or labels. Returns a compact projection (id, name, status, labels) per item; details: true returns the full items.',
+        'Lists kanban board items, optionally filtered by status, labels or declared field values. Returns a compact projection (id, name, status, labels) per item; details: true returns the full items.',
         async (options, token) => {
-            const input = options.input as { status?: string; labels?: string[]; details?: unknown; boardName?: string; ownerName?: string };
+            const input = options.input as { status?: string; labels?: string[]; fields?: unknown; details?: unknown; boardName?: string; ownerName?: string };
 
             // The board is not read for an invalid `details` (REQ_KAN_LIST AC-9).
             const badDetails = detailsError(input.details);
@@ -868,7 +877,7 @@ export function activate(context: vscode.ExtensionContext): void {
             const loaded = await loadBoardForQuery(api, input, token);
             if ('error' in loaded) { return asResult({ error: loaded.error }); }
 
-            const selected = selectItems(loaded.data, { status: input.status, labels: input.labels, details: input.details === true });
+            const selected = selectItems(loaded.data, { status: input.status, labels: input.labels, fields: input.fields, details: input.details === true });
             if ('error' in selected) { return asResult({ error: selected.error }); }
 
             return asResult({ path: loaded.boardPath, count: selected.items.length, items: selected.items });
@@ -878,7 +887,7 @@ export function activate(context: vscode.ExtensionContext): void {
     // Tool: jarvis_listKanbanFilterValues (SPEC_KAN_FILTERVALUES)
     context.subscriptions.push(api.registerTool(
         'jarvis_listKanbanFilterValues',
-        'Lists the status values (columns, empty ones included) and the labels of a kanban board with the number of cards for each, to build list filters.',
+        'Lists the status values (columns, empty ones included), the options of the other single-select fields and the labels of a kanban board with the number of cards for each, to build list filters.',
         async (options, token) => {
             const input = options.input as { boardName?: string; ownerName?: string };
 
@@ -888,7 +897,7 @@ export function activate(context: vscode.ExtensionContext): void {
             const values = filterValues(loaded.data);
             if ('error' in values) { return asResult({ error: values.error }); }
 
-            return asResult({ path: loaded.boardPath, statuses: values.statuses, labels: values.labels });
+            return asResult({ path: loaded.boardPath, statuses: values.statuses, fields: values.fields, labels: values.labels });
         }
     ));
 
