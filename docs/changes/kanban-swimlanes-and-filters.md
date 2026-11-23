@@ -1,6 +1,6 @@
 # Change Contract: kanban-swimlanes-and-filters
 
-**Status:** accepted<br>
+**Status:** closed<br>
 **Current responsibility:** Project Manager<br>
 **Current blocker:** none<br>
 **Created:** 2026-11-22<br>
@@ -67,7 +67,7 @@ Boards with ~30+ items (such as the Project Manager's backlog) currently require
 |---|---|---|---|---|
 | Intent and outcome | yes | Project Manager | Goal, value, scope, and observable outcome are explicit and approved | approved |
 | Contract release | yes | User | User authorization to start the change; set by the User only | approved (2026-11-22 17:08 CET) |
-| Version control | yes | Project Manager | Local branch `feature/kanban-swimlanes-and-filters`; squash-integrated into `development` at closure; the branch is retained | active |
+| Version control | yes | Project Manager | Local branch `feature/kanban-swimlanes-and-filters`; squash-integrated into `development` at closure; the branch is retained | merged (`08d59dfc`) |
 | Product specification | yes | Architect | Changed specification artifacts are linked and checked; strict Sphinx build passes (see Product Specification) | complete |
 | Infrastructure impact | yes | Admin | Affected infrastructure artifacts are updated, or none is affected | complete |
 | Documentation impact | yes | Technical Writer | Affected user-facing documents are updated | complete |
@@ -75,7 +75,7 @@ Boards with ~30+ items (such as the Project Manager's backlog) currently require
 | Test design | yes | Tester | Requirement-level tests and validation procedures trace to the changed specification | complete |
 | Quality review and test execution | yes | Quality | Current judgment is `proceed` and `Open Findings` is `None` | complete |
 | User validation | yes | User | Observable outcome is accepted or changes are requested | accepted (2026-11-23 21:40 CET) |
-| Closure | yes | Project Manager | Final outcome and integration state are recorded | pending |
+| Closure | yes | Project Manager | Final outcome and integration state are recorded | closed |
 
 ## Product Specification
 
@@ -249,16 +249,16 @@ After Quality's `proceed`, the Project Manager presents the observable outcome. 
 ## Closure
 
 **Owner:** Project Manager<br>
-**Status:** pending
+**Status:** closed
 
-- [ ] Every included artifact or gate has terminal status and completion evidence.
-- [ ] Intent and outcome are `approved`.
-- [ ] Quality has recorded `proceed`.
-- [ ] Open Findings contains `None`.
-- [ ] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
-- [ ] The feature branch is squash-integrated into `development`.
-- [ ] Current blocker is `none`.
-- [ ] The Project Manager ran the `syspilot.contract-statistics` skill after validation and the record exists in `.syspilot/stats/`.
-- [ ] Header Status is `closed`.
+- [x] Every included artifact or gate has terminal status and completion evidence.
+- [x] Intent and outcome are `approved`.
+- [x] Quality has recorded `proceed`.
+- [x] Open Findings contains `None`.
+- [x] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
+- [x] The feature branch is squash-integrated into `development`.
+- [x] Current blocker is `none`.
+- [x] The Project Manager ran the `syspilot.contract-statistics` skill after validation and the record exists in `.syspilot/stats/`.
+- [x] Header Status is `closed`.
 
-**Final outcome:** {accepted result and integration commit}
+**Final outcome:** Accepted by the User on 2026-11-23 after Extension Development Host validation (`AC_KAN_LANES_JOURNEY` verified; `US_KAN_BOARD`, `US_KAN_LANES`, `US_KAN_QUERY` accepted). Ships the Kanban custom-editor Refresh button (GH #55), read-only collapsible swimlanes by declared `single_select` fields or `Labels` with deduplicated column totals and tab-local view state (swimlanes portion of GH #47; drag-and-drop write-back stays open in GH #47), declared-field filtering in `jarvis_listKanbanItems` and `jarvis_listKanbanFilterValues` (K72), and confirmed conformance of K14 and K17. Squash-integrated into `development` as `08d59dfc`; feature branch `feature/kanban-swimlanes-and-filters` retained; statistics recorded in `.syspilot/stats/kanban-swimlanes-and-filters-stat.md`. Not released.
