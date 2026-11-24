@@ -136,3 +136,34 @@ Messaging User Stories
      and reveals the line of that entry, enabling manual inspection or edit
 
 
+.. story:: Messages and Reminders in the Jarvis Explorer
+    :id: US_MSG_TREE
+    :status: implemented
+    :tracked_by: MOD_MESSAGING
+    :priority: optional
+    :links: US_EXP_SIDEBAR; US_CFG_FEATURETOGGLES; US_MSG_REMINDERS
+
+    **As a** Jarvis User,
+    **I want** a Messages view and a Reminders view in the Jarvis sidebar,
+    **so that** I can see what is queued and what is scheduled, and jump to the
+    entry in its file, without leaving the editor.
+
+    **Acceptance Criteria:**
+
+    * AC-1: The Messages view lists the queued messages, grouped by target
+      session; when nothing is queued it shows the single entry
+      ``nothing to deliver``.
+    * AC-2: Clicking a message opens the message queue file and reveals that
+      message. If the position cannot be determined, the file opens at its
+      start, without an error dialog. Clicking only navigates: the queue and the
+      tree stay unchanged.
+    * AC-3: The Messages view is shown only while the Messages feature is
+      enabled; the Reminders view is shown only while both the Messages and the
+      Reminders features are enabled (``US_CFG_FEATURETOGGLES``). The content of
+      the Reminders view is specified by ``US_MSG_REMINDERS``.
+    * AC-4: A "Collapse All" button in the title bar of the Messages view and of
+      the Reminders view collapses every expanded node in one click. It only
+      changes what is expanded: no node is removed, reordered, or reloaded, and
+      no click action fires.
+
+

@@ -121,3 +121,30 @@ Automation User Stories
    * AC-6: Destination validation uses the same resolver as ``jarvis_sendToSession``
      (unified valid destination set: Actor names from
      ``src/sessionLookup.ts``) — no separate implementation
+
+
+.. story:: Heartbeat Jobs in the Jarvis Explorer
+   :id: US_AUT_HEARTBEATTREE
+   :status: implemented
+   :tracked_by: MOD_AUTOMATION
+   :priority: optional
+   :links: US_EXP_SIDEBAR; US_AUT_HEARTBEAT; US_CFG_FEATURETOGGLES
+
+   **As a** Jarvis User,
+   **I want** the Heartbeat view in the Jarvis sidebar to take me to a job's
+   definition and to be easy to fold,
+   **so that** I can inspect and edit a job without searching through config
+   files. The jobs the view lists are those of ``US_AUT_HEARTBEAT``.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The Heartbeat view is shown only while the Heartbeat feature is
+      enabled (``US_CFG_FEATURETOGGLES``).
+   * AC-2: Clicking a job opens ``heartbeat.yaml`` and reveals the line where
+      that job is defined. If the position cannot be determined, the file opens
+      at its start, without an error dialog. Clicking only navigates: the jobs
+      and the tree stay unchanged.
+   * AC-3: A "Collapse All" button in the title bar of the Heartbeat view
+      collapses every expanded job in one click. It only changes what is
+      expanded: no node is removed, reordered, or reloaded, and no click action
+      fires.

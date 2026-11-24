@@ -166,7 +166,7 @@ Automation Requirements
    :id: REQ_AUT_HEARTBEATVIEW
    :status: implemented
    :priority: optional
-   :links: US_AUT_HEARTBEAT; US_EXP_SIDEBAR
+   :links: US_AUT_HEARTBEAT; US_AUT_HEARTBEATTREE
 
    **Description:**
    The extension SHALL provide a tree view in the Jarvis sidebar that visualizes all

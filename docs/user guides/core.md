@@ -20,6 +20,8 @@ In the editor window, the ACTORS view takes activity from the Agent Host: a red 
 
 Actors pass messages through a persistent inbox. An announcement tells the receiving Actor how many messages wait; their content is returned only by `jarvis_receiveMessage()`, not inserted as a prompt. Enable **Direct Delivery** for automatic announcements, or use the play action in Messages to announce waiting messages manually. A missing Actor chat is created for delivery. Without an Agent Host connection, announcements wait; opening a chat shows an information message instead of falling back to the old chat UI. With logging enabled, every queued message is also appended to `.jarvis/message-log.json`.
 
+The Messages view in the Jarvis sidebar lists queued messages grouped by target Actor, or shows `nothing to deliver`. Clicking a message opens the message queue file at that message, or at its start if the position cannot be found; clicking only navigates and changes nothing. The view appears while `jarvis.messages.enabled` is on. The Messages, Reminders and Heartbeat views each have a **Collapse All** button in their title bar.
+
 The Agent Host client provides these tools to Actor chats and approves calls addressed to its own tools:
 
 | Tool call | Result |
@@ -38,6 +40,8 @@ Set a reminder for an Actor with the `jarvis_setReminder` tool, giving the text,
 ## Heartbeat
 
 Cron-based background jobs that run scripts (Python, PowerShell), VS Code commands, or single-shot language-model agent steps, with a live status view in the activity bar. Each agent step names both `vendor` and `model` (the model ID); there is no default or fallback. Use **Jarvis: List Language Models** or `jarvis_listModels` to see the pairs VS Code currently offers. A Python, PowerShell or agent step can set `outputVar` to capture its output (script output or the agent's reply) under that name; later steps of the same run use it as `${NAME}`, an unknown name is left as written, and the value is not kept for other runs.
+
+The Heartbeat view appears while `jarvis.heartbeat.enabled` is on. Clicking a job opens `heartbeat.yaml` at the line where the job is defined, or at the start of the file if the position cannot be found; clicking only navigates and changes nothing.
 
 - **PowerShell steps** need PowerShell in the environment where Jarvis runs, including inside the Codespace if Jarvis runs there. Jarvis tries `pwsh`, then `powershell` if `pwsh` is not found, and reports an error if neither is found.
 - **Python steps** need a Python interpreter in that environment. Jarvis uses `python.defaultInterpreterPath` if set; otherwise it checks `.venv` and then `venv` in the first workspace folder (`Scripts/python.exe` on Windows, `bin/python` elsewhere). If neither exists, it runs `python` from `PATH`.

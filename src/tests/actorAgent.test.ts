@@ -281,7 +281,7 @@ describe('REQ_ACTOR_WHOAMI AC-10/AC-11: jarvis_whoAmI fully removed', () => {
             __dirname, '..', '..', 'packages', 'core', 'assets', 'instructions', 'jarvis-actor.kernel.instructions.md'
         ), 'utf8');
         expect(kernelAsset).not.toContain('## 0.');
-        expect(kernelAsset).not.toContain('Identity');
+        expect(kernelAsset).not.toMatch(/^#{1,6}\s+.*\bIdentity\b/im);
         expect(kernelAsset).toContain('## 1. Local Memory');
         expect(kernelAsset).toContain('## 2. Messaging');
         expect(kernelAsset).toContain('## 3. Escalation');

@@ -21,7 +21,7 @@ Explorer Requirements
    :id: REQ_EXP_TREEVIEW
    :status: approved
    :priority: mandatory
-   :links: US_EXP_SIDEBAR; REQ_ACTOR_TREE; REQ_CFG_TOGGLES
+   :links: US_EXP_SIDEBAR; US_MSG_TREE; US_AUT_HEARTBEATTREE; REQ_ACTOR_TREE; REQ_CFG_TOGGLES
 
    **Description:**
    The extension SHALL provide tree views inside the Jarvis sidebar: the
@@ -80,7 +80,7 @@ Explorer Requirements
    :id: REQ_EXP_HEARTBEAT_OPENFILE
    :status: implemented
    :priority: optional
-   :links: US_EXP_OPENFILE; REQ_CFG_FIXEDPATHS
+   :links: US_AUT_HEARTBEATTREE; REQ_CFG_FIXEDPATHS
 
    **Description:**
    Clicking a Heartbeat Job node in the Heartbeat tree view SHALL open
@@ -106,7 +106,7 @@ Explorer Requirements
    :id: REQ_EXP_MESSAGE_OPENFILE
    :status: implemented
    :priority: optional
-   :links: US_EXP_OPENFILE; REQ_CFG_FIXEDPATHS
+   :links: US_MSG_TREE; REQ_CFG_FIXEDPATHS
 
    **Description:**
    Clicking a Message leaf node in the Messages tree view SHALL open the messages
@@ -131,7 +131,7 @@ Explorer Requirements
    :id: REQ_EXP_REMINDER_OPENFILE
    :status: draft
    :priority: optional
-   :links: US_MSG_REMINDERS; US_EXP_OPENFILE; REQ_CFG_PATHSINGLESOURCE
+   :links: US_MSG_REMINDERS; REQ_CFG_PATHSINGLESOURCE
 
    **Description:**
    Clicking a reminder node in the "Reminders" sidebar view SHALL open
