@@ -1,6 +1,6 @@
 # Jarvis — The Actor Harness
 
-Jarvis 0.34.0 builds on 0.32.0, the first release with **Actors, messaging and Kanban in
+Jarvis 0.35.0 builds on 0.32.0, the first release with **Actors, messaging and Kanban in
 VS Code's Agents window**, alongside the editor experience. Several Actor chats
 can be open side by side. Tree markers, Flow, PIM and Recorder in the Agents
 window are on the roadmap; there is no plan yet.
@@ -20,6 +20,17 @@ files in configurable folders.
 ## Getting Started
 
 New to Jarvis? Follow the [Getting Started guide](docs/user%20guides/getting-started.md).
+
+## Version 0.35.0
+
+Kanban and Message Flow gain features, and Jarvis is now verified on macOS. See the [release notes](docs/releasenotes.md).
+
+- **Kanban board view.** A board opened as an editor tab has a **Refresh Kanban Board** button next to **Open as Text**, and a selector that groups cards into read-only swimlanes by a `single_select` field or by labels. The swimlane choice is kept while the tab is open and never written to the file; drag-and-drop editing is not part of this release. See the [Kanban guide](docs/user%20guides/kanban.md).
+- **Kanban tools.** `jarvis_listKanbanItems` can filter by declared fields (`fields`), `jarvis_listKanbanFilterValues` lists the options of single-select fields, and the Kanban skill documents moving finished cards to an `archive` board.
+- **Message Flow.** Hovering a node shows its message count, time range and a sample, the time lens handles can be moved by keyboard and no longer cross, and **Requeue** in the message log viewer now reports success or failure in a notification. See the [Flow guide](docs/user%20guides/flow.md).
+- **Heartbeat.** `outputVar` is part of the `jarvis_registerJob` schema, so steps can pass output to later steps of the same run. After an interval change or a resume, queue steps are no longer skipped, and jobs are validated once at start. See the [Core guide](docs/user%20guides/core.md).
+- **Smaller Core package.** The unused `sql.js` WebAssembly bundle is gone from Jarvis Core.
+- **Platforms.** On macOS, the User verified on 2026-11-24 that Jarvis worked without issues. Windows was checked in the Windows Sandbox on 2026-11-19. WSL and SSH are not verified.
 
 ## Version 0.34.0
 
