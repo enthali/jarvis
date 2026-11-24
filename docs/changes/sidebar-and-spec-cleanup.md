@@ -1,6 +1,6 @@
 # Change Contract: sidebar-and-spec-cleanup
 
-**Status:** active<br>
+**Status:** closed<br>
 **Current responsibility:** Project Manager<br>
 **Current blocker:** none<br>
 **Created:** 2026-11-24<br>
@@ -63,7 +63,7 @@ The Explorer specification cleanly separates the generic Jarvis sidebar containe
 |---|---|---|---|---|
 | Intent and outcome | yes | Project Manager | Goal, value, scope, and observable outcome are explicit and approved | approved |
 | Contract release | yes | User | User authorization to start the change; set by the User only | approved (2026-11-24 20:11 CET) |
-| Version control | yes | Project Manager | Local branch `feature/sidebar-and-spec-cleanup`; squash-integrated into `development` at closure; the branch is retained | active |
+| Version control | yes | Project Manager | Local branch `feature/sidebar-and-spec-cleanup`; squash-integrated into `development` at closure; the branch is retained | merged (`c9818300`) |
 | Product specification | yes | Architect | `US_EXP_*`, new Messages/Heartbeat tree stories, `REQ_ACTOR_WHOAMI`, and linked `REQ_*`/`SPEC_*`/`AC_*` updated and checked | complete |
 | Infrastructure impact | yes | Admin | Affected infrastructure artifacts are updated, or none is affected | complete |
 | Documentation impact | yes | Technical Writer | User-facing documents reviewed, or none is affected | complete |
@@ -71,7 +71,7 @@ The Explorer specification cleanly separates the generic Jarvis sidebar containe
 | Test design | yes | Tester | Contributed-commands registration test (`K07`), narrowed kernel-heading test (`K59`), and sidebar/story trace assertions pass | complete (see Test Design) |
 | Quality review and test execution | yes | Quality | Current judgment is `proceed` and `Open Findings` is `None` | complete |
 | User validation | yes | User | Observable outcome is accepted or changes are requested | accepted (2026-11-24 21:39 CET) |
-| Closure | yes | Project Manager | Final outcome and integration state are recorded | pending |
+| Closure | yes | Project Manager | Final outcome and integration state are recorded | closed |
 
 ## Product Specification
 
@@ -211,16 +211,16 @@ After Quality's `proceed`, the Project Manager presents the observable outcome. 
 ## Closure
 
 **Owner:** Project Manager<br>
-**Status:** pending
+**Status:** closed
 
-- [ ] Every included artifact or gate has terminal status and completion evidence.
-- [ ] Intent and outcome are `approved`.
-- [ ] Quality has recorded `proceed`.
-- [ ] Open Findings contains `None`.
-- [ ] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
-- [ ] The feature branch is squash-integrated into `development`.
-- [ ] Current blocker is `none`.
-- [ ] The Project Manager ran the `syspilot.contract-statistics` skill after validation and the record exists in `.syspilot/stats/`.
-- [ ] Header Status is `closed`.
+- [x] Every included artifact or gate has terminal status and completion evidence.
+- [x] Intent and outcome are `approved`.
+- [x] Quality has recorded `proceed`.
+- [x] Open Findings contains `None`.
+- [x] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
+- [x] The feature branch is squash-integrated into `development`.
+- [x] Current blocker is `none`.
+- [x] The Project Manager ran the `syspilot.contract-statistics` skill after validation and the record exists in `.syspilot/stats/`.
+- [x] Header Status is `closed`.
 
-**Final outcome:** {accepted result and integration commit}
+**Final outcome:** Accepted by the User on 2026-11-24 on automated verification (zero runtime files under `packages/` modified). Slims `US_EXP_SIDEBAR` to the generic sidebar container, deletes `US_EXP_OPENFILE` without `deprecated` stubs, and adds dedicated `US_MSG_TREE` and `US_AUT_HEARTBEATTREE` stories (plus Core guide coverage) for Messages/Reminders and Heartbeat tree visibility, click-to-open, and `Collapse All` (K33, K34, K36); anchors the kernel no-identity-section rule in `REQ_ACTOR_WHOAMI` AC-12 and narrows `actorAgent.test.ts` to Markdown headings (K59); and adds `contributed-commands-registered.test.ts` verifying all contributed commands across all six packages are registered in code (K07). Squash-integrated into `development` as `c9818300`; feature branch `feature/sidebar-and-spec-cleanup` retained; statistics recorded in `.syspilot/stats/sidebar-and-spec-cleanup-stat.md`. Not released.
