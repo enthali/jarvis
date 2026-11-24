@@ -23,6 +23,7 @@ interface LensState {
 }
 
 const FADE_FLOOR = 0.05; // SPEC_FLOW_CHORDRENDER AC-4, was 0.15
+const SAMPLE_MAX = 80;   // SPEC_FLOW_CHORDRENDER AC-5
 const root = document.getElementById('flow-root')!;
 root.innerHTML = `
   <div id="flow-empty" style="display:none;padding:16px;">
@@ -157,7 +158,7 @@ function aggregateWindow(entries: FlowMessageEntry[], startIdx: number, endIdx: 
                 count: 1,
                 firstTimestamp: entry.timestamp,
                 lastTimestamp: entry.timestamp,
-                sample: '', // no text in FlowMessageEntry
+                sample: entry.text ?? '',
                 lastTime: entryTime,
             });
             continue;
@@ -168,6 +169,7 @@ function aggregateWindow(entries: FlowMessageEntry[], startIdx: number, endIdx: 
         }
         if (entryTime >= existing.lastTime) {
             existing.lastTimestamp = entry.timestamp;
+            existing.sample = entry.text ?? '';
             existing.lastTime = entryTime;
         }
     }
@@ -197,6 +199,10 @@ function themeColors(count: number): string[] {
 
 function truncate(text: string, max: number): string {
     return text.length > max ? text.slice(0, max) + '\u2026' : text;
+}
+
+function escapeHtml(text: string): string {
+    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 function updateLensUI(): void {
@@ -295,7 +301,8 @@ function render(): void {
         tooltipEl.innerHTML =
             `<strong>${edge.source} \u2192 ${edge.target}</strong><br/>` +
             `count: ${edge.count}<br/>` +
-            `${edge.firstTimestamp} \u2013 ${edge.lastTimestamp}`;
+            `${edge.firstTimestamp} \u2013 ${edge.lastTimestamp}` +
+            (edge.sample ? `<br/>${escapeHtml(truncate(edge.sample, SAMPLE_MAX))}` : '');
     }).on('mouseleave', () => { tooltipEl.style.display = 'none'; });
 
     const group = g.append('g')
@@ -307,6 +314,22 @@ function render(): void {
         .attr('d', arcGen as never)
         .attr('fill', d => colors[d.index])
         .style('cursor', 'pointer')
+        .on('mousemove', (event: MouseEvent, d) => {
+            const name = nodes[d.index];
+            const touching = windowSlice.filter(e => e.sender === name || e.destination === name);
+            if (touching.length === 0) { return; }
+            const newest = touching.reduce((a, b) => (Date.parse(b.timestamp) >= Date.parse(a.timestamp) ? b : a));
+            const oldest = touching.reduce((a, b) => (Date.parse(b.timestamp) < Date.parse(a.timestamp) ? b : a));
+            tooltipEl.style.display = 'block';
+            tooltipEl.style.left = `${event.pageX + 12}px`;
+            tooltipEl.style.top = `${event.pageY + 12}px`;
+            tooltipEl.innerHTML =
+                `<strong>${escapeHtml(name)}</strong><br/>` +
+                `count: ${touching.length}<br/>` +
+                `${oldest.timestamp} \u2013 ${newest.timestamp}` +
+                (newest.text ? `<br/>${escapeHtml(truncate(newest.text, SAMPLE_MAX))}` : '');
+        })
+        .on('mouseleave', () => { tooltipEl.style.display = 'none'; })
         .on('click', (_event: MouseEvent, d) => {
             vscodeApi.postMessage({ type: 'actorClick', name: nodes[d.index] });
         });
@@ -325,52 +348,59 @@ function render(): void {
         .style('font-size', '11px');
 }
 
-// Lens handle drag interactions (SPEC_FLOW_TIMELENS)
-function setupLensDrag(slider: HTMLInputElement, isStartHandle: boolean): void {
+// Lens handle interactions (SPEC_FLOW_TIMELENS)
+function commitHandles(): void {
+    const entries = currentData.entries;
+    const identityAt = (rank: number): MessageIdentity | undefined => {
+        const e = entries[entries.length - rank];
+        return e ? { timestamp: e.timestamp, sender: e.sender, destination: e.destination } : undefined;
+    };
+    const startRank = Number(lensStartSlider.value);
+    const startId = identityAt(startRank);
+    const endId = identityAt(Number(lensEndSlider.value));
+    if (!startId || !endId) { return; }
+    lensState.start = startRank === 1 ? { mode: 'live' } : { mode: 'anchored', id: startId };
+    lensState.end = { mode: 'anchored', id: endId };
+    render();
+}
+
+function setupLensHandle(slider: HTMLInputElement, other: HTMLInputElement, isStartHandle: boolean): void {
     let isDragging = false;
 
-    const onInput = () => {
-        if (!isDragging) { return; }
+    slider.addEventListener('input', () => {
         const rank = Number(slider.value);
+        // The window never inverts: the other handle follows (SPEC_FLOW_TIMELENS AC-6)
+        if (isStartHandle ? rank > Number(other.value) : rank < Number(other.value)) {
+            other.value = slider.value;
+        }
+        if (!isDragging) { return; }
         const idx = currentData.entries.length - rank;
         if (idx < 0 || idx >= currentData.entries.length) { return; }
 
         dragTooltipEl.style.display = 'block';
         const rect = slider.getBoundingClientRect();
-        const percent = (rank - 1) / (Number(slider.max) - 1);
+        const percent = (rank - 1) / Math.max(1, Number(slider.max) - 1);
         dragTooltipEl.style.left = `${rect.left + rect.width * percent}px`;
         dragTooltipEl.style.top = `${rect.top - 24}px`;
         dragTooltipEl.textContent = currentData.entries[idx].timestamp;
-    };
+    });
 
     const onEnd = () => {
         if (!isDragging) { return; }
         isDragging = false;
         dragTooltipEl.style.display = 'none';
-
-        const rank = Number(slider.value);
-        const idx = currentData.entries.length - rank;
-        if (idx < 0 || idx >= currentData.entries.length) { return; }
-
-        const entry = currentData.entries[idx];
-        const id: MessageIdentity = { timestamp: entry.timestamp, sender: entry.sender, destination: entry.destination };
-
-        if (isStartHandle) {
-            lensState.start = rank === 1 ? { mode: 'live' } : { mode: 'anchored', id };
-        } else {
-            lensState.end = { mode: 'anchored', id };
-        }
-        render();
+        commitHandles();
     };
 
     slider.addEventListener('mousedown', () => { isDragging = true; });
-    slider.addEventListener('input', onInput);
     slider.addEventListener('mouseup', onEnd);
     slider.addEventListener('mouseleave', () => { if (isDragging) { onEnd(); } });
+    // Keyboard moves end with a change event and no mouse release (SPEC_FLOW_TIMELENS AC-7)
+    slider.addEventListener('change', () => { if (!isDragging) { commitHandles(); } });
 }
 
-setupLensDrag(lensStartSlider, true);
-setupLensDrag(lensEndSlider, false);
+setupLensHandle(lensStartSlider, lensEndSlider, true);
+setupLensHandle(lensEndSlider, lensStartSlider, false);
 
 // SPEC_FLOW_LOADMORE: "+30" button
 loadMoreBtn.addEventListener('click', () => {

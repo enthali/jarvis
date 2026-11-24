@@ -1,5 +1,26 @@
 # Release Notes
 
+## v0.35.0 - Kanban Swimlanes and Flow Improvements
+
+*2026-11-25*
+
+### Changes
+
+- **kanban-swimlanes-and-filters**: Refresh Kanban boards from the editor, group cards into read-only swimlanes by a single-select field or Labels, and filter list tools by declared fields. Swimlanes are tab-session state; drag-and-drop write-back remains future work.
+- **retire-legacy-session-lookup**: Removes unused pre-Agent Host session lookup and the `sql.js` WebAssembly bundle, reducing the Core package. The `jarvis_createActor` description now names the configured Actor folder.
+- **purge-deprecated-and-stale-specs**: Removes retired specifications and aligns Outlook-enabled messaging with the PIM setting, making guidance consistent with runtime behavior.
+- **heartbeat-and-reminder-cleanup**: `jarvis_registerJob` now exposes `outputVar` for step outputs; Heartbeat and Reminder documentation is corrected.
+- **kanban-cleanup**: Documents the Kanban archive board convention, clarifies filter behavior, and verifies owner resolution across the Kanban tool handlers.
+- **sidebar-and-spec-cleanup**: Clarifies Messages and Heartbeat sidebar behavior and verifies command registration across the six shipped extensions.
+- **settle-draft-specifications**: Flow adds chord-node tooltips, time-lens handle clamping and keyboard commit, and requeue notifications. Heartbeat scanner startup and resume behavior is validated, the specification baseline is settled, and macOS Agent Host operation was verified.
+
+### Validation Limits
+
+- Flow tooltip and time-lens changes were tested with a fake DOM, not in a live webview. The live Heartbeat PowerShell acceptance run remains deferred.
+- WSL and SSH Agent Host operation remain unverified. Codespaces discovery, messaging and chat opening were exercised with a prototype; Dev Tunnels and the Agents window connected to a Codespace remain outside validation.
+
+---
+
 ## v0.34.0 - Codespaces Discovery and Platform Support
 
 *2026-11-19*

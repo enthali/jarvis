@@ -110,7 +110,7 @@ nullable = true
 nullable = true
 
 [needs.fields.status.schema]
-enum = ["draft", "open", "approved", "implemented", "verified", "deprecated"]
+enum = ["draft", "open", "approved", "implemented", "verified"]
 
 # Tree membership, always child -> parent: module -> root, story -> module.
 [[needs.extra_links]]

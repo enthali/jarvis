@@ -192,10 +192,10 @@ describe('SPEC_KAN_FILTERVALUES: filterValues', () => {
 
     it('AC-7: the result carries no card content', () => {
         const r = filterValues(board()) as Record<string, unknown>;
-        expect(Object.keys(r).sort()).toEqual(['labels', 'statuses']);
+        expect(Object.keys(r).sort()).toEqual(['fields', 'labels', 'statuses']);
         for (const e of [...(r.statuses as object[]), ...(r.labels as object[])]) { expect(Object.keys(e).sort()).toEqual(['count', 'name']); }
         const text = JSON.stringify(r);
-        for (const content of ['Long notes one', 'because', '"One"', '"Two"', 'High']) { expect(text).not.toContain(content); }
+        for (const content of ['Long notes one', 'because', '"One"', '"Two"']) { expect(text).not.toContain(content); }
     });
 
     it('AC-8: an item whose status has no declared option is not counted; the declared options are all that is listed', () => {
@@ -215,6 +215,7 @@ describe('SPEC_KAN_FILTERVALUES: filterValues', () => {
         };
         expect(filterValues(data)).toEqual({
             statuses: [{ name: 'Todo', count: 1 }],
+            fields: [],
             labels: [{ name: 'keep', count: 1 }],
         });
     });
@@ -296,6 +297,35 @@ describe('SPEC_KAN_FILTERVALUES: filterValues', () => {
     });
 });
 
+describe('K72: fields filter and field options (REQ_KAN_LIST AC-12..14, REQ_KAN_FILTERVALUES AC-9, AC-10)', () => {
+    it('single_select matches exactly, text matches a part ignoring case, entries are AND-combined', () => {
+        expect(ids(selectItems(board(), { fields: { priority: 'High' } }))).toEqual([1]);
+        expect(ids(selectItems(board(), { fields: { priority: 'high' } }))).toEqual([]);
+        expect(ids(selectItems(board(), { fields: { rationale: 'CAUS' } }))).toEqual([1]);
+        expect(ids(selectItems(board(), { fields: { priority: 'Low', rationale: 'x' } }))).toEqual([]);
+        expect(ids(selectItems(board(), { status: 'In Progress', labels: ['ui'], fields: { priority: 'High' } }))).toEqual([1]);
+    });
+
+    it('invalid fields return an error naming the key, not an empty list', () => {
+        const err = (fields: unknown): string => (selectItems(board(), { fields }) as { error: string }).error;
+        expect(err('priority')).toContain('fields');
+        expect(err([])).toContain('fields');
+        expect(err({ priorty: 'High' })).toBe('Cannot filter by "priorty". Filterable fields: priority, rationale');
+        expect(err({ status: 'Done' })).toContain('"status"');
+        expect(err({ priority: 3 })).toContain('priority');
+        expect(err({ priority: 'Urgent' })).toBe('Unknown value "Urgent" for field "priority". Valid: Low, High');
+        expect(err({ rationale: '' })).toContain('rationale');
+    });
+
+    it('filterValues lists the other single_select fields with all options, counting only cards with a declared status', () => {
+        const data = board();
+        data.items!.push({ id: 5, name: 'Five', status: 'Gone', priority: 'High' }, { id: 6, name: 'Six', status: 'Done', priority: 'Weird' });
+        const r = filterValues(data) as { fields: unknown };
+        expect(r.fields).toEqual([{ name: 'priority', options: [{ name: 'Low', count: 1 }, { name: 'High', count: 1 }] }]);
+        expect((filterValues({ fields: [board().fields![0]], items: [] }) as { fields: unknown }).fields).toEqual([]);
+    });
+});
+
 describe('module boundary (D-12) and wiring of the two tools', () => {
     const read = (rel: string): string => fs.readFileSync(path.resolve(__dirname, '..', '..', rel), 'utf8');
     const moduleSrc = read('packages/kanban/src/boardQuery.ts');
@@ -317,21 +347,23 @@ describe('module boundary (D-12) and wiring of the two tools', () => {
     });
 
     it('SPEC_KAN_LIST AC-11: registerTool description and languageModelTools entry', () => {
-        expect(ext).toContain("'Lists kanban board items, optionally filtered by status or labels. Returns a compact projection (id, name, status, labels) per item; details: true returns the full items.'");
+        expect(ext).toContain("'Lists kanban board items, optionally filtered by status, labels or declared field values. Returns a compact projection (id, name, status, labels) per item; details: true returns the full items.'");
         const t = tool('jarvis_listKanbanItems');
-        expect(t.modelDescription).toBe('jarvis_kanban: Lists kanban board items with optional status and/or labels filter. Returns a compact projection (id, name, status, labels) per item; details: true returns the full items, notes included. ownerName is required.');
+        expect(t.modelDescription).toBe('jarvis_kanban: Lists kanban board items with optional status, labels and/or fields filter. Returns a compact projection (id, name, status, labels) per item; details: true returns the full items, notes included. ownerName is required.');
         expect(t.inputSchema.properties.details.type).toBe('boolean');
+        expect(t.inputSchema.properties.fields.type).toBe('object');
+        expect(t.inputSchema.properties.fields.additionalProperties).toEqual({ type: 'string' });
         expect(t.inputSchema.required).toEqual(['ownerName']);
         expect(t.toolReferenceName).toBe('jarvis_kanban_listKanbanItems');
     });
 
     it('SPEC_KAN_FILTERVALUES AC-10: registered, declared with ownerName required, description and icon as specified', () => {
         expect(ext).toContain("'jarvis_listKanbanFilterValues'");
-        expect(ext).toContain("'Lists the status values (columns, empty ones included) and the labels of a kanban board with the number of cards for each, to build list filters.'");
+        expect(ext).toContain("'Lists the status values (columns, empty ones included), the options of the other single-select fields and the labels of a kanban board with the number of cards for each, to build list filters.'");
         const t = tool('jarvis_listKanbanFilterValues');
         expect(t.toolReferenceName).toBe('jarvis_kanban_listKanbanFilterValues');
         expect(t.icon).toBe('$(filter)');
-        expect(t.modelDescription).toBe('jarvis_kanban: Returns the status values (columns, empty ones included) and the labels in use on a kanban board, each with the number of cards. Use these values as filters for jarvis_listKanbanItems. ownerName is required.');
+        expect(t.modelDescription).toBe('jarvis_kanban: Returns the status values (columns, empty ones included), the options of the other single-select fields and the labels in use on a kanban board, each with the number of cards. Use these values as filters for jarvis_listKanbanItems. ownerName is required.');
         expect(t.inputSchema.required).toEqual(['ownerName']);
         expect(Object.keys(t.inputSchema.properties).sort()).toEqual(['boardName', 'ownerName']);
     });

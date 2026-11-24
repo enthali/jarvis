@@ -2,7 +2,7 @@
   "name": "jarvis",
   "displayName": "Jarvis",
   "description": "Personal assistant for managing projects and events in VS Code",
-  "version": "0.34.0",
+  "version": "0.35.0",
   "publisher": "enthali",
   "workspaces": [
     "packages/*"
@@ -43,8 +43,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
     "cron-parser": "^5.5.0",
-    "js-yaml": "^4.1.1",
-    "sql.js": "^1.14.1"
+    "js-yaml": "^4.1.1"
   }
 }
 

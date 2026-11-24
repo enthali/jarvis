@@ -177,7 +177,7 @@ Release User Stories
 
 .. story:: VS Code Marketplace Discoverability
    :id: US_REL_MARKETPLACE
-   :status: draft
+   :status: implemented
    :tracked_by: MOD_DISTRIBUTION
    :priority: mandatory
 
@@ -192,10 +192,11 @@ Release User Stories
 
    **Acceptance Criteria:**
 
-   * AC-1: ``enthali.jarvis`` is searchable on the VS Code Marketplace by name and keyword
+   * AC-1: Jarvis Core is searchable on the VS Code Marketplace by name and keyword
    * AC-2: The extension page shows a meaningful description, icon, and repository link
    * AC-3: After a release tag is pushed, the CI automatically publishes the new version
-     to the Marketplace without manual intervention
+     of Jarvis Core and of each supported add-on to the Marketplace without manual
+     intervention
    * AC-4: The existing GitHub Releases auto-update path continues to work unchanged
 
 
@@ -226,7 +227,7 @@ Release User Stories
 
 .. story:: Legacy Extension Retirement
    :id: US_REL_RETIRELEGACY
-   :status: draft
+   :status: implemented
    :tracked_by: MOD_DISTRIBUTION
    :priority: mandatory
    :links: US_REL_SELFUPDATE
@@ -237,14 +238,14 @@ Release User Stories
    from US_REL_SELFUPDATE; the migrated user is then served by US_REL_MARKETPLACE.*
 
    **As a** user still on the obsolete ``enthali.jarvis`` extension,
-   **I want** the final legacy release to automatically migrate me to
+   **I want** the legacy extension to automatically migrate me to
    ``enthali.jarvis-core`` and then remove itself,
    **so that** I am never stranded on the dead extension ID, and two Jarvis
    instances never operate on the same ``.jarvis`` project data at once.
 
    **Acceptance Criteria:**
 
-   * AC-1: The final ``enthali.jarvis`` release is a migration shim: on activation it
+   * AC-1: The legacy ``enthali.jarvis`` release is a migration shim: on activation it
      registers **no** Jarvis surfaces (no sessions view, no heartbeat, no message
      processing) — guaranteeing only one active Jarvis instance per workspace.
    * AC-2: The shim notifies the user that Jarvis has moved, then ensures
@@ -256,5 +257,6 @@ Release User Stories
    * AC-4: If neither install channel succeeds, the shim does **not** uninstall
      itself; it shows a notification with a manual-install link to
      ``enthali.jarvis-core`` and retries the migration on the next startup.
-   * AC-5: No ``enthali.jarvis`` release is published after this final shim. The shim
-     release remains downloadable so existing users still land on it and migrate.
+   * AC-5: Every Jarvis release on GitHub carries the migration shim, so a user on the
+     obsolete extension who checks for updates reaches it from any release and
+     migrates. The shim is never offered on the Marketplace.

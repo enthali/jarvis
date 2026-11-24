@@ -1,81 +1,20 @@
 Configuration User Stories
 ==========================
 
-.. story:: Heartbeat Config File Location
+.. story:: Heartbeat Check Interval
    :id: US_CFG_HEARTBEAT
    :status: implemented
    :tracked_by: MOD_CONFIG
    :priority: optional
-   :links: US_AUT_HEARTBEAT
+   :links: US_AUT_HEARTBEAT; US_CFG_FIXEDPATHS
 
    **As a** Jarvis User,
-   **I want** to control where Jarvis reads the heartbeat configuration and how often it checks,
-   **so that** I can keep job definitions out of the repository by default or share them via an
-   explicit path, and tune the scheduler to my needs.
+   **I want** to control how often Jarvis checks whether a job is due,
+   **so that** I can tune the scheduler to my needs.
 
    **Acceptance Criteria:**
 
-   * AC-1: By default, ``heartbeat.yaml`` is read from VS Code workspace storage (not tracked in the repo)
-   * AC-2: A setting ``jarvis.heartbeatConfigFile`` overrides the default with an absolute path
-   * AC-3: A setting ``jarvis.heartbeatInterval`` controls the scheduler tick interval in seconds (default: 60)
-
-
-.. story:: Message Queue Storage Location
-   :id: US_CFG_MSG
-   :status: deprecated
-   :tracked_by: MOD_CONFIG
-   :priority: optional
-   :links: US_COM_SEND; US_CFG_FIXEDPATHS
-
-   **Superseded by:** ``US_CFG_FIXEDPATHS`` (settings-cleanup CR, 2026-05-18;
-   formally deprecated by the ``jarvis-messages-dir-grouping`` CR, GH #59).
-
-   Both acceptance criteria below became false when the settings-cleanup CR
-   removed ``jarvis.messagesFile`` and fixed the queue at a non-configurable
-   ``.jarvis/`` path (``REQ_CFG_RENAMES``). The story was left ``approved``,
-   so for over a year it asserted a configurable default that the code does
-   not offer and that ``US_CFG_FIXEDPATHS`` explicitly forbids. Retained for
-   historical traceability; the user goal it describes — choosing the queue
-   location — is deliberately no longer served.
-
-   **As a** Jarvis User,
-   **I want** to control where Jarvis stores queued messages,
-   **so that** I can place the queue file in a shared or backed-up location if needed.
-
-   **Acceptance Criteria (historic — no longer in force):**
-
-   * AC-1: By default, ``messages.json`` is stored in VS Code workspace storage
-     (``context.storageUri``)
-   * AC-2: A setting ``jarvis.messagesFile`` overrides the default with an absolute path
-
-
-.. story:: Grouped Settings Categories
-   :id: US_CFG_SETTINGSGROUPS
-   :status: deprecated
-   :tracked_by: MOD_CONFIG
-   :priority: mandatory
-   :links: US_CFG_HEARTBEAT; US_CFG_MSG
-
-   **Superseded by:** ``US_CFG_GROUPS`` (settings-cleanup CR, 2026-05-18).
-   The original "presentation-only" guarantee no longer holds: the
-   settings-cleanup CR explicitly renames keys and removes path settings.
-   Retained for historical traceability.
-
-   **As a** Jarvis User,
-   **I want** the Jarvis settings to be organized in named sub-categories
-   (Projects, Events, Heartbeat, Messages, MCP Server, Updates),
-   **so that** I can find and configure related settings together instead of
-   scrolling through a flat list.
-
-   **Acceptance Criteria:**
-
-   * AC-1: The VS Code Settings UI shows Jarvis settings grouped under named
-     sub-headings
-   * AC-2: Each group contains only its related settings according to the
-     grouping table (Projects, Events, Heartbeat, Messages, MCP Server, Updates,
-     Outlook)
-   * AC-3: No setting changes its key name, type, or default value — this is a
-     presentation-only change
+   * AC-1: The interval between two scheduler ticks, in seconds, is a user setting; its default is 60 seconds
 
 
 .. story:: Per-Feature Enable Toggles

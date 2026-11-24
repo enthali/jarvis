@@ -22,7 +22,7 @@ not pass records.
   procedure also needs Python and an available agent model. If using a
   Codespace, install the runtimes there rather than on the client machine.
 * **Windows or Linux, including a Codespace with the stated setup:**
-  :doc:`ac_listjobs`, :doc:`ac_mcpserver`, :doc:`ac_mod_actorrules`,
+  :doc:`ac_listjobs`, :doc:`ac_kanban_lanes`, :doc:`ac_mcpserver`, :doc:`ac_mod_actorrules`,
   :doc:`ac_selfupdate`, :doc:`ac_skill_provisioning` and
   :doc:`ac_tree_node_open_file`. For MCP, the client must be able to reach
   the endpoint from the host where it is listening.

@@ -14,7 +14,7 @@ Release Design Specifications
 
 .. spec:: Extension Packaging Setup
    :id: SPEC_REL_VSCEPKG
-   :status: draft
+   :status: implemented
    :links: REQ_REL_VSCEPKG
 
    **Description:**
@@ -34,33 +34,19 @@ Release Design Specifications
    * Entry point: ``src/extension.ts``
    * Output: ``out/extension.js`` (CommonJS, platform ``node``, target ``node20``)
    * Externals: ``vscode`` (always provided by the host)
-   * Inlined: ``cron-parser``, ``js-yaml``, ``sql.js`` (all third-party runtime deps)
+   * Inlined: ``cron-parser``, ``js-yaml`` (all third-party runtime deps)
    * Source maps: enabled
    * Minification: optional (``--minify`` flag)
    * Watch mode: optional (``--watch`` flag)
-   * WASM handling: after the build, copies
-     ``<repo-root>/node_modules/sql.js/dist/sql-wasm.wasm`` to ``out/sql-wasm.wasm``
+   * No other file is copied next to the bundle: the Core bundle carries no
+     WebAssembly file (``sql.js`` and ``sql-wasm.wasm`` are removed by the
+     ``retire-legacy-session-lookup`` CR)
 
-   **2. ``sql.js`` WASM runtime resolution**
+   **2. Dev host resolution**
 
-   ``sql.js`` requires a WebAssembly binary (``sql-wasm.wasm``) at runtime.
-   esbuild cannot bundle ``.wasm`` files, so ``build.js`` copies the WASM next to
-   the output bundle.  The source code (``engine/sessionLookup.ts``) uses a
-   conditional ``locateFile`` override:
-
-   .. code-block:: typescript
-
-      const bundledWasm = path.join(__dirname, 'sql-wasm.wasm');
-      const SQL = fs.existsSync(bundledWasm)
-          ? await initSqlJs({ locateFile: (file: string) => path.join(__dirname, file) })
-          : await initSqlJs();
-
-   * **Packaged extension** (``out/extension.js``): ``__dirname`` resolves to
-     ``out/``, the copied WASM is found → ``locateFile`` override used.
-   * **Dev host (F5)**: the code runs from ``out/`` compiled by ``tsc`` where no
-     WASM copy exists → ``fs.existsSync`` returns false → ``initSqlJs()`` default
-     resolution (from ``node_modules/sql.js/dist/``) is used.  Dev host is
-     unaffected.
+   The bundle is the only artefact the packaged extension needs at runtime. The
+   dev host (F5) runs the code compiled by ``tsc`` from ``out/`` and needs no
+   copy step.
 
    **3. ``packages/core/package.json`` scripts**
 
@@ -91,7 +77,7 @@ Release Design Specifications
 
    Includes in the VSIX:
 
-   * ``out/`` — bundled extension + WASM
+   * ``out/`` — bundled extension
    * ``resources/`` — icons, assets
    * ``schemas/`` — JSON schemas
    * ``package.json``, ``README.md``
@@ -113,6 +99,8 @@ Release Design Specifications
    * AC-4: All 148 tests still pass after the build change
    * AC-5: F5 (Run Core) launches the extension without bundling errors (dev host
      unaffected)
+   * AC-6: The Core VSIX contains no ``.wasm`` file, and ``packages/core`` declares
+     no ``sql.js`` dependency
 
 
 .. spec:: Docs GitHub Actions Workflow
@@ -227,7 +215,7 @@ Release Design Specifications
 
 .. spec:: Marketplace Metadata in package.json
    :id: SPEC_REL_MKTMETA
-   :status: draft
+   :status: implemented
    :links: REQ_REL_MKTMETA
 
    **Description:**
@@ -268,67 +256,44 @@ Release Design Specifications
 
 .. spec:: CI Marketplace Publish Step
    :id: SPEC_REL_MKTPUBLISH
-   :status: draft
+   :status: implemented
    :links: REQ_REL_MKTPUBLISH
 
    **Description:**
-   ``.github/workflows/release.yml`` SHALL be extended with a publish step after the
-   GitHub Release step:
+   ``.github/workflows/release.yml`` runs on every ``v*`` tag. After the GitHub
+   Release step it publishes the already-packaged VSIX of ``enthali.jarvis-core`` and
+   of each supported add-on (PIM, Recorder, MCP, Flow, Kanban) to the Marketplace,
+   one step per extension. The legacy ``enthali.jarvis`` shim has no publish step.
+   The step has this shape, shown for core:
 
    .. code-block:: yaml
 
-      - name: Publish to VS Code Marketplace
+      - name: Publish enthali.jarvis-core to Marketplace
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: npx vsce publish --packagePath packages/core/jarvis-*.vsix --no-dependencies
+        run: npx vsce publish --packagePath packages/core/jarvis-core-*.vsix --no-dependencies
 
    * Uses ``--packagePath`` to publish the already-built VSIX — no double-bundle.
    * ``VSCE_PAT`` is read from the ``VSCE_PAT`` repository secret.
-   * The GitHub Release step above remains unchanged.
-
-   **Updated ``release.yml``:**
-
-   .. code-block:: yaml
-
-      name: Release Extension
-
-      on:
-        push:
-          tags: ['v*']
-
-      permissions:
-        contents: write
-
-      jobs:
-        release:
-          runs-on: ubuntu-latest
-          steps:
-            - uses: actions/checkout@v4
-            - uses: actions/setup-node@v4
-              with:
-                node-version: '22'
-            - run: npm ci
-            - run: npm run compile
-            - run: npm run package
-            - name: Create GitHub Release
-              uses: softprops/action-gh-release@v2
-              with:
-                files: 'packages/core/*.vsix'
-                generate_release_notes: true
-            - name: Publish to VS Code Marketplace
-              env:
-                VSCE_PAT: ${{ secrets.VSCE_PAT }}
-              run: npx vsce publish --packagePath packages/core/jarvis-*.vsix --no-dependencies
-
-   Note: ``files: 'packages/core/*.vsix'`` is updated from ``'*.vsix'`` to reflect
-   the actual VSIX location in the monorepo.
+   * The add-on steps use the same shape with ``packages/<name>/jarvis-<name>-*.vsix``.
+   * The GitHub Release step (``softprops/action-gh-release``) comes first and uploads
+     ``packages/{core,core-gh,pim,recorder,mcp,flow,kanban}/*.vsix``, so a failed
+     Marketplace publish leaves the GitHub Release in place.
+   * The workflow packages each extension with ``vsce package --no-dependencies`` in
+     its package directory before the Release step; core is bundled first with
+     ``node packages/core/build.js --minify``.
 
    **Acceptance Criteria (testable)**
 
-   * AC-1: ``.github/workflows/release.yml`` contains the ``Publish to VS Code Marketplace`` step
-   * AC-2: The step uses ``--packagePath`` pointing to ``packages/core/jarvis-core-*.vsix``
+   * AC-1: ``.github/workflows/release.yml`` contains a ``Publish … to Marketplace``
+     step for ``enthali.jarvis-core`` and for each of PIM, Recorder, MCP, Flow and
+     Kanban, and none for ``enthali.jarvis``
+   * AC-2: Each step uses ``--packagePath`` pointing to
+     ``packages/<name>/jarvis-<name>-*.vsix`` (``packages/core/jarvis-core-*.vsix``
+     for core)
    * AC-3: The ``VSCE_PAT`` env var is sourced from ``secrets.VSCE_PAT``
    * AC-4: The Create GitHub Release step ``files`` pattern covers all VSIX locations
+     and precedes every publish step
 
    .. note::
       The complete current workflow (including all add-on publish steps and the
@@ -336,50 +301,56 @@ Release Design Specifications
 
 
 .. spec:: Legacy Package → Migration Shim (enthali.jarvis)
-  :id: SPEC_REL_COREGH
-  :status: draft
-  :links: REQ_REL_RELEASEACTION; REQ_REL_RETIRENORELEASE; REQ_MOD_READINESS
+   :id: SPEC_REL_COREGH
+   :status: implemented
+   :links: REQ_REL_RELEASEACTION; REQ_REL_RETIRENORELEASE; REQ_MOD_READINESS
 
    **Description:**
    ``packages/core-gh/`` produces the legacy ``enthali.jarvis`` VSIX for GitHub
-   Releases. In its **final** release it is no longer a re-export of ``core`` — it is
-   converted into a self-contained **migration shim** with its own minimal bundle.
-   It no longer shares ``out/extension.js`` from ``packages/core/``.
+   Releases. It is no longer a re-export of ``core`` — it is a self-contained
+   **migration shim** with its own minimal bundle. It does not share
+   ``out/extension.js`` with ``packages/core/``. Its version follows the repository
+   version, like every other package.
 
    **Directory layout (committed):**
 
    .. code-block:: text
 
       packages/core-gh/
-        package.json        ← name="jarvis", minimal contributes (migration only)
+        package.json        ← name="jarvis", ``contributes`` empty (migration only)
         build.js            ← esbuild script bundling src/extension.ts
         src/extension.ts    ← migration shim entry point (see SPEC_REL_RETIRESHIM)
         src/migrate.ts      ← migration logic (install/uninstall/fallback)
         README.md           ← explains EOL status, links to jarvis-core
-        .vscodeignore       ← excludes src/, *.map, *.ts; preserves out/
+        .vscodeignore       ← excludes src/, node_modules/, tsconfig.json, build.js,
+                              *.map, *.ts; preserves out/extension.js
+        tsconfig.json, LICENSE
         resources/          ← jarvis.svg, jarvis-128.png
-        schemas/            ← (removed — shim contributes no yamlValidation)
 
    **Manifest reduction (``core-gh/package.json``):**
 
-   * ``viewsContainers``, ``views``, ``commands``, ``menus``, ``configuration`` and
-     ``yamlValidation`` contributions are **removed** — the shim registers no UI.
-   * ``activationEvents`` is reduced to ``onStartupFinished`` only.
+   * ``contributes`` is ``{}`` — no views, commands, menus, configuration or
+     yamlValidation; the shim registers no UI.
+   * ``activationEvents`` is ``onStartupFinished`` only.
    * ``main`` points to ``./out/extension.js`` (the shim's own bundle).
-   * Adopts the package contract (SPEC_REL_PKGCONTRACT): ``build.js``,
-     ``bundle`` / ``vscode:prepublish`` scripts, ``esbuild`` devDependency.
+   * ``icon`` is ``resources/jarvis-128.png`` and ``engines.vscode`` is ``^1.144.0``
+     like the other packages.
+   * Follows the package contract (SPEC_REL_PKGCONTRACT) with one deviation:
+     ``vscode:prepublish`` is ``npm run bundle`` alone, because the shim has no
+     ``tsc`` compile step. ``build.js`` and the ``esbuild`` devDependency are present.
 
    **Key rules:**
 
-   * ``core-gh`` now has its **own** ``src/`` and ``build.js``; the prior
-     "contributes must stay in sync with core" constraint is **removed** (this is the
-     EOL CR that SPEC_REL_COREGH previously anticipated).
-   * CI **no longer copies** ``packages/core/out/`` into ``core-gh``; ``core-gh``
-     builds its own bundle via ``vscode:prepublish``.
+   * ``core-gh`` has its **own** ``src/`` and ``build.js``; there is no
+     "contributes must stay in sync with core" constraint.
+   * CI does not copy ``packages/core/out/`` into ``core-gh``; ``core-gh`` builds its
+     own bundle via ``vscode:prepublish``.
    * ``enthali.jarvis`` is NOT published to the Marketplace — GitHub Release upload only.
-   * This is the **final** ``enthali.jarvis`` release; the VSIX remains downloadable so
-     existing users still receive it via the self-update check (REQ_REL_UPDATECHECK)
-     and are migrated.
+   * The workflow rebuilds and uploads the shim on **every** release tag, at the
+     repository version, as ``jarvis-{version}.vsix``. The self-update check maps the
+     installed ``enthali.jarvis`` to exactly that asset name (SPEC_REL_UPDATENOTIFY),
+     so a legacy installation updating from any release receives the shim and
+     migrates (REQ_REL_RETIRENORELEASE).
 
    **CI steps for core-gh packaging (in release.yml):**
 
@@ -390,12 +361,12 @@ Release Design Specifications
 
    **Complete release.yml CI sequence:**
 
-  The sequence is ``npm ci``, compile and bundle core, package ``enthali.jarvis-core``,
-  build and package the legacy ``enthali.jarvis`` migration shim, then package the
-  supported add-ons (PIM, Recorder, MCP, Flow, Kanban), each with its
-  own ``vscode:prepublish``. The GitHub Release uploads those VSIXs; Marketplace
-  publication covers core and supported add-ons only, not the legacy shim or
-  retired Suite.
+   The sequence is ``npm ci``, compile, bundle core with ``--minify``, package
+   ``enthali.jarvis-core``, build and package the legacy ``enthali.jarvis`` migration
+   shim, then package the supported add-ons (PIM, Recorder, MCP, Flow, Kanban), each
+   with its own ``vscode:prepublish``. The GitHub Release uploads those VSIXs;
+   Marketplace publication (SPEC_REL_MKTPUBLISH) covers core and supported add-ons
+   only, not the legacy shim or retired Suite.
 
 
    **Acceptance Criteria (testable)**
@@ -409,7 +380,9 @@ Release Design Specifications
      succeeds **without** copying any bundle from ``packages/core/``
    * AC-4: ``enthali.jarvis`` shim VSIX is uploaded to GitHub Release
    * AC-5: ``enthali.jarvis`` VSIX is NOT in any marketplace publish step
-   * AC-6: No ``enthali.jarvis`` release is produced after this shim release
+   * AC-6: ``release.yml`` packages ``packages/core-gh`` on every release tag and its
+     GitHub Release ``files`` list includes ``packages/core-gh/*.vsix``, so each
+     release carries ``jarvis-{version}.vsix`` for the self-update mapping
    * AC-7: The release workflow has no Suite package step, Suite VSIX GitHub
      Release asset, or Suite Marketplace publish step; historical GitHub
      Release assets are not deleted by this workflow change.
@@ -565,6 +538,7 @@ Release Design Specifications
       ``enthali.jarvis-recorder``     ``jarvis-recorder-{version}.vsix``
       ``enthali.jarvis-mcp``          ``jarvis-mcp-{version}.vsix``
       ``enthali.jarvis-flow``         ``jarvis-flow-{version}.vsix``
+      ``enthali.jarvis-kanban``       ``jarvis-kanban-{version}.vsix``
       =============================== ======================================
 
    2. Collect installed ``enthali.jarvis*`` extension IDs via
@@ -1052,7 +1026,7 @@ Release Design Specifications
 
 .. spec:: Migration Shim Activation
    :id: SPEC_REL_RETIRESHIM
-   :status: draft
+   :status: implemented
    :links: REQ_REL_RETIRESHIM; SPEC_REL_COREGH
 
    **Description:**
@@ -1090,14 +1064,17 @@ Release Design Specifications
 
 .. spec:: Ensure jarvis-core Installed (Channel Fallback)
    :id: SPEC_REL_RETIREINSTALL
-   :status: draft
+   :status: implemented
    :links: REQ_REL_RETIREINSTALL; SPEC_REL_UPDATECHECK
 
    **Description:**
-   ``ensureCoreInstalled()`` detects ``enthali.jarvis-core`` and, if absent, installs
-   it — Marketplace first, GitHub ``.vsix`` fallback when the Marketplace is
-   unreachable. The GitHub fallback reuses the release-fetch and install mechanism
-   from SPEC_REL_UPDATECHECK / SPEC_REL_UPDATENOTIFY.
+   ``ensureCoreInstalled()`` in ``packages/core-gh/src/migrate.ts`` detects
+   ``enthali.jarvis-core`` and, if absent, installs it — Marketplace first, GitHub
+   ``.vsix`` fallback when the Marketplace install fails. The fallback follows the
+   release lookup, asset naming and install command of SPEC_REL_UPDATECHECK /
+   SPEC_REL_UPDATENOTIFY. ``migrate.ts`` carries its own copy of the lookup
+   (``fetchLatestRelease``) and download (``downloadToTmp``) because the shim bundle
+   cannot import the core implementation.
 
    **Implementation:**
 
@@ -1120,14 +1097,15 @@ Release Design Specifications
 
         // 2) GitHub Releases .vsix fallback (corporate/private marketplace)
         try {
-          const release = await fetchLatestRelease();          // reused
+          const release = await fetchLatestRelease();
           const asset = release.assets.find(a =>
             a.name === `jarvis-core-${release.tag_name.replace(/^v/, '')}.vsix`);
-          if (!asset) return false;
-          const tmp = await downloadToTmp(asset.browser_download_url); // reused
+          if (!asset) { return false; }
+          const tmp = await downloadToTmp(asset.browser_download_url);
           await vscode.commands.executeCommand(
             'workbench.extensions.installExtension', vscode.Uri.file(tmp)
           );
+          fs.unlink(tmp, () => {});
           return true;
         } catch {
           return false;
@@ -1138,15 +1116,16 @@ Release Design Specifications
 
    * AC-1: Presence is detected via ``vscode.extensions.getExtension('enthali.jarvis-core')``.
    * AC-2: If absent, a Marketplace install is attempted with the extension ID.
-   * AC-3: On Marketplace failure, the ``jarvis-core-{version}.vsix`` GitHub asset is
-     downloaded and installed (mechanism reused from SPEC_REL_UPDATENOTIFY).
+   * AC-3: On Marketplace failure, the ``jarvis-core-{version}.vsix`` asset of the
+     latest GitHub Release is downloaded and installed, with the same asset naming
+     as SPEC_REL_UPDATENOTIFY.
    * AC-4: Returns ``true`` if ``jarvis-core`` is present or successfully installed via
      either channel; ``false`` if both channels fail.
 
 
 .. spec:: Legacy Self-Uninstall and Reload
    :id: SPEC_REL_RETIREUNINSTALL
-   :status: draft
+   :status: implemented
    :links: REQ_REL_RETIREUNINSTALL
 
    **Description:**
@@ -1183,7 +1162,7 @@ Release Design Specifications
 
 .. spec:: Migration Failure Fallback
    :id: SPEC_REL_RETIREFALLBACK
-   :status: draft
+   :status: implemented
    :links: REQ_REL_RETIREFALLBACK
 
    **Description:**
@@ -1228,7 +1207,7 @@ Release Design Specifications
 
 .. spec:: Contract Needs Check Script
    :id: SPEC_REL_NEEDSCHECK
-   :status: verified
+   :status: implemented
    :links: REQ_REL_NEEDSCHECK
 
    **Description:**
@@ -1250,8 +1229,8 @@ Release Design Specifications
       opens with ``accepted`` or ``explicit User delegation``, after an optional
       ``not applicable:``; the same words open a ``Status:`` or ``Decision:`` line of the
       section.
-   5. For each changed Need apply the status rule of its type. A non-deprecated ``story``
-      must be named in User Validation. A non-deprecated ``ac`` must be ``verified`` when
+   5. For each changed Need apply the status rule of its type. A ``story``
+      must be named in User Validation. An ``ac`` must be ``verified`` when
       named in User Validation or Test Execution and ``approved`` otherwise. When User
       Validation names a changed Need, its status line must be satisfied. Print one line
       per violation as ``<ID>: <rule>``; exit 1 if any exist, else 0.

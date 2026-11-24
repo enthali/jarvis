@@ -34,12 +34,12 @@ describe('docs/acceptance: acceptance criteria are complete scenarios', () => {
     it('every criterion validates at least one story and starts as approved', () => {
         for (const a of acs) {
             expect(a.validates, `${a.id} validates`).toMatch(/\bUS_[A-Z0-9_]+/);
-            expect(a.status, `${a.id} status`).toMatch(/^(approved|verified|deprecated)$/);
+            expect(a.status, `${a.id} status`).toMatch(/^(approved|verified)$/);
         }
     });
 
     it('every criterion states Given, When and Then in that order', () => {
-        for (const a of acs.filter(x => x.status !== 'deprecated')) {
+        for (const a of acs) {
             const g = a.body.indexOf('**Given**');
             const w = a.body.indexOf('**When**');
             const t = a.body.indexOf('**Then**');

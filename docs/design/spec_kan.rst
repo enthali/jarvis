@@ -3,7 +3,7 @@ Kanban Design Specifications
 
 .. spec:: Kanban Board YAML Schema
    :id: SPEC_KAN_SCHEMA
-   :status: draft
+   :status: implemented
    :links: REQ_KAN_SCHEMA; REQ_KAN_TEXTFIELD
 
    **Description:**
@@ -97,7 +97,7 @@ Kanban Design Specifications
               "properties": {
                 "id": {
                   "type": "integer",
-                  "description": "Unique item identifier. Auto-assigned, never reused.",
+                  "description": "Unique item identifier (auto-assigned, immutable).",
                   "minimum": 1
                 },
                 "name": {
@@ -194,7 +194,7 @@ Kanban Design Specifications
 
 .. spec:: Kanban Board Renderer
    :id: SPEC_KAN_RENDERER
-   :status: draft
+   :status: implemented
    :links: REQ_KAN_RENDERER; REQ_KAN_TEXTFIELD; SPEC_KAN_SCHEMA
 
    **Description:**
@@ -238,6 +238,8 @@ Kanban Design Specifications
    * Cards not matching are hidden; columns with no visible cards show the
      "No items" placeholder.
    * Filter state is local to the webview instance (not persisted).
+   * Grouping the filtered cards into lanes is specified by ``SPEC_KAN_LANES``; the
+     text filter is applied first.
 
    **File watching:**
 
@@ -269,13 +271,15 @@ Kanban Design Specifications
 
 .. spec:: Convention-Based Board Discovery
    :id: SPEC_KAN_DISCOVER
-   :status: draft
+   :status: implemented
    :links: REQ_KAN_DISCOVER; REQ_KAN_UX; SPEC_ENG_ACTORLIST
 
    **Description:**
    Board discovery scans the folders of all Actors for ``kanban.yaml`` and
-   ``*.kanban.yaml`` files. The result drives the command palette pickers
-   and owner resolution for the tools.
+   ``*.kanban.yaml`` files. The result drives the command palette pickers.
+   The tools do not use it: they resolve ``ownerName`` through
+   ``api.listActors()`` and build the board path in that Actor's folder
+   (``SPEC_KAN_CREATE`` steps 1–2).
 
    **Discovery mechanism:**
 
@@ -289,21 +293,24 @@ Kanban Design Specifications
 
    ``scanActorFolder`` lists the folder once with ``fs.readdirSync`` and keeps
    ``kanban.yaml`` and names ending in ``.kanban.yaml`` (Actor folders are
-   small). The index is computed on each query and never cached, so it follows
-   Actor rescans and board file creation or deletion without a subscription
-   (``REQ_KAN_DISCOVER`` AC-4). The kanban module registers no tree decorator
-   and does not mark Actor nodes.
+   small). The index is a module-level map that is rebuilt from
+   ``api.listActors()`` at activation, before every Command Palette query and
+   after a board is created, so every query sees the current Actors and files
+   and the index follows Actor rescans and board file creation or deletion
+   without a subscription (``REQ_KAN_DISCOVER`` AC-4). The kanban module
+   registers no tree decorator and does not mark Actor nodes.
 
    **Acceptance Criteria:**
 
    * AC-1: Only folders returned by ``api.listActors()`` are scanned.
    * AC-2: A deleted board file disappears from the next query.
-   * AC-3: The index is queryable by the tools and command handlers.
+   * AC-3: The index is queryable by the command handlers (the Command Palette
+     open and create commands).
 
 
 .. spec:: Kanban Board UX Entry Points
    :id: SPEC_KAN_UX
-   :status: draft
+   :status: implemented
    :links: REQ_KAN_UX; SPEC_KAN_DISCOVER; SPEC_KAN_RENDERER
 
    **Description:**
@@ -332,7 +339,9 @@ Kanban Design Specifications
    3. Resolve filename via the same normalization as ``SPEC_KAN_CREATE``
       step 2.
    4. If the resolved file already exists → show a warning and abort.
-   5. Write skeleton YAML and refresh the board index.
+   5. Write the skeleton YAML — its ``title`` is the owner label (the Actor
+      name; the Actor folder name from the context menu), followed by
+      ``" — <board name>"`` for a named board — and refresh the board index.
 
    **Acceptance Criteria:**
 
@@ -341,21 +350,26 @@ Kanban Design Specifications
    * AC-5: Create command prompts for board name; empty input yields ``kanban.yaml``.
    * AC-6: Create command rejects board names containing path separators or
      OS-reserved characters.
-   * AC-7: Right-click context menu on Actor nodes
-     (``viewItem == jarvisActor``, group ``kanban@1``) shows
-     "Add Kanban Board" (``REQ_KAN_UX`` AC-6). Handler: same flow as
-     Command Palette create (InputBox for board name → write skeleton), but
-     skips the owner Quick Pick — uses the right-clicked Actor directly; its
-     folder is resolved through ``api.listActors()`` by the node's ``id``.
+   * AC-7: Right-click context menu on Actor nodes (contextValue
+     ``jarvisActor``, group ``kanban@1``) shows "Add Kanban Board"
+     (``REQ_KAN_UX`` AC-6). The ``when`` clause is
+     ``viewItem =~ /^jarvis(Session|Project|Event)/ || viewItem == jarvisActor``:
+     the first alternative matches node kinds that existed before Actors became
+     the one entity, and core now emits only ``jarvisActor``; no Files node
+     (``jarvisActorFile*``) matches. Handler: same flow as Command Palette
+     create (InputBox for board name → write skeleton), but skips the owner
+     Quick Pick — uses the right-clicked Actor directly; the tree node's ``id``
+     is the path of the Actor's ``actor.yaml``, so the board goes into the
+     directory of that path.
 
 
 .. spec:: jarvis_createKanbanBoard Tool
    :id: SPEC_KAN_CREATE
-   :status: draft
+   :status: implemented
    :links: REQ_KAN_CREATE; SPEC_ACTOR_WHOAMI; SPEC_KAN_SCHEMA; SPEC_ENG_ACTORLIST; SPEC_ACTOR_SCANNER; REQ_ENG_TOOLREF
 
    **Description:**
-   Register ``jarvis_createKanbanBoard`` via ``engine.registerTool()`` in the
+   Register ``jarvis_createKanbanBoard`` via ``api.registerTool()`` in the
    kanban package's ``extension.ts``.
 
    **Input schema:**
@@ -414,7 +428,7 @@ Kanban Design Specifications
    5. Return ``{ path: "<absolutePath>" }``.
 
    **Auto-ID assignment:**
-   When items are added (by tools or manually), each item receives
+   When items are added by the item tools, each item receives
    ``id = nextId`` and ``nextId`` is incremented. If ``nextId`` is absent,
    derive as ``max(existing ids) + 1`` (or ``1`` if empty).
 
@@ -431,11 +445,11 @@ Kanban Design Specifications
 
 .. spec:: jarvis_verifyKanbanSchema Tool
    :id: SPEC_KAN_VERIFY
-   :status: draft
+   :status: implemented
    :links: REQ_KAN_VERIFY; REQ_KAN_TEXTFIELD; SPEC_ACTOR_WHOAMI; SPEC_KAN_SCHEMA; REQ_ENG_TOOLREF
 
    **Description:**
-   Register ``jarvis_verifyKanbanSchema`` via ``engine.registerTool()`` in the
+   Register ``jarvis_verifyKanbanSchema`` via ``api.registerTool()`` in the
    kanban package's ``extension.ts``.
 
    **Input schema:**
@@ -501,11 +515,11 @@ Kanban Design Specifications
 
 .. spec:: jarvis_openKanbanBoard Tool
    :id: SPEC_KAN_OPEN
-   :status: draft
+   :status: implemented
    :links: REQ_KAN_OPEN; SPEC_ACTOR_WHOAMI; SPEC_KAN_RENDERER; REQ_ENG_TOOLREF
 
    **Description:**
-   Register ``jarvis_openKanbanBoard`` via ``engine.registerTool()`` in the
+   Register ``jarvis_openKanbanBoard`` via ``api.registerTool()`` in the
    kanban package's ``extension.ts``.
 
    **Input schema:**
@@ -523,7 +537,8 @@ Kanban Design Specifications
    2. Check file exists. If not → return ``{ error: "board not found" }``.
    3. Execute the ``jarvis.openKanbanBoard`` command with the resolved file
       path as argument, which opens the renderer webview
-      (``SPEC_KAN_RENDERER``).
+      (``SPEC_KAN_RENDERER``) as a side panel, or reveals the panel when that
+      board is already open.
    4. Return ``{ opened: true, path: "<absolutePath>" }``.
 
    **Acceptance Criteria:**
@@ -535,13 +550,14 @@ Kanban Design Specifications
 
 .. spec:: jarvis_updateKanbanItem Tool
    :id: SPEC_KAN_UPDATE
-   :status: draft
+   :status: implemented
    :links: REQ_KAN_UPDATE; REQ_KAN_WRITEVALID; SPEC_KAN_WRITEVALID; SPEC_ACTOR_WHOAMI; SPEC_KAN_SCHEMA; REQ_ENG_TOOLREF
 
    **Description:**
-   Register ``jarvis_updateKanbanItem`` via ``engine.registerTool()`` in the
-   kanban package's ``extension.ts``. This is the only write-back tool in
-   Phase 1 — it updates a single item identified by its ``id``.
+   Register ``jarvis_updateKanbanItem`` via ``api.registerTool()`` in the
+   kanban package's ``extension.ts``. It updates a single item identified by
+   its ``id``; adding and deleting items and changing field definitions are
+   the other write tools.
 
    **Input schema:**
 
@@ -568,7 +584,7 @@ Kanban Design Specifications
       alongside the data (see "Round-trip fidelity" below). If not found →
       return ``{ error: "board not found" }``.
    3. Find the item with ``id === itemId``. If not found → return
-      ``{ error: "item not found", itemId }``.
+      ``{ error: "item with id <itemId> not found" }``.
    4. **Validate the whole ``changes`` object** by calling the shared
       ``validateItemValues(changes, data)`` helper (``SPEC_KAN_WRITEVALID``),
       where ``data`` is the plain projection already derived in step 2. On a
@@ -635,7 +651,7 @@ Kanban Design Specifications
    above.
 
    Reading the representation into a plain object for **read-only** purposes
-   (e.g. locating the item, reading the ``status`` options in step 5) is
+   (locating the item and validating ``changes``) is
    unaffected by this constraint.
 
    The ``yaml`` package's ``Document`` API (``parseDocument`` /
@@ -661,7 +677,7 @@ Kanban Design Specifications
    **Acceptance Criteria:**
 
    * AC-1: Updates a single item by ``id``.
-   * AC-2: Returns error for unknown item ID.
+   * AC-2: Returns error for unknown item ID (``item with id <itemId> not found``).
    * AC-3: Returns error for invalid ``status`` value.
    * AC-4: ``id`` field is immutable — never changed by this tool.
    * AC-5: Registers with ``toolReferenceName: "jarvis_kanban_updateKanbanItem"``.
@@ -688,38 +704,22 @@ Kanban Design Specifications
      ``labels`` array is accepted and written; a non-array or non-string-entry
      ``labels`` is rejected by the helper (``REQ_KAN_UPDATE`` AC-11).
 
-   **Guarding test — ``src/tests/kanban-comment-preservation.test.ts``**
-   (``kanban-update-validation`` CR):
+   **Guarding test — ``src/tests/kanban-comment-preservation.test.ts``:**
 
    TC-1 asserts source-level properties of this tool by slicing
-   ``extension.ts`` between ``'jarvis_updateKanbanItem'`` and the next
-   ``// Tool: jarvis_openKanbanBoard`` marker. Two defects follow from this CR
-   and must be fixed with it:
-
-   1. **The slice no longer isolates this tool.** ``kanban-management-tools``
-      inserted ``jarvis_addKanbanItem``, ``…deleteKanbanItem``,
-      ``…listKanbanItems`` and ``…updateKanbanFields`` between
-      ``updateKanbanItem`` and ``openKanbanBoard``, so the window now spans five
-      tool bodies. Every TC-1 assertion is currently satisfiable by code
-      belonging to a different tool — the test passes while testing something
-      other than what it claims. The end marker SHALL be changed to the next
-      tool comment that actually follows this one
-      (``// Tool: jarvis_addKanbanItem``), so the slice is one tool again.
-   2. **One assertion pins behaviour this CR removes.** TC-1's
-      ``skips id field (immutable guard)`` case matches
-      ``/if\s*\(key\s*===\s*'id'\)/`` — the silent-skip that AC-10 replaces with
-      a rejection. It SHALL be rewritten to assert that the handler delegates to
-      ``validateItemValues``, which is what enforces immutability now.
-
-   An end marker chosen as "the next tool in file order" is fragile by
-   construction — it silently widens whenever a tool is inserted. Fixing the
-   marker restores today's correctness; making the slice robust is out of scope
-   here and recorded in the Change Document.
+   ``extension.ts`` from ``'jarvis_updateKanbanItem'`` to the next tool marker
+   ``// Tool: jarvis_addKanbanItem`` — the tool that follows it in the file. It
+   checks that the handler uses ``yaml.parseDocument``, not ``yaml.stringify``,
+   sets values on the item node, and delegates to
+   ``validateItemValues(input.changes``, which is what enforces the immutable
+   ``id`` now. An end marker that names "the next tool in file order" widens
+   silently when a tool is inserted between the two; the slice has to be
+   revisited then.
 
 
 .. spec:: Kanban File Open via Custom Editor
    :id: SPEC_KAN_FILEOPEN
-   :status: draft
+   :status: implemented
    :links: REQ_KAN_FILEOPEN; SPEC_KAN_RENDERER; SPEC_KAN_UX
 
    **Description:**
@@ -751,6 +751,9 @@ Kanban Design Specifications
          it requires per-file contextValues on ``actorFile`` tree nodes
          (``SPEC_ACTOR_FILES``).
 
+   5. A Refresh button sits next to "Open as Text" in the same title bar and is
+      specified by ``SPEC_KAN_REFRESH``.
+
    **Acceptance Criteria:**
 
    * AC-1: Clicking a ``kanban.yaml`` or ``*.kanban.yaml`` file opens the
@@ -761,11 +764,162 @@ Kanban Design Specifications
    * AC-3: "Open as Text" opens the file in the standard text editor.
    * AC-4: Uniform with other kanban entry points (tree button, command
      palette, tools).
+   * AC-5: The editor title bar of the kanban webview also holds the Refresh
+     button of ``SPEC_KAN_REFRESH``.
+
+
+.. spec:: Kanban Board Refresh Action
+   :id: SPEC_KAN_REFRESH
+   :status: implemented
+   :links: REQ_KAN_REFRESH; SPEC_KAN_FILEOPEN; SPEC_KAN_RENDERER
+
+   **Description:**
+   A command ``jarvis.refreshKanbanBoard`` re-reads the board file of a kanban custom
+   editor and posts it to that editor's webview, the same way a change event does.
+   It is contributed by the kanban package and runs in the extension host; the
+   webview is not reloaded.
+
+   **Mechanism:**
+
+   1. The kanban package's ``package.json`` contributes the command
+      ``jarvis.refreshKanbanBoard`` (title "Refresh Kanban Board", icon
+      ``$(refresh)``), an ``editor/title`` entry with ``group: "navigation"`` and
+      ``when: "activeCustomEditorId == jarvis.kanbanEditor"`` (the condition of
+      ``jarvis.openKanbanAsText``), and a ``commandPalette`` entry under the same
+      ``when``.
+   2. ``KanbanEditorProvider.resolveCustomEditor`` already holds the function
+      that reads the file, parses it and posts ``board`` or ``error`` to the webview
+      (``postBoardData``). It registers that function in a module-level map from
+      ``document.uri.toString()`` to a set of such functions and removes it in
+      ``onDidDispose``. A set, because one file can be open in several editors.
+   3. The command receives the ``vscode.Uri`` of the editor when it is started
+      from the title bar. Without an argument (Command Palette) it takes the input
+      of the active tab when that is a ``vscode.TabInputCustom`` with
+      ``viewType`` ``jarvis.kanbanEditor``; otherwise it does nothing.
+   4. The command calls every registered function of that Uri. It does not call
+      ``refreshKanbanPanel`` and does not touch other Uris, so only the board of the
+      invoking editor is read again.
+
+   **Why the view state survives:** the lane selection, the collapsed lanes and the
+   text filter live in module variables of the webview script (``SPEC_KAN_LANES``).
+   A ``board`` message re-renders the page content and keeps them; only a new
+   webview, that is a reopened tab, starts again.
+
+   **Why a map of re-read functions and not a second read path:** a refresh that
+   reads differently from a change event could show different content for the same
+   file. The error path is then the same too (``REQ_KAN_REFRESH`` AC-6).
+
+   **Acceptance Criteria:**
+
+   * AC-1: The Refresh button appears in the title bar of an active kanban custom
+     editor and in no other editor (``REQ_KAN_REFRESH`` AC-1).
+   * AC-2: Invoking it posts the current file contents to the webview without a
+     change event (``REQ_KAN_REFRESH`` AC-2).
+   * AC-3: It writes nothing to the file (``REQ_KAN_REFRESH`` AC-3).
+   * AC-4: The text filter, the lane selection and the collapsed lanes are unchanged
+     afterwards (``REQ_KAN_REFRESH`` AC-4).
+   * AC-5: With two kanban files open, Refresh in one tab re-reads that file only
+     (``REQ_KAN_REFRESH`` AC-5).
+   * AC-6: A file that cannot be parsed shows the error text of any other re-read
+     (``REQ_KAN_REFRESH`` AC-6).
+
+
+.. spec:: Kanban Swimlanes
+   :id: SPEC_KAN_LANES
+   :status: implemented
+   :links: REQ_KAN_LANES; SPEC_KAN_RENDERER
+
+   **Description:**
+   The webview script ``webview/kanban.ts`` groups the cards it already renders into
+   lanes. Everything happens in the webview, from the board data it already
+   receives; the extension host, the board file and the message protocol do not
+   change. Both hosts of the script (the custom editor and the command-opened
+   panel) get lanes.
+
+   **State** (module variables beside ``filterText``):
+
+   * ``laneBy``: ``{ kind: 'none' }``, ``{ kind: 'field', field: string }`` or
+     ``{ kind: 'labels' }``. Initially ``none``.
+   * ``collapsed``: the set of identities of collapsed lanes. A lane's identity is
+     its kind and its name, ``option:<name>``, ``label:<name>``, ``uncategorized``
+     or ``unlabelled``, so that a declared option named ``Uncategorized`` is not the
+     lane of the cards without a value.
+
+   Nothing is sent to the host and ``setState`` is not used: the state is kept by the
+   open page and is gone with it (``REQ_KAN_LANES`` AC-8).
+
+   **Algorithm** (in ``renderBoard``, after the text filter of ``SPEC_KAN_RENDERER``):
+
+   1. Selector choices: ``None``, then every field of ``board.fields`` with type
+      ``single_select`` and a name other than ``status``, in declared order, then
+      ``Labels``. The selector is a ``<select>`` in the board header, next to the
+      filter input. If ``laneBy`` names a field that is not among the choices of the
+      board just received, set ``laneBy`` to ``none``.
+   2. ``none``: render as before, columns with their cards.
+   3. Otherwise compute the shown cards ``V`` (cards with a declared ``status`` that
+      pass the text filter) and the lanes:
+
+      * ``field``: one lane per declared option, in declared order, holding the cards
+        of ``V`` whose value equals the option name; a lane of
+        ``Uncategorized`` holding the others (no value, a non-string value or a value
+        that is not a declared option), only if it holds a card.
+      * ``labels``: the string entries of each card's ``labels``, a repeated label
+        counted once for that card. One lane per label carried by a card of ``V``,
+        sorted by Unicode code point, holding every such card; a lane of ``Unlabelled``
+        holding the cards without a string label, only if it holds a card.
+
+   4. Render one header row of status columns (name, colour accent as in
+      ``SPEC_KAN_RENDERER``, and the number of distinct cards of ``V`` with that
+      status), then each lane: a header with a toggle, the lane name and the number of
+      cards in the lane, and, unless the lane identity is in ``collapsed``, one cell per
+      status column with the cards of the lane in that column, drawn by ``renderCard``,
+      or the "No items" placeholder. Cells align with the column headers.
+   5. The toggle adds or removes the lane identity in ``collapsed`` and re-renders.
+      Choosing another selector value sets ``laneBy`` and empties ``collapsed``,
+      because the lane names of one selection mean nothing in another.
+
+   **Why the column total counts distinct cards:** a card in the lanes ``a`` and
+   ``b`` is drawn twice, so a total summed over lanes would claim two cards for one
+   (``REQ_KAN_LANES`` AC-6). The total is taken from ``V`` once, before the cards are
+   placed in lanes, so it equals the total of the ungrouped board.
+
+   **Why the option lanes are always drawn and the others only when they hold a card:**
+   the options are declared, so an empty ``High`` lane says that nothing has priority
+   High, while a label lane exists only because a card carries the label and
+   ``Uncategorized`` and ``Unlabelled`` exist only to keep cards from vanishing
+   (``REQ_KAN_LANES`` AC-3, AC-7).
+
+   **Acceptance Criteria:**
+
+   * AC-1: The selector offers ``None``, the declared ``single_select`` fields other
+     than ``status`` in declared order, and ``Labels``, and starts at ``None``
+     (``REQ_KAN_LANES`` AC-1, AC-2).
+   * AC-2: With ``None`` the rendering is that of ``SPEC_KAN_RENDERER`` unchanged
+     (``REQ_KAN_LANES`` AC-2).
+   * AC-3: With a field selected the lanes are its options in declared order plus
+     ``Uncategorized`` when needed, and every card of ``V`` is in exactly one lane
+     (``REQ_KAN_LANES`` AC-3).
+   * AC-4: With ``Labels`` selected the lanes are the labels in code point order plus
+     ``Unlabelled`` when needed, and a card is in the lane of each of its labels
+     (``REQ_KAN_LANES`` AC-4).
+   * AC-5: Each lane shows its name, its card count and a toggle; a collapsed lane
+     shows its header only (``REQ_KAN_LANES`` AC-5).
+   * AC-6: The column totals are the distinct cards of the column and equal the totals
+     with ``None`` selected (``REQ_KAN_LANES`` AC-6).
+   * AC-7: The text filter applies before the cards are placed in lanes; option
+     lanes are drawn when empty, the other lanes only while they hold a card, for
+     the reason given above (``REQ_KAN_LANES`` AC-7).
+   * AC-8: The selection and the collapsed lanes survive ``board`` messages, are
+     initial in a new webview, are sent nowhere, and a selected field the re-read
+     board no longer declares resets the selection to ``None``
+     (``REQ_KAN_LANES`` AC-8).
+   * AC-9: No lane action writes to the board file or sends a message to the host
+     (``REQ_KAN_LANES`` AC-9).
 
 
 .. spec:: Kanban Module Integration
    :id: SPEC_KAN_MODULE
-   :status: draft
+   :status: implemented
    :links: REQ_KAN_MODULE; SPEC_MOD_FLOW_PKG; SPEC_REL_PKGCONTRACT
 
    **Description:**
@@ -782,7 +936,11 @@ Kanban Design Specifications
       ├── build.js
       ├── webview-build.js
       ├── .vscodeignore
+      ├── LICENSE
       ├── README.md
+      ├── assets/
+      │   ├── instructions/
+      │   └── skills/
       ├── resources/
       │   └── jarvis-128.png
       ├── schemas/
@@ -794,7 +952,7 @@ Kanban Design Specifications
       │   └── kanbanPanel.ts
       └── webview/
           ├── kanban.ts
-          └── kanban.css
+          └── tsconfig.json
 
    **Integration touchpoints (mirroring ``packages/flow/``):**
 
@@ -806,19 +964,21 @@ Kanban Design Specifications
       ``extensionDependencies: ["enthali.jarvis-core"]``,
       ``main: ./out/extension.js``. Scripts: ``compile``, ``bundle``
       (``node build.js && node webview-build.js``), ``package``,
-      ``vscode:prepublish``. Contributes: ``commands``
-      (``jarvis.openKanbanBoard``, ``jarvis.createKanbanBoard``),
-      ``menus`` ("Add Kanban Board" on ``jarvisActor``, ``view/item/context`` for Files node),
-      ``yamlValidation``
+      ``vscode:prepublish``. Contributes: ``configuration``
+      (``jarvis.kanban.autoProvision``), ``commands``
+      (``jarvis.openKanbanBoard``, ``jarvis.createKanbanBoard``,
+      ``jarvis.openKanbanAsText``, ``jarvis.refreshKanbanBoard``),
+      ``menus`` (``commandPalette``; "Add Kanban Board" in
+      ``view/item/context`` on Actor nodes, ``SPEC_KAN_UX`` AC-7;
+      "Open as Text" and Refresh in ``editor/title``), ``yamlValidation``
       (``kanban.yaml`` and ``*.kanban.yaml`` →
       ``./schemas/kanban.schema.json`` — package-relative path, same
       pattern as core's ``actor.schema.json``),
-      ``languageModelTools`` (four tools: ``jarvis_createKanbanBoard``,
+      ``languageModelTools`` (the nine tools ``jarvis_createKanbanBoard``,
       ``jarvis_verifyKanbanSchema``, ``jarvis_openKanbanBoard``,
-      ``jarvis_updateKanbanItem``; extended by the ``kanban-management-tools``
-      CR with ``jarvis_addKanbanItem``, ``jarvis_deleteKanbanItem``,
-      ``jarvis_listKanbanItems`` and ``jarvis_updateKanbanFields``, and by the
-      ``kanban-list-details`` CR with ``jarvis_listKanbanFilterValues`` —
+      ``jarvis_updateKanbanItem``, ``jarvis_addKanbanItem``,
+      ``jarvis_deleteKanbanItem``, ``jarvis_listKanbanItems``,
+      ``jarvis_listKanbanFilterValues`` and ``jarvis_updateKanbanFields`` —
       ``REQ_KAN_MODULE`` AC-8),
       ``customEditors`` (``jarvis.kanbanEditor`` for
       ``*.kanban.yaml`` / ``kanban.yaml``).
@@ -844,9 +1004,10 @@ Kanban Design Specifications
    7. **Root ``package.json``:** no change needed — the monorepo root does not
       enumerate packages.
 
-   8. **Core import:** none — kanban obtains the engine API via
-      ``vscode.extensions.getExtension('enthali.jarvis-core').exports``
-      (same as PIM, flow).
+   8. **Core import:** kanban imports only the types of ``jarvis-core``
+      (``import type``); it obtains the engine API via
+      ``vscode.extensions.getExtension('enthali.jarvis-core').exports`` (same
+      as PIM, flow) and does not activate when ``api.version`` is not ``2``.
 
    **Acceptance Criteria:**
 
@@ -1073,7 +1234,7 @@ Kanban Design Specifications
 
 .. spec:: jarvis_listKanbanItems Tool
    :id: SPEC_KAN_LIST
-   :status: approved
+   :status: implemented
    :links: REQ_KAN_LIST; REQ_KAN_FILTERVALUES; SPEC_ACTOR_WHOAMI; REQ_ENG_TOOLREF
 
    **Description:**
@@ -1094,6 +1255,7 @@ Kanban Design Specifications
       {
         status?: string;
         labels?: string[];
+        fields?: { [declaredField: string]: string };  // declared-field filters, AND-combined
         details?: boolean;    // true: full items; absent or false: projection; any other value: error
         boardName?: string;
         ownerName: string;    // required, as in SPEC_KAN_CREATE
@@ -1107,9 +1269,27 @@ Kanban Design Specifications
    2. Resolve owner and board path; board missing → ``{ error: "board not found" }``.
    3. Read and ``yaml.parse``.
    4. If ``status`` was given and matches no declared status option → error
-      naming the valid options (``REQ_KAN_LIST`` AC-6).
+      naming the valid options (``REQ_KAN_LIST`` AC-6). If ``fields`` was given
+      (``REQ_KAN_LIST`` AC-12 to AC-15), check it in this order and return the first
+      error found. An empty object ``{}`` passes every check below because it has no
+      key, and yields no filter (``REQ_KAN_LIST`` AC-15):
+
+      * ``fields`` is not a plain object → error saying that ``fields`` maps declared
+        field names to strings.
+      * A key is not the name of a declared field of type ``single_select`` or
+        ``text`` other than ``status`` → error naming the key and listing the
+        filterable fields, in declared order.
+      * A value is not a string → error naming the key.
+      * A ``single_select`` value is not a declared option of that field → error
+        naming the key and the valid options.
+      * A ``text`` value is the empty string → error naming the key.
+
    5. Filter items: ``status`` equality when given; every requested label
-      present in the item's ``labels`` when given; both AND-combined.
+      present in the item's ``labels`` when given; for each ``fields`` entry, a
+      ``single_select`` field matches when the item's value is equal to the string,
+      and a ``text`` field when the item's value is a string whose ``toLowerCase()``
+      contains the ``toLowerCase()`` of the requested string; all AND-combined. An item
+      without a value for the field does not match.
    6. Shape each surviving item:
 
       * ``details`` absent or ``false``: ``{ id, name, status, labels }``.
@@ -1127,6 +1307,23 @@ Kanban Design Specifications
 
    7. Return ``{ path, count, items }``. ``count`` is the number of matching
       items, the same with and without ``details``.
+
+   **Why declared-field filters sit in a ``fields`` object:** the field names belong to
+   the board, so a static input schema cannot list them as parameters, and a field
+   named like a fixed parameter (``status``, ``labels``, ``details``, ``boardName``,
+   ``ownerName``) would collide with it. ``jarvis_addKanbanItem`` already takes
+   declared-field values under ``fields``, so a caller meets one convention.
+
+   **Why a ``text`` filter matches part of the text, ignoring case:** text values are
+   free text that ``jarvis_listKanbanFilterValues`` does not enumerate, so a caller
+   cannot copy an exact value from a result and can only name a word. Exact match
+   would be unusable, whereas ``single_select`` values and labels are listed and are
+   matched exactly (decision of the ``kanban-swimlanes-and-filters`` Contract,
+   backlog K72). ``toLowerCase()`` is not locale dependent.
+
+   **Why an unknown field or option is an error, not an empty list:** the reason of
+   the unknown ``status`` below applies unchanged; a typo in ``priorty`` would
+   otherwise read as "no item has that priority".
 
    **Why an unknown status is an error, not an empty list:**
    Both would return nothing. An empty list tells the caller "no items are in
@@ -1181,22 +1378,37 @@ Kanban Design Specifications
      response shape ``{ path, count, items }`` are the same with and without it
      (``REQ_KAN_LIST`` AC-10).
    * AC-11: The ``registerTool`` description reads "Lists kanban board items,
-     optionally filtered by status or labels. Returns a compact projection (id, name,
+     optionally filtered by status, labels or declared field values. Returns a compact projection (id, name,
      status, labels) per item; details: true returns the full items." The
-     ``languageModelTools`` entry declares ``details`` as a boolean in its input
-     schema, with the ``modelDescription`` "jarvis_kanban: Lists kanban board items with optional
-     status and/or labels filter. Returns a compact projection (id, name, status,
-     labels) per item; details: true returns the full items, notes included.
-     ownerName is required." (``REQ_KAN_MODULE`` AC-9).
+     ``languageModelTools`` entry declares ``details`` as a boolean and ``fields`` as an
+     object with string values in its input schema, with the ``modelDescription``
+     "jarvis_kanban: Lists kanban board items with optional status, labels and/or fields
+     filter. Returns a compact projection (id, name, status, labels) per item; details: true
+     returns the full items, notes included. ownerName is required."
+     (``REQ_KAN_MODULE`` AC-9).
    * AC-12: (``kanban-tool-validation`` CR) A card whose ``labels`` holds non-string
      entries returns only its string entries in ``labels``, in both shapes, and
      those entries are the ones ``jarvis_listKanbanFilterValues`` counts for that
      card (``REQ_KAN_LIST`` AC-11).
+   * AC-13: (``kanban-swimlanes-and-filters`` CR) A ``single_select`` entry of ``fields``
+     returns the items whose value equals the option exactly; a text entry returns the
+     items whose text contains the string ignoring case; an item without a value for the
+     field is never returned (``REQ_KAN_LIST`` AC-13, AC-14).
+   * AC-14: (``kanban-swimlanes-and-filters`` CR) ``fields`` entries are AND-combined with
+     each other and with ``status`` and ``labels`` (``REQ_KAN_LIST`` AC-2, AC-12).
+   * AC-15: (``kanban-swimlanes-and-filters`` CR) A ``fields`` value that is not an object,
+     a key that is not a filterable declared field (``status`` included), a value that is not
+     a string, a ``single_select`` value that is not a declared option, and an empty
+     ``text`` value each return an error that names the key and, where the answer is a
+     list, the filterable fields or the valid options, and no items
+     (``REQ_KAN_LIST`` AC-12 to AC-14).
+   * AC-16: (``kanban-cleanup`` CR) ``fields: {}`` returns the same items and ``count`` as a
+     call without ``fields``, and no error (``REQ_KAN_LIST`` AC-15).
 
 
 .. spec:: jarvis_listKanbanFilterValues Tool
    :id: SPEC_KAN_FILTERVALUES
-   :status: approved
+   :status: implemented
    :links: REQ_KAN_FILTERVALUES; SPEC_KAN_LIST; REQ_ENG_TOOLREF
 
    **Description:**
@@ -1205,7 +1417,8 @@ Kanban Design Specifications
    ``SPEC_KAN_LIST`` does; the pure function ``filterValues(data)`` in
    ``packages/kanban/src/boardQuery.ts`` (D-12) returns the values that the filters
    of ``jarvis_listKanbanItems`` accept, with the number of cards for each. It reads
-   only the ``status`` field and the ``labels`` of each item.
+   only the ``status`` field, the other ``single_select`` fields and their options,
+   and the ``labels`` and field values of each item.
 
    **Input schema:**
 
@@ -1233,7 +1446,22 @@ Kanban Design Specifications
       label that at least one counted card carries becomes one entry ``{ name, count }``
       with the number of cards carrying it. Entries are sorted by ``name`` by Unicode code
       point (not by UTF-16 code unit, not locale-dependent).
-   6. Return ``{ path, statuses, labels }``.
+   6. ``fields``: for every field of ``fields`` with type ``single_select`` and a name other
+      than ``status``, in declared order, one entry ``{ name, options }``. ``options`` has one
+      entry ``{ name, count }`` per declared option of the field, in declared order; ``count``
+      is the number of items counted in step 5 (declared ``status``) whose value under the field
+      equals the option name (``0`` when none does). A value that is not a declared option, and a
+      missing value, are counted nowhere (``REQ_KAN_FILTERVALUES`` AC-9, AC-10). ``text`` fields
+      are left out. No such field → ``fields: []``.
+   7. Return ``{ path, statuses, fields, labels }``.
+
+   **Why only ``single_select`` fields are listed:** their options are a declared, finite
+   set a filter can take (``SPEC_KAN_LIST`` step 4). A ``text`` field has no such set, and
+   its filter is a part of the text the caller chooses.
+
+   **Why the field counts use the cards of step 5:** labels and field options are then counted
+   over the same cards, those with a declared ``status`` (CD D-10), so no count in the result
+   rests on a card that the ``statuses`` counts leave out of a column.
 
    **Why only declared values are listed:** a value the list filter does not accept
    (``SPEC_KAN_LIST`` step 4) would offer a filter that fails. Items with such a value
@@ -1248,8 +1476,8 @@ Kanban Design Specifications
 
    * AC-1: ``ownerName`` is required and ``boardName`` optional; owner and board errors
      are those of ``SPEC_KAN_LIST`` step 2 (``REQ_KAN_FILTERVALUES`` AC-1, AC-7).
-   * AC-2: On success the result is ``{ path, statuses, labels }`` (``REQ_KAN_FILTERVALUES``
-     AC-2).
+   * AC-2: On success the result is ``{ path, statuses, fields, labels }``
+     (``REQ_KAN_FILTERVALUES`` AC-2).
    * AC-3: ``statuses`` holds every declared option of ``status`` in declared order with
      its card count; empty columns carry ``count: 0`` (``REQ_KAN_FILTERVALUES`` AC-3).
    * AC-4: A board without a ``status`` field returns ``{ error: "board has no status
@@ -1267,13 +1495,21 @@ Kanban Design Specifications
    * AC-9: The board file is not modified and no panel refresh is triggered
      (``REQ_KAN_FILTERVALUES`` AC-7).
    * AC-10: Registered with ``toolReferenceName: "jarvis_kanban_listKanbanFilterValues"`` and the
-     one-line description "Lists the status values (columns, empty ones included) and the
-     labels of a kanban board with the number of cards for each, to build list filters.";
+     one-line description "Lists the status values (columns, empty ones included), the options of the
+     other single-select fields and the labels of a kanban board with the number of cards for each, to
+     build list filters.";
      the ``languageModelTools`` entry declares ``ownerName`` as required, with the
-     ``modelDescription`` "jarvis_kanban: Returns the status values (columns, empty ones included) and the
-     labels in use on a kanban board, each with the number of cards. Use these values as
-     filters for jarvis_listKanbanItems. ownerName is required." and an ``icon`` of
-     ``$(filter)`` (``REQ_KAN_MODULE`` AC-8, AC-9).
+     ``modelDescription`` "jarvis_kanban: Returns the status values (columns, empty ones included), the
+     options of the other single-select fields and the labels in use on a kanban board, each with the
+     number of cards. Use these values as filters for jarvis_listKanbanItems. ownerName is required."
+     and an ``icon`` of ``$(filter)`` (``REQ_KAN_MODULE`` AC-8, AC-9).
+   * AC-11: (``kanban-swimlanes-and-filters`` CR) ``fields`` holds every declared ``single_select``
+     field other than ``status`` in declared order, each with all its declared options in declared
+     order and their card counts (``0`` included); ``text`` fields are absent; a board without such a
+     field returns ``fields: []`` (``REQ_KAN_FILTERVALUES`` AC-9).
+   * AC-12: (``kanban-swimlanes-and-filters`` CR) A card with an undeclared ``status`` counts for no
+     field option, and a value that is not a declared option is neither listed nor counted
+     (``REQ_KAN_FILTERVALUES`` AC-10).
 
 
 .. spec:: jarvis_updateKanbanFields Tool
@@ -1402,9 +1638,9 @@ Kanban Design Specifications
       * - ``jarvis_verifyKanbanSchema``
         - Validate a board against schema and semantic rules
       * - ``jarvis_listKanbanItems``
-        - Query items by status/labels; compact projection, ``details: true`` for the full items
+        - Query items by status/labels/declared fields; compact projection, ``details: true`` for the full items
       * - ``jarvis_listKanbanFilterValues``
-        - Status values (columns) and labels with card counts, for building filters
+        - Status values (columns), options of the other single-select fields and labels with card counts, for building filters
       * - ``jarvis_addKanbanItem``
         - Append an item; ``id`` assigned automatically
       * - ``jarvis_updateKanbanItem``
@@ -1420,7 +1656,38 @@ Kanban Design Specifications
    It states that the list result is a compact projection by default — ``id``, ``name``,
    ``status``, ``labels`` — and that ``details: true`` returns the full contents of the
    matching items (``REQ_KAN_SKILLCONTENT`` AC-10). It does not say that an item can be
-   fetched by ``id``: no tool does that.
+   fetched by ``id``: no tool does that. It also states that ``fields`` narrows the list
+   by declared fields, a ``single_select`` value being a declared option matched exactly
+   and a ``text`` value a case-insensitive part of the text, and that the options to use
+   come from ``jarvis_listKanbanFilterValues`` (``REQ_KAN_SKILLCONTENT`` AC-11).
+
+   The Workflow section ends with the archiving convention (``REQ_KAN_SKILLCONTENT``
+   AC-12), written as a short procedure for a board with many finished cards:
+
+   1. Once per owner, ``jarvis_createKanbanBoard`` with ``boardName: "archive"``;
+      the answer ``board already exists`` means the archive board is there and is
+      reused.
+   2. Per finished card, ``jarvis_listKanbanItems`` with ``status`` set to the
+      finishing status and ``details: true`` to read the card, then
+      ``jarvis_addKanbanItem`` with ``boardName: "archive"`` carrying its ``name``,
+      ``labels``, ``notes`` and declared-field values, and only then
+      ``jarvis_deleteKanbanItem`` on the working board. Add comes first because a
+      card that is added and not yet deleted exists twice, whereas the reverse order
+      loses it when the add fails.
+   3. The archived card takes the next ``id`` of the archive board, since an ``id``
+      is never supplied (``REQ_KAN_ADD`` AC-4); the skill advises keeping the former
+      ``id`` in ``notes`` so the card can still be found by the number that other
+      text refers to.
+   4. The skeleton of ``jarvis_createKanbanBoard`` declares ``status`` and
+      ``priority`` only. A declared field of the working board that a card uses must
+      be declared on the archive board first, with ``jarvis_updateKanbanFields``,
+      because ``jarvis_addKanbanItem`` rejects a key that matches no declared field
+      (``REQ_KAN_WRITEVALID`` AC-3).
+
+   No tool archives, and no threshold defines "large": the actor decides, which is
+   why this is a convention in the skill and not a tool or a storage format. The
+   archive board is an ordinary board of the owner, discovered by the filename
+   convention (``SPEC_KAN_DISCOVER``).
 
    Two ownership rules belong here because both are invisible from the tool
    signatures (``REQ_KAN_SKILLCONTENT`` AC-9): ``id`` is assigned by
@@ -1483,6 +1750,13 @@ Kanban Design Specifications
      ``jarvis_listKanbanItems`` and the ``details`` option.
    * AC-9 (``kanban-management-tools`` CR): The skill states that ``id`` is
      assigned on add and never reused after delete.
+   * AC-10: (``kanban-swimlanes-and-filters`` CR) The skill states the ``fields`` filter of
+     ``jarvis_listKanbanItems`` and the field options of ``jarvis_listKanbanFilterValues`` as
+     described above (``REQ_KAN_SKILLCONTENT`` AC-11).
+   * AC-11: (``kanban-cleanup`` CR) The Workflow section ends with the archiving
+     procedure above: the ``archive`` board, add before delete, the new ``id`` of the
+     archived card, and the fields the archive board must declare
+     (``REQ_KAN_SKILLCONTENT`` AC-12).
 
 
 .. spec:: Kanban Instructions Asset Content

@@ -275,6 +275,11 @@ Actor Requirements
    * AC-11: The Actor kernel instructions delivered by Jarvis
      (``REQ_MOD_ACTORRULES``) SHALL NOT tell an Actor to call
      ``jarvis_whoAmI``.
+   * AC-12: The Actor kernel instructions delivered by Jarvis SHALL NOT contain
+     an Identity section, because the Actor's agent already carries its name
+     and the location of its ``context.md`` (AC-3). The section's removal is
+     what ``SPEC_ACTOR_WHOAMI`` AC-10 pins; a mention of the word "identity"
+     elsewhere in the text is not such a section.
 
 .. req:: Programmatic Actor Creation Tool
    :id: REQ_ACTOR_CREATETOOL
@@ -452,7 +457,7 @@ Actor Requirements
      own agent is found by the Actor name
      (``REQ_ACTOR_WHOAMI`` AC-1), that is, an agent file whose identity
      equals the Actor name exists. It SHALL contain exactly one child
-     ``Agent File: <filename>`` pointing at that file. Otherwise the
+     ``<filename>`` (the bare file name, no prefix) pointing at that file. Otherwise the
      category is omitted (fail-open, no error).
    * AC-5: File and folder children SHALL show their full absolute path
      (forward slashes) as tooltip.

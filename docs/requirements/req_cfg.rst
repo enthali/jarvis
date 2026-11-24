@@ -45,27 +45,6 @@ Configuration Requirements
      left in ``heartbeat.yaml`` by an earlier version SHALL be removed
 
 
-.. req:: Heartbeat Config File Resolution
-   :id: REQ_CFG_HEARTBEATPATH
-   :status: implemented
-   :priority: optional
-   :links: US_CFG_HEARTBEAT
-
-   **Description:**
-   The extension SHALL resolve the heartbeat config file path according to a defined
-   priority order.
-
-   **Acceptance Criteria:**
-
-   * AC-1: If ``jarvis.heartbeatConfigFile`` is set to a non-empty absolute path, that
-     path SHALL be used as the config file location
-   * AC-2: Otherwise, the config file SHALL default to
-     ``context.storageUri + "/heartbeat.yaml"`` (workspace storage, not tracked in repo)
-   * AC-3: No legacy fallback path (e.g. ``.jarvis/heartbeat.yaml``) SHALL be consulted
-   * AC-4: When ``jarvis.heartbeatConfigFile`` changes at runtime, the scheduler SHALL
-     reload the config file at the start of the next tick cycle
-
-
 .. req:: Configurable Heartbeat Tick Interval
    :id: REQ_CFG_HEARTBEATINTERVAL
    :status: implemented
@@ -80,37 +59,6 @@ Configuration Requirements
 
    * AC-1: ``jarvis.heartbeatInterval`` accepts integer seconds, minimum 10, default 60
    * AC-2: A change to the interval takes effect at the start of the next tick cycle
-
-.. req:: Message Queue File Path
-   :id: REQ_CFG_MSGPATH
-   :status: deprecated
-   :priority: optional
-   :links: US_CFG_MSG; REQ_MSG_QUEUE; REQ_CFG_FIXEDPATHS
-
-   **Superseded by:** ``REQ_CFG_FIXEDPATHS`` (queue path) — deprecated together
-   with its parent story ``US_CFG_MSG`` by the ``jarvis-messages-dir-grouping``
-   CR (GH #59).
-
-   **Description:**
-   The extension SHALL resolve the message queue file path with a sensible default
-   and provide an optional user override.
-
-   AC-1 and AC-2 became false when ``REQ_CFG_RENAMES`` removed
-   ``jarvis.messagesFile`` and fixed the queue at a non-configurable ``.jarvis/``
-   path. The requirement nonetheless remained ``implemented`` and was still
-   referenced by ``REQ_MSG_QUEUE`` AC-4 as the authority for the queue location —
-   so the trace pointed at a removed setting. Retained for historical
-   traceability only.
-
-   **Acceptance Criteria (historic — no longer in force):**
-
-   * AC-1: The default queue file path SHALL be
-     ``context.storageUri/messages.json``
-   * AC-2: The VS Code setting ``jarvis.messagesFile`` SHALL override the default
-     with an absolute file path
-   * AC-3: A runtime change to the setting SHALL trigger a reload of the queue
-     data and a refresh of the Messages tree view
-
 
 .. req:: Update Check Configuration
    :id: REQ_CFG_UPDATECHECK
@@ -149,31 +97,6 @@ Configuration Requirements
      start during activation
    * AC-4: The port setting SHALL be read at activation time — runtime changes
      require extension reload
-
-
-.. req:: Grouped Settings Categories
-   :id: REQ_CFG_SETTINGSGROUPS
-   :status: deprecated
-   :priority: mandatory
-   :links: US_CFG_SETTINGSGROUPS
-
-   **Superseded by:** ``REQ_CFG_GROUPS`` (settings-cleanup CR, 2026-05-18).
-   The "no setting key, type, or default value SHALL change" guarantee is
-   explicitly broken by ``REQ_CFG_RENAMES``. Retained for historical
-   traceability.
-
-   **Description:**
-   The extension SHALL organize its VS Code settings into named sub-categories
-   so they appear grouped in the Settings UI.
-
-   **Acceptance Criteria:**
-
-   * AC-1: The ``contributes.configuration`` block in ``package.json`` SHALL be
-     an array of configuration objects, each with a distinct ``title``
-   * AC-2: The groups SHALL be: Projects, Events, Heartbeat, Messages,
-     MCP Server, Updates, PIM
-   * AC-3: Each setting SHALL appear in exactly one group
-   * AC-4: No setting key, type, or default value SHALL change
 
 
 .. req:: Per-Feature Enable Toggles
@@ -399,7 +322,7 @@ Configuration Requirements
 
 .. req:: Jarvis Hook Files of Earlier Versions Are Removed
    :id: REQ_CFG_HOOKCLEANUP
-   :status: draft
+   :status: implemented
    :priority: required
    :links: US_CFG_WORKSPACEFILES; REQ_CFG_FILEPREFIX
 

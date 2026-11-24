@@ -113,14 +113,17 @@ Validation.
 | `approved` | `story`, `req`, `spec`: ready for implementation. `ac`: ready to be executed. | The decision of the Contract that adds or changes the Need: the User's approval, or in autonomous mode the Contract's approved scope. |
 | `implemented` | `story`, `req`, `spec`: the code exists. Not used by `ac`. | The Developer's changed code and passing unit tests, recorded in the Contract. |
 | `verified` | Technical evidence exists, nothing more. `req`, `spec`: the tests of the Need pass and the review is clean. `ac`: the scenario was executed by the Tester or Quality and the result recorded. `story`: the Needs that implement and validate it are verified. | Quality's `proceed` in the Contract naming the evidence. |
-| `deprecated` | No longer valid; kept as history only while something still links to it. | The Contract that retires it. |
+
+There is no status for a retired Need. A Need that is no longer valid is
+deleted, together with every link that pointed at it, by the Contract that
+retires it; Git holds its history.
 
 Allowed transitions:
 
 ```text
 draft -> open -> approved -> implemented -> verified
 draft -> approved                    ac:  approved -> verified
-any status -> deprecated             verified -> approved   when a later change reopens the Need
+                                     verified -> approved   when a later change reopens the Need
 ```
 
 A Need never moves to a later status without its evidence, and a Need whose text

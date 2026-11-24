@@ -27,8 +27,8 @@ DEFAULT_BASE = "development"
 DOCS_DIR = "docs"
 ONTOLOGY = "docs/Jarvis Ontology/ontology.toml"
 
-SPEC_STATUSES = {"implemented", "verified", "deprecated"}
-AC_STATUSES = {"approved", "verified", "deprecated"}
+SPEC_STATUSES = {"implemented", "verified"}
+AC_STATUSES = {"approved", "verified"}
 ID_PATTERN = re.compile(r"\b(?:US|AC)_[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*")
 
 
@@ -128,18 +128,18 @@ def evaluate(base: dict[str, dict], head: dict[str, dict], contract: str) -> lis
         if need_type in ("story", "req", "spec") and status not in SPEC_STATUSES:
             violations.append(
                 f"{need_id}: REQ_REL_NEEDSCHECK AC-3: status '{status}' is not "
-                "implemented, verified or deprecated"
+                "implemented or verified"
             )
         if need_type == "ac" and status not in AC_STATUSES:
             violations.append(
                 f"{need_id}: REQ_REL_NEEDSCHECK AC-3: status '{status}' is not "
-                "approved, verified or deprecated"
+                "approved or verified"
             )
-        if need_type == "story" and status != "deprecated" and need_id not in user_named:
+        if need_type == "story" and need_id not in user_named:
             violations.append(
                 f"{need_id}: REQ_REL_NEEDSCHECK AC-4: not named in the User validation section"
             )
-        if need_type == "ac" and status != "deprecated" and status in AC_STATUSES:
+        if need_type == "ac" and status in AC_STATUSES:
             expected = "verified" if need_id in executed else "approved"
             if status != expected:
                 where = (

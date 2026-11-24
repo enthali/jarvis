@@ -3,7 +3,7 @@ Kanban User Stories
 
 .. story:: Kanban Board from YAML
    :id: US_KAN_BOARD
-   :status: draft
+   :status: implemented
    :tracked_by: MOD_KANBAN
    :priority: required
 
@@ -29,6 +29,44 @@ Kanban User Stories
      a tool-driven change produces a diff limited to what actually changed —
      so I can mix hand editing and tool use without losing context or reading
      noisy diffs.
+   * AC-7: When the board on screen may be out of date, I can bring it up to
+     date with what the file contains right now, in one step, instead of
+     closing and reopening it.
+
+
+.. story:: Group a Large Board into Lanes
+   :id: US_KAN_LANES
+   :status: implemented
+   :tracked_by: MOD_KANBAN
+   :priority: required
+   :links: US_KAN_BOARD
+
+   **As a** Jarvis user looking at a board with many cards,
+   **I want** to group its cards into horizontal lanes by a field of the board or
+   by label,
+   **so that** I can scan a long board by category instead of reading long flat
+   columns.
+
+   **Context:**
+   Boards of 30 or more cards, such as a project backlog, make every column long.
+   Grouping is a way of looking at the board, not a change to it: the board file
+   stays what the user and the tools made it (``US_KAN_BOARD`` AC-5).
+
+   **Acceptance Criteria:**
+
+   * AC-1: I can group the cards by any single-select field of the board other
+     than ``status``, or by label; until I choose, the cards are not grouped.
+   * AC-2: Inside every group I still see the status columns, so a card's group
+     and its state are visible together.
+   * AC-3: A card with several labels appears in the group of each of its labels,
+     and the total of each column still counts that card once.
+   * AC-4: A card that has no value for the chosen field, or no label, is still
+     shown, in a group of its own.
+   * AC-5: I can collapse a group and expand it again, to look at part of the
+     board.
+   * AC-6: My choice of grouping and the groups I collapsed stay as they are for
+     as long as the board stays open, also when the board is refreshed or
+     updated; a board I open again starts without grouping.
 
 
 .. story:: Convention-Based Board Discovery
@@ -57,47 +95,45 @@ Kanban User Stories
 
 .. story:: Kanban Board Tools
    :id: US_KAN_TOOLS
-   :status: draft
+   :status: implemented
    :tracked_by: MOD_KANBAN
    :priority: required
    :links: US_ACTOR_WHOAMI
 
    **As an** LLM operating within a Jarvis actor session,
-   **I want** tools to create, validate, and open kanban boards,
+   **I want** tools to create, validate, open and maintain kanban boards,
    **so that** I can manage boards programmatically without requiring the user
    to edit YAML manually or navigate the UI.
 
    **Acceptance Criteria:**
 
-   * AC-1: ``jarvis_createKanbanBoard`` creates a new board YAML file with a
-     valid skeleton schema and returns the file path.
-   * AC-2: ``jarvis_verifyKanbanSchema`` validates a board YAML against the
-     schema and returns structured findings (errors and warnings with
-     field/line context) so the actor can fix issues iteratively.
-   * AC-3: ``jarvis_openKanbanBoard`` opens the board in the webview renderer.
-   * AC-4: All three tools take the Actor's name explicitly as
-     ``ownerName``; the calling Actor knows it from its own identity
-     (``US_ACTOR_WHOAMI``).
-   * AC-5: An unresolvable owner returns ``{ error: "actor unknown" }``.
-   * AC-6: ``jarvis_updateKanbanItem`` updates an existing item by its stable
-     integer ID so that changes can be applied without touching the full
-     board YAML manually.
-   * AC-7 (``kanban-management-tools`` CR): ``jarvis_addKanbanItem`` appends a
-     new item, assigning its ``id`` automatically so the caller never picks one.
-   * AC-8 (``kanban-management-tools`` CR): ``jarvis_deleteKanbanItem`` removes
-     an item by ``id``.
-   * AC-9 (``kanban-management-tools`` CR): ``jarvis_updateKanbanFields``
-     evolves the board's own field and option definitions, refusing changes
-     that would strand existing item values.
-   * AC-10 (``kanban-management-tools`` CR): Every board mutation an actor can
-     reasonably need is reachable through a tool, so hand-editing the YAML is
-     never the only route. Where that is not yet true, the gap is recorded
-     rather than left to be discovered — see ``REQ_KAN_FIELDS``.
+   * AC-1: I can create a new board that is valid from the start, and I am told
+     where it was created.
+   * AC-2: I can have a board checked against the board rules and get back
+     findings, each naming the field and the card it concerns and telling an
+     error from a warning, so that I can fix the board step by step.
+   * AC-3: I can bring a board up on the user's screen.
+   * AC-4: For every one of these operations I say whose board I mean by naming
+     the Actor; I know my own name from my identity (``US_ACTOR_WHOAMI``), so
+     the board is never guessed from my session.
+   * AC-5: A name that does not identify exactly one Actor is refused with a
+     clear message, and nothing is created or changed.
+   * AC-6: I can change an existing card by its stable number, without touching
+     the rest of the board.
+   * AC-7: I can add a card; its number is assigned for me, so I never pick one.
+   * AC-8: I can remove a card by its number.
+   * AC-9: I can add and remove the board's own fields and the options of a
+     field; a change that would leave a card with a value that no longer exists
+     is refused.
+   * AC-10: Every board change an actor can reasonably need is reachable through
+     a tool, so hand-editing the YAML is never the only route. The one known
+     exception is renaming a field or an option, which stays a hand edit
+     (``REQ_KAN_FIELDS`` AC-11).
 
 
 .. story:: Query a Board Without Reading All of It
    :id: US_KAN_QUERY
-   :status: approved
+   :status: implemented
    :tracked_by: MOD_KANBAN
    :priority: required
    :links: US_KAN_TOOLS
@@ -130,9 +166,15 @@ Kanban User Stories
    * AC-6: When I need the full contents of the items I have narrowed down, I can
      ask for them explicitly; I then get the full contents of the matching items
      only, never of the rest of the board, and never without asking.
-   * AC-7: I can ask a board which status values (its columns) and which labels it
-     has, with the number of cards for each, so that I can build a filter without
-     reading the board or listing its items.
+   * AC-7: I can ask a board which status values (its columns), which values its
+     other selection fields offer, and which labels it has, with the number of
+     cards for each, so that I can build a filter without reading the board or
+     listing its items.
+   * AC-8: Items can also be narrowed by the value of a field the board declares,
+     for example the priority: a selection field matches the option I name, a
+     text field matches the cards whose text contains the words I give. This
+     combines with the narrowing of AC-1, so that I do not have to list a whole
+     status to find the items of one priority.
 
 
 .. story:: Kanban Skill and Instructions Content

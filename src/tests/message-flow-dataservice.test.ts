@@ -29,6 +29,14 @@ describe('SPEC_FLOW_DATASERVICE: loadFlowData', () => {
         expect(result).toEqual({ nodes: [], edges: [], entries: [] });
     });
 
+    it('AC-3: entries carry the message text for the tooltip sample', () => {
+        const logPath = tmpLogPath();
+        fs.writeFileSync(logPath, JSON.stringify([
+            { destination: 'B', sender: 'A', text: 'hello', timestamp: '2026-01-01T00:00:00.000Z' },
+        ]));
+        expect(loadFlowData(logPath).entries[0].text).toBe('hello');
+    });
+
     it('AC-3: aggregates by (sender, destination) with count/first/last/sample', () => {
         const logPath = tmpLogPath();
         const entries = [

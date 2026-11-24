@@ -104,7 +104,7 @@ Messaging User Stories
 
 .. story:: Time-Scheduled Reminders
   :id: US_MSG_REMINDERS
-  :status: draft
+  :status: implemented
   :tracked_by: MOD_AUTOMATION
   :priority: optional
   :links: US_COM_SEND; US_COM_DELIVERY
@@ -117,22 +117,54 @@ Messaging User Stories
 
   **Acceptance Criteria:**
 
-   * AC-1: An LM agent (or the user via MCP) can register a reminder by providing
-     ``text``, ``session`` (target chat tab label), and ``deliverAt`` (ISO 8601
-     timestamp); the system returns a unique ``id``
-   * AC-2: At ``deliverAt`` (within ±5 s) the message is queued for the target;
-     the existing message-delivery preference alone determines whether its
-     notification is automatic or awaits manual delivery. The reminder does
+   * AC-1: An LM agent (or the user through an MCP client) can register a
+     reminder by giving the message text, the target Actor or chat, and a
+     future delivery time; the system returns a unique id for it
+   * AC-2: At the delivery time (within ±5 s) the message is queued for the
+     target; the existing message-delivery preference alone determines whether
+     its notification is automatic or awaits manual delivery. The reminder does
      not enable auto-delivery for its target.
-   * AC-3: After queueing, the reminder is removed from persistent storage
-   * AC-4: An LM agent can query open reminders to see ``id``, ``text``,
-     ``session``, ``deliverAt``, and remaining time
-   * AC-5: An LM agent can cancel a reminder by ``id`` before it fires
+   * AC-3: After queueing, the reminder no longer exists: it fires once and
+     never again
+   * AC-4: An LM agent can list the open reminders and see for each its id,
+     text, target, delivery time, and remaining time
+   * AC-5: An LM agent can cancel a reminder by id before it fires
    * AC-6: A dedicated "Reminders" sidebar view shows all pending reminders
      with target session, scheduled time, and countdown
-   * AC-7: Reminders survive VS Code restarts — they are read from disk on
-     activation and delivered when due
-   * AC-8: Clicking a reminder node opens ``reminders.yaml`` in the editor
+   * AC-7: Reminders survive VS Code restarts — a reminder that came due while
+     VS Code was closed is delivered once Jarvis is active again
+   * AC-8: Clicking a reminder node opens the reminders file in the editor
      and reveals the line of that entry, enabling manual inspection or edit
+
+
+.. story:: Messages and Reminders in the Jarvis Explorer
+    :id: US_MSG_TREE
+    :status: implemented
+    :tracked_by: MOD_MESSAGING
+    :priority: optional
+    :links: US_EXP_SIDEBAR; US_CFG_FEATURETOGGLES; US_MSG_REMINDERS
+
+    **As a** Jarvis User,
+    **I want** a Messages view and a Reminders view in the Jarvis sidebar,
+    **so that** I can see what is queued and what is scheduled, and jump to the
+    entry in its file, without leaving the editor.
+
+    **Acceptance Criteria:**
+
+    * AC-1: The Messages view lists the queued messages, grouped by target
+      session; when nothing is queued it shows the single entry
+      ``nothing to deliver``.
+    * AC-2: Clicking a message opens the message queue file and reveals that
+      message. If the position cannot be determined, the file opens at its
+      start, without an error dialog. Clicking only navigates: the queue and the
+      tree stay unchanged.
+    * AC-3: The Messages view is shown only while the Messages feature is
+      enabled; the Reminders view is shown only while both the Messages and the
+      Reminders features are enabled (``US_CFG_FEATURETOGGLES``). The content of
+      the Reminders view is specified by ``US_MSG_REMINDERS``.
+    * AC-4: A "Collapse All" button in the title bar of the Messages view and of
+      the Reminders view collapses every expanded node in one click. It only
+      changes what is expanded: no node is removed, reordered, or reloaded, and
+      no click action fires.
 
 

@@ -1,12 +1,12 @@
 # Jarvis — Personal Assistant for VS Code
 
-Jarvis Core 0.34.0 is the actor harness for Visual Studio Code. Since 0.32.0 it supports Actors, messaging and Kanban in the Agents window, where several Actor chats can be open side by side, as well as in the editor. Actor definitions, memory and scheduling live in folders you control.
+Jarvis Core 0.35.0 is the actor harness for Visual Studio Code. Since 0.32.0 it supports Actors, messaging and Kanban in the Agents window, where several Actor chats can be open side by side, as well as in the editor. Actor definitions, memory and scheduling live in folders you control.
 
 ## Features
 
 - **Actors** — Persistent personas with their own `context.md` and agent file; Jarvis creates or repairs the agent file with the Actor name and memory path when needed
 - **Messaging** — Actor inboxes with automatic or manual announcements through VS Code's Agent Host; message content is read by a tool, never inserted into a prompt
-- **Reminders** — Set cron-based or one-off reminders with VS Code notifications
+- **Reminders** — Set one-off, time-scheduled reminders; a due reminder is queued as a message to the Actor and announced under the normal delivery setting, with no VS Code notification of its own
 - **Heartbeat** — Periodic background jobs with a live status view in the activity bar
 - **Engine API** — Extension point for add-ons (PIM, Recorder, MCP) to register tools and to self-provision their bundled Copilot Skills/Instructions into `.github/` via `provisionModuleAssets`
 
@@ -46,7 +46,7 @@ Remove `senderSession` and `destination` from send and receive calls in existing
 
 Extension tools retain references such as `#jarvis_core_listJobs` and reach an Actor chat while it is open in a window running Jarvis. The client serves the first workspace folder only; cross-workspace routing is outside this MVP. The same workspace in two windows is not tested and probably does not work. While disconnected, announcements wait.
 
-In GitHub Codespaces, the User exercised an installed discovery prototype, and Agent Host discovery, Actor messaging and opening Actor chats worked (2026-11-19); the finalized code was compared with it but not separately deployed end-to-end. Replies, Dev Tunnels and the Agents window connected to a Codespace were outside that validation. On Windows, the connection and a message exchange were checked in the Windows Sandbox (VS Code 1.144.0, 2026-11-19). macOS, WSL and SSH were not verified.
+In GitHub Codespaces, the User exercised an installed discovery prototype, and Agent Host discovery, Actor messaging and opening Actor chats worked (2026-11-19); the finalized code was compared with it but not separately deployed end-to-end. Replies, Dev Tunnels and the Agents window connected to a Codespace were outside that validation. On Windows, the connection and a message exchange were checked in the Windows Sandbox (VS Code 1.144.0, 2026-11-19). On macOS, the User verified on 2026-11-24 that Jarvis worked without issues. WSL and SSH were not verified.
 
 In the editor window, activity icons come from the Agent Host: red cross for Error, blue question mark for Waiting, spinner for Working, none for Idle. Activity takes priority over the recording mark, then the mail icon.
 

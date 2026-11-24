@@ -253,21 +253,20 @@ Explorer Design Specifications
 
 .. spec:: Open Reminder File Command
    :id: SPEC_EXP_REMINDER_OPENFILE
-   :status: draft
+   :status: implemented
    :links: REQ_EXP_REMINDER_OPENFILE; SPEC_MSG_REMINDERSVIEW; SPEC_MSG_REMINDERSTORE; REQ_CFG_PATHSINGLESOURCE
 
    **Description:**
-   Register ``jarvis.openReminderFile`` in ``extension.ts``. Set as
+   ``jarvis.openReminderFile`` is registered in ``extension.ts`` and set as
    ``TreeItem.command`` on every ``ReminderNode`` in ``RemindersTreeProvider``.
-   Opens ``reminders.yaml`` and reveals the line with the matching reminder id.
+   It opens ``reminders.yaml`` and reveals the line with the matching reminder
+   id.
 
    The handler resolves the path through ``configPaths.getRemindersPath()`` —
    the same accessor the reminder store writes through
-   (``SPEC_MSG_REMINDERSTORE``). It previously derived the path from the queue
-   path, contradicting the element it links; the two agreed only while the
-   layout was flat, and ``REQ_CFG_MSGDIR`` ends that. Opening a file by a
-   different route from the one that writes it is the defect, independent of
-   whether the two routes currently happen to agree.
+   (``SPEC_MSG_REMINDERSTORE``). Deriving it from the queue path would open a
+   file by a different route from the one that writes it; the two agree only
+   while the layout is flat, and ``REQ_CFG_MSGDIR`` ends that.
 
    **Handler:**
 
@@ -276,10 +275,10 @@ Explorer Design Specifications
       vscode.commands.registerCommand(
         'jarvis.openReminderFile',
         async (node: ReminderNode) => {
-          const remindersPath = configPaths.getRemindersPath();
-          if (!remindersPath || !fs.existsSync(remindersPath)) {
+          const remindersPath = configPaths.getRemindersPath() ?? '';
+          if (!fs.existsSync(remindersPath)) {
             vscode.window.showWarningMessage(
-              `Jarvis: Cannot open reminders file: ${remindersPath ?? '(no workspace)'}`
+              `Jarvis: Cannot open reminders file: ${remindersPath}`
             );
             return;
           }
@@ -287,13 +286,10 @@ Explorer Design Specifications
           let lineIndex = 0;
           try {
             const doc = await vscode.workspace.openTextDocument(uri);
-            const target = `id: ${node.reminder.id}`;
-            for (let i = 0; i < doc.lineCount; i++) {
-              if (doc.lineAt(i).text.includes(target)) {
-                lineIndex = i;
-                break;
-              }
-            }
+            lineIndex = findReminderLine(
+              Array.from({ length: doc.lineCount }, (_, i) => doc.lineAt(i).text),
+              node.reminder.id
+            );
             const range = new vscode.Range(lineIndex, 0, lineIndex, 0);
             const editor = await vscode.window.showTextDocument(doc);
             editor.revealRange(range, vscode.TextEditorRevealType.InCenterIfOutsideViewport);
@@ -303,6 +299,10 @@ Explorer Design Specifications
           }
         }
       );
+
+   ``findReminderLine(lines, reminderId)`` is a pure helper in
+   ``packages/core/src/apps/session/reminderRuntime.ts``: the index of the first
+   line containing ``id: <reminderId>``, or ``0`` when none does.
 
    **RemindersTreeProvider change:**
 

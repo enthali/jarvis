@@ -1,222 +1,9 @@
 Configuration Design Specifications
 =====================================
 
-.. spec:: VS Code Settings for Folder Paths and Scan Interval
-   :id: SPEC_CFG_SETTINGS
-   :status: deprecated
-   :links: REQ_CFG_FOLDERPATHS, REQ_CFG_SCANINTERVAL
-
-   **Superseded by:** ``SPEC_CFG_MANIFEST`` (settings-cleanup CR).
-
-   **Description:**
-   Add a ``contributes.configuration`` block to ``package.json``:
-
-   .. code-block:: json
-
-      {
-        "jarvis.projectsFolder": {
-          "type": "string",
-          "default": "",
-          "description": "Absolute path to the folder containing project YAML files."
-        },
-        "jarvis.eventsFolder": {
-          "type": "string",
-          "default": "",
-          "description": "Absolute path to the folder containing event YAML files."
-        },
-        "jarvis.scanInterval": {
-          "type": "number",
-          "default": 2,
-          "minimum": 0,
-          "description": "Background scan interval in minutes (0 = disabled)."
-        }
-      }
-
-   <!-- Implementation: SPEC_CFG_SETTINGS -->
-   <!-- Requirements: REQ_CFG_FOLDERPATHS, REQ_CFG_SCANINTERVAL -->
-
-
-.. spec:: Heartbeat Settings in package.json
-   :id: SPEC_CFG_HEARTBEATSETTINGS
-   :status: deprecated
-   :links: REQ_CFG_HEARTBEATPATH; REQ_CFG_HEARTBEATINTERVAL; REQ_CFG_MSGPATH
-
-   **Superseded by:** SPEC_CFG_MANIFEST, SPEC_CFG_PATHRESOLVER
-
-   **Description:**
-   Add configuration entries to the ``contributes.configuration`` block in
-   ``package.json`` and handle runtime changes.
-
-   **package.json additions**:
-
-   .. code-block:: json
-
-      {
-        "jarvis.heartbeatConfigFile": {
-          "type": "string",
-          "default": "",
-          "description": "Absolute path to heartbeat.yaml. Defaults to workspace storage if empty."
-        },
-        "jarvis.heartbeatInterval": {
-          "type": "number",
-          "default": 60,
-          "minimum": 10,
-          "description": "Heartbeat scheduler tick interval in seconds (minimum 10)."
-        },
-        "jarvis.messagesFile": {
-          "type": "string",
-          "default": "",
-          "description": "Absolute path to messages.json queue file. Defaults to extension storage if empty."
-        }
-      }
-
-   **Config path resolution** (in ``activateHeartbeat()``):
-
-   .. code-block:: typescript
-
-      function resolveConfigPath(
-        context: vscode.ExtensionContext
-      ): string {
-        const override = vscode.workspace
-          .getConfiguration('jarvis')
-          .get<string>('heartbeatConfigFile', '');
-        if (override) return override;
-        return vscode.Uri.joinPath(
-          context.storageUri!, 'heartbeat.yaml'
-        ).fsPath;
-      }
-
-   **Runtime change handler**:
-
-   .. code-block:: typescript
-
-      vscode.workspace.onDidChangeConfiguration(e => {
-        if (
-          e.affectsConfiguration('jarvis.heartbeatInterval') ||
-          e.affectsConfiguration('jarvis.heartbeatConfigFile')
-        ) {
-          scheduler.dispose();
-          scheduler.start(context);
-        }
-        if (e.affectsConfiguration('jarvis.messagesFile')) {
-          messageTreeProvider.reload();
-        }
-      });
-
-   **Message queue path resolution**:
-
-   .. code-block:: typescript
-
-      function resolveMessagesPath(
-        context: vscode.ExtensionContext
-      ): string {
-        const override = vscode.workspace
-          .getConfiguration('jarvis')
-          .get<string>('messagesFile', '');
-        if (override) return override;
-        return vscode.Uri.joinPath(
-          context.storageUri!, 'messages.json'
-        ).fsPath;
-      }
-
-
-.. spec:: Update Check Setting in package.json
-   :id: SPEC_CFG_UPDATECHECK
-   :status: deprecated
-   :links: REQ_CFG_UPDATECHECK
-
-   **Superseded by:** ``SPEC_CFG_MANIFEST`` (settings-cleanup CR —
-   ``jarvis.checkForUpdates`` now lives in the Updates group of the unified
-   manifest).
-
-   **Description:**
-   Add a boolean configuration entry to the ``contributes.configuration`` block
-   in ``package.json``.
-
-   **package.json addition:**
-
-   .. code-block:: json
-
-      {
-        "jarvis.checkForUpdates": {
-          "type": "boolean",
-          "default": true,
-          "description": "Check for new Jarvis releases on GitHub when the extension activates."
-        }
-      }
-
-   The setting is read once at activation time (see SPEC_REL_UPDATECOMMAND).
-   No runtime change handler is needed — the check only runs at startup.
-
-
-.. spec:: Grouped Settings Configuration in package.json
-   :id: SPEC_CFG_SETTINGSGROUPS
-   :status: deprecated
-   :links: REQ_CFG_SETTINGSGROUPS
-
-   **Superseded by:** ``SPEC_CFG_MANIFEST`` (settings-cleanup CR).
-
-   **Description:**
-   The ``contributes.configuration`` field in ``package.json`` SHALL be converted
-   from a single object to an array of objects, each representing one named settings
-   group. This produces sub-headings in the VS Code Settings UI under "Jarvis".
-
-   **package.json change** (``contributes.configuration``)::
-
-      [
-        {
-          "title": "Projects",
-          "properties": {
-            "jarvis.projectsFolder": { ... },
-            "jarvis.scanInterval": { ... }
-          }
-        },
-        {
-          "title": "Events",
-          "properties": {
-            "jarvis.eventsFolder": { ... }
-          }
-        },
-        {
-          "title": "Heartbeat",
-          "properties": {
-            "jarvis.heartbeatConfigFile": { ... },
-            "jarvis.heartbeatInterval": { ... }
-          }
-        },
-        {
-          "title": "Messages",
-          "properties": {
-            "jarvis.messagesFile": { ... }
-          }
-        },
-        {
-          "title": "MCP Server",
-          "properties": {
-            "jarvis.mcpPort": { ... },
-            "jarvis.mcpEnabled": { ... }
-          }
-        },
-        {
-          "title": "Updates",
-          "properties": {
-            "jarvis.checkForUpdates": { ... }
-          }
-        }
-      ]
-
-   **Constraints:**
-
-   * All existing setting keys, types, defaults, and descriptions remain unchanged
-   * The enclosing ``"configuration"`` value changes type from object to array
-   * No TypeScript / runtime code changes required
-   * Group titles are bare (e.g. ``"Projects"``, not ``"Jarvis: Projects"``) because
-     VS Code already shows the extension name as the parent section in the Settings UI
-
-
 .. spec:: settings-cleanup: Full Configuration Manifest (package.json)
    :id: SPEC_CFG_MANIFEST
-   :status: approved
+   :status: implemented
    :links: REQ_CFG_TOGGLES; REQ_CFG_GROUPS; REQ_CFG_MCPDEFAULTOFF; REQ_CFG_RENAMES; REQ_CFG_FOLDERPATHS; REQ_CFG_SCANINTERVAL; REQ_ACTOR_INITPROMPT; REQ_ACTOR_CREATE
 
    **Description:**
@@ -368,11 +155,6 @@ Configuration Design Specifications
    * ``jarvis.outlookEnabled`` (replaced by ``jarvis.outlook.enabled``)
    * ``jarvis.heartbeatConfigFile`` (replaced by fixed path; see SPEC_CFG_PATHRESOLVER)
    * ``jarvis.messagesFile`` (replaced by fixed path; see SPEC_CFG_PATHRESOLVER)
-
-   **Supersedes:** SPEC_CFG_SETTINGS, SPEC_CFG_HEARTBEATSETTINGS,
-   SPEC_CFG_UPDATECHECK, SPEC_CFG_SETTINGSGROUPS
-   (those specs document the pre-CR state; they remain in the file as historical
-   record with ``status: deprecated``).
 
 
 .. spec:: settings-cleanup: Central Path Resolver Module (configPaths.ts)
@@ -705,7 +487,7 @@ Configuration Design Specifications
 
 .. spec:: settings-cleanup: View Gating via when-clauses
    :id: SPEC_CFG_VIEWGATING
-   :status: approved
+   :status: implemented
    :links: REQ_CFG_TOGGLES
 
    **Description:**
@@ -734,15 +516,13 @@ Configuration Design Specifications
 
    **``contributes.menus`` items to update:**
 
-   * Any menu item currently gated on ``config.jarvis.messagesFile != ''`` SHALL
-     change its ``when`` clause to ``config.jarvis.messages.enabled == true``.
-   * Any menu item currently gated on ``config.jarvis.heartbeatConfigFile != ''``
-     SHALL change its ``when`` clause to ``config.jarvis.heartbeat.enabled == true``.
-
-   **Supersedes:** The ``when``-clause behaviour of the former feature-toggle
-   view spec (``config.jarvis.heartbeatConfigFile != ''`` and
-   ``config.jarvis.messagesFile != ''``; those conditions no longer apply after
-   the configurable paths are removed).
+   * A menu item of the Messages feature SHALL be gated on
+     ``config.jarvis.messages.enabled == true``.
+   * A menu item of the Heartbeat feature SHALL be gated on
+     ``config.jarvis.heartbeat.enabled == true``.
+   * No ``when`` clause tests a path setting: the runtime file paths are fixed
+     (``SPEC_CFG_PATHRESOLVER``), so a path setting holds no state that could
+     show or hide a view.
 
 
 Workspace File Layout & VCS Visibility
@@ -915,7 +695,7 @@ Workspace File Layout & VCS Visibility
 
 .. spec:: Removal of Hook Files Left by Earlier Versions
    :id: SPEC_CFG_HOOKCLEANUP
-   :status: draft
+   :status: implemented
    :links: REQ_CFG_HOOKCLEANUP; REQ_CFG_FILEPREFIX; SPEC_CFG_WORKSPACEFILES
 
    **Description:**
@@ -1103,7 +883,7 @@ Workspace File Layout & VCS Visibility
 .. spec:: Managed .gitignore Region
    :id: SPEC_CFG_IGNOREMANAGER
    :status: implemented
-   :links: REQ_CFG_IGNOREBLOCK; REQ_CFG_IGNOREAUTOMANAGE; REQ_CFG_IGNOREPATTERNS; SPEC_CFG_PATHRESOLVER; SPEC_CFG_WORKSPACEFILES
+   :links: REQ_CFG_IGNOREBLOCK; REQ_CFG_IGNOREAUTOMANAGE; REQ_CFG_IGNOREPATTERNS; REQ_CFG_GROUPS; SPEC_CFG_PATHRESOLVER; SPEC_CFG_WORKSPACEFILES; SPEC_CFG_MANIFEST
 
    **Description:**
    New module ``packages/core/src/engine/core/gitignoreManager.ts`` maintains a
@@ -1261,15 +1041,11 @@ Workspace File Layout & VCS Visibility
    setting and see nothing happen until the next window reload, and would
    reasonably conclude the setting does not work.
 
-   **Group placement.** The setting belongs in a ``Gitignore`` group in
-   ``contributes.configuration``. ``REQ_CFG_GROUPS`` fixes the groups at eleven
-   named titles in a fixed order and is ``:status: implemented``; the shipped
-   manifest already contributes ``Actors`` and ``Prompt Templates``
-   and omits five groups that moved to other packages at the monorepo split.
-   This design element does not assert conformance to ``REQ_CFG_GROUPS``,
-   because it cannot: the requirement describes a manifest that no longer
-   exists. Re-baselining it is escalated (CD L1 Decision 5), and the placement
-   above is what the group list should say once it is.
+   **Group placement.** The setting lives in the ``Gitignore`` group of
+   ``contributes.configuration``. The core manifest contributes exactly the
+   seven groups of ``REQ_CFG_GROUPS`` (Actors, Messages, Prompt Templates,
+   Heartbeat, Reminders, Gitignore, Updates), and ``SPEC_CFG_MANIFEST`` holds
+   the full array; add-on settings live in their own packages' manifests.
 
    **Design notes:**
 

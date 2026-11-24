@@ -5,7 +5,7 @@ Outlook Requirements
    :id: REQ_OLK_COMBRIDGE
    :status: implemented
    :priority: mandatory
-   :links: US_OLK_COMBRIDGE; REQ_PIM_PROVIDER
+   :links: US_PIM_CATEGORIES; REQ_PIM_PROVIDER
 
    **Description:**
    The extension SHALL provide an ``OutlookCategoryProvider`` that reads and
@@ -36,26 +36,26 @@ Outlook Requirements
    :id: REQ_OLK_ENABLE
    :status: implemented
    :priority: mandatory
-   :links: US_OLK_COMBRIDGE; REQ_CFG_SETTINGSGROUPS
+   :links: US_PIM_CATEGORIES; US_PIM_TASKS; REQ_CFG_GROUPS
 
    **Description:**
-   The extension SHALL provide a boolean setting ``jarvis.outlookEnabled`` that
+   The extension SHALL provide a boolean setting ``jarvis.outlook.enabled`` that
    controls whether the Outlook COM provider is instantiated.
 
    **Acceptance Criteria:**
 
-   * AC-1: ``jarvis.outlookEnabled`` SHALL be a boolean setting with default
+   * AC-1: ``jarvis.outlook.enabled`` SHALL be a boolean setting with default
      ``false``
    * AC-2: When ``false``, no COM calls SHALL be made and no Outlook providers
      SHALL be instantiated
-   * AC-3: Changing ``jarvis.outlookEnabled`` SHALL require a window reload
+   * AC-3: Changing ``jarvis.outlook.enabled`` SHALL require a window reload
 
 
 .. req:: Outlook Task Provider (COM Bridge)
    :id: REQ_OLK_TASKPROVIDER
    :status: implemented
    :priority: mandatory
-   :links: US_OLK_TASKS; REQ_PIM_TASKPROVIDER
+   :links: US_PIM_TASKS; REQ_PIM_TASKPROVIDER
 
    **Description:**
    The extension SHALL provide an ``OutlookTaskProvider`` that reads and writes
@@ -88,7 +88,7 @@ Outlook Requirements
    :id: REQ_OLK_TASKENABLE
    :status: implemented
    :priority: mandatory
-   :links: US_OLK_TASKS; REQ_OLK_ENABLE; REQ_CFG_SETTINGSGROUPS
+   :links: US_PIM_TASKS; REQ_OLK_ENABLE; REQ_CFG_GROUPS
 
    **Description:**
    The extension SHALL provide a boolean setting ``jarvis.outlook.tasks.enabled``
@@ -100,7 +100,7 @@ Outlook Requirements
    * AC-1: ``jarvis.outlook.tasks.enabled`` SHALL be a boolean setting with
      default ``true``
    * AC-2: The tasks feature SHALL only be active when BOTH
-     ``jarvis.outlookEnabled === true`` AND
+     ``jarvis.outlook.enabled === true`` AND
      ``jarvis.outlook.tasks.enabled === true``
    * AC-3: When either toggle is ``false``, no task COM calls SHALL be made and
      no task provider SHALL be instantiated
@@ -112,7 +112,7 @@ Outlook Requirements
    :id: REQ_OLK_CATENABLE
    :status: approved
    :priority: mandatory
-   :links: US_OLK_COMBRIDGE; US_PIM_CATVIEW; REQ_OLK_ENABLE; REQ_CFG_SETTINGSGROUPS
+   :links: US_PIM_CATVIEW; REQ_OLK_ENABLE; REQ_CFG_GROUPS
 
    **Description:**
    The extension SHALL provide a boolean setting

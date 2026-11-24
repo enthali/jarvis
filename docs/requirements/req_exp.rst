@@ -21,7 +21,7 @@ Explorer Requirements
    :id: REQ_EXP_TREEVIEW
    :status: approved
    :priority: mandatory
-   :links: US_EXP_SIDEBAR; REQ_ACTOR_TREE; REQ_CFG_TOGGLES
+   :links: US_EXP_SIDEBAR; US_MSG_TREE; US_AUT_HEARTBEATTREE; REQ_ACTOR_TREE; REQ_CFG_TOGGLES
 
    **Description:**
    The extension SHALL provide tree views inside the Jarvis sidebar: the
@@ -80,7 +80,7 @@ Explorer Requirements
    :id: REQ_EXP_HEARTBEAT_OPENFILE
    :status: implemented
    :priority: optional
-   :links: US_EXP_OPENFILE; REQ_CFG_FIXEDPATHS
+   :links: US_AUT_HEARTBEATTREE; REQ_CFG_FIXEDPATHS
 
    **Description:**
    Clicking a Heartbeat Job node in the Heartbeat tree view SHALL open
@@ -106,7 +106,7 @@ Explorer Requirements
    :id: REQ_EXP_MESSAGE_OPENFILE
    :status: implemented
    :priority: optional
-   :links: US_EXP_OPENFILE; REQ_CFG_FIXEDPATHS
+   :links: US_MSG_TREE; REQ_CFG_FIXEDPATHS
 
    **Description:**
    Clicking a Message leaf node in the Messages tree view SHALL open the messages
@@ -129,9 +129,9 @@ Explorer Requirements
 
 .. req:: Open Reminders File at Reminder Position
    :id: REQ_EXP_REMINDER_OPENFILE
-   :status: draft
+   :status: implemented
    :priority: optional
-   :links: US_MSG_REMINDERS; US_EXP_OPENFILE; REQ_CFG_PATHSINGLESOURCE
+   :links: US_MSG_REMINDERS; REQ_CFG_PATHSINGLESOURCE
 
    **Description:**
    Clicking a reminder node in the "Reminders" sidebar view SHALL open
@@ -144,15 +144,15 @@ Explorer Requirements
      (``TreeItem.command``)
    * AC-2: The file opened SHALL be the one reminders are persisted to
      (``REQ_MSG_REMINDERS_PERSIST``), obtained from the central path resolver
-     (``REQ_CFG_PATHSINGLESOURCE``). This AC previously required the path to be
-     "resolved by ``resolveRemindersPath(messagesPath)``" — the derivation that
-     ``SPEC_MSG_REMINDERSTORE`` had already replaced. The view therefore opened
-     a different file from the one the store wrote whenever the two disagreed,
-     and after ``REQ_CFG_MSGDIR`` they would disagree always.
+     (``REQ_CFG_PATHSINGLESOURCE``), not derived from the message queue path:
+     a derived path opens a different file from the one the store writes as
+     soon as the two locations differ, and ``REQ_CFG_MSGDIR`` moves the queue
+     into ``.jarvis/messages/`` while ``reminders.yaml`` stays in ``.jarvis/``.
    * AC-3: The revealed line contains the matching ``id: <uuid>`` entry of
      the clicked reminder
    * AC-4: If the matching id cannot be found, the file opens at line 0
      (fail-open)
    * AC-5: The file is opened read-write (standard editor, no custom editor)
-   * AC-6: If ``reminders.yaml`` is missing the command shows a warning
-     notification and returns without opening a file
+   * AC-6: If ``reminders.yaml`` is missing (or no workspace is open), or the
+     file cannot be opened, the command shows a warning notification and
+     returns without opening a file

@@ -60,9 +60,11 @@ async function handleRequeue(
             timestamp: original.timestamp,  // preserved verbatim — same send time
         });
         log.info(`[Flow] requeued message to "${original.destination}" (original timestamp ${original.timestamp})`);
+        void vscode.window.showInformationMessage(`Requeued to "${original.destination}"`);
         return true;
     } catch (e) {
         log.warn(`[Flow] requeue failed for "${original.destination}": ${e}`);
+        void vscode.window.showErrorMessage(`Requeue to "${original.destination}" failed: ${e instanceof Error ? e.message : String(e)}`);
         return false;
     }
 }

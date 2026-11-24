@@ -17,9 +17,7 @@ Message Queue Design Specifications
 
    **(GH #59)** ``readQueue`` unions the superseded ``.jarvis/messages.json``
    into its result, and the write paths remove that file once the union has been
-   persisted (``SPEC_CFG_STATEMIGRATION``). The ``:links:`` reference to the
-   deprecated ``REQ_CFG_MSGPATH`` is replaced by ``REQ_CFG_FIXEDPATHS``, which
-   is the actual owner of the location.
+   persisted (``SPEC_CFG_STATEMIGRATION``).
 
    **Data type:**
 
@@ -166,12 +164,11 @@ Message Queue Design Specifications
 
    * ``SessionGroupNode`` → collapsible, label = ``"${destination} (${count})"``,
      contextValue = ``'messageSession'`` (enables send button).
-     **``ui-improvements`` CR**: ``item.command`` is now set, invoking a new
-     handler that resolves ``element.destination`` via
-     ``lookupSessionUUID()`` and opens the chat at Main via ``openAtMain``
-     (``SPEC_MSG_EDITORPLACEMENT``, same helper already used by
-     ``jarvis.openActorSession`` and ``jarvis.sendMessages``) — previously
-     no command was set (label click only expanded/collapsed).
+     **``ui-improvements`` CR**: ``item.command`` is set to
+     ``jarvis.openMessageActorChat``, which shows the chat of the Actor when it
+     exists (``REQ_COM_OPEN`` AC-3, ``SPEC_COM_OPEN``). The former handler that
+     resolved the destination to a session UUID is removed
+     (``retire-legacy-session-lookup`` CR).
    * ``MessageLeafNode`` → non-collapsible, label = truncated text (max 80 chars),
      contextValue = ``'messageItem'`` (enables trash button)
    * ``EmptyNode`` → non-collapsible, label = ``"nothing to deliver"``
@@ -187,221 +184,6 @@ Message Queue Design Specifications
 
    Re-read queue file and call ``this._onDidChangeTreeData.fire(undefined)``
    to refresh the entire tree. Called after queue mutations and setting changes.
-
-
-.. spec:: Session UUID Resolver
-   :id: SPEC_MSG_SESSIONLOOKUP
-   :status: implemented
-   :links: REQ_MSG_SESSIONLOOKUP
-
-   **Description:**
-   Module ``src/sessionLookup.ts`` resolves a chat session title to a UUID by
-   querying the **workspace-scoped** ``state.vscdb`` SQLite database. Uses
-   ``sql.js`` (pure JavaScript/WASM — no native compilation needed for Electron).
-
-   **Dependency (package.json):**
-
-   .. code-block:: json
-
-      {
-        "dependencies": {
-          "sql.js": "^1.14.1"
-        }
-      }
-
-   **Workspace-scoped state.vscdb location:**
-
-   The global ``state.vscdb`` contains sessions from **all** VS Code windows.
-   To get only sessions belonging to the current workspace, the module uses the
-   workspace-local ``state.vscdb`` located alongside the extension storage.
-
-   ``context.storageUri`` points to
-   ``workspaceStorage/<hash>/<extensionId>/``. The workspace-scoped
-   ``state.vscdb`` lives in the parent directory: ``workspaceStorage/<hash>/state.vscdb``.
-
-   In **Remote / Devcontainer** environments ``context.storageUri.fsPath`` may
-   resolve to a remote filesystem path, making a direct ``path.dirname()``
-   derivation invalid on the local machine. The fix uses
-   ``context.globalStorageUri`` — which always resolves to a local path — to
-   anchor the ``userDataPath``, then reconstructs the workspace storage path
-   from there.
-
-   ``context.globalStorageUri`` points to
-   ``<userDataPath>/globalStorage/<extensionId>/``. Two levels up yields the
-   VS Code User Data folder. The workspace hash is extracted as
-   ``path.basename(path.dirname(storageUri.fsPath))``, which is stable even
-   when ``storageUri`` is a remote URI because only the last path segment (the
-   hash) is used.
-
-   **WSL2 path resolution:**
-
-   In **WSL2 remote** mode the extension host runs on Linux, so
-   ``globalStorageUri.fsPath`` resolves to the WSL2 path (e.g.
-   ``/home/<user>/.vscode-server/data/User/globalStorage/...``). However,
-   VS Code's ``state.vscdb`` lives on the **Windows host** and is accessible
-   from WSL2 at ``/mnt/c/Users/<USERNAME>/AppData/Roaming/Code/User/workspaceStorage/<hash>/state.vscdb``.
-
-   The ``resolveUserDataPath(globalStorageUri)`` helper handles this:
-
-   1. **Detect WSL2** — read ``/proc/version`` synchronously; if it contains
-      ``"microsoft"`` (case-insensitive), the environment is WSL2.
-   2. **WSL2 branch** — derive the Windows username from the environment
-      variables with a fallback chain: ``process.env.USERNAME ?? process.env.USER ?? 'unknown'``.
-      Construct the user data path as ``/mnt/c/Users/<username>/AppData/Roaming/Code/User``.
-      If both ``USERNAME`` and ``USER`` are unset, fall back to the non-WSL2
-      logic (using ``globalStorageUri``) instead of throwing.
-   3. **Non-WSL2 branch** — use the existing logic:
-      ``path.resolve(globalStorageUri.fsPath, '../..')``.
-
-   The workspace hash extraction (``path.basename(path.dirname(storageUri.fsPath))``)
-   is unchanged — it is the same hash on both sides.
-
-   .. code-block:: typescript
-
-      let _stateVscdbPath: string | undefined;
-
-      function isWSL2(): boolean {
-        try {
-          const version = fs.readFileSync('/proc/version', 'utf-8');
-          return /microsoft/i.test(version);
-        } catch {
-          return false;
-        }
-      }
-
-      function resolveUserDataPath(globalStorageUri: vscode.Uri): string {
-        if (isWSL2()) {
-          const username = process.env.USERNAME ?? process.env.USER ?? 'unknown';
-          if (username !== 'unknown') {
-            return `/mnt/c/Users/${username}/AppData/Roaming/Code/User`;
-          }
-          // Both USERNAME and USER unset — fall back to non-WSL2 logic
-        }
-        return path.resolve(globalStorageUri.fsPath, '../..');
-      }
-
-      function initSessionLookup(storageUri: vscode.Uri, globalStorageUri: vscode.Uri): void {
-        const hash = path.basename(path.dirname(storageUri.fsPath));
-        const userDataPath = resolveUserDataPath(globalStorageUri);
-        _stateVscdbPath = path.join(userDataPath, 'workspaceStorage', hash, 'state.vscdb');
-      }
-
-   ``initSessionLookup`` is called once during ``activate()`` with both
-   ``context.storageUri`` and ``context.globalStorageUri``.
-
-   **SessionStore structure:**
-
-   The ``chat.ChatSessionStore.index`` value in ``state.vscdb`` is a JSON object
-   with the following structure:
-
-   .. code-block:: typescript
-
-      interface SessionStoreEntry {
-        sessionId: string;
-        title: string;
-      }
-
-      interface SessionStore {
-        version: number;
-        entries: { [id: string]: SessionStoreEntry };
-      }
-
-   **Public API:**
-
-   .. code-block:: typescript
-
-      interface SessionInfo {
-        title: string;
-        sessionId: string;
-      }
-
-      function setSessionLookupLogger(log: vscode.LogOutputChannel): void
-
-      async function getAllSessions(): Promise<SessionInfo[]> {
-        const dbPath = getStateVscdbPath();
-        if (!fs.existsSync(dbPath)) {
-          _log?.warn('[sessionLookup] state.vscdb not found at: ' + dbPath);
-          return [];
-        }
-        const SQL = await initSqlJs();
-        const fileBuffer = fs.readFileSync(dbPath);
-        const db = new SQL.Database(fileBuffer);
-        try {
-          const result = db.exec(
-            "SELECT value FROM ItemTable WHERE key = 'chat.ChatSessionStore.index'"
-          );
-          if (result.length === 0 || result[0].values.length === 0) return [];
-          const store: SessionStore = JSON.parse(result[0].values[0][0] as string);
-          return Object.values(store.entries).map(entry => ({
-            title: entry.title,
-            sessionId: entry.sessionId,
-          }));
-        } finally {
-          db.close();
-        }
-      }
-
-      async function lookupSessionUUID(
-        sessionName: string
-      ): Promise<string | undefined> {
-        const all = await getAllSessions();
-        const matches = all.filter(s => s.title === sessionName);
-        if (matches.length === 0) return undefined;
-        if (matches.length > 1) {
-          vscode.window.showWarningMessage(
-            `Jarvis: multiple chat sessions named "${sessionName}" — using first match`
-          );
-        }
-        return matches[0].sessionId;
-      }
-
-   **Design decisions:**
-
-   * **Workspace-scoped, not global** — ``state.vscdb`` from
-     ``workspaceStorage/<hash>/`` contains only sessions for the current VS Code
-     window, avoiding cross-instance confusion
-   * **``initSessionLookup(storageUri, globalStorageUri)``** — called once at
-     activation; derives the DB path using ``globalStorageUri`` (always a local
-     path) to be compatible with Remote and Devcontainer environments where
-     ``storageUri.fsPath`` may point to a remote filesystem
-   * **Remote/Devcontainer compatibility** — ``globalStorageUri.fsPath`` is
-     always a local path; two levels up yields ``userDataPath``; the workspace
-     hash is extracted from ``storageUri.fsPath`` (basename of parent of
-     extensionId segment) and used to reconstruct the local path
-   * **WSL2 compatibility** — in WSL2 the extension host runs on Linux but
-     ``state.vscdb`` lives on the Windows host. ``resolveUserDataPath()``
-     detects WSL2 via ``/proc/version`` containing ``"microsoft"``
-     (case-insensitive) and constructs the path as
-     ``/mnt/c/Users/<username>/AppData/Roaming/Code/User`` using the
-     ``USERNAME`` environment variable with a fallback chain
-     ``USERNAME ?? USER ?? 'unknown'``. If both are unset, it falls back to
-     the non-WSL2 logic instead of throwing. ``APPDATA`` is not available in
-     this environment, hence the fallback chain.
-   * **Live read, no caching** — the DB is small and the read is fast; caching
-     would introduce staleness bugs when sessions are renamed or deleted
-   * **``sql.js``** — pure JavaScript/WASM SQLite implementation. Does not
-     require native compilation or ``@electron/rebuild``. Replaces
-     ``better-sqlite3`` which crashed in Electron due to native C++ ABI mismatch
-   * **Async API** — ``sql.js`` initialization is async (``initSqlJs()``),
-     so ``lookupSessionUUID`` and ``getAllSessions`` return Promises
-   * **Warning on missing DB** — if ``state.vscdb`` is not found at the
-     resolved path, a warning is emitted via the Jarvis log channel and an empty
-     list is returned; callers are not expected to handle this case specially
-   * **Named session filter** — a shared helper
-     ``filterNamedSessions(sessions)`` returns only sessions where
-     ``s.title && s.title !== 'New Chat'``.  Used by
-     the heartbeat destination check.
-     Defined in ``sessionLookup.ts`` to satisfy ``REQ_MSG_SESSIONFILTER``.
-
-   **Shared filter helper (REQ_MSG_SESSIONFILTER):**
-
-   .. code-block:: typescript
-
-      export function filterNamedSessions(
-        sessions: SessionInfo[]
-      ): SessionInfo[] {
-        return sessions.filter(s => s.title && s.title !== 'New Chat');
-      }
 
 
 .. spec:: MCP Server Module
@@ -513,109 +295,6 @@ Message Queue Design Specifications
      ``[MCP]`` log output
    * Only POST is accepted; other methods receive 405
    * ``stopMcpServer()`` is called from ``deactivate()`` in ``extension.ts``
-
-
-.. spec:: Dual-Registration Wrapper
-   :id: SPEC_MSG_DUALREGISTRATION
-   :status: implemented
-   :links: REQ_MSG_MCPSERVER; REQ_CFG_MCPPORT
-
-   **Description:**
-   A ``registerDualTool()`` helper function in ``extension.ts`` registers each
-   tool with both ``vscode.lm.registerTool()`` and ``registerMcpTool()``
-   simultaneously. Existing tool registrations (``jarvis_sendToSession``,
-   ``jarvis_listActors``, ``jarvis_readMessage``) are refactored to use
-   this wrapper. Handler logic stays identical; only return types differ.
-
-   **Wrapper function:**
-
-   .. code-block:: typescript
-
-      function registerDualTool(
-        name: string,
-        lmHandler: (
-          options: vscode.LanguageModelToolInvocationOptions<any>,
-          token: vscode.CancellationToken
-        ) => Promise<vscode.LanguageModelToolResult>,
-        mcpDescription: string,
-        mcpInputSchema: Record<string, z.ZodTypeAny>,
-        mcpHandler: (args: Record<string, unknown>) => Promise<object>
-      ): vscode.Disposable {
-        const lmTool = vscode.lm.registerTool(name, { invoke: lmHandler });
-        registerMcpTool(name, mcpDescription, mcpInputSchema, mcpHandler);
-        return lmTool;
-      }
-
-   **Refactored tool registrations (in activate()):**
-
-   Each existing tool gets both an LM handler (returning
-   ``LanguageModelToolResult``) and an MCP handler (returning a plain object).
-   The core logic (queue operations, session lookups) is shared.
-   ``mcpDescription`` provides a human-readable tool description for the MCP
-   protocol (independent of the ``modelDescription`` in ``package.json``).
-   ``mcpInputSchema`` uses Zod types (``z.string()``, ``z.string().optional()``)
-   as required by the MCP SDK.
-
-   **Lifecycle in activate():**
-
-   .. code-block:: typescript
-
-      // After all registerDualTool() calls:
-      const config = vscode.workspace.getConfiguration('jarvis');
-      const mcpEnabled = config.get<boolean>('mcp.enabled', false);   // REQ_CFG_MCPDEFAULTOFF
-      const mcpPort = config.get<number>('mcpPort', 31415);
-
-      if (mcpEnabled) {
-        startMcpServer(mcpPort, log).then(() => {
-          mcpStatusBar.show();
-        });
-      }
-
-   **Status bar item:**
-
-   .. code-block:: typescript
-
-      const mcpStatusBar = vscode.window.createStatusBarItem(
-        vscode.StatusBarAlignment.Right, 100
-      );
-      mcpStatusBar.text = `$(plug) Jarvis MCP: ${mcpPort}`;
-      mcpStatusBar.tooltip = 'Jarvis MCP Server';
-      context.subscriptions.push(mcpStatusBar);
-
-   **Deactivation:**
-
-   .. code-block:: typescript
-
-      export async function deactivate() {
-        await stopMcpServer();
-      }
-
-   **Settings in package.json:**
-
-   .. code-block:: json
-
-      {
-        "jarvis.mcpPort": {
-          "type": "number",
-          "default": 31415,
-          "description": "Port for MCP server (localhost only)."
-        },
-        "jarvis.mcp.enabled": {
-          "type": "boolean",
-          "default": false,
-          "description": "Enable the embedded MCP server."
-        }
-      }
-
-   **Design notes:**
-
-   * ``registerDualTool()`` returns the LM tool ``Disposable`` — MCP tools are
-     cleaned up when the server stops
-   * MCP handlers receive raw ``Record<string, unknown>`` and return plain
-     objects — the MCP SDK serializes them to JSON
-   * LM handlers continue to return ``LanguageModelToolResult`` as before
-   * The status bar item is only shown when ``jarvis.mcp.enabled`` is true
-   * Port changes require extension reload (no hot-reconfiguration)
 
 
 .. spec:: Auto-Delivery Config Store
@@ -977,8 +656,8 @@ Message Queue Design Specifications
 
 .. spec:: Editor-Group Placement Helper
    :id: SPEC_MSG_EDITORPLACEMENT
-   :status: approved
-   :links: REQ_MSG_EDITORPLACEMENT; SPEC_MSG_SESSIONLOOKUP; SPEC_MSG_TREEPROVIDER
+   :status: implemented
+   :links: REQ_MSG_EDITORPLACEMENT; SPEC_MSG_TREEPROVIDER
 
    **Description:**
    A set of helper functions in ``extension.ts`` computing the three
@@ -994,7 +673,9 @@ Message Queue Design Specifications
    ``REQ_MSG_EDITORPLACEMENT``). The Main and Secondary targets, the
    existing-tab lookup by label and the Messages tree group-node click below
    describe the removed behaviour; the Docs target remains in use by other
-   features.
+   features. The session UUID lookup that the existing-tab lookup and the
+   Messages tree group-node click below relied on is retired as well
+   (``retire-legacy-session-lookup`` CR).
 
    **Column constants:**
 
@@ -1020,7 +701,7 @@ Message Queue Design Specifications
           // stack as tabs within the same group once 3+ columns exist.
           //
           // message-flow-diagram CR: the diagram Webview Panel is not a
-          // chat tab (no lookupSessionUUID match) or a plain file tab (no
+          // chat tab or a plain file tab (no
           // .uri) — it is identified by viewType instead. It intentionally
           // is NOT excluded from tabGroups.all.length here: it occupies
           // column 2 (same as Docs/Content), so a workspace with only
@@ -1038,8 +719,8 @@ Message Queue Design Specifications
 
    .. code-block:: typescript
 
-      /** Finds an already-open tab for a chat session, by resolving the
-       *  tab's label via lookupSessionUUID (chat tabs expose no .uri). */
+      /** Finds an already-open tab for a chat session, by its label
+       *  (chat tabs expose no .uri). */
       function findSessionTab(sessionName: string): vscode.Tab | undefined {
           for (const group of vscode.window.tabGroups.all) {
               for (const tab of group.tabs) {
@@ -1115,61 +796,39 @@ Message Queue Design Specifications
      special-case handling needed; the close/reuse logic works transparently
      across window boundaries.
    * These helpers only ever act on tabs whose label matches a known session
-     name (via ``lookupSessionUUID``) or a known Actor file path — any file
+     name or a known Actor file path — any file
      the user opens manually is entirely outside this contract.
    * ``openAtMain``/``openAtDocs``/``openAtSecondary`` replace ad-hoc
      ``vscode.open(uri, { preview: false })`` calls at their respective call
      sites (``SPEC_ACTOR_FILES``, ``SPEC_MSG_TREEPROVIDER``) — see each
      spec's updated handler.
 
-   **New call site (``ui-improvements`` CR): Messages tree group-node click**
+   **Retired call site (``ui-improvements`` CR): Messages tree group-node click**
 
-   ``SessionGroupNode``'s ``TreeItem.command`` (previously unset,
-   ``SPEC_MSG_TREEPROVIDER``) is bound to a new command that opens the
-   session's chat at Main, mirroring ``jarvis.openActorSession``'s and
-   ``jarvis.sendMessages``'s existing-session branches:
-
-   .. code-block:: typescript
-
-      vscode.commands.registerCommand(
-        'jarvis.openMessageSession',
-        async (node: SessionGroupNode) => {
-          const uuid = await lookupSessionUUID(node.destination);
-          if (!uuid) { return; } // no live session yet — nothing to open
-          const b64 = Buffer.from(uuid).toString('base64');
-          const uri = vscode.Uri.parse(`vscode-chat-session://local/${b64}`);
-          await openAtMain(uri, node.destination); // REQ_MSG_EDITORPLACEMENT AC-10
-        }
-      );
-
-   Registered in ``TreeItem.command`` (``SPEC_MSG_TREEPROVIDER``'s
-   ``getTreeItem()``), not via a ``view/item/context`` menu entry — same
-   pattern as the ACTORS tree's click-to-chat binding
-   (``SPEC_ACTOR_TREE``), not a right-click action.
-
-   **Design note:** if no session UUID resolves (the destination has no
-   live chat session yet — e.g. all messages are still queued and no
-   session has ever been opened for that destination), the handler is a
-   silent no-op rather than creating a new session. This differs
-   deliberately from ``jarvis.openActorSession``/``jarvis.sendMessages``,
-   which both create a fresh session on miss — a label click in the
-   Messages tree is a lower-intent, exploratory action (unlike explicitly
-   clicking "Play" to send), so silently doing nothing is preferred over
-   surprising the user with a brand-new chat session.
+   The command ``jarvis.openMessageSession`` that opened the chat of a
+   ``SessionGroupNode`` at Main through ``lookupSessionUUID`` and
+   ``openAtMain`` no longer exists. The group-node click is
+   ``jarvis.openMessageActorChat`` (``SPEC_MSG_TREEPROVIDER``,
+   ``REQ_COM_OPEN`` AC-3); a click on a destination without a chat does
+   nothing, deliberately: a label click is a lower-intent, exploratory action
+   (unlike explicitly clicking "Play" to send), so it does not surprise the
+   user with a brand-new chat.
 
 
 .. spec:: Reminder Store Module
    :id: SPEC_MSG_REMINDERSTORE
-   :status: draft
+   :status: implemented
    :links: REQ_MSG_REMINDERS_PERSIST; SPEC_MSG_QUEUESTORE; REQ_CFG_FIXEDPATHS; REQ_CFG_PATHSINGLESOURCE
 
    **Description:**
-   New module ``src/reminders.ts`` provides synchronous file-backed read/write
-   operations for the ``reminders.yaml`` file. The file path is resolved by
-   ``configPaths.getRemindersPath()`` (see ``SPEC_CFG_PATHRESOLVER``). The file
-   lives at ``<workspaceRoot>/.jarvis/reminders.yaml``; it is not co-located by
-   path derivation from the message queue — both paths are independently resolved
-   by the central path resolver.
+   The module ``packages/core/src/apps/session/reminders.ts`` provides
+   synchronous file-backed read/write operations for the ``reminders.yaml``
+   file. The file path is resolved by ``configPaths.getRemindersPath()``
+   (``packages/core/src/engine/core/configPaths.ts``, see
+   ``SPEC_CFG_PATHRESOLVER``); every caller passes it in as ``filePath``. The
+   file lives at ``<workspaceRoot>/.jarvis/reminders.yaml``; it is not
+   co-located by path derivation from the message queue — both paths are
+   independently resolved by the central path resolver.
 
    **File format (reminders.yaml):**
 
@@ -1196,13 +855,11 @@ Message Queue Design Specifications
 
    **Path resolution:**
 
-   .. code-block:: typescript
-
-      import * as configPaths from './configPaths';
-
-      function getRemindersFilePath(): string | undefined {
-        return configPaths.getRemindersPath();
-      }
+   There is no path helper in the module. Callers (the poll loop, the tool
+   handlers' ``remindersPath`` dependency, ``RemindersTreeProvider`` and the
+   ``jarvis.cancelReminder`` / ``jarvis.openReminderFile`` commands) call
+   ``configPaths.getRemindersPath() ?? ''`` and pass the result to the store;
+   an empty path reads as an empty list (no workspace open).
 
    **Public API:**
 
@@ -1212,10 +869,10 @@ Message Queue Design Specifications
         if (!fs.existsSync(filePath)) { return []; }
         try {
           const raw = fs.readFileSync(filePath, 'utf8');
-          const parsed = yaml.load(raw) as { reminders?: Reminder[] };
+          const parsed = yaml.load(raw) as { reminders?: Reminder[] } | null;
           return parsed?.reminders ?? [];
         } catch {
-          log.warn('[MSG] reminders.yaml malformed — falling back to empty list');
+          log?.warn('[MSG] reminders.yaml malformed — falling back to empty list');
           return [];
         }
       }
@@ -1285,54 +942,71 @@ Message Queue Design Specifications
      what turns the dormant disagreement into a permanent one: the derived path
      would become ``.jarvis/messages/reminders.yaml``, which nothing writes, so
      the view would show an empty list and report no error.
-   * ``popDueReminders`` is atomic: it reads, separates due from remaining,
-     writes remaining, then returns due — no separate ``removeReminder`` call
-     needed from the poll loop
+   * ``popDueReminders`` completes in one synchronous step: it reads, separates
+     due from remaining, writes remaining, then returns due — no separate
+     ``removeReminder`` call needed from the poll loop; the extension host is
+     single-threaded, so no other tick can interleave
    * ``log`` is the shared ``LogOutputChannel`` set via a module-level setter
-     ``setRemindersLogger(log)`` called once during ``activate()``
+     ``setRemindersLogger(log)`` called once during ``activate()``; the
+     malformed-file warning is skipped when no logger is set
 
 
 .. spec:: Reminder Poll Loop Integration
   :id: SPEC_MSG_REMINDERSLOOP
-  :status: draft
+  :status: implemented
   :links: REQ_MSG_REMINDERS_DELIVER; SPEC_COM_INBOX; SPEC_MSG_REMINDERSTORE; SPEC_MSG_AUTODELIVER_STORE; SPEC_MSG_QUEUESTORE
 
   **Description:**
-  Extend the existing 5-second ``setInterval`` poll loop in ``extension.ts``
-  to check for due reminders after the auto-delivery handling block. Due
+  The existing 5-second ``setInterval`` poll loop in ``extension.ts`` checks
+  for due reminders after it has started the auto-delivery pass
+  (``announcer.runAuto()``, run only while the AHP client is connected; the
+  reminder check runs on every tick regardless). Due
   reminders are enqueued as regular messages without changing their target's
   auto-delivery preference. Existing message delivery decides whether the
   queued message is notified automatically or awaits manual notification.
 
-  **Reminder processing after the auto-delivery block (shown in the tick
-  body; equivalent handling belongs inside an extracted processor):**
+  **Reminder processing in the tick body.** The tick calls
+  ``processDueReminders`` (``packages/core/src/apps/session/reminderDelivery.ts``),
+  which takes its collaborators as a dependency object so that it runs in a
+  unit test with a fixed clock and a fake ``popDue``:
 
    .. code-block:: typescript
 
-      // --- Reminder delivery ---
-      const remindersPath = configPaths.getRemindersPath();
+      processDueReminders({
+        remindersPath: configPaths.getRemindersPath() ?? '',
+        messagesPath,
+        now: new Date(),
+        reloadReminders: () => remindersProvider?.reload(),
+        reloadMessages: () => messageProvider.reload(),
+        info: message => log.info(message),
+        warn: message => log.warn(message),
+      });
+
+   The helper's body:
+
+   .. code-block:: typescript
+
       let due: Reminder[];
       try {
-        due = popDueReminders(remindersPath, new Date());
-      } catch (err) {
-        log.warn(`[MSG] Reminder polling failed: ${err}`);
-        return;
+        due = popDueReminders(remindersPath, now);
+      } catch (error) {
+        warn(`[MSG] Reminder scan failed: ${error}`);
+        return [];
       }
       for (const reminder of due) {
         try {
           appendMessage(messagesPath, reminder.session, 'Reminder', reminder.text);
-          log.info(
-            `[MSG] Reminder "${reminder.id}" queued for session "${reminder.session}"`
-          );
-        } catch (err) {
-          log.warn(`[MSG] Reminder delivery failed for "${reminder.id}": ${err}`);
+          info(`[MSG] Reminder "${reminder.id}" queued for session "${reminder.session}"`);
+        } catch (error) {
+          warn(`[MSG] Reminder delivery failed for "${reminder.id}": ${error}`);
         }
       }
       if (due.length > 0) {
         // Refresh both views so the new message and removed reminder are visible
-        remindersProvider.reload();
-        messageProvider.reload();
+        reloadReminders();
+        reloadMessages();
       }
+      return due;
 
    **Design decisions:**
 
@@ -1351,121 +1025,72 @@ Message Queue Design Specifications
    * **Pop errors**: If ``popDueReminders`` fails (including a failed write to
      ``reminders.yaml``), warn and end this reminder tick without stopping the
      interval. The next tick may try again; no due entries were returned for
-     enqueueing. An extracted ``processDueReminders`` helper returning a
-     reminder list SHALL keep this guard inside the helper and return ``[]``.
-   * **Tree refresh**: A single ``remindersProvider.reload()`` plus
-     ``messageProvider.reload()`` after all due reminders in a tick is
-     sufficient — both views update together.
+     enqueueing. The ``processDueReminders`` helper keeps this guard inside
+     itself and returns ``[]``.
+   * **Tree refresh**: A single ``reloadReminders()`` plus ``reloadMessages()``
+     (``remindersProvider.reload()`` and ``messageProvider.reload()``) after all
+     due reminders in a tick is sufficient — both views update together.
 
 
 .. spec:: Reminder LM and MCP Tools Registration
    :id: SPEC_MSG_REMINDERSTOOLS
-   :status: draft
-   :links: REQ_MSG_REMINDERS_TOOLS; SPEC_MSG_REMINDERSTORE; SPEC_MSG_DUALREGISTRATION; REQ_ENG_TOOLREF
+   :status: implemented
+   :links: REQ_MSG_REMINDERS_TOOLS; SPEC_MSG_REMINDERSTORE; SPEC_ENG_REGISTER_TOOL; SPEC_MOD_MCP_PKG; REQ_ENG_TOOLREF
 
    **Description:**
-   Register three tools via ``registerDualTool()`` in ``extension.ts``:
+   Register three tools through ``engine.registerTool()`` in ``extension.ts``:
    ``jarvis_setReminder``, ``jarvis_listReminders``, and
-   ``jarvis_cancelReminder``. Each tool is simultaneously available as a VS Code
-   LM Tool and as an MCP Tool.
+   ``jarvis_cancelReminder``. Each is registered once, with a name, a
+   description and a handler; it is a VS Code LM Tool because the manifest
+   declares it (``contributes.languageModelTools``, ``REQ_MSG_REMINDERS_TOOLS``
+   AC-5) and an MCP Tool because the MCP extension enumerates the engine's tool
+   registry and reads the same manifest ``inputSchema`` (``SPEC_MOD_MCP_PKG``,
+   ``SPEC_ENG_TOOLREGISTRY``). There is no second handler and no Zod schema per
+   tool: a tool-specific MCP registration would be a second copy that could
+   diverge from the manifest.
 
-   **``jarvis_setReminder``:**
+   The handlers are factories in ``src/apps/session/reminderRuntime.ts``
+   (``createSetReminderHandler``, ``createListRemindersHandler``,
+   ``createCancelReminderHandler``). Each takes the same dependency object:
+   the reminders path from the central resolver, a ``reload`` callback for the
+   Reminders view, a logger and a clock. The factories keep the handlers free
+   of VS Code state, so they run in a unit test with a fixed clock.
 
-   .. code-block:: typescript
-
-      registerDualTool(
-        'jarvis_setReminder',
-        // LM handler
-        async (options, _token) => {
-          const { text, session, deliverAt } = options.input;
-          if (new Date(deliverAt) <= new Date()) {
-            return new vscode.LanguageModelToolResult([
-              new vscode.LanguageModelTextPart(
-                JSON.stringify({ error: 'deliverAt must be in the future' })
-              )
-            ]);
-          }
-          const reminder = addReminder(
-            configPaths.getRemindersPath(), text, session, deliverAt
-          );
-          messageProvider.reload();
-          return new vscode.LanguageModelToolResult([
-            new vscode.LanguageModelTextPart(
-              JSON.stringify({ id: reminder.id, deliverAt: reminder.deliverAt })
-            )
-          ]);
-        },
-        'Registers a time-scheduled reminder that delivers a message to a named chat session at the specified time.',
-        { text: z.string(), session: z.string(), deliverAt: z.string() },
-        async (args) => {
-          const { text, session, deliverAt } = args as Record<string, string>;
-          if (new Date(deliverAt) <= new Date()) {
-            return { error: 'deliverAt must be in the future' };
-          }
-          const reminder = addReminder(
-            configPaths.getRemindersPath(), text, session, deliverAt
-          );
-          messageProvider.reload();
-          return { id: reminder.id, deliverAt: reminder.deliverAt };
-        }
-      );
-
-   **``jarvis_listReminders``:**
+   **Registration:**
 
    .. code-block:: typescript
 
-      registerDualTool(
-        'jarvis_listReminders',
-        async (_options, _token) => {
-          const reminders = readReminders(configPaths.getRemindersPath());
-          const now = Date.now();
-          const result = reminders.map(r => ({
-            ...r,
-            remainingMs: new Date(r.deliverAt).getTime() - now,
-          }));
-          return new vscode.LanguageModelToolResult([
-            new vscode.LanguageModelTextPart(JSON.stringify({ reminders: result }))
-          ]);
-        },
-        'Returns all pending reminders with id, text, session, deliverAt, and remainingMs.',
-        {},
-        async (_args) => {
-          const reminders = readReminders(configPaths.getRemindersPath());
-          const now = Date.now();
-          return {
-            reminders: reminders.map(r => ({
-              ...r,
-              remainingMs: new Date(r.deliverAt).getTime() - now,
-            })),
-          };
-        }
-      );
+      const reminderToolDependencies = {
+        remindersPath: () => configPaths.getRemindersPath() ?? '',
+        reload: () => remindersProvider?.reload(),
+        info: (message: string) => log.info(message),
+        now: () => new Date(),
+      };
 
-   **``jarvis_cancelReminder``:**
+      const setReminderTool = engine.registerTool('jarvis_setReminder',
+        'Registers a time-scheduled reminder.',
+        createSetReminderHandler(reminderToolDependencies));
+      const listRemindersTool = engine.registerTool('jarvis_listReminders',
+        'Returns all pending reminders.',
+        createListRemindersHandler(reminderToolDependencies));
+      const cancelReminderTool = engine.registerTool('jarvis_cancelReminder',
+        'Cancels a pending reminder by id.',
+        createCancelReminderHandler(reminderToolDependencies));
 
-   .. code-block:: typescript
+   **Handler results** (each handler returns a ``LanguageModelToolResult`` with
+   one text part holding the JSON; MCP clients receive the parsed JSON):
 
-      registerDualTool(
-        'jarvis_cancelReminder',
-        async (options, _token) => {
-          const { id } = options.input;
-          const removed = removeReminder(configPaths.getRemindersPath(), id);
-          messageProvider.reload();
+   * ``jarvis_setReminder``: ``{ error: 'deliverAt must be in the future' }`` when
+     ``deliverAt`` is not after ``now()``; otherwise the reminder is stored with
+     ``addReminder`` and ``{ id, deliverAt }`` is returned.
+   * ``jarvis_listReminders``: ``{ reminders: [...] }`` where each entry carries
+     ``remainingMs`` (``deliverAt`` minus ``now()``, negative when overdue).
+   * ``jarvis_cancelReminder``: ``{ status: 'cancelled' }`` when ``removeReminder``
+     found the id, otherwise ``{ status: 'not_found' }``.
 
+   The set and cancel handlers log one ``[MSG]`` line and reload the Reminders
+   view; the list handler changes nothing.
 
-              JSON.stringify({ status: removed ? 'cancelled' : 'not_found' })
-            )
-          ]);
-        },
-        'Cancels a pending reminder by id. Returns { status: "cancelled" | "not_found" }.',
-        { id: z.string() },
-        async (args) => {
-          const id = args.id as string;
-          const removed = removeReminder(configPaths.getRemindersPath(), id);
-          messageProvider.reload();
-          return { status: removed ? 'cancelled' : 'not_found' };
-        }
-      );
 
    **Registration in package.json (``contributes.languageModelTools``):**
 
@@ -1517,26 +1142,29 @@ Message Queue Design Specifications
 
    **Design notes:**
 
-   * ``deliverAt`` validation (must be in the future) is enforced in both the
-     LM handler and the MCP handler — both paths return an ``{ error }`` object
-     rather than throwing, for graceful LM tool error surfacing
+   * ``deliverAt`` validation (must be in the future) is enforced in the one
+     handler that serves both the LM and the MCP path; it returns an ``{ error }``
+     object rather than throwing, for graceful LM tool error surfacing
    * ``remainingMs`` is computed at call time; negative values indicate an
      overdue reminder that has not yet been popped by the poll loop
-   * All three tools call ``messageProvider.reload()`` to keep the Reminders
-     tree section in sync after mutations
+   * The set and cancel tools reload the Reminders view after a mutation, through
+     the ``reload`` dependency (``remindersProvider.reload()``)
 
 
 .. spec:: Reminders Tree View
    :id: SPEC_MSG_REMINDERSVIEW
-   :status: draft
+   :status: implemented
    :links: REQ_MSG_REMINDERS_VIEW; SPEC_MSG_REMINDERSTORE; REQ_MSG_REMINDERS_PERSIST
 
    **Description:**
-   Introduce a dedicated ``RemindersTreeProvider`` in
-   ``src/remindersTreeProvider.ts`` that backs a new top-level sidebar view
-   ``jarvisReminders`` (label ``"Reminders"``). The view sits next to
-   ``jarvisMessages`` in the Jarvis Activity Bar container. Reminders no
-   longer appear inside the Messages tree.
+   ``RemindersTreeProvider`` in
+   ``packages/core/src/apps/session/remindersTreeProvider.ts`` backs the
+   top-level sidebar view ``jarvisReminders`` (label ``"Reminders"``). The view
+   sits next to ``jarvisMessages`` in the Jarvis Activity Bar container
+   (``jarvis-explorer``). Reminders do not appear inside the Messages tree.
+   The view is created in the Messages feature block of ``activate()`` only
+   while ``jarvis.reminders.enabled`` is true, with ``showCollapseAll: true``
+   (``US_MSG_TREE`` AC-4).
 
    **Node type:**
 
@@ -1544,18 +1172,19 @@ Message Queue Design Specifications
 
       interface ReminderNode {
         kind: 'reminder';
-        reminder: Reminder;   // from src/reminders.ts
+        reminder: Reminder;   // from reminders.ts
       }
 
    **TreeDataProvider behaviour:**
 
-   * Root: read ``readReminders(configPaths.getRemindersPath())`` and
-     return one ``ReminderNode`` per entry (flat, no group node).
-     This provider is the site of the ``REQ_EXP_REMINDER_OPENFILE`` defect: it
-     resolved the path by derivation from the queue path, which agrees with the
-     resolver only in the flat layout. It obtains the path from the resolver
-     like every other consumer (``SPEC_CFG_PATHRESOLVER`` usage contract,
-     ``REQ_CFG_PATHSINGLESOURCE`` AC-3).
+   * Root: read ``readReminders(<resolved path> ?? '')`` and
+     return one ``ReminderNode`` per entry (flat, no group node). The path
+     comes from a constructor-injected resolver that defaults to
+     ``configPaths.getRemindersPath``, like every other consumer
+     (``SPEC_CFG_PATHRESOLVER`` usage contract, ``REQ_CFG_PATHSINGLESOURCE``
+     AC-3). The provider once derived the path from the queue path, which
+     agrees with the resolver only in the flat layout
+     (``REQ_EXP_REMINDER_OPENFILE``).
    * Leaf nodes have no children.
 
    **getTreeItem:**
@@ -1589,7 +1218,8 @@ Message Queue Design Specifications
         "when": "config.jarvis.messages.enabled == true && config.jarvis.reminders.enabled == true"
       }
 
-   Add ``"onView:jarvisReminders"`` to ``activationEvents``.
+   Add ``"onView:jarvisReminders"`` to ``activationEvents``. The view is
+   declared in the ``jarvis-explorer`` container.
 
    **Inline cancel action (package.json ``view/item/context``):**
 
@@ -1601,9 +1231,10 @@ Message Queue Design Specifications
         "group": "inline"
       }
 
-   **New command ``jarvis.cancelReminder``:**
+   **Command ``jarvis.cancelReminder``:**
 
-   Registered in ``extension.ts``:
+   Registered in ``extension.ts``; hidden from the Command Palette
+   (``contributes.menus.commandPalette``: ``when: "false"``):
 
    .. code-block:: typescript
 
@@ -1611,10 +1242,9 @@ Message Queue Design Specifications
         'jarvis.cancelReminder',
         (node?: ReminderNode) => {
           if (!node || node.kind !== 'reminder') { return; }
-          const remindersPath = configPaths.getRemindersPath();
-          if (!remindersPath) { return; }
-          removeReminder(remindersPath, node.reminder.id);
-          remindersProvider.reload();
+          removeReminder(configPaths.getRemindersPath() ?? '', node.reminder.id);
+          log.info(`[MSG] cancelReminder(tree): id="${node.reminder.id}"`);
+          remindersProvider?.reload();
         }
       );
 
@@ -1631,13 +1261,15 @@ Message Queue Design Specifications
    **Design notes:**
 
    * The Reminders view is gated by ``config.jarvis.messages.enabled == true &&
-     config.jarvis.reminders.enabled == true`` (see SPEC_CFG_VIEWGATING).
-     The old ``jarvis.messagesFile != ''`` precondition is superseded by the
-     toggle-based gating introduced in this CR.
-   * Countdown strings are computed fresh on every ``getTreeItem`` call; the
-     tree auto-refreshes on each ``remindersProvider.reload()`` (called by
-     the poll loop and tool handlers), so the displayed time stays
-     reasonably current (within ±5 s).
+     config.jarvis.reminders.enabled == true`` (see SPEC_CFG_VIEWGATING); this
+     toggle-based gating replaces the former ``jarvis.messagesFile != ''``
+     precondition.
+   * Countdown strings are computed fresh on every ``getTreeItem`` call. The
+     tree reloads on ``remindersProvider.reload()``, which the poll loop calls
+     only on a tick that delivered a due reminder, and the tool handlers and
+     the cancel command call after a mutation. No timer refreshes the view
+     otherwise, so a countdown shown for an idle reminder is as old as the last
+     reload.
    * The ``jarvis.cancelReminder`` tree command is distinct from the
      ``jarvis_cancelReminder`` LM/MCP tool — the command operates on a
      ``ReminderNode`` from the tree, the tool accepts a raw ``id`` string.

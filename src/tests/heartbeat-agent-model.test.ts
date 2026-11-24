@@ -306,6 +306,7 @@ describe('SPEC_AUT_LISTMODELS AC-1/AC-2 and SPEC_AUT_JOBREG AC-1: manifest and w
         expect(props.vendor.type).toBe('string');
         expect(props.model.type).toBe('string');
         expect(props.vendor.description).toContain('jarvis_listModels');
+        expect(props.outputVar.type).toBe('string');
         expect(tool.inputSchema.properties.steps.items.required).toEqual(['type']);
     });
 });

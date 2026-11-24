@@ -3,7 +3,7 @@ Message Flow Visualization User Stories
 
 .. story:: Message Flow Chord Diagram
    :id: US_FLOW_CHORDVIEW
-   :status: draft
+   :status: implemented
    :tracked_by: MOD_FLOW
    :priority: optional
    :links: US_EXP_SIDEBAR; US_COM_SEND; US_MSG_EDITORPLACEMENT
@@ -48,7 +48,7 @@ Message Flow Visualization User Stories
 
 .. story:: Message Log Viewer
    :id: US_FLOW_LOGVIEWER
-   :status: draft
+   :status: implemented
    :tracked_by: MOD_FLOW
    :priority: optional
    :links: US_COM_SEND; US_EXP_SIDEBAR; US_FLOW_CHORDVIEW
@@ -63,22 +63,20 @@ Message Flow Visualization User Stories
 
    **Acceptance Criteria:**
 
-   * AC-1: The viewer is opened via a command (``jarvis.openMessageLog``)
-     and an icon button on the ``jarvisMessages`` tree view's title bar —
-     the same contribution point already used by the chord diagram
-     (``US_FLOW_CHORDVIEW`` AC-2) — as its own editor tab.
+   * AC-1: The viewer is opened from an icon button on the Messages tree
+     view's title bar (or an equivalent command), next to the chord
+     diagram's button (``US_FLOW_CHORDVIEW`` AC-2), as its own editor tab.
    * AC-2: The list shows every entry from the persistent audit log,
      newest first; each entry shows sender, recipient, a formatted
      date/time (derived from the entry's ISO timestamp), and word-wrapped
      message content.
-   * AC-3: Auto-refresh is driven by scroll position, with no explicit
-     toggle: while scrolled to the very top, the list polls periodically
-     and silently prepends new entries; scrolling down freezes the list
-     (no entries shift while reading).
+   * AC-3: The list refreshes by itself, with no toggle to operate: while
+     scrolled to the very top, new entries appear at the top without the
+     user doing anything; scrolling down freezes the list (no entries
+     shift while reading).
    * AC-4: A "Jump to Top" button, visible only when not scrolled to the
-     top, both scrolls the list back to the top and reactivates
-     auto-refresh (with an immediate refresh, not waiting for the next
-     poll tick).
+     top, scrolls the list back to the top and resumes the automatic
+     refresh at once, without waiting for the next periodic refresh.
    * AC-5: A "Requeue" button on each entry copies that message back into
      the live message queue, addressed to its original recipient — this is
      a redelivery, not a new send: it SHALL NOT create a new entry in the

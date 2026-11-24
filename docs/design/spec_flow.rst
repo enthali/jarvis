@@ -3,7 +3,7 @@ Message Flow Visualization Design Specifications
 
 .. spec:: Flow Data Service
    :id: SPEC_FLOW_DATASERVICE
-   :status: draft
+   :status: implemented
    :links: REQ_FLOW_DATASOURCE; REQ_FLOW_LOADMORE; SPEC_MSG_LOGSETTING; REQ_CFG_STATEMIGRATION
 
    **Description:**
@@ -15,14 +15,17 @@ Message Flow Visualization Design Specifications
    **(GH #59)** ``flow`` is a separate extension and may run at a different
    version from ``core``, so its read unions the superseded
    ``.jarvis/message-log.json`` with the current path
-   (``SPEC_CFG_STATEMIGRATION``). Being read-only, it never removes the
+   (``SPEC_CFG_STATEMIGRATION``): ``unionReadLog`` merges both files,
+   drops duplicates by the tuple (destination, sender, text, timestamp) and
+   orders the result by ascending timestamp. Being read-only, it never removes the
    superseded file (``REQ_CFG_STATEMIGRATION`` AC-7) — removal requires having
    persisted the union, which only the writer does.
-   **Amended (flow-time-lens CR):** ``loadFlowData`` now accepts an explicit
-   ``cap`` parameter (``REQ_FLOW_LOADMORE`` AC-1) instead of a fixed module
-   constant, and ``FlowData`` additionally carries the raw, capped, entry list
-   (``entries``) so the webview can recompute the time-lens window
-   (``REQ_FLOW_TIMELENS``) locally, without a host round-trip per handle drag.
+
+   ``loadFlowData`` takes an explicit ``cap`` parameter
+   (``REQ_FLOW_LOADMORE`` AC-1), and ``FlowData`` carries the raw, capped, entry
+   list (``entries``) next to the aggregation, so the webview can recompute the
+   time-lens window (``REQ_FLOW_TIMELENS``) locally, without a host round-trip
+   per handle drag. The shared shapes live in ``packages/flow/src/types.ts``.
 
    .. code-block:: typescript
 
@@ -30,6 +33,7 @@ Message Flow Visualization Design Specifications
         sender: string;
         destination: string;
         timestamp: string; // ISO 8601
+        text: string;      // message text, for the tooltip sample (SPEC_FLOW_CHORDRENDER)
       }
 
       interface FlowEdge {
@@ -43,8 +47,8 @@ Message Flow Visualization Design Specifications
 
       interface FlowData {
         nodes: string[];            // distinct union of sender/destination
-        edges: FlowEdge[];          // full-cap aggregation (unchanged shape)
-        entries: FlowMessageEntry[]; // NEW — capped raw entries, chronological
+        edges: FlowEdge[];          // full-cap aggregation
+        entries: FlowMessageEntry[]; // capped raw entries, chronological
                                       // ascending order (oldest first); the
                                       // webview derives per-message rank and
                                       // re-aggregates windowed subsets from
@@ -53,12 +57,12 @@ Message Flow Visualization Design Specifications
 
       export const DEFAULT_CAP = 30;
 
-      function loadFlowData(logPath: string, cap: number = DEFAULT_CAP): FlowData {
-        const raw = readMessageLog(logPath); // reuses the audit-log reader
+      function loadFlowData(logPath: string, cap: number = DEFAULT_CAP, legacyLogPath?: string): FlowData {
+        const raw = unionReadLog(logPath, legacyLogPath); // tolerant readers, current + superseded path
         const capped = raw.slice(-cap); // most recent `cap` entries, no time boundary
         return {
           ...aggregate(capped),
-          entries: capped.map(e => ({ sender: e.sender, destination: e.destination, timestamp: e.timestamp }))
+          entries: capped.map(e => ({ sender: e.sender, destination: e.destination, timestamp: e.timestamp, text: e.text }))
         };
       }
 
@@ -69,7 +73,7 @@ Message Flow Visualization Design Specifications
      ``{ nodes: [], edges: [], entries: [] }`` (empty state, no thrown error)
      — mirrors the existing tolerant-parse pattern in
      ``readQueue()``/``SPEC_MSG_QUEUESTORE``.
-   * AC-2: The entry cap (``REQ_FLOW_DATASOURCE`` AC-2, now parameterized per
+   * AC-2: The entry cap (``REQ_FLOW_DATASOURCE`` AC-2, parameterized per
      ``REQ_FLOW_LOADMORE`` AC-1) is applied before aggregation, not after —
      node/edge counts and the ``entries`` array always reflect the
      already-capped set. There is no time-based boundary — an idle
@@ -78,7 +82,7 @@ Message Flow Visualization Design Specifications
    * AC-3: ``aggregate()`` groups capped entries by ``(sender, destination)``,
      computing ``count``, ``firstTimestamp``/``lastTimestamp`` (min/max), and
      ``sample`` (text of the chronologically-last entry in the group).
-     Unchanged by this CR — the lens windowing (``REQ_FLOW_TIMELENS``)
+     The lens windowing (``REQ_FLOW_TIMELENS``)
      re-runs an equivalent grouping client-side over a sub-range of
      ``entries``; it does not alter this host-side function.
    * AC-4: ``cap`` defaults to ``DEFAULT_CAP`` (30) for the first load of a
@@ -88,56 +92,71 @@ Message Flow Visualization Design Specifications
 
 .. spec:: Flow Webview Panel
    :id: SPEC_FLOW_WEBVIEW
-   :status: draft
+   :status: implemented
    :links: REQ_FLOW_WEBVIEWPANEL; REQ_FLOW_LOADMORE; SPEC_FLOW_DATASERVICE; SPEC_MSG_EDITORPLACEMENT
 
    **Description:**
-   ``packages/flow/src/extension.ts`` registers ``jarvis.openMessageFlow``,
-   which creates (or reveals, if already open) a single
-   ``vscode.WebviewPanel`` at the fixed Content column (``DOCS_COLUMN``,
-   ``SPEC_MSG_EDITORPLACEMENT``), never via ``resolveSecondaryColumn()``.
-   **Amended (flow-time-lens CR):** the panel now tracks its own in-memory
+   ``packages/flow/src/extension.ts`` registers ``jarvis.openMessageFlow``
+   (``makeOpenMessageFlow``), which creates (or reveals, if already open) a
+   single ``vscode.WebviewPanel`` at the fixed Content column
+   (``DOCS_COLUMN``, ``SPEC_MSG_EDITORPLACEMENT``), never via
+   ``resolveSecondaryColumn()``. The panel tracks its own in-memory
    data-load cap (``REQ_FLOW_LOADMORE``) and handles an ``increaseCap``
-   message from the webview alongside the existing ``actorClick`` message.
+   message from the webview alongside the ``actorClick`` message. Paths
+   are resolved from the first workspace folder; without one the panel
+   receives the empty ``FlowData``.
 
    .. code-block:: typescript
 
       const FLOW_VIEWTYPE = 'jarvisMessageFlow';
       const DOCS_COLUMN = vscode.ViewColumn.Two;
-      let panel: vscode.WebviewPanel | undefined;
+      const POLL_MS = 5000;
 
-      function openMessageFlow(context: vscode.ExtensionContext, logPath: string): void {
-        if (panel) {
-          panel.reveal(DOCS_COLUMN);
-          return;
+      function makeOpenMessageFlow(context: vscode.ExtensionContext, log: vscode.LogOutputChannel): () => void {
+        let panel: vscode.WebviewPanel | undefined;
+        let pollHandle: ReturnType<typeof setInterval> | undefined;
+        let currentCap = DEFAULT_CAP;
+
+        function postData(): void {
+          if (!panel) { return; }
+          const logPath = resolveMessageLogPath();
+          const payload = logPath
+            ? loadFlowData(logPath, currentCap, resolveLegacyMessageLogPath())
+            : { nodes: [], edges: [], entries: [] };
+          panel.webview.postMessage({ type: 'data', payload });
         }
-        let currentCap = DEFAULT_CAP; // REQ_FLOW_LOADMORE AC-4 — resets per new panel
 
-        panel = vscode.window.createWebviewPanel(
-          FLOW_VIEWTYPE,
-          'Message Flow',
-          DOCS_COLUMN,
-          { enableScripts: true, retainContextWhenHidden: true }
-        );
-        panel.webview.html = renderHtml(panel.webview, context.extensionUri);
-        panel.onDidDispose(() => { panel = undefined; clearInterval(pollHandle); });
-
-        const pollHandle = setInterval(() => {
-          if (panel?.visible) {
-            panel.webview.postMessage({ type: 'data', payload: loadFlowData(logPath, currentCap) });
+        return function openMessageFlow(): void {
+          if (panel) {
+            panel.reveal(DOCS_COLUMN);
+            return;
           }
-        }, 5000);
-        panel.webview.postMessage({ type: 'data', payload: loadFlowData(logPath, currentCap) });
+          currentCap = DEFAULT_CAP; // REQ_FLOW_LOADMORE AC-4 — resets per new panel
+          panel = vscode.window.createWebviewPanel(
+            FLOW_VIEWTYPE, 'Message Flow', DOCS_COLUMN,
+            { enableScripts: true, retainContextWhenHidden: true,
+              localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'out')] }
+          );
+          panel.webview.html = renderHtml(panel.webview, context.extensionUri);
 
-        panel.webview.onDidReceiveMessage(msg => {
-          if (msg.type === 'actorClick') {
-            handleActorClick(msg.name);
-          } else if (msg.type === 'increaseCap') {
-            // REQ_FLOW_LOADMORE AC-1/AC-2 — grow cap, reload, push immediately
-            currentCap += 30;
-            panel?.webview.postMessage({ type: 'data', payload: loadFlowData(logPath, currentCap) });
-          }
-        });
+          panel.webview.onDidReceiveMessage(msg => {
+            if (msg?.type === 'actorClick' && typeof msg.name === 'string') {
+              handleActorClick(msg.name).catch(e => log.warn(`[Flow] actorClick failed: ${e}`));
+            } else if (msg?.type === 'increaseCap') {
+              // REQ_FLOW_LOADMORE AC-1/AC-2 — grow cap, reload, push immediately
+              currentCap += 30;
+              postData();
+            }
+          });
+
+          panel.onDidDispose(() => {
+            panel = undefined;
+            if (pollHandle) { clearInterval(pollHandle); pollHandle = undefined; }
+          });
+
+          pollHandle = setInterval(() => { if (panel?.visible) { postData(); } }, POLL_MS);
+          postData();
+        };
       }
 
    **Acceptance Criteria:**
@@ -149,18 +168,20 @@ Message Flow Visualization Design Specifications
      polling is skipped while ``panel.visible`` is false (backgrounded tab)
      to avoid needless work.
    * AC-3: The title-bar button contribution (``package.json`` ``menus``,
-     ``view/title`` for ``jarvisMessages``, group ``navigation``) invokes
+     ``view/title`` for ``jarvisMessages``, group ``navigation@2``) invokes
      the same ``jarvis.openMessageFlow`` command.
    * AC-4: CSP (``Content-Security-Policy`` meta tag in ``renderHtml``)
-     restricts script/style sources to the webview's own resource root
-     (``panel.webview.asWebviewUri``) — no external CDN origins are
-     permitted, per ``REQ_FLOW_CHORDVIEW`` AC-6.
-   * AC-5: ``currentCap`` is a closure variable scoped to one
-     ``openMessageFlow`` call (i.e. one panel lifetime) — it is not
-     persisted anywhere and resets to ``DEFAULT_CAP`` the next time a panel
-     is created from scratch, per ``REQ_FLOW_LOADMORE`` AC-4.
+     restricts default, script and image sources to the webview's own origin
+     (``webview.cspSource``) and style sources to it plus inline styles — no
+     external CDN origins are permitted, per ``REQ_FLOW_CHORDVIEW`` AC-6. The
+     webview's resource roots are limited to the package's ``out`` folder
+     (``localResourceRoots``).
+   * AC-5: ``currentCap`` is a variable of one ``makeOpenMessageFlow`` call,
+     set back to ``DEFAULT_CAP`` whenever a panel is created from scratch
+     (not on reveal) — it is not persisted anywhere, per
+     ``REQ_FLOW_LOADMORE`` AC-4.
    * AC-6: Both the regular 5 s poll tick and an ``increaseCap`` message use
-     the same ``loadFlowData(logPath, currentCap)`` call — an ``increaseCap``
+     the same ``postData()`` call, which loads with ``currentCap`` — an ``increaseCap``
      response is indistinguishable in shape from a normal poll update; the
      webview client applies the same rank-rederivation logic
      (``REQ_FLOW_TIMELENS`` AC-1) to both.
@@ -168,23 +189,23 @@ Message Flow Visualization Design Specifications
 
 .. spec:: Chord Diagram Renderer
    :id: SPEC_FLOW_CHORDRENDER
-   :status: draft
+   :status: implemented
    :links: REQ_FLOW_CHORDVIEW; REQ_FLOW_TIMELENS; SPEC_FLOW_WEBVIEW; SPEC_FLOW_TIMELENS
 
    **Description:**
-   ``packages/flow/webview/chord.ts`` (bundled into the webview's script,
-   vendoring D3 via ``packages/flow/webview/vendor/d3.min.js`` — no CDN
-   fetch) renders the currently windowed (``SPEC_FLOW_TIMELENS``) subset of
+   ``packages/flow/webview/chord.ts`` (bundled by esbuild into
+   ``out/webview/chord.js``, with D3 from the ``d3`` dev dependency bundled
+   in at build time — no CDN fetch, ``packages/flow/webview-build.js``)
+   renders the currently windowed (``SPEC_FLOW_TIMELENS``) subset of
    ``FlowData.entries`` as a D3 chord diagram (``d3.chord()`` + ``d3.ribbon()``
    on a node-index adjacency matrix built by re-aggregating that subset).
 
-   **Time lens fade (amended, flow-time-lens CR — replaces the prior
-   day-based "Fog of Time" fade in its entirety; see ``SPEC_FLOW_TIMELENS``
-   for the full lens/rank mechanism):**
+   **Time lens fade (see ``SPEC_FLOW_TIMELENS`` for the full lens/rank
+   mechanism):**
 
    .. code-block:: typescript
 
-      const FADE_FLOOR = 0.05; // was 0.15 — lowered per REQ_FLOW_TIMELENS AC-6
+      const FADE_FLOOR = 0.05; // REQ_FLOW_TIMELENS AC-6
 
       function opacityFor(rank: number, startRank: number, endRank: number): number {
         if (endRank === startRank) { return 1; } // degenerate single-message window
@@ -204,10 +225,17 @@ Message Flow Visualization Design Specifications
    (``REQ_FLOW_CHORDVIEW`` AC-5), falling back to a small fixed D3 category
    palette if a given custom property is unset.
 
-   **Tooltips:** a hover listener on each ribbon/arc shows a positioned
-   ``<div>`` with ``count``, ``firstTimestamp``–``lastTimestamp``, and
-   ``sample`` (truncated to ~120 chars) from the corresponding (windowed)
-   ``FlowEdge``. Separately, while dragging a lens handle, a drag tooltip
+   **Tooltips:** a ``mousemove`` listener on each ribbon (edge) and on each
+   node arc shows a positioned ``<div>``. The edge tooltip shows
+   ``source → target``, ``count``, ``firstTimestamp``–``lastTimestamp`` and a
+   truncated ``sample`` (80 characters, ellipsis when cut) of the corresponding
+   (windowed) ``FlowEdge``. The node tooltip shows the node name, the number of
+   messages it sent and received inside the window, their time range, and the
+   truncated text of the newest of them. For this ``FlowMessageEntry`` carries
+   ``text`` (``SPEC_FLOW_DATASERVICE``), the windowed re-aggregation keeps it, so
+   ``sample`` is the text of the newest entry of the group inside the window
+   and is never the empty string while a message exists.
+   Separately, while dragging a lens handle, a drag tooltip
    shows the timestamp of the entry at that handle's current position
    (``REQ_FLOW_TIMELENS`` AC-7; see ``SPEC_FLOW_TIMELENS``).
 
@@ -225,12 +253,15 @@ Message Flow Visualization Design Specifications
      (``REQ_FLOW_DATASOURCE`` AC-1).
    * AC-4: The fade floor used by ``opacityFor`` is 0.05 (``REQ_FLOW_TIMELENS``
      AC-6) — the oldest visible edge within the window is never fully
-     invisible, but is markedly dimmer than under the prior 0.15 floor.
+     invisible.
+   * AC-5: A node arc and an edge ribbon each show a tooltip on hover; both
+     show the message count, the time range and a sample of at most 80
+     characters of the newest message text (``REQ_FLOW_CHORDVIEW`` AC-4).
 
 
 .. spec:: Time Lens (Rank Derivation, Live-Tracking & Anchoring)
    :id: SPEC_FLOW_TIMELENS
-   :status: draft
+   :status: implemented
    :links: REQ_FLOW_TIMELENS; SPEC_FLOW_DATASERVICE; SPEC_FLOW_CHORDRENDER
 
    **Description:**
@@ -267,14 +298,18 @@ Message Flow Visualization Design Specifications
         return idx; // -1 if the message aged out of the loaded window (edge case, see AC-4)
       }
 
-      function currentWindow(entries: FlowMessageEntry[], lens: LensState): { startRank: number; endRank: number } {
+      // Returns indices as well as ranks; the render step slices entries[endIdx..startIdx].
+      function currentWindow(entries: FlowMessageEntry[], lens: LensState):
+        { startIdx: number; endIdx: number; startRank: number; endRank: number } {
         const total = entries.length;
-        const startRank = lens.start.mode === 'live'
-          ? 1
-          : rankOf(entries, indexForIdentity(entries, lens.start.id));
-        const endIdx = indexForIdentity(entries, lens.end.id);
-        const endRank = endIdx === -1 ? total : rankOf(entries, endIdx); // AC-4 fallback
-        return { startRank, endRank };
+        if (total === 0) { return { startIdx: 0, endIdx: 0, startRank: 0, endRank: 0 }; }
+        let startIdx = lens.start.mode === 'live'
+          ? total - 1                                   // rank 1
+          : indexForIdentity(entries, lens.start.id);
+        if (startIdx === -1) { startIdx = total - 1; }  // AC-4 fallback: near edge
+        let endIdx = indexForIdentity(entries, lens.end.id);
+        if (endIdx === -1) { endIdx = 0; }              // AC-4 fallback: far edge (rank = total)
+        return { startIdx, endIdx, startRank: rankOf(entries, startIdx), endRank: rankOf(entries, endIdx) };
       }
 
    Whenever new ``FlowData`` arrives (regular 5 s poll, or a
@@ -290,10 +325,15 @@ Message Flow Visualization Design Specifications
    the handle's ``LensState`` entry is committed: the start handle becomes
    ``{ mode: 'live' }`` if released at rank 1, otherwise
    ``{ mode: 'anchored', id: <identity of entries[releasedIndex]> }``; the end
-   handle always commits as ``{ mode: 'anchored', id: ... }``.
+   handle always commits as ``{ mode: 'anchored', id: ... }``. The two handles
+   are range inputs that are clamped against each other: a move of one handle
+   past the other sets the other handle to the same position
+   (``REQ_FLOW_TIMELENS`` AC-2), so ``startRank <= endRank`` holds after every
+   input event. The commit is bound to the range input's ``change`` event as
+   well as to mouse release, so a keyboard move is committed like a mouse move.
 
-   **Client-side re-aggregation:** ``aggregateWindow(entries, startRank,
-   endRank)`` groups the slice of ``entries`` between the resolved indices by
+   **Client-side re-aggregation:** ``aggregateWindow(entries, startIdx,
+   endIdx)`` groups the slice of ``entries`` between the resolved indices by
    ``(sender, destination)`` — logic intentionally mirrors (small, ~10-line)
    the host's ``aggregate()`` in ``SPEC_FLOW_DATASERVICE`` — this is a
    deliberate, minimal duplication to keep every lens-handle move a
@@ -314,23 +354,28 @@ Message Flow Visualization Design Specifications
      conceptual boundary (same message), so the rendered edge set does not
      jump (``REQ_FLOW_TIMELENS`` AC-4).
    * AC-4: If an anchored identity is no longer present in ``entries``
-     (``indexForIdentity`` returns ``-1`` — only possible if a future CR
-     introduces log trimming/eviction independent of the cap; not reachable
-     under the current append-only, cap-only-grows model), the handle falls
-     back to the far edge (``endRank = total``) rather than throwing.
+     (``indexForIdentity`` returns ``-1`` — not reachable while the log is
+     append-only and the cap only grows, but possible if the log is emptied or
+     trimmed), the end handle falls back to the far edge (``endRank = total``)
+     and the start handle to rank 1, rather than throwing.
    * AC-5: Default ``LensState`` on panel open is
      ``{ start: { mode: 'live' }, end: { mode: 'anchored', id: <identity of
      entries[max(0, entries.length - 30)]> } }`` — i.e. rank 1 through
      ``min(total, 30)`` (``REQ_FLOW_TIMELENS`` AC-5).
+   * AC-6: After any input event on either handle, ``startRank <= endRank``;
+     the handle that was not moved follows to the moved handle's position
+     rather than the window inverting (``REQ_FLOW_TIMELENS`` AC-2).
+   * AC-7: A keyboard move of a handle is committed to ``LensState`` and
+     re-renders the diagram, like a mouse move.
 
 
 .. spec:: Expand Loaded History Button ("+30")
    :id: SPEC_FLOW_LOADMORE
-   :status: draft
+   :status: implemented
    :links: REQ_FLOW_LOADMORE; SPEC_FLOW_WEBVIEW; SPEC_FLOW_DATASERVICE
 
    **Description:**
-   A button in the webview's HTML, adjacent to the time lens, posts
+   A button (``load-more-btn``) in the webview's HTML built by ``chord.ts``, adjacent to the time lens, posts
    ``{ type: 'increaseCap' }`` to the extension host on click
    (``vscode.postMessage``) and is handled by ``SPEC_FLOW_WEBVIEW``'s
    ``onDidReceiveMessage`` (cap += 30, immediate reload + push).
@@ -357,20 +402,22 @@ Message Flow Visualization Design Specifications
      not reset ``LensState`` — it re-resolves the existing handles' identities
      (or ``{ mode: 'live' }``) against the new, longer ``entries`` array
      (``REQ_FLOW_LOADMORE`` AC-3).
-   * AC-3: The button has no persisted state and is always visible/enabled
+   * AC-3: The button has no persisted state and is enabled whenever the
+     lens controls are shown (the loaded entry set is not empty),
      regardless of current cap size (``REQ_FLOW_LOADMORE`` AC-4).
 
 
 .. spec:: Actor Node Click Bridge
    :id: SPEC_FLOW_ACTORCLICK
-   :status: draft
+   :status: implemented
    :links: REQ_FLOW_ACTORCLICK; SPEC_FLOW_CHORDRENDER; SPEC_COM_OPEN
 
    **Description:**
    A ``click`` listener on each node arc in ``chord.ts`` posts
    ``{ type: 'actorClick', name }`` to the extension host (``vscode.postMessage``,
    the standard webview→host channel). The host-side handler
-   (``SPEC_FLOW_WEBVIEW``'s ``onDidReceiveMessage``) invokes the
+   (``SPEC_FLOW_WEBVIEW``'s ``onDidReceiveMessage``, which accepts the message
+   only when ``name`` is a string and logs a failed call) invokes the
    already-registered ``jarvis.openMessageActorChat`` command by id
    (``SPEC_COM_OPEN``). The Agent Host client lives in core and is not reachable
    via ``JarvisCoreApi``, so the command gives the Flow package the same
@@ -406,36 +453,37 @@ Message Flow Visualization Design Specifications
 
 .. spec:: Message Log Viewer Panel
    :id: SPEC_FLOW_LOGVIEWER
-   :status: draft
+   :status: implemented
    :links: REQ_FLOW_LOGVIEWER; SPEC_FLOW_WEBVIEW; SPEC_MSG_EDITORPLACEMENT
 
    **Description:**
    ``packages/flow/src/extension.ts`` registers ``jarvis.openMessageLog``,
    a second singleton ``vscode.WebviewPanel`` alongside the existing
    ``jarvis.openMessageFlow`` panel (``SPEC_FLOW_WEBVIEW``), reusing the
-   same viewtype-per-panel/reveal/Docs-column pattern. It reads
+   same viewtype-per-panel/reveal/Content-column pattern. It reads
    the audit log directly (the same file ``SPEC_FLOW_DATASERVICE``
    reads for the chord diagram, resolved the same way and with the same
-   migration union) via a small local reader — the log
-   viewer's own reader returns the raw, un-aggregated entry list
+   migration union) via a small reader in ``dataService.ts`` — the log
+   viewer's reader returns the raw, un-aggregated entry list
    (reverse-chronological), rather than the chord diagram's
    node/edge-aggregated ``FlowData`` shape, since it displays individual
    entries, not aggregated counts.
 
-   **Reader (``packages/flow/src/dataService.ts`` — new function, alongside
-   the existing ``loadFlowData``):**
+   **Reader (``packages/flow/src/dataService.ts`` — alongside
+   ``loadFlowData``):**
 
    .. code-block:: typescript
 
-      export function loadMessageLogEntries(logPath: string): LoggedMessage[] {
-          const raw = readMessageLog(logPath); // existing tolerant reader, reused as-is
+      export function loadMessageLogEntries(logPath: string, legacyLogPath?: string): LoggedMessage[] {
+          const raw = unionReadLog(logPath, legacyLogPath); // same tolerant union reader as loadFlowData
           return [...raw].reverse(); // newest first (REQ_FLOW_LOGVIEWER AC-5)
       }
 
-   ``readMessageLog()`` (existing, ``SPEC_FLOW_DATASERVICE``) already
+   ``unionReadLog()`` (``SPEC_FLOW_DATASERVICE``) already
    returns ``[]`` on a missing/unparseable file — the empty-state handling
    (``REQ_FLOW_LOGVIEWER`` AC-4) is therefore already satisfied by reuse,
-   no new tolerant-parse logic is needed.
+   no new tolerant-parse logic is needed. The webview shows
+   "No messages logged yet." for an empty list.
 
    **Panel registration (``extension.ts`` — mirrors ``makeOpenMessageFlow``'s
    structure):**
@@ -454,7 +502,7 @@ Message Flow Visualization Design Specifications
           function postData(): void {
               if (!panel) { return; }
               const logPath = resolveMessageLogPath();
-              const entries = logPath ? loadMessageLogEntries(logPath) : [];
+              const entries = logPath ? loadMessageLogEntries(logPath, resolveLegacyMessageLogPath()) : [];
               panel.webview.postMessage({ type: 'logData', payload: entries });
           }
 
@@ -570,10 +618,10 @@ Message Flow Visualization Design Specifications
 
    1. ``jarvis.openMessageLog`` creates the panel on first call and reveals
       the existing instance on subsequent calls.
-   2. The panel opens at the fixed Docs column (``DOCS_COLUMN``), same as
+   2. The panel opens at the fixed Content column (``DOCS_COLUMN``), same as
       the chord-diagram panel.
    3. ``loadMessageLogEntries()`` reuses the existing tolerant
-      ``readMessageLog()`` reader and only reverses order — no duplicated
+      ``unionReadLog()`` reader and only reverses order — no duplicated
       parse/empty-state logic.
    4. Auto-refresh start/stop is driven by webview-posted ``atTop``/
       ``scrolledDown`` messages, not by any host-side scroll awareness (the
@@ -586,7 +634,7 @@ Message Flow Visualization Design Specifications
 
 .. spec:: Message Requeue (Redelivery)
    :id: SPEC_FLOW_REQUEUE
-   :status: draft
+   :status: implemented
    :links: REQ_FLOW_REQUEUE; SPEC_FLOW_LOGVIEWER; SPEC_MSG_QUEUESTORE; REQ_CFG_STATEMIGRATION
 
    **Description:**
@@ -607,7 +655,10 @@ Message Flow Visualization Design Specifications
    Its local path resolution mirrors ``configPaths`` and derives nothing
    (``REQ_CFG_PATHSINGLESOURCE`` AC-4).
 
-   **Implementation:**
+   **Implementation:** the file access lives in
+   ``packages/flow/src/requeueService.ts`` (``requeueWithMigration``, kept
+   apart from ``extension.ts`` so it can be tested without VS Code); the
+   path resolution and the handler stay in ``extension.ts``.
 
    .. code-block:: typescript
 
@@ -619,16 +670,10 @@ Message Flow Visualization Design Specifications
       }
 
       /** Mirrors configPaths.getMessagesPath() — <workspaceRoot>/.jarvis/messages/queue.json. */
-      function resolveMessagesPath(): string | undefined {
-          const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-          return root ? path.join(root, '.jarvis', 'messages', 'queue.json') : undefined;
-      }
+      function resolveMessagesPath(): string | undefined { /* first workspace folder, else undefined */ }
 
-      /** Mirrors configPaths.getLegacyMessagesPath() — read/remove only (GH #59). */
-      function resolveLegacyMessagesPath(): string | undefined {
-          const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-          return root ? path.join(root, '.jarvis', 'messages.json') : undefined;
-      }
+      /** Mirrors configPaths.getLegacyMessagesPath() — read/remove only (GH #59): <workspaceRoot>/.jarvis/messages.json. */
+      function resolveLegacyMessagesPath(): string | undefined { /* same */ }
 
       /**
        * Appends `entry` to the queue only — deliberately does NOT write
@@ -639,15 +684,20 @@ Message Flow Visualization Design Specifications
       async function requeueMessage(entry: QueuedMessageCopy): Promise<void> {
           const messagesPath = resolveMessagesPath();
           if (!messagesPath) { throw new Error('No workspace open'); }
-          const legacyPath = resolveLegacyMessagesPath();
+          await requeueWithMigration(messagesPath, resolveLegacyMessagesPath(), entry);
+      }
+
+      // requeueService.ts
+      async function requeueWithMigration(currentPath, legacyPath, entry): Promise<void> {
           // Union read (SPEC_CFG_STATEMIGRATION): an older core may still be
           // writing the flat path; ignoring it would strand those messages.
-          const { entries: queue, legacyPresent } = await readQueueUnion(messagesPath, legacyPath);
-          queue.push(entry);
-          await fs.promises.mkdir(path.dirname(messagesPath), { recursive: true });
-          await fs.promises.writeFile(messagesPath, JSON.stringify(queue, null, 2));
+          // Unreadable/missing file => empty; a legacy file that exists counts as present.
+          // Merge de-duplicated by (destination, sender, text, timestamp), sorted by timestamp.
+          merged.push(entry);
+          await fs.promises.mkdir(path.dirname(currentPath), { recursive: true });
+          await fs.promises.writeFile(currentPath, JSON.stringify(merged, null, 2));
           // Only now is the union durable — removal before this point is data loss.
-          if (legacyPresent) { await fs.promises.unlink(legacyPath!).catch(() => {}); }
+          if (legacyPresent) { await fs.promises.unlink(legacyPath).catch(() => {}); }
       }
 
       async function handleRequeue(
@@ -674,19 +724,24 @@ Message Flow Visualization Design Specifications
    appending independently — there is deliberately no "already requeued"
    marker or check, unlike ``jarvis_createActor``'s idempotent-skip
    pattern elsewhere in the codebase. A requeue is a user-initiated,
-   repeatable action, not a create-once operation.
+   repeatable action, not a create-once operation. (The merge in the union
+   read removes duplicates already in the files; the entry appended by the
+   requeue is added after it, so it is never dropped.)
 
-   **Webview-side trigger (``logviewer.ts``, new webview script):** the
-   Requeue button's click handler posts
+   **Webview-side trigger (``logviewer.ts``):** the
+   Requeue button's click handler disables the button, sets its label to
+   "Requeuing…" and posts
    ``{ type: 'requeue', entry: { sender, destination, text, timestamp } }``
    (the full original entry, not just an index — the log viewer holds the
    already-loaded, reverse-chronological array client-side) to the
-   extension host; on ``{ type: 'requeueResult', ok }`` it shows a
-   transient inline confirmation or error state on that entry's card
-   (``REQ_FLOW_REQUEUE`` AC-4/AC-5) — no panel-wide reload is triggered by
-   a requeue itself (the next scheduled/atTop-triggered poll will pick up
-   any change naturally if the requeued message is itself later logged
-   again by a subsequent real send).
+   extension host. The host answers ``{ type: 'requeueResult', ok }`` and, on
+   success, shows a non-modal information notification
+   ``Requeued to "<destination>"``; on failure it shows an error notification
+   naming the destination, in addition to the warning in the log
+   (``REQ_FLOW_REQUEUE`` AC-4/AC-5). The notifications are shown by the host
+   (the caller of ``handleRequeue`` in ``extension.ts``), because a webview
+   cannot raise a VS Code notification. On ``requeueResult`` the webview
+   re-renders the list, which restores the button.
 
    **Acceptance Criteria:**
 
@@ -696,10 +751,13 @@ Message Flow Visualization Design Specifications
       from the original log entry; only ``destination``/``text`` are
       otherwise involved (also copied verbatim — nothing is transformed).
    3. A missing/unparseable queue file at either path is treated as empty
-      (tolerant, consistent with ``readMessageLog()``'s existing pattern)
+      (tolerant, consistent with the log reader's existing pattern)
       — the requeue still succeeds, creating the file fresh.
    4. No workspace open (``resolveMessagesPath()`` returns ``undefined``)
       results in a thrown error, caught by ``handleRequeue()``, surfaced to
       the webview as ``{ ok: false }`` — never an unhandled rejection.
    5. Repeated requeues of the same entry are unrestricted — no
       deduplication, no "already requeued" state tracked anywhere.
+   6. A successful requeue shows a non-modal information notification and a
+      failed one an error notification, both raised by the host
+      (``REQ_FLOW_REQUEUE`` AC-4/AC-5).

@@ -16,7 +16,7 @@ import { describe, it, expect } from 'vitest';
 // from sessionLookup.ts. We verify the export exists and is a function.
 describe('T-51: shared resolver code identity', () => {
     it('getValidDestinations is exported from sessionLookup and is a function', async () => {
-        // We can't import the real module (it depends on vscode + sql.js at import time),
+        // We can't import the real module (it depends on vscode at import time),
         // so we verify via static analysis: read the compiled output and confirm export.
         const fs = await import('fs');
         const path = await import('path');

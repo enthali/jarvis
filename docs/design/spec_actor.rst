@@ -9,15 +9,16 @@ Actor Design Specifications
 
 .. spec:: Actor Scanner
    :id: SPEC_ACTOR_SCANNER
-   :status: draft
+   :status: implemented
    :links: REQ_ACTOR_SCHEMA; REQ_ACTOR_ACTIVATION; REQ_ACTOR_TREE; REQ_EXP_REACTIVECACHE; REQ_CFG_SCANINTERVAL; SPEC_CFG_PATHRESOLVER; SPEC_AUT_HEARTBEAT_RESOLVER_REUSE; SPEC_AUT_JOBREG; SPEC_ACTOR_MAIL
 
    **Description:**
    ``ActorScanner`` (``engine/actors/actorScanner.ts``) is the single source
    of Actors. Every consumer — the ACTORS view, the Actor tools, the
-   injection primitive, destination validation for heartbeat, reminders and
-   messages, and ``JarvisCoreApi.listActors()`` — reads its cache. No other
-   component enumerates Actor folders.
+   injection primitive, destination validation for heartbeat and messages,
+   and ``JarvisCoreApi.listActors()`` — reads its cache. No other
+   component enumerates Actor folders. (A reminder's target ``session`` is
+   stored as given and is not checked against the scanner.)
 
    **Data model:**
 
@@ -102,7 +103,8 @@ Actor Design Specifications
 
    ``extension.ts`` calls ``startTimer(jarvis.scanInterval)`` at activation
    and again on ``onDidChangeConfiguration`` for ``jarvis.scanInterval``; the
-   scanner is pushed to ``context.subscriptions``. A rescan that is still
+   scanner is disposed by ``JarvisEngine.dispose()``, which is pushed to
+   ``context.subscriptions``. A rescan that is still
    running when the next tick fires is not started twice: ``rescan()``
    returns the in-flight promise.
 
@@ -140,7 +142,8 @@ Actor Design Specifications
    only ``listActors()`` and apply the same exactly-one rule to it
    (``SPEC_KAN_CREATE``).
 
-   **Destination source:** ``getValidDestinations()`` (``sessionLookup.ts``,
+   **Destination source:** ``getValidDestinations()``
+   (``engine/sessions/sessionLookup.ts``,
    ``SPEC_AUT_HEARTBEAT_RESOLVER_REUSE``) returns the names of
    ``actorScanner.actors`` for which ``resolveName`` is ``found`` — an
    ambiguous name is not in the set — and nothing else; chat session titles
@@ -164,8 +167,8 @@ Actor Design Specifications
      the cache.
    * AC-5: The rescan triggers above are the only ones; no file-system
      watcher is used.
-   * AC-6: Heartbeat, reminder and message destination validation read
-     Actor names from this scanner and from no other enumeration.
+   * AC-6: Heartbeat and message destination validation read Actor names from
+     this scanner and from no other enumeration.
    * AC-7: The periodic rescan is a ``setInterval`` owned by the scanner; no
      heartbeat job is created for it, and a leftover ``"Jarvis: Rescan"``
      job is removed when the heartbeat feature starts.
@@ -309,7 +312,7 @@ Actor Design Specifications
 
 .. spec:: Actor File Children
    :id: SPEC_ACTOR_FILES
-   :status: approved
+   :status: implemented
    :links: REQ_ACTOR_FILES_TREE; SPEC_ACTOR_TREE; SPEC_ACTOR_AGENT_DISCOVERY; SPEC_MSG_EDITORPLACEMENT
 
    **Description:**
@@ -362,8 +365,9 @@ Actor Design Specifications
 
    **Category and folder expansion:**
 
-   * ``agent`` → exactly one ``ActorFileNode`` with label
-     ``Agent File: <basename>``.
+   * ``agent`` → exactly one ``ActorFileNode`` whose label is the bare file
+     name ``<basename>`` (for example ``Architect.agent.md``), without a
+     prefix.
    * ``files`` → ``listFolder(actor.folder)``.
    * ``actorFileFolder`` → ``listFolder(folderPath)``.
 
@@ -442,7 +446,7 @@ Actor Design Specifications
 
 .. spec:: Unread Mail Icon Source
    :id: SPEC_ACTOR_MAIL
-   :status: draft
+   :status: implemented
    :links: REQ_ACTOR_MAIL; SPEC_ACTOR_SCANNER; SPEC_ACTOR_TREE; SPEC_OLK_SETTINGS
 
    **Description:**
@@ -697,8 +701,8 @@ Actor Design Specifications
 
 .. spec:: jarvis_createActor Tool
    :id: SPEC_ACTOR_CREATETOOL
-   :status: approved
-   :links: REQ_ACTOR_CREATETOOL; SPEC_ACTOR_CREATE; SPEC_ACTOR_WHOAMI; SPEC_COM_OPEN; SPEC_ENG_REGISTER_TOOL; SPEC_MSG_DUALREGISTRATION; SPEC_MSG_QUEUESTORE; REQ_ENG_TOOLREF
+   :status: implemented
+   :links: REQ_ACTOR_CREATETOOL; SPEC_ACTOR_CREATE; SPEC_ACTOR_WHOAMI; SPEC_COM_OPEN; SPEC_ENG_REGISTER_TOOL; SPEC_MSG_QUEUESTORE; REQ_ENG_TOOLREF
 
    **Description:**
    ``jarvis_createActor`` is registered with ``engine.registerTool()``
@@ -740,7 +744,7 @@ Actor Design Specifications
         "toolReferenceName": "jarvis_core_createActor",
         "canBeReferencedInPrompt": true,
         "icon": "$(add)",
-        "modelDescription": "jarvis_core: Creates a Jarvis Actor (actor.yaml and context.md) under the configured actors folder. Returns created: false without changes when an Actor with that name or folder already exists.",
+        "modelDescription": "jarvis_core: Creates a Jarvis Actor (actor.yaml and context.md) in a new folder under the configured actors folder (setting jarvis.actors.folder, default .jarvis/actors). Returns created: false without changes when an Actor with that name or folder already exists.",
         "inputSchema": {
           "type": "object",
           "required": ["name"],
@@ -764,6 +768,11 @@ Actor Design Specifications
    * AC-5: The input schema has no ``agent`` property; a caller that passes
      one anyway (e.g. through ``invokeTool``) is not rejected and the value
      has no effect.
+   * AC-6: The ``modelDescription`` places the new Actor under the configured
+     actors folder, names the setting ``jarvis.actors.folder`` and its default
+     ``.jarvis/actors``, and states no fixed
+     ``<workspace>/.jarvis/actors/<name>/`` path (``REQ_ACTOR_CREATETOOL``
+     AC-2: the folder follows the setting).
 
 
 .. spec:: Actor Identity via Own Agent

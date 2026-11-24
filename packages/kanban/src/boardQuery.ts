@@ -11,6 +11,8 @@ export interface BoardData { fields?: BoardField[]; items?: Array<Record<string,
 export interface ListFilter {
     status?: string;
     labels?: string[];
+    /** Declared-field filters, AND-combined (SPEC_KAN_LIST step 4). Validated by selectItems(). */
+    fields?: unknown;
     /** true: full items; absent or false: projection. Any other value is refused by detailsError(). */
     details?: boolean;
 }
@@ -27,6 +29,39 @@ function labelsOf(item: Record<string, unknown>): string[] {
     return Array.isArray(item.labels) ? item.labels.filter((l): l is string => typeof l === 'string') : [];
 }
 
+/** SPEC_KAN_LIST step 4, `fields` checks in the order the spec fixes; the first error found is returned. */
+function parseFieldFilters(data: BoardData, fields: unknown):
+    { error: string } | { filters: Array<{ name: string; type: string; value: string }> } {
+    if (typeof fields !== 'object' || fields === null || Array.isArray(fields)) {
+        return { error: 'fields must be an object that maps declared field names to strings' };
+    }
+    const entries = Object.entries(fields as Record<string, unknown>);
+    const filterable = (data.fields ?? []).filter(f => f.name !== 'status' && (f.type === 'single_select' || f.type === 'text'));
+    for (const [key] of entries) {
+        if (!filterable.some(f => f.name === key)) {
+            return { error: `Cannot filter by "${key}". Filterable fields: ${filterable.map(f => f.name).join(', ')}` };
+        }
+    }
+    for (const [key, value] of entries) {
+        if (typeof value !== 'string') { return { error: `fields.${key} must be a string` }; }
+    }
+    const filters: Array<{ name: string; type: string; value: string }> = [];
+    for (const [key, value] of entries) {
+        const def = filterable.find(f => f.name === key)!;
+        const type = def.type as string;
+        if (type === 'single_select') {
+            const valid = (def.options ?? []).map(o => o.name);
+            if (!valid.includes(value as string)) {
+                return { error: `Unknown value "${value}" for field "${key}". Valid: ${valid.join(', ')}` };
+            }
+        } else if (value === '') {
+            return { error: `fields.${key} must not be empty` };
+        }
+        filters.push({ name: key, type, value: value as string });
+    }
+    return { filters };
+}
+
 /** SPEC_KAN_LIST steps 4 to 6: status validation, filtering, shaping. */
 export function selectItems(data: BoardData, filter: ListFilter): { error: string } | { items: Array<Record<string, unknown>> } {
     if (filter.status) {
@@ -37,9 +72,24 @@ export function selectItems(data: BoardData, filter: ListFilter): { error: strin
         }
     }
 
+    const fieldFilters: Array<{ name: string; type: string; value: string }> = [];
+    if (filter.fields !== undefined) {
+        const parsed = parseFieldFilters(data, filter.fields);
+        if ('error' in parsed) { return parsed; }
+        fieldFilters.push(...parsed.filters);
+    }
+
     let items = data.items ?? [];
     if (filter.status) {
         items = items.filter(i => i.status === filter.status);
+    }
+    for (const f of fieldFilters) {
+        const wanted = f.value.toLowerCase();
+        items = items.filter(i => {
+            const v = i[f.name];
+            if (typeof v !== 'string') { return false; }
+            return f.type === 'text' ? v.toLowerCase().includes(wanted) : v === f.value;
+        });
     }
     if (filter.labels && filter.labels.length > 0) {
         items = items.filter(i => {
@@ -66,8 +116,9 @@ function compareCodePoints(a: string, b: string): number {
     return x.length - y.length;
 }
 
-/** SPEC_KAN_FILTERVALUES steps 3 to 5: the declared status values and the labels in use, each with a card count. */
-export function filterValues(data: BoardData): { error: string } | { statuses: NameCount[]; labels: NameCount[] } {
+/** SPEC_KAN_FILTERVALUES steps 3 to 6: the declared status values, the other single-select options and the labels in use, each with a card count. */
+export function filterValues(data: BoardData):
+    { error: string } | { statuses: NameCount[]; fields: Array<{ name: string; options: NameCount[] }>; labels: NameCount[] } {
     const statusField = (data.fields ?? []).find(f => f.name === 'status');
     if (!statusField) { return { error: 'board has no status field' }; }
 
@@ -92,5 +143,12 @@ export function filterValues(data: BoardData): { error: string } | { statuses: N
         .map(([name, count]) => ({ name, count }))
         .sort((a, b) => compareCodePoints(a.name, b.name));
 
-    return { statuses, labels };
+    const fields = (data.fields ?? [])
+        .filter(f => f.type === 'single_select' && f.name !== 'status')
+        .map(f => ({
+            name: f.name,
+            options: (f.options ?? []).map(o => ({ name: o.name, count: counted.filter(i => i[f.name] === o.name).length })),
+        }));
+
+    return { statuses, fields, labels };
 }

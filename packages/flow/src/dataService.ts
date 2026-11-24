@@ -106,7 +106,7 @@ export function loadFlowData(logPath: string, cap: number = DEFAULT_CAP, legacyL
     const capped = raw.slice(-cap);
     return {
         ...aggregate(capped),
-        entries: capped.map(e => ({ sender: e.sender, destination: e.destination, timestamp: e.timestamp }))
+        entries: capped.map(e => ({ sender: e.sender, destination: e.destination, timestamp: e.timestamp, text: e.text }))
     };
 }
 

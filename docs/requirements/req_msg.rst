@@ -20,9 +20,7 @@ Message Queue Requirements
    * AC-3: Writing a new message SHALL append to the array without losing existing
      entries
    * AC-4: The queue file location SHALL be determined by ``REQ_CFG_FIXEDPATHS``
-     (``<workspaceRoot>/.jarvis/messages/queue.json``). The previous reference to
-     ``REQ_CFG_MSGPATH`` pointed at a requirement describing a setting that had
-     already been removed.
+     (``<workspaceRoot>/.jarvis/messages/queue.json``).
 
 .. req:: Message Tree Display
    :id: REQ_MSG_EXPLORER
@@ -66,70 +64,6 @@ Message Queue Requirements
    * AC-1: Each message node SHALL have a trash-icon inline button
    * AC-2: Clicking the button SHALL remove the message entry from the queue file
    * AC-3: The Messages tree view SHALL refresh after deletion
-
-.. req:: Session UUID Lookup via state.vscdb
-   :id: REQ_MSG_SESSIONLOOKUP
-   :status: approved
-   :priority: optional
-   :links: US_COM_SEND
-
-   **Description:**
-   The extension SHALL resolve a chat session name to a VS Code Chat session UUID
-   by querying the local ``state.vscdb`` SQLite database.
-
-   **Acceptance Criteria:**
-
-   * AC-1: The extension SHALL read
-     ``ItemTable[key='chat.ChatSessionStore.index']`` from ``state.vscdb`` to
-     obtain a mapping of session titles to UUIDs
-   * AC-2: The lookup SHALL be a live database read each time — no caching
-   * AC-3: If the session name is not found, the lookup SHALL return ``undefined``
-     — callers decide the fallback behavior (e.g. open new chat, show notification)
-   * AC-4: If multiple sessions share the same name, the extension SHALL use the
-     first match and show a warning notification to the user
-   * AC-5: The extension SHALL use ``sql.js`` (pure JS/WASM) to read the database
-     file
-   * AC-6: The lookup SHALL be workspace-scoped — the extension SHALL read from
-     ``workspaceStorage/<hash>/state.vscdb`` (derived from ``context.storageUri``)
-     rather than the global ``state.vscdb``, so only sessions belonging to the
-     current VS Code window are visible
-   * AC-7: The ``state.vscdb`` path SHALL be derived using
-     ``context.globalStorageUri`` (always a local path) to remain correct in
-     Remote and Devcontainer environments where ``context.storageUri.fsPath`` may
-     point to a remote filesystem
-   * AC-8: When ``state.vscdb`` is not found at the resolved path, the extension
-     SHALL emit a warning via the Jarvis log channel and return an empty list
-   * AC-9: When the extension runs in a standard (non-remote) workspace, the
-     existing session lookup behavior SHALL be unaffected
-   * AC-10: When the extension host runs in a **WSL2** environment, the module
-     SHALL detect WSL2 by reading ``/proc/version`` and checking for the string
-     ``"microsoft"`` (case-insensitive). It SHALL derive the Windows user data
-     path as ``/mnt/c/Users/<USERNAME>/AppData/Roaming/Code/User`` where
-     ``<USERNAME>`` is taken from the ``USERNAME`` environment variable. The
-     workspace hash extraction is unchanged.
-   * AC-11: ``lookupSessionUUID('My Session')`` SHALL return the correct UUID
-     when VS Code is running in WSL2 remote mode with the workspace on the
-     Linux filesystem
-
-
-.. req:: Named Session Filter
-   :id: REQ_MSG_SESSIONFILTER
-   :status: implemented
-   :priority: optional
-   :links: US_COM_NAME; US_COM_FIND; REQ_MSG_SESSIONLOOKUP
-
-   **Description:**
-   The extension SHALL provide a shared filtering rule that excludes unnamed
-   sessions from user-facing session lists.
-
-   **Acceptance Criteria:**
-
-   * AC-1: A session is considered "named" if its title is a non-empty string
-   * AC-2: Sessions with an empty or missing title SHALL be excluded from the
-     results of any session enumeration feature
-   * AC-3: The filter SHALL be applied consistently by every feature that
-     enumerates sessions
-
 
 .. req:: Embedded MCP Server
    :id: REQ_MSG_MCPSERVER
@@ -279,7 +213,7 @@ Message Queue Requirements
    :id: REQ_MSG_LOGSETTING
    :status: implemented
    :priority: optional
-   :links: US_MSG_LOGGING; REQ_CFG_MSGPATH
+   :links: US_MSG_LOGGING; REQ_CFG_GROUPS
 
    **Description:**
    The extension SHALL provide a boolean configuration setting to enable or
@@ -321,7 +255,7 @@ Message Queue Requirements
 
 .. req:: Editor-Group Placement Model
    :id: REQ_MSG_EDITORPLACEMENT
-   :status: approved
+   :status: implemented
    :priority: mandatory
    :links: US_MSG_EDITORPLACEMENT; US_COM_NAME; REQ_FLOW_WEBVIEWPANEL
 
@@ -342,6 +276,9 @@ Message Queue Requirements
    removed. What other features still use is the rule for documents and the
    diagram panel (the Content column, AC-2, AC-3 and AC-11). Whether this model
    is rewritten for documents only or retired is open and not part of the MVP.
+   The session UUID lookup that AC-8, AC-11 and AC-12 once relied on is retired
+   (``retire-legacy-session-lookup`` CR); the chat-related parts of those
+   criteria describe removed behaviour.
 
    **Acceptance Criteria:**
 
@@ -393,8 +330,8 @@ Message Queue Requirements
      Secondary has its own stable last-existing column, reused for all
      subsequent Secondary placements.
    * AC-8: The placement logic SHALL only act on tabs whose label matches a
-     known Actor session name (via ``REQ_MSG_SESSIONLOOKUP``) or a
-     known Actor file path — arbitrary files the user opens manually are
+     known Actor session name or a known Actor file path — arbitrary files the
+     user opens manually are
      entirely outside this system's contract and are never moved, closed,
      or reused as a placement target.
    * AC-9: (Superseded by ``REQ_COM_OPEN`` AC-4.) The manual Play-button command
@@ -406,8 +343,8 @@ Message Queue Requirements
      Panel (``REQ_FLOW_WEBVIEWPANEL``) SHALL also target the Content column
      (AC-2) as a fixed target, coexisting with any already-open Actor-file
      tab as a separate tab within the same column rather than replacing it.
-     Because a Webview Panel tab exposes neither ``lookupSessionUUID``
-     resolution (not a chat tab) nor a ``.uri`` (not a plain file tab), the
+     Because a Webview Panel tab exposes no ``.uri`` (it is not a plain file
+     tab) and is not a chat tab, the
      Secondary-column resolution helper (``resolveSecondaryColumn``) SHALL
      recognize and exclude it (via its VS Code ``viewType``) from any group-
      count logic used to compute the dynamic Secondary target, so that
@@ -424,9 +361,7 @@ Message Queue Requirements
      a chat — both funnel through the shared ``injectPrompt()``
      helper), the extension SHALL perform a **follow-up relocate step**
      after the new session is created, renamed, and initialized: resolve
-     the now-existing session's UUID (``REQ_MSG_SESSIONLOOKUP`` —
-     guaranteed to resolve, since the rename to the Actor's name has just
-     completed) and apply the identical Main-target close+reopen mechanism
+     the now-existing session's UUID and apply the identical Main-target close+reopen mechanism
      already used for the existing-session branch (AC-5). This makes
      Main-column placement deterministic for freshly created sessions too,
      regardless of which column VS Code happened to create the new chat
@@ -449,9 +384,9 @@ Message Queue Requirements
 
 .. req:: Reminder Persistence Store
    :id: REQ_MSG_REMINDERS_PERSIST
-   :status: draft
+   :status: implemented
    :priority: optional
-   :links: US_MSG_REMINDERS; REQ_MSG_QUEUE; REQ_CFG_FIXEDPATHS
+   :links: US_MSG_REMINDERS; REQ_MSG_QUEUE; REQ_CFG_FIXEDPATHS; REQ_CFG_PATHSINGLESOURCE
 
    **Description:**
    The extension SHALL maintain a persistent YAML file at
@@ -473,17 +408,20 @@ Message Queue Requirements
      list as empty (no error)
    * AC-4: If the file is malformed, the extension SHALL fall back to an empty
      list and log a warning
-   * AC-5: A new module ``src/reminders.ts`` SHALL provide the public API:
+   * AC-5: The module ``packages/core/src/apps/session/reminders.ts`` SHALL
+     provide the public API:
      ``readReminders(path)``, ``writeReminders(path, list)``,
      ``addReminder(path, text, session, deliverAt)``,
      ``removeReminder(path, id)``, ``popDueReminders(path, now)``
    * AC-6: ``popDueReminders`` SHALL return all reminders where
-     ``deliverAt <= now`` and atomically remove them from the file
+     ``deliverAt <= now`` and remove them from the file in the same
+     synchronous read-modify-write step, so that no due reminder is returned
+     twice
 
 
 .. req:: Reminder Delivery via Poll Loop
   :id: REQ_MSG_REMINDERS_DELIVER
-  :status: draft
+  :status: implemented
   :priority: optional
   :links: US_MSG_REMINDERS; REQ_MSG_REMINDERS_PERSIST; REQ_COM_NOTIFY; REQ_MSG_QUEUE; REQ_MSG_AUTODELIVER_CONFIG
 
@@ -510,17 +448,22 @@ Message Queue Requirements
    * AC-5: The Messages tree SHALL refresh after reminder enqueueing
    * AC-6: Errors in reminder processing SHALL be caught, logged as warnings,
      and SHALL NOT stop the poll loop
+   * AC-7: A reminder SHALL fire once: after delivery it no longer exists, and
+     no recurring schedule is available. A due reminder SHALL raise no VS Code
+     notification of its own; the only signal is the one the message delivery
+     policy gives for the queued message (AC-3)
 
 
 .. req:: Reminder LM and MCP Tools
    :id: REQ_MSG_REMINDERS_TOOLS
-   :status: draft
+   :status: implemented
    :priority: optional
-   :links: US_MSG_REMINDERS; REQ_MSG_REMINDERS_PERSIST; REQ_MSG_MCPSERVER
+   :links: US_MSG_REMINDERS; REQ_MSG_REMINDERS_PERSIST; REQ_ENG_TOOLREGISTRY
 
    **Description:**
-   The extension SHALL register three Language Model Tools (also exposed via MCP)
-   for managing reminders.
+   The extension SHALL register three Language Model Tools for managing
+   reminders. Like every Jarvis tool they are registered once, in the engine's
+   tool registry, and reach MCP clients through that registry.
 
    **Acceptance Criteria:**
 
@@ -535,16 +478,18 @@ Message Queue Requirements
    * AC-3: A tool ``jarvis_cancelReminder`` SHALL accept ``id`` (string) and
      return ``{ status: 'cancelled' }`` if the reminder was found and removed,
      or ``{ status: 'not_found' }`` if no matching reminder exists
-   * AC-4: All three tools SHALL be registered via the ``registerDualTool``
-     pattern so they are simultaneously available as VS Code LM Tools and as
-     MCP Tools
+   * AC-4: All three tools SHALL be registered once through the engine's tool
+     registry (``SPEC_ENG_REGISTER_TOOL``). No tool-specific MCP registration
+     exists: the MCP extension derives its tools from the shared registry
+     (``SPEC_MOD_MCP_PKG``), so the three tools are available to MCP clients
+     without further code
    * AC-5: All three tools SHALL be declared in ``package.json``
      ``contributes.languageModelTools`` with appropriate ``inputSchema``
 
 
 .. req:: Reminders Tree View
    :id: REQ_MSG_REMINDERS_VIEW
-   :status: draft
+   :status: implemented
    :priority: optional
    :links: US_MSG_REMINDERS; REQ_MSG_REMINDERS_PERSIST; REQ_EXP_TREEVIEW
 
@@ -556,7 +501,8 @@ Message Queue Requirements
 
    * AC-1: A top-level view ``jarvisReminders`` labelled "Reminders" SHALL be
      present in the Jarvis Activity Bar container next to the Messages view
-   * AC-2: The view SHALL be visible when ``config.jarvis.messagesFile != ''``
+   * AC-2: The view SHALL be visible when ``config.jarvis.messages.enabled == true``
+     and ``config.jarvis.reminders.enabled == true`` (``SPEC_CFG_VIEWGATING``)
    * AC-3: Each pending reminder SHALL appear as a non-collapsible node
      showing the text (truncated to 60 chars), the target session, and a
      description of either "in X min" (if more than 60 s remaining), "in Xs"

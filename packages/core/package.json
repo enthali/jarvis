@@ -2,7 +2,7 @@
   "name": "jarvis-core",
   "displayName": "Jarvis Core",
   "description": "Jarvis core — sessions, messaging, reminders, heartbeat, engine",
-  "version": "0.34.0",
+  "version": "0.35.0",
   "publisher": "enthali",
   "icon": "resources/jarvis-128.png",
   "keywords": [
@@ -55,7 +55,6 @@
   "dependencies": {
     "cron-parser": "^5.5.0",
     "js-yaml": "^4.1.1",
-    "sql.js": "^1.14.1",
     "ws": "^8.22.0"
   },
   "capabilities": {
@@ -207,7 +206,7 @@
         "title": "Messages",
         "properties": {
           "jarvis.messages.enabled": { "type": "boolean", "default": true, "description": "Enable the Messages feature." },
-          "jarvis.messages.logging": { "type": "boolean", "default": true, "description": "When enabled, every queued message is also appended to .jarvis/message-log.json." }
+          "jarvis.messages.logging": { "type": "boolean", "default": true, "description": "When enabled, every queued message is also appended to .jarvis/messages/log.json." }
         }
       },
       {
@@ -259,7 +258,7 @@
       {
         "name": "jarvis_createActor",
         "displayName": "Create Actor",
-        "modelDescription": "jarvis_core: Creates a new Jarvis Actor folder with actor.yaml and context.md under <workspace>/.jarvis/actors/<name>/. Idempotent.",
+        "modelDescription": "jarvis_core: Creates a new Jarvis Actor folder with actor.yaml and context.md under the configured jarvis.actors.folder (default .jarvis/actors), as <folder>/<name>/. Idempotent.",
         "canBeReferencedInPrompt": true, "toolReferenceName": "jarvis_core_createActor", "icon": "$(add)", "tags": ["jarvis"],
         "inputSchema": { "type": "object", "required": ["name"], "properties": { "name": { "type": "string" }, "summary": { "type": "string" }, "initialMessage": { "type": "string" } } }
       },
@@ -268,7 +267,7 @@
         "displayName": "Register Heartbeat Job",
         "modelDescription": "jarvis_core: Registers (or updates) a heartbeat job.",
         "canBeReferencedInPrompt": true, "toolReferenceName": "jarvis_core_registerJob", "icon": "$(add)",
-        "inputSchema": { "type": "object", "required": ["name", "schedule", "steps"], "properties": { "name": { "type": "string" }, "schedule": { "type": "string" }, "steps": { "type": "array", "items": { "type": "object", "required": ["type"], "properties": { "type": { "type": "string" }, "run": { "type": "string" }, "prompt": { "type": "string" }, "outputFile": { "type": "string" }, "append": { "type": "boolean" }, "vendor": { "type": "string", "description": "Agent step: vendor of the language model, exactly as returned by jarvis_listModels." }, "model": { "type": "string", "description": "Agent step: model id, exactly as returned by jarvis_listModels." }, "destination": { "type": "string" }, "sender": { "type": "string" }, "text": { "type": "string" } } } } } }
+        "inputSchema": { "type": "object", "required": ["name", "schedule", "steps"], "properties": { "name": { "type": "string" }, "schedule": { "type": "string" }, "steps": { "type": "array", "items": { "type": "object", "required": ["type"], "properties": { "type": { "type": "string" }, "run": { "type": "string" }, "prompt": { "type": "string" }, "outputFile": { "type": "string" }, "append": { "type": "boolean" }, "outputVar": { "type": "string", "description": "Name under which this step's output is available to later steps as ${NAME}." }, "vendor": { "type": "string", "description": "Agent step: vendor of the language model, exactly as returned by jarvis_listModels." }, "model": { "type": "string", "description": "Agent step: model id, exactly as returned by jarvis_listModels." }, "destination": { "type": "string" }, "sender": { "type": "string" }, "text": { "type": "string" } } } } } }
       },
       {
         "name": "jarvis_unregisterJob",

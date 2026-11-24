@@ -5,7 +5,7 @@ Automation Requirements
    :id: REQ_AUT_JOBCONFIG
    :status: implemented
    :priority: optional
-   :links: US_AUT_HEARTBEAT; REQ_CFG_HEARTBEATPATH
+   :links: US_AUT_HEARTBEAT; REQ_CFG_FIXEDPATHS
 
    **Description:**
    The extension SHALL read a YAML file that defines named automation jobs.
@@ -166,7 +166,7 @@ Automation Requirements
    :id: REQ_AUT_HEARTBEATVIEW
    :status: implemented
    :priority: optional
-   :links: US_AUT_HEARTBEAT; US_EXP_SIDEBAR
+   :links: US_AUT_HEARTBEAT; US_AUT_HEARTBEATTREE
 
    **Description:**
    The extension SHALL provide a tree view in the Jarvis sidebar that visualizes all
@@ -230,6 +230,9 @@ Automation Requirements
    * AC-3: Both methods SHALL write to the YAML file immediately, reload the
      in-memory job list, and refresh the Heartbeat tree view
    * AC-4: The YAML file is the single source of truth — no RAM-only jobs
+   * AC-5: The ``jarvis_registerJob`` tool SHALL accept on a step every field that
+     ``REQ_AUT_JOBCONFIG`` defines for it — ``outputVar`` included — and persist it with
+     the job, so an Actor can register any job that the YAML file can hold
 
 
 .. req:: Pause and Resume Heartbeat Jobs
@@ -262,7 +265,7 @@ Automation Requirements
 
 .. req:: List Jobs LM+MCP Tool
    :id: REQ_AUT_LISTJOBS_TOOL
-   :status: approved
+   :status: implemented
    :priority: optional
    :links: US_AUT_HEARTBEAT; REQ_AUT_JOBREG
 
@@ -283,8 +286,9 @@ Automation Requirements
        execution, or ``null`` for paused jobs (``enabled === false``) or
        jobs with ``schedule === "manual"``
 
-   * AC-3: The tool SHALL be registered via the shared ``registerDualTool()``
-     helper so that it is available over both the LM API and MCP simultaneously
+   * AC-3: The tool SHALL be registered once through the engine's tool registry
+     (``SPEC_ENG_REGISTER_TOOL``), so that it is available over both the LM API
+     and MCP without a tool-specific MCP registration
    * AC-4: The ``nextFire`` timestamp SHALL be computed using ``cron-parser``
      (``CronExpressionParser.parse(schedule).next().toDate().toISOString()``) —
      the same library already used in ``heartbeatTreeProvider.ts``
@@ -319,6 +323,10 @@ Automation Requirements
      the invalid destination value verbatim
    * AC-3: A job containing an invalid destination SHALL still be loaded into the
      scheduler — the warning is informational; the job is NOT paused or removed
+   * AC-4: The check SHALL also run once when the heartbeat starts (extension
+     activation), so that a destination misspelled by hand in ``heartbeat.yaml``
+     is reported without waiting for a reload. The scheduler tick does not
+     repeat it, because it would repeat the same warning every interval
 
 
 .. req:: Queue Step Behavior on Invalid Destination at Fire Time
@@ -385,13 +393,19 @@ Automation Requirements
      without error or delay
    * AC-3: No additional round-trip delays SHALL be introduced for non-queue steps
      (python, powershell, command, agent)
+   * AC-4: A valid ``queue``-step destination SHALL be accepted on every path
+     that starts the scheduler or runs a job: activation, a change of
+     ``jarvis.heartbeatInterval``, the scheduler tick, a manual run, a run from
+     the tree, and the run after resuming a paused job. Every one of these paths
+     uses the ``ActorScanner`` instance, because without it the valid set is
+     empty and every queue step is skipped
 
 
 .. req:: Shared Resolver for Heartbeat Destination Validation
    :id: REQ_AUT_HEARTBEAT_RESOLVER_REUSE
-   :status: draft
+   :status: implemented
    :priority: optional
-   :links: US_AUT_HEARTBEAT_VALIDATION; REQ_MSG_SESSIONLOOKUP; REQ_MSG_SESSIONFILTER
+   :links: US_AUT_HEARTBEAT_VALIDATION
 
    **Description:**
    The valid destination set for heartbeat queue-step validation SHALL be derived
@@ -417,7 +431,7 @@ Automation Requirements
 
 .. req:: Step Output Variable Capture and Interpolation
    :id: REQ_AUT_STEP_OUTPUT_VARS
-   :status: draft
+   :status: implemented
    :priority: optional
    :links: US_AUT_HEARTBEAT; REQ_AUT_JOBEXEC; REQ_AUT_JOBCONFIG
 
@@ -429,7 +443,8 @@ Automation Requirements
 
    * AC-1: ``outputVar`` is supported as a capture source on ``python``,
      ``powershell``, and ``agent`` step types; ``queue`` and ``command`` steps
-     do not produce capturable output
+     do not produce capturable output. A step whose output is empty sets no
+     variable, so a later reference to it stays as written (AC-4)
    * AC-2: Interpolation targets are exactly the step fields ``run``, ``prompt``,
      ``outputFile``, ``destination``, ``sender``, ``text``, ``vendor`` and ``model``;
      ``type``, ``append`` and ``outputVar`` are not interpolated
@@ -445,6 +460,11 @@ Automation Requirements
      reading from OS environment variables as fallback, no injection into OS
      environment of child processes; scripts may use real env vars independently
      but that is outside this feature's scope
+   * AC-8: After every ``python`` or ``powershell`` step the variable
+     ``LAST_STDERR`` SHALL hold that step's complete stderr text (the empty
+     string when the step wrote none), whether or not the step has an
+     ``outputVar``; it is interpolated like any captured variable and its
+     setting is logged as in AC-6. Steps of other types leave it unchanged
 
 
 .. req:: Agent Step Language Model Choice

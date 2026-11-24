@@ -3,7 +3,7 @@ Kanban Requirements
 
 .. req:: Kanban Board YAML Schema
    :id: REQ_KAN_SCHEMA
-   :status: draft
+   :status: implemented
    :priority: required
    :links: US_KAN_BOARD
 
@@ -55,7 +55,7 @@ Kanban Requirements
 
 .. req:: Kanban Board Renderer
    :id: REQ_KAN_RENDERER
-   :status: draft
+   :status: implemented
    :priority: required
    :links: US_KAN_BOARD
 
@@ -75,8 +75,11 @@ Kanban Requirements
    * AC-3a: (``kanban-skill-content`` CR) Values of declared ``text`` fields
      SHALL be rendered on the card, labelled with the field name so they are
      distinguishable from the unnamed built-in ``notes``.
-   * AC-4: The renderer SHALL support client-side filtering by label and by
-     single-select field values (e.g. ``priority:High``).
+   * AC-4: The renderer SHALL support client-side filtering by a plain text typed
+     into a filter bar. A card matches when the text, ignoring case, is part of its
+     id, name, a field value, a label or its notes; the text has no syntax, so
+     ``priority:High`` is searched as that literal text and does not select a field.
+     An empty filter SHALL show every card.
    * AC-5: The renderer SHALL be read-only — no drag-and-drop, no inline
      editing (Phase 1).
    * AC-6: Column header colors SHALL use the ``color`` property from the
@@ -87,7 +90,7 @@ Kanban Requirements
 
 .. req:: Convention-Based Board Discovery
    :id: REQ_KAN_DISCOVER
-   :status: draft
+   :status: implemented
    :priority: required
    :links: US_KAN_DISCOVER; REQ_ENG_ACTORLIST
 
@@ -110,7 +113,7 @@ Kanban Requirements
 
 .. req:: Kanban Board UX Entry Points
    :id: REQ_KAN_UX
-   :status: draft
+   :status: implemented
    :priority: required
    :links: US_KAN_DISCOVER; US_KAN_BOARD
 
@@ -134,7 +137,7 @@ Kanban Requirements
 
 .. req:: jarvis_createKanbanBoard Tool
    :id: REQ_KAN_CREATE
-   :status: draft
+   :status: implemented
    :priority: required
    :links: US_KAN_TOOLS; REQ_ACTOR_WHOAMI
 
@@ -167,7 +170,7 @@ Kanban Requirements
 
 .. req:: jarvis_verifyKanbanSchema Tool
    :id: REQ_KAN_VERIFY
-   :status: draft
+   :status: implemented
    :priority: required
    :links: US_KAN_TOOLS; REQ_KAN_SCHEMA; REQ_ACTOR_WHOAMI
 
@@ -195,7 +198,7 @@ Kanban Requirements
 
 .. req:: jarvis_openKanbanBoard Tool
    :id: REQ_KAN_OPEN
-   :status: draft
+   :status: implemented
    :priority: required
    :links: US_KAN_TOOLS; REQ_KAN_RENDERER; REQ_ACTOR_WHOAMI
 
@@ -208,14 +211,16 @@ Kanban Requirements
    * AC-1: The tool SHALL accept optional ``boardName`` and required
      ``ownerName`` parameters (same resolution as ``REQ_KAN_CREATE``).
    * AC-2: The tool SHALL open the resolved board file in the kanban
-     renderer webview.
+     renderer webview, in a side panel, and return
+     ``{ opened: true, path: "<absolutePath>" }``. A board that is already open
+     in a panel is brought to the front, not opened a second time.
    * AC-3: When the board file does not exist, the tool SHALL return
      ``{ error: "board not found" }``.
 
 
 .. req:: Kanban Module Integration
    :id: REQ_KAN_MODULE
-   :status: draft
+   :status: implemented
    :priority: required
    :links: US_KAN_BOARD; US_KAN_TOOLS
 
@@ -252,7 +257,7 @@ Kanban Requirements
 
 .. req:: jarvis_updateKanbanItem Tool
    :id: REQ_KAN_UPDATE
-   :status: draft
+   :status: implemented
    :priority: required
    :links: US_KAN_TOOLS; REQ_KAN_SCHEMA; REQ_ACTOR_WHOAMI
 
@@ -270,7 +275,7 @@ Kanban Requirements
    * AC-3: Owner resolution SHALL follow the uniform pattern
      (``REQ_KAN_CREATE`` AC-3/AC-4).
    * AC-4: On success, the tool SHALL return ``{ path, updated: true, itemId }``.
-     On item-not-found → ``{ error: "item not found", itemId }``.
+     On an unknown ``itemId`` → ``{ error: "item with id <itemId> not found" }``.
      On unknown owner → ``{ error: "actor unknown" }``.
    * AC-5: Item IDs SHALL never be reassigned or reused — the ``id`` field
      is immutable.
@@ -279,14 +284,9 @@ Kanban Requirements
      the parsed values of untouched items, per ``REQ_KAN_SCHEMA`` AC-9. Byte
      identity and line endings are not promised. An update that changes one field
      SHALL change only that field's parsed value.
-   * AC-7: (**superseded by the** ``kanban-update-validation`` **CR**) This
-     criterion previously froze the tool's validation at "``status`` only,
-     exactly as before", which is what kept ``jarvis_updateKanbanItem`` outside
-     the shared write contract when that contract was introduced
-     (``kanban-management-tools`` finding F-1). It is replaced by AC-8 and AC-9.
-     Everything AC-7 froze other than validation — lookup by ``id``, the
-     immutable ``id`` (AC-5), and the ``board not found`` / ``item not found`` /
-     read / write error paths — remains unchanged.
+   * AC-7: Validation is the one of AC-8 and AC-9. It does not change the lookup
+     by ``id``, the immutable ``id`` (AC-5), or the ``board not found`` / item
+     not found / read / write error paths.
    * AC-8: (``kanban-update-validation`` CR) The tool SHALL validate the
      complete ``changes`` object against ``REQ_KAN_WRITEVALID`` before applying
      any change, not only its ``status`` key. Values under declared
@@ -309,7 +309,7 @@ Kanban Requirements
 
 .. req:: Kanban File Open
    :id: REQ_KAN_FILEOPEN
-   :status: draft
+   :status: implemented
    :priority: required
    :links: US_KAN_DISCOVER; US_KAN_BOARD
 
@@ -324,8 +324,98 @@ Kanban Requirements
    * AC-2: "Open as Text" SHALL be accessible via the editor title bar
      button when the kanban webview is active. Files tree context menu
      access is deferred to a separate CR.
-   * AC-3: Behavior SHALL be uniform with other kanban entry points (command
-     palette, tools).
+   * AC-3: The board opened from the Command Palette or by a tool SHALL be shown
+     by the same renderer, so it shows the same board. It opens as a side panel
+     and not as an editor of the file, so the title bar actions ("Open as Text",
+     ``REQ_KAN_REFRESH``) belong to the custom editor only.
+
+
+.. req:: Kanban Board Refresh Action
+   :id: REQ_KAN_REFRESH
+   :status: implemented
+   :priority: required
+   :links: US_KAN_BOARD; REQ_KAN_FILEOPEN; REQ_KAN_RENDERER
+
+   **Description:**
+   The kanban custom editor (``REQ_KAN_FILEOPEN``) SHALL offer a Refresh action
+   that re-reads the board file and re-renders the board at once. The board
+   follows its file through change events (``SPEC_KAN_RENDERER`` AC-4); a tab
+   that has missed an update could until now only be closed and opened again
+   (GH #55).
+
+   **Acceptance Criteria:**
+
+   * AC-1: While a kanban custom editor is the active editor, its editor title bar
+     SHALL show a Refresh action next to "Open as Text"
+     (``REQ_KAN_FILEOPEN`` AC-2). No other editor SHALL show it, so that the
+     action is never offered where it has no board to act on.
+   * AC-2: Invoking Refresh SHALL re-read the board file from disk and render its
+     current contents, whether or not a change event for the file was seen.
+   * AC-3: Refresh SHALL NOT write to the board file.
+   * AC-4: Refresh SHALL keep the view state of the tab: the text filter, the lane
+     selection and the collapsed lanes (``REQ_KAN_LANES`` AC-8). It is a new
+     reading of the file, not a new tab.
+   * AC-5: Refresh SHALL act on the board file of the editor it is invoked from
+     and on no other open board.
+   * AC-6: When the file cannot be parsed, Refresh SHALL show the same parse error
+     as any other update of the board does.
+
+
+.. req:: Kanban Swimlanes
+   :id: REQ_KAN_LANES
+   :status: implemented
+   :priority: required
+   :links: US_KAN_LANES; REQ_KAN_RENDERER
+
+   **Description:**
+   The board renderer SHALL offer a selector that groups the cards into
+   horizontal lanes crossing the status columns, by a declared single-select field
+   or by label. Lanes are a read-only view of the board: choosing one changes
+   what the tab shows and nothing else (``REQ_KAN_RENDERER`` AC-5). The
+   requirement applies to every webview that renders a board, whether opened as a
+   custom editor or from a command or tool.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The board header SHALL carry a lane selector offering ``None``, every
+     declared ``single_select`` field other than ``status`` in declared order, and
+     ``Labels``. ``status`` is left out because its options already are the
+     columns. A board without another ``single_select`` field offers ``None``
+     and ``Labels``.
+   * AC-2: The initial selection SHALL be ``None``, and with ``None`` the board
+     SHALL render as ``REQ_KAN_RENDERER`` AC-1 and AC-2 specify.
+   * AC-3: With a field selected, there SHALL be one lane for each declared option
+     of that field, in declared order, and a card SHALL be placed in the lane of
+     its value. A card with no value, or with a value that is not a declared
+     option, SHALL be placed in a lane named ``Uncategorized`` after the option
+     lanes, so that no card disappears: the board file is edited by hand and
+     such values occur (``jarvis_verifyKanbanSchema`` reports them).
+   * AC-4: With ``Labels`` selected, there SHALL be one lane for each label that a
+     shown card carries, ordered by name by Unicode code point
+     (``REQ_KAN_FILTERVALUES`` AC-4), and a card SHALL appear in the lane of every
+     label it carries. A card without a label (entries that are not text do not
+     count as labels) SHALL be placed in a lane named ``Unlabelled`` after the
+     label lanes.
+   * AC-5: Every lane SHALL show its name and the number of cards it shows, and
+     SHALL show the cards of each status column in a cell under that column, drawn
+     as the cards of ``REQ_KAN_RENDERER`` AC-3 and AC-3a. A lane SHALL be
+     collapsible; a collapsed lane shows its header only.
+   * AC-6: The status column headers SHALL be shown once above all lanes, each with
+     the number of distinct cards the column holds. A card that appears in several
+     lanes SHALL count once, because the sum over the lanes would report three
+     cards for a column that holds one.
+   * AC-7: The lanes of the options of a selected field SHALL always be shown, also
+     when empty, because the declared options are the structure of that field. A
+     label lane, ``Uncategorized`` and ``Unlabelled`` SHALL be shown only while at
+     least one card the text filter lets through belongs to it. The text filter
+     (``REQ_KAN_RENDERER`` AC-4) applies first, then the cards are placed in lanes.
+   * AC-8: The selection and the collapsed lanes SHALL be kept in the open tab only:
+     they SHALL survive a refresh and every update of the board from its file, and
+     SHALL be gone when the board is opened again. They SHALL NOT be written to the
+     board file or to any other storage. When a re-read board no longer declares the
+     selected field, the selection SHALL fall back to ``None``.
+   * AC-9: Choosing, collapsing or expanding a lane SHALL NOT write to the board
+     file.
 
 
 .. req:: Freeform Text Field Type
@@ -478,7 +568,7 @@ Kanban Requirements
 
 .. req:: jarvis_listKanbanItems Tool
    :id: REQ_KAN_LIST
-   :status: approved
+   :status: implemented
    :priority: required
    :links: US_KAN_QUERY; REQ_ACTOR_WHOAMI
 
@@ -489,10 +579,10 @@ Kanban Requirements
 
    **Acceptance Criteria:**
 
-   * AC-1: The tool SHALL accept optional ``status`` and ``labels`` filters,
-     plus optional ``boardName``, optional ``details`` (AC-9) and required
-     ``ownerName``.
-   * AC-2: When both filters are given they SHALL be AND-combined. An item
+   * AC-1: The tool SHALL accept optional ``status`` and ``labels`` filters, an
+     optional ``fields`` filter (AC-12), plus optional ``boardName``, optional
+     ``details`` (AC-9) and required ``ownerName``.
+   * AC-2: When several filters are given they SHALL be AND-combined. An item
      matches the ``labels`` filter when it carries **every** requested label.
    * AC-3: When no filter is given, all items SHALL be returned — still as the
      compact projection, unless ``details`` is requested (AC-9).
@@ -525,11 +615,33 @@ Kanban Requirements
      entries that are not strings SHALL be omitted without an error. The labels
      returned for a card are the labels ``jarvis_listKanbanFilterValues`` counts
      for it, so every label a result shows can be used as a filter.
+   * AC-12: (``kanban-swimlanes-and-filters`` CR) ``fields`` SHALL be an object
+     whose keys are declared field names and whose values are strings, and an
+     item SHALL match only when it matches every entry. The key ``status`` is not
+     accepted here because ``status`` has its own filter. A ``fields`` value that
+     is not such an object, a key that is not the name of a declared
+     ``single_select`` or ``text`` field other than ``status``, and a value that is
+     not a string SHALL return an error that names the offending key and lists the
+     fields the filter accepts, rather than an empty list, for the reason of AC-6.
+   * AC-13: (``kanban-swimlanes-and-filters`` CR) For a ``single_select`` field, an
+     item SHALL match when its value equals the requested string exactly, case and
+     spaces significant. A requested string that is not a declared option SHALL
+     return an error naming the valid options, as AC-6 does for ``status``.
+   * AC-14: (``kanban-swimlanes-and-filters`` CR) For a ``text`` field, an item
+     SHALL match when its value contains the requested string, ignoring case. An
+     item without a value for the field does not match. An empty requested string
+     SHALL return an error, because it would match every card that has the field and
+     tell the caller nothing. A text value is free text that
+     ``jarvis_listKanbanFilterValues`` cannot enumerate, so a caller can only match
+     part of it.
+   * AC-15: (``kanban-cleanup`` CR) An empty ``fields`` object, ``{}``, SHALL behave
+     as if ``fields`` were absent: it names no filter, so it adds no constraint and
+     returns no error. It is still an object, so AC-12 does not refuse it.
 
 
 .. req:: jarvis_listKanbanFilterValues Tool
    :id: REQ_KAN_FILTERVALUES
-   :status: approved
+   :status: implemented
    :priority: required
    :links: US_KAN_QUERY; REQ_ACTOR_WHOAMI
 
@@ -544,7 +656,7 @@ Kanban Requirements
      ``ownerName``, resolved as for ``jarvis_listKanbanItems`` (``REQ_KAN_LIST``
      AC-1).
    * AC-2: On success the tool SHALL return
-     ``{ path, statuses: [{ name, count }], labels: [{ name, count }] }``.
+     ``{ path, statuses: [{ name, count }], fields: [{ name, options: [{ name, count }] }], labels: [{ name, count }] }``.
    * AC-3: ``statuses`` SHALL hold every option declared for the board's
      ``status`` field, in the declared order, including options no card has
      (``count: 0``); ``count`` is the number of cards with that status. A board
@@ -554,16 +666,26 @@ Kanban Requirements
      with the number of cards that carry it. A label no card carries does not
      appear, because labels are not declared on the board.
    * AC-5: Each name SHALL be written as the filters of ``jarvis_listKanbanItems``
-     accept it (``REQ_KAN_LIST`` AC-2, AC-6), so a value copied from the result
-     matches.
+     accept it (``REQ_KAN_LIST`` AC-2, AC-6, AC-12, AC-13), so a value copied from the
+     result matches.
    * AC-6: The result SHALL carry no card content (no ``id``, ``name``, notes or
-     field values); its size scales with the number of distinct status values and
-     labels, not with the number of cards (``US_KAN_QUERY`` AC-3, AC-4).
+     field values); its size scales with the number of distinct status values, field
+     options and labels, not with the number of cards (``US_KAN_QUERY`` AC-3, AC-4).
    * AC-7: The tool SHALL NOT modify the board file. A missing board or an
      unknown owner SHALL return the same errors as ``jarvis_listKanbanItems``.
    * AC-8: A card whose ``status`` matches no declared option, and a label entry that
      is not text, SHALL NOT appear in the result and SHALL NOT be counted;
      ``jarvis_verifyKanbanSchema`` reports such values.
+   * AC-9: (``kanban-swimlanes-and-filters`` CR) ``fields`` SHALL hold one entry for
+     every declared ``single_select`` field other than ``status``, in declared field
+     order, and each entry SHALL hold every declared option of that field in declared
+     order, including options no card has (``count: 0``); ``count`` is the number of
+     cards with that value. A board without such a field SHALL return ``fields: []``.
+     ``text`` fields SHALL NOT appear: they have no set of values to list.
+   * AC-10: (``kanban-swimlanes-and-filters`` CR) The counts of AC-9 follow AC-8: a
+     card whose ``status`` matches no declared option counts for no field option, and a
+     value that is not a declared option is neither listed nor counted. Every count of
+     the result is then taken over the same set of cards.
 
 
 .. req:: jarvis_updateKanbanFields Tool
@@ -661,6 +783,21 @@ Kanban Requirements
      ``details: true`` returns the full contents of the matching items — so an
      actor does not read the projection as the whole item (``REQ_KAN_LIST``
      AC-4, AC-9).
+   * AC-11 (``kanban-swimlanes-and-filters`` CR): The skill SHALL state that
+     ``jarvis_listKanbanItems`` narrows by declared fields through ``fields`` (a
+     ``single_select`` value must be a declared option and matches exactly, a ``text``
+     value matches as a case-insensitive part of the text), and that
+     ``jarvis_listKanbanFilterValues`` lists the options of the declared
+     ``single_select`` fields with their card counts (``REQ_KAN_LIST`` AC-12 to AC-14,
+     ``REQ_KAN_FILTERVALUES`` AC-9).
+   * AC-12 (``kanban-cleanup`` CR): The skill SHALL document an archiving convention
+     for a board that has grown large: finished cards move to a second board of the same
+     owner named ``archive`` (``boardName: "archive"``, file ``archive.kanban.yaml``),
+     handled with the existing tools only. It SHALL state that a card is added to the
+     archive board before it is deleted from the working board, so that a failed step
+     never loses a card, and that the archived card gets a new ``id`` (``REQ_KAN_ADD``
+     AC-4). It SHALL state that a value under a declared field is accepted by the archive
+     board only when that board declares the field (``REQ_KAN_WRITEVALID`` AC-3).
 
 
 .. req:: Kanban Instructions Asset Content

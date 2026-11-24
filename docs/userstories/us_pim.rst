@@ -55,8 +55,7 @@ PIM User Stories
      without ``provider`` the operation is broadcast to all providers
    * AC-7: The tool does NOT enforce naming conventions — that is the caller's
      responsibility
-   * AC-8: The tool is also available via the MCP server (dual registration via
-     ``registerDualTool()``)
+   * AC-8: The tool is also available to MCP clients
    * AC-9: When no category providers are configured, the tool returns an error
      explaining that no PIM providers are available
 
@@ -91,7 +90,7 @@ PIM User Stories
 
 .. story:: Task Sync via Exchangeable Task Providers
    :id: US_PIM_TASKS
-   :status: approved
+   :status: implemented
    :tracked_by: MOD_PIM
    :priority: mandatory
    :links: US_AUT_HEARTBEAT; US_PIM_CATEGORIES
@@ -126,5 +125,8 @@ PIM User Stories
      ``source`` and ``completedDate`` are read-only
    * AC-7: Save flow calls ``TaskService.modifyTask()`` → provider → cache invalidate
      + refresh
-   * AC-8: A ``jarvis_task`` LM/MCP tool is registered via ``registerDualTool()``
-     supporting ``get``, ``set``, ``modify``, and ``delete`` actions
+   * AC-8: A ``jarvis_task`` tool, available to language models and MCP clients,
+     supports ``get``, ``set``, ``modify``, and ``delete`` actions
+   * AC-9: Outlook as a task source is off by default; the user turns on the
+     Outlook integration and, separately, its tasks feature, and the tasks
+     feature can be turned off without turning off the Outlook integration

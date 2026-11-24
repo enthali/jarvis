@@ -16,7 +16,7 @@ import { deleteMessage, appendMessage, popMessage, readAutoDelivery, addAutoDeli
 import { removeReminder, setRemindersLogger } from './apps/session/reminders';
 import { processDueReminders } from './apps/session/reminderDelivery';
 import { createCancelReminderHandler, createListRemindersHandler, createSetReminderHandler, findReminderLine } from './apps/session/reminderRuntime';
-import { initSessionLookup, setSessionLookupLogger, getValidDestinations } from './engine/sessions/sessionLookup';
+import { getValidDestinations } from './engine/sessions/sessionLookup';
 import { DEFAULT_INIT_PROMPT } from './engine/sessions/actorStartupPrompt';
 import { checkForUpdates } from './engine/core/updateCheck';
 import { removeLegacyHookFiles } from './engine/core/legacyHookFiles';
@@ -46,11 +46,6 @@ function applyTemplate(template: string, vars: Record<string, string>): string {
 }
 
 export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
-    // Initialize workspace-scoped session lookup (SPEC_MSG_SESSIONLOOKUP)
-    if (context.storageUri) {
-        initSessionLookup(context.storageUri, context.globalStorageUri);
-    }
-
     const cfg = vscode.workspace.getConfiguration('jarvis');
 
     // Message queue path resolution via fixed .jarvis/ directory (SPEC_CFG_PATHRESOLVER)
@@ -63,7 +58,6 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
     // Implementation: SPEC_DEV_LOGCHANNEL
     const log = vscode.window.createOutputChannel('Jarvis', { log: true });
     context.subscriptions.push(log);
-    setSessionLookupLogger(log);
     setRemindersLogger(log);
     setIgnoreManagerLogger(log);
     setAssetProvisioningLogger(log);

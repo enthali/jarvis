@@ -3,7 +3,7 @@ Engine Design Specifications
 
 .. spec:: JarvisCoreApi Contract & Types
    :id: SPEC_ENG_API
-   :status: draft
+   :status: implemented
    :links: REQ_ENG_CONTRACT; REQ_ENG_ACTORLIST; REQ_ENG_ACTORMARK; REQ_MOD_SKILL_PROVISION; REQ_ACTOR_SCHEMA
 
    **Description:**
@@ -54,6 +54,7 @@ Engine Design Specifications
           destination?: string;
           sender?: string;
           text?: string;
+          outputVar?: string;    // capture stdout (scripts) or response text (agent) into this named variable (SPEC_AUT_STEP_OUTPUT_VARS)
       }
 
       /**
@@ -194,6 +195,10 @@ Engine Design Specifications
    * AC-10: ``markActor(actorId, icon)`` sets an icon mark on one Actor node and
      returns a ``Disposable`` that removes it (``SPEC_ENG_ACTORMARK``). It is not a
      decorator API: AC-4 stays true.
+   * AC-11: ``HeartbeatStep`` lists every step field that ``heartbeat.yaml`` accepts,
+     ``outputVar`` included (``REQ_AUT_JOBCONFIG`` AC-6), so an add-on can construct
+     every kind of step through ``registerJob``. The ``steps`` schema of the
+     ``jarvis_registerJob`` tool lists the same fields (``SPEC_AUT_JOBREG`` AC-2).
 
 
 .. spec:: registerTool Validation

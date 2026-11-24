@@ -8,6 +8,7 @@ export interface FlowMessageEntry {
     sender: string;
     destination: string;
     timestamp: string; // ISO 8601
+    text: string;      // message text, for the tooltip sample (SPEC_FLOW_CHORDRENDER)
 }
 
 export interface FlowEdge {
