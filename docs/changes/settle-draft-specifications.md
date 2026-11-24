@@ -1,6 +1,6 @@
 # Change Contract: settle-draft-specifications
 
-**Status:** active<br>
+**Status:** closed<br>
 **Current responsibility:** Project Manager<br>
 **Current blocker:** none<br>
 **Created:** 2026-11-24<br>
@@ -64,7 +64,7 @@ Leaving 68 shipped-feature Needs in `draft` weakens `check_contract_needs.py` an
 |---|---|---|---|---|
 | Intent and outcome | yes | Project Manager | Goal, value, scope, and observable outcome are explicit and approved | approved |
 | Contract release | yes | User | User authorization to start the change; set by the User only | approved (2026-11-24 22:54 CET) |
-| Version control | yes | Project Manager | Local branch `feature/settle-draft-specifications`; squash-integrated into `development` at closure; the branch is retained | active |
+| Version control | yes | Project Manager | Local branch `feature/settle-draft-specifications`; squash-integrated into `development` at closure; the branch is retained | merged (`b9c19c3e`) |
 | Product specification | yes | Architect | All 68 `draft` Needs audited against shipped code, minor text/path drifts reconciled, and approved for `implemented` | complete |
 | Infrastructure impact | yes | Admin | Affected infrastructure artifacts are updated, or none is affected | complete |
 | Documentation impact | yes | Technical Writer | `docs/user guides/core.md`, `packages/core/README.md` (and `getting-started.md` if affected) updated for macOS verification | complete |
@@ -72,7 +72,7 @@ Leaving 68 shipped-feature Needs in `draft` weakens `check_contract_needs.py` an
 | Test design | yes | Tester | Regression test asserting zero `draft`/`open` `story`/`req`/`spec` Needs in built/parsed docs + macOS doc wording check | complete (see Test Design) |
 | Quality review and test execution | yes | Quality | Current judgment is `proceed` and `Open Findings` is `None` (incl. clean-tree VSIX build for `packages/core/README.md`) | complete |
 | User validation | not applicable: explicit User delegation (2026-11-24 22:55 CET & 23:34 CET, unattended overnight instruction) to accept on automated evidence and chain directly into the next Release once `settle-draft-specifications` passes Quality review | User | Observable outcome is accepted or changes are requested | accepted (explicit User delegation, 2026-11-24 22:55 CET) |
-| Closure | yes | Project Manager | Final outcome and integration state are recorded | pending |
+| Closure | yes | Project Manager | Final outcome and integration state are recorded | closed |
 
 ## Product Specification
 
@@ -230,16 +230,16 @@ After Quality's `proceed`, the Project Manager presents the observable outcome. 
 ## Closure
 
 **Owner:** Project Manager<br>
-**Status:** pending
+**Status:** closed
 
-- [ ] Every included artifact or gate has terminal status and completion evidence.
-- [ ] Intent and outcome are `approved`.
-- [ ] Quality has recorded `proceed`.
-- [ ] Open Findings contains `None`.
-- [ ] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
-- [ ] The feature branch is squash-integrated into `development`.
-- [ ] Current blocker is `none`.
-- [ ] The Project Manager ran the `syspilot.contract-statistics` skill after validation and the record exists in `.syspilot/stats/`.
-- [ ] Header Status is `closed`.
+- [x] Every included artifact or gate has terminal status and completion evidence.
+- [x] Intent and outcome are `approved`.
+- [x] Quality has recorded `proceed`.
+- [x] Open Findings contains `None`.
+- [x] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
+- [x] The feature branch is squash-integrated into `development`.
+- [x] Current blocker is `none`.
+- [x] The Project Manager ran the `syspilot.contract-statistics` skill after validation and the record exists in `.syspilot/stats/`.
+- [x] Header Status is `closed`.
 
-**Final outcome:** {accepted result and integration commit}
+**Final outcome:** Accepted via explicit User delegation on automated verification and clean-tree VSIX inspection on 2026-11-24. Audits and settles all remaining `draft` Needs across Kanban, Flow, Release/Migration-Shim, Reminders, Heartbeat/Explorer, and Actor/Module to `implemented` (zero `draft`/`open` Needs remain in the repository, enforced by `settle-draft-specifications.test.ts`; K55); implements the four User-approved Flow and Heartbeat target-behavior fixes (Flow chord node tooltip + 80-character sample, time-lens handle clamping + keyboard commit, requeue success/error host notifications, and Heartbeat startup validation + passing `scanner` on interval change and resume); and updates Core/Flow/Kanban user documentation including verified macOS status (2026-11-24). Squash-integrated into `development` as `b9c19c3e`; feature branch `feature/settle-draft-specifications` retained; statistics recorded in `.syspilot/stats/settle-draft-specifications-stat.md`. Not released.
