@@ -913,54 +913,52 @@ Automation Design Specifications
    **No-op semantics**: ``unregisterJob`` returns silently if the name is not
    found or the file cannot be read (safe to call unconditionally).
 
-   **Tool input schema** (``REQ_AUT_AGENTMODEL`` AC-5): the ``steps`` items of the
-   ``jarvis_registerJob`` ``inputSchema`` in ``packages/core/package.json`` gain two optional
-   string properties, ``vendor`` and ``model``, described as the vendor and the model id of an
-   agent step as listed by ``jarvis_listModels``. The handlers pass ``steps`` on unchanged, so
-   nothing else changes; the schema is what lets an Actor know the fields exist.
+   **Tool input schema** (``REQ_AUT_AGENTMODEL`` AC-5, ``REQ_AUT_JOBREG`` AC-5): the ``steps``
+   items of the ``jarvis_registerJob`` ``inputSchema`` in ``packages/core/package.json`` list
+   every field of ``HeartbeatStep``. ``vendor`` and ``model`` are described as the vendor and
+   the model id of an agent step as listed by ``jarvis_listModels``; ``outputVar`` is a string
+   described as the name of the variable that receives the step's captured output
+   (``SPEC_AUT_STEP_OUTPUT_VARS``). The handlers pass ``steps`` on unchanged, so nothing else
+   changes; the schema is what lets an Actor know the fields exist.
 
    **Acceptance Criteria:**
 
    * AC-1: The ``inputSchema`` of ``jarvis_registerJob`` lists ``vendor`` and ``model`` for
      the step items, and a job registered with them is persisted with both fields
      (``REQ_AUT_AGENTMODEL`` AC-5).
+   * AC-2: The ``inputSchema`` of ``jarvis_registerJob`` lists ``outputVar`` for the step
+     items, and a job registered with it is persisted with the field
+     (``REQ_AUT_JOBREG`` AC-5).
 
 
 .. spec:: List Jobs LM+MCP Tool
    :id: SPEC_AUT_LISTJOBS_TOOL
-   :status: approved
-   :links: REQ_AUT_LISTJOBS_TOOL; SPEC_AUT_JOBREG; SPEC_AUT_SCHEDULERLOOP; REQ_ENG_TOOLREF
+   :status: implemented
+   :links: REQ_AUT_LISTJOBS_TOOL; SPEC_AUT_JOBREG; SPEC_AUT_SCHEDULERLOOP; SPEC_ENG_REGISTER_TOOL; SPEC_MOD_MCP_PKG; REQ_ENG_TOOLREF
 
    **Description:**
-   Register ``jarvis_listJobs`` via ``registerDualTool()`` in ``extension.ts``
-   (next to the existing ``registerJobTool`` / ``unregisterJobTool`` blocks).
+   Register ``jarvis_listJobs`` through ``engine.registerTool()`` in ``extension.ts``
+   (next to the existing ``jarvis_registerJob`` / ``jarvis_unregisterJob`` blocks).
    The tool reads ``scheduler.currentJobs`` and returns a JSON array of job
-   descriptors.
+   descriptors. It is registered once; it reaches MCP clients because the MCP
+   extension enumerates the engine's tool registry and reads the manifest
+   ``inputSchema`` (``SPEC_MOD_MCP_PKG``, ``SPEC_ENG_TOOLREGISTRY``), so no
+   MCP-specific handler exists.
 
-   **LM handler:**
+   **Handler:**
 
    .. code-block:: typescript
 
       // Implementation: SPEC_AUT_LISTJOBS_TOOL
       // Requirements: REQ_AUT_LISTJOBS_TOOL
-      const listJobsTool = registerDualTool(
-          'jarvis_listJobs',
-          async (
-              _options: vscode.LanguageModelToolInvocationOptions<Record<string, never>>,
-              _token: vscode.CancellationToken
-          ) => {
-              const jobs = scheduler.currentJobs.map(j => jobDescriptor(j));
+      const listJobsTool = engine.registerTool('jarvis_listJobs',
+          'Returns all registered heartbeat jobs.',
+          async (_options, _token) => {
+              const jobs = scheduler!.currentJobs.map(j => jobDescriptor(j));
               log.info(`[Heartbeat] listJobs: ${jobs.length} job(s)`);
               return new vscode.LanguageModelToolResult([
                   new vscode.LanguageModelTextPart(JSON.stringify(jobs))
               ]);
-          },
-          'Returns all registered heartbeat jobs with name, schedule, enabled state, and next fire time.',
-          {},
-          async () => {
-              const jobs = scheduler.currentJobs.map(j => jobDescriptor(j));
-              log.info(`[Heartbeat] listJobs(MCP): ${jobs.length} job(s)`);
-              return { jobs };
           }
       );
 

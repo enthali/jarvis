@@ -6,7 +6,7 @@ Jarvis Core 0.34.0 is the actor harness for Visual Studio Code. Since 0.32.0 it 
 
 - **Actors** — Persistent personas with their own `context.md` and agent file; Jarvis creates or repairs the agent file with the Actor name and memory path when needed
 - **Messaging** — Actor inboxes with automatic or manual announcements through VS Code's Agent Host; message content is read by a tool, never inserted into a prompt
-- **Reminders** — Set cron-based or one-off reminders with VS Code notifications
+- **Reminders** — Set one-off, time-scheduled reminders; a due reminder is queued as a message to the Actor and announced under the normal delivery setting, with no VS Code notification of its own
 - **Heartbeat** — Periodic background jobs with a live status view in the activity bar
 - **Engine API** — Extension point for add-ons (PIM, Recorder, MCP) to register tools and to self-provision their bundled Copilot Skills/Instructions into `.github/` via `provisionModuleAssets`
 

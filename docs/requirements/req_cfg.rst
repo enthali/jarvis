@@ -45,27 +45,6 @@ Configuration Requirements
      left in ``heartbeat.yaml`` by an earlier version SHALL be removed
 
 
-.. req:: Heartbeat Config File Resolution
-   :id: REQ_CFG_HEARTBEATPATH
-   :status: implemented
-   :priority: optional
-   :links: US_CFG_HEARTBEAT
-
-   **Description:**
-   The extension SHALL resolve the heartbeat config file path according to a defined
-   priority order.
-
-   **Acceptance Criteria:**
-
-   * AC-1: If ``jarvis.heartbeatConfigFile`` is set to a non-empty absolute path, that
-     path SHALL be used as the config file location
-   * AC-2: Otherwise, the config file SHALL default to
-     ``context.storageUri + "/heartbeat.yaml"`` (workspace storage, not tracked in repo)
-   * AC-3: No legacy fallback path (e.g. ``.jarvis/heartbeat.yaml``) SHALL be consulted
-   * AC-4: When ``jarvis.heartbeatConfigFile`` changes at runtime, the scheduler SHALL
-     reload the config file at the start of the next tick cycle
-
-
 .. req:: Configurable Heartbeat Tick Interval
    :id: REQ_CFG_HEARTBEATINTERVAL
    :status: implemented

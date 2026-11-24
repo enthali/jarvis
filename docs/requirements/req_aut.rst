@@ -5,7 +5,7 @@ Automation Requirements
    :id: REQ_AUT_JOBCONFIG
    :status: implemented
    :priority: optional
-   :links: US_AUT_HEARTBEAT; REQ_CFG_HEARTBEATPATH
+   :links: US_AUT_HEARTBEAT; REQ_CFG_FIXEDPATHS
 
    **Description:**
    The extension SHALL read a YAML file that defines named automation jobs.
@@ -230,6 +230,9 @@ Automation Requirements
    * AC-3: Both methods SHALL write to the YAML file immediately, reload the
      in-memory job list, and refresh the Heartbeat tree view
    * AC-4: The YAML file is the single source of truth — no RAM-only jobs
+   * AC-5: The ``jarvis_registerJob`` tool SHALL accept on a step every field that
+     ``REQ_AUT_JOBCONFIG`` defines for it — ``outputVar`` included — and persist it with
+     the job, so an Actor can register any job that the YAML file can hold
 
 
 .. req:: Pause and Resume Heartbeat Jobs
@@ -262,7 +265,7 @@ Automation Requirements
 
 .. req:: List Jobs LM+MCP Tool
    :id: REQ_AUT_LISTJOBS_TOOL
-   :status: approved
+   :status: implemented
    :priority: optional
    :links: US_AUT_HEARTBEAT; REQ_AUT_JOBREG
 
@@ -283,8 +286,9 @@ Automation Requirements
        execution, or ``null`` for paused jobs (``enabled === false``) or
        jobs with ``schedule === "manual"``
 
-   * AC-3: The tool SHALL be registered via the shared ``registerDualTool()``
-     helper so that it is available over both the LM API and MCP simultaneously
+   * AC-3: The tool SHALL be registered once through the engine's tool registry
+     (``SPEC_ENG_REGISTER_TOOL``), so that it is available over both the LM API
+     and MCP without a tool-specific MCP registration
    * AC-4: The ``nextFire`` timestamp SHALL be computed using ``cron-parser``
      (``CronExpressionParser.parse(schedule).next().toDate().toISOString()``) —
      the same library already used in ``heartbeatTreeProvider.ts``

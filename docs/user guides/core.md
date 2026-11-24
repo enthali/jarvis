@@ -33,11 +33,11 @@ The sender and inbox are bound to the calling Actor chat, not supplied by the mo
 
 ## Reminders
 
-Set cron-based or one-off reminders that appear as VS Code notifications.
+Set a reminder for an Actor with the `jarvis_setReminder` tool, giving the text, the Actor and a delivery time. A due reminder fires once and is queued as a message in that Actor's inbox; it raises no VS Code notification of its own. The same delivery setting as for other messages decides whether the Actor is announced the message at once (Direct Delivery) or finds it waiting until announced manually. `jarvis_listReminders` shows pending reminders and `jarvis_cancelReminder` removes one. The Reminders view in the Jarvis sidebar appears when `jarvis.messages.enabled` and `jarvis.reminders.enabled` are both on.
 
 ## Heartbeat
 
-Cron-based background jobs that run scripts (Python, PowerShell), VS Code commands, or single-shot language-model agent steps, with a live status view in the activity bar. Each agent step names both `vendor` and `model` (the model ID); there is no default or fallback. Use **Jarvis: List Language Models** or `jarvis_listModels` to see the pairs VS Code currently offers.
+Cron-based background jobs that run scripts (Python, PowerShell), VS Code commands, or single-shot language-model agent steps, with a live status view in the activity bar. Each agent step names both `vendor` and `model` (the model ID); there is no default or fallback. Use **Jarvis: List Language Models** or `jarvis_listModels` to see the pairs VS Code currently offers. A Python, PowerShell or agent step can set `outputVar` to capture its output (script output or the agent's reply) under that name; later steps of the same run use it as `${NAME}`, an unknown name is left as written, and the value is not kept for other runs.
 
 - **PowerShell steps** need PowerShell in the environment where Jarvis runs, including inside the Codespace if Jarvis runs there. Jarvis tries `pwsh`, then `powershell` if `pwsh` is not found, and reports an error if neither is found.
 - **Python steps** need a Python interpreter in that environment. Jarvis uses `python.defaultInterpreterPath` if set; otherwise it checks `.venv` and then `venv` in the first workspace folder (`Scripts/python.exe` on Windows, `bin/python` elsewhere). If neither exists, it runs `python` from `PATH`.

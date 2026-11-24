@@ -258,22 +258,24 @@ PIM Design Specifications
      determine whether the PIM layer is operational
 
 
-.. spec:: jarvis_category Dual Tool
+.. spec:: jarvis_pim_category Tool
    :id: SPEC_PIM_CATTOOL
-   :status: approved
-   :links: REQ_PIM_CATTOOL; SPEC_PIM_SERVICE; SPEC_MSG_DUALREGISTRATION; REQ_ENG_TOOLREF
+   :status: implemented
+   :links: REQ_PIM_CATTOOL; SPEC_PIM_SERVICE; SPEC_ENG_REGISTER_TOOL; SPEC_MOD_MCP_PKG; REQ_ENG_TOOLREF
 
    **Description:**
-   Register ``jarvis_category`` via ``registerDualTool()`` in
-   ``extension.ts``.
+   Register ``jarvis_pim_category`` once through ``api.registerTool()`` in
+   ``packages/pim/src/extension.ts``. The MCP extension enumerates the engine's
+   tool registry and reads the manifest ``inputSchema`` (``SPEC_MOD_MCP_PKG``), so the
+   tool is available to MCP clients without a second handler or a Zod schema.
 
    **Registration (in ``activate()``):**
 
    .. code-block:: typescript
 
-      const categoryTool = registerDualTool(
-        'jarvis_category',
-        // LM handler
+      context.subscriptions.push(api.registerTool(
+        'jarvis_pim_category',
+        'Manage categories: get, set, delete, or rename.',
         async (options, _token) => {
           if (!categoryService || !categoryService.hasProviders()) {
             return new vscode.LanguageModelToolResult([
@@ -313,61 +315,15 @@ PIM Design Specifications
           return new vscode.LanguageModelToolResult([
             new vscode.LanguageModelTextPart(JSON.stringify(result))
           ]);
-        },
-        // MCP description
-        'Manage categories: get, set, delete, or rename.',
-        // MCP input schema (Zod)
-        {
-          action: z.enum(['get', 'set', 'delete', 'rename']),
-          name: z.string().optional(),
-          filter: z.string().optional(),
-          provider: z.string().optional(),
-          oldName: z.string().optional(),
-          newName: z.string().optional()
-        },
-        // MCP handler
-        async (args) => {
-          if (!categoryService || !categoryService.hasProviders()) {
-            return { error: 'No category providers configured. Enable jarvis.outlook.enabled and jarvis.outlook.categories.enabled.' };
-          }
-          const action = args.action as string;
-          const name = args.name as string | undefined;
-          const filter = args.filter as string | undefined;
-          const provider = args.provider as string | undefined;
-          const oldNameArg = args.oldName as string | undefined;
-          const newNameArg = args.newName as string | undefined;
-          switch (action) {
-            case 'get':
-              return {
-                categories: await categoryService!.getCategories(filter)
-              };
-            case 'set':
-              if (!name) return { error: 'name is required' };
-              await categoryService!.setCategory(name, 0, provider);
-              categoryTreeProvider?.refresh();
-              return { status: 'ok', name };
-            case 'delete':
-              if (!name) return { error: 'name is required' };
-              await categoryService!.deleteCategory(name, provider);
-              categoryTreeProvider?.refresh();
-              return { status: 'ok', name };
-            case 'rename':
-              if (!oldNameArg || !newNameArg) return { error: 'oldName and newName are required' };
-              await categoryService!.renameCategory(oldNameArg, newNameArg, provider);
-              categoryTreeProvider?.refresh();
-              return { status: 'ok', oldName: oldNameArg, newName: newNameArg };
-            default:
-              return { error: `Unknown action: ${action}` };
-          }
         }
-      );
+      ));
 
    **package.json tool registration:**
 
    .. code-block:: json
 
       {
-        "name": "jarvis_category",
+        "name": "jarvis_pim_category",
         "displayName": "Manage Categories",
         "modelDescription": "jarvis_pim: Manage categories from all configured PIM providers. Actions: get (list/filter categories from cache), set (create/update a category), delete (remove a category), rename (rename a category). When no providers are configured, returns an error.",
         "canBeReferencedInPrompt": true,
@@ -814,13 +770,16 @@ PIM Design Specifications
      task id (provider-level optimization)
 
 
-.. spec:: jarvis_task Dual Tool
+.. spec:: jarvis_pim_task Tool
    :id: SPEC_PIM_TASKTOOL
    :status: implemented
-   :links: REQ_PIM_TASKTOOL; SPEC_PIM_TASKSERVICE
+   :links: REQ_PIM_TASKTOOL; SPEC_PIM_TASKSERVICE; SPEC_ENG_REGISTER_TOOL; SPEC_MOD_MCP_PKG
 
    **Description:**
-   Register ``jarvis_task`` via ``registerDualTool()`` in ``extension.ts``.
+   Register ``jarvis_pim_task`` once through ``api.registerTool()`` in
+   ``packages/pim/src/extension.ts``. The MCP extension reaches it through the engine's
+   tool registry and the manifest ``inputSchema`` (``SPEC_MOD_MCP_PKG``); there is no
+   second handler.
 
    **Input schema:**
 

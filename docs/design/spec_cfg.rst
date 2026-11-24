@@ -487,7 +487,7 @@ Configuration Design Specifications
 
 .. spec:: settings-cleanup: View Gating via when-clauses
    :id: SPEC_CFG_VIEWGATING
-   :status: approved
+   :status: implemented
    :links: REQ_CFG_TOGGLES
 
    **Description:**
@@ -516,15 +516,13 @@ Configuration Design Specifications
 
    **``contributes.menus`` items to update:**
 
-   * Any menu item currently gated on ``config.jarvis.messagesFile != ''`` SHALL
-     change its ``when`` clause to ``config.jarvis.messages.enabled == true``.
-   * Any menu item currently gated on ``config.jarvis.heartbeatConfigFile != ''``
-     SHALL change its ``when`` clause to ``config.jarvis.heartbeat.enabled == true``.
-
-   **Supersedes:** The ``when``-clause behaviour of the former feature-toggle
-   view spec (``config.jarvis.heartbeatConfigFile != ''`` and
-   ``config.jarvis.messagesFile != ''``; those conditions no longer apply after
-   the configurable paths are removed).
+   * A menu item of the Messages feature SHALL be gated on
+     ``config.jarvis.messages.enabled == true``.
+   * A menu item of the Heartbeat feature SHALL be gated on
+     ``config.jarvis.heartbeat.enabled == true``.
+   * No ``when`` clause tests a path setting: the runtime file paths are fixed
+     (``SPEC_CFG_PATHRESOLVER``), so a path setting holds no state that could
+     show or hide a view.
 
 
 Workspace File Layout & VCS Visibility

@@ -418,7 +418,7 @@ Message Queue Requirements
 
 .. req:: Reminder Delivery via Poll Loop
   :id: REQ_MSG_REMINDERS_DELIVER
-  :status: draft
+  :status: implemented
   :priority: optional
   :links: US_MSG_REMINDERS; REQ_MSG_REMINDERS_PERSIST; REQ_COM_NOTIFY; REQ_MSG_QUEUE; REQ_MSG_AUTODELIVER_CONFIG
 
@@ -445,17 +445,22 @@ Message Queue Requirements
    * AC-5: The Messages tree SHALL refresh after reminder enqueueing
    * AC-6: Errors in reminder processing SHALL be caught, logged as warnings,
      and SHALL NOT stop the poll loop
+   * AC-7: A reminder SHALL fire once: after delivery it no longer exists, and
+     no recurring schedule is available. A due reminder SHALL raise no VS Code
+     notification of its own; the only signal is the one the message delivery
+     policy gives for the queued message (AC-3)
 
 
 .. req:: Reminder LM and MCP Tools
    :id: REQ_MSG_REMINDERS_TOOLS
-   :status: draft
+   :status: implemented
    :priority: optional
-   :links: US_MSG_REMINDERS; REQ_MSG_REMINDERS_PERSIST; REQ_MSG_MCPSERVER
+   :links: US_MSG_REMINDERS; REQ_MSG_REMINDERS_PERSIST; REQ_ENG_TOOLREGISTRY
 
    **Description:**
-   The extension SHALL register three Language Model Tools (also exposed via MCP)
-   for managing reminders.
+   The extension SHALL register three Language Model Tools for managing
+   reminders. Like every Jarvis tool they are registered once, in the engine's
+   tool registry, and reach MCP clients through that registry.
 
    **Acceptance Criteria:**
 
@@ -470,16 +475,18 @@ Message Queue Requirements
    * AC-3: A tool ``jarvis_cancelReminder`` SHALL accept ``id`` (string) and
      return ``{ status: 'cancelled' }`` if the reminder was found and removed,
      or ``{ status: 'not_found' }`` if no matching reminder exists
-   * AC-4: All three tools SHALL be registered via the ``registerDualTool``
-     pattern so they are simultaneously available as VS Code LM Tools and as
-     MCP Tools
+   * AC-4: All three tools SHALL be registered once through the engine's tool
+     registry (``SPEC_ENG_REGISTER_TOOL``). No tool-specific MCP registration
+     exists: the MCP extension derives its tools from the shared registry
+     (``SPEC_MOD_MCP_PKG``), so the three tools are available to MCP clients
+     without further code
    * AC-5: All three tools SHALL be declared in ``package.json``
      ``contributes.languageModelTools`` with appropriate ``inputSchema``
 
 
 .. req:: Reminders Tree View
    :id: REQ_MSG_REMINDERS_VIEW
-   :status: draft
+   :status: implemented
    :priority: optional
    :links: US_MSG_REMINDERS; REQ_MSG_REMINDERS_PERSIST; REQ_EXP_TREEVIEW
 
@@ -491,7 +498,8 @@ Message Queue Requirements
 
    * AC-1: A top-level view ``jarvisReminders`` labelled "Reminders" SHALL be
      present in the Jarvis Activity Bar container next to the Messages view
-   * AC-2: The view SHALL be visible when ``config.jarvis.messagesFile != ''``
+   * AC-2: The view SHALL be visible when ``config.jarvis.messages.enabled == true``
+     and ``config.jarvis.reminders.enabled == true`` (``SPEC_CFG_VIEWGATING``)
    * AC-3: Each pending reminder SHALL appear as a non-collapsible node
      showing the text (truncated to 60 chars), the target session, and a
      description of either "in X min" (if more than 60 s remaining), "in Xs"

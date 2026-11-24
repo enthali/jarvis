@@ -699,7 +699,7 @@ Actor Design Specifications
 .. spec:: jarvis_createActor Tool
    :id: SPEC_ACTOR_CREATETOOL
    :status: implemented
-   :links: REQ_ACTOR_CREATETOOL; SPEC_ACTOR_CREATE; SPEC_ACTOR_WHOAMI; SPEC_COM_OPEN; SPEC_ENG_REGISTER_TOOL; SPEC_MSG_DUALREGISTRATION; SPEC_MSG_QUEUESTORE; REQ_ENG_TOOLREF
+   :links: REQ_ACTOR_CREATETOOL; SPEC_ACTOR_CREATE; SPEC_ACTOR_WHOAMI; SPEC_COM_OPEN; SPEC_ENG_REGISTER_TOOL; SPEC_MSG_QUEUESTORE; REQ_ENG_TOOLREF
 
    **Description:**
    ``jarvis_createActor`` is registered with ``engine.registerTool()``

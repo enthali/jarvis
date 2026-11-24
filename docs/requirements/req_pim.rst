@@ -86,7 +86,7 @@ PIM Requirements
 
 .. req:: Category Management Tool (LM/MCP)
    :id: REQ_PIM_CATTOOL
-   :status: approved
+   :status: implemented
    :priority: mandatory
    :links: US_PIM_CATTOOL; REQ_PIM_SERVICE; REQ_MSG_MCPSERVER
 
@@ -108,8 +108,9 @@ PIM Requirements
      requires both ``oldName`` and ``newName`` parameters
    * AC-7: The tool SHALL NOT enforce naming conventions — that is the caller's
      responsibility
-   * AC-8: The tool SHALL be registered via ``registerDualTool()`` for
-     simultaneous LM and MCP availability
+   * AC-8: The tool SHALL be registered once through the engine's tool registry
+     (``SPEC_ENG_REGISTER_TOOL``); MCP availability follows from that registry
+     (``SPEC_MOD_MCP_PKG``) without a tool-specific MCP registration
    * AC-9: When no category providers are configured (this includes
      ``jarvis.outlook.categories.enabled`` being ``false``), the tool SHALL
      return an informational error message that names the settings
@@ -267,7 +268,8 @@ PIM Requirements
    * AC-5: ``delete`` SHALL accept ``id`` (required)
    * AC-6: Without ``provider`` the operation targets the **first registered provider**
      (single-provider by design in v1); multi-provider fan-out is deferred
-   * AC-7: The tool SHALL be registered via ``registerDualTool()`` for
-     simultaneous LM and MCP availability
+   * AC-7: The tool SHALL be registered once through the engine's tool registry
+     (``SPEC_ENG_REGISTER_TOOL``); MCP availability follows from that registry
+     (``SPEC_MOD_MCP_PKG``) without a tool-specific MCP registration
    * AC-8: When no task providers are configured, the tool SHALL return an
      informational error message

@@ -1,23 +1,20 @@
 Configuration User Stories
 ==========================
 
-.. story:: Heartbeat Config File Location
+.. story:: Heartbeat Check Interval
    :id: US_CFG_HEARTBEAT
    :status: implemented
    :tracked_by: MOD_CONFIG
    :priority: optional
-   :links: US_AUT_HEARTBEAT
+   :links: US_AUT_HEARTBEAT; US_CFG_FIXEDPATHS
 
    **As a** Jarvis User,
-   **I want** to control where Jarvis reads the heartbeat configuration and how often it checks,
-   **so that** I can keep job definitions out of the repository by default or share them via an
-   explicit path, and tune the scheduler to my needs.
+   **I want** to control how often Jarvis checks whether a job is due,
+   **so that** I can tune the scheduler to my needs.
 
    **Acceptance Criteria:**
 
-   * AC-1: By default, ``heartbeat.yaml`` is read from VS Code workspace storage (not tracked in the repo)
-   * AC-2: A setting ``jarvis.heartbeatConfigFile`` overrides the default with an absolute path
-   * AC-3: A setting ``jarvis.heartbeatInterval`` controls the scheduler tick interval in seconds (default: 60)
+   * AC-1: The interval between two scheduler ticks, in seconds, is a user setting; its default is 60 seconds
 
 
 .. story:: Per-Feature Enable Toggles

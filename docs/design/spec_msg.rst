@@ -297,109 +297,6 @@ Message Queue Design Specifications
    * ``stopMcpServer()`` is called from ``deactivate()`` in ``extension.ts``
 
 
-.. spec:: Dual-Registration Wrapper
-   :id: SPEC_MSG_DUALREGISTRATION
-   :status: implemented
-   :links: REQ_MSG_MCPSERVER; REQ_CFG_MCPPORT
-
-   **Description:**
-   A ``registerDualTool()`` helper function in ``extension.ts`` registers each
-   tool with both ``vscode.lm.registerTool()`` and ``registerMcpTool()``
-   simultaneously. Existing tool registrations (``jarvis_sendToSession``,
-   ``jarvis_listActors``, ``jarvis_readMessage``) are refactored to use
-   this wrapper. Handler logic stays identical; only return types differ.
-
-   **Wrapper function:**
-
-   .. code-block:: typescript
-
-      function registerDualTool(
-        name: string,
-        lmHandler: (
-          options: vscode.LanguageModelToolInvocationOptions<any>,
-          token: vscode.CancellationToken
-        ) => Promise<vscode.LanguageModelToolResult>,
-        mcpDescription: string,
-        mcpInputSchema: Record<string, z.ZodTypeAny>,
-        mcpHandler: (args: Record<string, unknown>) => Promise<object>
-      ): vscode.Disposable {
-        const lmTool = vscode.lm.registerTool(name, { invoke: lmHandler });
-        registerMcpTool(name, mcpDescription, mcpInputSchema, mcpHandler);
-        return lmTool;
-      }
-
-   **Refactored tool registrations (in activate()):**
-
-   Each existing tool gets both an LM handler (returning
-   ``LanguageModelToolResult``) and an MCP handler (returning a plain object).
-   The core logic (queue operations, session lookups) is shared.
-   ``mcpDescription`` provides a human-readable tool description for the MCP
-   protocol (independent of the ``modelDescription`` in ``package.json``).
-   ``mcpInputSchema`` uses Zod types (``z.string()``, ``z.string().optional()``)
-   as required by the MCP SDK.
-
-   **Lifecycle in activate():**
-
-   .. code-block:: typescript
-
-      // After all registerDualTool() calls:
-      const config = vscode.workspace.getConfiguration('jarvis');
-      const mcpEnabled = config.get<boolean>('mcp.enabled', false);   // REQ_CFG_MCPDEFAULTOFF
-      const mcpPort = config.get<number>('mcpPort', 31415);
-
-      if (mcpEnabled) {
-        startMcpServer(mcpPort, log).then(() => {
-          mcpStatusBar.show();
-        });
-      }
-
-   **Status bar item:**
-
-   .. code-block:: typescript
-
-      const mcpStatusBar = vscode.window.createStatusBarItem(
-        vscode.StatusBarAlignment.Right, 100
-      );
-      mcpStatusBar.text = `$(plug) Jarvis MCP: ${mcpPort}`;
-      mcpStatusBar.tooltip = 'Jarvis MCP Server';
-      context.subscriptions.push(mcpStatusBar);
-
-   **Deactivation:**
-
-   .. code-block:: typescript
-
-      export async function deactivate() {
-        await stopMcpServer();
-      }
-
-   **Settings in package.json:**
-
-   .. code-block:: json
-
-      {
-        "jarvis.mcpPort": {
-          "type": "number",
-          "default": 31415,
-          "description": "Port for MCP server (localhost only)."
-        },
-        "jarvis.mcp.enabled": {
-          "type": "boolean",
-          "default": false,
-          "description": "Enable the embedded MCP server."
-        }
-      }
-
-   **Design notes:**
-
-   * ``registerDualTool()`` returns the LM tool ``Disposable`` — MCP tools are
-     cleaned up when the server stops
-   * MCP handlers receive raw ``Record<string, unknown>`` and return plain
-     objects — the MCP SDK serializes them to JSON
-   * LM handlers continue to return ``LanguageModelToolResult`` as before
-   * The status bar item is only shown when ``jarvis.mcp.enabled`` is true
-   * Port changes require extension reload (no hot-reconfiguration)
-
-
 .. spec:: Auto-Delivery Config Store
    :id: SPEC_MSG_AUTODELIVER_STORE
    :status: implemented
@@ -1120,112 +1017,63 @@ Message Queue Design Specifications
 
 .. spec:: Reminder LM and MCP Tools Registration
    :id: SPEC_MSG_REMINDERSTOOLS
-   :status: draft
-   :links: REQ_MSG_REMINDERS_TOOLS; SPEC_MSG_REMINDERSTORE; SPEC_MSG_DUALREGISTRATION; REQ_ENG_TOOLREF
+   :status: implemented
+   :links: REQ_MSG_REMINDERS_TOOLS; SPEC_MSG_REMINDERSTORE; SPEC_ENG_REGISTER_TOOL; SPEC_MOD_MCP_PKG; REQ_ENG_TOOLREF
 
    **Description:**
-   Register three tools via ``registerDualTool()`` in ``extension.ts``:
+   Register three tools through ``engine.registerTool()`` in ``extension.ts``:
    ``jarvis_setReminder``, ``jarvis_listReminders``, and
-   ``jarvis_cancelReminder``. Each tool is simultaneously available as a VS Code
-   LM Tool and as an MCP Tool.
+   ``jarvis_cancelReminder``. Each is registered once, with a name, a
+   description and a handler; it is a VS Code LM Tool because the manifest
+   declares it (``contributes.languageModelTools``, ``REQ_MSG_REMINDERS_TOOLS``
+   AC-5) and an MCP Tool because the MCP extension enumerates the engine's tool
+   registry and reads the same manifest ``inputSchema`` (``SPEC_MOD_MCP_PKG``,
+   ``SPEC_ENG_TOOLREGISTRY``). There is no second handler and no Zod schema per
+   tool: a tool-specific MCP registration would be a second copy that could
+   diverge from the manifest.
 
-   **``jarvis_setReminder``:**
+   The handlers are factories in ``src/apps/session/reminderRuntime.ts``
+   (``createSetReminderHandler``, ``createListRemindersHandler``,
+   ``createCancelReminderHandler``). Each takes the same dependency object:
+   the reminders path from the central resolver, a ``reload`` callback for the
+   Reminders view, a logger and a clock. The factories keep the handlers free
+   of VS Code state, so they run in a unit test with a fixed clock.
 
-   .. code-block:: typescript
-
-      registerDualTool(
-        'jarvis_setReminder',
-        // LM handler
-        async (options, _token) => {
-          const { text, session, deliverAt } = options.input;
-          if (new Date(deliverAt) <= new Date()) {
-            return new vscode.LanguageModelToolResult([
-              new vscode.LanguageModelTextPart(
-                JSON.stringify({ error: 'deliverAt must be in the future' })
-              )
-            ]);
-          }
-          const reminder = addReminder(
-            configPaths.getRemindersPath(), text, session, deliverAt
-          );
-          messageProvider.reload();
-          return new vscode.LanguageModelToolResult([
-            new vscode.LanguageModelTextPart(
-              JSON.stringify({ id: reminder.id, deliverAt: reminder.deliverAt })
-            )
-          ]);
-        },
-        'Registers a time-scheduled reminder that delivers a message to a named chat session at the specified time.',
-        { text: z.string(), session: z.string(), deliverAt: z.string() },
-        async (args) => {
-          const { text, session, deliverAt } = args as Record<string, string>;
-          if (new Date(deliverAt) <= new Date()) {
-            return { error: 'deliverAt must be in the future' };
-          }
-          const reminder = addReminder(
-            configPaths.getRemindersPath(), text, session, deliverAt
-          );
-          messageProvider.reload();
-          return { id: reminder.id, deliverAt: reminder.deliverAt };
-        }
-      );
-
-   **``jarvis_listReminders``:**
+   **Registration:**
 
    .. code-block:: typescript
 
-      registerDualTool(
-        'jarvis_listReminders',
-        async (_options, _token) => {
-          const reminders = readReminders(configPaths.getRemindersPath());
-          const now = Date.now();
-          const result = reminders.map(r => ({
-            ...r,
-            remainingMs: new Date(r.deliverAt).getTime() - now,
-          }));
-          return new vscode.LanguageModelToolResult([
-            new vscode.LanguageModelTextPart(JSON.stringify({ reminders: result }))
-          ]);
-        },
-        'Returns all pending reminders with id, text, session, deliverAt, and remainingMs.',
-        {},
-        async (_args) => {
-          const reminders = readReminders(configPaths.getRemindersPath());
-          const now = Date.now();
-          return {
-            reminders: reminders.map(r => ({
-              ...r,
-              remainingMs: new Date(r.deliverAt).getTime() - now,
-            })),
-          };
-        }
-      );
+      const reminderToolDependencies = {
+        remindersPath: () => configPaths.getRemindersPath() ?? '',
+        reload: () => remindersProvider?.reload(),
+        info: (message: string) => log.info(message),
+        now: () => new Date(),
+      };
 
-   **``jarvis_cancelReminder``:**
+      const setReminderTool = engine.registerTool('jarvis_setReminder',
+        'Registers a time-scheduled reminder.',
+        createSetReminderHandler(reminderToolDependencies));
+      const listRemindersTool = engine.registerTool('jarvis_listReminders',
+        'Returns all pending reminders.',
+        createListRemindersHandler(reminderToolDependencies));
+      const cancelReminderTool = engine.registerTool('jarvis_cancelReminder',
+        'Cancels a pending reminder by id.',
+        createCancelReminderHandler(reminderToolDependencies));
 
-   .. code-block:: typescript
+   **Handler results** (each handler returns a ``LanguageModelToolResult`` with
+   one text part holding the JSON; MCP clients receive the parsed JSON):
 
-      registerDualTool(
-        'jarvis_cancelReminder',
-        async (options, _token) => {
-          const { id } = options.input;
-          const removed = removeReminder(configPaths.getRemindersPath(), id);
-          messageProvider.reload();
+   * ``jarvis_setReminder``: ``{ error: 'deliverAt must be in the future' }`` when
+     ``deliverAt`` is not after ``now()``; otherwise the reminder is stored with
+     ``addReminder`` and ``{ id, deliverAt }`` is returned.
+   * ``jarvis_listReminders``: ``{ reminders: [...] }`` where each entry carries
+     ``remainingMs`` (``deliverAt`` minus ``now()``, negative when overdue).
+   * ``jarvis_cancelReminder``: ``{ status: 'cancelled' }`` when ``removeReminder``
+     found the id, otherwise ``{ status: 'not_found' }``.
 
+   The set and cancel handlers log one ``[MSG]`` line and reload the Reminders
+   view; the list handler changes nothing.
 
-              JSON.stringify({ status: removed ? 'cancelled' : 'not_found' })
-            )
-          ]);
-        },
-        'Cancels a pending reminder by id. Returns { status: "cancelled" | "not_found" }.',
-        { id: z.string() },
-        async (args) => {
-          const id = args.id as string;
-          const removed = removeReminder(configPaths.getRemindersPath(), id);
-          messageProvider.reload();
-          return { status: removed ? 'cancelled' : 'not_found' };
-        }
-      );
 
    **Registration in package.json (``contributes.languageModelTools``):**
 
@@ -1277,13 +1125,13 @@ Message Queue Design Specifications
 
    **Design notes:**
 
-   * ``deliverAt`` validation (must be in the future) is enforced in both the
-     LM handler and the MCP handler — both paths return an ``{ error }`` object
-     rather than throwing, for graceful LM tool error surfacing
+   * ``deliverAt`` validation (must be in the future) is enforced in the one
+     handler that serves both the LM and the MCP path; it returns an ``{ error }``
+     object rather than throwing, for graceful LM tool error surfacing
    * ``remainingMs`` is computed at call time; negative values indicate an
      overdue reminder that has not yet been popped by the poll loop
-   * All three tools call ``messageProvider.reload()`` to keep the Reminders
-     tree section in sync after mutations
+   * The set and cancel tools reload the Reminders view after a mutation, through
+     the ``reload`` dependency (``remindersProvider.reload()``)
 
 
 .. spec:: Reminders Tree View
