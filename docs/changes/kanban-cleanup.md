@@ -1,6 +1,6 @@
 # Change Contract: kanban-cleanup
 
-**Status:** active<br>
+**Status:** closed<br>
 **Current responsibility:** Project Manager<br>
 **Current blocker:** none<br>
 **Created:** 2026-11-24<br>
@@ -60,7 +60,7 @@ Closing the last five Kanban cleanup cards removes misleading specification clai
 |---|---|---|---|---|
 | Intent and outcome | yes | Project Manager | Goal, value, scope, and observable outcome are explicit and approved | approved |
 | Contract release | yes | User | User authorization to start the change; set by the User only | approved (2026-11-24 20:11 CET) |
-| Version control | yes | Project Manager | Local branch `feature/kanban-cleanup`; squash-integrated into `development` at closure; the branch is retained | active |
+| Version control | yes | Project Manager | Local branch `feature/kanban-cleanup`; squash-integrated into `development` at closure; the branch is retained | merged (`b0c376c0`) |
 | Product specification | yes | Architect | `REQ_KAN_RENDERER`, `REQ_KAN_LIST`, `SPEC_KAN_LIST`, `REQ_KAN_SKILLCONTENT`, `SPEC_KAN_SKILLCONTENT` updated and checked | complete (see Product Specification) |
 | Infrastructure impact | yes | Admin | Affected infrastructure artifacts are updated, or none is affected | complete |
 | Documentation impact | yes | Technical Writer | `SKILL.md` archiving pattern (`K16`) and any affected Kanban guide/README updated | complete |
@@ -68,7 +68,7 @@ Closing the last five Kanban cleanup cards removes misleading specification clai
 | Test design | yes | Tester | Real-handler `ownerName` tests (`K62`), non-string label projection test (`K63`), cold-run check (`K68`), and skill/spec assertions pass | complete (see Test Design) |
 | Quality review and test execution | yes | Quality | Current judgment is `proceed` and `Open Findings` is `None` | complete |
 | User validation | not applicable: explicit User delegation (2026-11-24 20:11 CET) to accept on automated evidence and chain to Package 2 when zero runtime product code changes occur and Quality records `proceed` | User | Observable outcome is accepted or changes are requested | accepted (explicit User delegation, 2026-11-24 20:11 CET) |
-| Closure | yes | Project Manager | Final outcome and integration state are recorded | pending |
+| Closure | yes | Project Manager | Final outcome and integration state are recorded | closed |
 
 ## Product Specification
 
@@ -205,16 +205,16 @@ After Quality's `proceed`, the Project Manager presents the observable outcome. 
 ## Closure
 
 **Owner:** Project Manager<br>
-**Status:** pending
+**Status:** closed
 
-- [ ] Every included artifact or gate has terminal status and completion evidence.
-- [ ] Intent and outcome are `approved`.
-- [ ] Quality has recorded `proceed`.
-- [ ] Open Findings contains `None`.
-- [ ] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
-- [ ] The feature branch is squash-integrated into `development`.
-- [ ] Current blocker is `none`.
-- [ ] The Project Manager ran the `syspilot.contract-statistics` skill after validation and the record exists in `.syspilot/stats/`.
-- [ ] Header Status is `closed`.
+- [x] Every included artifact or gate has terminal status and completion evidence.
+- [x] Intent and outcome are `approved`.
+- [x] Quality has recorded `proceed`.
+- [x] Open Findings contains `None`.
+- [x] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
+- [x] The feature branch is squash-integrated into `development`.
+- [x] Current blocker is `none`.
+- [x] The Project Manager ran the `syspilot.contract-statistics` skill after validation and the record exists in `.syspilot/stats/`.
+- [x] Header Status is `closed`.
 
-**Final outcome:** {accepted result and integration commit}
+**Final outcome:** Accepted via explicit User delegation on automated verification and clean-tree VSIX inspection on 2026-11-24 (zero runtime TypeScript files modified). Documents the `archive` board convention in `SKILL.md`, the Kanban guide, and `REQ_KAN_SKILLCONTENT` / `SPEC_KAN_SKILLCONTENT` (K16); aligns `REQ_KAN_RENDERER` AC-4 with the shipped plain-text substring filter and states `fields: {}` as no filter in `REQ_KAN_LIST` / `SPEC_KAN_LIST` (K78, lifting `REQ_KAN_RENDERER` from `draft` to `implemented`); confirms `labelsOf` non-string label filtering is already specified and tested (K63); rewrites `kanban-ownername-required.test.ts` to exercise all nine real tool handlers and retires the superseded `kanban-owner-ambiguity.test.ts` (K62); and confirms `kanban-tool-handlers.test.ts` passes 5 consecutive `--no-cache` cold runs (K68). Squash-integrated into `development` as `b0c376c0`; feature branch `feature/kanban-cleanup` retained; statistics recorded in `.syspilot/stats/kanban-cleanup-stat.md`. Not released.
