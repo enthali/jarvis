@@ -3,7 +3,7 @@ Kanban Design Specifications
 
 .. spec:: Kanban Board YAML Schema
    :id: SPEC_KAN_SCHEMA
-   :status: draft
+   :status: implemented
    :links: REQ_KAN_SCHEMA; REQ_KAN_TEXTFIELD
 
    **Description:**
@@ -97,7 +97,7 @@ Kanban Design Specifications
               "properties": {
                 "id": {
                   "type": "integer",
-                  "description": "Unique item identifier. Auto-assigned, never reused.",
+                  "description": "Unique item identifier (auto-assigned, immutable).",
                   "minimum": 1
                 },
                 "name": {
@@ -271,13 +271,15 @@ Kanban Design Specifications
 
 .. spec:: Convention-Based Board Discovery
    :id: SPEC_KAN_DISCOVER
-   :status: draft
+   :status: implemented
    :links: REQ_KAN_DISCOVER; REQ_KAN_UX; SPEC_ENG_ACTORLIST
 
    **Description:**
    Board discovery scans the folders of all Actors for ``kanban.yaml`` and
-   ``*.kanban.yaml`` files. The result drives the command palette pickers
-   and owner resolution for the tools.
+   ``*.kanban.yaml`` files. The result drives the command palette pickers.
+   The tools do not use it: they resolve ``ownerName`` through
+   ``api.listActors()`` and build the board path in that Actor's folder
+   (``SPEC_KAN_CREATE`` steps 1–2).
 
    **Discovery mechanism:**
 
@@ -291,21 +293,24 @@ Kanban Design Specifications
 
    ``scanActorFolder`` lists the folder once with ``fs.readdirSync`` and keeps
    ``kanban.yaml`` and names ending in ``.kanban.yaml`` (Actor folders are
-   small). The index is computed on each query and never cached, so it follows
-   Actor rescans and board file creation or deletion without a subscription
-   (``REQ_KAN_DISCOVER`` AC-4). The kanban module registers no tree decorator
-   and does not mark Actor nodes.
+   small). The index is a module-level map that is rebuilt from
+   ``api.listActors()`` at activation, before every Command Palette query and
+   after a board is created, so every query sees the current Actors and files
+   and the index follows Actor rescans and board file creation or deletion
+   without a subscription (``REQ_KAN_DISCOVER`` AC-4). The kanban module
+   registers no tree decorator and does not mark Actor nodes.
 
    **Acceptance Criteria:**
 
    * AC-1: Only folders returned by ``api.listActors()`` are scanned.
    * AC-2: A deleted board file disappears from the next query.
-   * AC-3: The index is queryable by the tools and command handlers.
+   * AC-3: The index is queryable by the command handlers (the Command Palette
+     open and create commands).
 
 
 .. spec:: Kanban Board UX Entry Points
    :id: SPEC_KAN_UX
-   :status: draft
+   :status: implemented
    :links: REQ_KAN_UX; SPEC_KAN_DISCOVER; SPEC_KAN_RENDERER
 
    **Description:**
@@ -334,7 +339,9 @@ Kanban Design Specifications
    3. Resolve filename via the same normalization as ``SPEC_KAN_CREATE``
       step 2.
    4. If the resolved file already exists → show a warning and abort.
-   5. Write skeleton YAML and refresh the board index.
+   5. Write the skeleton YAML — its ``title`` is the owner label (the Actor
+      name; the Actor folder name from the context menu), followed by
+      ``" — <board name>"`` for a named board — and refresh the board index.
 
    **Acceptance Criteria:**
 
@@ -343,21 +350,26 @@ Kanban Design Specifications
    * AC-5: Create command prompts for board name; empty input yields ``kanban.yaml``.
    * AC-6: Create command rejects board names containing path separators or
      OS-reserved characters.
-   * AC-7: Right-click context menu on Actor nodes
-     (``viewItem == jarvisActor``, group ``kanban@1``) shows
-     "Add Kanban Board" (``REQ_KAN_UX`` AC-6). Handler: same flow as
-     Command Palette create (InputBox for board name → write skeleton), but
-     skips the owner Quick Pick — uses the right-clicked Actor directly; its
-     folder is resolved through ``api.listActors()`` by the node's ``id``.
+   * AC-7: Right-click context menu on Actor nodes (contextValue
+     ``jarvisActor``, group ``kanban@1``) shows "Add Kanban Board"
+     (``REQ_KAN_UX`` AC-6). The ``when`` clause is
+     ``viewItem =~ /^jarvis(Session|Project|Event)/ || viewItem == jarvisActor``:
+     the first alternative matches node kinds that existed before Actors became
+     the one entity, and core now emits only ``jarvisActor``; no Files node
+     (``jarvisActorFile*``) matches. Handler: same flow as Command Palette
+     create (InputBox for board name → write skeleton), but skips the owner
+     Quick Pick — uses the right-clicked Actor directly; the tree node's ``id``
+     is the path of the Actor's ``actor.yaml``, so the board goes into the
+     directory of that path.
 
 
 .. spec:: jarvis_createKanbanBoard Tool
    :id: SPEC_KAN_CREATE
-   :status: draft
+   :status: implemented
    :links: REQ_KAN_CREATE; SPEC_ACTOR_WHOAMI; SPEC_KAN_SCHEMA; SPEC_ENG_ACTORLIST; SPEC_ACTOR_SCANNER; REQ_ENG_TOOLREF
 
    **Description:**
-   Register ``jarvis_createKanbanBoard`` via ``engine.registerTool()`` in the
+   Register ``jarvis_createKanbanBoard`` via ``api.registerTool()`` in the
    kanban package's ``extension.ts``.
 
    **Input schema:**
@@ -416,7 +428,7 @@ Kanban Design Specifications
    5. Return ``{ path: "<absolutePath>" }``.
 
    **Auto-ID assignment:**
-   When items are added (by tools or manually), each item receives
+   When items are added by the item tools, each item receives
    ``id = nextId`` and ``nextId`` is incremented. If ``nextId`` is absent,
    derive as ``max(existing ids) + 1`` (or ``1`` if empty).
 
@@ -433,11 +445,11 @@ Kanban Design Specifications
 
 .. spec:: jarvis_verifyKanbanSchema Tool
    :id: SPEC_KAN_VERIFY
-   :status: draft
+   :status: implemented
    :links: REQ_KAN_VERIFY; REQ_KAN_TEXTFIELD; SPEC_ACTOR_WHOAMI; SPEC_KAN_SCHEMA; REQ_ENG_TOOLREF
 
    **Description:**
-   Register ``jarvis_verifyKanbanSchema`` via ``engine.registerTool()`` in the
+   Register ``jarvis_verifyKanbanSchema`` via ``api.registerTool()`` in the
    kanban package's ``extension.ts``.
 
    **Input schema:**
@@ -503,11 +515,11 @@ Kanban Design Specifications
 
 .. spec:: jarvis_openKanbanBoard Tool
    :id: SPEC_KAN_OPEN
-   :status: draft
+   :status: implemented
    :links: REQ_KAN_OPEN; SPEC_ACTOR_WHOAMI; SPEC_KAN_RENDERER; REQ_ENG_TOOLREF
 
    **Description:**
-   Register ``jarvis_openKanbanBoard`` via ``engine.registerTool()`` in the
+   Register ``jarvis_openKanbanBoard`` via ``api.registerTool()`` in the
    kanban package's ``extension.ts``.
 
    **Input schema:**
@@ -525,7 +537,8 @@ Kanban Design Specifications
    2. Check file exists. If not → return ``{ error: "board not found" }``.
    3. Execute the ``jarvis.openKanbanBoard`` command with the resolved file
       path as argument, which opens the renderer webview
-      (``SPEC_KAN_RENDERER``).
+      (``SPEC_KAN_RENDERER``) as a side panel, or reveals the panel when that
+      board is already open.
    4. Return ``{ opened: true, path: "<absolutePath>" }``.
 
    **Acceptance Criteria:**
@@ -537,13 +550,14 @@ Kanban Design Specifications
 
 .. spec:: jarvis_updateKanbanItem Tool
    :id: SPEC_KAN_UPDATE
-   :status: draft
+   :status: implemented
    :links: REQ_KAN_UPDATE; REQ_KAN_WRITEVALID; SPEC_KAN_WRITEVALID; SPEC_ACTOR_WHOAMI; SPEC_KAN_SCHEMA; REQ_ENG_TOOLREF
 
    **Description:**
-   Register ``jarvis_updateKanbanItem`` via ``engine.registerTool()`` in the
-   kanban package's ``extension.ts``. This is the only write-back tool in
-   Phase 1 — it updates a single item identified by its ``id``.
+   Register ``jarvis_updateKanbanItem`` via ``api.registerTool()`` in the
+   kanban package's ``extension.ts``. It updates a single item identified by
+   its ``id``; adding and deleting items and changing field definitions are
+   the other write tools.
 
    **Input schema:**
 
@@ -570,7 +584,7 @@ Kanban Design Specifications
       alongside the data (see "Round-trip fidelity" below). If not found →
       return ``{ error: "board not found" }``.
    3. Find the item with ``id === itemId``. If not found → return
-      ``{ error: "item not found", itemId }``.
+      ``{ error: "item with id <itemId> not found" }``.
    4. **Validate the whole ``changes`` object** by calling the shared
       ``validateItemValues(changes, data)`` helper (``SPEC_KAN_WRITEVALID``),
       where ``data`` is the plain projection already derived in step 2. On a
@@ -637,7 +651,7 @@ Kanban Design Specifications
    above.
 
    Reading the representation into a plain object for **read-only** purposes
-   (e.g. locating the item, reading the ``status`` options in step 5) is
+   (locating the item and validating ``changes``) is
    unaffected by this constraint.
 
    The ``yaml`` package's ``Document`` API (``parseDocument`` /
@@ -663,7 +677,7 @@ Kanban Design Specifications
    **Acceptance Criteria:**
 
    * AC-1: Updates a single item by ``id``.
-   * AC-2: Returns error for unknown item ID.
+   * AC-2: Returns error for unknown item ID (``item with id <itemId> not found``).
    * AC-3: Returns error for invalid ``status`` value.
    * AC-4: ``id`` field is immutable — never changed by this tool.
    * AC-5: Registers with ``toolReferenceName: "jarvis_kanban_updateKanbanItem"``.
@@ -690,33 +704,17 @@ Kanban Design Specifications
      ``labels`` array is accepted and written; a non-array or non-string-entry
      ``labels`` is rejected by the helper (``REQ_KAN_UPDATE`` AC-11).
 
-   **Guarding test — ``src/tests/kanban-comment-preservation.test.ts``**
-   (``kanban-update-validation`` CR):
+   **Guarding test — ``src/tests/kanban-comment-preservation.test.ts``:**
 
    TC-1 asserts source-level properties of this tool by slicing
-   ``extension.ts`` between ``'jarvis_updateKanbanItem'`` and the next
-   ``// Tool: jarvis_openKanbanBoard`` marker. Two defects follow from this CR
-   and must be fixed with it:
-
-   1. **The slice no longer isolates this tool.** ``kanban-management-tools``
-      inserted ``jarvis_addKanbanItem``, ``…deleteKanbanItem``,
-      ``…listKanbanItems`` and ``…updateKanbanFields`` between
-      ``updateKanbanItem`` and ``openKanbanBoard``, so the window now spans five
-      tool bodies. Every TC-1 assertion is currently satisfiable by code
-      belonging to a different tool — the test passes while testing something
-      other than what it claims. The end marker SHALL be changed to the next
-      tool comment that actually follows this one
-      (``// Tool: jarvis_addKanbanItem``), so the slice is one tool again.
-   2. **One assertion pins behaviour this CR removes.** TC-1's
-      ``skips id field (immutable guard)`` case matches
-      ``/if\s*\(key\s*===\s*'id'\)/`` — the silent-skip that AC-10 replaces with
-      a rejection. It SHALL be rewritten to assert that the handler delegates to
-      ``validateItemValues``, which is what enforces immutability now.
-
-   An end marker chosen as "the next tool in file order" is fragile by
-   construction — it silently widens whenever a tool is inserted. Fixing the
-   marker restores today's correctness; making the slice robust is out of scope
-   here and recorded in the Change Document.
+   ``extension.ts`` from ``'jarvis_updateKanbanItem'`` to the next tool marker
+   ``// Tool: jarvis_addKanbanItem`` — the tool that follows it in the file. It
+   checks that the handler uses ``yaml.parseDocument``, not ``yaml.stringify``,
+   sets values on the item node, and delegates to
+   ``validateItemValues(input.changes``, which is what enforces the immutable
+   ``id`` now. An end marker that names "the next tool in file order" widens
+   silently when a tool is inserted between the two; the slice has to be
+   revisited then.
 
 
 .. spec:: Kanban File Open via Custom Editor
@@ -921,7 +919,7 @@ Kanban Design Specifications
 
 .. spec:: Kanban Module Integration
    :id: SPEC_KAN_MODULE
-   :status: draft
+   :status: implemented
    :links: REQ_KAN_MODULE; SPEC_MOD_FLOW_PKG; SPEC_REL_PKGCONTRACT
 
    **Description:**
@@ -938,7 +936,11 @@ Kanban Design Specifications
       ├── build.js
       ├── webview-build.js
       ├── .vscodeignore
+      ├── LICENSE
       ├── README.md
+      ├── assets/
+      │   ├── instructions/
+      │   └── skills/
       ├── resources/
       │   └── jarvis-128.png
       ├── schemas/
@@ -950,7 +952,7 @@ Kanban Design Specifications
       │   └── kanbanPanel.ts
       └── webview/
           ├── kanban.ts
-          └── kanban.css
+          └── tsconfig.json
 
    **Integration touchpoints (mirroring ``packages/flow/``):**
 
@@ -962,19 +964,21 @@ Kanban Design Specifications
       ``extensionDependencies: ["enthali.jarvis-core"]``,
       ``main: ./out/extension.js``. Scripts: ``compile``, ``bundle``
       (``node build.js && node webview-build.js``), ``package``,
-      ``vscode:prepublish``. Contributes: ``commands``
-      (``jarvis.openKanbanBoard``, ``jarvis.createKanbanBoard``),
-      ``menus`` ("Add Kanban Board" on ``jarvisActor``, ``view/item/context`` for Files node),
-      ``yamlValidation``
+      ``vscode:prepublish``. Contributes: ``configuration``
+      (``jarvis.kanban.autoProvision``), ``commands``
+      (``jarvis.openKanbanBoard``, ``jarvis.createKanbanBoard``,
+      ``jarvis.openKanbanAsText``, ``jarvis.refreshKanbanBoard``),
+      ``menus`` (``commandPalette``; "Add Kanban Board" in
+      ``view/item/context`` on Actor nodes, ``SPEC_KAN_UX`` AC-7;
+      "Open as Text" and Refresh in ``editor/title``), ``yamlValidation``
       (``kanban.yaml`` and ``*.kanban.yaml`` →
       ``./schemas/kanban.schema.json`` — package-relative path, same
       pattern as core's ``actor.schema.json``),
-      ``languageModelTools`` (four tools: ``jarvis_createKanbanBoard``,
+      ``languageModelTools`` (the nine tools ``jarvis_createKanbanBoard``,
       ``jarvis_verifyKanbanSchema``, ``jarvis_openKanbanBoard``,
-      ``jarvis_updateKanbanItem``; extended by the ``kanban-management-tools``
-      CR with ``jarvis_addKanbanItem``, ``jarvis_deleteKanbanItem``,
-      ``jarvis_listKanbanItems`` and ``jarvis_updateKanbanFields``, and by the
-      ``kanban-list-details`` CR with ``jarvis_listKanbanFilterValues`` —
+      ``jarvis_updateKanbanItem``, ``jarvis_addKanbanItem``,
+      ``jarvis_deleteKanbanItem``, ``jarvis_listKanbanItems``,
+      ``jarvis_listKanbanFilterValues`` and ``jarvis_updateKanbanFields`` —
       ``REQ_KAN_MODULE`` AC-8),
       ``customEditors`` (``jarvis.kanbanEditor`` for
       ``*.kanban.yaml`` / ``kanban.yaml``).
@@ -1000,9 +1004,10 @@ Kanban Design Specifications
    7. **Root ``package.json``:** no change needed — the monorepo root does not
       enumerate packages.
 
-   8. **Core import:** none — kanban obtains the engine API via
-      ``vscode.extensions.getExtension('enthali.jarvis-core').exports``
-      (same as PIM, flow).
+   8. **Core import:** kanban imports only the types of ``jarvis-core``
+      (``import type``); it obtains the engine API via
+      ``vscode.extensions.getExtension('enthali.jarvis-core').exports`` (same
+      as PIM, flow) and does not activate when ``api.version`` is not ``2``.
 
    **Acceptance Criteria:**
 

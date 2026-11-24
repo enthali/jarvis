@@ -3,7 +3,7 @@ Modular Delivery Design Specifications
 
 .. spec:: Monorepo Layout & Shared Build
   :id: SPEC_MOD_MONOREPO
-  :status: approved
+  :status: implemented
   :links: REQ_MOD_CORE; REQ_MOD_ADDONS; REQ_MOD_READINESS
 
    **Description:**
@@ -25,6 +25,7 @@ Modular Delivery Design Specifications
         recorder/    -> enthali.jarvis-recorder
         mcp/         -> enthali.jarvis-mcp
         flow/        -> enthali.jarvis-flow
+        kanban/      -> enthali.jarvis-kanban
 
    **Acceptance Criteria:**
 
@@ -268,7 +269,7 @@ Modular Delivery Design Specifications
 
 .. spec:: Add-on Onboarding Checklist
    :id: SPEC_MOD_ADDON_ONBOARDING
-   :status: draft
+   :status: implemented
    :links: REQ_MOD_ADDONS
 
    **Description:**
@@ -280,10 +281,9 @@ Modular Delivery Design Specifications
 
    **Checklist items:**
 
-   1. **Release CI** (``SPEC_REL_COREGH``): The add-on appears in the
-      "Complete release.yml CI sequence" — a ``vsce package`` step in step 4,
-      its VSIX listed in step 5 (GitHub Release upload), and a Marketplace
-      publish step in step 6.
+   1. **Release CI** (``SPEC_REL_COREGH``): ``.github/workflows/release.yml``
+      has a ``vsce package`` step for the add-on, lists its VSIX in the
+      GitHub Release ``files`` and has a Marketplace ``vsce publish`` step.
    2. **Self-update VSIX mapping — requirement** (``REQ_REL_UPDATEINSTALL``):
       The add-on's extension ID → VSIX filename row is present in the
       mapping table.
@@ -292,29 +292,25 @@ Modular Delivery Design Specifications
       design-level mapping table.
    4. **Self-update code** (``packages/core/src/engine/core/updateCheck.ts``):
       The ``idToVsix`` map includes the add-on's extension ID.
-   5. **Add-on registry requirement** (``REQ_MOD_ADDONS``): A new AC is
-      added for the add-on, following the established pattern (AC-1 through
-      AC-7).
+   5. **Add-on registry requirement** (``REQ_MOD_ADDONS``): An AC is
+      added for the add-on, following the established pattern (one AC per
+      add-on declaring ``extensionDependencies``).
    6. **Monorepo layout** (``SPEC_MOD_MONOREPO``): The package appears in
-      the "Target layout" code block and the description's package count
-      is updated.
+      the "Target layout" code block.
 
    **Process integration:**
 
-   * ``REQ_MOD_ADDONS`` links to this spec, so any CR that touches
-     ``REQ_MOD_ADDONS`` (which every add-on CR must) naturally surfaces the
+   * ``REQ_MOD_ADDONS`` links to this spec, so any Contract that touches
+     ``REQ_MOD_ADDONS`` (which every add-on Contract must) surfaces the
      checklist.
-   * The System Designer's agent tailoring file
-     (``.github/agents/syspilot.design.tailoring.md``) SHALL include a
-     preflight rule: when a CR introduces a new ``packages/<name>``
-     add-on extension, the System Designer reads
-     ``SPEC_MOD_ADDON_ONBOARDING`` and verifies every checklist item
-     before closing the design phase.
+   * Whoever specifies a new ``packages/<name>`` add-on extension reads this
+     spec and verifies every checklist item before the specification is
+     approved.
 
    **Acceptance Criteria:**
 
    * AC-1: Every item in the checklist above is satisfied for all
-     currently shipped add-ons (pim, recorder, mcp, flow).
+     currently shipped add-ons (pim, recorder, mcp, flow, kanban).
    * AC-2: The checklist is referenced from ``REQ_MOD_ADDONS`` via
      ``:links:`` so it is discoverable in the traceability graph.
 

@@ -95,42 +95,40 @@ Kanban User Stories
 
 .. story:: Kanban Board Tools
    :id: US_KAN_TOOLS
-   :status: draft
+   :status: implemented
    :tracked_by: MOD_KANBAN
    :priority: required
    :links: US_ACTOR_WHOAMI
 
    **As an** LLM operating within a Jarvis actor session,
-   **I want** tools to create, validate, and open kanban boards,
+   **I want** tools to create, validate, open and maintain kanban boards,
    **so that** I can manage boards programmatically without requiring the user
    to edit YAML manually or navigate the UI.
 
    **Acceptance Criteria:**
 
-   * AC-1: ``jarvis_createKanbanBoard`` creates a new board YAML file with a
-     valid skeleton schema and returns the file path.
-   * AC-2: ``jarvis_verifyKanbanSchema`` validates a board YAML against the
-     schema and returns structured findings (errors and warnings with
-     field/line context) so the actor can fix issues iteratively.
-   * AC-3: ``jarvis_openKanbanBoard`` opens the board in the webview renderer.
-   * AC-4: All three tools take the Actor's name explicitly as
-     ``ownerName``; the calling Actor knows it from its own identity
-     (``US_ACTOR_WHOAMI``).
-   * AC-5: An unresolvable owner returns ``{ error: "actor unknown" }``.
-   * AC-6: ``jarvis_updateKanbanItem`` updates an existing item by its stable
-     integer ID so that changes can be applied without touching the full
-     board YAML manually.
-   * AC-7 (``kanban-management-tools`` CR): ``jarvis_addKanbanItem`` appends a
-     new item, assigning its ``id`` automatically so the caller never picks one.
-   * AC-8 (``kanban-management-tools`` CR): ``jarvis_deleteKanbanItem`` removes
-     an item by ``id``.
-   * AC-9 (``kanban-management-tools`` CR): ``jarvis_updateKanbanFields``
-     evolves the board's own field and option definitions, refusing changes
-     that would strand existing item values.
-   * AC-10 (``kanban-management-tools`` CR): Every board mutation an actor can
-     reasonably need is reachable through a tool, so hand-editing the YAML is
-     never the only route. Where that is not yet true, the gap is recorded
-     rather than left to be discovered — see ``REQ_KAN_FIELDS``.
+   * AC-1: I can create a new board that is valid from the start, and I am told
+     where it was created.
+   * AC-2: I can have a board checked against the board rules and get back
+     findings, each naming the field and the card it concerns and telling an
+     error from a warning, so that I can fix the board step by step.
+   * AC-3: I can bring a board up on the user's screen.
+   * AC-4: For every one of these operations I say whose board I mean by naming
+     the Actor; I know my own name from my identity (``US_ACTOR_WHOAMI``), so
+     the board is never guessed from my session.
+   * AC-5: A name that does not identify exactly one Actor is refused with a
+     clear message, and nothing is created or changed.
+   * AC-6: I can change an existing card by its stable number, without touching
+     the rest of the board.
+   * AC-7: I can add a card; its number is assigned for me, so I never pick one.
+   * AC-8: I can remove a card by its number.
+   * AC-9: I can add and remove the board's own fields and the options of a
+     field; a change that would leave a card with a value that no longer exists
+     is refused.
+   * AC-10: Every board change an actor can reasonably need is reachable through
+     a tool, so hand-editing the YAML is never the only route. The one known
+     exception is renaming a field or an option, which stays a hand edit
+     (``REQ_KAN_FIELDS`` AC-11).
 
 
 .. story:: Query a Board Without Reading All of It

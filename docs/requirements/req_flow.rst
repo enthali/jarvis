@@ -3,7 +3,7 @@ Message Flow Visualization Requirements
 
 .. req:: Flow Add-on Package
    :id: REQ_FLOW_PACKAGE
-   :status: draft
+   :status: implemented
    :priority: optional
    :links: US_FLOW_CHORDVIEW; REQ_MOD_ADDONS
 
@@ -12,8 +12,8 @@ Message Flow Visualization Requirements
    installed extension package (``enthali.jarvis-flow``), analogous to the
    existing PIM and Recorder add-ons — not folded into the core ``MSG``
    theme/module. It depends on the core extension for its shared runtime
-   and reads the message audit log directly from the workspace (no new
-   engine API surface is introduced for this CR).
+   and reads the message audit log directly from the workspace (no engine
+   API surface is added for it).
 
    **Acceptance Criteria:**
 
@@ -23,15 +23,15 @@ Message Flow Visualization Requirements
      and cannot activate without the core installed.
    * AC-3: With the add-on not installed, none of its surface (view title
      button, command, webview) is present anywhere — see ``REQ_MOD_ZEROTRACE``.
-   * AC-4: The add-on contributes its own commands, views contributions
-     (title-bar button on the existing ``jarvisMessages`` tree view), and
-     settings in its own ``package.json`` — it does not modify the core's
-     ``package.json``.
+   * AC-4: The add-on contributes its own commands and menu entries (the
+     title-bar buttons on the existing ``jarvisMessages`` tree view) in its
+     own ``package.json`` — it does not modify the core's ``package.json``.
+     It contributes no settings.
 
 
 .. req:: Message Flow Data Source
    :id: REQ_FLOW_DATASOURCE
-   :status: draft
+   :status: implemented
    :priority: optional
    :links: US_FLOW_CHORDVIEW; REQ_MSG_LOGSETTING; REQ_CFG_FIXEDPATHS
 
@@ -54,17 +54,16 @@ Message Flow Visualization Requirements
      state explaining that message logging must be enabled to populate the
      diagram, rather than an error.
    * AC-2: To bound diagram size and rendering cost, the data set SHALL be
-     capped to the most recent 30 entries (amended from 500 by
-     ``flow-message-pagination`` CR, GH #36) — no time-based boundary.
+     capped to the most recent 30 entries by default (raised on request,
+     ``REQ_FLOW_LOADMORE``) — no time-based boundary.
      Rationale: a project idle for a while (e.g. an older project revisited
      after a gap) must still show its message history rather than an empty
      diagram just because its messages fall outside a rolling time window.
-     This is a fixed v1 default — no user setting is introduced for it in
-     this CR.
+     No user setting exists for the default cap.
    * AC-3: The cap in AC-2 governs which raw entries are loaded/aggregated;
-     it is independent of and unaffected by the client-side "Fog of Time"
-     visual fade (``REQ_FLOW_CHORDVIEW`` AC-3), which only changes opacity
-     of the (already-capped) data already loaded.
+     it is independent of and unaffected by the visual fade of older
+     messages within the lens window (``REQ_FLOW_CHORDVIEW`` AC-2), which
+     only changes opacity of the (already-capped) data already loaded.
    * AC-4: Nodes SHALL be derived as the distinct union of ``sender`` and
      ``destination`` values across the capped entry set. Edges SHALL be
      derived per distinct ``(sender, destination)`` pair, with weight =
@@ -74,7 +73,7 @@ Message Flow Visualization Requirements
 
 .. req:: Chord Diagram Visualization
    :id: REQ_FLOW_CHORDVIEW
-   :status: draft
+   :status: implemented
    :priority: optional
    :links: US_FLOW_CHORDVIEW; REQ_FLOW_DATASOURCE
 
@@ -91,38 +90,39 @@ Message Flow Visualization Requirements
      underlying messages are nearer the window's far/oldest edge are
      visually de-emphasized relative to those nearer its near/newest edge.
    * AC-3: The diagram SHALL provide the two-handle rank-based "time lens"
-     control specified in full by ``REQ_FLOW_TIMELENS`` — **replacing** the
-     original single fade-rate slider design (superseded; see
-     ``REQ_FLOW_TIMELENS`` for the current, sole windowing/fade control).
+     control specified in full by ``REQ_FLOW_TIMELENS``, the sole
+     windowing/fade control.
      Moving either handle is a rendering-only operation (re-runs the fade
      calculation over already-loaded data); it does not re-query
      ``REQ_FLOW_DATASOURCE``'s capped data set.
    * AC-4: Hovering a node or edge SHALL show a tooltip with: message count,
      time range (earliest/latest timestamp in that group), and a truncated
      sample of message text.
+     Node tooltip: count of messages sent and received by that node, the time
+     range over all of them, and a truncated sample of the text of the newest
+     one. Edge tooltip: the same for the messages between the pair.
    * AC-5: The extension SHALL use VS Code's ``--vscode-charts-*`` and
      ``--vscode-*`` CSS custom properties for diagram theming — opt-in
      per element (webviews do not inherit native VS Code theming
      automatically for chart-specific colors).
-   * AC-6: The D3 library SHALL be vendored locally within the extension
-     package — the webview's Content-Security-Policy does not permit
-     fetching it from a CDN.
+   * AC-6: The D3 library SHALL be bundled into the webview script at build
+     time, so that it ships inside the extension package — the webview's
+     Content-Security-Policy does not permit fetching it from a CDN.
 
 
 .. req:: Time Lens (Rank-Based Message Window)
    :id: REQ_FLOW_TIMELENS
-   :status: draft
+   :status: implemented
    :priority: medium
    :links: US_FLOW_CHORDVIEW; REQ_FLOW_CHORDVIEW; REQ_FLOW_DATASOURCE
 
    **Description:**
-   The extension SHALL replace the diagram's single fade-rate slider with a
-   two-handle range control ("lens") that lets the user restrict and scrub
-   the visible message window by **position** (rank), counted from the
-   true-latest loaded message, rather than by wall-clock age. This flow-time-lens
-   CR **fully supersedes** ``REQ_FLOW_CHORDVIEW`` AC-3's original single-slider
-   design — there is no day/hour/minute unit selector and no VS Code setting;
-   all lens state lives in the webview only.
+   The extension SHALL provide a two-handle range control ("lens") that lets
+   the user restrict and scrub the visible message window by **position**
+   (rank), counted from the true-latest loaded message, rather than by
+   wall-clock age. It is the diagram's sole windowing/fade control
+   (``REQ_FLOW_CHORDVIEW`` AC-3) — there is no day/hour/minute unit selector
+   and no VS Code setting; all lens state lives in the webview only.
 
    **Acceptance Criteria:**
 
@@ -134,7 +134,10 @@ Message Flow Visualization Requirements
    * AC-2: The lens exposes two handles: a **start** handle (near/newest
      edge of the window) and an **end** handle (far/oldest edge). At all
      times ``start`` SHALL be less than or equal to ``end`` in rank number
-     (the window never inverts).
+     (the window never inverts): moving one handle past the other moves
+     the other handle to the same rank instead of inverting the window.
+     Handles can be moved by mouse and by keyboard, and a keyboard move is
+     committed like a mouse move.
    * AC-3: **Live-tracking:** while the start handle is at rank 1, the
      window's near edge SHALL always include the current true-latest
      message — as new messages arrive via the diagram's periodic refresh
@@ -150,14 +153,14 @@ Message Flow Visualization Requirements
      messages as a side effect of that renumbering.
    * AC-5: **Default window on open:** ``start`` = rank 1 (live-tracking),
      ``end`` = the rank corresponding to ``min(currently loaded total, 30)``
-     — i.e. on first open, the diagram shows exactly the same message set as
-     the pre-lens default (the full initial 30-entry-or-fewer load).
+     — i.e. on first open, the diagram shows the full initial
+     30-entry-or-fewer load.
    * AC-6: The fade gradient (``REQ_FLOW_CHORDVIEW`` AC-2) SHALL be computed
      over position **within the current lens window only** — the message at
      the window's near edge (start) renders at full opacity, the message at
      the window's far edge (end) renders at the fade floor, with a linear
      interpolation in between. The fade floor SHALL be 0.05 (5% minimum
-     opacity) — lowered from the prior single-slider design's 0.15 (15%).
+     opacity).
    * AC-7: While a handle is being dragged, the diagram SHALL display the
      actual timestamp of the message currently at that handle's position, as
      a drag tooltip — for human orientation only; the underlying unit
@@ -171,7 +174,7 @@ Message Flow Visualization Requirements
 
 .. req:: Expand Loaded History ("+30")
    :id: REQ_FLOW_LOADMORE
-   :status: draft
+   :status: implemented
    :priority: medium
    :links: US_FLOW_CHORDVIEW; REQ_FLOW_DATASOURCE; REQ_FLOW_TIMELENS
 
@@ -196,7 +199,7 @@ Message Flow Visualization Requirements
      increase only makes *more history reachable* by dragging the end
      handle further, it does not itself move either handle.
    * AC-4: The increased cap SHALL NOT persist across closing and reopening
-     the diagram panel — no VS Code setting is introduced for this CR; each
+     the diagram panel — no VS Code setting exists for it; each
      new panel instance starts back at the default cap (30).
 
 
@@ -241,7 +244,7 @@ Message Flow Visualization Requirements
 
 .. req:: Actor Node Click Opens Chat
    :id: REQ_FLOW_ACTORCLICK
-   :status: draft
+   :status: implemented
    :priority: optional
    :links: US_FLOW_CHORDVIEW; REQ_FLOW_WEBVIEWPANEL; REQ_COM_OPEN
 
@@ -268,7 +271,7 @@ Message Flow Visualization Requirements
 
 .. req:: Message Log Viewer Panel
    :id: REQ_FLOW_LOGVIEWER
-   :status: draft
+   :status: implemented
    :priority: optional
    :links: US_FLOW_LOGVIEWER; REQ_FLOW_PACKAGE; REQ_MSG_AUDITLOG; REQ_MSG_EDITORPLACEMENT
 
@@ -286,17 +289,17 @@ Message Flow Visualization Requirements
      and reveal the existing instance on subsequent calls — exactly one
      panel instance ever exists (same singleton-panel pattern as
      ``REQ_FLOW_WEBVIEWPANEL`` AC-1).
-   * AC-2: The panel SHALL open at the fixed Docs placement column (column
+   * AC-2: The panel SHALL open at the fixed Content column (column
      2, ``REQ_MSG_EDITORPLACEMENT`` AC-2) — same target as the chord
      diagram.
    * AC-3: An icon button on the ``jarvisMessages`` tree view's title bar
      SHALL invoke the same command — same contribution point already used
-     for ``jarvis.openMessageFlow`` (``REQ_FLOW_WEBVIEWPANEL`` AC-3), a
+     for ``jarvis.openMessageFlow`` (``REQ_FLOW_WEBVIEWPANEL`` AC-1), a
      second button alongside it, not a replacement.
    * AC-4: If the audit log does not exist or fails to parse, the
-     panel SHALL show an empty state (e.g. "No message history yet" /
-     "Enable message logging to populate this view") rather than an error
-     — same tolerant-empty-state precedent as ``REQ_FLOW_DATASOURCE`` AC-1.
+     panel SHALL show an empty state ("No messages logged yet.")
+     rather than an error — same tolerant-empty-state precedent as
+     ``REQ_FLOW_DATASOURCE`` AC-1.
    * AC-5: Entries SHALL be listed newest first (reverse-chronological by
      timestamp) — the opposite order from the chord diagram's data source
      (``REQ_FLOW_DATASOURCE``'s ``entries`` array is chronological
@@ -311,7 +314,7 @@ Message Flow Visualization Requirements
 
      a. While the list's scroll container is at ``scrollTop === 0``, the
         panel SHALL poll for new entries every 5000 ms (matching
-        ``REQ_FLOW_WEBVIEWPANEL`` AC-2's existing poll interval) and
+        ``REQ_FLOW_WEBVIEWPANEL`` AC-4's existing poll interval) and
         silently prepend any new entries found — no jump, no flash, no
         loss of the user's (top) scroll position.
      b. As soon as the user scrolls away from the top (``scrollTop > 0``),
@@ -326,7 +329,7 @@ Message Flow Visualization Requirements
      scroll the list to the top and satisfy AC-7c.
    * AC-9: Polling SHALL be skipped entirely while the panel is not
      ``visible`` (backgrounded tab) — same resource-conscious precedent as
-     ``REQ_FLOW_WEBVIEWPANEL`` AC-2.
+     ``REQ_FLOW_WEBVIEWPANEL`` AC-4.
    * AC-10: The panel's styling SHALL use VS Code's theme CSS variables
      (``--vscode-editor-background``, ``--vscode-editor-foreground``,
      ``--vscode-font-family``, etc.) for background/foreground/font, the
@@ -337,7 +340,7 @@ Message Flow Visualization Requirements
 
 .. req:: Message Requeue (Redelivery)
    :id: REQ_FLOW_REQUEUE
-   :status: draft
+   :status: implemented
    :priority: optional
    :links: US_FLOW_LOGVIEWER; REQ_FLOW_LOGVIEWER; REQ_MSG_QUEUE; REQ_MSG_AUDITLOG
 
@@ -366,17 +369,20 @@ Message Flow Visualization Requirements
    * AC-3: The requeue write path SHALL NOT invoke the audit-logging side
      effect — packages/flow (a separate extension package with no
      compile-time access to core's internal ``appendMessage()`` function)
-     SHALL implement its own minimal, local queue-append function that
+     SHALL implement its own minimal, local queue-append function
+     (``packages/flow/src/requeueService.ts``) that
      writes only to the queue, mirroring ``QueuedMessage``'s exact
      JSON shape (``REQ_MSG_AUDITLOG`` AC-2) — it SHALL NOT duplicate or
-     reimplement any log-writing logic, simply omit it.
-   * AC-4: After a successful requeue, the log viewer SHALL show a brief,
+     reimplement any log-writing logic, simply omit it. As a writer in a
+     separately versioned package it also follows ``REQ_CFG_STATEMIGRATION``
+     (union of the superseded queue path, removal of that file after the write).
+   * AC-4: After a requeue, the log viewer SHALL show a brief,
      non-blocking confirmation (e.g. a status message or toast) — no modal
      dialog, no panel reload required.
-   * AC-5: If the queue file's parent directory does not exist (no
-     workspace open, or ``.jarvis/messages/`` missing), the requeue action SHALL fail
-     open: show an error notification, and SHALL NOT throw an unhandled
-     exception or crash the panel.
+   * AC-5: If the requeue cannot be written (no workspace open), the requeue
+     action SHALL fail open: no unhandled exception, no crash of the panel,
+     and the failure SHALL be shown to the user as an error notification. A
+     missing ``.jarvis/messages/`` directory is not a failure: it is created.
    * AC-6: Requeuing the same log entry multiple times SHALL be permitted
      and SHALL each independently append a new queue entry —
      no idempotency/deduplication guard, matching the "any number of

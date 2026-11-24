@@ -322,7 +322,7 @@ Configuration Requirements
 
 .. req:: Jarvis Hook Files of Earlier Versions Are Removed
    :id: REQ_CFG_HOOKCLEANUP
-   :status: draft
+   :status: implemented
    :priority: required
    :links: US_CFG_WORKSPACEFILES; REQ_CFG_FILEPREFIX
 

@@ -61,7 +61,7 @@ Release Requirements
 
 .. req:: Extension Packaging
    :id: REQ_REL_VSCEPKG
-   :status: draft
+   :status: implemented
    :priority: mandatory
    :links: US_REL_RELEASE; REQ_REL_PKGCONTRACT
 
@@ -80,7 +80,8 @@ Release Requirements
    * AC-3: ``publisher`` in ``package.json`` is ``enthali``
    * AC-4: The ``.vsix`` SHALL NOT contain any ``../../`` paths
    * AC-5: The ``.vsix`` file size is reasonable (< 5 MB for core)
-   * AC-6: All existing tests pass after the build-system change
+   * AC-6: The test suite does not depend on the bundle step; it runs against the
+     sources, so bundling cannot change its result
    * AC-7: The F5 development host remains unaffected by the bundle step
 
 
@@ -517,7 +518,7 @@ Release Requirements
 
 .. req:: Marketplace Metadata
    :id: REQ_REL_MKTMETA
-   :status: draft
+   :status: implemented
    :priority: mandatory
    :links: US_REL_MARKETPLACE
 
@@ -537,21 +538,26 @@ Release Requirements
 
 .. req:: Automated Marketplace Publish
    :id: REQ_REL_MKTPUBLISH
-   :status: draft
+   :status: implemented
    :priority: mandatory
    :links: US_REL_MARKETPLACE; REQ_REL_PKGCONTRACT
 
    **Description:**
-   The GitHub Actions release workflow SHALL publish the packaged ``.vsix`` to the
-   VS Code Marketplace after creating the GitHub Release, using the ``VSCE_PAT``
-   secret stored in the repository.
+   The GitHub Actions release workflow SHALL publish the packaged ``.vsix`` of
+   ``enthali.jarvis-core`` and of each supported add-on (PIM, Recorder, MCP, Flow,
+   Kanban) to the VS Code Marketplace after creating the GitHub Release, using the
+   ``VSCE_PAT`` secret stored in the repository. The legacy ``enthali.jarvis`` shim
+   SHALL NOT be published to the Marketplace.
 
    **Acceptance Criteria:**
 
-   * AC-1: A ``vsce publish`` step runs after the GitHub Release step in ``release.yml``
-   * AC-2: The step uses the pre-built ``.vsix`` (``--packagePath``) to avoid double-bundling
+   * AC-1: One ``vsce publish`` step per published extension runs after the GitHub
+     Release step in ``release.yml``
+   * AC-2: Each step uses the pre-built ``.vsix`` (``--packagePath``) to avoid double-bundling
    * AC-3: The ``VSCE_PAT`` secret is passed as ``VSCE_PAT`` environment variable
-   * AC-4: The existing GitHub Release step is unchanged
+   * AC-4: The GitHub Release step precedes the publish steps and uploads every
+     ``.vsix``, including the legacy shim, so a Marketplace failure cannot prevent
+     the GitHub Release
 
 
 .. req:: Extension Package Contract
@@ -617,7 +623,7 @@ Release Requirements
 
 .. req:: Migration Shim Activation
    :id: REQ_REL_RETIRESHIM
-   :status: draft
+   :status: implemented
    :priority: mandatory
    :links: US_REL_RETIRELEGACY
 
@@ -640,7 +646,7 @@ Release Requirements
 
 .. req:: Migration Install with Channel Fallback
    :id: REQ_REL_RETIREINSTALL
-   :status: draft
+   :status: implemented
    :priority: mandatory
    :links: US_REL_RETIRELEGACY; REQ_REL_UPDATEINSTALL
 
@@ -659,15 +665,17 @@ Release Requirements
      the extension ID).
    * AC-3: If the Marketplace install fails (e.g. corporate/private marketplace where
      the public listing is unreachable), the shim falls back to downloading and
-     installing the ``jarvis-core-{version}.vsix`` GitHub Releases asset, reusing the
-     mechanism defined in REQ_REL_UPDATEINSTALL.
+     installing the ``jarvis-core-{version}.vsix`` asset of the latest GitHub Release,
+     using the same release lookup, asset naming and install command as
+     REQ_REL_UPDATEINSTALL. The shim is a self-contained bundle and cannot import
+     the core implementation, so it carries its own copy of that logic.
    * AC-4: A successful install via either channel is treated as "``jarvis-core``
      present" for the purposes of REQ_REL_RETIREUNINSTALL.
 
 
 .. req:: Legacy Self-Uninstall and Reload
    :id: REQ_REL_RETIREUNINSTALL
-   :status: draft
+   :status: implemented
    :priority: mandatory
    :links: US_REL_RETIRELEGACY
 
@@ -687,7 +695,7 @@ Release Requirements
 
 .. req:: Migration Failure Fallback
    :id: REQ_REL_RETIREFALLBACK
-   :status: draft
+   :status: implemented
    :priority: mandatory
    :links: US_REL_RETIRELEGACY
 
@@ -705,24 +713,28 @@ Release Requirements
    * AC-3: The migration sequence is re-attempted on the next activation/startup.
 
 
-.. req:: Final Legacy Release Policy
+.. req:: Legacy Shim Distribution Policy
    :id: REQ_REL_RETIRENORELEASE
-   :status: draft
+   :status: implemented
    :priority: mandatory
    :links: US_REL_RETIRELEGACY
 
    **Description:**
-   The migration shim SHALL be the final ``enthali.jarvis`` release. No further
-   ``enthali.jarvis`` releases are published, and the shim release remains available
-   for download so existing users still land on it and migrate.
+   ``enthali.jarvis`` has no content of its own beyond the migration shim. The
+   release workflow SHALL rebuild the shim on every release tag and attach it to the
+   GitHub Release as ``jarvis-{version}.vsix``, the asset name the self-update check
+   looks for when ``enthali.jarvis`` is installed. This is why the shim reaches users
+   who stopped on an old legacy version: they update to the latest release and
+   migrate. The shim SHALL NOT be published to the Marketplace.
 
    **Acceptance Criteria:**
 
-   * AC-1: No ``enthali.jarvis`` (legacy ID) release is published after the shim
-     release.
-   * AC-2: The shim release remains downloadable from GitHub Releases so existing
-     ``enthali.jarvis`` users continue to receive it via the self-update check
-     (REQ_REL_UPDATECHECK) and are migrated.
+   * AC-1: Every GitHub Release created by the release workflow carries
+     ``jarvis-{version}.vsix`` built from ``packages/core-gh`` with the version of
+     that release.
+   * AC-2: An ``enthali.jarvis`` installation using the self-update check
+     (REQ_REL_UPDATECHECK) finds that asset in the latest release and is migrated.
+   * AC-3: No ``enthali.jarvis`` package is published to the Marketplace.
 
 
 .. req:: Contract Needs Check Before Integration

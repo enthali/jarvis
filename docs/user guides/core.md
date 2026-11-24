@@ -18,7 +18,7 @@ In the editor window, the ACTORS view takes activity from the Agent Host: a red 
 
 ## Messaging
 
-Actors pass messages through a persistent inbox. An announcement tells the receiving Actor how many messages wait; their content is returned only by `jarvis_receiveMessage()`, not inserted as a prompt. Enable **Direct Delivery** for automatic announcements, or use the play action in Messages to announce waiting messages manually. A missing Actor chat is created for delivery. Without an Agent Host connection, announcements wait; opening a chat shows an information message instead of falling back to the old chat UI. With logging enabled, every queued message is also appended to `.jarvis/message-log.json`.
+Actors pass messages through a persistent inbox. An announcement tells the receiving Actor how many messages wait; their content is returned only by `jarvis_receiveMessage()`, not inserted as a prompt. Enable **Direct Delivery** for automatic announcements, or use the play action in Messages to announce waiting messages manually. A missing Actor chat is created for delivery. Without an Agent Host connection, announcements wait; opening a chat shows an information message instead of falling back to the old chat UI. With logging enabled, every queued message is also appended to `.jarvis/messages/log.json`.
 
 The Messages view in the Jarvis sidebar lists queued messages grouped by target Actor, or shows `nothing to deliver`. Clicking a message opens the message queue file at that message, or at its start if the position cannot be found; clicking only navigates and changes nothing. The view appears while `jarvis.messages.enabled` is on. The Messages, Reminders and Heartbeat views each have a **Collapse All** button in their title bar.
 
@@ -35,7 +35,7 @@ The sender and inbox are bound to the calling Actor chat, not supplied by the mo
 
 ## Reminders
 
-Set a reminder for an Actor with the `jarvis_setReminder` tool, giving the text, the Actor and a delivery time. A due reminder fires once and is queued as a message in that Actor's inbox; it raises no VS Code notification of its own. The same delivery setting as for other messages decides whether the Actor is announced the message at once (Direct Delivery) or finds it waiting until announced manually. `jarvis_listReminders` shows pending reminders and `jarvis_cancelReminder` removes one. The Reminders view in the Jarvis sidebar appears when `jarvis.messages.enabled` and `jarvis.reminders.enabled` are both on.
+Set a reminder for an Actor with the `jarvis_setReminder` tool, giving the text, the Actor and a delivery time. A due reminder fires once and is queued as a message in that Actor's inbox; it raises no VS Code notification of its own. The same delivery setting as for other messages decides whether the Actor is announced the message at once (Direct Delivery) or finds it waiting until announced manually. `jarvis_listReminders` shows pending reminders and `jarvis_cancelReminder` removes one before it fires. Reminders survive a VS Code restart: one that came due while VS Code was closed is delivered once Jarvis is active again. The Reminders view in the Jarvis sidebar shows pending reminders with target, scheduled time and countdown, and clicking one opens the reminders file at that entry; it appears when `jarvis.messages.enabled` and `jarvis.reminders.enabled` are both on.
 
 ## Heartbeat
 
@@ -55,7 +55,7 @@ Extension tools retain package-prefixed chat references, such as `#jarvis_core_l
 In the Windows Sandbox on 2026-11-03, the User observed that Actor chats, messaging and the Kanban board work in the Agents window, with several Actor chats open side by side.
 
 - Jarvis needs an available, authenticated Agent Host; there is no fallback to the old chat UI. Development and checks covered VS Code 1.143.1 and 1.144.0.
-- In GitHub Codespaces, Jarvis finds and connects to the VS Code Server Agent Host. The User exercised an installed discovery prototype there, and discovery, Actor messaging and opening Actor chats worked (2026-11-19); the finalized code was compared with that prototype but not separately deployed end-to-end. Replies, Dev Tunnels and the Agents window connected to a Codespace were outside that validation. On Windows, the Agent Host connection and a message exchange between two Actors were checked in the Windows Sandbox (VS Code 1.144.0, 2026-11-19). macOS, WSL and SSH were not verified.
+- In GitHub Codespaces, Jarvis finds and connects to the VS Code Server Agent Host. The User exercised an installed discovery prototype there, and discovery, Actor messaging and opening Actor chats worked (2026-11-19); the finalized code was compared with that prototype but not separately deployed end-to-end. Replies, Dev Tunnels and the Agents window connected to a Codespace were outside that validation. On Windows, the Agent Host connection and a message exchange between two Actors were checked in the Windows Sandbox (VS Code 1.144.0, 2026-11-19). On macOS, the User verified on 2026-11-24 that Jarvis worked without issues. WSL and SSH were not verified.
 - The client serves its window's first workspace folder. Cross-workspace routing is outside this MVP. The same workspace in two windows is not tested and probably does not work.
 - Enable **Created In > jarvis-core** to see Jarvis-created chats in the Agents window.
 - Flow, including the message view and log, cannot be opened from the Agents window yet.
@@ -98,7 +98,7 @@ Automatic cleanup needs no setting, but covers only the first workspace folder a
 | `jarvis.actor.autoProvision` | `true` | Provision the bundled actor instruction files into the workspace on activation. Set to `false` in workspaces that do not use Jarvis actors; Jarvis then removes the files it provisioned. |
 | `jarvis.agentSession.initPromptTemplate` | built-in prompt | Template for the initialization prompt sent to a new agent chat session. Leave empty to use the built-in default. |
 | `jarvis.messages.enabled` | `true` | Enable the Messages feature. |
-| `jarvis.messages.logging` | `true` | Append every queued message to `.jarvis/message-log.json`. |
+| `jarvis.messages.logging` | `true` | Append every queued message to `.jarvis/messages/log.json`. |
 | `jarvis.heartbeat.enabled` | `true` | Enable the heartbeat scheduler. |
 | `jarvis.heartbeatInterval` | `60` | Heartbeat scheduler tick interval in seconds. |
 | `jarvis.scanInterval` | `2` | Background rescan interval in minutes (0 = disabled). |

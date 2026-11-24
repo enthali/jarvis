@@ -1158,6 +1158,22 @@ Automation Design Specifications
    **No side effects on job list:** ``validateLoadedJobs`` only emits warnings;
    it does not mutate, filter, or pause any job object.
 
+   **Start-time validation** (``REQ_AUT_HEARTBEAT_LOAD_VALIDATION`` AC-4):
+   ``activateHeartbeat()`` calls ``validateLoadedJobs(scheduler.currentJobs,
+   outputChannel, scanner)`` once, right after the first ``scheduler.start()``,
+   fire-and-forget like in ``reload()``. ``start()`` itself and the tick do not
+   validate: the tick reloads the file every interval and would repeat the same
+   warning each time. A restart of the scheduler after a change of
+   ``jarvis.heartbeatInterval`` does not validate again either.
+
+   **Scanner on every path** (``REQ_AUT_HEARTBEAT_VALIDATION_NOREGRESSION``
+   AC-4): the ``ActorScanner`` is passed to ``scheduler.start()`` in the
+   ``jarvis.heartbeatInterval`` change handler, and to ``executeJob()`` in the
+   ``jarvis.resumeHeartbeatJob`` handler, like in the activation call, the tick,
+   ``jarvis.runHeartbeatJob`` and ``jarvis.runJob``. ``executeQueueStep`` reads
+   the valid set from it at fire time (``REQ_AUT_HEARTBEAT_INVALID_STEP_BEHAVIOR``
+   AC-1); a missing scanner would make that set empty and skip every queue step.
+
    **Acceptance Criteria:**
 
    * AC-1: ``activateHeartbeat()`` SHALL receive the ``ActorScanner``
@@ -1401,12 +1417,13 @@ Automation Design Specifications
 
 .. spec:: Step Output Variable Capture and Interpolation
    :id: SPEC_AUT_STEP_OUTPUT_VARS
-   :status: draft
+   :status: implemented
    :links: REQ_AUT_STEP_OUTPUT_VARS; SPEC_AUT_EXECUTOR; SPEC_AUT_AGENTEXEC; SPEC_AUT_JOBSCHEMA
 
    **Description:**
    Enables heartbeat steps to capture output into named variables and makes those
    variables available for interpolation in subsequent steps within the same job run.
+   All of it lives in ``packages/core/src/apps/session/heartbeat.ts``.
 
    **ExecResult extension:**
 
@@ -1418,53 +1435,38 @@ Automation Design Specifications
         error?: string;
         output?: string;   // captured stdout (scripts) or response text (agent)
         stderr?: string;   // captured stderr (script steps only)
+        code?: string;     // spawn error code, set only when the process could not start
       }
 
    **Script step (``spawnStep``) changes:**
 
-   ``spawnStep`` SHALL accumulate stdout chunks into a buffer and return it as
-   ``result.output``. Similarly, the existing stderr tail capture (used for
-   error reporting) SHALL also be returned as ``result.stderr``.
+   ``spawnStep`` accumulates every stdout chunk into a buffer and every stderr
+   chunk into a second buffer, and returns them as ``result.output`` and
+   ``result.stderr`` on success and on a non-zero exit. The bounded three-line
+   stderr tail used for the failure message (``REQ_AUT_OUTPUT``) is a separate
+   buffer; ``result.stderr`` is the full text. When the process cannot start the
+   result carries neither field.
 
-   .. code-block:: typescript
+   **Interpolation (``interpolateStep``):**
 
-      function spawnStep(
-        executable: string,
-        args: string[],
-        outputChannel: vscode.LogOutputChannel,
-        stepType: HeartbeatStep['type']
-      ): Promise<ExecResult> {
-        return new Promise(resolve => {
-          const proc = spawn(executable, args, { shell: false });
-          let stdout = '';
-          let stderr = '';
-          proc.stdout.on('data', (d: Buffer) => {
-            const text = d.toString();
-            stdout += text;
-            outputChannel.debug('[Heartbeat] stdout: ' + text.trimEnd());
-          });
-          proc.stderr.on('data', (d: Buffer) => {
-            const text = d.toString();
-            stderr += text;
-            outputChannel.debug('[Heartbeat] stderr: ' + text.trimEnd());
-          });
-          proc.on('close', code => {
-            if (code !== 0) {
-              resolve({
-                success: false, stepType,
-                error: `exit ${code}`, output: stdout, stderr
-              });
-            } else {
-              resolve({ success: true, output: stdout, stderr });
-            }
-          });
-        });
-      }
+   Before each step runs, ``executeJob`` replaces ``${NAME}`` (``\w+``) in the
+   string fields ``run``, ``prompt``, ``outputFile``, ``destination``, ``sender``,
+   ``text``, ``vendor`` and ``model`` with the value of the variable ``NAME``. A
+   name with no value is left as written. The job-run variable store is a plain
+   record created per ``executeJob`` call; it is never read from or written to
+   the OS environment.
+
+   **Capture (``executeJob``):**
+
+   After a step, ``executeJob`` stores ``result.output`` under the step's
+   ``outputVar`` when both are present and non-empty, and logs
+   ``[Heartbeat] var <name> set by <type> step`` at ``info`` level. An empty
+   output sets nothing.
 
    **Agent step changes:**
 
    ``executeAgentStep`` already accumulates the response text; it returns
-   ``{ success: true, output: text }`` (see amended ``SPEC_AUT_AGENTEXEC``).
+   ``{ success: true, output: text }`` (see ``SPEC_AUT_AGENTEXEC``).
    Agent steps do not produce stderr.
 
    **Queue and command steps:**
@@ -1475,10 +1477,11 @@ Automation Design Specifications
 
    **LAST_STDERR well-known variable:**
 
-   After each script step (``python`` / ``powershell``), ``executeJob`` overwrites
-   ``vars['LAST_STDERR']`` with ``result.stderr`` (even if empty string). This means
-   ``LAST_STDERR`` always reflects the most recent script step's stderr. Non-script
-   steps do not touch ``LAST_STDERR``.
+   After each step whose result carries ``stderr`` (``python`` / ``powershell``),
+   ``executeJob`` overwrites ``vars['LAST_STDERR']`` with ``result.stderr`` (even
+   if empty string) and logs ``[Heartbeat] var LAST_STDERR set by <type> step``.
+   This means ``LAST_STDERR`` always reflects the most recent script step's
+   stderr. Other steps do not touch ``LAST_STDERR``.
 
    **outputVar validation at load time:**
 

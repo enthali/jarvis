@@ -817,16 +817,18 @@ Message Queue Design Specifications
 
 .. spec:: Reminder Store Module
    :id: SPEC_MSG_REMINDERSTORE
-   :status: draft
+   :status: implemented
    :links: REQ_MSG_REMINDERS_PERSIST; SPEC_MSG_QUEUESTORE; REQ_CFG_FIXEDPATHS; REQ_CFG_PATHSINGLESOURCE
 
    **Description:**
-   New module ``src/reminders.ts`` provides synchronous file-backed read/write
-   operations for the ``reminders.yaml`` file. The file path is resolved by
-   ``configPaths.getRemindersPath()`` (see ``SPEC_CFG_PATHRESOLVER``). The file
-   lives at ``<workspaceRoot>/.jarvis/reminders.yaml``; it is not co-located by
-   path derivation from the message queue — both paths are independently resolved
-   by the central path resolver.
+   The module ``packages/core/src/apps/session/reminders.ts`` provides
+   synchronous file-backed read/write operations for the ``reminders.yaml``
+   file. The file path is resolved by ``configPaths.getRemindersPath()``
+   (``packages/core/src/engine/core/configPaths.ts``, see
+   ``SPEC_CFG_PATHRESOLVER``); every caller passes it in as ``filePath``. The
+   file lives at ``<workspaceRoot>/.jarvis/reminders.yaml``; it is not
+   co-located by path derivation from the message queue — both paths are
+   independently resolved by the central path resolver.
 
    **File format (reminders.yaml):**
 
@@ -853,13 +855,11 @@ Message Queue Design Specifications
 
    **Path resolution:**
 
-   .. code-block:: typescript
-
-      import * as configPaths from './configPaths';
-
-      function getRemindersFilePath(): string | undefined {
-        return configPaths.getRemindersPath();
-      }
+   There is no path helper in the module. Callers (the poll loop, the tool
+   handlers' ``remindersPath`` dependency, ``RemindersTreeProvider`` and the
+   ``jarvis.cancelReminder`` / ``jarvis.openReminderFile`` commands) call
+   ``configPaths.getRemindersPath() ?? ''`` and pass the result to the store;
+   an empty path reads as an empty list (no workspace open).
 
    **Public API:**
 
@@ -869,10 +869,10 @@ Message Queue Design Specifications
         if (!fs.existsSync(filePath)) { return []; }
         try {
           const raw = fs.readFileSync(filePath, 'utf8');
-          const parsed = yaml.load(raw) as { reminders?: Reminder[] };
+          const parsed = yaml.load(raw) as { reminders?: Reminder[] } | null;
           return parsed?.reminders ?? [];
         } catch {
-          log.warn('[MSG] reminders.yaml malformed — falling back to empty list');
+          log?.warn('[MSG] reminders.yaml malformed — falling back to empty list');
           return [];
         }
       }
@@ -942,54 +942,71 @@ Message Queue Design Specifications
      what turns the dormant disagreement into a permanent one: the derived path
      would become ``.jarvis/messages/reminders.yaml``, which nothing writes, so
      the view would show an empty list and report no error.
-   * ``popDueReminders`` is atomic: it reads, separates due from remaining,
-     writes remaining, then returns due — no separate ``removeReminder`` call
-     needed from the poll loop
+   * ``popDueReminders`` completes in one synchronous step: it reads, separates
+     due from remaining, writes remaining, then returns due — no separate
+     ``removeReminder`` call needed from the poll loop; the extension host is
+     single-threaded, so no other tick can interleave
    * ``log`` is the shared ``LogOutputChannel`` set via a module-level setter
-     ``setRemindersLogger(log)`` called once during ``activate()``
+     ``setRemindersLogger(log)`` called once during ``activate()``; the
+     malformed-file warning is skipped when no logger is set
 
 
 .. spec:: Reminder Poll Loop Integration
   :id: SPEC_MSG_REMINDERSLOOP
-  :status: draft
+  :status: implemented
   :links: REQ_MSG_REMINDERS_DELIVER; SPEC_COM_INBOX; SPEC_MSG_REMINDERSTORE; SPEC_MSG_AUTODELIVER_STORE; SPEC_MSG_QUEUESTORE
 
   **Description:**
-  Extend the existing 5-second ``setInterval`` poll loop in ``extension.ts``
-  to check for due reminders after the auto-delivery handling block. Due
+  The existing 5-second ``setInterval`` poll loop in ``extension.ts`` checks
+  for due reminders after it has started the auto-delivery pass
+  (``announcer.runAuto()``, run only while the AHP client is connected; the
+  reminder check runs on every tick regardless). Due
   reminders are enqueued as regular messages without changing their target's
   auto-delivery preference. Existing message delivery decides whether the
   queued message is notified automatically or awaits manual notification.
 
-  **Reminder processing after the auto-delivery block (shown in the tick
-  body; equivalent handling belongs inside an extracted processor):**
+  **Reminder processing in the tick body.** The tick calls
+  ``processDueReminders`` (``packages/core/src/apps/session/reminderDelivery.ts``),
+  which takes its collaborators as a dependency object so that it runs in a
+  unit test with a fixed clock and a fake ``popDue``:
 
    .. code-block:: typescript
 
-      // --- Reminder delivery ---
-      const remindersPath = configPaths.getRemindersPath();
+      processDueReminders({
+        remindersPath: configPaths.getRemindersPath() ?? '',
+        messagesPath,
+        now: new Date(),
+        reloadReminders: () => remindersProvider?.reload(),
+        reloadMessages: () => messageProvider.reload(),
+        info: message => log.info(message),
+        warn: message => log.warn(message),
+      });
+
+   The helper's body:
+
+   .. code-block:: typescript
+
       let due: Reminder[];
       try {
-        due = popDueReminders(remindersPath, new Date());
-      } catch (err) {
-        log.warn(`[MSG] Reminder polling failed: ${err}`);
-        return;
+        due = popDueReminders(remindersPath, now);
+      } catch (error) {
+        warn(`[MSG] Reminder scan failed: ${error}`);
+        return [];
       }
       for (const reminder of due) {
         try {
           appendMessage(messagesPath, reminder.session, 'Reminder', reminder.text);
-          log.info(
-            `[MSG] Reminder "${reminder.id}" queued for session "${reminder.session}"`
-          );
-        } catch (err) {
-          log.warn(`[MSG] Reminder delivery failed for "${reminder.id}": ${err}`);
+          info(`[MSG] Reminder "${reminder.id}" queued for session "${reminder.session}"`);
+        } catch (error) {
+          warn(`[MSG] Reminder delivery failed for "${reminder.id}": ${error}`);
         }
       }
       if (due.length > 0) {
         // Refresh both views so the new message and removed reminder are visible
-        remindersProvider.reload();
-        messageProvider.reload();
+        reloadReminders();
+        reloadMessages();
       }
+      return due;
 
    **Design decisions:**
 
@@ -1008,11 +1025,11 @@ Message Queue Design Specifications
    * **Pop errors**: If ``popDueReminders`` fails (including a failed write to
      ``reminders.yaml``), warn and end this reminder tick without stopping the
      interval. The next tick may try again; no due entries were returned for
-     enqueueing. An extracted ``processDueReminders`` helper returning a
-     reminder list SHALL keep this guard inside the helper and return ``[]``.
-   * **Tree refresh**: A single ``remindersProvider.reload()`` plus
-     ``messageProvider.reload()`` after all due reminders in a tick is
-     sufficient — both views update together.
+     enqueueing. The ``processDueReminders`` helper keeps this guard inside
+     itself and returns ``[]``.
+   * **Tree refresh**: A single ``reloadReminders()`` plus ``reloadMessages()``
+     (``remindersProvider.reload()`` and ``messageProvider.reload()``) after all
+     due reminders in a tick is sufficient — both views update together.
 
 
 .. spec:: Reminder LM and MCP Tools Registration
@@ -1136,15 +1153,18 @@ Message Queue Design Specifications
 
 .. spec:: Reminders Tree View
    :id: SPEC_MSG_REMINDERSVIEW
-   :status: draft
+   :status: implemented
    :links: REQ_MSG_REMINDERS_VIEW; SPEC_MSG_REMINDERSTORE; REQ_MSG_REMINDERS_PERSIST
 
    **Description:**
-   Introduce a dedicated ``RemindersTreeProvider`` in
-   ``src/remindersTreeProvider.ts`` that backs a new top-level sidebar view
-   ``jarvisReminders`` (label ``"Reminders"``). The view sits next to
-   ``jarvisMessages`` in the Jarvis Activity Bar container. Reminders no
-   longer appear inside the Messages tree.
+   ``RemindersTreeProvider`` in
+   ``packages/core/src/apps/session/remindersTreeProvider.ts`` backs the
+   top-level sidebar view ``jarvisReminders`` (label ``"Reminders"``). The view
+   sits next to ``jarvisMessages`` in the Jarvis Activity Bar container
+   (``jarvis-explorer``). Reminders do not appear inside the Messages tree.
+   The view is created in the Messages feature block of ``activate()`` only
+   while ``jarvis.reminders.enabled`` is true, with ``showCollapseAll: true``
+   (``US_MSG_TREE`` AC-4).
 
    **Node type:**
 
@@ -1152,18 +1172,19 @@ Message Queue Design Specifications
 
       interface ReminderNode {
         kind: 'reminder';
-        reminder: Reminder;   // from src/reminders.ts
+        reminder: Reminder;   // from reminders.ts
       }
 
    **TreeDataProvider behaviour:**
 
-   * Root: read ``readReminders(configPaths.getRemindersPath())`` and
-     return one ``ReminderNode`` per entry (flat, no group node).
-     This provider is the site of the ``REQ_EXP_REMINDER_OPENFILE`` defect: it
-     resolved the path by derivation from the queue path, which agrees with the
-     resolver only in the flat layout. It obtains the path from the resolver
-     like every other consumer (``SPEC_CFG_PATHRESOLVER`` usage contract,
-     ``REQ_CFG_PATHSINGLESOURCE`` AC-3).
+   * Root: read ``readReminders(<resolved path> ?? '')`` and
+     return one ``ReminderNode`` per entry (flat, no group node). The path
+     comes from a constructor-injected resolver that defaults to
+     ``configPaths.getRemindersPath``, like every other consumer
+     (``SPEC_CFG_PATHRESOLVER`` usage contract, ``REQ_CFG_PATHSINGLESOURCE``
+     AC-3). The provider once derived the path from the queue path, which
+     agrees with the resolver only in the flat layout
+     (``REQ_EXP_REMINDER_OPENFILE``).
    * Leaf nodes have no children.
 
    **getTreeItem:**
@@ -1197,7 +1218,8 @@ Message Queue Design Specifications
         "when": "config.jarvis.messages.enabled == true && config.jarvis.reminders.enabled == true"
       }
 
-   Add ``"onView:jarvisReminders"`` to ``activationEvents``.
+   Add ``"onView:jarvisReminders"`` to ``activationEvents``. The view is
+   declared in the ``jarvis-explorer`` container.
 
    **Inline cancel action (package.json ``view/item/context``):**
 
@@ -1209,9 +1231,10 @@ Message Queue Design Specifications
         "group": "inline"
       }
 
-   **New command ``jarvis.cancelReminder``:**
+   **Command ``jarvis.cancelReminder``:**
 
-   Registered in ``extension.ts``:
+   Registered in ``extension.ts``; hidden from the Command Palette
+   (``contributes.menus.commandPalette``: ``when: "false"``):
 
    .. code-block:: typescript
 
@@ -1219,10 +1242,9 @@ Message Queue Design Specifications
         'jarvis.cancelReminder',
         (node?: ReminderNode) => {
           if (!node || node.kind !== 'reminder') { return; }
-          const remindersPath = configPaths.getRemindersPath();
-          if (!remindersPath) { return; }
-          removeReminder(remindersPath, node.reminder.id);
-          remindersProvider.reload();
+          removeReminder(configPaths.getRemindersPath() ?? '', node.reminder.id);
+          log.info(`[MSG] cancelReminder(tree): id="${node.reminder.id}"`);
+          remindersProvider?.reload();
         }
       );
 
@@ -1239,13 +1261,15 @@ Message Queue Design Specifications
    **Design notes:**
 
    * The Reminders view is gated by ``config.jarvis.messages.enabled == true &&
-     config.jarvis.reminders.enabled == true`` (see SPEC_CFG_VIEWGATING).
-     The old ``jarvis.messagesFile != ''`` precondition is superseded by the
-     toggle-based gating introduced in this CR.
-   * Countdown strings are computed fresh on every ``getTreeItem`` call; the
-     tree auto-refreshes on each ``remindersProvider.reload()`` (called by
-     the poll loop and tool handlers), so the displayed time stays
-     reasonably current (within ±5 s).
+     config.jarvis.reminders.enabled == true`` (see SPEC_CFG_VIEWGATING); this
+     toggle-based gating replaces the former ``jarvis.messagesFile != ''``
+     precondition.
+   * Countdown strings are computed fresh on every ``getTreeItem`` call. The
+     tree reloads on ``remindersProvider.reload()``, which the poll loop calls
+     only on a tick that delivered a due reminder, and the tool handlers and
+     the cancel command call after a mutation. No timer refreshes the view
+     otherwise, so a countdown shown for an idle reminder is as old as the last
+     reload.
    * The ``jarvis.cancelReminder`` tree command is distinct from the
      ``jarvis_cancelReminder`` LM/MCP tool — the command operates on a
      ``ReminderNode`` from the tree, the tool accepts a raw ``id`` string.

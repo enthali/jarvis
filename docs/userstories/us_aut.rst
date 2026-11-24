@@ -92,7 +92,7 @@ Automation User Stories
 
 .. story:: Queue Step Destination Validation
    :id: US_AUT_HEARTBEAT_VALIDATION
-   :status: draft
+   :status: implemented
    :tracked_by: MOD_AUTOMATION
    :priority: optional
    :links: US_AUT_HEARTBEAT
@@ -105,22 +105,27 @@ Automation User Stories
 
    **Acceptance Criteria:**
 
-   * AC-1: Loading ``heartbeat.yaml`` validates every ``queue`` step's ``destination``
-     against the list of known named sessions; invalid destinations raise a visible
-     warning notification and a log entry containing job name, step index, and the
-     invalid destination value
+   * AC-1: When the heartbeat starts, and when its jobs are reloaded (after a job is registered,
+     paused, resumed or removed, on a manual run, or when the Heartbeat view is
+     refreshed), every ``queue`` step's destination is checked against the known
+     Actors; each invalid destination raises a visible warning notification and
+     a log entry containing job name, step index (0-based), and the invalid
+     destination value
    * AC-2: A job with an invalid queue-step destination is still loaded and scheduled;
      only the invalid step is affected — valid steps in the same job run normally
    * AC-3: At fire time, a queue step whose destination is (still) invalid is
      **skipped** (soft skip — the step is not executed, a warning is logged, but the
      job is not marked as failed and remaining steps continue)
-   * AC-4: The ``jarvis_registerJob`` LM/MCP tool rejects a job with an invalid
-     queue-step destination — the tool returns an error and the job is NOT persisted
+   * AC-4: Registering a job through an Actor's job tool is rejected with an
+     error that lists the valid destinations when a queue step names an invalid
+     one — the job is NOT persisted
    * AC-5: Valid-destination queue steps are unaffected — no behavior change for
-     correctly configured jobs
-   * AC-6: Destination validation uses the same resolver as ``jarvis_sendToSession``
-     (unified valid destination set: Actor names from
-     ``src/sessionLookup.ts``) — no separate implementation
+     correctly configured jobs, however the job runs: on schedule, by hand, from
+     the tree, after being resumed, and after I changed the heartbeat interval
+     setting
+   * AC-6: A queue-step destination is valid exactly when it is valid for sending
+     a message to an Actor — the name of exactly one known Actor; a name shared
+     by several Actors is invalid. There is no separate rule for heartbeat jobs
 
 
 .. story:: Heartbeat Jobs in the Jarvis Explorer

@@ -323,6 +323,10 @@ Automation Requirements
      the invalid destination value verbatim
    * AC-3: A job containing an invalid destination SHALL still be loaded into the
      scheduler — the warning is informational; the job is NOT paused or removed
+   * AC-4: The check SHALL also run once when the heartbeat starts (extension
+     activation), so that a destination misspelled by hand in ``heartbeat.yaml``
+     is reported without waiting for a reload. The scheduler tick does not
+     repeat it, because it would repeat the same warning every interval
 
 
 .. req:: Queue Step Behavior on Invalid Destination at Fire Time
@@ -389,6 +393,12 @@ Automation Requirements
      without error or delay
    * AC-3: No additional round-trip delays SHALL be introduced for non-queue steps
      (python, powershell, command, agent)
+   * AC-4: A valid ``queue``-step destination SHALL be accepted on every path
+     that starts the scheduler or runs a job: activation, a change of
+     ``jarvis.heartbeatInterval``, the scheduler tick, a manual run, a run from
+     the tree, and the run after resuming a paused job. Every one of these paths
+     uses the ``ActorScanner`` instance, because without it the valid set is
+     empty and every queue step is skipped
 
 
 .. req:: Shared Resolver for Heartbeat Destination Validation
@@ -421,7 +431,7 @@ Automation Requirements
 
 .. req:: Step Output Variable Capture and Interpolation
    :id: REQ_AUT_STEP_OUTPUT_VARS
-   :status: draft
+   :status: implemented
    :priority: optional
    :links: US_AUT_HEARTBEAT; REQ_AUT_JOBEXEC; REQ_AUT_JOBCONFIG
 
@@ -433,7 +443,8 @@ Automation Requirements
 
    * AC-1: ``outputVar`` is supported as a capture source on ``python``,
      ``powershell``, and ``agent`` step types; ``queue`` and ``command`` steps
-     do not produce capturable output
+     do not produce capturable output. A step whose output is empty sets no
+     variable, so a later reference to it stays as written (AC-4)
    * AC-2: Interpolation targets are exactly the step fields ``run``, ``prompt``,
      ``outputFile``, ``destination``, ``sender``, ``text``, ``vendor`` and ``model``;
      ``type``, ``append`` and ``outputVar`` are not interpolated
@@ -449,6 +460,11 @@ Automation Requirements
      reading from OS environment variables as fallback, no injection into OS
      environment of child processes; scripts may use real env vars independently
      but that is outside this feature's scope
+   * AC-8: After every ``python`` or ``powershell`` step the variable
+     ``LAST_STDERR`` SHALL hold that step's complete stderr text (the empty
+     string when the step wrote none), whether or not the step has an
+     ``outputVar``; it is interpolated like any captured variable and its
+     setting is logged as in AC-6. Steps of other types leave it unchanged
 
 
 .. req:: Agent Step Language Model Choice

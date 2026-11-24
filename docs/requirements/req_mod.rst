@@ -29,7 +29,7 @@ Modular Delivery Requirements
 
 .. req:: Add-ons Separately Installable
    :id: REQ_MOD_ADDONS
-   :status: approved
+   :status: implemented
    :priority: required
    :links: US_MOD_INSTALL; SPEC_MOD_ADDON_ONBOARDING
 
@@ -64,6 +64,8 @@ Modular Delivery Requirements
      or Instructions assets SHALL call ``provisionModuleAssets`` during
      ``activate()``; idempotency and orphan cleanup are handled by the helper
      (see ``REQ_MOD_SKILL_PROVISION``, ``REQ_MOD_SKILL_ORPHAN``).
+   * AC-9: ``enthali.jarvis-kanban`` is a separate extension declaring
+     ``extensionDependencies: ["enthali.jarvis-core"]``.
 
 
 .. req:: Zero-Trace When Not Installed

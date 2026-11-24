@@ -9,15 +9,16 @@ Actor Design Specifications
 
 .. spec:: Actor Scanner
    :id: SPEC_ACTOR_SCANNER
-   :status: draft
+   :status: implemented
    :links: REQ_ACTOR_SCHEMA; REQ_ACTOR_ACTIVATION; REQ_ACTOR_TREE; REQ_EXP_REACTIVECACHE; REQ_CFG_SCANINTERVAL; SPEC_CFG_PATHRESOLVER; SPEC_AUT_HEARTBEAT_RESOLVER_REUSE; SPEC_AUT_JOBREG; SPEC_ACTOR_MAIL
 
    **Description:**
    ``ActorScanner`` (``engine/actors/actorScanner.ts``) is the single source
    of Actors. Every consumer — the ACTORS view, the Actor tools, the
-   injection primitive, destination validation for heartbeat, reminders and
-   messages, and ``JarvisCoreApi.listActors()`` — reads its cache. No other
-   component enumerates Actor folders.
+   injection primitive, destination validation for heartbeat and messages,
+   and ``JarvisCoreApi.listActors()`` — reads its cache. No other
+   component enumerates Actor folders. (A reminder's target ``session`` is
+   stored as given and is not checked against the scanner.)
 
    **Data model:**
 
@@ -102,7 +103,8 @@ Actor Design Specifications
 
    ``extension.ts`` calls ``startTimer(jarvis.scanInterval)`` at activation
    and again on ``onDidChangeConfiguration`` for ``jarvis.scanInterval``; the
-   scanner is pushed to ``context.subscriptions``. A rescan that is still
+   scanner is disposed by ``JarvisEngine.dispose()``, which is pushed to
+   ``context.subscriptions``. A rescan that is still
    running when the next tick fires is not started twice: ``rescan()``
    returns the in-flight promise.
 
@@ -140,7 +142,8 @@ Actor Design Specifications
    only ``listActors()`` and apply the same exactly-one rule to it
    (``SPEC_KAN_CREATE``).
 
-   **Destination source:** ``getValidDestinations()`` (``sessionLookup.ts``,
+   **Destination source:** ``getValidDestinations()``
+   (``engine/sessions/sessionLookup.ts``,
    ``SPEC_AUT_HEARTBEAT_RESOLVER_REUSE``) returns the names of
    ``actorScanner.actors`` for which ``resolveName`` is ``found`` — an
    ambiguous name is not in the set — and nothing else; chat session titles
@@ -164,8 +167,8 @@ Actor Design Specifications
      the cache.
    * AC-5: The rescan triggers above are the only ones; no file-system
      watcher is used.
-   * AC-6: Heartbeat, reminder and message destination validation read
-     Actor names from this scanner and from no other enumeration.
+   * AC-6: Heartbeat and message destination validation read Actor names from
+     this scanner and from no other enumeration.
    * AC-7: The periodic rescan is a ``setInterval`` owned by the scanner; no
      heartbeat job is created for it, and a leftover ``"Jarvis: Rescan"``
      job is removed when the heartbeat feature starts.
@@ -443,7 +446,7 @@ Actor Design Specifications
 
 .. spec:: Unread Mail Icon Source
    :id: SPEC_ACTOR_MAIL
-   :status: draft
+   :status: implemented
    :links: REQ_ACTOR_MAIL; SPEC_ACTOR_SCANNER; SPEC_ACTOR_TREE; SPEC_OLK_SETTINGS
 
    **Description:**

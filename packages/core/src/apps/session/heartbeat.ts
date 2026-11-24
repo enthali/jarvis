@@ -714,6 +714,8 @@ export function activateHeartbeat(
     // Scheduler
     const scheduler = new HeartbeatScheduler();
     scheduler.start(context, outputChannel, statusBarItem, resolveMessagesPath(), messageTreeProvider, scanner);
+    // One load-time validation after the first start (SPEC_AUT_HEARTBEAT_LOAD_VALIDATION)
+    validateLoadedJobs(scheduler.currentJobs, outputChannel, scanner).catch(() => { /* silent */ });
     context.subscriptions.push({ dispose: () => scheduler.dispose() });
 
     // Heartbeat tree view (SPEC_AUT_HEARTBEATPROVIDER)
@@ -769,7 +771,7 @@ export function activateHeartbeat(
                     `Heartbeat '${resumed.name}' fortgesetzt und gestartet.`
                 );
                 executeJob(resumed, outputChannel, scheduler.currentConfigDir,
-                    scheduler.currentQueuePath, messageTreeProvider)
+                    scheduler.currentQueuePath, messageTreeProvider, scanner)
                     .then(result => {
                         if (!result.success) { notifyFailure(resumed, result, outputChannel); }
                     });
@@ -790,7 +792,7 @@ export function activateHeartbeat(
         vscode.workspace.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('jarvis.heartbeatInterval')) {
                 scheduler.dispose();
-                scheduler.start(context, outputChannel, statusBarItem, resolveMessagesPath(), messageTreeProvider);
+                scheduler.start(context, outputChannel, statusBarItem, resolveMessagesPath(), messageTreeProvider, scanner);
                 heartbeatTreeProvider.setJobs(scheduler.currentJobs);
             }
         })

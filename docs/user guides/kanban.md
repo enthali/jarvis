@@ -7,7 +7,7 @@ Jarvis Kanban (`enthali.jarvis-kanban`) adds kanban boards to actors. A board is
 - `kanban.yaml` is the default board.
 - `<name>.kanban.yaml` is a named board.
 
-A board button appears in the explorer tree next to the actor. Open a board from there or with **Jarvis: Open Kanban Board** in the Command Palette.
+In the ACTORS view, expand an Actor and its **Files** category, then click `kanban.yaml` or `<name>.kanban.yaml`: the file opens as a board instead of as text. You can also run **Jarvis: Open Kanban Board** in the Command Palette and pick the owner and board. To create a board, right-click an Actor and choose **Add Kanban Board**, or run **Jarvis: Create Kanban Board**. **Open as Text** in the editor title bar shows the YAML.
 
 ### Working in the board view
 

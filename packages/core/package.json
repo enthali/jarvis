@@ -206,7 +206,7 @@
         "title": "Messages",
         "properties": {
           "jarvis.messages.enabled": { "type": "boolean", "default": true, "description": "Enable the Messages feature." },
-          "jarvis.messages.logging": { "type": "boolean", "default": true, "description": "When enabled, every queued message is also appended to .jarvis/message-log.json." }
+          "jarvis.messages.logging": { "type": "boolean", "default": true, "description": "When enabled, every queued message is also appended to .jarvis/messages/log.json." }
         }
       },
       {

@@ -695,7 +695,7 @@ Workspace File Layout & VCS Visibility
 
 .. spec:: Removal of Hook Files Left by Earlier Versions
    :id: SPEC_CFG_HOOKCLEANUP
-   :status: draft
+   :status: implemented
    :links: REQ_CFG_HOOKCLEANUP; REQ_CFG_FILEPREFIX; SPEC_CFG_WORKSPACEFILES
 
    **Description:**

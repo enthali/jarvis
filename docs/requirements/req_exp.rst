@@ -129,7 +129,7 @@ Explorer Requirements
 
 .. req:: Open Reminders File at Reminder Position
    :id: REQ_EXP_REMINDER_OPENFILE
-   :status: draft
+   :status: implemented
    :priority: optional
    :links: US_MSG_REMINDERS; REQ_CFG_PATHSINGLESOURCE
 
@@ -144,15 +144,15 @@ Explorer Requirements
      (``TreeItem.command``)
    * AC-2: The file opened SHALL be the one reminders are persisted to
      (``REQ_MSG_REMINDERS_PERSIST``), obtained from the central path resolver
-     (``REQ_CFG_PATHSINGLESOURCE``). This AC previously required the path to be
-     "resolved by ``resolveRemindersPath(messagesPath)``" — the derivation that
-     ``SPEC_MSG_REMINDERSTORE`` had already replaced. The view therefore opened
-     a different file from the one the store wrote whenever the two disagreed,
-     and after ``REQ_CFG_MSGDIR`` they would disagree always.
+     (``REQ_CFG_PATHSINGLESOURCE``), not derived from the message queue path:
+     a derived path opens a different file from the one the store writes as
+     soon as the two locations differ, and ``REQ_CFG_MSGDIR`` moves the queue
+     into ``.jarvis/messages/`` while ``reminders.yaml`` stays in ``.jarvis/``.
    * AC-3: The revealed line contains the matching ``id: <uuid>`` entry of
      the clicked reminder
    * AC-4: If the matching id cannot be found, the file opens at line 0
      (fail-open)
    * AC-5: The file is opened read-write (standard editor, no custom editor)
-   * AC-6: If ``reminders.yaml`` is missing the command shows a warning
-     notification and returns without opening a file
+   * AC-6: If ``reminders.yaml`` is missing (or no workspace is open), or the
+     file cannot be opened, the command shows a warning notification and
+     returns without opening a file

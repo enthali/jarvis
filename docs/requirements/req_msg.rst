@@ -384,9 +384,9 @@ Message Queue Requirements
 
 .. req:: Reminder Persistence Store
    :id: REQ_MSG_REMINDERS_PERSIST
-   :status: draft
+   :status: implemented
    :priority: optional
-   :links: US_MSG_REMINDERS; REQ_MSG_QUEUE; REQ_CFG_FIXEDPATHS
+   :links: US_MSG_REMINDERS; REQ_MSG_QUEUE; REQ_CFG_FIXEDPATHS; REQ_CFG_PATHSINGLESOURCE
 
    **Description:**
    The extension SHALL maintain a persistent YAML file at
@@ -408,12 +408,15 @@ Message Queue Requirements
      list as empty (no error)
    * AC-4: If the file is malformed, the extension SHALL fall back to an empty
      list and log a warning
-   * AC-5: A new module ``src/reminders.ts`` SHALL provide the public API:
+   * AC-5: The module ``packages/core/src/apps/session/reminders.ts`` SHALL
+     provide the public API:
      ``readReminders(path)``, ``writeReminders(path, list)``,
      ``addReminder(path, text, session, deliverAt)``,
      ``removeReminder(path, id)``, ``popDueReminders(path, now)``
    * AC-6: ``popDueReminders`` SHALL return all reminders where
-     ``deliverAt <= now`` and atomically remove them from the file
+     ``deliverAt <= now`` and remove them from the file in the same
+     synchronous read-modify-write step, so that no due reminder is returned
+     twice
 
 
 .. req:: Reminder Delivery via Poll Loop

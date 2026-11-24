@@ -3,7 +3,7 @@ Kanban Requirements
 
 .. req:: Kanban Board YAML Schema
    :id: REQ_KAN_SCHEMA
-   :status: draft
+   :status: implemented
    :priority: required
    :links: US_KAN_BOARD
 
@@ -90,7 +90,7 @@ Kanban Requirements
 
 .. req:: Convention-Based Board Discovery
    :id: REQ_KAN_DISCOVER
-   :status: draft
+   :status: implemented
    :priority: required
    :links: US_KAN_DISCOVER; REQ_ENG_ACTORLIST
 
@@ -113,7 +113,7 @@ Kanban Requirements
 
 .. req:: Kanban Board UX Entry Points
    :id: REQ_KAN_UX
-   :status: draft
+   :status: implemented
    :priority: required
    :links: US_KAN_DISCOVER; US_KAN_BOARD
 
@@ -137,7 +137,7 @@ Kanban Requirements
 
 .. req:: jarvis_createKanbanBoard Tool
    :id: REQ_KAN_CREATE
-   :status: draft
+   :status: implemented
    :priority: required
    :links: US_KAN_TOOLS; REQ_ACTOR_WHOAMI
 
@@ -170,7 +170,7 @@ Kanban Requirements
 
 .. req:: jarvis_verifyKanbanSchema Tool
    :id: REQ_KAN_VERIFY
-   :status: draft
+   :status: implemented
    :priority: required
    :links: US_KAN_TOOLS; REQ_KAN_SCHEMA; REQ_ACTOR_WHOAMI
 
@@ -198,7 +198,7 @@ Kanban Requirements
 
 .. req:: jarvis_openKanbanBoard Tool
    :id: REQ_KAN_OPEN
-   :status: draft
+   :status: implemented
    :priority: required
    :links: US_KAN_TOOLS; REQ_KAN_RENDERER; REQ_ACTOR_WHOAMI
 
@@ -211,14 +211,16 @@ Kanban Requirements
    * AC-1: The tool SHALL accept optional ``boardName`` and required
      ``ownerName`` parameters (same resolution as ``REQ_KAN_CREATE``).
    * AC-2: The tool SHALL open the resolved board file in the kanban
-     renderer webview.
+     renderer webview, in a side panel, and return
+     ``{ opened: true, path: "<absolutePath>" }``. A board that is already open
+     in a panel is brought to the front, not opened a second time.
    * AC-3: When the board file does not exist, the tool SHALL return
      ``{ error: "board not found" }``.
 
 
 .. req:: Kanban Module Integration
    :id: REQ_KAN_MODULE
-   :status: draft
+   :status: implemented
    :priority: required
    :links: US_KAN_BOARD; US_KAN_TOOLS
 
@@ -255,7 +257,7 @@ Kanban Requirements
 
 .. req:: jarvis_updateKanbanItem Tool
    :id: REQ_KAN_UPDATE
-   :status: draft
+   :status: implemented
    :priority: required
    :links: US_KAN_TOOLS; REQ_KAN_SCHEMA; REQ_ACTOR_WHOAMI
 
@@ -273,7 +275,7 @@ Kanban Requirements
    * AC-3: Owner resolution SHALL follow the uniform pattern
      (``REQ_KAN_CREATE`` AC-3/AC-4).
    * AC-4: On success, the tool SHALL return ``{ path, updated: true, itemId }``.
-     On item-not-found → ``{ error: "item not found", itemId }``.
+     On an unknown ``itemId`` → ``{ error: "item with id <itemId> not found" }``.
      On unknown owner → ``{ error: "actor unknown" }``.
    * AC-5: Item IDs SHALL never be reassigned or reused — the ``id`` field
      is immutable.
@@ -282,14 +284,9 @@ Kanban Requirements
      the parsed values of untouched items, per ``REQ_KAN_SCHEMA`` AC-9. Byte
      identity and line endings are not promised. An update that changes one field
      SHALL change only that field's parsed value.
-   * AC-7: (**superseded by the** ``kanban-update-validation`` **CR**) This
-     criterion previously froze the tool's validation at "``status`` only,
-     exactly as before", which is what kept ``jarvis_updateKanbanItem`` outside
-     the shared write contract when that contract was introduced
-     (``kanban-management-tools`` finding F-1). It is replaced by AC-8 and AC-9.
-     Everything AC-7 froze other than validation — lookup by ``id``, the
-     immutable ``id`` (AC-5), and the ``board not found`` / ``item not found`` /
-     read / write error paths — remains unchanged.
+   * AC-7: Validation is the one of AC-8 and AC-9. It does not change the lookup
+     by ``id``, the immutable ``id`` (AC-5), or the ``board not found`` / item
+     not found / read / write error paths.
    * AC-8: (``kanban-update-validation`` CR) The tool SHALL validate the
      complete ``changes`` object against ``REQ_KAN_WRITEVALID`` before applying
      any change, not only its ``status`` key. Values under declared
@@ -312,7 +309,7 @@ Kanban Requirements
 
 .. req:: Kanban File Open
    :id: REQ_KAN_FILEOPEN
-   :status: draft
+   :status: implemented
    :priority: required
    :links: US_KAN_DISCOVER; US_KAN_BOARD
 
@@ -327,8 +324,10 @@ Kanban Requirements
    * AC-2: "Open as Text" SHALL be accessible via the editor title bar
      button when the kanban webview is active. Files tree context menu
      access is deferred to a separate CR.
-   * AC-3: Behavior SHALL be uniform with other kanban entry points (command
-     palette, tools).
+   * AC-3: The board opened from the Command Palette or by a tool SHALL be shown
+     by the same renderer, so it shows the same board. It opens as a side panel
+     and not as an editor of the file, so the title bar actions ("Open as Text",
+     ``REQ_KAN_REFRESH``) belong to the custom editor only.
 
 
 .. req:: Kanban Board Refresh Action
