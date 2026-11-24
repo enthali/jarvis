@@ -156,7 +156,7 @@ export function activate(context: vscode.ExtensionContext): void {
         async (options, _token) => {
             if (!taskService.hasProviders()) {
                 return new vscode.LanguageModelToolResult([
-                    new vscode.LanguageModelTextPart('No task providers configured. Enable jarvis.outlookEnabled and jarvis.outlook.tasks.enabled.')
+                    new vscode.LanguageModelTextPart('No task providers configured. Enable jarvis.outlook.enabled and jarvis.outlook.tasks.enabled.')
                 ]);
             }
             const input = options.input as {

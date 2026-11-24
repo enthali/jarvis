@@ -64,7 +64,7 @@ Automation Design Specifications
 .. spec:: Scheduler Timer and Cron Dispatch
    :id: SPEC_AUT_SCHEDULERLOOP
    :status: implemented
-   :links: REQ_AUT_SCHEDULER; REQ_AUT_JOBCONFIG; SPEC_CFG_HEARTBEATSETTINGS
+   :links: REQ_AUT_SCHEDULER; REQ_AUT_JOBCONFIG; REQ_CFG_HEARTBEATINTERVAL; SPEC_CFG_MANIFEST
 
    **Description:**
    Background scheduler implemented as a class in ``src/heartbeat.ts``. Cron
@@ -126,7 +126,9 @@ Automation Design Specifications
         dispose(): void { if (this.timer) { clearInterval(this.timer); } }
       }
 
-   Timer restart on configuration change is handled by ``SPEC_CFG_HEARTBEATSETTINGS``.
+   The tick interval is the setting ``jarvis.heartbeatInterval``
+   (``SPEC_CFG_MANIFEST``); a change takes effect at the start of the next
+   tick cycle (``REQ_CFG_HEARTBEATINTERVAL`` AC-2).
 
    **Job registration** (see ``SPEC_AUT_JOBREG``):
 

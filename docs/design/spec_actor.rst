@@ -309,7 +309,7 @@ Actor Design Specifications
 
 .. spec:: Actor File Children
    :id: SPEC_ACTOR_FILES
-   :status: approved
+   :status: implemented
    :links: REQ_ACTOR_FILES_TREE; SPEC_ACTOR_TREE; SPEC_ACTOR_AGENT_DISCOVERY; SPEC_MSG_EDITORPLACEMENT
 
    **Description:**
@@ -362,8 +362,9 @@ Actor Design Specifications
 
    **Category and folder expansion:**
 
-   * ``agent`` → exactly one ``ActorFileNode`` with label
-     ``Agent File: <basename>``.
+   * ``agent`` → exactly one ``ActorFileNode`` whose label is the bare file
+     name ``<basename>`` (for example ``Architect.agent.md``), without a
+     prefix.
    * ``files`` → ``listFolder(actor.folder)``.
    * ``actorFileFolder`` → ``listFolder(folderPath)``.
 

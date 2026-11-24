@@ -727,7 +727,7 @@ Release Requirements
 
 .. req:: Contract Needs Check Before Integration
    :id: REQ_REL_NEEDSCHECK
-   :status: verified
+   :status: implemented
    :priority: mandatory
    :links: US_REL_GITWORKFLOW
 
@@ -746,12 +746,12 @@ Release Requirements
      between the merge base with the base ref and the branch head. A Need that no longer
      exists is not a changed Need, and neither is a Need whose links alone changed.
    * AC-3: Every changed Need of type ``story``, ``req`` or ``spec`` has the status
-     ``implemented``, ``verified`` or ``deprecated``. A changed ``ac`` has the status
-     ``approved``, ``verified`` or ``deprecated``: an ``ac`` is defined before it is run, so
+     ``implemented`` or ``verified``. A changed ``ac`` has the status
+     ``approved`` or ``verified``: an ``ac`` is defined before it is run, so
      ``approved`` is a complete state for a criterion the Contract does not execute.
-   * AC-4: Every changed ``story`` that is not ``deprecated`` is named in the User
+   * AC-4: Every changed ``story`` is named in the User
      validation section of the Contract.
-   * AC-5: A changed ``ac`` that is not ``deprecated`` has the status ``verified`` if it is
+   * AC-5: A changed ``ac`` has the status ``verified`` if it is
      named in the User validation section or in the Test Execution subsection of the
      Contract, and ``approved`` otherwise. Naming an ``ac`` states that the Contract
      executed it; ``verified`` records that the result is on file.

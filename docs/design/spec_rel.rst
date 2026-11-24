@@ -1216,7 +1216,7 @@ Release Design Specifications
 
 .. spec:: Contract Needs Check Script
    :id: SPEC_REL_NEEDSCHECK
-   :status: verified
+   :status: implemented
    :links: REQ_REL_NEEDSCHECK
 
    **Description:**
@@ -1238,8 +1238,8 @@ Release Design Specifications
       opens with ``accepted`` or ``explicit User delegation``, after an optional
       ``not applicable:``; the same words open a ``Status:`` or ``Decision:`` line of the
       section.
-   5. For each changed Need apply the status rule of its type. A non-deprecated ``story``
-      must be named in User Validation. A non-deprecated ``ac`` must be ``verified`` when
+   5. For each changed Need apply the status rule of its type. A ``story``
+      must be named in User Validation. An ``ac`` must be ``verified`` when
       named in User Validation or Test Execution and ``approved`` otherwise. When User
       Validation names a changed Need, its status line must be satisfied. Print one line
       per violation as ``<ID>: <rule>``; exit 1 if any exist, else 0.

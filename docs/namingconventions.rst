@@ -51,8 +51,8 @@ Theme Abbreviations
      - Release & CI/CD
      - ``US_REL_PUBLISH``, ``REQ_REL_VSIX``
    * - ``OLK``
-     - Outlook Integration (COM Bridge, Outlook-specific provider)
-     - ``US_OLK_COMBRIDGE``, ``REQ_OLK_COMBRIDGE``
+     - Outlook Integration (COM Bridge, Outlook-specific provider; requirements and design only, no stories: the user goals are the ``US_PIM_*`` stories)
+     - ``REQ_OLK_COMBRIDGE``, ``SPEC_OLK_COMBRIDGE``
    * - ``PIM``
      - Personal Information Management (generic category layer, provider interface, cache, service, tool, tree view)
      - ``US_PIM_CATEGORIES``, ``REQ_PIM_PROVIDER``, ``SPEC_PIM_SERVICE``

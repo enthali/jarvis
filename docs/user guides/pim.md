@@ -13,6 +13,8 @@ A **Categories** view in the Jarvis sidebar manages Outlook categories. It is of
 
 A custom Task Editor opens `.jarvis-task` files.
 
+Outlook as a task source is off by default. Turn on `jarvis.outlook.enabled` to use it; `jarvis.outlook.tasks.enabled` (default `true`) then controls the tasks feature separately, so you can switch tasks off without turning off the Outlook integration.
+
 ## Configuration
 
 | Setting | Default | Description |

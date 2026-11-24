@@ -91,7 +91,7 @@ PIM User Stories
 
 .. story:: Task Sync via Exchangeable Task Providers
    :id: US_PIM_TASKS
-   :status: approved
+   :status: implemented
    :tracked_by: MOD_PIM
    :priority: mandatory
    :links: US_AUT_HEARTBEAT; US_PIM_CATEGORIES
@@ -128,3 +128,6 @@ PIM User Stories
      + refresh
    * AC-8: A ``jarvis_task`` LM/MCP tool is registered via ``registerDualTool()``
      supporting ``get``, ``set``, ``modify``, and ``delete`` actions
+   * AC-9: Outlook as a task source is off by default; the user turns on the
+     Outlook integration and, separately, its tasks feature, and the tasks
+     feature can be turned off without turning off the Outlook integration

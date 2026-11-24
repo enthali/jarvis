@@ -28,14 +28,15 @@ Engine Requirements
 
 .. req:: Tool Namespace Convention
    :id: REQ_ENG_TOOLNS
-   :status: approved
+   :status: implemented
    :priority: required
    :links: US_MOD_INSTALL
 
    **Description:**
    Tools registered through ``registerTool`` SHALL follow the naming convention
-   ``jarvis_<verb>`` for core, ``jarvis_pim_<verb>`` for PIM, and
-   ``jarvis_rec_<verb>`` for the recorder. The engine SHALL reject names that do
+   ``jarvis_<verb>`` for core and ``jarvis_pim_<verb>`` for PIM. The recorder
+   registers no tools today; a tool it registers later uses
+   ``jarvis_rec_<verb>``. The engine SHALL reject names that do
    not start with ``jarvis_`` and SHALL reject duplicate names.
 
    **Acceptance Criteria:**
@@ -44,8 +45,8 @@ Engine Requirements
      with ``jarvis_``.
    * AC-2: ``registerTool`` throws for a name already registered (no silent
      overwrite).
-   * AC-3: PIM tools use the ``jarvis_pim_`` infix; recorder tools use
-     ``jarvis_rec_``.
+   * AC-3: PIM tools use the ``jarvis_pim_`` infix; should the recorder register
+     a tool, it uses ``jarvis_rec_``.
    * AC-4: Core tool names retain the ``jarvis_<verb>`` form without an infix.
 
 

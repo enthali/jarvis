@@ -17,9 +17,7 @@ Message Queue Design Specifications
 
    **(GH #59)** ``readQueue`` unions the superseded ``.jarvis/messages.json``
    into its result, and the write paths remove that file once the union has been
-   persisted (``SPEC_CFG_STATEMIGRATION``). The ``:links:`` reference to the
-   deprecated ``REQ_CFG_MSGPATH`` is replaced by ``REQ_CFG_FIXEDPATHS``, which
-   is the actual owner of the location.
+   persisted (``SPEC_CFG_STATEMIGRATION``).
 
    **Data type:**
 
@@ -186,22 +184,6 @@ Message Queue Design Specifications
 
    Re-read queue file and call ``this._onDidChangeTreeData.fire(undefined)``
    to refresh the entire tree. Called after queue mutations and setting changes.
-
-
-.. spec:: Session UUID Resolver
-   :id: SPEC_MSG_SESSIONLOOKUP
-   :status: deprecated
-   :links: REQ_MSG_SESSIONLOOKUP
-
-   **Retired by:** ``retire-legacy-session-lookup`` CR. The module read the
-   chat titles of the workspace from the ``state.vscdb`` SQLite database
-   (through ``sql.js``, with a WSL2 branch for the database path) to resolve a
-   title to a session UUID. The Agent Host path replaced it
-   (``SPEC_COM_OPEN``), nothing calls it, and the ``sql.js`` dependency and its
-   WebAssembly file are removed from the Core bundle (``SPEC_REL_VSCEPKG``).
-   What ``src/sessionLookup.ts`` keeps is the destination set of
-   ``getValidDestinations`` and ``combineValidDestinations``
-   (``SPEC_AUT_HEARTBEAT_RESOLVER_REUSE``).
 
 
 .. spec:: MCP Server Module

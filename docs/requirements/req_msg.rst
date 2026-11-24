@@ -20,9 +20,7 @@ Message Queue Requirements
    * AC-3: Writing a new message SHALL append to the array without losing existing
      entries
    * AC-4: The queue file location SHALL be determined by ``REQ_CFG_FIXEDPATHS``
-     (``<workspaceRoot>/.jarvis/messages/queue.json``). The previous reference to
-     ``REQ_CFG_MSGPATH`` pointed at a requirement describing a setting that had
-     already been removed.
+     (``<workspaceRoot>/.jarvis/messages/queue.json``).
 
 .. req:: Message Tree Display
    :id: REQ_MSG_EXPLORER
@@ -66,31 +64,6 @@ Message Queue Requirements
    * AC-1: Each message node SHALL have a trash-icon inline button
    * AC-2: Clicking the button SHALL remove the message entry from the queue file
    * AC-3: The Messages tree view SHALL refresh after deletion
-
-.. req:: Session UUID Lookup via state.vscdb
-   :id: REQ_MSG_SESSIONLOOKUP
-   :status: deprecated
-   :priority: optional
-   :links: US_COM_SEND
-
-   **Retired by:** ``retire-legacy-session-lookup`` CR. Since the Agent Host
-   path no Jarvis feature resolves a chat title to a session UUID by reading
-   the ``state.vscdb`` SQLite database (``REQ_COM_OPEN`` finds or creates the
-   chat of an Actor through the Agent Host), and no code calls the lookup.
-   The criteria are removed so that nobody builds on them.
-
-
-.. req:: Named Session Filter
-   :id: REQ_MSG_SESSIONFILTER
-   :status: deprecated
-   :priority: optional
-   :links: US_COM_NAME; US_COM_FIND; REQ_MSG_SESSIONLOOKUP
-
-   **Retired by:** ``retire-legacy-session-lookup`` CR. The filter applied to
-   the chat titles read from ``state.vscdb`` (``REQ_MSG_SESSIONLOOKUP``);
-   destinations are Actor names now (``REQ_AUT_HEARTBEAT_RESOLVER_REUSE``
-   AC-3), so there are no unnamed sessions to exclude.
-
 
 .. req:: Embedded MCP Server
    :id: REQ_MSG_MCPSERVER
@@ -240,7 +213,7 @@ Message Queue Requirements
    :id: REQ_MSG_LOGSETTING
    :status: implemented
    :priority: optional
-   :links: US_MSG_LOGGING; REQ_CFG_MSGPATH
+   :links: US_MSG_LOGGING; REQ_CFG_GROUPS
 
    **Description:**
    The extension SHALL provide a boolean configuration setting to enable or

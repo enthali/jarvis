@@ -69,19 +69,25 @@ class ChangedNeeds(unittest.TestCase):
 class StatusRules(unittest.TestCase):
     """REQ_REL_NEEDSCHECK AC-3"""
 
-    def test_req_spec_story_need_implemented_verified_or_deprecated(self):
+    def test_req_spec_story_need_implemented_or_verified(self):
         head = {"R": need("req", "approved"), "S": need("spec", "draft"),
-                "R2": need("req", "implemented"), "S2": need("spec", "deprecated")}
+                "R2": need("req", "implemented"), "S2": need("spec", "verified")}
         lines = check.evaluate({}, head, contract())
         self.assertEqual([l.split(":")[0] for l in lines], ["R", "S"])
         self.assertTrue(all("AC-3" in l for l in lines))
 
-    def test_ac_needs_approved_verified_or_deprecated(self):
-        head = {"AC_X": need("ac", "implemented"), "AC_Y": need("ac", "deprecated"),
+    def test_ac_needs_approved_or_verified(self):
+        head = {"AC_X": need("ac", "implemented"), "AC_Y": need("ac", "verified"),
                 "AC_Z": need("ac", "approved")}
-        lines = check.evaluate({}, head, contract())
+        lines = check.evaluate({}, head, contract(executed=["AC_Y"]))
         self.assertEqual([l.split(":")[0] for l in lines], ["AC_X"])
         self.assertIn("AC-3", lines[0])
+
+    def test_deprecated_is_no_longer_a_status(self):
+        head = {"R": need("req", "deprecated"), "AC_D": need("ac", "deprecated")}
+        lines = check.evaluate({}, head, contract())
+        self.assertEqual([l.split(":")[0] for l in lines], ["AC_D", "R"])
+        self.assertTrue(all("AC-3" in l and "deprecated" in l for l in lines))
 
     def test_other_types_are_not_checked(self):
         head = {"MOD_X": need("mod", "draft"), "ROOT_X": need("root", "draft")}
@@ -91,9 +97,8 @@ class StatusRules(unittest.TestCase):
 class StoryNamedRule(unittest.TestCase):
     """REQ_REL_NEEDSCHECK AC-4"""
 
-    def test_story_must_be_named_in_user_validation_unless_deprecated(self):
-        head = {"US_A": need("story", "implemented"), "US_B": need("story", "verified"),
-                "US_D": need("story", "deprecated")}
+    def test_story_must_be_named_in_user_validation(self):
+        head = {"US_A": need("story", "implemented"), "US_B": need("story", "verified")}
         lines = check.evaluate({}, head, contract(named=["US_A"], executed=["US_B"]))
         self.assertEqual([l.split(":")[0] for l in lines], ["US_B"])
         self.assertIn("AC-4", lines[0])
@@ -112,10 +117,6 @@ class AcStatusRule(unittest.TestCase):
     def test_test_execution_names_an_ac_without_user_validation(self):
         head = {"AC_T": need("ac", "verified")}
         self.assertEqual(check.evaluate({}, head, contract(status="pending", executed=["AC_T"])), [])
-
-    def test_deprecated_ac_is_exempt(self):
-        head = {"AC_D": need("ac", "deprecated")}
-        self.assertEqual(check.evaluate({}, head, contract(named=["AC_D"])), [])
 
     def test_ids_in_other_quality_subsections_do_not_count(self):
         head = {"US_IGNORED": need("story", "implemented")}

@@ -75,6 +75,7 @@ on ``LegacyIdentity`` having been opened in the first.
       opens in the agent ``ToolIdentity``, not ``OtherPersona``.
    2. **When** I refresh the ACTORS tree, expand the ``LegacyIdentity`` node and
       its Agent category, and open the child
-      **Then** there is one ``Agent File: ...`` child, and it opens
+      **Then** there is one child labelled with the bare file name
+      ``LegacyIdentity.agent.md``, and it opens
       ``LegacyIdentity.agent.md`` in the Markdown preview, not a file of
       ``OtherPersona``.

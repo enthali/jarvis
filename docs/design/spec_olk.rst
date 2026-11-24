@@ -117,8 +117,8 @@ Outlook Design Specifications
 
 .. spec:: Outlook Settings and Activation Guard
    :id: SPEC_OLK_SETTINGS
-   :status: approved
-   :links: REQ_OLK_ENABLE; REQ_CFG_SETTINGSGROUPS; SPEC_CFG_SETTINGSGROUPS
+   :status: implemented
+   :links: REQ_OLK_ENABLE; REQ_CFG_GROUPS
 
    **Description:**
    Add ``jarvis.outlook.enabled`` to the ``"Outlook"`` configuration group in
@@ -165,7 +165,7 @@ Outlook Design Specifications
 
    .. code-block:: typescript
 
-      if (e.affectsConfiguration('jarvis.outlookEnabled')) {
+      if (e.affectsConfiguration('jarvis.outlook.enabled')) {
           vscode.window.showInformationMessage(
               'Jarvis: Outlook toggle changed. Reload window to apply.',
               'Reload'
@@ -180,7 +180,7 @@ Outlook Design Specifications
 
    **Design notes:**
 
-   * ``outlookEnabled`` change requires window reload because
+   * ``jarvis.outlook.enabled`` change requires window reload because
      ``OutlookCategoryProvider`` is instantiated once during activation
    * The ``CategoryService`` and ``CategoryTreeProvider`` are always
      instantiated (PIM layer) — only the provider registration is conditional
@@ -291,7 +291,7 @@ Outlook Design Specifications
 
 .. spec:: Tasks Sub-Toggle Setting
    :id: SPEC_OLK_TASKENABLE
-   :status: approved
+   :status: implemented
    :links: REQ_OLK_TASKENABLE; SPEC_EXP_EXTENSION
 
    **Description:**
@@ -331,7 +331,7 @@ Outlook Design Specifications
    .. code-block:: typescript
 
       const cfg = vscode.workspace.getConfiguration('jarvis');
-      if (cfg.get('outlookEnabled') === true
+      if (cfg.get('outlook.enabled') === true
           && cfg.get('outlook.tasks.enabled') === true) {
           const outlookTaskProvider = new OutlookTaskProvider(log);
           taskService.addProvider(outlookTaskProvider);
@@ -341,11 +341,11 @@ Outlook Design Specifications
 
    .. code-block:: json
 
-      "when": "config.jarvis.outlookEnabled == true && config.jarvis.outlook.tasks.enabled == true"
+      "when": "config.jarvis.outlook.enabled == true && config.jarvis.outlook.tasks.enabled == true"
 
    **Design notes:**
 
-   * ``jarvis.outlookEnabled`` guard precedes the tasks toggle — no COM
+   * ``jarvis.outlook.enabled`` guard precedes the tasks toggle — no COM
      instantiation without the master switch
    * Changing either setting requires a window reload (same behaviour as
      ``REQ_OLK_ENABLE``)
@@ -353,7 +353,7 @@ Outlook Design Specifications
 
 .. spec:: Categories Sub-Toggle Setting
    :id: SPEC_OLK_CATENABLE
-   :status: approved
+   :status: implemented
    :links: REQ_OLK_CATENABLE; REQ_PIM_CATVIEW; SPEC_OLK_SETTINGS; SPEC_OLK_TASKENABLE
 
    **Description:**
@@ -361,9 +361,7 @@ Outlook Design Specifications
    group next to ``jarvis.outlook.tasks.enabled``, removes
    ``jarvis.pim.showCategories``, and gates the Outlook category provider and
    the Categories view with it. The setting keys are those of the shipped
-   manifest (``jarvis.outlook.enabled``); the older spelling
-   ``jarvis.outlookEnabled`` in neighbouring specifications is a known naming
-   drift outside this specification.
+   manifest (``jarvis.outlook.enabled``).
 
    **package.json delta (``contributes.configuration``):** the "PIM" group
    with ``jarvis.pim.showCategories`` is removed; the "Outlook" group gains:

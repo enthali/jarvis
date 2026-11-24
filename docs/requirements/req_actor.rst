@@ -452,7 +452,7 @@ Actor Requirements
      own agent is found by the Actor name
      (``REQ_ACTOR_WHOAMI`` AC-1), that is, an agent file whose identity
      equals the Actor name exists. It SHALL contain exactly one child
-     ``Agent File: <filename>`` pointing at that file. Otherwise the
+     ``<filename>`` (the bare file name, no prefix) pointing at that file. Otherwise the
      category is omitted (fail-open, no error).
    * AC-5: File and folder children SHALL show their full absolute path
      (forward slashes) as tooltip.

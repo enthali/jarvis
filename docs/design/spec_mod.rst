@@ -108,7 +108,8 @@ Modular Delivery Design Specifications
    **Acceptance Criteria:**
 
    * AC-1: Manifest declares ``extensionDependencies: ["enthali.jarvis-core"]``.
-   * AC-2: Recorder tools use the ``jarvis_rec_`` infix.
+   * AC-2: The recorder registers no language model tools. Should it contribute
+     tools later, they use the ``jarvis_rec_`` infix (``REQ_ENG_TOOLNS``).
    * AC-3: Recording functions with core alone (no PIM dependency).
    * AC-4: When the recorder is not installed, none of its contributions exist.
    * AC-5: What the speech recognition needs is not part of the VSIX; it is fetched at the

@@ -26,7 +26,7 @@ the change.
 .. ac:: Journey: the Outlook toggles switch the Categories view and the task tool
    :id: AC_OLK_SWITCH_JOURNEY
    :status: approved
-   :validates: US_PIM_CATVIEW; US_OLK_COMBRIDGE; US_OLK_TASKS
+   :validates: US_PIM_CATVIEW; US_PIM_TASKS
 
    **Given** ``jarvis.outlook.enabled`` is ``true``,
    ``jarvis.outlook.categories.enabled`` is removed from the user, workspace
@@ -58,7 +58,7 @@ the change.
 .. ac:: Journey: Outlook categories in the Categories view and its refresh, rename and delete
    :id: AC_PIM_CATEGORIES_JOURNEY
    :status: approved
-   :validates: US_PIM_CATEGORIES; US_OLK_COMBRIDGE; US_PIM_CATVIEW
+   :validates: US_PIM_CATEGORIES; US_PIM_CATVIEW
 
    **Given** both Outlook toggles are on, ``jarvis.heartbeatInterval`` is
    ``10``, the window was reloaded, and Outlook holds at least two categories
@@ -99,7 +99,7 @@ the change.
 .. ac:: Journey: the category tool lists, filters, creates, colours, renames and deletes categories, in Chat and through MCP
    :id: AC_PIM_CATTOOL_JOURNEY
    :status: approved
-   :validates: US_PIM_CATTOOL; US_OLK_COMBRIDGE
+   :validates: US_PIM_CATTOOL
 
    **Given** Outlook holds "Project: Alpha", "Event: Beta" and "General" and the
    category "UAT-Test-Rename" with a known colour, and has no category
@@ -145,7 +145,7 @@ the change.
 .. ac:: Journey: the task tool lists, filters, creates, modifies, completes and deletes Outlook tasks and sees new ones
    :id: AC_PIM_TASKS_JOURNEY
    :status: approved
-   :validates: US_PIM_TASKS; US_OLK_TASKS
+   :validates: US_PIM_TASKS
 
    **Given** tasks are enabled, ``jarvis.heartbeatInterval`` is ``10``, and
    Outlook holds open and completed tasks, tasks tagged "Project: Alpha" and

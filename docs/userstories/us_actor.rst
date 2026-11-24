@@ -323,7 +323,7 @@ Actor User Stories
 
 .. story:: Actor File Children in the ACTORS Tree
    :id: US_ACTOR_FILES_TREE
-   :status: approved
+   :status: implemented
    :tracked_by: MOD_ACTOR
    :priority: mandatory
    :links: US_ACTOR_TREE; US_ACTOR_ACTORS
@@ -344,7 +344,7 @@ Actor User Stories
      a. **"Agent"** — shown only when the Actor's own agent is found by
         the Actor name
         (``US_ACTOR_ACTORS`` AC-6). Contains exactly one synthetic
-        child, labelled ``Agent File: <filename>``, pointing at that
+        child, labelled with the bare file name (``<filename>``), pointing at that
         ``.github/agents/<file>.agent.md``.
      b. **"Files"** — always shown (every Actor has at least its own
         ``actor.yaml``). Contains a live, recursive listing of every file and
