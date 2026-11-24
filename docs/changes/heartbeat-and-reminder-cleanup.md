@@ -1,6 +1,6 @@
 # Change Contract: heartbeat-and-reminder-cleanup
 
-**Status:** active<br>
+**Status:** closed<br>
 **Current responsibility:** Project Manager<br>
 **Current blocker:** none<br>
 **Created:** 2026-11-24<br>
@@ -60,7 +60,7 @@ Actors registering heartbeat jobs see `outputVar` in the `jarvis_registerJob` to
 |---|---|---|---|---|
 | Intent and outcome | yes | Project Manager | Goal, value, scope, and observable outcome are explicit and approved | approved |
 | Contract release | yes | User | User authorization to start the change; set by the User only | approved (2026-11-24 01:14 CET) |
-| Version control | yes | Project Manager | Local branch `feature/heartbeat-and-reminder-cleanup`; squash-integrated into `development` at closure; the branch is retained | active |
+| Version control | yes | Project Manager | Local branch `feature/heartbeat-and-reminder-cleanup`; squash-integrated into `development` at closure; the branch is retained | merged (`e4f1b65c`) |
 | Product specification | yes | Architect | Changed specification artifacts for K53, K54, K28, K29 are linked and checked | complete (see Product Specification) |
 | Infrastructure impact | yes | Admin | Affected infrastructure artifacts are updated, or none is affected | complete |
 | Documentation impact | yes | Technical Writer | Affected user-facing documents (K54, K29, `outputVar` in Core docs if applicable) are updated | complete |
@@ -68,7 +68,7 @@ Actors registering heartbeat jobs see `outputVar` in the `jarvis_registerJob` to
 | Test design | yes | Tester | Requirement-level tests trace to the changed specification (`outputVar` schema, removed `heartbeatConfigFile`, reminder registry) | complete (see Test Design) |
 | Quality review and test execution | yes | Quality | Current judgment is `proceed` and `Open Findings` is `None` | complete |
 | User validation | yes | User | Observable outcome is accepted or changes are requested | accepted (2026-11-24 09:08 CET) |
-| Closure | yes | Project Manager | Final outcome and integration state are recorded | pending |
+| Closure | yes | Project Manager | Final outcome and integration state are recorded | closed |
 
 ## Product Specification
 
@@ -213,16 +213,16 @@ After Quality's `proceed`, the Project Manager presents the observable outcome. 
 ## Closure
 
 **Owner:** Project Manager<br>
-**Status:** pending
+**Status:** closed
 
-- [ ] Every included artifact or gate has terminal status and completion evidence.
-- [ ] Intent and outcome are `approved`.
-- [ ] Quality has recorded `proceed`.
-- [ ] Open Findings contains `None`.
-- [ ] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
-- [ ] The feature branch is squash-integrated into `development`.
-- [ ] Current blocker is `none`.
-- [ ] The Project Manager ran the `syspilot.contract-statistics` skill after validation and the record exists in `.syspilot/stats/`.
-- [ ] Header Status is `closed`.
+- [x] Every included artifact or gate has terminal status and completion evidence.
+- [x] Intent and outcome are `approved`.
+- [x] Quality has recorded `proceed`.
+- [x] Open Findings contains `None`.
+- [x] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
+- [x] The feature branch is squash-integrated into `development`.
+- [x] Current blocker is `none`.
+- [x] The Project Manager ran the `syspilot.contract-statistics` skill after validation and the record exists in `.syspilot/stats/`.
+- [x] Header Status is `closed`.
 
-**Final outcome:** {accepted result and integration commit}
+**Final outcome:** Accepted by the User on 2026-11-24 on automated verification and clean-tree VSIX inspection. Exposes `outputVar` in `jarvis_registerJob`'s input schema (`packages/core/package.json`), `SPEC_ENG_API`, and the Core guide (K53); deletes `REQ_CFG_HEARTBEATPATH` and updates `US_CFG_HEARTBEAT` to remove stale `jarvis.heartbeatConfigFile` claims (K54); deletes `SPEC_MSG_DUALREGISTRATION` and aligns Reminder, `listJobs`, and PIM tool specifications with `engine.registerTool` (K28, also lifting five K55 draft Needs to `implemented`); and corrects Core README and Core guide Reminder delivery wording to one-off Actor-queue delivery (K29). Squash-integrated into `development` as `e4f1b65c`; feature branch `feature/heartbeat-and-reminder-cleanup` retained; statistics recorded in `.syspilot/stats/heartbeat-and-reminder-cleanup-stat.md`. Not released.
