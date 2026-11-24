@@ -108,3 +108,10 @@ items:
 6. **Manage fields** — `jarvis_updateKanbanFields` to add/remove fields or options
 7. **Verify** — `jarvis_verifyKanbanSchema` — read both `errors` and `warnings`
 8. **View** — `jarvis_openKanbanBoard` to render in the webview
+
+**Archiving a large board.** No tool archives, and nothing defines "large": when a board has many finished cards, you decide. Move them to a second board of the same owner named `archive` (file `archive.kanban.yaml`) with the tools above, always passing `ownerName`:
+
+- Once per owner, `jarvis_createKanbanBoard` with `boardName: "archive"`. The answer `board already exists` means the archive board is already there; reuse it.
+- Per finished card, read it with `jarvis_listKanbanItems` (`status` set to the finishing status, `details: true`), then `jarvis_addKanbanItem` with `boardName: "archive"` carrying its `name`, `labels`, `notes` and declared-field values, and only then `jarvis_deleteKanbanItem` on the working board. Add comes first: a card added but not yet deleted exists twice, whereas deleting first loses it when the add fails.
+- The archived card gets the next `id` of the archive board, because an `id` is never supplied. Keep the former `id` in `notes` so the card can still be found by the number that other text refers to.
+- The new board declares only `status` and `priority`. A declared field of the working board that a card uses must be declared on the archive board first with `jarvis_updateKanbanFields`, because `jarvis_addKanbanItem` rejects a key that matches no declared field.

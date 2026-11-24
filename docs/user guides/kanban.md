@@ -34,6 +34,10 @@ Supply `ownerName` explicitly for every kanban tool; it is not inferred from the
 | `jarvis_listKanbanFilterValues` | List the status values (empty columns included), the options of the other `single_select` fields and the labels, each with its card count, for building filters. |
 | `jarvis_updateKanbanFields` | Add or remove field definitions or options; a field or option still used by items is not removed. |
 
+## Archiving finished cards
+
+No tool archives cards, and nothing defines when a board is "large". The convention the bundled skill teaches agents is to move finished cards to a second board of the same owner named `archive` (file `archive.kanban.yaml`), using the existing tools. A card is added to the archive board before it is deleted from the working board, so a failed step never loses it. It gets a new `id` on the archive board; the agent keeps the old `id` in `notes`. A new board declares only `status` and `priority`, so a declared field that the cards use must be added to the archive board first with `jarvis_updateKanbanFields`.
+
 ## Agent instructions
 
 On activation, the package installs its bundled Copilot skill and instructions (namespace `jarvis-kanban`) into `.github/skills/` and `.github/instructions/`. They teach agents how to read and write `kanban.yaml` boards.

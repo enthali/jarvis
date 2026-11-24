@@ -55,7 +55,7 @@ Kanban Requirements
 
 .. req:: Kanban Board Renderer
    :id: REQ_KAN_RENDERER
-   :status: draft
+   :status: implemented
    :priority: required
    :links: US_KAN_BOARD
 
@@ -75,8 +75,11 @@ Kanban Requirements
    * AC-3a: (``kanban-skill-content`` CR) Values of declared ``text`` fields
      SHALL be rendered on the card, labelled with the field name so they are
      distinguishable from the unnamed built-in ``notes``.
-   * AC-4: The renderer SHALL support client-side filtering by label and by
-     single-select field values (e.g. ``priority:High``).
+   * AC-4: The renderer SHALL support client-side filtering by a plain text typed
+     into a filter bar. A card matches when the text, ignoring case, is part of its
+     id, name, a field value, a label or its notes; the text has no syntax, so
+     ``priority:High`` is searched as that literal text and does not select a field.
+     An empty filter SHALL show every card.
    * AC-5: The renderer SHALL be read-only — no drag-and-drop, no inline
      editing (Phase 1).
    * AC-6: Column header colors SHALL use the ``color`` property from the
@@ -632,6 +635,9 @@ Kanban Requirements
      tell the caller nothing. A text value is free text that
      ``jarvis_listKanbanFilterValues`` cannot enumerate, so a caller can only match
      part of it.
+   * AC-15: (``kanban-cleanup`` CR) An empty ``fields`` object, ``{}``, SHALL behave
+     as if ``fields`` were absent: it names no filter, so it adds no constraint and
+     returns no error. It is still an object, so AC-12 does not refuse it.
 
 
 .. req:: jarvis_listKanbanFilterValues Tool
@@ -785,6 +791,14 @@ Kanban Requirements
      ``jarvis_listKanbanFilterValues`` lists the options of the declared
      ``single_select`` fields with their card counts (``REQ_KAN_LIST`` AC-12 to AC-14,
      ``REQ_KAN_FILTERVALUES`` AC-9).
+   * AC-12 (``kanban-cleanup`` CR): The skill SHALL document an archiving convention
+     for a board that has grown large: finished cards move to a second board of the same
+     owner named ``archive`` (``boardName: "archive"``, file ``archive.kanban.yaml``),
+     handled with the existing tools only. It SHALL state that a card is added to the
+     archive board before it is deleted from the working board, so that a failed step
+     never loses a card, and that the archived card gets a new ``id`` (``REQ_KAN_ADD``
+     AC-4). It SHALL state that a value under a declared field is accepted by the archive
+     board only when that board declares the field (``REQ_KAN_WRITEVALID`` AC-3).
 
 
 .. req:: Kanban Instructions Asset Content

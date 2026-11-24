@@ -1265,8 +1265,9 @@ Kanban Design Specifications
    3. Read and ``yaml.parse``.
    4. If ``status`` was given and matches no declared status option → error
       naming the valid options (``REQ_KAN_LIST`` AC-6). If ``fields`` was given
-      (``REQ_KAN_LIST`` AC-12 to AC-14), check it in this order and return the first
-      error found:
+      (``REQ_KAN_LIST`` AC-12 to AC-15), check it in this order and return the first
+      error found. An empty object ``{}`` passes every check below because it has no
+      key, and yields no filter (``REQ_KAN_LIST`` AC-15):
 
       * ``fields`` is not a plain object → error saying that ``fields`` maps declared
         field names to strings.
@@ -1396,6 +1397,8 @@ Kanban Design Specifications
      ``text`` value each return an error that names the key and, where the answer is a
      list, the filterable fields or the valid options, and no items
      (``REQ_KAN_LIST`` AC-12 to AC-14).
+   * AC-16: (``kanban-cleanup`` CR) ``fields: {}`` returns the same items and ``count`` as a
+     call without ``fields``, and no error (``REQ_KAN_LIST`` AC-15).
 
 
 .. spec:: jarvis_listKanbanFilterValues Tool
@@ -1653,6 +1656,34 @@ Kanban Design Specifications
    and a ``text`` value a case-insensitive part of the text, and that the options to use
    come from ``jarvis_listKanbanFilterValues`` (``REQ_KAN_SKILLCONTENT`` AC-11).
 
+   The Workflow section ends with the archiving convention (``REQ_KAN_SKILLCONTENT``
+   AC-12), written as a short procedure for a board with many finished cards:
+
+   1. Once per owner, ``jarvis_createKanbanBoard`` with ``boardName: "archive"``;
+      the answer ``board already exists`` means the archive board is there and is
+      reused.
+   2. Per finished card, ``jarvis_listKanbanItems`` with ``status`` set to the
+      finishing status and ``details: true`` to read the card, then
+      ``jarvis_addKanbanItem`` with ``boardName: "archive"`` carrying its ``name``,
+      ``labels``, ``notes`` and declared-field values, and only then
+      ``jarvis_deleteKanbanItem`` on the working board. Add comes first because a
+      card that is added and not yet deleted exists twice, whereas the reverse order
+      loses it when the add fails.
+   3. The archived card takes the next ``id`` of the archive board, since an ``id``
+      is never supplied (``REQ_KAN_ADD`` AC-4); the skill advises keeping the former
+      ``id`` in ``notes`` so the card can still be found by the number that other
+      text refers to.
+   4. The skeleton of ``jarvis_createKanbanBoard`` declares ``status`` and
+      ``priority`` only. A declared field of the working board that a card uses must
+      be declared on the archive board first, with ``jarvis_updateKanbanFields``,
+      because ``jarvis_addKanbanItem`` rejects a key that matches no declared field
+      (``REQ_KAN_WRITEVALID`` AC-3).
+
+   No tool archives, and no threshold defines "large": the actor decides, which is
+   why this is a convention in the skill and not a tool or a storage format. The
+   archive board is an ordinary board of the owner, discovered by the filename
+   convention (``SPEC_KAN_DISCOVER``).
+
    Two ownership rules belong here because both are invisible from the tool
    signatures (``REQ_KAN_SKILLCONTENT`` AC-9): ``id`` is assigned by
    ``jarvis_addKanbanItem`` and rejected if supplied, and a deleted ``id`` is
@@ -1717,6 +1748,10 @@ Kanban Design Specifications
    * AC-10: (``kanban-swimlanes-and-filters`` CR) The skill states the ``fields`` filter of
      ``jarvis_listKanbanItems`` and the field options of ``jarvis_listKanbanFilterValues`` as
      described above (``REQ_KAN_SKILLCONTENT`` AC-11).
+   * AC-11: (``kanban-cleanup`` CR) The Workflow section ends with the archiving
+     procedure above: the ``archive`` board, add before delete, the new ``id`` of the
+     archived card, and the fields the archive board must declare
+     (``REQ_KAN_SKILLCONTENT`` AC-12).
 
 
 .. spec:: Kanban Instructions Asset Content
