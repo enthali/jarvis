@@ -1,6 +1,6 @@
 # Change Contract: purge-deprecated-and-stale-specs
 
-**Status:** active<br>
+**Status:** closed<br>
 **Current responsibility:** Project Manager<br>
 **Current blocker:** none<br>
 **Created:** 2026-11-24<br>
@@ -65,7 +65,7 @@ Keeping `deprecated` stubs in the live specification clutters impact/MECE/trace 
 |---|---|---|---|---|
 | Intent and outcome | yes | Project Manager | Goal, value, scope, and observable outcome are explicit and approved | approved |
 | Contract release | yes | User | User authorization to start the change; set by the User only | approved (2026-11-24 01:11 CET) |
-| Version control | yes | Project Manager | Local branch `feature/purge-deprecated-and-stale-specs`; squash-integrated into `development` at closure; the branch is retained | active |
+| Version control | yes | Project Manager | Local branch `feature/purge-deprecated-and-stale-specs`; squash-integrated into `development` at closure; the branch is retained | merged (`865d97e0`) |
 | Product specification | yes | Architect | Ontology updated, 11 `deprecated` Needs and `us_olk.rst` removed, K25/K70/K71/K45/K56 reconciled, strict Sphinx build passes | complete (2026-11-24 01:19 CET) |
 | Infrastructure impact | yes | Admin | `scripts/check_contract_needs.py` and `scripts/test_check_contract_needs.py` updated to drop `deprecated` | complete |
 | Documentation impact | yes | Technical Writer | User-facing documents reviewed against K25/K70/K71/K45/K56, or none is affected | complete |
@@ -73,7 +73,7 @@ Keeping `deprecated` stubs in the live specification clutters impact/MECE/trace 
 | Test design | yes | Tester | Format/needs-check tests trace to the updated ontology and specification | complete (2026-11-24 CET) |
 | Quality review and test execution | yes | Quality | Current judgment is `proceed` and `Open Findings` is `None` | complete |
 | User validation | not applicable: explicit User delegation (2026-11-24 01:14 CET) to accept on automated evidence and chain directly to Package A when Quality records `proceed` and no new runtime UI behavior requires manual testing | User | Observable outcome is accepted or changes are requested | accepted (explicit User delegation, 2026-11-24 01:14 CET) |
-| Closure | yes | Project Manager | Final outcome and integration state are recorded | pending |
+| Closure | yes | Project Manager | Final outcome and integration state are recorded | closed |
 
 ## Product Specification
 
@@ -219,16 +219,16 @@ After Quality's `proceed`, the Project Manager presents the observable outcome. 
 ## Closure
 
 **Owner:** Project Manager<br>
-**Status:** pending
+**Status:** closed
 
-- [ ] Every included artifact or gate has terminal status and completion evidence.
-- [ ] Intent and outcome are `approved`.
-- [ ] Quality has recorded `proceed`.
-- [ ] Open Findings contains `None`.
-- [ ] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
-- [ ] The feature branch is squash-integrated into `development`.
-- [ ] Current blocker is `none`.
-- [ ] The Project Manager ran the `syspilot.contract-statistics` skill after validation and the record exists in `.syspilot/stats/`.
-- [ ] Header Status is `closed`.
+- [x] Every included artifact or gate has terminal status and completion evidence.
+- [x] Intent and outcome are `approved`.
+- [x] Quality has recorded `proceed`.
+- [x] Open Findings contains `None`.
+- [x] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
+- [x] The feature branch is squash-integrated into `development`.
+- [x] Current blocker is `none`.
+- [x] The Project Manager ran the `syspilot.contract-statistics` skill after validation and the record exists in `.syspilot/stats/`.
+- [x] Header Status is `closed`.
 
-**Final outcome:** {accepted result and integration commit}
+**Final outcome:** Accepted via explicit User delegation on automated verification and clean-tree VSIX inspection on 2026-11-24. Removes `deprecated` from the Jarvis ontology (`ontology.toml`, `ontology.md`), `check_contract_needs.py`, and `acceptance-criteria-format.test.ts`; deletes all 11 retired Needs with clean incoming-link rewiring; deletes `docs/userstories/us_olk.rst` while preserving user-visible task defaults in `US_PIM_TASKS` AC-9 (K25); aligns `jarvis.outlook.enabled` in specs and `packages/pim/src/extension.ts` (K70, F-1); removes the stale eleven-groups claim in `SPEC_CFG_IGNOREMANAGER` (K71); aligns Recorder tool claims in `SPEC_MOD_REC_PKG` / `REQ_ENG_TOOLNS` (K45); and aligns `SPEC_ACTOR_FILES` / `US_ACTOR_FILES_TREE` with the bare-basename label (K56). Squash-integrated into `development` as `865d97e0`; feature branch `feature/purge-deprecated-and-stale-specs` retained; statistics recorded in `.syspilot/stats/purge-deprecated-and-stale-specs-stat.md`. Not released.
