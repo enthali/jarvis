@@ -1,6 +1,6 @@
 # Change Contract: fix-github-pages-docs-workflow
 
-**Status:** active<br>
+**Status:** closed<br>
 **Current responsibility:** Project Manager<br>
 **Current blocker:** none<br>
 **Created:** 2026-11-25<br>
@@ -59,7 +59,7 @@ During the `v0.35.0` release, all three `main` pushes failed in `docs.yml` (e.g.
 |---|---|---|---|---|
 | Intent and outcome | yes | Project Manager | Goal, value, scope, and observable outcome are explicit and approved | approved |
 | Contract release | yes | User | User authorization to start the change; set by the User only | approved (2026-11-25 14:07 CET) |
-| Version control | yes | Project Manager | Local branch `feature/fix-github-pages-docs-workflow`; squash-integrated into `development` at closure; the branch is retained | active |
+| Version control | yes | Project Manager | Local branch `feature/fix-github-pages-docs-workflow`; squash-integrated into `development` at closure; the branch is retained | merged (`9fb99af1`) |
 | Product specification | yes | Architect | `SPEC_REL_DOCSWORKFLOW` (and `REQ_REL_DOCSWORKFLOW` if affected) updated for two-job Pages deployment and checked | complete |
 | Infrastructure impact | yes | Admin | `.github/workflows/docs.yml` and `docs/Jarvis Contracts/release.md` updated and validated | complete |
 | Documentation impact | not applicable: no user-facing document describes the Pages workflow; checked and none is affected | Technical Writer | User-facing documents reviewed, or none is affected | not applicable |
@@ -67,7 +67,7 @@ During the `v0.35.0` release, all three `main` pushes failed in `docs.yml` (e.g.
 | Test design | yes | Tester | Static workflow & `release.md` verification test in `src/tests/` passes | complete (see Test Design) |
 | Quality review and test execution | yes | Quality | Current judgment is `proceed` and `Open Findings` is `None` | complete (see Quality Review) |
 | User validation | not applicable: explicit User delegation (2026-11-25 14:07 CET) to execute the workflow and contract fix autonomously; live GitHub Actions execution occurs on next push to `main` | User | Observable outcome is accepted or changes are requested | accepted (explicit User delegation, 2026-11-25 14:07 CET) |
-| Closure | yes | Project Manager | Final outcome and integration state are recorded | pending |
+| Closure | yes | Project Manager | Final outcome and integration state are recorded | closed |
 
 ## Product Specification
 
@@ -196,16 +196,16 @@ After Quality's `proceed`, the Project Manager presents the observable outcome. 
 ## Closure
 
 **Owner:** Project Manager<br>
-**Status:** pending
+**Status:** closed
 
-- [ ] Every included artifact or gate has terminal status and completion evidence.
-- [ ] Intent and outcome are `approved`.
-- [ ] Quality has recorded `proceed`.
-- [ ] Open Findings contains `None`.
-- [ ] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
-- [ ] The feature branch is squash-integrated into `development`.
-- [ ] Current blocker is `none`.
-- [ ] The Project Manager ran the `syspilot.contract-statistics` skill after validation and the record exists in `.syspilot/stats/`.
-- [ ] Header Status is `closed`.
+- [x] Every included artifact or gate has terminal status and completion evidence.
+- [x] Intent and outcome are `approved`.
+- [x] Quality has recorded `proceed`.
+- [x] Open Findings contains `None`.
+- [x] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
+- [x] The feature branch is squash-integrated into `development`.
+- [x] Current blocker is `none`.
+- [x] The Project Manager ran the `syspilot.contract-statistics` skill after validation and the record exists in `.syspilot/stats/`.
+- [x] Header Status is `closed`.
 
-**Final outcome:** {accepted result and integration commit}
+**Final outcome:** Accepted via explicit User delegation on automated verification on 2026-11-25 (zero `packages/` files modified; the `v0.35.0` GitHub Pages deployment itself was simultaneously recovered by re-running workflow `45509708853`, which succeeded). Splits `.github/workflows/docs.yml` (`REQ_REL_DOCSWORKFLOW`, `SPEC_REL_DOCSWORKFLOW`) into `build` and `deploy` (`needs: build`) jobs with `concurrency: pages` and Node-24-native action majors (`checkout@v7`, `setup-python@v7`, `upload-pages-artifact@v5`, `deploy-pages@v5`), updates `docs/Jarvis Contracts/release.md` so Release watches and records `docs.yml` alongside `release.yml`, and guards both in `src/tests/docs-workflow.test.ts` (846 tests pass). Squash-integrated into `development` as `9fb99af1`; feature branch `feature/fix-github-pages-docs-workflow` retained; statistics recorded in `.syspilot/stats/fix-github-pages-docs-workflow-stat.md`. Not released.
