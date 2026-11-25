@@ -82,7 +82,7 @@ Append one line as the last act before handing over, in the same commit that cha
 | User-facing documentation | Technical Writer | User-facing documentation describes what this release ships; where a guide or package README states a version, it is the current one | pending / complete / not applicable |
 | Infrastructure impact | Admin | `release.yml` builds and publishes every package this release ships, including new ones | pending / complete / not applicable |
 | Release verification | Quality | Current judgment is `proceed` and Open Findings is `None` | pending |
-| Publication | Release | Tag pushed, workflow succeeded, GitHub Release and Marketplace versions match | pending / published |
+| Publication | Release | Tag pushed, `release.yml` and `docs.yml` succeeded, GitHub Release and Marketplace versions match | pending / published |
 | Closure | Release | Closure checklist complete | pending |
 
 ## Change Inventory
@@ -181,7 +181,7 @@ Publish only when Release Verification is `proceed` and Open Findings is `None`.
 1. Archive the included Change Contracts with `git mv` to `docs/changes/v{version}/` and commit the release preparation on `development`.
 2. Bring local `main` up to `origin/main`, squash-merge `development` into `main`, and commit.
 3. Tag `v{version}` and push `main` and the tag.
-4. Watch `release.yml` to completion. Verify the GitHub Release lists every extension and the Marketplace shows the new version.
+4. Watch `release.yml` on the tag and `docs.yml` on `main` to completion. Verify the GitHub Release lists every extension, the Marketplace shows the new version, and the Pages deployment succeeded. A failed `deploy` job of `docs.yml` is re-run on its own; a failed `build` job is a finding.
 5. Close every GitHub issue in `Related GitHub Issue(s)` with `Shipped in v{version}.`
 6. Merge `main` back into `development` and push `development`.
 
@@ -190,6 +190,7 @@ Publish only when Release Verification is `proceed` and Open Findings is `None`.
 | Release commit on `main` | {sha} |
 | Tag | v{version} |
 | Workflow run | {link or id} |
+| Docs workflow run (`docs.yml` on `main`) | {link or id} |
 | GitHub Release | {link} |
 | Marketplace version | {version} |
 

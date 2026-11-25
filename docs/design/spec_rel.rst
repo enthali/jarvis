@@ -106,10 +106,10 @@ Release Design Specifications
 .. spec:: Docs GitHub Actions Workflow
    :id: SPEC_REL_DOCSWORKFLOW
    :status: implemented
-   :links: REQ_REL_DOCSWORKFLOW
+   :links: REQ_REL_DOCSWORKFLOW; REQ_REL_SPHINXCOMPAT
 
    **Description:**
-   Create ``.github/workflows/docs.yml``:
+   ``.github/workflows/docs.yml`` has two jobs, ``build`` and ``deploy``:
 
    .. code-block:: yaml
 
@@ -121,27 +121,64 @@ Release Design Specifications
 
       permissions:
         contents: read
-        pages: write
-        id-token: write
+
+      concurrency:
+        group: pages
+        cancel-in-progress: false
 
       jobs:
-        deploy:
+        build:
           runs-on: ubuntu-latest
+          steps:
+            - uses: actions/checkout@v7
+            - uses: actions/setup-python@v7
+              with:
+                python-version: '3.x'
+            - run: pip install -r docs/requirements.txt
+            - run: python -m sphinx -b html docs docs/_build/html -W --keep-going
+            - uses: actions/upload-pages-artifact@v5
+              with:
+                path: docs/_build/html
+
+        deploy:
+          needs: build
+          runs-on: ubuntu-latest
+          permissions:
+            pages: write
+            id-token: write
           environment:
             name: github-pages
             url: ${{ steps.deployment.outputs.page_url }}
           steps:
-            - uses: actions/checkout@v4
-            - uses: actions/setup-python@v5
-              with:
-                python-version: '3.x'
-            - run: pip install sphinx sphinx-needs furo myst-parser
-            - run: python -m sphinx -b html docs docs/_build/html -W --keep-going
-            - uses: actions/upload-pages-artifact@v3
-              with:
-                path: docs/_build/html
             - id: deployment
-              uses: actions/deploy-pages@v4
+              uses: actions/deploy-pages@v5
+
+   **Design notes:**
+
+   * **Why two jobs:** in ``v0.35.0`` the three ``main`` pushes failed because
+     ``deploy-pages`` ran 485 ms after ``upload-pages-artifact`` in the same job
+     and found 0 artifacts (run ``45509708853``). With ``needs: build`` the
+     deployment starts only after the upload job has ended, on a new runner. This
+     removes the same-job timing; it does not prove that GitHub's artifact index is
+     never late, so a failed ``deploy`` is repeated on its own, without a new
+     Sphinx build. That second property is the reason the jobs are separate.
+   * **Permissions:** ``build`` only reads the repository. The job-level
+     ``permissions`` of ``deploy`` replace the workflow default, so it holds
+     ``pages: write`` and ``id-token: write`` and nothing else.
+   * **Concurrency:** group ``pages`` with ``cancel-in-progress: false`` is the
+     GitHub Pages recommendation: a running deployment finishes, and of several
+     queued runs only the newest stays.
+   * **Action versions:** current majors at ``2026-11-25`` (GitHub releases):
+     ``actions/checkout`` ``v7``, ``actions/setup-python`` ``v7``,
+     ``actions/upload-pages-artifact`` ``v5``, ``actions/deploy-pages`` ``v5``.
+     ``checkout``, ``setup-python`` and ``deploy-pages`` declare ``using: node24``
+     in their ``action.yml``; ``upload-pages-artifact`` is a composite action that calls
+     ``actions/upload-artifact@v7``, which declares ``using: node24``.
+   * **Dependencies:** installed from ``docs/requirements.txt``
+     (``REQ_REL_SPHINXCOMPAT`` AC-6), not from inline package names.
+   * **Release gate:** ``docs/Jarvis Contracts/release.md``, Publication, lists the
+     ``docs.yml`` run on ``main`` as a second workflow to watch and as a row in
+     the Publication evidence (``REQ_REL_DOCSWORKFLOW`` AC-9).
 
    Note: GitHub Pages must be configured in repo Settings → Pages → Source: GitHub Actions.
 

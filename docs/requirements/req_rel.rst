@@ -25,7 +25,9 @@ Release Requirements
 
    **Description:**
    A GitHub Actions workflow SHALL build the Sphinx documentation and deploy it
-   to GitHub Pages on every push to ``main``.
+   to GitHub Pages on every push to ``main``. Building and deploying SHALL be
+   separate jobs, so that a failed deployment can be repeated without a new
+   build and the deployment never starts in the job that uploaded the artifact.
 
    **Acceptance Criteria:**
 
@@ -33,6 +35,22 @@ Release Requirements
    * AC-2: Trigger is ``push`` to branch ``main``
    * AC-3: Sphinx build errors stop the workflow and surface as a failed check
    * AC-4: Deployed docs are accessible at ``https://enthali.github.io/Jarvis``
+   * AC-5: The workflow has a ``build`` job that builds the documentation and
+     uploads it as the Pages artifact, and a separate ``deploy`` job with
+     ``needs: build`` that deploys that artifact; nothing is deployed when
+     ``build`` fails
+   * AC-6: Only the ``deploy`` job holds ``pages: write`` and ``id-token: write``;
+     the ``build`` job holds ``contents: read`` only
+   * AC-7: Workflow runs share one concurrency group and do not cancel a running
+     deployment, so rapid pushes to ``main`` neither run two deployments at once
+     nor abort one half way
+   * AC-8: The workflow uses the current major version of every action it calls,
+     each of which runs on Node 24, so that the runner reports no Node
+     deprecation warning for it
+   * AC-9: The Release Contract (``docs/Jarvis Contracts/release.md``) requires
+     Release to watch the ``docs.yml`` run on ``main`` to completion, next to
+     ``release.yml``, and to record that run in the Publication evidence, so
+     that a failed Pages deployment is not overlooked at a release
 
 
 .. req:: Release GitHub Action
