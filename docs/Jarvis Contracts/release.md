@@ -79,7 +79,7 @@ Append one line as the last act before handing over, in the same commit that cha
 | Version | Release | Version decided; every version marker updated | pending / complete |
 | Preflight | Release | Build, lint, requirement-level tests, and strict documentation build pass | pending / passed / failed |
 | Release notes | Release | `docs/releasenotes.md` covers every included change | pending / complete |
-| User-facing documentation | Technical Writer | User-facing documentation describes what this release ships, including its version | pending / complete / not applicable |
+| User-facing documentation | Technical Writer | User-facing documentation describes what this release ships; where a guide or package README states a version, it is the current one | pending / complete / not applicable |
 | Infrastructure impact | Admin | `release.yml` builds and publishes every package this release ships, including new ones | pending / complete / not applicable |
 | Release verification | Quality | Current judgment is `proceed` and Open Findings is `None` | pending |
 | Publication | Release | Tag pushed, workflow succeeded, GitHub Release and Marketplace versions match | pending / published |
@@ -143,7 +143,7 @@ Release is the only writer of `docs/releasenotes.md`. Add one entry per included
 |---|---|---|---|
 | {path} | {trigger} | {update or none} | {commit or review result} |
 
-User-facing documentation, including `README.md`, describes what this release ships, including its version number. The release continues once it does.
+User-facing documentation describes what this release ships. The root `README.md` carries no version number and no release history; it links to `docs/releasenotes.md` (User decision, 2026-11-25). Guides and package READMEs name the current version wherever they state one. The release continues once the documentation does.
 
 ## Infrastructure Impact
 
