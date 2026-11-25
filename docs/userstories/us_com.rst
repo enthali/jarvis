@@ -28,11 +28,11 @@ Actor Communication User Stories
 
 .. story:: Messages Name Their Sender and Fail Visibly When Misaddressed
    :id: US_COM_SENDER
-   :status: approved
+   :status: implemented
    :tracked_by: MOD_MESSAGING
    :priority: mandatory
 
-   **As an** Actor or the User,
+   **As a** Jarvis User,
    **I want** every message to name its true sender, and a message to an
    unknown recipient to fail visibly,
    **so that** I can trust who a message is from and am never led to believe
@@ -64,11 +64,11 @@ Actor Communication User Stories
 
 .. story:: Messages Cannot Pose as the User
    :id: US_COM_AUTHORITY
-   :status: approved
+   :status: implemented
    :tracked_by: MOD_MESSAGING
    :priority: mandatory
 
-   **As the** User,
+   **As a** Jarvis User,
    **I want** an Actor to be able to tell messages from other Actors apart from
    my own instructions,
    **so that** no message can give an Actor orders in my name.
@@ -85,11 +85,11 @@ Actor Communication User Stories
 
 .. story:: The User Controls Whether Messages Make Actors Act
    :id: US_COM_DELIVERY
-   :status: approved
+   :status: implemented
    :tracked_by: MOD_MESSAGING
    :priority: required
 
-   **As the** User,
+   **As a** Jarvis User,
    **I want** to control whether an incoming message only waits for an Actor or
    also tells the Actor that it is waiting,
    **so that** I decide when my Actors start working on their own.
@@ -105,11 +105,11 @@ Actor Communication User Stories
 
 .. story:: The User Can Follow Every Delivery and Review the History
    :id: US_COM_HISTORY
-   :status: approved
+   :status: implemented
    :tracked_by: MOD_MESSAGING
    :priority: optional
 
-   **As the** User,
+   **As a** Jarvis User,
    **I want** to see every delivery and to review the history of all messages,
    **so that** I can follow what my Actors tell each other, also after the
    messages have been read or deleted.
@@ -129,11 +129,11 @@ Actor Communication User Stories
 
 .. story:: An Actor's Chat Is Recognisable
    :id: US_COM_NAME
-   :status: approved
+   :status: implemented
    :tracked_by: MOD_MESSAGING
    :priority: required
 
-   **As the** User,
+   **As a** Jarvis User,
    **I want** an Actor's chat to carry the Actor's name from the moment it
    exists,
    **so that** I always know whose chat I am looking at.

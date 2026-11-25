@@ -3,7 +3,7 @@ Messaging User Stories
 
 .. story:: MCP Server for External Tool Access
    :id: US_MSG_MCPSERVER
-   :status: approved
+   :status: implemented
    :tracked_by: MOD_MESSAGING
    :priority: mandatory
    :links: US_COM_SEND; US_COM_FIND
@@ -20,9 +20,9 @@ Messaging User Stories
 
    * AC-1: When I have enabled it, Jarvis runs an embedded MCP server. It is off
      until I enable it (``REQ_CFG_MCPDEFAULTOFF``)
-   * AC-2: Every LM Tool registered via ``vscode.lm.registerTool()`` SHALL
-     simultaneously be exposed as an MCP Tool on the MCP server with the same
-     name and input schema
+   * AC-2: Every Jarvis tool in the shared tool registry is also exposed
+     through the MCP server, with the same name and input schema (except the
+     message tools of AC-7)
    * AC-3: The MCP server port SHALL be configurable via ``jarvis.mcpPort``
      (default ``31415``)
    * AC-4: A status bar item SHALL show ``Jarvis MCP: <port>`` when the MCP
@@ -45,7 +45,7 @@ Messaging User Stories
    :priority: optional
    :links: US_COM_SEND
 
-   **As a** Jarvis administrator,
+   **As a** Jarvis User,
    **I want** an optional append-only audit log of all queued messages,
    **so that** I can review the full history of messages sent through Jarvis
    even after they have been consumed or deleted from the active queue.
@@ -109,7 +109,7 @@ Messaging User Stories
   :priority: optional
   :links: US_COM_SEND; US_COM_DELIVERY
 
-  **As a** Jarvis User or LM agent,
+  **As a** Jarvis User,
   **I want** to register a time-stamped reminder so that a message is
   queued for a named destination at a specified point in time,
   **so that** I can schedule future notifications without having to monitor the

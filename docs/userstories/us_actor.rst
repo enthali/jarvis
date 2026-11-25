@@ -24,12 +24,12 @@ Actor User Stories
 
 .. story:: The Actor
   :id: US_ACTOR_ACTORS
-  :status: approved
+  :status: implemented
   :tracked_by: MOD_ACTOR
   :priority: mandatory
   :links: US_EXP_SIDEBAR; US_COM_SEND; US_COM_DELIVERY; US_MSG_REMINDERS; US_AUT_HEARTBEAT
 
-  **As a** Jarvis user,
+  **As a** Jarvis User,
   **I want** an Actor — a persona that can adopt a role — so that I can
   give a standing function or work context a durable identity and
   message addressability.
@@ -83,12 +83,12 @@ Actor User Stories
 
 .. story:: Dedicated ACTORS Tree
    :id: US_ACTOR_TREE
-   :status: approved
+   :status: implemented
    :tracked_by: MOD_ACTOR
    :priority: mandatory
    :links: US_EXP_SIDEBAR; US_ACTOR_ACTORS
 
-   **As a** Jarvis user,
+   **As a** Jarvis User,
    **I want** a dedicated "ACTORS" tree in the Jarvis Explorer,
    **so that** I have one clearly separated place where all my Actors
    live.
@@ -134,12 +134,12 @@ Actor User Stories
 
 .. story:: Create an Actor from the ACTORS Tree
    :id: US_ACTOR_CREATE
-   :status: approved
+   :status: implemented
    :tracked_by: MOD_ACTOR
    :priority: mandatory
    :links: US_ACTOR_TREE; US_ACTOR_ACTORS
 
-   **As a** Jarvis user,
+   **As a** Jarvis User,
    **I want** a single "+" button in the ACTORS tree title bar,
    **so that** I can create a new Actor — folder, ``actor.yaml``,
    ``context.md``, and its own agent — in one step.
@@ -171,12 +171,12 @@ Actor User Stories
 
 .. story:: Actor Identity
    :id: US_ACTOR_WHOAMI
-   :status: approved
+   :status: implemented
    :tracked_by: MOD_ACTOR
    :priority: required
    :links: US_ACTOR_ACTORS
 
-   **As a** Jarvis Actor operating in a chat session,
+   **As an** Actor,
    **I want** to know my own name and where my ``context.md`` lives in every
    session,
    **so that** I can resume my role from my persistent memory without asking
@@ -199,12 +199,12 @@ Actor User Stories
 
 .. story:: Programmatic Actor Creation
    :id: US_ACTOR_CREATETOOL
-   :status: approved
+   :status: implemented
    :tracked_by: MOD_ACTOR
    :priority: required
    :links: US_ACTOR_ACTORS; US_ACTOR_CREATE
 
-   **As an** Actor working in a chat session,
+   **As an** Actor,
    **I want** to create another Actor by tool call,
    **so that** I can set up follow-up roles or work contexts myself without
    the user clicking through the ACTORS tree.

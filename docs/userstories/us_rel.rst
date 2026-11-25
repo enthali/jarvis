@@ -185,7 +185,7 @@ Release User Stories
    distribution channel. The GitHub Releases auto-update path must remain
    unchanged.*
 
-   **As a** VS Code user,
+   **As a** Jarvis User,
    **I want** to find and install Jarvis directly from the VS Code Marketplace,
    **so that** I can discover and install it without visiting GitHub or downloading a
    ``.vsix`` manually.
@@ -237,9 +237,9 @@ Release User Stories
    be migrated to the renamed extension. Reuses the GitHub Releases delivery path
    from US_REL_SELFUPDATE; the migrated user is then served by US_REL_MARKETPLACE.*
 
-   **As a** user still on the obsolete ``enthali.jarvis`` extension,
-   **I want** the legacy extension to automatically migrate me to
-   ``enthali.jarvis-core`` and then remove itself,
+   **As a** Jarvis User,
+   **I want** the obsolete ``enthali.jarvis`` extension, if I still have it, to
+   migrate me automatically to ``enthali.jarvis-core`` and then remove itself,
    **so that** I am never stranded on the dead extension ID, and two Jarvis
    instances never operate on the same ``.jarvis`` project data at once.
 

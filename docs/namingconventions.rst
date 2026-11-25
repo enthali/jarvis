@@ -116,6 +116,12 @@ File Naming
 Personas
 --------
 
+Every User Story opens with exactly one of three personas. The opening line is
+``**As a** Jarvis User,``, ``**As an** Actor,`` or ``**As a** Jarvis Developer,`` — the
+persona name, capitalised as written here, followed by a comma. A static test
+pins this form with the pattern
+``^\s*\*\*As an?\*\* (Jarvis User|Actor|Jarvis Developer),$``.
+
 .. list-table::
    :header-rows: 1
    :widths: 25 75
@@ -123,11 +129,23 @@ Personas
    * - Persona
      - Description
    * - **Jarvis User**
-     - End user of the Jarvis extension — manages Actors in VS Code
+     - End user of the Jarvis extension — manages Actors in VS Code. Also the persona for a person who installs, configures, authors boards for, or administers Jarvis, or who has not installed it yet
+   * - **Actor**
+     - The persistent participant that Jarvis hosts — an LLM working in a chat session with its own ``context.md`` memory, tools and message addressability
    * - **Jarvis Developer**
      - Maintainer of the Jarvis extension — builds, tests, releases, and documents the extension
-   * - **Jarvis Test Engineer**
-     - Tests and validates Jarvis extension features using defined test datasets
+
+A situation or qualifier ("whose workspace is a repository", "who installs a
+module") is not part of the persona. It goes into the **I want** or **so that**
+clause. A story states one persona; when two personas need the same outcome for
+different reasons, write two stories.
+
+Acceptance criteria describe what the persona observes. They do not name
+internal TypeScript functions, methods, classes, interfaces or modules
+(for example ``vscode.lm.registerTool()`` or ``CategoryService``); that
+mechanism belongs in the requirement or design spec. Names the persona sees
+stay: setting keys, command titles, tool names, file names and paths.
+
 
 Git Workflow
 ------------

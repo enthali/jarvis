@@ -44,7 +44,7 @@ Developer Tooling User Stories
    :priority: mandatory
    :links: US_EXP_SIDEBAR; US_AUT_HEARTBEAT; US_REL_SELFUPDATE; US_COM_SEND
 
-   **As a** Jarvis user and developer,
+   **As a** Jarvis Developer,
    **I want** structured log output from all Jarvis functional groups in a single
    Output Channel with severity levels and module tags,
    **so that** I can diagnose issues, understand system behaviour, and filter log

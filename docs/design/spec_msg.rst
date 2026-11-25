@@ -188,94 +188,37 @@ Message Queue Design Specifications
 
 .. spec:: MCP Server Module
    :id: SPEC_MSG_MCPSERVER
-   :status: approved
-   :links: REQ_MSG_MCPSERVER
+   :status: implemented
+   :links: REQ_MSG_MCPSERVER; SPEC_MOD_MCP_PKG; SPEC_ENG_TOOLREGISTRY
 
    **Description:**
-   New module ``src/mcpServer.ts`` provides an embedded MCP server using
-   ``@modelcontextprotocol/sdk`` with ``StreamableHTTPServerTransport``.
-   The server binds to ``127.0.0.1`` on the configured port and exposes
-   registered tools via the MCP protocol over HTTP/SSE.
-
-   **Dependencies (package.json):**
-
-   .. code-block:: json
-
-      {
-        "dependencies": {
-          "@modelcontextprotocol/sdk": "^1.12.1"
-        }
-      }
+   The module ``packages/mcp/src/mcpServer.ts`` is the MCP transport. It serves
+   the tools of the shared Jarvis tool registry (``SPEC_ENG_TOOLREGISTRY``) with
+   ``@modelcontextprotocol/sdk`` and ``StreamableHTTPServerTransport`` on
+   ``127.0.0.1`` at the configured port. The package that hosts it, its
+   activation, settings and status bar item are specified in
+   ``SPEC_MOD_MCP_PKG``. The module registers no tools of its own.
 
    **Public API:**
 
    .. code-block:: typescript
 
-      import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-      import { StreamableHTTPServerTransport } from
-        '@modelcontextprotocol/sdk/server/streamableHttp.js';
-      import * as http from 'http';
-      import { z } from 'zod';
-      import type * as vscode from 'vscode';
-
-      let mcpServer: McpServer | undefined;
-      let httpServer: http.Server | undefined;
-
-      export function registerMcpTool(
-        name: string,
-        description: string,
-        inputSchema: Record<string, z.ZodTypeAny>,
-        handler: (args: Record<string, unknown>) => Promise<object>
-      ): void {
-        // Stores tool registration; applied when server starts
+      export interface McpToolDescriptor {
+        name: string;
+        description: string;
+        inputSchema: Record<string, unknown>;  // JSON Schema from the manifest
+        invoke(args: Record<string, unknown>): Promise<object>;
       }
+
+      export type ToolProvider = () => McpToolDescriptor[];
 
       export async function startMcpServer(
         port: number,
-        log: vscode.LogOutputChannel
-      ): Promise<void> {
-        mcpServer = new McpServer({
-          name: 'jarvis',
-          version: '<from package.json>'
-        });
+        log: vscode.LogOutputChannel,
+        toolProvider: ToolProvider
+      ): Promise<void>;
 
-        // Register all accumulated tools on the McpServer instance
-        for (const [name, { description, schema, handler }] of toolRegistry) {
-          mcpServer.tool(name, description, schema, async (args) => {
-            const result = await handler(args);
-            return {
-              content: [{ type: 'text', text: JSON.stringify(result) }]
-            };
-          });
-        }
-
-        // Stateless mode — new transport per request
-        httpServer = http.createServer(async (req, res) => {
-          if (req.method !== 'POST') {
-            res.writeHead(405).end();
-            return;
-          }
-          const reqTransport = new StreamableHTTPServerTransport({
-            sessionIdGenerator: undefined
-          });
-          res.on('close', () => { reqTransport.close(); });
-          await mcpServer!.connect(reqTransport);
-          await reqTransport.handleRequest(req, res);
-        });
-
-        httpServer.listen(port, '127.0.0.1');
-      }
-
-      export async function stopMcpServer(): Promise<void> {
-        if (httpServer) {
-          httpServer.close();
-          httpServer = undefined;
-        }
-        if (mcpServer) {
-          await mcpServer.close();
-          mcpServer = undefined;
-        }
-      }
+      export async function stopMcpServer(): Promise<void>;
 
    **Security:**
 
@@ -284,17 +227,20 @@ Message Queue Design Specifications
 
    **Design notes:**
 
-   * Tool registrations are collected before ``startMcpServer()`` is called,
-     so that ``registerMcpTool()`` can be called during tool setup in
-     ``extension.ts`` before the server starts
+   * The tool list is not collected at start. ``toolProvider`` is called on every
+     request, so a tool registered or disposed later shows up on the next call.
+     The provider is built from the registry and the manifest ``inputSchema``
+     of each tool (``SPEC_MOD_MCP_PKG``).
    * **Stateless mode**: ``sessionIdGenerator: undefined`` means each POST
-     request creates a fresh ``StreamableHTTPServerTransport``. The transport
-     is connected to the ``McpServer``, handles the single request, and is
-     closed when the response ends.
+     request creates a fresh ``McpServer`` with the current tools and a fresh
+     ``StreamableHTTPServerTransport``, which is closed when the response ends.
+   * Each tool handler returns its result as a JSON text content item
+   * The manifest ``inputSchema`` is converted to a ``zod`` shape for the SDK
+     (top-level properties only)
    * ``startMcpServer()`` accepts a ``LogOutputChannel`` for structured
      ``[MCP]`` log output
    * Only POST is accepted; other methods receive 405
-   * ``stopMcpServer()`` is called from ``deactivate()`` in ``extension.ts``
+   * ``stopMcpServer()`` is called when the MCP extension deactivates
 
 
 .. spec:: Auto-Delivery Config Store
