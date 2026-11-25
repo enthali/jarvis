@@ -1,6 +1,6 @@
 # Change Contract: streamline-user-story-personas-and-acs
 
-**Status:** active<br>
+**Status:** closed<br>
 **Current responsibility:** Project Manager<br>
 **Current blocker:** none<br>
 **Created:** 2026-11-25<br>
@@ -60,7 +60,7 @@ Across `docs/userstories/*.rst`, persona openings currently mix ad-hoc variants 
 |---|---|---|---|---|
 | Intent and outcome | yes | Project Manager | Goal, value, scope, and observable outcome are explicit and approved | approved |
 | Contract release | yes | User | User authorization to start the change; set by the User only | approved (2026-11-25 07:23 CET) |
-| Version control | yes | Project Manager | Local branch `feature/streamline-user-story-personas-and-acs`; squash-integrated into `development` at closure; the branch is retained | active |
+| Version control | yes | Project Manager | Local branch `feature/streamline-user-story-personas-and-acs`; squash-integrated into `development` at closure; the branch is retained | merged (`74e67463`) |
 | Product specification | yes | Architect | Canonical personas defined, all `us_*.rst` stories normalized (#33), `US_MSG_MCPSERVER` AC-2 and any other leaked implementation details in `us_*.rst` cleaned (#32), strict Sphinx build passes | complete |
 | Infrastructure impact | yes | Admin | Affected infrastructure artifacts are updated, or none is affected | complete |
 | Documentation impact | yes | Technical Writer | User-facing documents reviewed, or none is affected | complete |
@@ -68,7 +68,7 @@ Across `docs/userstories/*.rst`, persona openings currently mix ad-hoc variants 
 | Test design | yes | Tester | Static regression test in `src/tests/` enforcing canonical User Story personas and forbidding internal API calls in `docs/userstories/*.rst` | complete (see Test Design) |
 | Quality review and test execution | yes | Quality | Current judgment is `proceed` and `Open Findings` is `None` | complete (see Quality Review) |
 | User validation | not applicable: explicit User delegation (2026-11-25 07:23 CET) to run autonomously like overnight cleanups and accept on automated evidence when zero runtime files change and Quality records `proceed` | User | Observable outcome is accepted or changes are requested | accepted (explicit User delegation, 2026-11-25 07:23 CET) |
-| Closure | yes | Project Manager | Final outcome and integration state are recorded | pending |
+| Closure | yes | Project Manager | Final outcome and integration state are recorded | closed |
 
 ## Product Specification
 
@@ -200,16 +200,16 @@ After Quality's `proceed`, the Project Manager presents the observable outcome. 
 ## Closure
 
 **Owner:** Project Manager<br>
-**Status:** pending
+**Status:** closed
 
-- [ ] Every included artifact or gate has terminal status and completion evidence.
-- [ ] Intent and outcome are `approved`.
-- [ ] Quality has recorded `proceed`.
-- [ ] Open Findings contains `None`.
-- [ ] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
-- [ ] The feature branch is squash-integrated into `development`.
-- [ ] Current blocker is `none`.
-- [ ] The Project Manager ran the `syspilot.contract-statistics` skill after validation and the record exists in `.syspilot/stats/`.
-- [ ] Header Status is `closed`.
+- [x] Every included artifact or gate has terminal status and completion evidence.
+- [x] Intent and outcome are `approved`.
+- [x] Quality has recorded `proceed`.
+- [x] Open Findings contains `None`.
+- [x] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
+- [x] The feature branch is squash-integrated into `development`.
+- [x] Current blocker is `none`.
+- [x] The Project Manager ran the `syspilot.contract-statistics` skill after validation and the record exists in `.syspilot/stats/`.
+- [x] Header Status is `closed`.
 
-**Final outcome:** {accepted result and integration commit}
+**Final outcome:** Accepted via explicit User delegation on automated verification on 2026-11-25 (zero `packages/` files modified). Defines the three canonical User Story personas (`Jarvis User`, `Actor`, `Jarvis Developer`) in `docs/namingconventions.rst` and normalizes all 68 User Stories across `docs/userstories/us_*.rst` (GH #33); removes leaked internal API names (`vscode.lm.registerTool()`) from `US_MSG_MCPSERVER` AC-2 and PIM story ACs while aligning `REQ_MSG_MCPSERVER` and `SPEC_MSG_MCPSERVER` with `packages/mcp` (GH #32); and enforces both rules permanently in `src/tests/user-story-personas-and-acs.test.ts` (834 tests pass). Squash-integrated into `development` as `74e67463`; feature branch `feature/streamline-user-story-personas-and-acs` retained; statistics recorded in `.syspilot/stats/streamline-user-story-personas-and-acs-stat.md`. Scheduled to ship in upcoming v0.36.0.
