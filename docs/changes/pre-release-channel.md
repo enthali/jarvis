@@ -1,6 +1,6 @@
 # Change Contract: pre-release-channel
 
-**Status:** accepted<br>
+**Status:** closed<br>
 **Current responsibility:** Project Manager<br>
 **Current blocker:** none<br>
 **Created:** 2026-11-26<br>
@@ -69,7 +69,7 @@ Shipping frequent incremental or infrastructure-only updates (such as `0.35.1`) 
 |---|---|---|---|---|
 | Intent and outcome | yes | Project Manager | Goal, value, scope, and observable outcome are explicit and approved | approved |
 | Contract release | yes | User | User authorization to start the change; set by the User only | approved (2026-11-26 01:56 CET) |
-| Version control | yes | Project Manager | Local branch `feature/pre-release-channel`; squash-integrated into `development` at closure; the branch is retained | active |
+| Version control | yes | Project Manager | Local branch `feature/pre-release-channel`; squash-integrated into `development` at `a5ed6e1e`; the branch is retained | merged |
 | Product specification | yes | Architect | Release & release-notes Needs updated for `vX.Y.Z-pre` pre-release channel and checked | complete |
 | Infrastructure impact | yes | Admin | `.github/workflows/release.yml` and `docs/Jarvis Contracts/release.md` updated for `release` / `pre-release` channels | complete |
 | Documentation impact | yes | Technical Writer | Pre-release opt-in documented in user guides | complete |
@@ -77,7 +77,7 @@ Shipping frequent incremental or infrastructure-only updates (such as `0.35.1`) 
 | Test design | yes | Tester | System/workflow tests for `release.yml` `-pre` handling, `release.md` Channel field, and `releaseNotes.ts` URL resolution pass | complete (see Test Design) |
 | Quality review and test execution | yes | Quality | Current judgment is `proceed` and `Open Findings` is `None` (incl. clean-tree VSIX build, testing `--pre-release` packaging too) | complete (see Quality Review) |
 | User validation | not applicable: explicit User delegation (2026-11-26 01:56 CET) to chain K80 directly into live pre-release `v0.35.1-pre` once Quality records `proceed` | User | Observable outcome is accepted on automated + clean-tree VSIX evidence (`254a874d`); live pre-release channel run chained immediately via `v0.35.1-pre` | not applicable |
-| Closure | yes | Project Manager | Final outcome and integration state are recorded | pending |
+| Closure | yes | Project Manager | Closed on `development`; squash commit `a5ed6e1e`, statistics in `.syspilot/stats/pre-release-channel-stat.md` | closed |
 
 ## Product Specification
 
@@ -230,16 +230,16 @@ After Quality's `proceed`, the Project Manager presents the observable outcome. 
 ## Closure
 
 **Owner:** Project Manager<br>
-**Status:** pending
+**Status:** closed
 
-- [ ] Every included artifact or gate has terminal status and completion evidence.
-- [ ] Intent and outcome are `approved`.
-- [ ] Quality has recorded `proceed`.
-- [ ] Open Findings contains `None`.
-- [ ] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
-- [ ] The feature branch is squash-integrated into `development`.
-- [ ] Current blocker is `none`.
-- [ ] The Project Manager ran the `syspilot.contract-statistics` skill after validation and the record exists in `.syspilot/stats/`.
-- [ ] Header Status is `closed`.
+- [x] Every included artifact or gate has terminal status and completion evidence.
+- [x] Intent and outcome are `approved`.
+- [x] Quality has recorded `proceed`.
+- [x] Open Findings contains `None`.
+- [x] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
+- [x] The feature branch is squash-integrated into `development`.
+- [x] Current blocker is `none`.
+- [x] The Project Manager ran the `syspilot.contract-statistics` skill after validation and the record exists in `.syspilot/stats/`.
+- [x] Header Status is `closed`.
 
-**Final outcome:** {accepted result and integration commit}
+**Final outcome:** Accepted via explicit User delegation (2026-11-26 01:56 CET) on Quality `proceed` (`8b0184ab` / `254a874d`: `882` tests, `0` lint errors, strict Sphinx build, clean-tree VSIX packaging with and without `--pre-release`), squash-integrated into `development` at `a5ed6e1e` (`feature/pre-release-channel` retained), statistics recorded in `.syspilot/stats/pre-release-channel-stat.md`, and chained directly into live pre-release `v0.35.1-pre`.
