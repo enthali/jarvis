@@ -1,5 +1,5 @@
-# Implementation: SPEC_REL_RELEASEACTION, SPEC_REL_MKTPUBLISH, SPEC_REL_COREGH
-# Requirements: REQ_REL_RELEASEACTION, REQ_REL_VSCEPKG, REQ_REL_MKTPUBLISH
+# Implementation: SPEC_REL_RELEASEACTION, SPEC_REL_MKTPUBLISH, SPEC_REL_COREGH, SPEC_REL_CHANNEL
+# Requirements: REQ_REL_RELEASEACTION, REQ_REL_VSCEPKG, REQ_REL_MKTPUBLISH, REQ_REL_CHANNEL
 
 name: Release Extension
 
@@ -14,6 +14,10 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      # A tag ending in -pre ships on the Marketplace pre-release channel; the same
+      # expression drives package, publish and the GitHub Release below.
+      CHANNEL_FLAG: ${{ endsWith(github.ref_name, '-pre') && '--pre-release' || '' }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -28,7 +32,7 @@ jobs:
 
       # ── Package enthali.jarvis-core (marketplace) ────────────────────────────
       - name: Package enthali.jarvis-core
-        run: cd packages/core && npx vsce package --no-dependencies
+        run: cd packages/core && npx vsce package --no-dependencies $CHANNEL_FLAG
 
       # ── Package enthali.jarvis (legacy GitHub Release) ───────────────────────
       # core-gh is now a self-contained shim with its own src/ and build.js;
@@ -38,15 +42,15 @@ jobs:
 
       # ── Package add-ons (each has own vscode:prepublish compile step) ────────
       - name: Package enthali.jarvis-pim
-        run: cd packages/pim && npx vsce package --no-dependencies
+        run: cd packages/pim && npx vsce package --no-dependencies $CHANNEL_FLAG
       - name: Package enthali.jarvis-recorder
-        run: cd packages/recorder && npx vsce package --no-dependencies
+        run: cd packages/recorder && npx vsce package --no-dependencies $CHANNEL_FLAG
       - name: Package enthali.jarvis-mcp
-        run: cd packages/mcp && npx vsce package --no-dependencies
+        run: cd packages/mcp && npx vsce package --no-dependencies $CHANNEL_FLAG
       - name: Package enthali.jarvis-flow
-        run: cd packages/flow && npx vsce package --no-dependencies
+        run: cd packages/flow && npx vsce package --no-dependencies $CHANNEL_FLAG
       - name: Package enthali.jarvis-kanban
-        run: cd packages/kanban && npx vsce package --no-dependencies
+        run: cd packages/kanban && npx vsce package --no-dependencies $CHANNEL_FLAG
 
       # ── GitHub Release — all VSIXs ───────────────────────────────────────────
       - name: Create GitHub Release
@@ -61,6 +65,7 @@ jobs:
             packages/flow/*.vsix
             packages/kanban/*.vsix
           generate_release_notes: true
+          prerelease: ${{ endsWith(github.ref_name, '-pre') }}
           # softprops/action-gh-release is idempotent: if a release for this
           # tag already exists (e.g. manually created by the Release Engineer
           # before the tag push), it updates that release in place rather than
@@ -72,15 +77,15 @@ jobs:
       # Authenticates with OIDC Trusted Publishing (policy on the enthali publisher
       # bound to this repository and workflow); no stored PAT. Each step mints its own token.
       - name: Publish enthali.jarvis-core to Marketplace
-        run: npx vsce publish --oidc --packagePath packages/core/jarvis-core-*.vsix --no-dependencies
+        run: npx vsce publish --oidc --packagePath packages/core/jarvis-core-*.vsix --no-dependencies $CHANNEL_FLAG
       - name: Publish enthali.jarvis-pim to Marketplace
-        run: npx vsce publish --oidc --packagePath packages/pim/jarvis-pim-*.vsix --no-dependencies
+        run: npx vsce publish --oidc --packagePath packages/pim/jarvis-pim-*.vsix --no-dependencies $CHANNEL_FLAG
       - name: Publish enthali.jarvis-recorder to Marketplace
-        run: npx vsce publish --oidc --packagePath packages/recorder/jarvis-recorder-*.vsix --no-dependencies
+        run: npx vsce publish --oidc --packagePath packages/recorder/jarvis-recorder-*.vsix --no-dependencies $CHANNEL_FLAG
       - name: Publish enthali.jarvis-mcp to Marketplace
-        run: npx vsce publish --oidc --packagePath packages/mcp/jarvis-mcp-*.vsix --no-dependencies
+        run: npx vsce publish --oidc --packagePath packages/mcp/jarvis-mcp-*.vsix --no-dependencies $CHANNEL_FLAG
       - name: Publish enthali.jarvis-flow to Marketplace
-        run: npx vsce publish --oidc --packagePath packages/flow/jarvis-flow-*.vsix --no-dependencies
+        run: npx vsce publish --oidc --packagePath packages/flow/jarvis-flow-*.vsix --no-dependencies $CHANNEL_FLAG
       - name: Publish enthali.jarvis-kanban to Marketplace
-        run: npx vsce publish --oidc --packagePath packages/kanban/jarvis-kanban-*.vsix --no-dependencies
+        run: npx vsce publish --oidc --packagePath packages/kanban/jarvis-kanban-*.vsix --no-dependencies $CHANNEL_FLAG
 

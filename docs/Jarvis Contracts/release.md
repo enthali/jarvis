@@ -1,6 +1,6 @@
 # Release Process
 
-Use this process for every publication of the Jarvis extensions. A release takes a state of `development` that already exists, every change in it already tested, and makes it public. Publication is irreversible: pushing a `v*` tag runs `.github/workflows/release.yml`, which creates the GitHub Release and publishes every extension to the VS Code Marketplace. Everything this contract checks must therefore be true before the tag is pushed.
+Use this process for every publication of the Jarvis extensions. A release takes a state of `development` that already exists, every change in it already tested, and makes it public. Publication is irreversible: pushing a `v*` tag runs `.github/workflows/release.yml`, which creates the GitHub Release and publishes every extension to the VS Code Marketplace, on the release channel or, for a tag ending in `-pre`, on the pre-release channel. Everything this contract checks must therefore be true before the tag is pushed.
 
 The Release actor owns this process and runs it. The canonical Release Contract template lives here. A concrete release starts as a tailored copy at `docs/releases/v{version}.md`.
 
@@ -37,6 +37,7 @@ The Project Manager initializes a release as one consistent version-controlled s
 **Current responsibility:** Project Manager<br>
 **Current blocker:** none | {decision or action currently needed}<br>
 **Created:** {DATE}<br>
+**Channel:** release | pre-release — decided with the User before Release start; the tag spelling in Publication follows it<br>
 **Related GitHub Issue(s):** {#n, …} — delete this line if not applicable<br>
 - **Operation Mode**: {select one of the following modes and agree its specifics for this release with the User before Release start; autonomous is the default}
 
@@ -82,7 +83,7 @@ Append one line as the last act before handing over, in the same commit that cha
 | User-facing documentation | Technical Writer | User-facing documentation describes what this release ships; where a guide or package README states a version, it is the current one | pending / complete / not applicable |
 | Infrastructure impact | Admin | `release.yml` builds and publishes every package this release ships, including new ones | pending / complete / not applicable |
 | Release verification | Quality | Current judgment is `proceed` and Open Findings is `None` | pending |
-| Publication | Release | Tag pushed, `release.yml` and `docs.yml` succeeded, GitHub Release and Marketplace versions match | pending / published |
+| Publication | Release | Tag pushed (`v{version}` for a release, `v{version}-pre` for a pre-release), `release.yml` and `docs.yml` succeeded, GitHub Release and Marketplace versions match and sit on the Contract's channel | pending / published |
 | Closure | Release | Closure checklist complete | pending |
 
 ## Change Inventory
@@ -104,6 +105,8 @@ A change is release-ready when its Change Contract is closed. Including a change
 Semantic versioning, pre-1.0 (`0.y.z`); MAJOR stays 0. MINOR when the release contains at least one feature or breaking change; PATCH when it contains only fixes or infrastructure.
 
 Update every version marker to the same version: root `package.json`, every `packages/*/package.json`, and the root and workspace entries in `package-lock.json`. Verify the lock file against the package files.
+
+The version is plain `MAJOR.MINOR.PATCH` on both channels; the channel is not part of it. Versions increase strictly across releases and pre-releases, so a version ships on exactly one channel, and promoting a pre-release means a later version.
 
 **Version:** {version} — {reason}
 
@@ -132,7 +135,7 @@ A failure becomes a row in Open Findings and responsibility goes to the Project 
 **Owner:** Release<br>
 **Status:** pending | complete
 
-Release is the only writer of `docs/releasenotes.md`. Add one entry per included change, in integration order, stating what changed and why it matters to a user.
+Release is the only writer of `docs/releasenotes.md`. Add one entry per included change, in integration order, stating what changed and why it matters to a user. The heading of a pre-release carries `(Pre-Release)`, for example `## v0.35.1 (Pre-Release) - {title}`, so that readers of the page can tell which entries have not reached every user.
 
 ## User-Facing Documentation
 
@@ -180,19 +183,19 @@ Publish only when Release Verification is `proceed` and Open Findings is `None`.
 
 1. Archive the included Change Contracts with `git mv` to `docs/changes/v{version}/` and commit the release preparation on `development`.
 2. Bring local `main` up to `origin/main`, squash-merge `development` into `main`, and commit.
-3. Tag `v{version}` and push `main` and the tag.
-4. Watch `release.yml` on the tag and `docs.yml` on `main` to completion. Verify the GitHub Release lists every extension, the Marketplace shows the new version, and the Pages deployment succeeded. A failed `deploy` job of `docs.yml` is re-run on its own; a failed `build` job is a finding.
+3. Tag `v{version}` for the release channel or `v{version}-pre` for the pre-release channel, as the Contract's `Channel` says, and push `main` and the tag. The tag is irreversible, so check its spelling against the Contract before pushing.
+4. Watch `release.yml` on the tag and `docs.yml` on `main` to completion. Verify the GitHub Release lists every extension and is marked Pre-release if and only if the tag ends in `-pre`, the Marketplace shows the new version (as a pre-release for a `-pre` tag), and the Pages deployment succeeded. A failed `deploy` job of `docs.yml` is re-run on its own; a failed `build` job is a finding.
 5. Close every GitHub issue in `Related GitHub Issue(s)` with `Shipped in v{version}.`
 6. Merge `main` back into `development` and push `development`.
 
 | Evidence | Value |
 |---|---|
 | Release commit on `main` | {sha} |
-| Tag | v{version} |
+| Tag | v{version} or v{version}-pre |
 | Workflow run | {link or id} |
 | Docs workflow run (`docs.yml` on `main`) | {link or id} |
 | GitHub Release | {link} |
-| Marketplace version | {version} |
+| Marketplace version | {version}, release or pre-release |
 
 ## Closure
 

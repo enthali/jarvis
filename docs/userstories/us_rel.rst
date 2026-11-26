@@ -33,7 +33,8 @@ Release User Stories
 
    * AC-1: Pushing a Git tag ``v*`` creates a GitHub Release automatically
    * AC-2: The release includes a ``.vsix`` file as downloadable asset
-   * AC-3: The version in ``package.json`` matches the git tag
+   * AC-3: The version in ``package.json`` matches the git tag, apart from the
+     ``-pre`` suffix that marks a pre-release (``US_REL_PRERELEASE``)
    * AC-4: The release notes list what changed
 
 
@@ -198,6 +199,54 @@ Release User Stories
      of Jarvis Core and of each supported add-on to the Marketplace without manual
      intervention
    * AC-4: The existing GitHub Releases auto-update path continues to work unchanged
+
+
+.. story:: Pre-Release Channel
+   :id: US_REL_PRERELEASE
+   :status: implemented
+   :tracked_by: MOD_DISTRIBUTION
+   :priority: required
+   :links: US_REL_RELEASE; US_REL_MARKETPLACE
+
+   *Context: Every release reaches every user. A change that only needs proving
+   in the real release pipeline — an infrastructure change, a small increment —
+   would still send an update to all of them.*
+
+   **As a** Jarvis Developer,
+   **I want** to ship a version on a pre-release channel that only users who opt
+   in receive,
+   **so that** I can prove a change in the real release pipeline without sending
+   update churn to every user.
+
+   **Acceptance Criteria:**
+
+   * AC-1: Pushing the tag ``vX.Y.Z-pre`` publishes version ``X.Y.Z`` as a
+     pre-release, on GitHub and on the Marketplace, through the same release
+     workflow; pushing ``vX.Y.Z`` publishes it as a regular release
+   * AC-2: A user who has not opted in to pre-release versions receives no
+     pre-release, through either distribution path: the Marketplace or the
+     GitHub update check
+   * AC-3: The Release Contract records the channel of each release, so that a
+     release is not published on a channel by accident
+
+
+.. story:: Opt In to Pre-Release Versions
+   :id: US_REL_PRERELEASEOPTIN
+   :status: implemented
+   :tracked_by: MOD_DISTRIBUTION
+   :priority: required
+   :links: US_REL_PRERELEASE; US_REL_WHATSNEW
+
+   **As a** Jarvis User,
+   **I want** to opt in to pre-release versions of Jarvis,
+   **so that** I can try changes before they reach everyone.
+
+   **Acceptance Criteria:**
+
+   * AC-1: The user guide explains how to switch Jarvis Core and each installed
+     add-on to its pre-release version, and how to switch back
+   * AC-2: Reading the release notes of an installed pre-release version opens
+     the notes of that version, not a page that does not exist
 
 
 .. story:: Extension Package Contract

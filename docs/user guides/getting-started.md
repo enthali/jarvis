@@ -12,9 +12,17 @@ Actor chats also require an available VS Code Agent Host and an authenticated ag
 
 In GitHub Codespaces, Jarvis can find the VS Code Server Agent Host, and Actor messaging worked there with a discovery prototype. See the [Core guide](core.md) for what was and was not verified in Codespaces.
 
+### Try pre-release versions (optional)
+
+Some versions are published first as a **pre-release**, which only people who opt in receive from the Marketplace. Regular installations are not updated to a pre-release. The release notes mark such a version with `(Pre-Release)` in its heading.
+
+To opt in, open the **Extensions** view, select **Jarvis Core**, and choose **Switch to Pre-Release Version**. Do the same for each Jarvis add-on you have installed: Jarvis Core and every add-on are switched on their own. To go back, choose **Switch to Release Version** on the same extension page. **Jarvis: Show Release Notes** opens the notes of the version you have installed, including a pre-release, and falls back to the list of GitHub releases if it cannot find that version's page.
+
+The GitHub update check does not offer pre-releases. A `.vsix` installed from GitHub Releases follows regular releases only.
+
 ### Updating to the Agent Host path
 
-Before the next release, update existing project-owned prompts, skills and agent instructions:
+If your project-owned prompts, skills and agent instructions still use the former messaging calls, update them:
 
 | Former call or reference | Current call or action |
 |--------------------------|------------------------|
