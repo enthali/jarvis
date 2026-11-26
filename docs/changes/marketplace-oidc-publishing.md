@@ -1,6 +1,6 @@
 # Change Contract: marketplace-oidc-publishing
 
-**Status:** active<br>
+**Status:** closed<br>
 **Current responsibility:** Project Manager<br>
 **Current blocker:** none<br>
 **Created:** 2026-11-26<br>
@@ -64,7 +64,7 @@ Global Personal Access Tokens (PATs) in Azure DevOps are retired on `2026-12-01`
 |---|---|---|---|---|
 | Intent and outcome | yes | Project Manager | Goal, value, scope, and observable outcome are explicit and approved | approved |
 | Contract release | yes | User | User authorization to start the change; set by the User only | approved (2026-11-26 01:41 CET) |
-| Version control | yes | Project Manager | Local branch `feature/marketplace-oidc-publishing`; squash-integrated into `development` at closure; the branch is retained | active |
+| Version control | yes | Project Manager | Local branch `feature/marketplace-oidc-publishing`; squash-integrated into `development` at closure; the branch is retained | merged (`2793cf8a`) |
 | Product specification | yes | Architect | `REQ_REL_MKTPUBLISH`, `SPEC_REL_MKTPUBLISH` (and `SPEC_REL_RELEASEACTION` / `US_REL_MARKETPLACE` if affected) updated for OIDC Trusted Publishing and checked | complete |
 | Infrastructure impact | yes | Admin | `@vscode/vsce` upgraded to `>= 4.1.1` in `package.json` + `package-lock.json`; `.github/workflows/release.yml` updated to `--oidc` + `id-token: write` | complete |
 | Documentation impact | yes | Technical Writer | User-facing documents reviewed (plus check whether `packages/mcp/README.md` stale `enthali.jarvis` ID belongs here or stays out if `packages/` untouched), or none is affected | complete |
@@ -72,7 +72,7 @@ Global Personal Access Tokens (PATs) in Azure DevOps are retired on `2026-12-01`
 | Test design | yes | Tester | Static verification test in `src/tests/` covering `release.yml` OIDC publishing and `@vscode/vsce` version passes | complete (see Test Design) |
 | Quality review and test execution | yes | Quality | Current judgment is `proceed` and `Open Findings` is `None` (incl. clean-tree VSIX packaging with `@vscode/vsce` v4) | complete (see Quality Review) |
 | User validation | yes | User | Marketplace Trusted Publishing policy configured (`Release workflow`, `Active` for `enthali/jarvis` + `release.yml`) and automated repository verification accepted (live publish runs in `v0.35.1-pre`) | accepted (2026-11-26 01:56 CET) |
-| Closure | yes | Project Manager | Final outcome and integration state are recorded | pending |
+| Closure | yes | Project Manager | Final outcome and integration state are recorded | closed |
 
 ## Product Specification
 
@@ -207,16 +207,16 @@ After Quality's `proceed`, the Project Manager presents the observable outcome. 
 ## Closure
 
 **Owner:** Project Manager<br>
-**Status:** pending
+**Status:** closed
 
-- [ ] Every included artifact or gate has terminal status and completion evidence.
-- [ ] Intent and outcome are `approved`.
-- [ ] Quality has recorded `proceed`.
-- [ ] Open Findings contains `None`.
-- [ ] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
-- [ ] The feature branch is squash-integrated into `development`.
-- [ ] Current blocker is `none`.
-- [ ] The Project Manager ran the `syspilot.contract-statistics` skill after validation and the record exists in `.syspilot/stats/`.
-- [ ] Header Status is `closed`.
+- [x] Every included artifact or gate has terminal status and completion evidence.
+- [x] Intent and outcome are `approved`.
+- [x] Quality has recorded `proceed`.
+- [x] Open Findings contains `None`.
+- [x] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
+- [x] The feature branch is squash-integrated into `development`.
+- [x] Current blocker is `none`.
+- [x] The Project Manager ran the `syspilot.contract-statistics` skill after validation and the record exists in `.syspilot/stats/`.
+- [x] Header Status is `closed`.
 
-**Final outcome:** {accepted result and integration commit}
+**Final outcome:** Accepted by the User on 2026-11-26 after configuring the `Active` Marketplace Trusted Publishing policy `Release workflow` (`enthali` `#5298312`, `jarvis` `#1197570209`, `release.yml`) and verifying repository readiness (860 tests pass, `@vscode/vsce` 4.1.1 builds all 7 VSIXs cleanly). Upgrades `@vscode/vsce` to `^4.1.1`, switches `.github/workflows/release.yml` (`REQ_REL_MKTPUBLISH`, `SPEC_REL_MKTPUBLISH`) from `VSCE_PAT` to `vsce publish --oidc` with `id-token: write` and Node-24 actions, and updates the stale Core extension ID in `packages/mcp/README.md` (K79). Squash-integrated into `development` as `2793cf8a`; feature branch `feature/marketplace-oidc-publishing` retained; statistics recorded in `.syspilot/stats/marketplace-oidc-publishing-stat.md`. Live OIDC token exchange runs in the upcoming `v0.35.1-pre` release.
