@@ -563,19 +563,30 @@ Release Requirements
    **Description:**
    The GitHub Actions release workflow SHALL publish the packaged ``.vsix`` of
    ``enthali.jarvis-core`` and of each supported add-on (PIM, Recorder, MCP, Flow,
-   Kanban) to the VS Code Marketplace after creating the GitHub Release, using the
-   ``VSCE_PAT`` secret stored in the repository. The legacy ``enthali.jarvis`` shim
-   SHALL NOT be published to the Marketplace.
+   Kanban) to the VS Code Marketplace after creating the GitHub Release. The workflow
+   SHALL authenticate to the Marketplace by OIDC Trusted Publishing: the run proves its
+   identity with a short-lived GitHub OIDC token and no Personal Access Token is stored
+   in the repository. The legacy ``enthali.jarvis`` shim SHALL NOT be published to the
+   Marketplace.
 
    **Acceptance Criteria:**
 
    * AC-1: One ``vsce publish`` step per published extension runs after the GitHub
      Release step in ``release.yml``
    * AC-2: Each step uses the pre-built ``.vsix`` (``--packagePath``) to avoid double-bundling
-   * AC-3: The ``VSCE_PAT`` secret is passed as ``VSCE_PAT`` environment variable
+   * AC-3: Each publish step authenticates with ``vsce publish --oidc``; no publish step
+     passes a token, and ``release.yml`` references no ``VSCE_PAT`` secret
    * AC-4: The GitHub Release step precedes the publish steps and uploads every
      ``.vsix``, including the legacy shim, so a Marketplace failure cannot prevent
      the GitHub Release
+   * AC-5: The workflow grants ``id-token: write``, the permission GitHub requires
+     before it issues an OIDC token to the run, in addition to ``contents: write``
+   * AC-6: ``@vscode/vsce`` is declared as a devDependency at version ``4.1.1`` or
+     newer, because ``--oidc`` does not exist in the 3.x line
+   * AC-7: The workflow uses the current major version of every action it calls
+     (``actions/checkout``, ``actions/setup-node``, ``softprops/action-gh-release``),
+     each of which runs on Node 24, so that the runner reports no Node deprecation
+     warning for it
 
 
 .. req:: Extension Package Contract

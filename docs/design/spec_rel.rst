@@ -301,18 +301,39 @@ Release Design Specifications
    Release step it publishes the already-packaged VSIX of ``enthali.jarvis-core`` and
    of each supported add-on (PIM, Recorder, MCP, Flow, Kanban) to the Marketplace,
    one step per extension. The legacy ``enthali.jarvis`` shim has no publish step.
-   The step has this shape, shown for core:
+
+   **Authentication.** The workflow holds no Marketplace credential. It sets
+   ``permissions: contents: write`` and ``id-token: write``; ``vsce publish --oidc``
+   then requests a GitHub OIDC token for the audience ``marketplace.visualstudio.com``
+   and exchanges it at the Marketplace for a session token valid up to 15 minutes.
+   Each ``vsce publish --oidc`` invocation requests and exchanges its own token, so
+   the six sequential steps need no shared state and no token is reused (``vsce``
+   4.1.1, ``src/oidc.ts``). ``--oidc`` never falls back to a PAT: a failed exchange
+   fails the step. The step has this shape, shown for core:
 
    .. code-block:: yaml
 
+      permissions:
+        contents: write
+        id-token: write
+
       - name: Publish enthali.jarvis-core to Marketplace
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: npx vsce publish --packagePath packages/core/jarvis-core-*.vsix --no-dependencies
+        run: npx vsce publish --oidc --packagePath packages/core/jarvis-core-*.vsix --no-dependencies
 
    * Uses ``--packagePath`` to publish the already-built VSIX — no double-bundle.
-   * ``VSCE_PAT`` is read from the ``VSCE_PAT`` repository secret.
+   * No ``env`` block and no ``secrets.*`` reference: the identity is the run itself.
    * The add-on steps use the same shape with ``packages/<name>/jarvis-<name>-*.vsix``.
+   * ``@vscode/vsce`` in the root ``package.json`` is ``^4.1.1``; ``--oidc`` is not in
+     the 3.x line the repository used before, so the upgrade is part of this design.
+   * Actions are on their Node-24 majors: ``actions/checkout@v7``,
+     ``actions/setup-node@v7``, ``softprops/action-gh-release@v3``. ``node-version``
+     stays ``'22'``, which is the toolchain for the build and satisfies the ``vsce``
+     4.x engine range ``>= 22``; the action majors concern the runtime of the
+     actions themselves, not that toolchain.
+   * The Marketplace side is a Trusted Publishing policy on publisher ``enthali``
+     bound to repository ``enthali/jarvis`` and workflow file ``release.yml`` with no
+     environment. It lives in the Marketplace, outside this repository, and is
+     configured by the repository owner. The workflow cannot publish until it exists.
    * The GitHub Release step (``softprops/action-gh-release``) comes first and uploads
      ``packages/{core,core-gh,pim,recorder,mcp,flow,kanban}/*.vsix``, so a failed
      Marketplace publish leaves the GitHub Release in place.
@@ -328,9 +349,16 @@ Release Design Specifications
    * AC-2: Each step uses ``--packagePath`` pointing to
      ``packages/<name>/jarvis-<name>-*.vsix`` (``packages/core/jarvis-core-*.vsix``
      for core)
-   * AC-3: The ``VSCE_PAT`` env var is sourced from ``secrets.VSCE_PAT``
+   * AC-3: Every publish step runs ``vsce publish --oidc`` and ``release.yml``
+     contains neither ``VSCE_PAT`` nor ``secrets.VSCE_PAT``
    * AC-4: The Create GitHub Release step ``files`` pattern covers all VSIX locations
      and precedes every publish step
+   * AC-5: The workflow ``permissions`` contain ``id-token: write`` and
+     ``contents: write``
+   * AC-6: The root ``package.json`` declares ``@vscode/vsce`` at ``^4.1.1`` or newer
+     and ``package-lock.json`` resolves it to ``4.1.1`` or newer
+   * AC-7: ``release.yml`` uses ``actions/checkout@v7``, ``actions/setup-node@v7`` and
+     ``softprops/action-gh-release@v3``, and no action pinned to a Node-20 major
 
    .. note::
       The complete current workflow (including all add-on publish steps and the

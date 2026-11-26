@@ -3,7 +3,7 @@
 MCP (Model Context Protocol) HTTP transport for Jarvis.
 
 This extension exposes all tools registered with the Jarvis engine
-(`enthali.jarvis`) over a local MCP HTTP server. It dynamically enumerates
+(`enthali.jarvis-core`) over a local MCP HTTP server. It dynamically enumerates
 tools from the engine's registry and serves their input schemas from the
 VS Code `languageModelTools` manifest declarations.
 
@@ -26,4 +26,4 @@ extension alone does not opt in.
 
 ## Requirements
 
-- `enthali.jarvis` (Jarvis core) must be installed.
+- `enthali.jarvis-core` (Jarvis Core) must be installed.
