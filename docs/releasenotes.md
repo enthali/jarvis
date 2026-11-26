@@ -1,5 +1,23 @@
 # Release Notes
 
+## v0.35.1 (Pre-Release) - Publishing and Documentation Reliability
+
+*2026-11-26*
+
+### Changes
+
+- **streamline-user-story-personas-and-acs**: User Stories consistently identify their personas and describe outcomes without internal API names, making the specification easier to follow.
+- **fix-github-pages-docs-workflow**: Separates documentation build and deployment to make GitHub Pages publishing more reliable.
+- **marketplace-oidc-publishing**: Uses trusted publishing instead of an expiring Marketplace credential and updates the MCP README to name the current Core extension.
+- **pre-release-channel**: Adds an opt-in Marketplace Pre-Release channel for Core and its add-ons. Release Notes can find the matching pre-release when no regular GitHub release exists for the installed version.
+
+### Validation Limits
+
+- This is the first live run of trusted publishing, the pre-release channel, and the two-job Pages workflow. Regular-channel users remain on 0.35.0 unless they opt in.
+- Windows and macOS Agent Host operation are verified; WSL and SSH remain unverified. Codespaces discovery, messaging and chat opening were exercised with a prototype; Dev Tunnels and the Agents window connected to a Codespace remain outside validation. The live Heartbeat PowerShell acceptance run remains deferred.
+
+---
+
 ## v0.35.0 - Kanban Swimlanes and Flow Improvements
 
 *2026-11-25*
