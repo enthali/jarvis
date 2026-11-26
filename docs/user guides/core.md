@@ -1,6 +1,6 @@
 # Jarvis Core
 
-Jarvis Core 0.35.0 (`enthali.jarvis-core`) is the harness: it turns chat sessions and agent personas into actors and provides messaging, reminders, the heartbeat scheduler, and the engine that the other packages build on. Agents window support for Actors, messaging and Kanban arrived in 0.32.0. Requires VS Code 1.144.0 or later; Actor chats additionally require an available, authenticated Agent Host.
+Jarvis Core (`enthali.jarvis-core`) is the harness: it turns chat sessions and agent personas into actors and provides messaging, reminders, the heartbeat scheduler, and the engine that the other packages build on. Agents window support for Actors, messaging and Kanban arrived in 0.32.0. Requires VS Code 1.144.0 or later; Actor chats additionally require an available, authenticated Agent Host.
 
 ## Actors
 

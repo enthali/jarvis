@@ -19,11 +19,11 @@ Configuration User Stories
 
 .. story:: Per-Feature Enable Toggles
    :id: US_CFG_FEATURETOGGLES
-   :status: approved
+   :status: implemented
    :tracked_by: MOD_CONFIG
    :priority: required
 
-   **As a** Jarvis user,
+   **As a** Jarvis User,
    **I want** one on/off toggle per feature
    **so that** I can disable features I don't use without removing configuration.
 
@@ -53,7 +53,7 @@ Configuration User Stories
    :tracked_by: MOD_CONFIG
    :priority: required
 
-   **As a** Jarvis user,
+   **As a** Jarvis User,
    **I want** the runtime files (heartbeat.yaml, the message files under
    messages/, reminders.yaml) to live at fixed paths under ``.jarvis/``
    in my workspace root
@@ -78,14 +78,14 @@ Configuration User Stories
 
 .. story:: Identifiable Jarvis-Owned Workspace Files
    :id: US_CFG_WORKSPACEFILES
-   :status: approved
+   :status: implemented
    :tracked_by: MOD_CONFIG
    :priority: required
    :links: US_CFG_FIXEDPATHS
 
-   **As a** Jarvis user whose workspace is a version-controlled repository,
-   **I want** every file Jarvis generates into my workspace to be recognisable
-   as Jarvis-owned and selectively ignorable,
+   **As a** Jarvis User,
+   **I want** every file Jarvis generates into my version-controlled workspace
+   to be recognisable as Jarvis-owned and selectively ignorable,
    **so that** I can keep Jarvis's runtime artifacts out of my repository
    without also losing control over my own files in the same directories, and
    without having to investigate each unfamiliar file that appears.
@@ -122,13 +122,12 @@ Configuration User Stories
    :priority: required
    :links: US_CFG_FIXEDPATHS; US_CFG_WORKSPACEFILES
 
-   **As a** Jarvis user who inspects or maintains the ``.jarvis/`` directory
-   in my workspace,
+   **As a** Jarvis User,
    **I want** runtime files that belong to the same feature to be grouped
-   together and named for what they hold,
+   together and named for what they hold, wherever I inspect or maintain the
+   ``.jarvis/`` directory in my workspace,
    **so that** I can understand, back up, ignore, or clear a feature's state as
-   one unit, without first learning which of several flat files belong
-   together.
+   one unit, without first learning which of several flat files belong together.
 
    *Context:* ``.jarvis/`` *currently mixes persistent team knowledge*
    (``actors/``) *with flat runtime files. Three of them —*
@@ -170,9 +169,9 @@ Configuration User Stories
    :priority: required
    :links: US_CFG_WORKSPACEFILES; US_CFG_RUNTIMELAYOUT
 
-   **As a** Jarvis user whose workspace is a version-controlled repository,
-   **I want** Jarvis to keep the ignore entries for its own generated files
-   current by itself,
+   **As a** Jarvis User,
+   **I want** Jarvis, in a version-controlled workspace, to keep the ignore
+   entries for its own generated files current by itself,
    **so that** my repository stays free of Jarvis runtime state without me
    having to learn which files Jarvis writes, transcribe them into
    ``.gitignore``, and revisit that list after every Jarvis upgrade.
@@ -218,11 +217,11 @@ Configuration User Stories
 
 .. story:: Grouped Settings Organization
    :id: US_CFG_GROUPS
-   :status: approved
+   :status: implemented
    :tracked_by: MOD_CONFIG
    :priority: required
 
-   **As a** Jarvis user,
+   **As a** Jarvis User,
    **I want** settings organized into clearly named groups — Jarvis core
    groups plus one group per installed add-on
    **so that** settings are discoverable without scrolling through a flat list.

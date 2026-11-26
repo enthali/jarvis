@@ -16,15 +16,15 @@ PIM User Stories
 
    **Acceptance Criteria:**
 
-   * AC-1: A ``CategoryService`` manages one or more category providers behind a
-     common ``ICategoryProvider`` interface (Strategy Pattern) — enabling
-     alternative sources (e.g. Outlook Categories, Gmail Labels)
-   * AC-2: Categories are cached in RAM via a generic ``DomainCache<T>`` interface
-     (``get``, ``invalidate``, ``refresh``) reusable for all PIM domains
-   * AC-3: Cache refresh runs via the heartbeat scheduler at the configured scan interval
-   * AC-4: The provider is stateless — cache management lives in the ``CategoryService``
-   * AC-5: Each cache entry carries a ``source`` tag identifying which provider
-     supplied it
+   * AC-1: Categories come from one or more exchangeable category providers,
+     so that alternative sources (e.g. Outlook Categories, Gmail Labels) can be
+     added or swapped without changing how I use categories
+   * AC-2: Categories are kept in memory, so that reading them does not ask the
+     source every time; the same caching approach serves all PIM domains
+   * AC-3: The cache is refreshed by the heartbeat at the configured scan interval
+   * AC-4: A provider only reads and writes its own source; keeping the cache is
+     not its job
+   * AC-5: Each cached category shows which provider supplied it
 
 
 .. story:: Category Management Tool (LM/MCP)
@@ -34,7 +34,7 @@ PIM User Stories
    :priority: mandatory
    :links: US_PIM_CATEGORIES; US_MSG_MCPSERVER
 
-   **As a** LLM agent working in a Jarvis workspace,
+   **As an** Actor,
    **I want** a tool to get, set, delete, and rename categories,
    **so that** automation workflows can manage categories programmatically.
 
@@ -62,7 +62,7 @@ PIM User Stories
 
 .. story:: Categories Sidebar View
    :id: US_PIM_CATVIEW
-   :status: approved
+   :status: implemented
    :tracked_by: MOD_PIM
    :priority: optional
    :links: US_PIM_CATEGORIES; US_EXP_SIDEBAR
@@ -82,10 +82,9 @@ PIM User Stories
      the categories feature of the Outlook integration
    * AC-5: When no providers are configured, the view shows "no categories"
    * AC-6: Right-clicking a category node offers "Rename Category" — shows an
-     input box pre-filled with the current name, then renames via
-     ``CategoryService``
+     input box pre-filled with the current name, then renames the category
    * AC-7: Right-clicking a category node offers "Delete Category" — shows a
-     confirmation dialog, then deletes via ``CategoryService``
+     confirmation dialog, then deletes the category
 
 
 .. story:: Task Sync via Exchangeable Task Providers
@@ -108,23 +107,23 @@ PIM User Stories
 
    **Acceptance Criteria:**
 
-   * AC-1: A ``TaskService`` manages one or more task providers behind a common
-     ``ITaskProvider`` interface (Strategy Pattern) — enabling alternative sources
-     (e.g. Outlook Tasks, Gmail Tasks)
-   * AC-2: Tasks are cached in RAM via the existing generic ``DomainCache<T>``
-     mechanism; cache refresh runs via the heartbeat scheduler at the configured
-     scan interval
-   * AC-3: The provider is stateless — cache management lives in ``TaskService``
-   * AC-4: ``TaskService.getTasks(filter?)`` returns cached tasks; filters include
-     ``category``, ``status``, and ``dueBefore``
-   * AC-5: ``TaskService.setTask``, ``modifyTask``, and ``deleteTask`` delegate to
-     the provider and immediately invalidate + refresh the cache
-   * AC-6: A ``TaskEditorProvider`` Custom Editor edits a single task;
-     editable fields are ``subject``, ``body``, ``dueDate``, ``status``,
-     ``priority``, and ``categories`` (multi-select from cached categories);
-     ``source`` and ``completedDate`` are read-only
-   * AC-7: Save flow calls ``TaskService.modifyTask()`` → provider → cache invalidate
-     + refresh
+   * AC-1: Tasks come from one or more exchangeable task providers, so that
+     alternative sources (e.g. Outlook Tasks, Gmail Tasks) can be added or
+     swapped without changing how I use tasks
+   * AC-2: Tasks are kept in memory in the same way as categories; the cache is
+     refreshed by the heartbeat at the configured scan interval
+   * AC-3: A provider only reads and writes its own source; keeping the cache is
+     not its job
+   * AC-4: The cached tasks can be listed and filtered by category, status, and
+     due date
+   * AC-5: Creating, changing, and deleting a task is passed on to its provider,
+     and the cached tasks are up to date immediately afterwards
+   * AC-6: A single task opens in a custom editor; its editable fields are
+     subject, body, due date, status, priority, and categories (multi-select
+     from the cached categories); the source and the completion date are
+     read-only
+   * AC-7: Saving in the editor changes the task in its provider, and the cached
+     tasks are up to date immediately afterwards
    * AC-8: A ``jarvis_task`` tool, available to language models and MCP clients,
      supports ``get``, ``set``, ``modify``, and ``delete`` actions
    * AC-9: Outlook as a task source is off by default; the user turns on the

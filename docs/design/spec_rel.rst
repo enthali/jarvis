@@ -106,10 +106,10 @@ Release Design Specifications
 .. spec:: Docs GitHub Actions Workflow
    :id: SPEC_REL_DOCSWORKFLOW
    :status: implemented
-   :links: REQ_REL_DOCSWORKFLOW
+   :links: REQ_REL_DOCSWORKFLOW; REQ_REL_SPHINXCOMPAT
 
    **Description:**
-   Create ``.github/workflows/docs.yml``:
+   ``.github/workflows/docs.yml`` has two jobs, ``build`` and ``deploy``:
 
    .. code-block:: yaml
 
@@ -121,27 +121,64 @@ Release Design Specifications
 
       permissions:
         contents: read
-        pages: write
-        id-token: write
+
+      concurrency:
+        group: pages
+        cancel-in-progress: false
 
       jobs:
-        deploy:
+        build:
           runs-on: ubuntu-latest
+          steps:
+            - uses: actions/checkout@v7
+            - uses: actions/setup-python@v7
+              with:
+                python-version: '3.x'
+            - run: pip install -r docs/requirements.txt
+            - run: python -m sphinx -b html docs docs/_build/html -W --keep-going
+            - uses: actions/upload-pages-artifact@v5
+              with:
+                path: docs/_build/html
+
+        deploy:
+          needs: build
+          runs-on: ubuntu-latest
+          permissions:
+            pages: write
+            id-token: write
           environment:
             name: github-pages
             url: ${{ steps.deployment.outputs.page_url }}
           steps:
-            - uses: actions/checkout@v4
-            - uses: actions/setup-python@v5
-              with:
-                python-version: '3.x'
-            - run: pip install sphinx sphinx-needs furo myst-parser
-            - run: python -m sphinx -b html docs docs/_build/html -W --keep-going
-            - uses: actions/upload-pages-artifact@v3
-              with:
-                path: docs/_build/html
             - id: deployment
-              uses: actions/deploy-pages@v4
+              uses: actions/deploy-pages@v5
+
+   **Design notes:**
+
+   * **Why two jobs:** in ``v0.35.0`` the three ``main`` pushes failed because
+     ``deploy-pages`` ran 485 ms after ``upload-pages-artifact`` in the same job
+     and found 0 artifacts (run ``45509708853``). With ``needs: build`` the
+     deployment starts only after the upload job has ended, on a new runner. This
+     removes the same-job timing; it does not prove that GitHub's artifact index is
+     never late, so a failed ``deploy`` is repeated on its own, without a new
+     Sphinx build. That second property is the reason the jobs are separate.
+   * **Permissions:** ``build`` only reads the repository. The job-level
+     ``permissions`` of ``deploy`` replace the workflow default, so it holds
+     ``pages: write`` and ``id-token: write`` and nothing else.
+   * **Concurrency:** group ``pages`` with ``cancel-in-progress: false`` is the
+     GitHub Pages recommendation: a running deployment finishes, and of several
+     queued runs only the newest stays.
+   * **Action versions:** current majors at ``2026-11-25`` (GitHub releases):
+     ``actions/checkout`` ``v7``, ``actions/setup-python`` ``v7``,
+     ``actions/upload-pages-artifact`` ``v5``, ``actions/deploy-pages`` ``v5``.
+     ``checkout``, ``setup-python`` and ``deploy-pages`` declare ``using: node24``
+     in their ``action.yml``; ``upload-pages-artifact`` is a composite action that calls
+     ``actions/upload-artifact@v7``, which declares ``using: node24``.
+   * **Dependencies:** installed from ``docs/requirements.txt``
+     (``REQ_REL_SPHINXCOMPAT`` AC-6), not from inline package names.
+   * **Release gate:** ``docs/Jarvis Contracts/release.md``, Publication, lists the
+     ``docs.yml`` run on ``main`` as a second workflow to watch and as a row in
+     the Publication evidence (``REQ_REL_DOCSWORKFLOW`` AC-9).
 
    Note: GitHub Pages must be configured in repo Settings → Pages → Source: GitHub Actions.
 
@@ -264,18 +301,41 @@ Release Design Specifications
    Release step it publishes the already-packaged VSIX of ``enthali.jarvis-core`` and
    of each supported add-on (PIM, Recorder, MCP, Flow, Kanban) to the Marketplace,
    one step per extension. The legacy ``enthali.jarvis`` shim has no publish step.
-   The step has this shape, shown for core:
+
+   **Authentication.** The workflow holds no Marketplace credential. It sets
+   ``permissions: contents: write`` and ``id-token: write``; ``vsce publish --oidc``
+   then requests a GitHub OIDC token for the audience ``marketplace.visualstudio.com``
+   and exchanges it at the Marketplace for a session token valid up to 15 minutes.
+   Each ``vsce publish --oidc`` invocation requests and exchanges its own token, so
+   the six sequential steps need no shared state and no token is reused (``vsce``
+   4.1.1, ``src/oidc.ts``). ``--oidc`` never falls back to a PAT: a failed exchange
+   fails the step. The step has this shape, shown for core:
 
    .. code-block:: yaml
 
+      permissions:
+        contents: write
+        id-token: write
+
       - name: Publish enthali.jarvis-core to Marketplace
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: npx vsce publish --packagePath packages/core/jarvis-core-*.vsix --no-dependencies
+        run: npx vsce publish --oidc --packagePath packages/core/jarvis-core-*.vsix --no-dependencies
 
    * Uses ``--packagePath`` to publish the already-built VSIX — no double-bundle.
-   * ``VSCE_PAT`` is read from the ``VSCE_PAT`` repository secret.
+   * No ``env`` block and no ``secrets.*`` reference: the identity is the run itself.
    * The add-on steps use the same shape with ``packages/<name>/jarvis-<name>-*.vsix``.
+   * ``@vscode/vsce`` in the root ``package.json`` is ``^4.1.1``; ``--oidc`` is not in
+     the 3.x line the repository used before, so the upgrade is part of this design.
+   * Actions are on their Node-24 majors: ``actions/checkout@v7``,
+     ``actions/setup-node@v7``, ``softprops/action-gh-release@v3``. ``node-version``
+     stays ``'22'``, which is the toolchain for the build and satisfies the ``vsce``
+     4.x engine range ``>= 22``; the action majors concern the runtime of the
+     actions themselves, not that toolchain.
+   * Channel flags are added to these steps by ``SPEC_REL_CHANNEL``; the shape above
+     is the release channel.
+   * The Marketplace side is a Trusted Publishing policy on publisher ``enthali``
+     bound to repository ``enthali/jarvis`` and workflow file ``release.yml`` with no
+     environment. It lives in the Marketplace, outside this repository, and is
+     configured by the repository owner. The workflow cannot publish until it exists.
    * The GitHub Release step (``softprops/action-gh-release``) comes first and uploads
      ``packages/{core,core-gh,pim,recorder,mcp,flow,kanban}/*.vsix``, so a failed
      Marketplace publish leaves the GitHub Release in place.
@@ -291,13 +351,105 @@ Release Design Specifications
    * AC-2: Each step uses ``--packagePath`` pointing to
      ``packages/<name>/jarvis-<name>-*.vsix`` (``packages/core/jarvis-core-*.vsix``
      for core)
-   * AC-3: The ``VSCE_PAT`` env var is sourced from ``secrets.VSCE_PAT``
+   * AC-3: Every publish step runs ``vsce publish --oidc`` and ``release.yml``
+     contains neither ``VSCE_PAT`` nor ``secrets.VSCE_PAT``
    * AC-4: The Create GitHub Release step ``files`` pattern covers all VSIX locations
      and precedes every publish step
+   * AC-5: The workflow ``permissions`` contain ``id-token: write`` and
+     ``contents: write``
+   * AC-6: The root ``package.json`` declares ``@vscode/vsce`` at ``^4.1.1`` or newer
+     and ``package-lock.json`` resolves it to ``4.1.1`` or newer
+   * AC-7: ``release.yml`` uses ``actions/checkout@v7``, ``actions/setup-node@v7`` and
+     ``softprops/action-gh-release@v3``, and no action pinned to a Node-20 major
 
    .. note::
       The complete current workflow (including all add-on publish steps and the
       ``packages/core-gh`` legacy build) is described in **SPEC_REL_COREGH**.
+
+
+.. spec:: Release Channels in release.yml
+   :id: SPEC_REL_CHANNEL
+   :status: implemented
+   :links: REQ_REL_CHANNEL
+
+   **Description:**
+   ``release.yml`` derives the channel from ``github.ref_name`` once, as a job
+   environment variable, and uses it in three places: the ``vsce package`` steps,
+   the ``vsce publish`` steps, and the GitHub Release step. The trigger stays
+   ``tags: ['v*']``, which already matches ``v0.35.1-pre``.
+
+   .. code-block:: yaml
+
+      jobs:
+        release:
+          env:
+            CHANNEL_FLAG: ${{ endsWith(github.ref_name, '-pre') && '--pre-release' || '' }}
+
+      - name: Package enthali.jarvis-core
+        run: cd packages/core && npx vsce package --no-dependencies $CHANNEL_FLAG
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          prerelease: ${{ endsWith(github.ref_name, '-pre') }}
+
+      - name: Publish enthali.jarvis-core to Marketplace
+        run: npx vsce publish --oidc --packagePath packages/core/jarvis-core-*.vsix --no-dependencies $CHANNEL_FLAG
+
+   The other five Marketplace packages follow the same shape. The unquoted
+   ``$CHANNEL_FLAG`` expands to nothing on a release, so the release channel runs
+   exactly the commands it ran before. The legacy shim's package step carries no
+   flag.
+
+   **Design notes:**
+
+   * **Why the flag goes to both** ``package`` **and** ``publish``. ``vsce package
+     --pre-release`` writes the Marketplace pre-release property into the VSIX;
+     that is what makes the upload a pre-release. ``vsce publish --pre-release``
+     with ``--packagePath`` uploads nothing different, but it refuses a VSIX that
+     was not packaged as a pre-release (``vsce`` 4.1.1, ``src/publish.ts``).
+     Both flags come from the one expression, so a mismatch fails the step
+     instead of publishing a version on the wrong channel.
+
+   * **Why the manifests are untouched.** ``vsce`` 4.1.1 rejects a SemVer
+     pre-release suffix in the manifest version
+     (``src/publish.ts``: "The VS Marketplace doesn't support prerelease
+     versions"). The channel lives in the tag and the flag; ``package.json`` stays
+     ``MAJOR.MINOR.PATCH``.
+
+   * **Why the update check needs no change.** ``SPEC_REL_UPDATECHECK`` reads
+     ``/releases/latest``, which GitHub defines to exclude pre-releases, so
+     marking the GitHub Release as a pre-release is what keeps it out of the
+     check. The check is not edited and must not be changed to list releases. The
+     consequence is that a user on the GitHub update path who runs a pre-release
+     is not notified of a newer pre-release by that path; the Marketplace
+     delivers pre-releases to users who opted in.
+
+   * **Why the Release Contract is part of the design.** The tag is irreversible
+     once pushed, and the channel is chosen by its spelling. Recording the channel
+     in the Contract header makes the spelling a checked decision.
+     ``docs/Jarvis Contracts/release.md`` is not governed by a Need of its own;
+     ``REQ_REL_CHANNEL`` AC-7 is the trace for it, as ``REQ_REL_DOCSWORKFLOW``
+     AC-9 is for the ``docs.yml`` check.
+
+   **Acceptance Criteria (testable)**
+
+   * AC-1: ``release.yml`` keeps its file name and ``on.push.tags`` of ``['v*']``,
+     and no other workflow file publishes to the Marketplace
+   * AC-2: ``release.yml`` defines ``CHANNEL_FLAG`` from
+     ``endsWith(github.ref_name, '-pre')`` as ``--pre-release`` or the empty string
+   * AC-3: The ``vsce package`` steps of core, PIM, Recorder, MCP, Flow and Kanban
+     and the six ``vsce publish`` steps each contain ``$CHANNEL_FLAG``; the
+     ``vsce package`` step of the legacy shim does not
+   * AC-4: The Create GitHub Release step sets ``prerelease`` from
+     ``endsWith(github.ref_name, '-pre')``
+   * AC-5: ``version`` in the root and every ``packages/*/package.json`` matches
+     ``^\d+\.\d+\.\d+$``
+   * AC-6: ``docs/Jarvis Contracts/release.md`` contains the ``Channel`` header
+     field, the tag rules ``v{version}`` and ``v{version}-pre``, and the
+     ``(Pre-Release)`` heading rule
+   * AC-7: ``docs/user guides/getting-started.md`` or ``core.md`` names *Switch to
+     Pre-Release Version* and *Switch to Release Version*
 
 
 .. spec:: Legacy Package → Migration Shim (enthali.jarvis)
@@ -621,7 +773,9 @@ Release Design Specifications
    New module ``packages/core/src/engine/core/releaseNotes.ts`` shows the GitHub
    release page for the installed version in the editor's own browser view —
    automatically the first time that version runs, and on demand from the
-   Command Palette. Contributed by ``enthali.jarvis-core`` only.
+   Command Palette. The page is found by asking GitHub which of ``v{version}``
+   and ``v{version}-pre`` exists (``REQ_REL_NOTESTARGET``). Contributed by
+   ``enthali.jarvis-core`` only.
 
    **Manifest contributions (**\ ``packages/core/package.json``\ **):**
 
@@ -685,10 +839,37 @@ Release Design Specifications
       const INTEGRATED_BROWSER = 'workbench.action.browser.open';
       const SIMPLE_BROWSER_OPEN = 'simpleBrowser.api.open';
 
-      function notesUri(version: string): vscode.Uri {
-          return vscode.Uri.parse(
-              `https://github.com/enthali/jarvis/releases/tag/v${version}`
-          );
+      const RELEASES_URL = 'https://github.com/enthali/jarvis/releases';
+      const LOOKUP_TIMEOUT_MS = 5000;
+
+      // true: the release exists; false: it does not; undefined: cannot tell.
+      async function releaseExists(tag: string): Promise<boolean | undefined> {
+          try {
+              const res = await fetch(
+                  `https://api.github.com/repos/enthali/jarvis/releases/tags/${tag}`,
+                  {
+                      headers: { 'User-Agent': 'Jarvis-VSCode-Extension' },
+                      signal: AbortSignal.timeout(LOOKUP_TIMEOUT_MS)
+                  }
+              );
+              if (res.status === 200) { return true; }
+              return res.status === 404 ? false : undefined;
+          } catch {
+              return undefined;
+          }
+      }
+
+      async function notesUri(version: string): Promise<vscode.Uri> {
+          for (const tag of [`v${version}`, `v${version}-pre`]) {
+              const exists = await releaseExists(tag);
+              if (exists === undefined) { break; }
+              if (exists) {
+                  return vscode.Uri.parse(
+                      `https://github.com/enthali/jarvis/releases/tag/${tag}`
+                  );
+              }
+          }
+          return vscode.Uri.parse(RELEASES_URL);
       }
 
       async function openInEditor(uri: vscode.Uri): Promise<boolean> {
@@ -699,7 +880,7 @@ Release Design Specifications
       }
 
       async function open(version: string, log?: vscode.LogOutputChannel): Promise<void> {
-          const uri = notesUri(version);
+          const uri = await notesUri(version);
           try {
               if (await openInEditor(uri)) { return; }
               log?.warn(`[ReleaseNotes] integrated browser unavailable: ${uri.toString()}`);
@@ -849,12 +1030,24 @@ Release Design Specifications
      same premise, as ``SPEC_CFG_IGNOREMANAGER`` (``US_CFG_RUNTIMELAYOUT``
      AC-5: no activation order is guaranteed).
 
-   * **No network call is made by this module.** The URL is built from a version
-     already known locally. The browser view then fetches the page, as any
-     browser would; what ``REQ_REL_NOTESTARGET`` AC-4 rules out is Jarvis
-     resolving or validating the target itself. ``SPEC_REL_UPDATECHECK`` uses
-     the API because only the API knows what the newest release is; that reason
-     does not apply to a version the extension host is currently running.
+   * **Why the module now asks GitHub, and only inside** ``open()``. The channel
+     is in the tag and not in the manifest (``REQ_REL_CHANNEL``), so the installed
+     version no longer determines the URL. The request is made in ``open()``
+     and nowhere earlier, so every path that returns before it — marker equal,
+     no workspace, silent first run, setting off — still makes no request. The
+     marker is written before ``open()`` runs, so a failing lookup cannot
+     disturb it.
+
+   * **Why the first non-answer ends the lookup.** ``404`` for ``v{version}``
+     means "try the other tag"; a timeout, an error or a rate limit means GitHub
+     was not asked successfully, and a second request would meet the same
+     condition. The release list is the target in both cases: it exists whatever
+     the reason the lookup failed.
+
+   * **The tag order is fixed, release first.** Both tags cannot exist for one
+     version (``REQ_REL_CHANNEL`` keeps versions strictly increasing across
+     channels), so the order only decides how many requests a pre-release user
+     costs: two, against one for a release.
 
    **Acceptance Criteria:**
 
@@ -869,10 +1062,11 @@ Release Design Specifications
      setting ``true``, activation opens the notes for the installed version
    * AC-5: With the marker equal to the installed version, activation opens
      nothing, shows no notification and makes no network request
-   * AC-6: With a marker differing from the installed version and the setting
-     ``true``, exactly one ``simpleBrowser.api.open`` call is made, with a
-     ``Uri`` of ``https://github.com/enthali/jarvis/releases/tag/v{installed}``,
-     and ``vscode.env.openExternal`` is not called
+   * AC-6: With a marker differing from the installed version, the setting
+     ``true`` and the lookup answering ``200`` for ``v{installed}``, exactly one
+     ``simpleBrowser.api.open`` call is made, with a ``Uri`` of
+     ``https://github.com/enthali/jarvis/releases/tag/v{installed}``, after
+     exactly one lookup request, and ``vscode.env.openExternal`` is not called
    * AC-7: With a marker differing from the installed version and the setting
      ``false``, nothing is opened and the marker is advanced to the installed
      version
@@ -893,9 +1087,24 @@ Release Design Specifications
    * AC-13: No package other than ``core`` registers ``jarvis.showReleaseNotes``
      or reads or writes the marker file
    * AC-14: Activation completes even if ``simpleBrowser.api.open`` never
-     resolves
+     resolves, and even if a lookup request never resolves
    * AC-15: ``vscode.env.openExternal`` appears in this module only on the
      user-chosen branch of AC-10
+   * AC-16: With the lookup answering ``404`` for ``v{installed}`` and ``200`` for
+     ``v{installed}-pre``, two requests are made, in that order, and the ``Uri``
+     is ``https://github.com/enthali/jarvis/releases/tag/v{installed}-pre``
+   * AC-17: With the lookup answering ``404`` for both tags, the ``Uri`` is
+     ``https://github.com/enthali/jarvis/releases``
+   * AC-18: With the first lookup request failing, timing out, or answered with
+     a status other than ``200`` or ``404``, no second request is made, the
+     ``Uri`` is ``https://github.com/enthali/jarvis/releases``, the notes are still
+     opened, and no error is shown
+   * AC-19: Lookup requests are sent to
+     ``https://api.github.com/repos/enthali/jarvis/releases/tags/{tag}`` with a
+     ``User-Agent`` header, with no ``Authorization`` header, and with a time
+     limit
+   * AC-20: The manual command of AC-11 resolves the target as in AC-6, AC-16,
+     AC-17 and AC-18
 
 
 .. spec:: Extension Package Contract

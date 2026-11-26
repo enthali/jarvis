@@ -67,7 +67,7 @@ Message Queue Requirements
 
 .. req:: Embedded MCP Server
    :id: REQ_MSG_MCPSERVER
-   :status: approved
+   :status: implemented
    :priority: mandatory
    :links: US_MSG_MCPSERVER
 
@@ -82,8 +82,10 @@ Message Queue Requirements
      ``REQ_CFG_MCPDEFAULTOFF``)
    * AC-2: The MCP server SHALL use the ``@modelcontextprotocol/sdk`` package
      with ``StreamableHTTPServerTransport``
-   * AC-3: Each LM Tool SHALL be simultaneously registered as an MCP Tool with
-     the same name, input schema, and equivalent handler logic
+   * AC-3: Each tool in the shared Jarvis tool registry (``SPEC_ENG_TOOLREGISTRY``)
+     SHALL also be exposed as an MCP Tool with the same name, input schema, and
+     equivalent handler logic, so a tool registered by any module is reachable
+     through MCP without a second registration
    * AC-4: MCP tool handlers SHALL return JSON objects (not
      ``LanguageModelToolResult``)
    * AC-5: The MCP server SHALL stop cleanly during extension deactivation

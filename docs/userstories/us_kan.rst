@@ -7,7 +7,7 @@ Kanban User Stories
    :tracked_by: MOD_KANBAN
    :priority: required
 
-   **As a** Jarvis user or agent,
+   **As a** Jarvis User,
    **I want** to define a kanban board in a YAML file and see it rendered as a
    visual board in VS Code,
    **so that** I can track work items, their status, and priority at a glance
@@ -41,9 +41,9 @@ Kanban User Stories
    :priority: required
    :links: US_KAN_BOARD
 
-   **As a** Jarvis user looking at a board with many cards,
-   **I want** to group its cards into horizontal lanes by a field of the board or
-   by label,
+   **As a** Jarvis User,
+   **I want** to group the cards of a board with many cards into horizontal
+   lanes by a field of the board or by label,
    **so that** I can scan a long board by category instead of reading long flat
    columns.
 
@@ -71,11 +71,11 @@ Kanban User Stories
 
 .. story:: Convention-Based Board Discovery
    :id: US_KAN_DISCOVER
-   :status: approved
+   :status: implemented
    :tracked_by: MOD_KANBAN
    :priority: required
 
-   **As a** Jarvis user,
+   **As a** Jarvis User,
    **I want** kanban boards to be discovered automatically by placing a YAML
    file in an Actor's folder,
    **so that** I do not need to configure paths — the file's location determines
@@ -100,7 +100,7 @@ Kanban User Stories
    :priority: required
    :links: US_ACTOR_WHOAMI
 
-   **As an** LLM operating within a Jarvis actor session,
+   **As an** Actor,
    **I want** tools to create, validate, open and maintain kanban boards,
    **so that** I can manage boards programmatically without requiring the user
    to edit YAML manually or navigate the UI.
@@ -138,7 +138,7 @@ Kanban User Stories
    :priority: required
    :links: US_KAN_TOOLS
 
-   **As an** LLM operating within a Jarvis actor session,
+   **As an** Actor,
    **I want** to ask a board for just the items I care about, and get back only
    the fields I need to identify them,
    **so that** working with a large board does not consume my context window on
@@ -179,12 +179,12 @@ Kanban User Stories
 
 .. story:: Kanban Skill and Instructions Content
    :id: US_KAN_SKILL
-   :status: approved
+   :status: implemented
    :tracked_by: MOD_KANBAN
    :priority: required
    :links: US_KAN_TOOLS; US_MOD_SKILL_PROVISION; US_ACTOR_WHOAMI
 
-   **As an** LLM operating within a Jarvis actor session,
+   **As an** Actor,
    **I want** the kanban skill and instructions to describe the board ontology,
    the tool workflow, and the traps I can fall into,
    **so that** I can author and edit a board correctly on the first attempt
@@ -221,13 +221,13 @@ Kanban User Stories
 
 .. story:: Named Freeform Text Fields
    :id: US_KAN_TEXTFIELD
-   :status: approved
+   :status: implemented
    :tracked_by: MOD_KANBAN
    :priority: required
    :links: US_KAN_BOARD
 
-   **As a** board author,
-   **I want** to declare named freeform text fields on a board,
+   **As a** Jarvis User,
+   **I want** to declare named freeform text fields on a board I author,
    **so that** I can record per-item prose such as a rationale or a blocker
    under a name that says what it is.
 

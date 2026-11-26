@@ -3,11 +3,11 @@ Modular Delivery User Stories
 
 .. story:: Install Only the Capabilities I Need
    :id: US_MOD_INSTALL
-   :status: approved
+   :status: implemented
    :tracked_by: MOD_DISTRIBUTION
    :priority: required
 
-   **As a** Jarvis user,
+   **As a** Jarvis User,
    **I want** to install only the capabilities I need — a lean core
    (sessions, messaging, reminders, heartbeat) with optional capability add-ons,
    **so that** my workspace isn't cluttered with views, settings, and tools I
@@ -44,16 +44,16 @@ Modular Delivery User Stories
 
 .. story:: Module Copilot Asset Self-Provisioning
    :id: US_MOD_SKILL_PROVISION
-   :status: approved
+   :status: implemented
    :tracked_by: MOD_DISTRIBUTION
    :priority: required
    :links: US_MOD_INSTALL
 
-   **As a** Jarvis user who installs a module,
-   **I want** that module's bundled Copilot Skill and Instructions files
-   automatically placed in my workspace's ``.github/skills/`` and
-   ``.github/instructions/`` on activation — and kept current as I update
-   the module —
+   **As a** Jarvis User,
+   **I want** the bundled Copilot Skill and Instructions files of a module I
+   install to be placed automatically in my workspace's ``.github/skills/`` and
+   ``.github/instructions/`` on activation, and kept current as I update the
+   module,
    **so that** I get the right AI guidance without any manual setup.
 
    **Context:**
@@ -84,14 +84,15 @@ Modular Delivery User Stories
 
 .. story:: Actor Behavioural Rules Delivered With the Product
    :id: US_MOD_ACTORRULES
-   :status: approved
+   :status: implemented
    :tracked_by: MOD_DISTRIBUTION
    :priority: required
    :links: US_MOD_SKILL_PROVISION; US_ACTOR_ACTORS
 
-   **As a** Jarvis user who runs actors in a workspace,
-   **I want** the actor behavioural rules — kernel, memory discipline, authoring
-   discipline — to arrive and stay current with the Jarvis extension itself,
+   **As a** Jarvis User,
+   **I want** the actor behavioural rules (kernel, memory discipline, authoring
+   discipline) to arrive and stay current with the Jarvis extension itself, for
+   every workspace in which I run actors,
    **so that** every actor in every one of my workspaces behaves consistently
    without me copying instruction files between repositories by hand.
 
@@ -125,13 +126,14 @@ Modular Delivery User Stories
 
 .. story:: Know the Readiness of Jarvis Extensions
   :id: US_MOD_READINESS
-  :status: approved
+  :status: implemented
   :tracked_by: MOD_DISTRIBUTION
   :priority: required
   :links: US_MOD_INSTALL; US_REL_MARKETPLACE
 
-   **As a** VS Code user considering a Jarvis extension,
-   **I want** its maturity, limitations, and availability stated clearly,
+   **As a** Jarvis User,
+   **I want** the maturity, limitations, and availability of a Jarvis extension
+   to be stated clearly,
    **so that** I can decide whether to install or rely on it.
 
    **Acceptance Criteria:**
@@ -154,17 +156,18 @@ Modular Delivery User Stories
 
 .. story:: Tell Jarvis Tools Apart From Other Tools
    :id: US_MOD_TOOLREF
-   :status: approved
+   :status: implemented
    :tracked_by: MOD_DISTRIBUTION
    :priority: required
    :links: US_MOD_INSTALL
 
-   **As a** user or model that sees Jarvis tools next to the tools of other
-   extensions,
+   **As a** Jarvis User,
    **I want** every Jarvis tool reference and description to name the Jarvis
-   package that owns the tool,
-   **so that** a generic reference such as ``#task`` or ``#category`` cannot be
-   taken for a tool of another extension, nor the other way round.
+   package that owns the tool, wherever Jarvis tools appear next to the tools of
+   other extensions,
+   **so that** neither I nor the model I work with can take a generic reference
+   such as ``#task`` or ``#category`` for a tool of another extension, nor the
+   other way round.
 
    **Context:**
    The chat tool picker, ``#`` references and CLI listings show a tool by its

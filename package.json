@@ -2,7 +2,7 @@
   "name": "jarvis",
   "displayName": "Jarvis",
   "description": "Personal assistant for managing projects and events in VS Code",
-  "version": "0.35.0",
+  "version": "0.35.1",
   "publisher": "enthali",
   "workspaces": [
     "packages/*"
@@ -33,7 +33,7 @@
     "@types/vscode": "^1.85.0",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
-    "@vscode/vsce": "^3.0.0",
+    "@vscode/vsce": "^4.1.1",
     "esbuild": "^0.28.1",
     "eslint": "^9.0.0",
     "sharp": "^0.35.2",

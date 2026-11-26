@@ -25,7 +25,9 @@ Release Requirements
 
    **Description:**
    A GitHub Actions workflow SHALL build the Sphinx documentation and deploy it
-   to GitHub Pages on every push to ``main``.
+   to GitHub Pages on every push to ``main``. Building and deploying SHALL be
+   separate jobs, so that a failed deployment can be repeated without a new
+   build and the deployment never starts in the job that uploaded the artifact.
 
    **Acceptance Criteria:**
 
@@ -33,6 +35,22 @@ Release Requirements
    * AC-2: Trigger is ``push`` to branch ``main``
    * AC-3: Sphinx build errors stop the workflow and surface as a failed check
    * AC-4: Deployed docs are accessible at ``https://enthali.github.io/Jarvis``
+   * AC-5: The workflow has a ``build`` job that builds the documentation and
+     uploads it as the Pages artifact, and a separate ``deploy`` job with
+     ``needs: build`` that deploys that artifact; nothing is deployed when
+     ``build`` fails
+   * AC-6: Only the ``deploy`` job holds ``pages: write`` and ``id-token: write``;
+     the ``build`` job holds ``contents: read`` only
+   * AC-7: Workflow runs share one concurrency group and do not cancel a running
+     deployment, so rapid pushes to ``main`` neither run two deployments at once
+     nor abort one half way
+   * AC-8: The workflow uses the current major version of every action it calls,
+     each of which runs on Node 24, so that the runner reports no Node
+     deprecation warning for it
+   * AC-9: The Release Contract (``docs/Jarvis Contracts/release.md``) requires
+     Release to watch the ``docs.yml`` run on ``main`` to completion, next to
+     ``release.yml``, and to record that run in the Publication evidence, so
+     that a failed Pages deployment is not overlooked at a release
 
 
 .. req:: Release GitHub Action
@@ -287,13 +305,28 @@ Release Requirements
    installed version. This requirement owns *which* page and *how* it is
    reached, so the two consumers cannot drift apart.
 
-   **Why the URL is constructed rather than resolved:**
-   ``REQ_REL_UPDATECHECK`` obtains ``html_url`` from the GitHub API, because it
-   is asking a question only the API can answer — what the *latest* release is.
-   Here the version is already known locally, so resolving it would add a
-   network call on every activation, a second consumer of the 60 requests/hour
-   the update check already lives within, and a failure mode when offline. The
-   price is that the URL can name a page that does not exist.
+   **Why the release is looked up rather than the URL constructed:**
+   The URL used to be built from the installed version alone, accepting that it
+   could name a page that does not exist. That held while a version had one tag,
+   ``v{version}``. Under ``REQ_REL_CHANNEL`` it is tagged ``v{version}`` or
+   ``v{version}-pre``, and the manifest, which must stay plain ``MAJOR.MINOR.PATCH``,
+   cannot say which. Building ``v{version}`` would send every pre-release user to
+   a page that does not exist — the normal case of that channel, not an edge.
+   The extension therefore asks GitHub which of the two tags exists, just before
+   it opens the page. Two alternatives were rejected: stamping the channel into
+   the manifests in CI, which rewrites checked-in files per channel, adds a second
+   source of truth for the channel and fails silently as the same missing page;
+   and reading VS Code's own pre-release flag from ``packageJSON``, which is
+   undocumented and so not a contract Jarvis can rely on.
+
+   **Why the lookup does not undo the old reasoning:**
+   It runs only when a page is about to be opened — after a version change, or on
+   the manual command — so activation with nothing to open still makes no
+   request (``REQ_REL_NOTESONCE`` AC-4). It costs one or two unauthenticated
+   requests per update, inside the 60 requests/hour the update check already
+   lives within. When the lookup cannot answer, the user lands on the release
+   list, a page that exists and from which the release is one click, instead of
+   a guess that may be missing.
 
    **Why the editor's own browser rather than the system default:**
    The notes are read directly after an update, while the user is working. The
@@ -318,9 +351,11 @@ Release Requirements
    **Acceptance Criteria:**
 
    * AC-1: The target SHALL be
-     ``https://github.com/enthali/jarvis/releases/tag/v{version}``, where
-     ``{version}`` is the installed version of ``enthali.jarvis-core`` as read
-     from ``context.extension.packageJSON.version``
+     ``https://github.com/enthali/jarvis/releases/tag/{tag}``, where ``{tag}`` is
+     ``v{version}`` if a release with that tag exists, otherwise
+     ``v{version}-pre`` if that exists, and ``{version}`` is the installed
+     version of ``enthali.jarvis-core`` as read from
+     ``context.extension.packageJSON.version``
    * AC-2: The target SHALL be opened inside VS Code, in the editor's own
      browser view, via the command ``simpleBrowser.api.open``. Jarvis SHALL NOT
      use ``vscode.env.openExternal`` as the delivery path for the notes
@@ -328,21 +363,28 @@ Release Requirements
      by testing for the command ``workbench.action.browser.open`` — before
      invoking AC-2. If it is not available, Jarvis SHALL NOT invoke AC-2 and
      SHALL take AC-6 instead
-   * AC-4: Jarvis SHALL NOT itself issue any network request to produce or
-     validate the target, and SHALL NOT use an authenticated or rate-limited
-     endpoint. The browser view fetches the page it displays; that is the
-     browser doing its job, not Jarvis validating the target
-   * AC-5: A version that was never released SHALL be allowed to produce a
-     "not found" page in the browser view. This is the accepted consequence of
-     AC-4 and SHALL NOT be worked around by suppressing the open, because
-     Jarvis cannot distinguish "not released" from "not released *yet*" without
-     the network call AC-4 forbids
+   * AC-4: Jarvis SHALL determine ``{tag}`` with at most two unauthenticated
+     ``GET`` requests to
+     ``https://api.github.com/repos/enthali/jarvis/releases/tags/{tag}``, sent
+     with a ``User-Agent`` header and no token, and only when a page is about to
+     be opened. It SHALL use no other endpoint to produce the target. The browser
+     view fetching the page it displays is the browser doing its job, not
+     Jarvis validating the target
+   * AC-5: A version for which neither tag has a release SHALL open the release
+     list ``https://github.com/enthali/jarvis/releases`` rather than a page that
+     does not exist. The open SHALL NOT be suppressed: Jarvis cannot distinguish
+     "not released" from "not released *yet*", and the list is useful in both
    * AC-6: Where the notes cannot be opened in the editor — AC-3 unmet, or the
      open itself failing — the user SHALL be shown a message containing the URL
      and offering to open it externally. Leaving the editor SHALL happen only
      because the user chose that control, never on Jarvis's initiative
      (``US_REL_WHATSNEW`` AC-7 and AC-8). Failure SHALL NOT be swallowed
      silently and SHALL NOT block activation
+   * AC-7: Each lookup request SHALL be bounded in time. A request that fails,
+     times out, or is answered with anything other than ``200`` or ``404`` (a rate
+     limit, an outage) SHALL end the lookup without a further request and take the
+     AC-5 target. Such a failure SHALL NOT suppress the open, SHALL NOT be shown
+     to the user as an error, and SHALL NOT block activation
 
 
 .. req:: Last-Shown Version Marker
@@ -545,19 +587,83 @@ Release Requirements
    **Description:**
    The GitHub Actions release workflow SHALL publish the packaged ``.vsix`` of
    ``enthali.jarvis-core`` and of each supported add-on (PIM, Recorder, MCP, Flow,
-   Kanban) to the VS Code Marketplace after creating the GitHub Release, using the
-   ``VSCE_PAT`` secret stored in the repository. The legacy ``enthali.jarvis`` shim
-   SHALL NOT be published to the Marketplace.
+   Kanban) to the VS Code Marketplace after creating the GitHub Release. The workflow
+   SHALL authenticate to the Marketplace by OIDC Trusted Publishing: the run proves its
+   identity with a short-lived GitHub OIDC token and no Personal Access Token is stored
+   in the repository. The legacy ``enthali.jarvis`` shim SHALL NOT be published to the
+   Marketplace.
 
    **Acceptance Criteria:**
 
    * AC-1: One ``vsce publish`` step per published extension runs after the GitHub
      Release step in ``release.yml``
    * AC-2: Each step uses the pre-built ``.vsix`` (``--packagePath``) to avoid double-bundling
-   * AC-3: The ``VSCE_PAT`` secret is passed as ``VSCE_PAT`` environment variable
+   * AC-3: Each publish step authenticates with ``vsce publish --oidc``; no publish step
+     passes a token, and ``release.yml`` references no ``VSCE_PAT`` secret
    * AC-4: The GitHub Release step precedes the publish steps and uploads every
      ``.vsix``, including the legacy shim, so a Marketplace failure cannot prevent
      the GitHub Release
+   * AC-5: The workflow grants ``id-token: write``, the permission GitHub requires
+     before it issues an OIDC token to the run, in addition to ``contents: write``
+   * AC-6: ``@vscode/vsce`` is declared as a devDependency at version ``4.1.1`` or
+     newer, because ``--oidc`` does not exist in the 3.x line
+   * AC-7: The workflow uses the current major version of every action it calls
+     (``actions/checkout``, ``actions/setup-node``, ``softprops/action-gh-release``),
+     each of which runs on Node 24, so that the runner reports no Node deprecation
+     warning for it
+
+
+.. req:: Release Channels
+   :id: REQ_REL_CHANNEL
+   :status: implemented
+   :priority: required
+   :links: US_REL_PRERELEASE; US_REL_PRERELEASEOPTIN; REQ_REL_RELEASEACTION; REQ_REL_MKTPUBLISH
+
+   **Description:**
+   Every version SHALL be shipped on exactly one of two channels, **release** or
+   **pre-release**, through the one ``release.yml`` workflow. The pushed tag
+   selects the channel: a tag ending in ``-pre`` is a pre-release, any other
+   ``v*`` tag is a release. The channel is a property of the publication, not of
+   the version: manifests carry plain ``X.Y.Z`` on both channels.
+
+   **Why the tag carries the channel and the manifest does not:**
+   The Marketplace tooling rejects a SemVer pre-release suffix in a manifest
+   version, and ``--pre-release`` is a separate flag. A manifest suffix would
+   therefore be wrong on the very channel it is meant for. Versions stay strictly
+   increasing across both channels, so a version is published once, on one
+   channel; promoting a pre-release is a later version, not a re-tag.
+
+   **Why one workflow file serves both channels:**
+   The Marketplace Trusted Publishing policy (``REQ_REL_MKTPUBLISH``) is bound
+   to the workflow file name. A second workflow would need a second policy and a
+   second place for the two to drift apart.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``release.yml`` remains the only release workflow and keeps its file
+     name and its trigger on ``v*`` tags
+   * AC-2: The version in every ``package.json`` is plain ``MAJOR.MINOR.PATCH``,
+     with no pre-release suffix
+   * AC-3: For a tag ending in ``-pre``, each of the six Marketplace packages
+     (core, PIM, Recorder, MCP, Flow, Kanban) is packaged with
+     ``vsce package --pre-release`` and published with
+     ``vsce publish --pre-release``
+   * AC-4: For any other tag, no ``--pre-release`` flag is passed to any ``vsce``
+     command
+   * AC-5: The legacy ``enthali.jarvis`` shim is never packaged or published as
+     a pre-release
+   * AC-6: The GitHub Release is marked as a pre-release if and only if the tag
+     ends in ``-pre``. Consequently ``releases/latest``, which
+     ``REQ_REL_UPDATECHECK`` queries, never returns a pre-release, and a user on
+     the GitHub update path is never offered one
+   * AC-7: The Release Contract (``docs/Jarvis Contracts/release.md``) records the
+     channel in its header, tags ``v{version}`` for a release and
+     ``v{version}-pre`` for a pre-release, and requires the heading of a
+     pre-release in ``docs/releasenotes.md`` to carry ``(Pre-Release)``, so that
+     the channel is decided in the Contract before the tag is pushed
+   * AC-8: The user guide explains that Jarvis Core and each installed add-on are
+     switched to pre-release individually, with *Switch to Pre-Release Version*,
+     and switched back with *Switch to Release Version*
 
 
 .. req:: Extension Package Contract

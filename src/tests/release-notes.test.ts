@@ -14,6 +14,7 @@ const mockExecuteCommand = vi.fn().mockResolvedValue(undefined);
 const mockOpenExternal = vi.fn<(uri: any) => Promise<boolean>>().mockResolvedValue(true);
 const mockShowInformationMessage = vi.fn().mockResolvedValue(undefined);
 const mockGetConfiguration = vi.fn();
+const mockFetch = vi.fn();
 
 vi.mock('vscode', () => ({
     Uri: { parse: (s: string) => ({ toString: () => s, scheme: 'https' }) },
@@ -58,9 +59,13 @@ beforeEach(() => {
     statePath = path.join(stateDir, 'release-notes.json');
     mockGetCommands.mockResolvedValue(['workbench.action.browser.open']);
     mockGetConfiguration.mockReturnValue({ get: (_key: string, def: boolean) => def });
+    mockFetch.mockReset();
+    mockFetch.mockResolvedValue({ status: 200 });
+    vi.stubGlobal('fetch', mockFetch);
 });
 
 afterEach(() => {
+    vi.unstubAllGlobals();
     fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
@@ -222,6 +227,60 @@ describe('SPEC_REL_RELEASENOTES: showReleaseNotes (manual command)', () => {
         // marker unchanged
         const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
         expect(state.lastShownVersion).toBe('1.0.0');
+    });
+
+    // AC-16, AC-17, AC-18: tag lookup order and fallbacks
+    it.each([
+        ['404 then 200 → -pre tag', [404, 200], 2, 'https://github.com/enthali/jarvis/releases/tag/v2.0.0-pre'],
+        ['404 for both → releases list', [404, 404], 2, 'https://github.com/enthali/jarvis/releases'],
+        ['unexpected status → releases list, one request', [500], 1, 'https://github.com/enthali/jarvis/releases'],
+    ])('lookup %s', async (_name, statuses, calls, expected) => {
+        for (const status of statuses as number[]) { mockFetch.mockResolvedValueOnce({ status }); }
+        await showReleaseNotes(makeContext('2.0.0'));
+
+        expect(mockFetch).toHaveBeenCalledTimes(calls as number);
+        expect(mockExecuteCommand.mock.calls[0][1].toString()).toBe(expected);
+    });
+
+    it('failing lookup still opens the notes, without a second request', async () => {
+        mockFetch.mockRejectedValueOnce(new Error('offline'));
+        await showReleaseNotes(makeContext('2.0.0'));
+
+        expect(mockFetch).toHaveBeenCalledTimes(1);
+        expect(mockExecuteCommand.mock.calls[0][1].toString()).toBe('https://github.com/enthali/jarvis/releases');
+    });
+
+    // AC-16, AC-19: request order, URL, headers, time limit
+    it('requests v{version} then v{version}-pre from the tags API with User-Agent, no Authorization and a time limit', async () => {
+        mockFetch.mockResolvedValueOnce({ status: 404 }).mockResolvedValueOnce({ status: 404 });
+        await showReleaseNotes(makeContext('2.0.0'));
+
+        expect(mockFetch.mock.calls.map(c => c[0])).toEqual([
+            'https://api.github.com/repos/enthali/jarvis/releases/tags/v2.0.0',
+            'https://api.github.com/repos/enthali/jarvis/releases/tags/v2.0.0-pre',
+        ]);
+        for (const [, init] of mockFetch.mock.calls) {
+            const headers = Object.fromEntries(Object.entries(init.headers).map(([k, v]) => [k.toLowerCase(), v]));
+            expect(headers['user-agent']).toBeTruthy();
+            expect(headers).not.toHaveProperty('authorization');
+            expect(init.signal).toBeInstanceOf(AbortSignal);
+        }
+    });
+
+    // AC-18: a timeout (aborted request) is a non-answer
+    it('timed-out lookup → releases list, one request, no error shown', async () => {
+        mockFetch.mockRejectedValueOnce(new DOMException('timeout', 'TimeoutError'));
+        await showReleaseNotes(makeContext('2.0.0'));
+
+        expect(mockFetch).toHaveBeenCalledTimes(1);
+        expect(mockExecuteCommand.mock.calls[0][1].toString()).toBe('https://github.com/enthali/jarvis/releases');
+        expect(mockShowInformationMessage).not.toHaveBeenCalled();
+    });
+
+    // AC-14: activation does not await the lookup
+    it('activation calls announceIfNewVersion without awaiting it', () => {
+        const src = fs.readFileSync(path.join(__dirname, '../../packages/core/src/extension.ts'), 'utf8');
+        expect(src).toMatch(/^\s*void announceIfNewVersion\(context, log\);/m);
     });
 
     // AC-11: works with no workspace

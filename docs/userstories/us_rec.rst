@@ -3,12 +3,12 @@ Recording User Stories
 
 .. story:: Record a Meeting for an Actor
    :id: US_REC_CAPTURE
-   :status: approved
+   :status: implemented
    :tracked_by: MOD_RECORDER
    :priority: mandatory
    :links: US_ACTOR_TREE; US_REC_ENABLE
 
-   **As a** Jarvis user,
+   **As a** Jarvis User,
    **I want** to start the recording of a meeting for a chosen Actor with a single action, and to get back to the running recording at any time,
    **so that** the Actor can turn the meeting into minutes using its own context.
 
@@ -28,7 +28,7 @@ Recording User Stories
    :priority: mandatory
    :links: US_REC_CAPTURE
 
-   **As a** Jarvis user,
+   **As a** Jarvis User,
    **I want** to enable or disable the Recording feature (default: off),
    **so that** it is only active when I consciously switch it on.
 
@@ -42,12 +42,12 @@ Recording User Stories
 
 .. story:: Meeting Transcript Right After the Meeting
    :id: US_REC_TRANSCRIPT
-   :status: approved
+   :status: implemented
    :tracked_by: MOD_RECORDER
    :priority: mandatory
    :links: US_ACTOR_FILES_TREE
 
-   **As a** Jarvis user,
+   **As a** Jarvis User,
    **I want** the transcript of a meeting to be available almost immediately after the meeting,
    **so that** the Actor can process it while my memory of the meeting is still fresh.
 
@@ -65,12 +65,12 @@ Recording User Stories
 
 .. story:: Watch the Transcript While the Meeting Runs
    :id: US_REC_LIVEVIEW
-   :status: approved
+   :status: implemented
    :tracked_by: MOD_RECORDER
    :priority: mandatory
    :links: US_REC_CAPTURE; US_REC_TRANSCRIPT; US_REC_DISPATCH; US_MSG_EDITORPLACEMENT
 
-   **As a** Jarvis user,
+   **As a** Jarvis User,
    **I want** to see the transcript grow while the meeting runs,
    **so that** I can tell at a glance that the recording works and what it has captured.
 
@@ -92,7 +92,7 @@ Recording User Stories
    :priority: mandatory
    :links: US_REC_TRANSCRIPT; US_COM_DELIVERY
 
-   **As a** Jarvis user,
+   **As a** Jarvis User,
    **I want** the Actor I recorded for to be told when its transcript is complete,
    **so that** it knows a new transcript is waiting and can start on the minutes.
 

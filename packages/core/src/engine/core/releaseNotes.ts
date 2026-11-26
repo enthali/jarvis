@@ -26,10 +26,37 @@ function writeState(version: string): void {
     );
 }
 
-function notesUri(version: string): vscode.Uri {
-    return vscode.Uri.parse(
-        `https://github.com/enthali/jarvis/releases/tag/v${version}`
-    );
+const RELEASES_URL = 'https://github.com/enthali/jarvis/releases';
+const LOOKUP_TIMEOUT_MS = 5000;
+
+// true: the release exists; false: it does not; undefined: cannot tell.
+async function releaseExists(tag: string): Promise<boolean | undefined> {
+    try {
+        const res = await fetch(
+            `https://api.github.com/repos/enthali/jarvis/releases/tags/${tag}`,
+            {
+                headers: { 'User-Agent': 'Jarvis-VSCode-Extension' },
+                signal: AbortSignal.timeout(LOOKUP_TIMEOUT_MS)
+            }
+        );
+        if (res.status === 200) { return true; }
+        return res.status === 404 ? false : undefined;
+    } catch {
+        return undefined;
+    }
+}
+
+async function notesUri(version: string): Promise<vscode.Uri> {
+    for (const tag of [`v${version}`, `v${version}-pre`]) {
+        const exists = await releaseExists(tag);
+        if (exists === undefined) { break; }
+        if (exists) {
+            return vscode.Uri.parse(
+                `https://github.com/enthali/jarvis/releases/tag/${tag}`
+            );
+        }
+    }
+    return vscode.Uri.parse(RELEASES_URL);
 }
 
 async function openInEditor(uri: vscode.Uri): Promise<boolean> {
@@ -40,7 +67,7 @@ async function openInEditor(uri: vscode.Uri): Promise<boolean> {
 }
 
 async function open(version: string, log?: vscode.LogOutputChannel): Promise<void> {
-    const uri = notesUri(version);
+    const uri = await notesUri(version);
     try {
         if (await openInEditor(uri)) { return; }
         log?.warn(`[ReleaseNotes] integrated browser unavailable: ${uri.toString()}`);
