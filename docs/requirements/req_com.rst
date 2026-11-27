@@ -178,7 +178,7 @@ Actor Communication Requirements
 
 .. req:: Actor Chat Name
    :id: REQ_COM_CHATNAME
-   :status: approved
+   :status: implemented
    :priority: required
    :links: US_COM_NAME; REQ_COM_INJECT
 
@@ -201,7 +201,8 @@ Actor Communication Requirements
      lists, and the model applies, only agent files that have one. Jarvis writes
      the description when it creates the file and adds it to an existing agent
      file that has none (User, 2026-10-28). The description is the summary of
-     the Actor.
+     the Actor, or the Actor name when the summary is empty
+     (``REQ_ACTOR_WHOAMI`` AC-13).
    * AC-6: When the only chats that carry the name of an Actor are archived,
      Jarvis restores the one modified last before it opens it or delivers to it,
      because an archived chat is read-only in the editor (User, 2026-10-28). A
@@ -209,7 +210,7 @@ Actor Communication Requirements
 
 .. req:: Actor State From the Agent Host
    :id: REQ_COM_STATE
-   :status: approved
+   :status: implemented
    :priority: optional
    :links: US_ACTOR_ACTIVITY; REQ_COM_CLIENT; REQ_COM_CHATNAME
 
@@ -236,7 +237,7 @@ Actor Communication Requirements
    * AC-5: The node of an Actor shows Error as a red circle with a cross, Waiting
      as a blue question mark and Working as an animated spinner. An Idle Actor
      shows no activity icon. The order against the recording mark and the
-     unread-mail icon is that of ``US_ACTOR_MAIL`` AC-4.
+     mail and flag icons is that of ``US_ACTOR_MAIL`` AC-4.
    * AC-6: After a connection, also after a new one, the client restores the
      state from the current information of the Agent Host. A request that started
      while the client was away shows as Working.

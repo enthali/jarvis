@@ -202,7 +202,7 @@ describe('ensureActorAgent: line-ending and front-matter edge cases (AC-3)', () 
 
         expect(result).toEqual({ status: 'ready', mode: 'No Frontmatter' });
         const written = fs.readFileSync(filePath, 'utf8');
-        expect(written.startsWith('---\ndescription: "Actor No Frontmatter"\n---\nYou act as Actor No Frontmatter\n')).toBe(true);
+        expect(written.startsWith('---\ndescription: "No Frontmatter"\n---\nYou act as Actor No Frontmatter\n')).toBe(true);
         expect(written).toContain('# Just a heading');
         expect(written).toContain('Some body.');
     });
@@ -219,7 +219,19 @@ describe('ensureActorAgent: description (REQ_COM_CHATNAME AC-5)', () => {
     it('falls back to a description with the name when the Actor has no summary', async () => {
         const root = makeRoot();
         await ensureActorAgent({ name: 'Bare', folder: path.join(root, 'Bare'), summary: '  ' });
-        expect(fs.readFileSync(path.join(agentsDir(root), 'Bare.agent.md'), 'utf8')).toContain('description: "Actor Bare"');
+        expect(fs.readFileSync(path.join(agentsDir(root), 'Bare.agent.md'), 'utf8')).toContain('description: "Bare"');
+    }, 10_000);
+
+    it('writes a model line only into a new file and keeps an existing one (REQ_ACTOR_WHOAMI AC-14)', async () => {
+        const root = makeRoot();
+        await ensureActorAgent({ name: 'Modeled', folder: path.join(root, 'Modeled'), summary: 'S', model: 'gpt-x' });
+        await ensureActorAgent({ name: 'Plain', folder: path.join(root, 'Plain'), summary: 'S' });
+        expect(fs.readFileSync(path.join(agentsDir(root), 'Modeled.agent.md'), 'utf8'))
+            .toContain('description: "S"\nmodel: "gpt-x"\n---');
+        expect(fs.readFileSync(path.join(agentsDir(root), 'Plain.agent.md'), 'utf8')).not.toContain('model:');
+
+        await ensureActorAgent({ name: 'Modeled', folder: path.join(root, 'Modeled'), summary: 'S', model: 'other' });
+        expect(fs.readFileSync(path.join(agentsDir(root), 'Modeled.agent.md'), 'utf8')).toContain('model: "gpt-x"');
     }, 10_000);
 
     it('adds the description to an existing agent file that has none, after the name line', async () => {

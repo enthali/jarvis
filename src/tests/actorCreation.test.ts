@@ -67,15 +67,15 @@ describe('REQ_ACTOR_CREATE: writeActorFiles', () => {
         expect(fs.readFileSync(path.join(target, 'context.md'), 'utf8')).toBe('# New Actor\n\nA summary\n');
     });
 
-    it('writes an empty summary when omitted', async () => {
+    it('writes the summary into actor.yaml and context.md', async () => {
         const actorsFolder = fs.mkdtempSync(path.join(os.tmpdir(), 'jarvis-actor-create-'));
         roots.push(actorsFolder);
 
-        const target = await writeActorFiles(actorsFolder, { name: 'Quiet Actor' });
+        const target = await writeActorFiles(actorsFolder, { name: 'Quiet Actor', summary: 'Calm' });
 
         const yaml = fs.readFileSync(path.join(target, 'actor.yaml'), 'utf8');
-        expect(yaml).toContain('summary: ""');
-        expect(fs.readFileSync(path.join(target, 'context.md'), 'utf8')).toBe('# Quiet Actor\n\n');
+        expect(yaml).toContain('summary: "Calm"');
+        expect(fs.readFileSync(path.join(target, 'context.md'), 'utf8')).toBe('# Quiet Actor\n\nCalm\n');
     });
 });
 

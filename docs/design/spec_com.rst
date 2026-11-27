@@ -329,7 +329,7 @@ confirm** are assumptions that no run has checked yet.
 
 .. spec:: Writing Into an Actor Chat
    :id: SPEC_COM_INJECT
-   :status: approved
+   :status: implemented
    :links: REQ_COM_INJECT; REQ_COM_NOTIFY; REQ_COM_CHATNAME; SPEC_COM_CLIENTMODULE
 
    **Description:**
@@ -365,9 +365,10 @@ confirm** are assumptions that no run has checked yet.
    names the Actor and the missing ``description``. **Open:** Whether the
    function fails instead. The User decides.
 
-   **Description of the agent file:** It is the summary of the Actor, and
-   ``Actor <name>`` when the summary is empty, because the host lists only
-   agent files with a non-empty description (``REQ_COM_CHATNAME`` AC-5).
+   **Description of the agent file:** It is the summary of the Actor, and the
+   Actor name when the summary is empty, because the host lists only agent
+   files with a non-empty description (``REQ_COM_CHATNAME`` AC-5,
+   ``SPEC_ACTOR_WHOAMI`` step 5).
 
    **Delivery:** The function hands the text to the Agent Host with
    ``pendingMessageSet``. An idle chat starts a turn at once, a busy chat takes
@@ -488,7 +489,7 @@ confirm** are assumptions that no run has checked yet.
 
 .. spec:: Actor State in the Tree
    :id: SPEC_COM_STATE
-   :status: approved
+   :status: implemented
    :links: REQ_COM_STATE; SPEC_COM_CLIENTMODULE; SPEC_COM_BINDING
 
    **Description:**
@@ -521,7 +522,7 @@ confirm** are assumptions that no run has checked yet.
    ``error`` (circle with a cross) for Error, a blue ``question`` for Waiting and
    an animated ``loading~spin`` for Working (the spin modifier animates the icon
    of a tree node, User run, 2026-10-28); Idle sets no icon. The state is shown
-   before the mark of a recording and before the mail icon (``SPEC_ACTOR_TREE``
+   before the mark of a recording and before any indicator (``SPEC_ACTOR_TREE``
    AC-6). While the client has no connection the extension passes no state.
 
    **Replaces:** the former ``ActivityTracker``; nothing else supplies the state.

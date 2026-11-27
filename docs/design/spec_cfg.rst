@@ -11,7 +11,7 @@ Configuration Design Specifications
    ``packages/core/package.json``. Seven named groups in the order mandated by
    ``REQ_CFG_GROUPS``: Actors, Messages, Prompt Templates, Heartbeat,
    Reminders, Gitignore, Updates. Add-ons contribute their own groups
-   in their own manifests: PIM ("Outlook", ``SPEC_PIM_*``), recorder
+   in their own manifests: PIM ("Jarvis PIM", ``SPEC_PIM_*``), recorder
    ("Jarvis Recorder"), MCP ("Jarvis MCP"), kanban ("Jarvis Kanban").
 
    .. code-block:: json

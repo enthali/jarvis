@@ -171,7 +171,7 @@ Actor Requirements
    :id: REQ_ACTOR_CREATE
    :status: implemented
    :priority: mandatory
-   :links: US_ACTOR_CREATE; REQ_ACTOR_SCHEMA; REQ_ACTOR_TREE; REQ_ACTOR_CREATETOOL; REQ_ACTOR_WHOAMI; REQ_COM_OPEN
+   :links: US_ACTOR_CREATE; REQ_ACTOR_SCHEMA; REQ_ACTOR_TREE; REQ_ACTOR_CREATETOOL; REQ_ACTOR_WHOAMI; REQ_COM_OPEN; REQ_AUT_LISTMODELS
 
    **Description:**
    A ``+`` (``$(add)``) icon in the ACTORS view title bar SHALL create a new
@@ -195,19 +195,23 @@ Actor Requirements
      (``REQ_ACTOR_SCHEMA`` AC-7). If either holds, the command SHALL show
      an error notification naming the existing folder and abort without
      modifying the filesystem.
-   * AC-4: The command SHALL then show an optional InputBox for the
-     summary. Escape SHALL skip it (empty summary), not abort.
-   * AC-5: The command SHALL create the Actor via the shared creation
-     routine (``REQ_ACTOR_CREATETOOL`` AC-2) with the entered name and
-     summary.
+   * AC-4: The command SHALL then show an InputBox for the summary, which
+     becomes the description of the Actor. A blank value (empty or only white
+     space) SHALL be rejected with inline ``validateInput`` feedback; the
+     summary cannot be skipped.
+   * AC-5: The command SHALL then show the model picker of AC-11 and create
+     the Actor via the shared creation routine (``REQ_ACTOR_CREATETOOL``
+     AC-2) with the entered name and summary. The chosen model, if any, goes
+     to the agent (AC-6).
    * AC-6: The command SHALL NOT show an agent picker. After file creation
      (before the rescan) it SHALL ensure the Actor's agent
      (``REQ_ACTOR_WHOAMI`` AC-4).
    * AC-7: After the agent is ensured, an immediate rescan SHALL be
      triggered so the new Actor appears in the ACTORS view without a manual
      refresh.
-   * AC-8: If the user cancels the name InputBox, the command SHALL exit
-     without side effects (no folder, no file written).
+   * AC-8: If the user cancels the name InputBox, the summary InputBox or the
+     model picker, the command SHALL exit without side effects (no folder, no
+     file written).
    * AC-9: After creation, when ``jarvis.actors.openSessionOnCreate`` is
      ``true``, the command SHALL show the new Actor's chat as a click on it
      does (``REQ_COM_OPEN`` AC-6).
@@ -217,6 +221,14 @@ Actor Requirements
      with the new Actor; turning it off keeps the current chat in focus,
      e.g. when creating several Actors in a row. The setting governs both
      this command and ``REQ_ACTOR_CREATETOOL`` AC-9.
+   * AC-11: After the summary, the command SHALL show a picker whose first
+     entry is "No model" and whose other entries are the language models
+     available at that moment, taken from the list of ``jarvis_listModels``
+     (``REQ_AUT_LISTMODELS``): the ``model`` value with its vendor. Choosing
+     "No model" SHALL leave the agent without a ``model`` line; choosing a model
+     SHALL write it (``REQ_ACTOR_WHOAMI`` AC-14). When the list cannot be
+     obtained, the picker SHALL offer only "No model" and the failure SHALL be
+     logged at ``warn`` level.
 
 .. req:: Actor Identity via Own Agent
    :id: REQ_ACTOR_WHOAMI
@@ -280,12 +292,29 @@ Actor Requirements
      and the location of its ``context.md`` (AC-3). The section's removal is
      what ``SPEC_ACTOR_WHOAMI`` AC-10 pins; a mention of the word "identity"
      elsewhere in the text is not such a section.
+   * AC-13: The front matter of an agent file that Jarvis creates SHALL hold a
+     ``description`` and, only when the creation names a model (AC-14), a
+     ``model`` line. The ``description`` SHALL be the summary of the Actor on
+     one line, and the Actor name when the summary is empty, because the Agent
+     Host lists only agent files that have a description
+     (``REQ_COM_CHATNAME`` AC-5). The same rule gives the ``description`` that
+     Jarvis adds to an existing agent file that has none.
+   * AC-14: The ``model`` line SHALL be written only when Jarvis creates the
+     agent file during an explicit creation of the Actor
+     (``REQ_ACTOR_CREATE`` AC-11, ``REQ_ACTOR_CREATETOOL`` AC-11). It holds the
+     ``model`` value of an entry of the model list of ``jarvis_listModels``.
+     Every other creation of an agent file, such as for an existing Actor
+     whose chat is opened or to which a message is delivered, SHALL omit
+     ``model``, SHALL NOT query the model list and SHALL NOT depend on it.
+     An existing agent file keeps every ``model`` entry and all other content,
+     and a later change of the model list SHALL NOT cause a check or a rewrite
+     of the ``model`` line.
 
 .. req:: Programmatic Actor Creation Tool
    :id: REQ_ACTOR_CREATETOOL
-   :status: approved
+   :status: implemented
    :priority: required
-   :links: US_ACTOR_CREATETOOL; REQ_ACTOR_SCHEMA; REQ_ACTOR_WHOAMI; REQ_COM_OPEN; REQ_ACTOR_TREE
+   :links: US_ACTOR_CREATETOOL; REQ_ACTOR_SCHEMA; REQ_ACTOR_WHOAMI; REQ_COM_OPEN; REQ_ACTOR_TREE; REQ_AUT_LISTMODELS
 
    **Description:**
    A Language Model and MCP tool ``jarvis_createActor`` SHALL create an
@@ -297,15 +326,16 @@ Actor Requirements
    * AC-1: The tool SHALL be registered whenever ``jarvis.actors.folder`` is
      resolvable at activation time and SHALL appear in the Chat tool picker
      with ``toolReferenceName`` ``jarvis_core_createActor``. Inputs: ``name``
-     (required), ``summary``, ``initialMessage`` (optional). A caller that
-     still passes ``agent`` SHALL NOT be rejected; the value has no effect.
+     and ``summary`` (required), ``model`` and ``initialMessage`` (optional).
+     A caller that still passes ``agent`` SHALL NOT be rejected; the value has
+     no effect.
    * AC-2: On a successful create, the shared creation routine SHALL:
 
      a. create ``<actorsFolder>/<name>/`` with the verbatim ``name`` as
         folder name;
      b. write ``actor.yaml`` with ``name`` and ``summary``;
      c. write ``context.md`` containing ``# <name>`` followed by a blank
-        line and, when a non-blank summary is given, the summary.
+        line and the summary.
 
      The tool SHALL return ``{ created: true, path: "<workspace-relative
      Actor folder>" }``.
@@ -338,6 +368,21 @@ Actor Requirements
      AC-10), the tool SHALL show the new Actor's chat as a click on it does
      (``REQ_COM_OPEN`` AC-6). Errors from opening SHALL be logged at
      ``warn`` level and SHALL NOT make the tool fail.
+   * AC-10: The tool SHALL validate ``summary`` before any filesystem
+     operation. A missing value, an empty one or one of only white space SHALL
+     raise an error ``"invalid actor summary: <reason>"``.
+   * AC-11: When ``model`` is given, the tool SHALL check it against the
+     language models available at that moment (the ``model`` values of
+     ``jarvis_listModels``, ``REQ_AUT_LISTMODELS``) after the check of AC-7 and
+     before any file is written or message is queued. A value that is not in
+     the list, also when the list is empty, SHALL raise an error that starts
+     with ``"model not available:"``, names the value and lists the available
+     models. When the list cannot be obtained, the tool SHALL raise a different
+     error that starts with ``"jarvis_createActor: model catalog not
+     available"``. In both cases nothing is created or queued. When ``model``
+     is not given, the tool SHALL NOT query the list, and the agent file gets
+     no ``model`` line. A valid model goes to the agent as
+     ``REQ_ACTOR_WHOAMI`` AC-14 says.
 
 .. req:: Agent Discovery
    :id: REQ_ACTOR_AGENT_DISCOVERY
@@ -481,54 +526,3 @@ Actor Requirements
    * AC-10: The "Files" listing SHALL be recomputed on every expansion (no
      scanner cache) and refresh with the wider tree (periodic rescan or
      ``jarvis.rescan``); a dedicated file-system watcher is not required.
-
-.. req:: Unread Mail Icon on Actor Nodes
-   :id: REQ_ACTOR_MAIL
-   :status: approved
-   :priority: optional
-   :links: US_ACTOR_MAIL; REQ_ACTOR_TREE; REQ_COM_STATE; REQ_ENG_ACTORMARK; REQ_OLK_ENABLE; REQ_CFG_SCANINTERVAL; REQ_EXP_REACTIVECACHE
-
-   **Description:**
-   While ``jarvis.outlook.enabled`` is ``true``, an Actor node SHALL show a mail icon when
-   the Outlook mail folder of the same name, directly under the Inbox, holds unread mail.
-   The state is read after each completed scan of the ACTORS view and is kept only as the
-   set of Actors that showed the icon last. The icon takes its place in the priority order
-   of AC-6.
-
-   **Acceptance Criteria:**
-
-   * AC-1: The mail icon SHALL be shown on the Actor whose ``name`` (``REQ_ACTOR_TREE`` AC-3)
-     equals the name of an Outlook folder that is a direct child of the Inbox of the default
-     mail store.
-   * AC-2: The name comparison SHALL be exact and case-sensitive, as the name rule of
-     ``REQ_ACTOR_SCHEMA`` AC-7. Folders nested deeper than one level below the Inbox SHALL NOT
-     be considered.
-   * AC-3: When two or more Actors carry the same name (``REQ_ACTOR_SCHEMA`` AC-7), no Actor
-     with that name SHALL show the mail icon.
-   * AC-4: The mail icon SHALL be shown while that folder holds at least one unread item. A
-     folder without unread items SHALL NOT show the icon.
-   * AC-5: The state SHALL be read after every completed scan of the ACTORS view, whether or
-     not the Actor list changed: the periodic background rescan (``REQ_CFG_SCANINTERVAL``),
-     the manual rescan (``REQ_ACTOR_TREE`` AC-7) and the other scans. Between two scans the icon
-     SHALL NOT change, except for the read triggered by a change of ``jarvis.outlook.enabled``.
-     No Outlook event SHALL be subscribed, and no mail state SHALL be kept
-     beyond the set of Actors that showed the icon last. The tree SHALL be refreshed only when
-     that set changes (``REQ_EXP_REACTIVECACHE`` AC-4).
-   * AC-6: An Actor node SHALL show at most one icon, by this priority: the activity
-     state of the chat other than Idle (``REQ_COM_STATE`` AC-5), then the mark of a
-     recording (red, ``REQ_REC_BUTTON`` AC-3), then the unread-mail icon. Without any
-     of them the node shows no icon.
-   * AC-7: Each source keeps its own entry. When a higher-priority icon ends, the next one still
-     present SHALL be shown at the next tree refresh, and the node SHALL NOT be left without an
-     icon while a lower-priority icon still applies.
-   * AC-8: The feature SHALL only read Outlook. It SHALL NOT mark mail as read or unread, change,
-     move or send mail, or change any folder.
-   * AC-9: The feature SHALL NOT start Outlook. An Outlook that is not running is treated as
-     not readable (AC-10).
-   * AC-10: When Outlook cannot be read (the platform is not Windows, Outlook is not running,
-     Outlook reports an error, or the read does not finish in time), no Actor SHALL show a mail
-     icon, the failure SHALL be written to the log, and no message SHALL be shown to the user.
-   * AC-11: While ``jarvis.outlook.enabled`` is ``false``, no Outlook call SHALL be made and no
-     mail icon SHALL be shown (``REQ_OLK_ENABLE`` AC-2).
-   * AC-12: The mail icon SHALL NOT alter any other Actor-node behavior (label, click command,
-     context menu, children).

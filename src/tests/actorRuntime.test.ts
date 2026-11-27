@@ -65,6 +65,7 @@ describe('SPEC_ACTOR_CREATETOOL: createActorHandler', () => {
                 actorScanner,
                 openActorSession: vi.fn(async () => {}),
                 openSessionOnCreate: () => true,
+                listModels: vi.fn(async () => [{ vendor: 'copilot', model: 'gpt-x' }]),
                 log: { info: vi.fn(), warn: vi.fn() },
                 ...overrides,
             },
@@ -100,7 +101,7 @@ describe('SPEC_ACTOR_CREATETOOL: createActorHandler', () => {
         const handler = createActorHandler(deps);
 
         const result = await handler(
-            { input: { name: 'Existing Actor' } } as vscode.LanguageModelToolInvocationOptions<unknown>,
+            { input: { name: 'Existing Actor', summary: 'S' } } as vscode.LanguageModelToolInvocationOptions<unknown>,
             {} as vscode.CancellationToken,
         );
         const payload = JSON.parse((result.content[0] as LanguageModelTextPart).value);
@@ -113,6 +114,27 @@ describe('SPEC_ACTOR_CREATETOOL: createActorHandler', () => {
         });
         expect(deps.openActorSession).not.toHaveBeenCalled();
     });
+
+    it('refuses a blank summary and an unlisted model before writing anything, and queries no catalog without a model', async () => {
+        const root = makeRoot();
+        (vscodeMock.workspace as any).workspaceFolders = [{ uri: { fsPath: root } }];
+        const { deps } = makeDeps(root);
+        const handler = createActorHandler(deps);
+        const call = (input: object) => handler({ input } as vscode.LanguageModelToolInvocationOptions<unknown>, {} as vscode.CancellationToken);
+
+        await expect(call({ name: 'A1', summary: '   ' })).rejects.toThrow(/invalid actor summary:/);
+        await expect(call({ name: 'A1', summary: 'S', model: 'nope' })).rejects.toThrow(/model not available: "nope"/);
+        expect(fs.existsSync(path.join(root, 'A1'))).toBe(false);
+        expect(deps.appendMessage).not.toHaveBeenCalled();
+
+        await call({ name: 'A2', summary: 'S' });
+        expect(deps.listModels).toHaveBeenCalledTimes(1);
+
+        const failing = makeDeps(root, { listModels: async () => { throw new Error('boom'); } });
+        await expect(createActorHandler(failing.deps)({ input: { name: 'A3', summary: 'S', model: 'gpt-x' } } as vscode.LanguageModelToolInvocationOptions<unknown>, {} as vscode.CancellationToken))
+            .rejects.toThrow(/model catalog not available/);
+        expect(fs.existsSync(path.join(root, 'A3'))).toBe(false);
+    }, 10_000);
 
     it('rejects an invalid actor name', async () => {
         const root = makeRoot();
@@ -132,7 +154,7 @@ describe('SPEC_ACTOR_CREATETOOL: createActorHandler', () => {
         const handler = createActorHandler(deps);
 
         await handler(
-            { input: { name: 'Quiet Actor' } } as vscode.LanguageModelToolInvocationOptions<unknown>,
+            { input: { name: 'Quiet Actor', summary: 'S' } } as vscode.LanguageModelToolInvocationOptions<unknown>,
             {} as vscode.CancellationToken,
         );
 
@@ -146,7 +168,7 @@ describe('SPEC_ACTOR_CREATETOOL: createActorHandler', () => {
         const handler = createActorHandler(deps);
 
         const result = await handler(
-            { input: { name: 'Odd Agent Actor', agent: 'nonexistent' } } as vscode.LanguageModelToolInvocationOptions<unknown>,
+            { input: { name: 'Odd Agent Actor', summary: 'S', agent: 'nonexistent' } } as vscode.LanguageModelToolInvocationOptions<unknown>,
             {} as vscode.CancellationToken,
         );
 

@@ -49,7 +49,7 @@ Explorer Requirements
 
 .. req:: Background Cache with Reactive Tree Update
    :id: REQ_EXP_REACTIVECACHE
-   :status: approved
+   :status: implemented
    :priority: mandatory
    :links: US_EXP_SIDEBAR; REQ_CFG_SCANINTERVAL; REQ_ACTOR_MAIL
 
@@ -64,9 +64,9 @@ Explorer Requirements
    * AC-1: The UI thread never performs file I/O — all reads happen in the background scanner
    * AC-3: The scanner runs at the interval defined by `jarvis.scanInterval`
    * AC-4: After each scan, the result is compared to the current cache — `onDidChangeTreeData`
-     is fired only if the cache actually changed, or, for the unread-mail icon, only if the set
-     of Actors showing it changed (``REQ_ACTOR_MAIL`` AC-5). The mail state is not part of the
-     cache.
+     is fired only if the cache actually changed, or, for an Actor indicator, only if one is set
+     or removed (``REQ_ENG_ACTORINDICATOR``, ``REQ_ACTOR_MAIL`` AC-5). The mail state is not part
+     of the cache.
    * AC-5: On first scan the cache is empty and the tree shows nothing; after the first scan
      completes the cache is populated and the event is fired
    * AC-6: The scanner SHALL expose a public method to trigger an immediate rescan

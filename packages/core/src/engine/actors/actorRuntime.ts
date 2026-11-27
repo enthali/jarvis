@@ -5,7 +5,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { ActorScanner } from './actorScanner';
-import { existingActorFolder, validateActorName, writeActorFiles } from './actorCreation';
+import { existingActorFolder, validateActorName, validateActorSummary, validateModel, writeActorFiles, type ModelChoice } from './actorCreation';
 import { ensureActorAgent } from './actorAgent';
 import { getWorkspaceRoot } from '../core/configPaths';
 
@@ -25,6 +25,8 @@ export interface CreateActorHandlerDependencies {
     openActorSession(actorName: string): Promise<void>;
     /** Whether jarvis.actors.openSessionOnCreate is enabled. */
     openSessionOnCreate(): boolean;
+    /** The language models available now (SPEC_AUT_LISTMODELS); called only when a model is given. */
+    listModels(): Promise<ModelChoice[]>;
     log: Pick<vscode.LogOutputChannel, 'info' | 'warn'>;
 }
 
@@ -33,11 +35,12 @@ export function createActorHandler(
     deps: CreateActorHandlerDependencies,
 ): (options: vscode.LanguageModelToolInvocationOptions<any>, token: vscode.CancellationToken) => Promise<vscode.LanguageModelToolResult> {
     return async (options) => {
-        const { name, summary, initialMessage } = options.input as {
-            name: string; summary?: string; initialMessage?: string;
+        const { name, summary, model, initialMessage } = options.input as {
+            name: string; summary: string; model?: string; initialMessage?: string;
         };
 
         validateActorName(name);
+        validateActorSummary(summary);
 
         const actorsFolder = deps.resolveActorsFolder();
         if (!actorsFolder) { throw new Error('jarvis_createActor: no workspace open'); }
@@ -57,8 +60,10 @@ export function createActorHandler(
             ]);
         }
 
+        if (model) { await validateModel(model, deps.listModels); }
+
         const targetPath = await writeActorFiles(actorsFolder, { name, summary });
-        await ensureActorAgent({ name, folder: targetPath, summary });
+        await ensureActorAgent({ name, folder: targetPath, summary, model: model || undefined });
 
         if (initialMessage) {
             deps.appendMessage(name, 'jarvis_createActor', initialMessage);

@@ -2,7 +2,7 @@
   "name": "jarvis-core",
   "displayName": "Jarvis Core",
   "description": "Jarvis core — sessions, messaging, reminders, heartbeat, engine",
-  "version": "0.35.1",
+  "version": "0.36.0",
   "publisher": "enthali",
   "icon": "resources/jarvis-128.png",
   "keywords": [
@@ -258,9 +258,9 @@
       {
         "name": "jarvis_createActor",
         "displayName": "Create Actor",
-        "modelDescription": "jarvis_core: Creates a new Jarvis Actor folder with actor.yaml and context.md under the configured jarvis.actors.folder (default .jarvis/actors), as <folder>/<name>/. Idempotent.",
+        "modelDescription": "jarvis_core: Creates a Jarvis Actor (actor.yaml and context.md) in a new folder under the configured actors folder (setting jarvis.actors.folder, default .jarvis/actors). Returns created: false without changes when an Actor with that name or folder already exists. Needs a name and a non-blank summary; an optional model must be one that jarvis_listModels returns.",
         "canBeReferencedInPrompt": true, "toolReferenceName": "jarvis_core_createActor", "icon": "$(add)", "tags": ["jarvis"],
-        "inputSchema": { "type": "object", "required": ["name"], "properties": { "name": { "type": "string" }, "summary": { "type": "string" }, "initialMessage": { "type": "string" } } }
+        "inputSchema": { "type": "object", "required": ["name", "summary"], "properties": { "name": { "type": "string", "description": "Actor name; used verbatim as the folder name." }, "summary": { "type": "string", "description": "Short description of the Actor; required, not blank. It is also the description of the Actor's agent." }, "model": { "type": "string", "description": "Optional language model of the Actor's agent: a model value from jarvis_listModels. Omit it for no model." }, "initialMessage": { "type": "string", "description": "Optional first message queued for the new Actor." } } }
       },
       {
         "name": "jarvis_registerJob",

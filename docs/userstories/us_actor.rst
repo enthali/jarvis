@@ -152,11 +152,13 @@ Actor User Stories
      ``jarvis.actors.folder``; if a folder with that name already exists,
      or an Actor with that name exists in any folder, an error is shown and
      nothing is created.
-   * AC-3: A valid name is followed by an optional summary input (Escape
-     skips). The Actor is then created as ``<actorsFolder>/<name>/``
-     containing an ``actor.yaml`` (``name: <name>`` plus optional
-     ``summary:``) and a ``context.md`` pre-filled with the
-     Actor name as heading, followed by the summary if one was given.
+   * AC-3: A valid name is followed by a short description of the Actor, which
+     I must enter (a blank one is rejected), and then by a choice of model:
+     "No model" or one of the language models available now. Cancelling any of
+     these steps creates nothing. The Actor is then created as
+     ``<actorsFolder>/<name>/`` containing an ``actor.yaml`` (``name: <name>``
+     plus ``summary:``, the description) and a ``context.md`` pre-filled with
+     the Actor name as heading, followed by the description.
    * AC-4: No agent is picked. The new Actor has its own agent
      (``US_ACTOR_ACTORS`` AC-6).
    * AC-5: The ACTORS tree refreshes to show the new Actor immediately,
@@ -167,6 +169,8 @@ Actor User Stories
      directly lets me start working with the new Actor right away; turning
      it off keeps the current chat in focus, e.g. when creating several
      Actors in a row.
+   * AC-7: The new Actor works with the model I chose. When I chose no model,
+     the Actor sets none of its own.
 
 
 .. story:: Actor Identity
@@ -215,7 +219,7 @@ Actor User Stories
      ``jarvis.actors.folder`` is resolvable (same condition as
      US_ACTOR_TREE AC-8); no other setting gates it.
    * AC-2: A successful call creates ``<actorsFolder>/<name>/`` with the
-     same files as US_ACTOR_CREATE AC-3: ``actor.yaml`` (``name``, optional
+     same files as US_ACTOR_CREATE AC-3: ``actor.yaml`` (``name``,
      ``summary``) and the pre-filled ``context.md``; the new Actor has its
      own agent as in US_ACTOR_CREATE AC-4.
    * AC-3: The tool has no ``agent`` input. A caller that still passes one
@@ -230,11 +234,17 @@ Actor User Stories
    * AC-8: After creating a new Actor, the tool opens its chat session
      under the same ``jarvis.actors.openSessionOnCreate`` setting as
      US_ACTOR_CREATE AC-6.
+   * AC-9: A call must give a short description of the Actor and may name a
+     language model. A blank description, or a model that is not available now,
+     creates nothing, queues nothing and opens nothing, and the answer says why;
+     for a model it lists the available ones. When the list of models cannot be
+     obtained, the answer says that instead. Without a model, the Actor sets
+     none of its own (US_ACTOR_CREATE AC-7).
 
 
 .. story:: Activity Indicator on Actor Nodes
    :id: US_ACTOR_ACTIVITY
-   :status: approved
+   :status: implemented
    :tracked_by: MOD_ACTOR
    :priority: optional
    :links: US_ACTOR_TREE
@@ -257,44 +267,11 @@ Actor User Stories
      Waiting before Working. An Actor without a chat, or whose state is not
      known, is Idle.
    * AC-4: The other icons of an Actor node are not activity states: the
-     recording mark (``US_REC_CAPTURE`` AC-2) and the unread-mail icon
-     (``US_ACTOR_MAIL``) keep their own rules, and ``US_ACTOR_MAIL`` AC-4 orders
-     them against this indicator.
+     recording mark (``US_REC_CAPTURE`` AC-2) and the mail and follow-up flag
+     icons (``US_ACTOR_MAIL``) keep their own rules, and ``US_ACTOR_MAIL`` AC-4
+     orders them against this indicator.
    * AC-5: The indicator is a visual cue only — it does not gate or block any
      Actor-node behavior (click-to-chat, context menu, file children).
-
-
-.. story:: Unread Mail Icon on Actor Nodes
-   :id: US_ACTOR_MAIL
-   :status: approved
-   :tracked_by: MOD_ACTOR
-   :priority: optional
-   :links: US_ACTOR_TREE; US_ACTOR_ACTIVITY; US_REC_CAPTURE
-
-   **As a** Jarvis User,
-   **I want** an Actor node in the ACTORS tree to show a mail icon while the Outlook mail
-   folder of the same name, directly under my Inbox, holds unread mail,
-   **so that** I can see which Actors have unread email without leaving VS Code.
-
-   **Acceptance Criteria:**
-
-   * AC-1: When the mail integration is enabled, an Actor node shows a mail icon
-     in front of its name while the mail folder with the Actor's name, directly
-     under my Inbox, holds at least one unread mail.
-   * AC-2: An Actor without such a folder, or whose folder has no unread mail, shows no mail
-     icon. A folder nested deeper in the Inbox does not count.
-   * AC-3: The icon is as current as the last refresh of the Actor list (the
-     regular and the manual refresh). It does not change live when mail arrives
-     or is read.
-   * AC-4: An Actor node shows at most one icon at a time, by this priority: activity state
-     (error, waiting or working) before recording (red dot) before unread mail (mail icon). When an icon of a
-     higher priority ends, the next one still present is shown; when none is present, the node
-     shows no icon.
-   * AC-5: The feature only reads Outlook. It never marks mail as read or unread, never moves,
-     changes or sends mail, and never changes a folder.
-   * AC-6: When Outlook cannot be read (for example because it is not running), no Actor shows
-     a mail icon and no error message is shown.
-   * AC-7: The mail icon does not change anything else on the Actor node.
 
 
 .. story:: Context Actions on Actor Nodes

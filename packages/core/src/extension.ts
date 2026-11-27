@@ -24,10 +24,9 @@ import { applyGitignore, setIgnoreManagerLogger } from './engine/core/gitignoreM
 import { setAssetProvisioningLogger, provisionModuleAssets } from './engine/core/assetProvisioning';
 import { announceIfNewVersion, showReleaseNotes } from './engine/core/releaseNotes';
 import { ActorScanner, ambiguousActorMessage } from './engine/actors/actorScanner';
-import { ActorMailState } from './engine/actors/actorMail';
 import { ActorActivity } from './engine/actors/actorActivity';
 import { ActorTreeProvider, ActorNode } from './engine/actors/actorTreeProvider';
-import { actorNameProblem, existingActorFolder, writeActorFiles } from './engine/actors/actorCreation';
+import { actorNameProblem, actorSummaryProblem, existingActorFolder, writeActorFiles } from './engine/actors/actorCreation';
 import { ensureActorAgent, setActorAgentLogger } from './engine/actors/actorAgent';
 import { createActorHandler } from './engine/actors/actorRuntime';
 import { registerJarvisYamlSchemaContributor } from './engine/core/yamlSchemaContributor';
@@ -124,13 +123,10 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
 
     const activity = new ActorActivity(workspaceRoot ?? '', () => actorScanner.actors.map(actor => actor.name), () => actorTreeProvider?.refresh());
 
-    // Unread-mail state (SPEC_ACTOR_MAIL): read after every scan, drawn by the tree.
-    const actorMail = new ActorMailState(actorScanner, log, () => actorTreeProvider?.refresh());
-    context.subscriptions.push(actorMail);
-
-    actorTreeProvider = new ActorTreeProvider(actorScanner, activity, actorMail);
+    actorTreeProvider = new ActorTreeProvider(actorScanner, activity);
     const treeProvider = actorTreeProvider;
     engine.setMarker((id, icon) => treeProvider.mark(id, icon));
+    engine.setIndicator((id, icon) => treeProvider.indicate(id, icon));
     // Jarvis AHP client and its message path (SPEC_COM_CLIENTMODULE, SPEC_COM_TOOLS, SPEC_COM_INBOX).
     // start() returns at once, the client never blocks activation.
     const startupTextFor = (actor: { name: string; folder: string }): string => {
@@ -657,6 +653,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
                     if (actor) { await vscode.commands.executeCommand('jarvis.openActorSession', { kind: 'actor', id: actor.id }); }
                 },
                 openSessionOnCreate: () => vscode.workspace.getConfiguration('jarvis').get<boolean>('actors.openSessionOnCreate', true),
+                listModels: () => listAvailableModels(),
                 log,
             })
         );
@@ -684,9 +681,32 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
                 return;
             }
 
-            const summaryInput = await vscode.window.showInputBox({ prompt: 'Summary (optional)', placeHolder: 'Short description' });
-            const targetPath = await writeActorFiles(actorsFolder, { name, summary: summaryInput ?? '' });
-            await ensureActorAgent({ name, folder: targetPath, summary: summaryInput ?? '' });
+            const summaryInput = await vscode.window.showInputBox({
+                prompt: 'Description of the Actor (required)',
+                placeHolder: 'Short description',
+                validateInput: actorSummaryProblem,
+            });
+            if (summaryInput === undefined) { return; }
+            const summary = summaryInput;
+
+            // REQ_ACTOR_CREATE AC-11: "No model" first, then the catalog; the picker is the model check.
+            let catalog: { vendor: string; model: string }[] = [];
+            try {
+                catalog = await listAvailableModels();
+            } catch (err) {
+                log.warn(`[ACTOR] newActor: model catalog not available, offering "No model" only: ${err}`);
+            }
+            const pick = await vscode.window.showQuickPick(
+                [
+                    { label: 'No model', model: undefined as string | undefined },
+                    ...catalog.map(entry => ({ label: entry.model, description: entry.vendor, model: entry.model as string | undefined })),
+                ],
+                { placeHolder: 'Language model of the Actor\'s agent (optional)' },
+            );
+            if (!pick) { return; }
+
+            const targetPath = await writeActorFiles(actorsFolder, { name, summary });
+            await ensureActorAgent({ name, folder: targetPath, summary, model: pick.model });
 
             await actorScanner.rescan();
             log.info(`[ACTOR] newActor: created "${name}" at ${targetPath}`);
@@ -789,7 +809,6 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             if (e.affectsConfiguration('jarvis.actors.folder')) {
                 void actorScanner.rescan();
             }
-            if (e.affectsConfiguration('jarvis.outlook.enabled')) { actorMail.requestRead(); }
         }),
     );
 

@@ -71,6 +71,16 @@ export interface JarvisCoreApi {
      */
     markActor(actorId: string, icon: vscode.ThemeIcon): vscode.Disposable;
 
+    /**
+     * Show a status icon on one Actor node until the returned Disposable is disposed
+     * (SPEC_ENG_ACTORINDICATOR). Weaker than the activity state and than marks. Additive:
+     * add-ons check that the member exists before calling it.
+     */
+    indicateActor(actorId: string, icon: vscode.ThemeIcon): vscode.Disposable;
+
+    /** Fires after every completed Actor scan, changed or not (SPEC_ENG_ACTORINDICATOR). Additive. */
+    readonly onDidScanActors: vscode.Event<void>;
+
     // --- Heartbeat job API (SPEC_ENG_HEARTBEAT_JOBAPI) ---
 
     /** Idempotent upsert of a heartbeat job (PERSISTENT — survives restart/uninstall). */

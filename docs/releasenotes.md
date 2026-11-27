@@ -1,5 +1,22 @@
 # Release Notes
 
+## v0.36.0 - Actor Mail Indicators and Model Selection
+
+*2026-11-27*
+
+### Changes
+
+- **pim-actor-mail-indicators**: PIM now supplies Outlook mail indicators on Actor nodes. A pending follow-up flag takes precedence over unread mail; clearing it reveals unread mail when present. Outlook integration must be enabled in PIM, and the Actor-named folder must be directly under the default Outlook Inbox. Without PIM, Core no longer reads Outlook mail or displays its indicators.
+- **actor-creation-model**: Creating an Actor now requires a non-blank description; the `jarvis_createActor` tool's `summary` input is required. An optional model can be selected from the current Copilot catalog. Automatic agent preparation remains independent of the model catalog.
+- **Previously in v0.35.1 pre-release**: Trusted Marketplace publishing, pre-release opt-in, pre-release-aware Release Notes links, and documentation workflow and specification improvements now reach the stable channel.
+
+### Validation Limits
+
+- The User observed the flag-to-unread transition in Outlook Classic on Windows; large-folder lookup timing and full acceptance journeys were not reported as verified.
+- The User accepted Actor creation with and without a model; Escape, automatic agent-file fallback and full acceptance journeys were not reported as observed. A selected model may later become unavailable.
+
+---
+
 ## v0.35.1 (Pre-Release) - Publishing and Documentation Reliability
 
 *2026-11-26*

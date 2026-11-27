@@ -36,7 +36,7 @@ export class ActorScanner {
     private _rescanPromise: Promise<void> | undefined;
     private readonly _onDidScan = new vscode.EventEmitter<void>();
 
-    /** Fired after every completed rescan, changed or not (SPEC_ACTOR_MAIL). */
+    /** Fired after every completed rescan, changed or not (SPEC_ENG_ACTORINDICATOR). */
     readonly onDidScan: vscode.Event<void> = this._onDidScan.event;
 
     constructor(

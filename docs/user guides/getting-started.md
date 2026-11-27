@@ -69,7 +69,19 @@ Actors are folders with an `actor.yaml` file. By default, new actors are created
 
 ## 4. Create your first actor
 
-Click **+** in the ACTORS view title bar or use the `#jarvis_core_createActor` tool in chat. Jarvis creates the actor folder with its `actor.yaml` and `context.md` memory file and opens the Actor's Agent Host chat; `jarvis.actors.openSessionOnCreate` controls the last step. Click an existing Actor or choose **Open** to find its chat or create one.
+Click **+** in the ACTORS view title bar. Jarvis asks for three things in turn:
+
+1. **A name.** Empty names, path characters and Windows reserved names are rejected, and so is a name that an existing Actor or folder already uses.
+2. **A short description** of the Actor. You must enter one; a blank description is rejected. It becomes the Actor's `summary` and the description of its agent in the agent picker.
+3. **A model:** **No model**, or one of the language models available now. Pick **No model** to let the chat use whatever model is selected. Jarvis writes the model you pick as the `model` line of the Actor's agent file. If VS Code does not offer that model to the chat, it ignores the line without an error and the chat's own model is used.
+
+Pressing Escape at any of these steps cancels, and nothing is created. Jarvis then creates the actor folder with its `actor.yaml` and a `context.md` memory file (the name as heading, followed by the description) and opens the Actor's Agent Host chat; `jarvis.actors.openSessionOnCreate` controls the last step.
+
+An agent can do the same with the `#jarvis_core_createActor` tool. It must give a name and a non-blank `summary`, and may give a `model`, which must be one that `jarvis_listModels` returns. A blank summary, or a model that is not available, creates nothing, queues no first message and opens no chat; the answer says why, and for a model it lists the available ones. If an Actor of that name already exists, the answer is `created: false` and nothing changes.
+
+Actors that were created earlier without a description keep working: when Jarvis prepares a chat for such an Actor, it writes the agent file with the Actor's name as description and no model. A model entry that is already in an agent file is left as it is.
+
+Click an existing Actor or choose **Open** to find its chat or create one.
 
 In the Agents window, tick **Created In > jarvis-core** to include Jarvis-created chats. **Mark done** archives a chat and makes it read-only; Jarvis restores it on opening or message delivery. Only **Delete** removes it. A workspace in a repository subfolder may be labelled **Worktree** without creating a Git worktree.
 

@@ -177,7 +177,7 @@ Configuration Requirements
 
 .. req:: Settings Group Structure
    :id: REQ_CFG_GROUPS
-   :status: approved
+   :status: implemented
    :priority: required
    :links: US_CFG_GROUPS
 
@@ -186,7 +186,7 @@ Configuration Requirements
    SHALL contain exactly the following groups in this order:
    Actors, Messages, Prompt Templates, Heartbeat, Reminders, Gitignore,
    Updates. Each add-on SHALL contribute its own settings in its own
-   ``package.json`` groups: PIM ("Outlook"), recorder ("Jarvis
+   ``package.json`` groups: PIM ("Jarvis PIM"), recorder ("Jarvis
    Recorder"), MCP ("Jarvis MCP"), kanban ("Jarvis Kanban").
 
    **Acceptance Criteria:**

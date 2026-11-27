@@ -365,7 +365,7 @@ PIM Design Specifications
 
 .. spec:: CategoryTreeProvider
    :id: SPEC_PIM_CATVIEW
-   :status: approved
+   :status: implemented
    :links: REQ_PIM_CATVIEW; SPEC_PIM_SERVICE; SPEC_OLK_CATENABLE
 
    **Description:**
@@ -492,10 +492,13 @@ PIM Design Specifications
      - ``jarvis.refreshCategories`` hidden (``when: "false"``)
      - ``jarvis.renameCategory`` hidden (``when: "false"``)
      - ``jarvis.deleteCategory`` hidden (``when: "false"``)
-   * ``activationEvents``: add ``onView:jarvisCategories``
+   * ``activationEvents``: ``onStartupFinished`` and ``onView:jarvisCategories``. The startup event
+     is needed because the Actor mail indicators (``SPEC_ACTOR_MAIL``) belong to no view; with the
+     view event alone PIM would stay inactive until the opt-in Categories view is opened
+     (``REQ_ACTOR_MAIL`` AC-19).
 
    **Settings:** the Categories view has no setting of its own. It is gated by
-   ``jarvis.outlook.categories.enabled`` in the "Outlook" configuration group
+   ``jarvis.outlook.categories.enabled`` in the "Jarvis PIM" configuration group
    (``SPEC_OLK_CATENABLE``). The former setting ``jarvis.pim.showCategories``
    and the "PIM" configuration group that held it no longer exist.
 
@@ -813,3 +816,155 @@ PIM Design Specifications
    * ``modify``: reject if ``completedDate`` present in input; call
      ``taskService.modifyTask(id, changes, provider)``
    * ``delete``: ``taskService.deleteTask(id, provider)``
+
+
+.. spec:: Actor Mail Indicators
+   :id: SPEC_ACTOR_MAIL
+   :status: implemented
+   :links: REQ_ACTOR_MAIL; REQ_ENG_ACTORINDICATOR; SPEC_ENG_ACTORINDICATOR; SPEC_ENG_ACTORLIST; SPEC_ACTOR_SCANNER; SPEC_ACTOR_TREE; SPEC_OLK_SETTINGS; SPEC_MOD_PIM_PKG
+
+   **Description:**
+   PIM shows the mail state of an Actor as one indicator on its node. Two classes carry it,
+   following the split of ``SPEC_OLK_COMBRIDGE`` between a stateless read and the state around it.
+   ``OutlookActorMail`` (``packages/pim/src/outlookIntegration/OutlookActorMail.ts``) is the only
+   code that reads Outlook for this feature and keeps no state. ``ActorMailStatus``
+   (``packages/pim/src/ActorMailStatus.ts``) holds the indicators PIM has set and nothing else.
+   The core reads no mail (``SPEC_ENG_ACTORINDICATOR``); PIM uses only ``listActors``,
+   ``onDidScanActors`` and ``indicateActor`` of the core API. The read follows the PowerShell COM
+   route and the error conventions of ``SPEC_OLK_COMBRIDGE``, except that it attaches to a running
+   Outlook instead of starting one.
+
+   .. code-block:: typescript
+
+      export interface FolderMail {
+          name: string;      // Inbox subfolder name
+          unread: number;    // UnReadItemCount
+          flagged: boolean;  // at least one item with FlagStatus 2; false when not looked up
+          checked: boolean;  // false when the flag lookup was skipped or failed
+      }
+
+      // outlookIntegration/OutlookActorMail.ts — stateless
+      export function readActorMail(actorNames: string[], log: Log): Promise<FolderMail[]>;
+
+      // ActorMailStatus.ts
+      export class ActorMailStatus implements vscode.Disposable {
+          constructor(api: JarvisCoreApi, log: Log);
+          requestRead(): void;   // called by the jarvis.outlook.enabled listener in extension.ts
+          dispose(): void;       // disposes every indicator and the onDidScanActors subscription
+      }
+
+   **State:** a map from ``JarvisActor.id`` to ``{ kind: 'flag' | 'mail', indicator: Disposable }``.
+   Nothing else is kept: no unread counts, folder names, folder ids or mail items
+   (``REQ_ACTOR_MAIL`` AC-5).
+
+   **Trigger:** one read at activation, because the core may have scanned before PIM activated; one
+   read after every ``api.onDidScanActors`` (``SPEC_ACTOR_SCANNER``, whatever started the rescan);
+   one read after a change of ``jarvis.outlook.enabled``, whose listener in ``extension.ts`` calls
+   ``requestRead()``. There is no timer and no Outlook event subscription. If the core API lacks
+   ``indicateActor`` or ``onDidScanActors``, the constructor writes one ``log.warn`` line and the
+   instance does nothing (``REQ_ACTOR_MAIL`` AC-15).
+
+   **Read** (one at a time; a trigger during a run marks one re-read as pending, which runs once
+   after the running read ends; triggers during the same run share it):
+
+   1. If ``jarvis.outlook.enabled`` is ``false``
+      (``getConfiguration('jarvis').get('outlook.enabled', false)``), no process is started and
+      the desired state is empty (step 6; ``REQ_OLK_ENABLE`` AC-2).
+   2. Take ``listActors()`` and keep the names that occur exactly once; these are the candidate
+      names (``REQ_ACTOR_MAIL`` AC-3). When there are none, no process is started and the desired
+      state is empty.
+   3. If ``process.platform`` is not ``win32``, the read fails (step 5).
+   4. Start one PowerShell process with ``child_process.execFile``, no shell, the arguments
+      ``['-NoProfile', '-Command', READ_SCRIPT]`` and the options ``{ timeout: 10_000,
+      windowsHide: true, env }``. The candidate names reach the script as data, as a JSON array in
+      an environment variable of ``env`` (``JARVIS_ACTOR_NAMES``), and are never concatenated into
+      ``READ_SCRIPT`` (``REQ_ACTOR_MAIL`` AC-18). The script below is the reference for the
+      behaviour; the unread count is read for every Inbox subfolder first, the flag lookup runs
+      afterwards and only for folders named like a candidate, within a budget of 5 000 ms of the
+      10 000 ms limit (``REQ_ACTOR_MAIL`` AC-17):
+
+      .. code-block:: powershell
+
+         [Console]::OutputEncoding = [Text.Encoding]::UTF8
+         $ErrorActionPreference = 'Stop'   # without it a failed attach exits 0 and prints []
+         $clock = [Diagnostics.Stopwatch]::StartNew()
+         $wanted = @(ConvertFrom-Json $env:JARVIS_ACTOR_NAMES)
+         $ol = [Runtime.InteropServices.Marshal]::GetActiveObject('Outlook.Application')  # attach only
+         $inbox = $ol.Session.GetDefaultFolder(6)                                        # olFolderInbox
+         $rows = @(foreach ($f in $inbox.Folders) {
+             [pscustomobject]@{ f = $f; name = $f.Name; unread = $f.UnReadItemCount }
+         })
+         $list = @(foreach ($r in $rows) {
+             $flagged = $false; $checked = $true
+             if ($wanted -ccontains $r.name) {
+                 if ($clock.ElapsedMilliseconds -lt 5000) {
+                     try { $t = $r.f.GetTable('[FlagStatus] >= 2'); $flagged = -not $t.EndOfTable }   # pending = olFlagMarked (2)
+                     catch { $checked = $false }
+                 } else { $checked = $false }
+             }
+             [pscustomobject]@{ name = $r.name; unread = $r.unread; flagged = $flagged; checked = $checked }
+         })
+         ConvertTo-Json -InputObject $list -Compress
+
+      The first line makes folder names with non-ASCII characters match the Actor names. The second
+      line makes a failed attach end the process with exit code 1. The failure signal is the exit
+      code, not stderr: PowerShell also writes harmless warnings to stderr. ``FlagStatus`` 2 is
+      "marked" (pending); 1 is "complete" and 0 is "none", and neither counts
+      (``REQ_ACTOR_MAIL`` AC-13). The table filter needs only "is there at least one", so no row is
+      fetched. The filter is ``>= 2``, not ``= 2``: measured on a live mailbox (8 folders with real
+      pending flags, counts only), ``[FlagStatus] = 2`` matched no item in ``GetTable`` and in
+      ``Items.Restrict``, in Jet and DASL syntax, while ``>= 2`` and ``> 1`` matched exactly the
+      number of flagged items read per item through ``PidTagFlagStatus``. The reason ``= 2``
+      matches nothing is not known; ``>= 2`` is the filter that was measured, not one derived from
+      the object model. A value above 2 is not defined there and is not expected.
+
+   5. A failure (non-zero exit, timeout, output that is not a JSON array, COM error, Outlook not
+      running) makes the desired state empty, writes one ``log.warn`` line and shows nothing to the
+      user (``REQ_ACTOR_MAIL`` AC-10).
+   6. Reconcile. For each candidate Actor whose name equals an entry's ``name``, the desired kind is
+      ``flag`` when ``flagged`` is true, otherwise ``mail`` when ``unread > 0``, otherwise none.
+      Per Actor: keep the held indicator when its kind equals the desired kind; otherwise dispose it
+      and, when a kind is desired, create one with ``api.indicateActor(id, icon)``
+      (``new ThemeIcon('flag')`` or ``new ThemeIcon('mail')``). Dispose the indicators of Actors
+      with no desired kind. An unchanged read therefore sets and disposes nothing, and the tree
+      is not refreshed (``REQ_ACTOR_MAIL`` AC-5). When the read had entries with
+      ``checked: false``, write one ``log.warn`` line for the read.
+
+   **Residual:** a single ``GetTable`` call cannot be interrupted, so the budget is checked between
+   folders only; the 10 000 ms limit remains the hard stop (and a failed read, step 5).
+
+   **Acceptance Criteria:**
+
+   * AC-1: For an Actor whose name is unique in ``listActors()`` and equals the name of a direct
+     Inbox subfolder, ``ActorMailStatus`` holds one indicator: ``flag`` when the folder has at least
+     one item with ``FlagStatus`` 2 (AC-14), otherwise ``mail`` when ``UnReadItemCount > 0``,
+     otherwise none.
+   * AC-2: The script reads the direct children of the default store's Inbox only
+     (``GetDefaultFolder(6)``, ``Folders``); no deeper folder is opened, and the flag lookup runs
+     only for folders whose name is a candidate name.
+   * AC-3: A read starts at activation, after every ``onDidScanActors``, changed or not, and after a
+     change of ``jarvis.outlook.enabled``; after no other trigger.
+   * AC-4: While ``jarvis.outlook.enabled`` is ``false``, no PowerShell process is started and no
+     indicator is held.
+   * AC-5: The script attaches with ``GetActiveObject`` and never starts Outlook; an Outlook that is
+     not running makes the script stop with exit code 1, so the read fails (step 5).
+   * AC-6: The script only reads properties and tables and changes no item, flag, folder or store
+     (``REQ_ACTOR_MAIL`` AC-8).
+   * AC-7: A failed read leaves no indicator, writes one log line and shows no message
+     (``REQ_ACTOR_MAIL`` AC-10).
+   * AC-8: ``indicateActor`` is called only when an Actor's kind changes from none or the other
+     kind, and the indicator is disposed when the kind ends; at most one indicator exists per Actor
+     (``REQ_ACTOR_MAIL`` AC-16).
+   * AC-9: A flag lookup that is skipped for the budget or fails does not remove the unread result:
+     the Actor shows ``mail`` when it has unread mail, and the read writes one log line
+     (``REQ_ACTOR_MAIL`` AC-17).
+   * AC-10: Candidate names are passed to the script as data and are not part of its text
+     (``REQ_ACTOR_MAIL`` AC-18).
+   * AC-11: ``dispose()`` disposes every held indicator and the ``onDidScanActors`` subscription; it
+     starts no read.
+   * AC-12: PIM calls ``listActors``, ``onDidScanActors`` and ``indicateActor`` of the core for this
+     feature and no other engine registration (``SPEC_MOD_PIM_PKG`` AC-2).
+   * AC-13: ``packages/pim/package.json`` declares ``onStartupFinished`` in ``activationEvents``, so
+     the activation read of AC-3 happens without any view being opened (``REQ_ACTOR_MAIL`` AC-19).
+   * AC-14: The flag lookup of a folder uses the table filter ``[FlagStatus] >= 2``; a folder with
+     an item of that status counts as flagged.

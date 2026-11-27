@@ -9,6 +9,7 @@ import { CategoryTreeProvider } from './CategoryTreeProvider';
 import { TaskEditorProvider } from './TaskEditorProvider';
 import { OutlookCategoryProvider } from './outlookIntegration/OutlookCategoryProvider';
 import { OutlookTaskProvider } from './outlookIntegration/OutlookTaskProvider';
+import { ActorMailStatus } from './ActorMailStatus';
 
 // --- Activation -----------------------------------------------------------------
 
@@ -213,6 +214,15 @@ export function activate(context: vscode.ExtensionContext): void {
             ]);
         }
     ));
+
+    // --- Actor mail indicators (SPEC_ACTOR_MAIL) ---
+    const actorMail = new ActorMailStatus(api, log);
+    context.subscriptions.push(
+        actorMail,
+        vscode.workspace.onDidChangeConfiguration(e => {
+            if (e.affectsConfiguration('jarvis.outlook.enabled')) { actorMail.requestRead(); }
+        })
+    );
 
     log.info('[PIM] activated — categories + tasks (2 tools) registered');
 }

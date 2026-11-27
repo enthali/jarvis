@@ -4,7 +4,7 @@ Jarvis Core (`enthali.jarvis-core`) is the harness: it turns chat sessions and a
 
 ## Actors
 
-An actor is a persistent persona with its own `context.md` memory and agent file. Actors are folders with an `actor.yaml` file; the ACTORS view shows direct child folders only, nested folders are not scanned. Jarvis creates or repairs the agent file with the actor name and memory path when needed. To move or remove an actor, use the file system; there is no Jarvis archive feature.
+An actor is a persistent persona with its own `context.md` memory and agent file. Actors are folders with an `actor.yaml` file; the ACTORS view shows direct child folders only, nested folders are not scanned. Jarvis creates or repairs the agent file with the actor name, its description and memory path when needed. To move or remove an actor, use the file system; there is no Jarvis archive feature.
 
 `jarvis_listActors()` returns Actor names and short descriptions from the workspace's `actor.yaml` files.
 
@@ -14,7 +14,7 @@ Jarvis uses VS Code's Agent Host for Actor chats. Click an Actor in ACTORS or ch
 
 In the Agents window, enable **Created In > jarvis-core** in the session filter to show chats created by Jarvis. **Mark done** archives a chat and makes it read-only; Jarvis restores it when opening it or delivering an announcement. Only **Delete** removes the chat. A workspace below a repository root can appear as **Worktree** without a Git worktree having been created.
 
-In the editor window, the ACTORS view takes activity from the Agent Host: a red circle with a cross means Error, a blue question mark means Waiting, and an animated spinner means Working. Idle has no activity icon. Activity takes priority over the recording mark, which takes priority over the mail icon. A failed turn stays in Error until the next turn; cancelling a turn returns to Idle.
+In the editor window, the ACTORS view takes activity from the Agent Host: a red circle with a cross means Error, a blue question mark means Waiting, and an animated spinner means Working. Idle has no activity icon. Activity takes priority over the recording mark, which takes priority over the follow-up flag and unread-mail icons that [Jarvis PIM](pim.md) adds. A failed turn stays in Error until the next turn; cancelling a turn returns to Idle.
 
 ## Messaging
 

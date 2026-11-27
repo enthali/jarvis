@@ -18,7 +18,7 @@ afterEach(() => {
     }
 });
 
-async function setup(active: boolean | ActorActivityState, mail: { isUnread: (id: string) => boolean } = { isUnread: () => false }) {
+async function setup(active: boolean | ActorActivityState) {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'jarvis-mark-'));
     roots.push(root);
     const folder = path.join(root, 'Solo');
@@ -26,7 +26,7 @@ async function setup(active: boolean | ActorActivityState, mail: { isUnread: (id
     fs.writeFileSync(path.join(folder, 'actor.yaml'), 'name: "Solo"\nsummary: ""\nagent: ""\n');
     const scanner = new ActorScanner(() => root, () => {});
     await scanner.rescan();
-    const provider = new ActorTreeProvider(scanner, { state: () => typeof active === 'string' ? active : active ? 'working' : 'idle' }, mail);
+    const provider = new ActorTreeProvider(scanner, { state: () => typeof active === 'string' ? active : active ? 'working' : 'idle' });
     const node = { kind: 'actor' as const, id: scanner.actors[0].id };
     let refreshes = 0;
     provider.onDidChangeTreeData(() => { refreshes++; });
@@ -38,8 +38,8 @@ const blue = new ThemeIcon('circle-filled', new ThemeColor('charts.blue'));
 
 describe('SPEC_ENG_ACTORMARK: ActorTreeProvider.mark', () => {
     it.each([['error', 'error', 'charts.red'], ['waiting', 'question', 'charts.blue']] as const)(
-        'shows %s ahead of a recording mark and mail', async (state, iconId, color) => {
-            const { provider, node } = await setup(state, { isUnread: () => true });
+        'shows %s ahead of a recording mark', async (state, iconId, color) => {
+            const { provider, node } = await setup(state);
             provider.mark(node.id, red);
             const icon = provider.getTreeItem(node).iconPath as ThemeIcon;
             expect(icon.id).toBe(iconId);
@@ -106,35 +106,69 @@ describe('SPEC_ENG_ACTORMARK: ActorTreeProvider.mark', () => {
     });
 });
 
-const unread = { isUnread: () => true };
+const green = new ThemeIcon('mail');
+const flagIcon = new ThemeIcon('flag');
 
-describe('SPEC_ACTOR_MAIL: unread-mail icon on the Actor node (ActorTreeProvider)', () => {
-    it('AC-5: an unread Actor that is not active shows the mail icon, without colour', async () => {
-        const { provider, node } = await setup(false, unread);
-        const icon = provider.getTreeItem(node).iconPath as ThemeIcon;
-        expect(icon.id).toBe('mail');
-        expect(icon.color).toBeUndefined();
+describe('SPEC_ENG_ACTORINDICATOR: ActorTreeProvider.indicate', () => {
+    it('AC-3: an idle Actor without a mark shows the indicator icon', async () => {
+        const { provider, node } = await setup(false);
+        provider.indicate(node.id, green);
+        expect(provider.getTreeItem(node).iconPath).toBe(green);
     });
 
-    it('AC-6: the activity icon takes precedence over the mail icon', async () => {
-        const { provider, node } = await setup(true, unread);
-        const icon = provider.getTreeItem(node).iconPath as ThemeIcon;
-        expect(icon.id).toBe('loading~spin');
+    it.each([true, 'error', 'waiting'] as const)('AC-3: activity state %s takes precedence over the indicator', async (state) => {
+        const { provider, node } = await setup(state);
+        provider.indicate(node.id, green);
+        expect(provider.getTreeItem(node).iconPath).not.toBe(green);
     });
 
-    it('AC-6: a mark takes precedence over the mail icon', async () => {
-        const { provider, node } = await setup(false, unread);
+    it('AC-3: a mark takes precedence over the indicator, which returns when the mark is disposed', async () => {
+        const { provider, node } = await setup(false);
+        provider.indicate(node.id, green);
+        const mark = provider.mark(node.id, red);
+        expect(provider.getTreeItem(node).iconPath).toBe(red);
+        mark.dispose();
+        expect(provider.getTreeItem(node).iconPath).toBe(green);
+    });
+
+    it('AC-1: disposing removes the indicator and refreshes; a second dispose does neither', async () => {
+        const { provider, node, refreshes } = await setup(false);
+        const d = provider.indicate(node.id, green);
+        const before = refreshes();
+        d.dispose();
+        expect(refreshes()).toBe(before + 1);
+        expect(provider.getTreeItem(node).iconPath).toBeUndefined();
+        d.dispose();
+        expect(refreshes()).toBe(before + 1);
+    });
+
+    it('AC-2: indicators stack; the newest still set shows, then the older one', async () => {
+        const { provider, node } = await setup(false);
+        provider.indicate(node.id, green);
+        const second = provider.indicate(node.id, flagIcon);
+        expect(provider.getTreeItem(node).iconPath).toBe(flagIcon);
+        second.dispose();
+        expect(provider.getTreeItem(node).iconPath).toBe(green);
+    });
+
+    it('AC-4: indicators and marks are separate; one never removes the other', async () => {
+        const { provider, node } = await setup(false);
+        const d = provider.indicate(node.id, green);
         provider.mark(node.id, red);
+        d.dispose();
         expect(provider.getTreeItem(node).iconPath).toBe(red);
     });
 
-    it('AC-6: the mail icon returns when the mark is disposed', async () => {
-        const { provider, node } = await setup(false, unread);
-        provider.mark(node.id, red).dispose();
-        expect((provider.getTreeItem(node).iconPath as ThemeIcon).id).toBe('mail');
+    it('AC-3: nothing else on the node changes', async () => {
+        const { provider, node } = await setup(false);
+        const plain = provider.getTreeItem(node);
+        provider.indicate(node.id, green);
+        const shown = provider.getTreeItem(node);
+        expect(shown.contextValue).toBe(plain.contextValue);
+        expect(shown.label).toBe(plain.label);
     });
 
-    it('AC-5: no mail icon when the Actor has no unread mail', async () => {
+    it('AC-6: with no indicator set the node has no icon', async () => {
         const { provider, node } = await setup(false);
         expect(provider.getTreeItem(node).iconPath).toBeUndefined();
     });
