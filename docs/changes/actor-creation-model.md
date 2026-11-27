@@ -1,6 +1,6 @@
 # Change Contract: actor-creation-model
 
-**Status:** accepted<br>
+**Status:** closed<br>
 **Current responsibility:** Project Manager<br>
 **Current blocker:** none<br>
 **Created:** 2026-11-27<br>
@@ -57,7 +57,7 @@ A purposeful description makes the custom agent identifiable in the picker. Opti
 |---|---|---|---|---|
 | Intent and outcome | yes | Project Manager | Goal, value, scope, and observable outcome are explicit and approved | approved |
 | Contract release | yes | User | User authorization to start the change; set by the User only | approved (2026-11-27 22:28 CET) |
-| Version control | yes | Project Manager | Local branch `feature/actor-creation-model`; squash-integrated into `development` at closure; the branch is retained | active |
+| Version control | yes | Project Manager | Local branch `feature/actor-creation-model` retained; squash-integrated into `development` at `176e51bd` | merged |
 | Product specification | yes | Architect | Changed specification artifacts are linked and checked | complete |
 | Infrastructure impact | yes | Admin | Affected infrastructure artifacts are updated, or none is affected | complete (none affected) |
 | Documentation impact | yes | Technical Writer | Affected user-facing documents are updated | complete |
@@ -65,7 +65,7 @@ A purposeful description makes the custom agent identifiable in the picker. Opti
 | Test design | yes | Tester | Requirement-level tests and validation procedures trace to the changed specification | complete (see Test Design) |
 | Quality review and test execution | yes | Quality | Current judgment is `proceed` and `Open Findings` is `None` | proceed |
 | User validation | yes | User | Observable outcome is accepted or changes are requested | accepted |
-| Closure | yes | Project Manager | Final outcome and integration state are recorded | pending |
+| Closure | yes | Project Manager | Final outcome and integration state are recorded | closed |
 
 ## Product Specification
 
@@ -237,16 +237,16 @@ After Quality's `proceed`, the Project Manager presents the observable outcome. 
 ## Closure
 
 **Owner:** Project Manager<br>
-**Status:** pending | closed
+**Status:** closed
 
-- [ ] Every included artifact or gate has terminal status and completion evidence.
-- [ ] Intent and outcome are `approved`.
-- [ ] Quality has recorded `proceed`.
-- [ ] Open Findings contains `None`.
-- [ ] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
-- [ ] The feature branch is squash-integrated into `development`.
-- [ ] Current blocker is `none`.
-- [ ] The Project Manager ran the `syspilot.contract-statistics` skill after validation and the record exists in `.syspilot/stats/`.
-- [ ] Header Status is `closed`.
+- [x] Every included artifact or gate has terminal status and completion evidence.
+- [x] Intent and outcome are `approved`.
+- [x] Quality has recorded `proceed`.
+- [x] Open Findings contains `None`.
+- [x] User validation is `accepted`, or its explicit User delegation is recorded in the artifact row.
+- [x] The feature branch is squash-integrated into `development`.
+- [x] Current blocker is `none`.
+- [x] The Project Manager ran the `syspilot.contract-statistics` skill after validation and the record exists in `.syspilot/stats/`.
+- [x] Header Status is `closed`.
 
-**Final outcome:** {accepted result and integration commit}
+**Final outcome:** Explicit Actor creation requires a non-blank summary and accepts an optional validated Copilot model. Automatic agent preparation remains catalog-independent. The User accepted live creation with and without a model; unobserved scenarios are recorded above. Needs gate passed before integration. Squash `176e51bd` on `development`; statistics in `.syspilot/stats/actor-creation-model-stat.md`.
