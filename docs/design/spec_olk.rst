@@ -118,20 +118,20 @@ Outlook Design Specifications
 .. spec:: Outlook Settings and Activation Guard
    :id: SPEC_OLK_SETTINGS
    :status: implemented
-   :links: REQ_OLK_ENABLE; REQ_CFG_GROUPS
+   :links: REQ_OLK_ENABLE; REQ_CFG_GROUPS; SPEC_ACTOR_MAIL
 
    **Description:**
-   Add ``jarvis.outlook.enabled`` to the ``"Outlook"`` configuration group in
+   Add ``jarvis.outlook.enabled`` to the ``"Jarvis PIM"`` configuration group in
    ``package.json`` and wire the activation guard in ``extension.ts``. The
    category provider is additionally gated by the categories sub-toggle
    (``SPEC_OLK_CATENABLE``).
 
-   **package.json addition** (property inside the "Outlook" configuration object):
+   **package.json addition** (property inside the "Jarvis PIM" configuration object):
 
    .. code-block:: json
 
       {
-        "title": "Outlook",
+        "title": "Jarvis PIM",
         "properties": {
           "jarvis.outlook.enabled": {
             "type": "boolean",
@@ -184,6 +184,10 @@ Outlook Design Specifications
      ``OutlookCategoryProvider`` is instantiated once during activation
    * The ``CategoryService`` and ``CategoryTreeProvider`` are always
      instantiated (PIM layer) — only the provider registration is conditional
+   * The Actor mail indicators are the exception to the reload rule: ``ActorMailStatus`` is
+     instantiated once, reads the setting at each read and is called through ``requestRead()`` by
+     the same change handler, so a change takes effect at once (``SPEC_ACTOR_MAIL``,
+     ``REQ_OLK_ENABLE`` AC-3). The reload message is still shown for the providers.
 
 
 .. spec:: OutlookTaskProvider (COM Bridge)
@@ -311,12 +315,12 @@ Outlook Design Specifications
         }
       ]
 
-   The tasks setting lives in the "Outlook" configuration group:
+   The tasks setting lives in the "Jarvis PIM" configuration group:
 
    .. code-block:: json
 
       {
-        "title": "Outlook",
+        "title": "Jarvis PIM",
         "properties": {
           "jarvis.outlook.tasks.enabled": {
             "type": "boolean",
@@ -357,14 +361,14 @@ Outlook Design Specifications
    :links: REQ_OLK_CATENABLE; REQ_PIM_CATVIEW; SPEC_OLK_SETTINGS; SPEC_OLK_TASKENABLE
 
    **Description:**
-   Adds ``jarvis.outlook.categories.enabled`` to the "Outlook" configuration
+   Adds ``jarvis.outlook.categories.enabled`` to the "Jarvis PIM" configuration
    group next to ``jarvis.outlook.tasks.enabled``, removes
    ``jarvis.pim.showCategories``, and gates the Outlook category provider and
    the Categories view with it. The setting keys are those of the shipped
    manifest (``jarvis.outlook.enabled``).
 
    **package.json delta (``contributes.configuration``):** the "PIM" group
-   with ``jarvis.pim.showCategories`` is removed; the "Outlook" group gains:
+   with ``jarvis.pim.showCategories`` is removed; the "Jarvis PIM" group gains:
 
    .. code-block:: json
 

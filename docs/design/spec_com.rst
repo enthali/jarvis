@@ -488,7 +488,7 @@ confirm** are assumptions that no run has checked yet.
 
 .. spec:: Actor State in the Tree
    :id: SPEC_COM_STATE
-   :status: approved
+   :status: implemented
    :links: REQ_COM_STATE; SPEC_COM_CLIENTMODULE; SPEC_COM_BINDING
 
    **Description:**
@@ -521,7 +521,7 @@ confirm** are assumptions that no run has checked yet.
    ``error`` (circle with a cross) for Error, a blue ``question`` for Waiting and
    an animated ``loading~spin`` for Working (the spin modifier animates the icon
    of a tree node, User run, 2026-10-28); Idle sets no icon. The state is shown
-   before the mark of a recording and before the mail icon (``SPEC_ACTOR_TREE``
+   before the mark of a recording and before any indicator (``SPEC_ACTOR_TREE``
    AC-6). While the client has no connection the extension passes no state.
 
    **Replaces:** the former ``ActivityTracker``; nothing else supplies the state.

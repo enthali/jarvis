@@ -71,14 +71,15 @@ Modular Delivery Design Specifications
 
 .. spec:: PIM Package
    :id: SPEC_MOD_PIM_PKG
-   :status: approved
-   :links: REQ_MOD_ADDONS; REQ_MOD_ZEROTRACE; REQ_ENG_TOOLNS; SPEC_REL_PKGCONTRACT; SPEC_ENG_API
+   :status: implemented
+   :links: REQ_MOD_ADDONS; REQ_MOD_ZEROTRACE; REQ_ENG_TOOLNS; SPEC_REL_PKGCONTRACT; SPEC_ENG_API; SPEC_ACTOR_MAIL; SPEC_ENG_ACTORINDICATOR
 
    **Description:**
    ``packages/pim`` builds ``enthali.jarvis-pim`` with
    ``extensionDependencies: ["enthali.jarvis-core"]``. On activation it checks
    ``api.version === 2`` and registers the PIM tools (``jarvis_pim_*``), the
-   Categories view and the task editor. It registers no entity kind and no
+   Categories view and the task editor, and starts the Actor mail indicators
+   (``SPEC_ACTOR_MAIL``). It registers no entity kind and no
    tree decorator. All PIM views, settings, commands, and tools live in this
    manifest only.
 
@@ -86,7 +87,8 @@ Modular Delivery Design Specifications
 
    * AC-1: Manifest declares ``extensionDependencies: ["enthali.jarvis-core"]``.
    * AC-2: PIM registers its tools via ``registerTool`` and uses no other
-     engine registration.
+     engine registration, except that the Actor mail indicators use ``listActors``,
+     ``onDidScanActors`` and ``indicateActor`` (``SPEC_ACTOR_MAIL``).
    * AC-3: PIM settings use existing ``jarvis.*`` keys (``jarvis.pim.*``,
      ``jarvis.outlook.*``); ``jarvis.projects.*`` and ``jarvis.events.*`` do
      not exist.

@@ -38,7 +38,7 @@ capability modules. Install only what you need.
 
 ### Jarvis Core
 
-- **Actors & sessions** — persistent entities with their own `context.md` memory and Agent Host chats. In the editor window, the ACTORS view shows direct child folders with `actor.yaml`; activity states (Error, Waiting, Working) take priority over the recording mark, then the unread-mail icon. See [Core getting started](packages/core/README.md#getting-started) for folders and chat behavior.
+- **Actors & sessions** — persistent entities with their own `context.md` memory and Agent Host chats. In the editor window, the ACTORS view shows direct child folders with `actor.yaml`; activity states (Error, Waiting, Working) take priority over the recording mark, then the follow-up flag or unread-mail icon that Jarvis PIM adds. See [Core getting started](packages/core/README.md#getting-started) for folders and chat behavior.
 - **Heartbeat scheduler** — cron-based jobs running scripts (Python, PowerShell), VS Code
   commands, or single-shot LLM agent steps. Each agent step must name `vendor` and `model`
   (the model ID); there is no default or fallback. Use **Jarvis: List Language Models** or `jarvis_listModels` to inspect the pairs
@@ -50,6 +50,7 @@ capability modules. Install only what you need.
 ### Jarvis PIM
 
 - **Categories & tasks** — Outlook-backed category and task integration on Windows with Outlook Classic
+- **Actor mail indicators** — flag and mail icons on Actor nodes for pending follow-ups and unread mail in the Outlook folder of the same name under your Inbox
 
 ### Jarvis Recorder
 

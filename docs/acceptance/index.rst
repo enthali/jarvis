@@ -15,7 +15,7 @@ a prerequisite for the procedures below. These groups describe prerequisites,
 not pass records.
 
 * **Windows with Outlook Classic:** :doc:`ac_actor_mail` and
-  :doc:`ac_outlookcategories`. The mail icon procedure also uses the
+  :doc:`ac_outlookcategories`. The mail indicator procedure also uses the
   Windows-only Recorder.
 * **Windows or Linux with PowerShell in the extension host environment:**
   :doc:`ac_heartbeat` and :doc:`ac_heartbeat_pause`. The full Heartbeat

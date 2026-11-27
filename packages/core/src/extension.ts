@@ -24,7 +24,6 @@ import { applyGitignore, setIgnoreManagerLogger } from './engine/core/gitignoreM
 import { setAssetProvisioningLogger, provisionModuleAssets } from './engine/core/assetProvisioning';
 import { announceIfNewVersion, showReleaseNotes } from './engine/core/releaseNotes';
 import { ActorScanner, ambiguousActorMessage } from './engine/actors/actorScanner';
-import { ActorMailState } from './engine/actors/actorMail';
 import { ActorActivity } from './engine/actors/actorActivity';
 import { ActorTreeProvider, ActorNode } from './engine/actors/actorTreeProvider';
 import { actorNameProblem, existingActorFolder, writeActorFiles } from './engine/actors/actorCreation';
@@ -124,13 +123,10 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
 
     const activity = new ActorActivity(workspaceRoot ?? '', () => actorScanner.actors.map(actor => actor.name), () => actorTreeProvider?.refresh());
 
-    // Unread-mail state (SPEC_ACTOR_MAIL): read after every scan, drawn by the tree.
-    const actorMail = new ActorMailState(actorScanner, log, () => actorTreeProvider?.refresh());
-    context.subscriptions.push(actorMail);
-
-    actorTreeProvider = new ActorTreeProvider(actorScanner, activity, actorMail);
+    actorTreeProvider = new ActorTreeProvider(actorScanner, activity);
     const treeProvider = actorTreeProvider;
     engine.setMarker((id, icon) => treeProvider.mark(id, icon));
+    engine.setIndicator((id, icon) => treeProvider.indicate(id, icon));
     // Jarvis AHP client and its message path (SPEC_COM_CLIENTMODULE, SPEC_COM_TOOLS, SPEC_COM_INBOX).
     // start() returns at once, the client never blocks activation.
     const startupTextFor = (actor: { name: string; folder: string }): string => {
@@ -789,7 +785,6 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
             if (e.affectsConfiguration('jarvis.actors.folder')) {
                 void actorScanner.rescan();
             }
-            if (e.affectsConfiguration('jarvis.outlook.enabled')) { actorMail.requestRead(); }
         }),
     );
 

@@ -27,8 +27,8 @@ Modules
    :tracked_by: ROOT_JARVIS
 
    The Actor as an entity (identity, creation, chat session, context) and how it
-   is shown and operated in the Jarvis Explorer: the ACTORS tree, its node marks,
-   context actions and file children, and opening source files from tree nodes.
+   is shown and operated in the Jarvis Explorer: the ACTORS tree, its node marks and
+   indicators, context actions and file children, and opening source files from tree nodes.
 
 .. mod:: Messaging
    :id: MOD_MESSAGING
@@ -72,8 +72,9 @@ Modules
    :tracked_by: ROOT_JARVIS
 
    Personal information management through exchangeable providers: category
-   synchronisation and its tool and view, task synchronisation, and the Outlook
-   COM bridge that serves as the Outlook provider.
+   synchronisation and its tool and view, task synchronisation, the Outlook
+   COM bridge that serves as the Outlook provider, and the Outlook mail indicators
+   on Actor nodes.
 
 .. mod:: Recorder
    :id: MOD_RECORDER

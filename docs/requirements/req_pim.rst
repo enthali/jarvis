@@ -273,3 +273,80 @@ PIM Requirements
      (``SPEC_MOD_MCP_PKG``) without a tool-specific MCP registration
    * AC-8: When no task providers are configured, the tool SHALL return an
      informational error message
+
+
+.. req:: Mail Indicators on Actor Nodes
+   :id: REQ_ACTOR_MAIL
+   :status: implemented
+   :priority: optional
+   :links: US_ACTOR_MAIL; REQ_ACTOR_TREE; REQ_COM_STATE; REQ_ENG_ACTORMARK; REQ_ENG_ACTORINDICATOR; REQ_ENG_ACTORLIST; REQ_OLK_ENABLE; REQ_CFG_SCANINTERVAL; REQ_EXP_REACTIVECACHE
+
+   **Description:**
+   While ``jarvis.outlook.enabled`` is ``true``, the PIM add-on SHALL show on an Actor node a flag
+   icon when the Outlook mail folder of the same name, directly under the Inbox, holds mail with a
+   pending follow-up flag, and a mail icon when it holds unread mail and no pending follow-up flag.
+   PIM supplies the icons through the indicator API of the core (``REQ_ENG_ACTORINDICATOR``); the
+   core itself neither reads Outlook mail nor shows these icons. The state is read after each
+   completed scan of the ACTORS view and is kept only as the indicator PIM set on each Actor. The
+   icons take their place in the priority order of AC-6.
+
+   **Acceptance Criteria:**
+
+   * AC-1: An icon SHALL be shown on the Actor whose ``name`` (``REQ_ACTOR_TREE`` AC-3)
+     equals the name of an Outlook folder that is a direct child of the Inbox of the default
+     mail store.
+   * AC-2: The name comparison SHALL be exact and case-sensitive, as the name rule of
+     ``REQ_ACTOR_SCHEMA`` AC-7. Folders nested deeper than one level below the Inbox SHALL NOT
+     be considered.
+   * AC-3: When two or more Actors carry the same name (``REQ_ACTOR_SCHEMA`` AC-7), no Actor
+     with that name SHALL show an icon.
+   * AC-4: The mail icon SHALL be shown while that folder holds at least one unread item and no
+     pending follow-up flag (AC-13). A folder without unread items SHALL NOT show the mail icon.
+   * AC-5: The state SHALL be read once when PIM activates, after every completed scan of the
+     ACTORS view (``REQ_ENG_ACTORLIST`` AC-6), whether or not the Actor list changed: the periodic
+     background rescan (``REQ_CFG_SCANINTERVAL``), the manual rescan (``REQ_ACTOR_TREE`` AC-7) and
+     the other scans. It SHALL also be read after a change of ``jarvis.outlook.enabled``, which
+     takes effect without a window reload. Between these reads the icons SHALL NOT change. No
+     Outlook event SHALL be subscribed, and no mail state SHALL be kept beyond the indicator set
+     on each Actor. The tree SHALL be refreshed only when an indicator is set or removed, and an
+     unchanged read SHALL set or remove none (``REQ_EXP_REACTIVECACHE`` AC-4).
+   * AC-6: An Actor node SHALL show at most one icon, by this priority: the activity
+     state of the chat other than Idle (``REQ_COM_STATE`` AC-5), then the mark of a
+     recording (red, ``REQ_REC_BUTTON`` AC-3), then the follow-up flag icon, then the unread-mail
+     icon (``REQ_ENG_ACTORINDICATOR`` AC-2). Without any of them the node shows no icon.
+   * AC-7: Each source keeps its own entry. When a higher-priority icon ends, the next one still
+     present SHALL be shown at the next tree refresh, and the node SHALL NOT be left without an
+     icon while a lower-priority icon still applies.
+   * AC-8: The feature SHALL only read Outlook. It SHALL NOT mark mail as read or unread, set,
+     complete or clear a flag, change, move or send mail, or change any folder.
+   * AC-9: The feature SHALL NOT start Outlook. An Outlook that is not running is treated as
+     not readable (AC-10).
+   * AC-10: When Outlook cannot be read (the platform is not Windows, Outlook is not running,
+     Outlook reports an error, or the read does not finish in time), no Actor SHALL show a mail
+     or flag icon, the failure SHALL be written to the log, and no message SHALL be shown to the
+     user.
+   * AC-11: While ``jarvis.outlook.enabled`` is ``false``, no Outlook call SHALL be made for the
+     mail icons and none SHALL be shown (``REQ_OLK_ENABLE`` AC-2).
+   * AC-12: The icons SHALL NOT alter any other Actor-node behavior (label, click command,
+     context menu, children).
+   * AC-13: An Actor whose folder holds at least one mail with a pending follow-up flag, whether
+     that mail is read or unread, SHALL show the flag icon instead of the mail icon. A flag that is
+     completed or cleared SHALL NOT count as pending.
+   * AC-14: When the last pending follow-up flag of the folder ends, the next read SHALL show the
+     mail icon while unread mail remains and no icon otherwise (AC-6 applies).
+   * AC-15: The core SHALL NOT read Outlook mail or decide which Actors have mail. Without PIM no
+     Actor node SHALL show a mail or flag icon. PIM SHALL use only ``listActors``,
+     ``onDidScanActors`` and ``indicateActor`` of the core API for this feature; when the core
+     lacks one of the two new members, PIM SHALL log it and show no icon.
+   * AC-16: PIM SHALL hold at most one indicator per Actor. Disabling the integration, deactivating
+     PIM, and an Actor that no longer qualifies SHALL remove its indicator, and repeated reads
+     SHALL NOT leave duplicates.
+   * AC-17: The follow-up lookup SHALL NOT prevent the unread state from being supplied in time.
+     It SHALL run only for folders whose name matches exactly one Actor and SHALL stay within a time
+     budget shorter than the limit of the whole read (AC-10). A lookup that is skipped or fails
+     SHALL count as no pending flag and the unread state SHALL still be supplied, with one log
+     line for the read.
+   * AC-18: Actor names SHALL reach the Outlook read as data and SHALL NOT be concatenated into
+     the text of the script that runs it.
+   * AC-19: PIM SHALL activate once the window has finished starting, without any PIM view having
+     been opened, so that the indicators appear without further action by the User.

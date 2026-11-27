@@ -48,7 +48,7 @@ Extension tools retain references such as `#jarvis_core_listJobs` and reach an A
 
 In GitHub Codespaces, the User exercised an installed discovery prototype, and Agent Host discovery, Actor messaging and opening Actor chats worked (2026-11-19); the finalized code was compared with it but not separately deployed end-to-end. Replies, Dev Tunnels and the Agents window connected to a Codespace were outside that validation. On Windows, the connection and a message exchange were checked in the Windows Sandbox (VS Code 1.144.0, 2026-11-19). On macOS, the User verified on 2026-11-24 that Jarvis worked without issues. WSL and SSH were not verified.
 
-In the editor window, activity icons come from the Agent Host: red cross for Error, blue question mark for Waiting, spinner for Working, none for Idle. Activity takes priority over the recording mark, then the mail icon.
+In the editor window, activity icons come from the Agent Host: red cross for Error, blue question mark for Waiting, spinner for Working, none for Idle. Activity takes priority over the recording mark, then the follow-up flag and unread-mail icons that Jarvis PIM adds.
 
 ## Agents Window and Known Limits
 

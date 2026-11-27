@@ -115,7 +115,7 @@ Engine Requirements
    :id: REQ_ENG_ACTORLIST
    :status: implemented
    :priority: required
-   :links: US_COM_FIND; REQ_ACTOR_SCHEMA
+   :links: US_COM_FIND; REQ_ACTOR_SCHEMA; REQ_ACTOR_MAIL
 
    **Description:**
    The core SHALL expose a read-only ``JarvisCoreApi.listActors()`` method so
@@ -137,13 +137,18 @@ Engine Requirements
      the Actor name (``REQ_ACTOR_WHOAMI`` AC-1).
    * AC-5: ``listJarvisSessions()`` and the ``JarvisSession`` type SHALL be
      removed; existing add-on callers SHALL use ``listActors()``.
+   * AC-6: The API SHALL expose an event ``onDidScanActors`` that fires once after every
+     completed Actor rescan, whether or not the Actor list changed, so that an add-on can
+     read ``listActors()`` again after each scan. The member is additive: ``version`` stays
+     ``2`` (``REQ_ENG_CONTRACT`` AC-3) and an add-on SHALL check that the member exists
+     before using it.
 
 
 .. req:: Actor Node Mark API
    :id: REQ_ENG_ACTORMARK
-   :status: approved
+   :status: implemented
    :priority: required
-   :links: US_REC_CAPTURE; REQ_ACTOR_TREE; REQ_COM_STATE; REQ_ACTOR_MAIL; REQ_ENG_CONTRACT
+   :links: US_REC_CAPTURE; REQ_ACTOR_TREE; REQ_COM_STATE; REQ_ENG_ACTORINDICATOR; REQ_ENG_CONTRACT
 
    **Description:**
    The core SHALL expose a method on ``JarvisCoreApi`` with which an add-on marks one
@@ -157,15 +162,47 @@ Engine Requirements
      ``vscode.Disposable``; ``actorId`` is ``JarvisActor.id`` and ``icon`` a
      ``vscode.ThemeIcon``
    * AC-2: While a mark is set and the Actor is Idle (``REQ_COM_STATE``), the Actor's node
-     SHALL show the icon in place of its normal icon, taking precedence over the unread-mail
-     icon (``REQ_ACTOR_MAIL``). An activity state other than Idle takes precedence over the
+     SHALL show the icon in place of its normal icon, taking precedence over every indicator
+     (``REQ_ENG_ACTORINDICATOR``). An activity state other than Idle takes precedence over the
      mark. Marks on the same Actor are kept as
      separate entries; the node SHALL show the most recently added mark that is still set.
-     When no mark is set, the node SHALL show the unread-mail icon
-     that applies (``REQ_ACTOR_MAIL`` AC-6), or its normal icon.
+     When no mark is set, the node SHALL show the indicator
+     that applies (``REQ_ENG_ACTORINDICATOR`` AC-2), or its normal icon.
    * AC-3: Disposing the returned ``Disposable`` SHALL remove exactly that mark and leave the
      other marks on the same Actor in place. Disposing it a second time SHALL change nothing.
    * AC-4: A mark SHALL change nothing else on the node (label, context value, click
      command, menus, children)
    * AC-5: The member is additive: ``version`` stays ``2`` (``REQ_ENG_CONTRACT`` AC-3), and an
      add-on SHALL check that the member exists before calling it
+
+
+.. req:: Actor Node Indicator API
+   :id: REQ_ENG_ACTORINDICATOR
+   :status: implemented
+   :priority: required
+   :links: US_ACTOR_MAIL; REQ_ACTOR_TREE; REQ_COM_STATE; REQ_ENG_ACTORMARK; REQ_ENG_ACTORLIST; REQ_ENG_CONTRACT; REQ_ACTOR_MAIL
+
+   **Description:**
+   The core SHALL expose a method on ``JarvisCoreApi`` with which an add-on shows a status
+   indicator icon on one Actor node in the ACTORS view and removes it again. PIM uses it to
+   show unread and flagged mail. An indicator is weaker than a recording mark
+   (``REQ_ENG_ACTORMARK``) and than the activity state; the core stays in control of how the
+   node is drawn and sets no indicator itself.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``indicateActor(actorId, icon)`` SHALL be on the API surface and return a
+     ``vscode.Disposable``; ``actorId`` is ``JarvisActor.id`` and ``icon`` a ``vscode.ThemeIcon``.
+   * AC-2: While an indicator is set, the Actor is Idle (``REQ_COM_STATE``) and no mark is set,
+     the node SHALL show the indicator icon in place of its normal icon. An activity state other
+     than Idle and any mark take precedence over the indicator. Indicators on the same Actor are
+     kept as separate entries; the node SHALL show the most recently added indicator that is
+     still set, and its normal icon when none is set.
+   * AC-3: Disposing the returned ``Disposable`` SHALL remove exactly that indicator and leave
+     the others on the same Actor in place. Disposing it a second time SHALL change nothing.
+   * AC-4: An indicator SHALL change nothing else on the node (label, context value, click
+     command, menus, children).
+   * AC-5: The core SHALL set no indicator itself: with no add-on that calls ``indicateActor``,
+     no Actor node shows one.
+   * AC-6: The member is additive: ``version`` stays ``2`` (``REQ_ENG_CONTRACT`` AC-3), and an
+     add-on SHALL check that the member exists before calling it.

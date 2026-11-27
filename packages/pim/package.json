@@ -18,6 +18,7 @@
     "enthali.jarvis-core"
   ],
   "activationEvents": [
+    "onStartupFinished",
     "onView:jarvisCategories"
   ],
   "scripts": {
@@ -115,7 +116,7 @@
     },
     "configuration": [
       {
-        "title": "Outlook",
+        "title": "Jarvis PIM",
         "properties": {
           "jarvis.outlook.enabled": {
             "type": "boolean",

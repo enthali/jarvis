@@ -129,3 +129,46 @@ PIM User Stories
    * AC-9: Outlook as a task source is off by default; the user turns on the
      Outlook integration and, separately, its tasks feature, and the tasks
      feature can be turned off without turning off the Outlook integration
+
+
+.. story:: Mail Indicators on Actor Nodes
+   :id: US_ACTOR_MAIL
+   :status: implemented
+   :tracked_by: MOD_PIM
+   :priority: optional
+   :links: US_ACTOR_TREE; US_ACTOR_ACTIVITY; US_REC_CAPTURE
+
+   **As a** Jarvis User,
+   **I want** an Actor node in the ACTORS tree to show an icon while the Outlook mail
+   folder of the same name, directly under my Inbox, holds unread mail or mail flagged
+   for follow-up,
+   **so that** I can see which Actors need my attention in my mail without leaving VS Code.
+
+   **Acceptance Criteria:**
+
+   * AC-1: When the mail integration is enabled, an Actor node shows a mail icon
+     in front of its name while the mail folder with the Actor's name, directly
+     under my Inbox, holds at least one unread mail.
+   * AC-2: An Actor without such a folder, or whose folder has neither unread mail
+     nor mail flagged for follow-up, shows no mail icon and no flag icon. A folder
+     nested deeper in the Inbox does not count.
+   * AC-3: The icon is as current as the last refresh of the Actor list (the
+     regular and the manual refresh). It does not change live when mail arrives,
+     is read or is flagged.
+   * AC-4: An Actor node shows at most one icon at a time, by this priority: activity state
+     (error, waiting or working) before recording (red dot) before follow-up (flag icon)
+     before unread mail (mail icon). When an icon of a higher priority ends, the next one
+     still present is shown; when none is present, the node shows no icon.
+   * AC-5: The feature only reads Outlook. It never marks mail as read or unread, never sets,
+     completes or clears a flag, never moves, changes or sends mail, and never changes a
+     folder.
+   * AC-6: When Outlook cannot be read (for example because it is not running), no Actor shows
+     a mail icon or a flag icon and no error message is shown.
+   * AC-7: The mail icon and the flag icon do not change anything else on the Actor node.
+   * AC-8: An Actor node shows a flag icon, instead of the mail icon, while its folder holds at
+     least one mail flagged for follow-up that is not yet completed, whether that mail is read
+     or unread. A mail whose flag is completed does not count.
+   * AC-9: When the last pending follow-up flag in the folder ends, because it is completed or
+     cleared, the node shows the mail icon while unread mail remains, and no icon otherwise.
+   * AC-10: The mail icon and the flag icon come with the PIM add-on: an Actor node shows them
+     only when the PIM add-on is installed.

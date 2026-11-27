@@ -10,7 +10,7 @@ Actor Design Specifications
 .. spec:: Actor Scanner
    :id: SPEC_ACTOR_SCANNER
    :status: implemented
-   :links: REQ_ACTOR_SCHEMA; REQ_ACTOR_ACTIVATION; REQ_ACTOR_TREE; REQ_EXP_REACTIVECACHE; REQ_CFG_SCANINTERVAL; SPEC_CFG_PATHRESOLVER; SPEC_AUT_HEARTBEAT_RESOLVER_REUSE; SPEC_AUT_JOBREG; SPEC_ACTOR_MAIL
+   :links: REQ_ACTOR_SCHEMA; REQ_ACTOR_ACTIVATION; REQ_ACTOR_TREE; REQ_EXP_REACTIVECACHE; REQ_CFG_SCANINTERVAL; SPEC_CFG_PATHRESOLVER; SPEC_AUT_HEARTBEAT_RESOLVER_REUSE; SPEC_AUT_JOBREG; SPEC_ENG_ACTORINDICATOR
 
    **Description:**
    ``ActorScanner`` (``engine/actors/actorScanner.ts``) is the single source
@@ -42,7 +42,7 @@ Actor Design Specifications
           getActor(id: string): ActorEntry | undefined;
           resolveName(name: string): ActorLookup;  // the unique-name rule
           rescan(): Promise<void>;
-          readonly onDidScan: vscode.Event<void>;   // after every completed rescan (SPEC_ACTOR_MAIL)
+          readonly onDidScan: vscode.Event<void>;   // after every completed rescan (SPEC_ENG_ACTORINDICATOR)
       }
 
       export function ambiguousActorMessage(name: string, matches: ActorEntry[]): string;
@@ -69,10 +69,11 @@ Actor Design Specifications
       result differs, so a periodic rescan of an unchanged folder does not
       refresh the view.
 
-   **Scan completion** (``REQ_ACTOR_MAIL`` AC-5): ``rescan()`` fires ``onDidScan`` once after
-   every completed rescan, whether or not the result changed. A call that returns the in-flight
-   promise fires nothing extra. The unread-mail icon (``SPEC_ACTOR_MAIL``) reads Outlook on this
-   event.
+   **Scan completion** (``REQ_ACTOR_MAIL`` AC-5, ``REQ_ENG_ACTORLIST`` AC-6): ``rescan()`` fires
+   ``onDidScan`` once after every completed rescan, whether or not the result changed. A call that
+   returns the in-flight promise fires nothing extra. The core publishes the event as
+   ``JarvisCoreApi.onDidScanActors`` (``SPEC_ENG_ACTORINDICATOR``); the mail indicators of PIM
+   (``SPEC_ACTOR_MAIL``) read Outlook on it. The core has no other subscriber of its own for mail.
 
    **Rescan triggers** (``REQ_ACTOR_TREE`` AC-5 to AC-7):
 
@@ -222,8 +223,8 @@ Actor Design Specifications
 
 .. spec:: ACTORS Tree Provider
    :id: SPEC_ACTOR_TREE
-   :status: approved
-   :links: REQ_ACTOR_TREE; REQ_EXP_TREEVIEW; SPEC_ACTOR_SCANNER; SPEC_ACTOR_FILES; SPEC_COM_STATE; SPEC_COM_OPEN; SPEC_ENG_ACTORMARK; SPEC_ACTOR_MAIL
+   :status: implemented
+   :links: REQ_ACTOR_TREE; REQ_EXP_TREEVIEW; SPEC_ACTOR_SCANNER; SPEC_ACTOR_FILES; SPEC_COM_STATE; SPEC_COM_OPEN; SPEC_ENG_ACTORMARK; SPEC_ENG_ACTORINDICATOR
 
    **Description:**
    ``ActorTreeProvider`` (``engine/actors/actorTreeProvider.ts``) is the
@@ -231,8 +232,9 @@ Actor Design Specifications
    from ``ActorScanner`` and delegates their children to the file-children
    logic (``SPEC_ACTOR_FILES``). It sets the activity icon itself
    (``SPEC_COM_STATE``) and holds the icon marks of add-ons
-   (``SPEC_ENG_ACTORMARK``), which show only while the Actor is Idle. It draws the
-   unread-mail icon (``SPEC_ACTOR_MAIL``) below the marks.
+   (``SPEC_ENG_ACTORMARK``) and the indicators of add-ons (``SPEC_ENG_ACTORINDICATOR``), which
+   show only while the Actor is Idle. It draws an indicator, such as the mail icon of PIM
+   (``SPEC_ACTOR_MAIL``), below the marks; it reads no Outlook state itself.
 
    **Node union** (provider-local; the variants below are defined in
    ``SPEC_ACTOR_FILES``):
@@ -256,12 +258,13 @@ Actor Design Specifications
       item.command = { command: 'jarvis.openActorSession', title: 'Open', arguments: [node] };
       const state = states.get(node.id) ?? 'idle';    // passed by the extension, SPEC_COM_STATE
       const mark = marks.get(node.id)?.at(-1);         // SPEC_ENG_ACTORMARK: most recent mark still set
+      const indicator = indicators.get(node.id)?.at(-1);   // SPEC_ENG_ACTORINDICATOR: most recent still set
       if (state !== 'idle') {
           item.iconPath = stateIcon(state);            // SPEC_COM_STATE Tree
       } else if (mark) {
           item.iconPath = mark.icon;
-      } else if (actor && mail.isUnread(actor.id)) {   // SPEC_ACTOR_MAIL
-          item.iconPath = new vscode.ThemeIcon('mail');
+      } else if (indicator) {
+          item.iconPath = indicator.icon;
       }
 
    **View registration** (``extension.ts``):
@@ -277,8 +280,8 @@ Actor Design Specifications
 
    **Refresh API:** ``refresh()`` fires ``onDidChangeTreeData(undefined)``.
    It is called by the scanner's ``onDidChange``, by the state listener when the
-   state of an Actor changes (``SPEC_COM_STATE``), and by the mail state (``SPEC_ACTOR_MAIL``) when the set
-   of Actors showing the mail icon changes. With one view there is nothing to
+   state of an Actor changes (``SPEC_COM_STATE``), and when a mark or an indicator is set or
+   disposed (``SPEC_ENG_ACTORMARK``, ``SPEC_ENG_ACTORINDICATOR``). With one view there is nothing to
    refresh selectively.
 
    **package.json (core):**
@@ -306,8 +309,8 @@ Actor Design Specifications
      generic tree factory or decorator registry exists.
    * AC-6: An Actor node shows the first icon that applies, in this order: the activity state
      other than Idle (``REQ_COM_STATE``), the most recent mark (``SPEC_ENG_ACTORMARK``), the
-     unread-mail icon (``SPEC_ACTOR_MAIL``). Without any of them the node has no icon
-     (``REQ_ACTOR_MAIL`` AC-6).
+     most recent indicator (``SPEC_ENG_ACTORINDICATOR``). Without any of them the node has no
+     icon (``REQ_ACTOR_MAIL`` AC-6).
 
 
 .. spec:: Actor File Children
@@ -442,105 +445,6 @@ Actor Design Specifications
      ``.md`` as Markdown Preview in the Docs column, other files in preview
      mode in the Docs column; a missing file shows a warning and creates
      nothing.
-
-
-.. spec:: Unread Mail Icon Source
-   :id: SPEC_ACTOR_MAIL
-   :status: implemented
-   :links: REQ_ACTOR_MAIL; SPEC_ACTOR_SCANNER; SPEC_ACTOR_TREE; SPEC_OLK_SETTINGS
-
-   **Description:**
-   ``ActorMailState`` (``engine/actors/actorMail.ts``) holds the ids of the Actors whose Outlook
-   folder holds unread mail, and nothing else. It is the only code that reads Outlook for the
-   ACTORS view. ``ActorTreeProvider`` asks it through ``isUnread(actorId)`` (``SPEC_ACTOR_TREE``).
-   The read follows the PowerShell COM route and the error conventions of ``SPEC_OLK_COMBRIDGE``,
-   except that it attaches to a running Outlook instead of starting one.
-
-   .. code-block:: typescript
-
-      export class ActorMailState implements vscode.Disposable {
-          constructor(scanner: ActorScanner, log: { warn(message: string): void }, onChange: () => void);
-          isUnread(actorId: string): boolean;
-          requestRead(): void;   // called by the jarvis.outlook.enabled listener in extension.ts
-          dispose(): void;   // unsubscribes from scanner.onDidScan
-      }
-
-   **Trigger:** the constructor subscribes to ``scanner.onDidScan`` (``SPEC_ACTOR_SCANNER``). The
-   change of ``jarvis.outlook.enabled`` is subscribed in ``packages/core/src/extension.ts``, whose
-   listener calls ``ActorMailState.requestRead()`` (AC-3).
-   Every completed rescan, whatever started it (activation, ``jarvis.rescan``, the background
-   timer, a change of ``jarvis.actors.folder``, an Actor creation), is followed by one mail read
-   (``REQ_ACTOR_MAIL`` AC-5), or by the pending re-read when a read is running (see Read). There is
-   no timer and no Outlook event subscription of its own.
-
-   **Read** (one run at a time; a completed scan during a run is never dropped: it marks one re-read
-   as pending, and that re-read runs once after the running read ends; scans that complete during the
-   same run share the one pending re-read):
-
-   1. If ``jarvis.outlook.enabled`` is ``false`` (``getConfiguration('jarvis').get('outlook.enabled', false)``),
-      no process is started and the set is emptied (``REQ_OLK_ENABLE`` AC-2).
-   2. If ``process.platform`` is not ``win32``, the read fails (step 5).
-   3. Start one PowerShell process with ``child_process.execFile``, no shell, and exactly these
-      arguments and options. The script is the constant ``READ_SCRIPT`` shown below:
-
-      .. code-block:: typescript
-
-         childProcess.execFile(
-             'powershell',
-             ['-NoProfile', '-Command', READ_SCRIPT],
-             { timeout: 10_000, windowsHide: true },   // no console window is shown
-             callback,
-         );
-
-      The first line of the script makes folder names with non-ASCII characters match the Actor
-      names. The second line makes the script stop at its first error, so that a failed attach ends
-      the process with exit code 1 and step 5 applies:
-
-      .. code-block:: powershell
-
-         [Console]::OutputEncoding = [Text.Encoding]::UTF8
-         $ErrorActionPreference = 'Stop'   # without it a failed attach exits 0 and prints []
-         $ol = [Runtime.InteropServices.Marshal]::GetActiveObject('Outlook.Application')  # attach only
-         $inbox = $ol.Session.GetDefaultFolder(6)                                        # olFolderInbox
-         $list = @(foreach ($f in $inbox.Folders) {
-             [pscustomobject]@{ name = $f.Name; unread = $f.UnReadItemCount }
-         })
-         ConvertTo-Json -InputObject $list -Compress
-
-      The failure signal is the exit code, not stderr: PowerShell also writes harmless warnings to
-      stderr, and treating those as failures would blank every icon. Without the second line a
-      failed attach exits 0 and prints ``[]``, which reads as an empty Inbox and hides the failure
-      from the log.
-
-   4. Parse the JSON array. For each entry with ``unread > 0``, call ``scanner.resolveName(name)``.
-      Only a ``found`` result adds that Actor's id; ``unknown`` and ``ambiguous`` add nothing
-      (``REQ_ACTOR_MAIL`` AC-1 to AC-3).
-   5. A failure (non-zero exit, timeout, output that is not a JSON array, COM error, Outlook not
-      running) empties the set, writes one ``log.warn`` line and shows nothing to the user
-      (``REQ_ACTOR_MAIL`` AC-10).
-   6. Replace the set with the result. Call ``onChange()`` only when the new set differs from the
-      set last drawn; ``onChange`` is wired to ``actorTreeProvider.refresh()``.
-
-   **No cache:** the set is replaced at every read and is never persisted. It holds Actor ids only;
-   no unread counts, folder names, folder ids or mail items are kept (``REQ_ACTOR_MAIL`` AC-5).
-
-   **Acceptance Criteria:**
-
-   * AC-1: ``isUnread(actorId)`` is ``true`` only for an Actor whose name resolves to ``found`` and
-     whose Inbox subfolder of that name reported ``UnReadItemCount > 0`` in the latest read.
-   * AC-2: The script reads the direct children of the default store's Inbox only
-     (``GetDefaultFolder(6)``, ``Folders``); no deeper folder is opened.
-   * AC-3: A read starts after every completed scan, changed or not, and after a change of
-     ``jarvis.outlook.enabled``; after no other trigger.
-   * AC-4: While ``jarvis.outlook.enabled`` is ``false``, no PowerShell process is started and the
-     set is empty.
-   * AC-5: The script attaches with ``GetActiveObject`` and never starts Outlook; an Outlook that is
-     not running makes the script stop with exit code 1, so the read fails (step 5).
-   * AC-6: The script only reads the properties above and changes no item, flag, folder or store
-     (``REQ_ACTOR_MAIL`` AC-8).
-   * AC-7: A failed read leaves no Actor with the mail icon, writes one log line and shows no message
-     (``REQ_ACTOR_MAIL`` AC-10).
-   * AC-8: ``onChange`` fires only when the set of Actor ids changed.
 
 
 .. spec:: Actor Context Menus

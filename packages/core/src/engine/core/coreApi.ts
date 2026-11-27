@@ -1,5 +1,5 @@
-// Implementation: SPEC_ENG_API, SPEC_ENG_REGISTER_TOOL, SPEC_ENG_ACTORLIST, SPEC_ENG_ACTORMARK
-// Requirements: REQ_ENG_CONTRACT, REQ_ENG_TOOLNS, REQ_ENG_ACTORLIST, REQ_ENG_ACTORMARK
+// Implementation: SPEC_ENG_API, SPEC_ENG_REGISTER_TOOL, SPEC_ENG_ACTORLIST, SPEC_ENG_ACTORMARK, SPEC_ENG_ACTORINDICATOR
+// Requirements: REQ_ENG_CONTRACT, REQ_ENG_TOOLNS, REQ_ENG_ACTORLIST, REQ_ENG_ACTORMARK, REQ_ENG_ACTORINDICATOR
 
 import * as vscode from 'vscode';
 import type { JarvisActor, JarvisCoreApi, ModuleAssetConfig, ToolDescriptor, ToolHandler } from './types';
@@ -22,6 +22,7 @@ export class JarvisEngine implements JarvisCoreApi {
     private _resolveMessagesPath: (() => string) | undefined;
     private _onMessageQueued: (() => void) | undefined;
     private _marker: ((actorId: string, icon: vscode.ThemeIcon) => vscode.Disposable) | undefined;
+    private _indicator: ((actorId: string, icon: vscode.ThemeIcon) => vscode.Disposable) | undefined;
 
     constructor(private readonly _actorScanner: ActorScanner) {}
 
@@ -78,6 +79,24 @@ export class JarvisEngine implements JarvisCoreApi {
             throw new Error('Actor tree is not available');
         }
         return this._marker(actorId, icon);
+    }
+
+    // --- Actor node indicator API (SPEC_ENG_ACTORINDICATOR) ---
+
+    /** Wire the tree provider's indicator function (called from activation). */
+    setIndicator(indicator: (actorId: string, icon: vscode.ThemeIcon) => vscode.Disposable): void {
+        this._indicator = indicator;
+    }
+
+    indicateActor(actorId: string, icon: vscode.ThemeIcon): vscode.Disposable {
+        if (!this._indicator) {
+            throw new Error('Actor tree is not available');
+        }
+        return this._indicator(actorId, icon);
+    }
+
+    get onDidScanActors(): vscode.Event<void> {
+        return this._actorScanner.onDidScan;
     }
 
     // --- Heartbeat job API (SPEC_ENG_HEARTBEAT_JOBAPI) ---

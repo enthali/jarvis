@@ -36,19 +36,22 @@ Outlook Requirements
    :id: REQ_OLK_ENABLE
    :status: implemented
    :priority: mandatory
-   :links: US_PIM_CATEGORIES; US_PIM_TASKS; REQ_CFG_GROUPS
+   :links: US_PIM_CATEGORIES; US_PIM_TASKS; REQ_CFG_GROUPS; REQ_ACTOR_MAIL
 
    **Description:**
    The extension SHALL provide a boolean setting ``jarvis.outlook.enabled`` that
-   controls whether the Outlook COM provider is instantiated.
+   controls whether the Outlook COM provider is instantiated and whether the Actor mail
+   indicators read Outlook (``REQ_ACTOR_MAIL``).
 
    **Acceptance Criteria:**
 
    * AC-1: ``jarvis.outlook.enabled`` SHALL be a boolean setting with default
      ``false``
-   * AC-2: When ``false``, no COM calls SHALL be made and no Outlook providers
-     SHALL be instantiated
-   * AC-3: Changing ``jarvis.outlook.enabled`` SHALL require a window reload
+   * AC-2: When ``false``, no COM calls SHALL be made, no Outlook providers
+     SHALL be instantiated and no Actor mail indicator SHALL be read or shown
+   * AC-3: Changing ``jarvis.outlook.enabled`` SHALL require a window reload for the
+     Outlook providers; the Actor mail indicators SHALL follow the change without a
+     reload (``REQ_ACTOR_MAIL`` AC-5)
 
 
 .. req:: Outlook Task Provider (COM Bridge)
@@ -110,7 +113,7 @@ Outlook Requirements
 
 .. req:: Categories Feature Sub-Toggle
    :id: REQ_OLK_CATENABLE
-   :status: approved
+   :status: implemented
    :priority: mandatory
    :links: US_PIM_CATVIEW; REQ_OLK_ENABLE; REQ_CFG_GROUPS
 
@@ -125,7 +128,7 @@ Outlook Requirements
    **Acceptance Criteria:**
 
    * AC-1: ``jarvis.outlook.categories.enabled`` SHALL be a boolean setting with
-     default ``false``, declared in the "Outlook" settings group
+     default ``false``, declared in the "Jarvis PIM" settings group
    * AC-2: The categories feature SHALL only be active when BOTH
      ``jarvis.outlook.enabled === true`` AND
      ``jarvis.outlook.categories.enabled === true``

@@ -4,7 +4,7 @@ Engine Design Specifications
 .. spec:: JarvisCoreApi Contract & Types
    :id: SPEC_ENG_API
    :status: implemented
-   :links: REQ_ENG_CONTRACT; REQ_ENG_ACTORLIST; REQ_ENG_ACTORMARK; REQ_MOD_SKILL_PROVISION; REQ_ACTOR_SCHEMA
+   :links: REQ_ENG_CONTRACT; REQ_ENG_ACTORLIST; REQ_ENG_ACTORMARK; REQ_ENG_ACTORINDICATOR; SPEC_ENG_ACTORINDICATOR; REQ_MOD_SKILL_PROVISION; REQ_ACTOR_SCHEMA
 
    **Description:**
    The core extension exposes a versioned ``JarvisCoreApi`` as the return value
@@ -83,6 +83,19 @@ Engine Design Specifications
            * member exists before calling it.
            */
           markActor(actorId: string, icon: vscode.ThemeIcon): vscode.Disposable;
+
+          /**
+           * Show a status indicator icon on one Actor node until the returned
+           * Disposable is disposed; weaker than a mark (SPEC_ENG_ACTORINDICATOR).
+           * Additive: add-ons check that the member exists before calling it.
+           */
+          indicateActor(actorId: string, icon: vscode.ThemeIcon): vscode.Disposable;
+
+          /**
+           * Fires once after every completed Actor rescan, changed or not
+           * (SPEC_ENG_ACTORINDICATOR). Additive: add-ons check that the member exists.
+           */
+          readonly onDidScanActors: vscode.Event<void>;
 
           // --- Tool registry exposure (SPEC_ENG_TOOLREGISTRY) ---
 
@@ -199,6 +212,10 @@ Engine Design Specifications
      ``outputVar`` included (``REQ_AUT_JOBCONFIG`` AC-6), so an add-on can construct
      every kind of step through ``registerJob``. The ``steps`` schema of the
      ``jarvis_registerJob`` tool lists the same fields (``SPEC_AUT_JOBREG`` AC-2).
+   * AC-12: ``indicateActor(actorId, icon)`` sets a status indicator on one Actor node and
+     returns a ``Disposable`` that removes it; ``onDidScanActors`` fires after every completed
+     Actor rescan (``SPEC_ENG_ACTORINDICATOR``). Both are additive: ``version`` stays ``2``.
+     Neither is a decorator API: AC-4 stays true.
 
 
 .. spec:: registerTool Validation
@@ -384,12 +401,13 @@ Engine Design Specifications
 .. spec:: Platform Actor List API
    :id: SPEC_ENG_ACTORLIST
    :status: implemented
-   :links: REQ_ENG_ACTORLIST; SPEC_ACTOR_SCANNER
+   :links: REQ_ENG_ACTORLIST; SPEC_ACTOR_SCANNER; SPEC_ENG_ACTORINDICATOR
 
    **Description:**
    ``JarvisCoreApi.listActors()`` publishes the Actor scanner's cache as
    ``JarvisActor[]`` (``REQ_ENG_ACTORLIST`` AC-1). It is a read-only
-   projection; it never scans.
+   projection; it never scans. ``onDidScanActors`` publishes the scanner's ``onDidScan``
+   event (``SPEC_ENG_ACTORINDICATOR``), so an add-on can read the list again after each scan.
 
    .. code-block:: typescript
 
@@ -408,6 +426,8 @@ Engine Design Specifications
      owner resolution requires exactly one entry with the given ``name``
      (``SPEC_KAN_CREATE`` step 1). Duplicates are returned as they are, so
      the add-on applies the unique-name rule itself.
+   * ``pim``: the Actor mail indicators read ``listActors()`` at activation and after every
+     ``onDidScanActors`` and apply the unique-name rule themselves (``SPEC_ACTOR_MAIL``).
 
    **Acceptance Criteria:**
 
@@ -418,12 +438,15 @@ Engine Design Specifications
      resolvable.
    * AC-4: ``listJarvisSessions()`` no longer exists; its two callers use
      ``listActors()``.
+   * AC-5: ``onDidScanActors`` is the scanner's ``onDidScan`` event: it fires once after every
+     completed rescan, changed or not, and fires nothing extra for a call that returns the
+     in-flight promise (``SPEC_ACTOR_SCANNER``).
 
 
 .. spec:: Actor Node Mark API
    :id: SPEC_ENG_ACTORMARK
-   :status: approved
-   :links: REQ_ENG_ACTORMARK; SPEC_ACTOR_TREE; SPEC_COM_STATE; SPEC_ACTOR_MAIL
+   :status: implemented
+   :links: REQ_ENG_ACTORMARK; SPEC_ACTOR_TREE; SPEC_COM_STATE; SPEC_ENG_ACTORINDICATOR
 
    **Description:**
    ``JarvisCoreApi.markActor(actorId, icon)`` lets an add-on show an icon on one
@@ -460,15 +483,64 @@ Engine Design Specifications
      refreshes the tree. A second dispose changes nothing and refreshes nothing.
    * AC-2: Marks on the same id are separate entries. The node shows the most recent mark
      still set; when it is disposed, the next one still set shows, and when none is left the
-     node shows the unread-mail icon that applies (``SPEC_ACTOR_TREE`` AC-6).
+     node shows the indicator that applies (``SPEC_ACTOR_TREE`` AC-6).
    * AC-3: While a mark exists and the Actor is Idle the node's ``iconPath`` is the mark's
-     icon, ahead of the unread-mail icon (``SPEC_ACTOR_MAIL``); an activity state other than
+     icon, ahead of any indicator (``SPEC_ENG_ACTORINDICATOR``); an activity state other than
      Idle is shown instead of the mark. Nothing else on the node changes.
    * AC-4: The mark does not touch the activity state (``SPEC_COM_STATE``,
      ``REQ_COM_STATE``): while the Actor is not Idle the activity icon shows, and once it
      is Idle again the mark shows again.
    * AC-5: ``markActor`` is additive: ``version`` stays ``2``, and an add-on checks that the
      member exists before calling it (``REQ_ENG_ACTORMARK`` AC-5).
+
+
+.. spec:: Actor Node Indicator API
+   :id: SPEC_ENG_ACTORINDICATOR
+   :status: implemented
+   :links: REQ_ENG_ACTORINDICATOR; REQ_ENG_ACTORLIST; SPEC_ACTOR_TREE; SPEC_ACTOR_SCANNER; SPEC_ENG_ACTORMARK; SPEC_COM_STATE
+
+   **Description:**
+   ``JarvisCoreApi.indicateActor(actorId, icon)`` lets an add-on show a status icon on one Actor
+   node; ``JarvisCoreApi.onDidScanActors`` tells it when to look again. ``ActorTreeProvider`` holds
+   the indicators next to the marks and draws the node (``SPEC_ACTOR_TREE``); no callback into the
+   add-on is made. An indicator is the weakest tier: the activity state and the marks
+   (``SPEC_ENG_ACTORMARK``) show before it. The core sets no indicator itself and contains no
+   Outlook or mail code; the former ``ActorMailState`` and its ``jarvis.outlook.enabled``
+   listener in ``extension.ts`` are removed, and PIM supplies the mail indicators
+   (``SPEC_ACTOR_MAIL``).
+
+   .. code-block:: typescript
+
+      // ActorTreeProvider
+      private indicators = new Map<string, { icon: vscode.ThemeIcon }[]>();   // key = ActorEntry.id; oldest first
+
+      indicate(actorId: string, icon: vscode.ThemeIcon): vscode.Disposable {
+          // same stacking and idempotent disposal as mark() (SPEC_ENG_ACTORMARK), on `indicators`
+      }
+
+   ``extension.ts`` wires ``indicateActor`` to ``actorTreeProvider.indicate`` and
+   ``onDidScanActors`` to ``actorScanner.onDidScan`` when it builds the API object, like
+   ``listActors``. An indicator for an id with no node stays in the map and applies when the node
+   appears.
+
+   **Acceptance Criteria:**
+
+   * AC-1: ``indicateActor`` returns a ``Disposable``; disposing it removes that indicator and
+     refreshes the tree. A second dispose changes nothing and refreshes nothing.
+   * AC-2: Indicators on the same id are separate entries. The node shows the most recent one still
+     set; when it is disposed, the next one still set shows, and when none is left the node shows
+     its normal icon.
+   * AC-3: The node's ``iconPath`` is the indicator's icon only while the Actor is Idle and has no
+     mark; an activity state other than Idle and any mark are shown instead. Nothing else on the
+     node changes (``SPEC_ACTOR_TREE`` AC-6).
+   * AC-4: An indicator does not touch the activity state or the marks (``SPEC_COM_STATE``,
+     ``SPEC_ENG_ACTORMARK``).
+   * AC-5: Both members are additive: ``version`` stays ``2``, and an add-on checks that the member
+     exists before using it (``REQ_ENG_ACTORINDICATOR`` AC-6).
+   * AC-6: The core sets no indicator, reads no Outlook mail and no longer contains
+     ``ActorMailState``; with no add-on no Actor node shows an indicator
+     (``REQ_ENG_ACTORINDICATOR`` AC-5, ``REQ_ACTOR_MAIL`` AC-15).
+   * AC-7: ``onDidScanActors`` is the scanner's ``onDidScan`` event (``SPEC_ENG_ACTORLIST`` AC-5).
 
 
 .. spec:: Heartbeat Job Registration API Surface

@@ -12,8 +12,8 @@ const manifest = JSON.parse(fs.readFileSync(path.join(pimDir, 'package.json'), '
 const extensionSrc = fs.readFileSync(path.join(pimDir, 'src', 'extension.ts'), 'utf-8');
 
 describe('SPEC_OLK_CATENABLE: the Categories integration is off by default', () => {
-    it('the "Outlook" group declares jarvis.outlook.categories.enabled as boolean with default false', () => {
-        const group = manifest.contributes.configuration.find((c: any) => c.title === 'Outlook');
+    it('the "Jarvis PIM" group declares jarvis.outlook.categories.enabled as boolean with default false', () => {
+        const group = manifest.contributes.configuration.find((c: any) => c.title === 'Jarvis PIM');
         const setting = group.properties['jarvis.outlook.categories.enabled'];
         expect(setting.type).toBe('boolean');
         expect(setting.default).toBe(false);
