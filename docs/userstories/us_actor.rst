@@ -152,11 +152,13 @@ Actor User Stories
      ``jarvis.actors.folder``; if a folder with that name already exists,
      or an Actor with that name exists in any folder, an error is shown and
      nothing is created.
-   * AC-3: A valid name is followed by an optional summary input (Escape
-     skips). The Actor is then created as ``<actorsFolder>/<name>/``
-     containing an ``actor.yaml`` (``name: <name>`` plus optional
-     ``summary:``) and a ``context.md`` pre-filled with the
-     Actor name as heading, followed by the summary if one was given.
+   * AC-3: A valid name is followed by a short description of the Actor, which
+     I must enter (a blank one is rejected), and then by a choice of model:
+     "No model" or one of the language models available now. Cancelling any of
+     these steps creates nothing. The Actor is then created as
+     ``<actorsFolder>/<name>/`` containing an ``actor.yaml`` (``name: <name>``
+     plus ``summary:``, the description) and a ``context.md`` pre-filled with
+     the Actor name as heading, followed by the description.
    * AC-4: No agent is picked. The new Actor has its own agent
      (``US_ACTOR_ACTORS`` AC-6).
    * AC-5: The ACTORS tree refreshes to show the new Actor immediately,
@@ -167,6 +169,8 @@ Actor User Stories
      directly lets me start working with the new Actor right away; turning
      it off keeps the current chat in focus, e.g. when creating several
      Actors in a row.
+   * AC-7: The new Actor works with the model I chose. When I chose no model,
+     the Actor sets none of its own.
 
 
 .. story:: Actor Identity
@@ -215,7 +219,7 @@ Actor User Stories
      ``jarvis.actors.folder`` is resolvable (same condition as
      US_ACTOR_TREE AC-8); no other setting gates it.
    * AC-2: A successful call creates ``<actorsFolder>/<name>/`` with the
-     same files as US_ACTOR_CREATE AC-3: ``actor.yaml`` (``name``, optional
+     same files as US_ACTOR_CREATE AC-3: ``actor.yaml`` (``name``,
      ``summary``) and the pre-filled ``context.md``; the new Actor has its
      own agent as in US_ACTOR_CREATE AC-4.
    * AC-3: The tool has no ``agent`` input. A caller that still passes one
@@ -230,6 +234,12 @@ Actor User Stories
    * AC-8: After creating a new Actor, the tool opens its chat session
      under the same ``jarvis.actors.openSessionOnCreate`` setting as
      US_ACTOR_CREATE AC-6.
+   * AC-9: A call must give a short description of the Actor and may name a
+     language model. A blank description, or a model that is not available now,
+     creates nothing, queues nothing and opens nothing, and the answer says why;
+     for a model it lists the available ones. When the list of models cannot be
+     obtained, the answer says that instead. Without a model, the Actor sets
+     none of its own (US_ACTOR_CREATE AC-7).
 
 
 .. story:: Activity Indicator on Actor Nodes

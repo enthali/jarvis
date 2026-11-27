@@ -83,7 +83,7 @@ describe('K64, SPEC_ACTOR_CREATETOOL AC-6: jarvis_createActor describes the conf
     });
 
     it('keeps the other documented properties of the tool (name required, no agent)', () => {
-        expect(tool.inputSchema.required).toEqual(['name']);
-        expect(Object.keys(tool.inputSchema.properties).sort()).toEqual(['initialMessage', 'name', 'summary']);
+        expect(tool.inputSchema.required).toEqual(['name', 'summary']);
+        expect(Object.keys(tool.inputSchema.properties).sort()).toEqual(['initialMessage', 'model', 'name', 'summary']);
     });
 });

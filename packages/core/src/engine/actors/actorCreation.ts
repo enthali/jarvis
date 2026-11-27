@@ -33,23 +33,59 @@ function yamlString(value: string): string {
     return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
 }
 
-export interface WriteActorFilesArgs {
-    name: string;
-    summary?: string;
+/** Throws `"invalid actor summary: <reason>"` for a missing, empty or white-space-only value (REQ_ACTOR_CREATETOOL AC-10). */
+export function validateActorSummary(summary: unknown): void {
+    if (typeof summary !== 'string' || !summary.trim()) {
+        throw new Error('invalid actor summary: summary must not be empty');
+    }
 }
 
-/** Writes actor.yaml (name, summary) and context.md into a new Actor folder. */
+/** Same rule as validateActorSummary, as the message for an InputBox validator. */
+export function actorSummaryProblem(summary: string): string | undefined {
+    try {
+        validateActorSummary(summary);
+        return undefined;
+    } catch (err) {
+        return err instanceof Error ? err.message : String(err);
+    }
+}
+
+export interface ModelChoice { vendor: string; model: string }
+
+/**
+ * REQ_ACTOR_CREATETOOL AC-11. The catalog is injected so the engine does not import the apps layer.
+ * A model that is not listed (also in an empty list) and a catalog that cannot be read are different errors.
+ */
+export async function validateModel(model: string, listModels: () => Promise<ModelChoice[]>): Promise<void> {
+    let available: ModelChoice[];
+    try {
+        available = await listModels();
+    } catch {
+        throw new Error('jarvis_createActor: model catalog not available');
+    }
+    if (available.some(entry => entry.model === model)) { return; }
+    const list = available.length > 0
+        ? '\n' + available.map(entry => `vendor="${entry.vendor}" model="${entry.model}"`).join('\n')
+        : ' (none)';
+    throw new Error(`model not available: "${model}"\nAvailable:${list}`);
+}
+
+export interface WriteActorFilesArgs {
+    name: string;
+    summary: string;
+}
+
+/** Writes actor.yaml (name, summary) and context.md into a new Actor folder; callers have validated the summary. */
 export async function writeActorFiles(actorsFolder: string, args: WriteActorFilesArgs): Promise<string> {
     const targetFolder = path.join(actorsFolder, args.name);
     await fs.promises.mkdir(targetFolder, { recursive: true });
     const yamlLines = [
         `name: ${yamlString(args.name)}`,
-        `summary: ${yamlString(args.summary ?? '')}`,
+        `summary: ${yamlString(args.summary)}`,
         '',
     ];
     await fs.promises.writeFile(path.join(targetFolder, 'actor.yaml'), yamlLines.join('\n'), 'utf8');
-    const contextContent = args.summary ? `# ${args.name}\n\n${args.summary}\n` : `# ${args.name}\n\n`;
-    await fs.promises.writeFile(path.join(targetFolder, 'context.md'), contextContent, 'utf8');
+    await fs.promises.writeFile(path.join(targetFolder, 'context.md'), `# ${args.name}\n\n${args.summary}\n`, 'utf8');
     return targetFolder;
 }
 

@@ -4,7 +4,7 @@ Jarvis Core is the actor harness for Visual Studio Code. Since 0.32.0 it support
 
 ## Features
 
-- **Actors** — Persistent personas with their own `context.md` and agent file; Jarvis creates or repairs the agent file with the Actor name and memory path when needed
+- **Actors** — Persistent personas with their own `context.md` and agent file; creating one asks for a name, a required description and an optional model, and Jarvis creates or repairs the agent file with the Actor name, description and memory path when needed
 - **Messaging** — Actor inboxes with automatic or manual announcements through VS Code's Agent Host; message content is read by a tool, never inserted into a prompt
 - **Reminders** — Set one-off, time-scheduled reminders; a due reminder is queued as a message to the Actor and announced under the normal delivery setting, with no VS Code notification of its own
 - **Heartbeat** — Periodic background jobs with a live status view in the activity bar
@@ -26,7 +26,7 @@ Jarvis Core is the actor harness for Visual Studio Code. Since 0.32.0 it support
 2. Open the Jarvis view in the activity bar (sidebar icon)
 3. Configure the data folder paths in **Settings → Extensions → Jarvis**:
    - `jarvis.actors.folder` — workspace-relative or absolute root for the dedicated **ACTORS** tree (default `.jarvis/actors`). Only direct child folders containing `actor.yaml` appear; nested folders are not scanned. Move or delete folders using the filesystem; there is no Jarvis archive feature.
-   - `jarvis_listActors()` returns Actor names and short descriptions. Each Actor's own agent file carries its identity; its persona is referenced from `context.md`. Creating an Actor does not prompt for an agent.
+   - `jarvis_listActors()` returns Actor names and short descriptions. Each Actor's own agent file carries its identity; its persona is referenced from `context.md`. Creating an Actor with **+** asks for a name, a required short description and an optional model, but does not ask you to pick an agent: the new Actor has its own.
 4. Jarvis will scan your folders and populate the tree views automatically
 
 ## Actor Chats and Messaging

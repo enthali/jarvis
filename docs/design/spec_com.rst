@@ -329,7 +329,7 @@ confirm** are assumptions that no run has checked yet.
 
 .. spec:: Writing Into an Actor Chat
    :id: SPEC_COM_INJECT
-   :status: approved
+   :status: implemented
    :links: REQ_COM_INJECT; REQ_COM_NOTIFY; REQ_COM_CHATNAME; SPEC_COM_CLIENTMODULE
 
    **Description:**
@@ -365,9 +365,10 @@ confirm** are assumptions that no run has checked yet.
    names the Actor and the missing ``description``. **Open:** Whether the
    function fails instead. The User decides.
 
-   **Description of the agent file:** It is the summary of the Actor, and
-   ``Actor <name>`` when the summary is empty, because the host lists only
-   agent files with a non-empty description (``REQ_COM_CHATNAME`` AC-5).
+   **Description of the agent file:** It is the summary of the Actor, and the
+   Actor name when the summary is empty, because the host lists only agent
+   files with a non-empty description (``REQ_COM_CHATNAME`` AC-5,
+   ``SPEC_ACTOR_WHOAMI`` step 5).
 
    **Delivery:** The function hands the text to the Agent Host with
    ``pendingMessageSet``. An idle chat starts a turn at once, a busy chat takes

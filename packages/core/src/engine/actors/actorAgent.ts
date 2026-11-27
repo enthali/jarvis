@@ -52,7 +52,7 @@ function warnOnce(key: string, message: string): void {
 /** The summary of the Actor on one line; the agent host lists an agent file only when its description is not empty. */
 function descriptionOf(actor: { name: string; summary?: string }): string {
     const oneLine = (actor.summary ?? '').replace(/\s+/g, ' ').trim();
-    return oneLine || `Actor ${actor.name}`;
+    return oneLine || actor.name;
 }
 
 /** Adds `description` to the front matter when it has none or an empty one (REQ_COM_CHATNAME AC-5); everything else stays. */
@@ -99,10 +99,12 @@ function restoreLines(content: string, line1: string, line2: string): string {
 /**
  * Precondition: actor.name resolved to exactly one Actor, or the Actor was
  * just created. The summary of the Actor becomes the description of its agent
- * file. Never throws; a failure is logged and returned.
+ * file, or the Actor name when it is empty. `model` is written into a new file
+ * only; it comes from the two creation callers, and no catalog is queried here.
+ * Never throws; a failure is logged and returned.
  */
 export async function ensureActorAgent(
-    actor: { name: string; folder: string; summary?: string }
+    actor: { name: string; folder: string; summary?: string; model?: string }
 ): Promise<EnsureAgentResult> {
     const prior = _locks.get(actor.name) ?? Promise.resolve();
     const run = prior.catch(() => { /* a prior failure does not block this call */ }).then(() => _ensureActorAgent(actor));
@@ -115,7 +117,7 @@ export async function ensureActorAgent(
 }
 
 async function _ensureActorAgent(
-    actor: { name: string; folder: string; summary?: string }
+    actor: { name: string; folder: string; summary?: string; model?: string }
 ): Promise<EnsureAgentResult> {
     const root = getWorkspaceRoot();
     if (!root) { return { status: 'skipped', reason: 'noWorkspace' }; }
@@ -161,7 +163,9 @@ async function _ensureActorAgent(
 
     try {
         await fs.promises.mkdir(agentsDir, { recursive: true });
-        const content = ['---', `name: ${yamlString(actor.name)}`, `description: ${yamlString(descriptionOf(actor))}`, '---', line1, line2, ''].join('\n');
+        const front = ['---', `name: ${yamlString(actor.name)}`, `description: ${yamlString(descriptionOf(actor))}`];
+        if (actor.model) { front.push(`model: ${yamlString(actor.model)}`); }
+        const content = [...front, '---', line1, line2, ''].join('\n');
         await fs.promises.writeFile(targetPath, content, 'utf8');
     } catch (err) {
         _log?.warn(`[ACTOR] ensureActorAgent: failed to create "${targetPath}" for "${actor.name}": ${err}`);

@@ -4,7 +4,7 @@ Jarvis Core (`enthali.jarvis-core`) is the harness: it turns chat sessions and a
 
 ## Actors
 
-An actor is a persistent persona with its own `context.md` memory and agent file. Actors are folders with an `actor.yaml` file; the ACTORS view shows direct child folders only, nested folders are not scanned. Jarvis creates or repairs the agent file with the actor name and memory path when needed. To move or remove an actor, use the file system; there is no Jarvis archive feature.
+An actor is a persistent persona with its own `context.md` memory and agent file. Actors are folders with an `actor.yaml` file; the ACTORS view shows direct child folders only, nested folders are not scanned. Jarvis creates or repairs the agent file with the actor name, its description and memory path when needed. To move or remove an actor, use the file system; there is no Jarvis archive feature.
 
 `jarvis_listActors()` returns Actor names and short descriptions from the workspace's `actor.yaml` files.
 

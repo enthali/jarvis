@@ -26,7 +26,7 @@ import { announceIfNewVersion, showReleaseNotes } from './engine/core/releaseNot
 import { ActorScanner, ambiguousActorMessage } from './engine/actors/actorScanner';
 import { ActorActivity } from './engine/actors/actorActivity';
 import { ActorTreeProvider, ActorNode } from './engine/actors/actorTreeProvider';
-import { actorNameProblem, existingActorFolder, writeActorFiles } from './engine/actors/actorCreation';
+import { actorNameProblem, actorSummaryProblem, existingActorFolder, writeActorFiles } from './engine/actors/actorCreation';
 import { ensureActorAgent, setActorAgentLogger } from './engine/actors/actorAgent';
 import { createActorHandler } from './engine/actors/actorRuntime';
 import { registerJarvisYamlSchemaContributor } from './engine/core/yamlSchemaContributor';
@@ -653,6 +653,7 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
                     if (actor) { await vscode.commands.executeCommand('jarvis.openActorSession', { kind: 'actor', id: actor.id }); }
                 },
                 openSessionOnCreate: () => vscode.workspace.getConfiguration('jarvis').get<boolean>('actors.openSessionOnCreate', true),
+                listModels: () => listAvailableModels(),
                 log,
             })
         );
@@ -680,9 +681,32 @@ export function activate(context: vscode.ExtensionContext): JarvisCoreApi {
                 return;
             }
 
-            const summaryInput = await vscode.window.showInputBox({ prompt: 'Summary (optional)', placeHolder: 'Short description' });
-            const targetPath = await writeActorFiles(actorsFolder, { name, summary: summaryInput ?? '' });
-            await ensureActorAgent({ name, folder: targetPath, summary: summaryInput ?? '' });
+            const summaryInput = await vscode.window.showInputBox({
+                prompt: 'Description of the Actor (required)',
+                placeHolder: 'Short description',
+                validateInput: actorSummaryProblem,
+            });
+            if (summaryInput === undefined) { return; }
+            const summary = summaryInput;
+
+            // REQ_ACTOR_CREATE AC-11: "No model" first, then the catalog; the picker is the model check.
+            let catalog: { vendor: string; model: string }[] = [];
+            try {
+                catalog = await listAvailableModels();
+            } catch (err) {
+                log.warn(`[ACTOR] newActor: model catalog not available, offering "No model" only: ${err}`);
+            }
+            const pick = await vscode.window.showQuickPick(
+                [
+                    { label: 'No model', model: undefined as string | undefined },
+                    ...catalog.map(entry => ({ label: entry.model, description: entry.vendor, model: entry.model as string | undefined })),
+                ],
+                { placeHolder: 'Language model of the Actor\'s agent (optional)' },
+            );
+            if (!pick) { return; }
+
+            const targetPath = await writeActorFiles(actorsFolder, { name, summary });
+            await ensureActorAgent({ name, folder: targetPath, summary, model: pick.model });
 
             await actorScanner.rescan();
             log.info(`[ACTOR] newActor: created "${name}" at ${targetPath}`);

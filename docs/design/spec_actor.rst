@@ -513,7 +513,7 @@ Actor Design Specifications
 .. spec:: Actor Creation
    :id: SPEC_ACTOR_CREATE
    :status: implemented
-   :links: REQ_ACTOR_CREATE; REQ_ACTOR_CREATETOOL; REQ_ACTOR_SCHEMA; SPEC_ACTOR_SCANNER; SPEC_ACTOR_WHOAMI; SPEC_COM_OPEN
+   :links: REQ_ACTOR_CREATE; REQ_ACTOR_CREATETOOL; REQ_ACTOR_SCHEMA; SPEC_ACTOR_SCANNER; SPEC_ACTOR_WHOAMI; SPEC_COM_OPEN; SPEC_AUT_LISTMODELS
 
    **Description:**
    ``engine/actors/actorCreation.ts`` owns everything that touches the file
@@ -532,7 +532,23 @@ Actor Design Specifications
       /** Same rules as validateActorName; returns the message for InputBox validateInput. */
       export function actorNameProblem(name: string): string | undefined;
 
-      /** mkdir <actorsFolder>/<name>, write actor.yaml and context.md. Caller has checked non-existence. */
+      /** Throws Error("invalid actor summary: <reason>") for a missing, empty or white-space-only value — REQ_ACTOR_CREATETOOL AC-10. */
+      export function validateActorSummary(summary: unknown): void;
+
+      /** Same rule as validateActorSummary; returns the message for InputBox validateInput. */
+      export function actorSummaryProblem(summary: string): string | undefined;
+
+      /**
+       * REQ_ACTOR_CREATETOOL AC-11. `listModels` is injected (extension.ts passes
+       * listAvailableModels of SPEC_AUT_LISTMODELS), so the engine does not
+       * import the apps layer. No entry with that `model` value, also in an empty
+       * list → Error('model not available: "<model>"' + the available entries);
+       * listModels rejects → Error('jarvis_createActor: model catalog not available').
+       */
+      export async function validateModel(model: string,
+          listModels: () => Promise<{ vendor: string; model: string }[]>): Promise<void>;
+
+      /** mkdir <actorsFolder>/<name>, write actor.yaml and context.md. Caller has checked non-existence and validated the summary. */
       export async function writeActorFiles(actorsFolder: string, a: {
           name: string; summary: string;
       }): Promise<string /* absolute Actor folder */>;
@@ -551,12 +567,14 @@ Actor Design Specifications
    .. code-block:: yaml
 
       name: "<name>"
-      summary: "<summary or empty>"
+      summary: "<summary>"
 
    Both fields are always written; values are double-quoted with ``\``
    and ``"`` escaped (``yamlString``). ``context.md`` is ``# <name>\n\n``
-   followed by ``<summary>\n`` when the summary is non-blank. The folder
-   name is the verbatim ``name`` (``REQ_ACTOR_SCHEMA`` AC-6).
+   followed by ``<summary>\n``. The summary is never blank here, because both
+   entry points validate it first; the model is not part of these files, it
+   lives only in the agent file (``SPEC_ACTOR_WHOAMI``). The folder name is the
+   verbatim ``name`` (``REQ_ACTOR_SCHEMA`` AC-6).
 
    **``jarvis.newActor`` flow** (``REQ_ACTOR_CREATE``):
 
@@ -568,13 +586,22 @@ Actor Design Specifications
       ``Jarvis: An Actor named "<name>" already exists: <folder>``, return,
       nothing written (AC-3). The rescan inside the check catches an
       ``actor.yaml`` edited by hand since the last scan.
-   3. Optional InputBox for the summary; Escape → ``""`` (AC-4).
-   4. ``writeActorFiles(folder, { name, summary })`` (AC-5).
-   5. ``ensureActorAgent({ name, folder })`` (``SPEC_ACTOR_WHOAMI``); no
-      picker is shown, and a ``skipped`` result does not abort the creation
-      (AC-6).
-   6. ``await actorScanner.rescan()`` (AC-7).
-   7. When ``jarvis.actors.openSessionOnCreate`` is ``true``, execute
+   3. InputBox for the summary with ``validateInput: actorSummaryProblem``;
+      Escape → return, nothing written (AC-4, AC-8).
+   4. QuickPick for the model (AC-11). The first item is "No model"; the others
+      come from ``listAvailableModels()`` (``SPEC_AUT_LISTMODELS``), one per
+      entry, with the ``model`` value as label and the vendor as description,
+      because that list carries no display name. When ``listAvailableModels()``
+      rejects, a warning is logged and only "No model" is offered. Escape →
+      return, nothing written (AC-8). The picker is the check of the model, so
+      the command does not call ``validateModel``.
+   5. ``writeActorFiles(folder, { name, summary })`` (AC-5).
+   6. ``ensureActorAgent({ name, folder, summary, model })``
+      (``SPEC_ACTOR_WHOAMI``), with ``model`` omitted for "No model"; no
+      persona picker is shown, and a ``skipped`` result does not abort the
+      creation (AC-6).
+   7. ``await actorScanner.rescan()`` (AC-7).
+   8. When ``jarvis.actors.openSessionOnCreate`` is ``true``, execute
       ``jarvis.openActorSession`` with the new Actor's node (AC-9).
 
    **package.json (core):**
@@ -593,7 +620,7 @@ Actor Design Specifications
    * AC-1: Folder creation and all writes of ``actor.yaml`` and
      ``context.md`` happen only in ``actorCreation.ts``.
    * AC-2: The command and the tool produce byte-identical files for the
-     same name and summary.
+     same name, summary and model.
    * AC-3: An existing target folder, or an existing Actor with the same
      name in any folder, aborts the command before any write; both entry
      points decide this through ``existingActorFolder`` only.
@@ -601,42 +628,54 @@ Actor Design Specifications
      points; its result never aborts the creation.
    * AC-5: The session is opened only when
      ``jarvis.actors.openSessionOnCreate`` is ``true``.
+   * AC-6: A blank summary is rejected in the InputBox, and Escape in the name
+     InputBox, the summary InputBox or the model picker ends the command with
+     no file written.
+   * AC-7: The model picker lists "No model" first and then exactly the entries
+     of ``listAvailableModels()``; "No model" writes no ``model`` line.
 
 
 .. spec:: jarvis_createActor Tool
    :id: SPEC_ACTOR_CREATETOOL
    :status: implemented
-   :links: REQ_ACTOR_CREATETOOL; SPEC_ACTOR_CREATE; SPEC_ACTOR_WHOAMI; SPEC_COM_OPEN; SPEC_ENG_REGISTER_TOOL; SPEC_MSG_QUEUESTORE; REQ_ENG_TOOLREF
+   :links: REQ_ACTOR_CREATETOOL; SPEC_ACTOR_CREATE; SPEC_ACTOR_WHOAMI; SPEC_COM_OPEN; SPEC_ENG_REGISTER_TOOL; SPEC_MSG_QUEUESTORE; REQ_ENG_TOOLREF; SPEC_AUT_LISTMODELS
 
    **Description:**
    ``jarvis_createActor`` is registered with ``engine.registerTool()``
    (LM and MCP, ``SPEC_ENG_REGISTER_TOOL``) whenever the actors folder is
    resolvable at activation; no feature setting gates it. Handler logic lives in ``actorCreation.ts``
-   (``createActorHandler``) so LM and MCP share it.
+   (``createActorHandler``) so LM and MCP share it. The handler gets the model
+   list as the dependency ``listModels``, which ``extension.ts`` wires to
+   ``listAvailableModels()`` (``SPEC_AUT_LISTMODELS``); a call without ``model``
+   never calls it.
 
    **Algorithm:**
 
    1. ``validateActorName(name)`` (AC-5).
-   2. An ``agent`` input is ignored: it is neither validated nor written
+   2. ``validateActorSummary(summary)`` (``REQ_ACTOR_CREATETOOL`` AC-10).
+   3. An ``agent`` input is ignored: it is neither validated nor written
       (``REQ_ACTOR_CREATETOOL`` AC-1).
-   3. Resolve the actors folder; none → throw
+   4. Resolve the actors folder; none → throw
       ``"jarvis_createActor: no workspace open"`` (AC-8).
-   4. ``existingActorFolder(actorsFolder, name, actorScanner)`` returns a
+   5. ``existingActorFolder(actorsFolder, name, actorScanner)`` returns a
       folder → return
       ``{ created: false, reason: 'actor "<name>" already exists; no action taken', path }``
       with ``path`` the workspace-relative returned folder, and do nothing
       else: no write, no enqueue, no session (AC-7).
-   5. ``writeActorFiles(folder, { name, summary: summary ?? "" })``, then
-      ``ensureActorAgent({ name, folder })`` (``SPEC_ACTOR_WHOAMI``,
-      ``REQ_ACTOR_CREATETOOL`` AC-6).
-   6. ``initialMessage`` → ``appendMessage(messagesPath, name, 'jarvis_createActor', initialMessage)``
+   6. ``model`` given → ``validateModel(model, listModels)``
+      (``REQ_ACTOR_CREATETOOL`` AC-11). It throws before any file or message
+      exists. ``model`` not given → nothing is queried.
+   7. ``writeActorFiles(folder, { name, summary })``, then
+      ``ensureActorAgent({ name, folder, summary, model })``
+      (``SPEC_ACTOR_WHOAMI``, ``REQ_ACTOR_CREATETOOL`` AC-6).
+   8. ``initialMessage`` → ``appendMessage(messagesPath, name, 'jarvis_createActor', initialMessage)``
       and reload the Messages view (AC-4).
-   7. ``await actorScanner.rescan()`` (AC-3).
-   8. When ``jarvis.actors.openSessionOnCreate`` is ``true``: execute
-      ``jarvis.openActorSession``; a failure is logged at ``warn`` and does
-      not fail the tool (AC-9).
-   9. Return ``{ created: true, path }``; ``path`` is workspace-relative with
-      forward slashes.
+   9. ``await actorScanner.rescan()`` (AC-3).
+   10. When ``jarvis.actors.openSessionOnCreate`` is ``true``: execute
+       ``jarvis.openActorSession``; a failure is logged at ``warn`` and does
+       not fail the tool (AC-9).
+   11. Return ``{ created: true, path }``; ``path`` is workspace-relative with
+       forward slashes.
 
    **package.json ``languageModelTools``:**
 
@@ -648,13 +687,14 @@ Actor Design Specifications
         "toolReferenceName": "jarvis_core_createActor",
         "canBeReferencedInPrompt": true,
         "icon": "$(add)",
-        "modelDescription": "jarvis_core: Creates a Jarvis Actor (actor.yaml and context.md) in a new folder under the configured actors folder (setting jarvis.actors.folder, default .jarvis/actors). Returns created: false without changes when an Actor with that name or folder already exists.",
+        "modelDescription": "jarvis_core: Creates a Jarvis Actor (actor.yaml and context.md) in a new folder under the configured actors folder (setting jarvis.actors.folder, default .jarvis/actors). Returns created: false without changes when an Actor with that name or folder already exists. Needs a name and a non-blank summary; an optional model must be one that jarvis_listModels returns.",
         "inputSchema": {
           "type": "object",
-          "required": ["name"],
+          "required": ["name", "summary"],
           "properties": {
             "name":           { "type": "string", "description": "Actor name; used verbatim as the folder name." },
-            "summary":        { "type": "string", "description": "Optional short description." },
+            "summary":        { "type": "string", "description": "Short description of the Actor; required, not blank. It is also the description of the Actor's agent." },
+            "model":          { "type": "string", "description": "Optional language model of the Actor's agent: a model value from jarvis_listModels. Omit it for no model." },
             "initialMessage": { "type": "string", "description": "Optional first message queued for the new Actor." }
           }
         }
@@ -662,7 +702,9 @@ Actor Design Specifications
 
    **Acceptance Criteria:**
 
-   * AC-1: Error messages use the prefixes ``invalid actor name:`` and
+   * AC-1: Error messages use the prefixes ``invalid actor name:``,
+     ``invalid actor summary:``, ``model not available:``,
+     ``jarvis_createActor: model catalog not available`` and
      ``jarvis_createActor: no workspace open``.
    * AC-2: An existing folder, or an existing Actor with that name in any
      folder, yields ``created: false`` and no side effect, including no
@@ -677,11 +719,15 @@ Actor Design Specifications
      ``.jarvis/actors``, and states no fixed
      ``<workspace>/.jarvis/actors/<name>/`` path (``REQ_ACTOR_CREATETOOL``
      AC-2: the folder follows the setting).
+   * AC-7: The input schema requires ``name`` and ``summary`` and has the
+     optional ``model``. A blank summary and a model that is not in the list
+     raise their error before any file is written or message is queued; a call
+     without ``model`` never calls ``listModels``.
 
 
 .. spec:: Actor Identity via Own Agent
    :id: SPEC_ACTOR_WHOAMI
-   :status: approved
+   :status: implemented
    :links: REQ_ACTOR_WHOAMI; REQ_ACTOR_BINDING; SPEC_ACTOR_AGENT_DISCOVERY; SPEC_ACTOR_SCANNER; SPEC_ACTOR_CREATE
 
    **Description:**
@@ -708,8 +754,12 @@ Actor Design Specifications
        * was just created. Never throws; a failure is logged and returned.
        */
       export async function ensureActorAgent(
-          actor: { name: string; folder: string }
+          actor: { name: string; folder: string; summary?: string; model?: string }
       ): Promise<EnsureAgentResult>;
+
+   ``model`` is the value ``validateModel`` accepted, or the one the command's
+   picker offered. Only the two creation callers pass it. The function has no
+   access to the model list and never queries it.
 
    **Callers** (``REQ_ACTOR_WHOAMI`` AC-4), and only these:
 
@@ -717,9 +767,9 @@ Actor Design Specifications
      before the client creates the chat of an Actor, opens it or delivers into
      it, so one call there covers ``jarvis.openActorSession``,
      ``jarvis.sendMessages`` and the automatic announcement.
-   * ``jarvis.newActor`` (``SPEC_ACTOR_CREATE`` step 5).
+   * ``jarvis.newActor`` (``SPEC_ACTOR_CREATE`` step 6).
    * ``createActorHandler`` for ``jarvis_createActor``
-     (``SPEC_ACTOR_CREATETOOL`` step 5).
+     (``SPEC_ACTOR_CREATETOOL`` step 7).
 
    **Algorithm:**
 
@@ -749,10 +799,12 @@ Actor Design Specifications
       the file (``\n`` or ``\r\n``) is kept. The file is written only when
       the result differs from the content read.
    5. **Create.** Create the folder when needed and write the file below. The
-      front matter carries a ``description``, the summary of the Actor on one
-      line, because the Agent Host lists an agent file only when it has one
-      (``REQ_COM_CHATNAME`` AC-5); an existing file gets a ``description``
-      when it has none. A write error is logged and returns ``skipped``
+      front matter carries a ``description``: the summary of the Actor on one
+      line, or the Actor name when the summary is empty, because the Agent Host
+      lists an agent file only when it has one (``REQ_COM_CHATNAME`` AC-5); an
+      existing file gets a ``description`` by the same rule when it has none.
+      The front matter carries a ``model`` line when, and only when, the call
+      passed ``model``. A write error is logged and returns ``skipped``
       (``writeFailed``).
    6. Return ``{ status: 'ready', mode: <Actor name> }``.
 
@@ -763,15 +815,38 @@ Actor Design Specifications
 
       ---
       name: "<Actor name>"
+      description: "<summary on one line, or the Actor name>"
+      model: "<model>"
       ---
       You act as Actor <Actor name>
       Your context memory is <rel>. Read it and the files it links if you did not do that already or after a compaction.
 
-   The front matter is written only when the file is created; ``name`` is
-   double-quoted with ``\`` and ``"`` escaped (``yamlString``). An existing
-   file keeps everything except the two recognised lines. Persona content is
-   never written: the persona is referenced from ``context.md``
+   The front matter is written only when the file is created; its values are
+   double-quoted with ``\`` and ``"`` escaped (``yamlString``), and the
+   ``model`` line is left out when no model was passed. An existing file keeps
+   everything except the two recognised lines and a missing ``description``; its
+   ``model`` entries and custom content stay as they are, and a later change of
+   the model list does not touch them (``REQ_ACTOR_WHOAMI`` AC-14). Persona
+   content is never written: the persona is referenced from ``context.md``
    (``REQ_ACTOR_WHOAMI`` AC-8).
+
+   **Model value:** The line holds the ``model`` value of the catalog entry
+   (``SPEC_AUT_LISTMODELS``), the identifier of the language model. Reason: in
+   the source of VS Code 1.148.0 (read there, not yet observed live in Jarvis)
+   the Agent Host matches each entry of the agent's ``model`` against the
+   models of the session's harness, first by exact identifier, then by display
+   name (case-insensitive, with the optional qualifier ``(copilot)``), and for
+   other vendors by the qualified form ``<name> (<vendor>)``. Models of a
+   bring-your-own-key provider are matched by identifier only. The identifier
+   is therefore the one form that resolves for every class of model, while the
+   qualified display name that older agent files use belongs to the deprecated
+   Local harness. An entry that matches nothing is logged by the host
+   ("Custom agent model preference is not available") and no model is applied;
+   the chat shows no error. **Open:** the list of ``vscode.lm`` may name a
+   model that the host does not offer to the session's harness, so a validated
+   model might still not be applied. The User checks this in the model picker
+   of the new chat (Contract ``actor-creation-model``); the Developer reports
+   a finding when a listed model is not applied.
 
    **Warnings:** a warning notification for a given file and reason is shown
    at most once per window session, because the check runs on every open and
@@ -818,6 +893,13 @@ Actor Design Specifications
    * AC-9: Concurrent calls for one Actor name are serialized.
    * AC-10: The kernel instructions asset has no identity section, and its
      remaining sections keep their numbers (``## 1.`` to ``## 4.``).
+   * AC-11: A created agent file has a ``description`` that is the summary on
+     one line, or the Actor name when the summary is empty; an existing file
+     without one gets the same (``REQ_ACTOR_WHOAMI`` AC-13).
+   * AC-12: ``model`` is written only when ``ensureActorAgent`` creates the
+     file and the call passed ``model``. A call from ``resolveActorForChat``
+     passes none, queries no model list and keeps every ``model`` entry of an
+     existing file (``REQ_ACTOR_WHOAMI`` AC-14).
 
 
 

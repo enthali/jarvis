@@ -178,7 +178,7 @@ Actor Communication Requirements
 
 .. req:: Actor Chat Name
    :id: REQ_COM_CHATNAME
-   :status: approved
+   :status: implemented
    :priority: required
    :links: US_COM_NAME; REQ_COM_INJECT
 
@@ -201,7 +201,8 @@ Actor Communication Requirements
      lists, and the model applies, only agent files that have one. Jarvis writes
      the description when it creates the file and adds it to an existing agent
      file that has none (User, 2026-10-28). The description is the summary of
-     the Actor.
+     the Actor, or the Actor name when the summary is empty
+     (``REQ_ACTOR_WHOAMI`` AC-13).
    * AC-6: When the only chats that carry the name of an Actor are archived,
      Jarvis restores the one modified last before it opens it or delivers to it,
      because an archived chat is read-only in the editor (User, 2026-10-28). A
